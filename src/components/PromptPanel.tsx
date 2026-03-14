@@ -62,21 +62,32 @@ export function PromptPanel({
       </div>
 
       {/* Generate Button */}
-      <button
-        type="button"
-        onClick={isGenerating ? onCancel : onGenerate}
-        disabled={!isGenerating && !canGenerate}
-        className={`w-full py-2.5 text-sm font-medium rounded-full transition-colors shrink-0
-          ${
-            isGenerating
-              ? 'bg-error text-on-primary hover:bg-error/90'
-              : canGenerate
-                ? 'bg-primary text-on-primary hover:bg-primary-hover'
-                : 'bg-surface-container-high text-on-surface-variant/50 cursor-not-allowed'
-          }`}
-      >
-        {isGenerating ? '取消' : '生成'}
-      </button>
+      <div className="relative group/btn shrink-0">
+        <button
+          type="button"
+          onClick={isGenerating ? onCancel : onGenerate}
+          disabled={!isGenerating && !canGenerate}
+          className={`w-full py-2.5 text-sm font-medium rounded-full transition-colors
+            ${
+              isGenerating
+                ? 'bg-error text-on-primary hover:bg-error/90'
+                : canGenerate
+                  ? 'bg-primary text-on-primary hover:bg-primary-hover'
+                  : 'bg-surface-container-high text-on-surface-variant/50 cursor-not-allowed'
+            }`}
+        >
+          {isGenerating ? '取消' : '生成'}
+        </button>
+        {/* Tooltip: only shown when disabled due to missing API key */}
+        {!isGenerating && !apiKey.trim() && (
+          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1.5
+                          bg-on-surface text-surface text-xs rounded-lg
+                          whitespace-nowrap pointer-events-none
+                          opacity-0 group-hover/btn:opacity-100 transition-opacity">
+            请先配置 API 密钥
+          </div>
+        )}
+      </div>
     </div>
   )
 }
