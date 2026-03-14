@@ -57,7 +57,7 @@ export const ImageCard = memo(function ImageCard({ image, index, onAddToRef, onO
           onOpen(image)
         }
       }}
-      className="@container group relative h-full w-full cursor-pointer overflow-hidden rounded-2xl border border-outline-variant bg-surface-container"
+      className="@container group relative h-full w-full cursor-pointer overflow-hidden rounded-xl border border-outline-variant bg-surface-container"
     >
       <img
         src={src}
@@ -75,22 +75,22 @@ export const ImageCard = memo(function ImageCard({ image, index, onAddToRef, onO
       <div
         className={`pointer-events-none absolute inset-x-0 top-1/2 z-10 flex -translate-y-1/2 justify-center transition-all duration-300 ${toast ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}`}
       >
-        <div className="rounded-full bg-black/70 px-4 py-2 text-[12px] font-medium text-white backdrop-blur-sm">
+        <div className="rounded-full bg-black/70 px-4 py-2 text-xs font-medium text-white backdrop-blur-sm">
           已复制
         </div>
       </div>
 
       {/* Meta chip — top right, pill */}
       {meta && (
-        <div className="pointer-events-none absolute top-2.5 right-2.5 rounded-full bg-black/40 px-2.5 py-1 text-[10px] font-medium text-white/90 backdrop-blur-md">
+        <div className="pointer-events-none absolute top-2 right-2 rounded-full bg-black/40 px-2 py-1 text-2xs font-medium text-white/90 backdrop-blur-md">
           {meta.resolution} · {meta.aspectRatio}
         </div>
       )}
 
       {/* Bottom content */}
       <div className="absolute inset-x-0 bottom-0 p-3">
-        <div className="mb-2.5 min-w-0 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-          <div className="line-clamp-2 text-[12px] font-medium leading-[1.45] text-white/90">
+        <div className="mb-2 min-w-0 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+          <div className="line-clamp-2 text-xs font-medium leading-[1.45] text-white/90">
             {index !== undefined && (
               <span className="mr-1 text-white/50">#{index + 1}</span>
             )}
@@ -99,7 +99,7 @@ export const ImageCard = memo(function ImageCard({ image, index, onAddToRef, onO
         </div>
 
         {/* Action buttons — pill shape, slide up on hover */}
-        <div className="hidden md:grid grid-cols-2 @[200px]:grid-cols-4 gap-1 opacity-0 translate-y-1.5 transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100">
+        <div className="hidden md:grid grid-cols-2 @[200px]:grid-cols-4 gap-1 opacity-0 translate-y-2 transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100">
           <ActionButton label="+参考" onClick={() => onAddToRef(image)} />
           <ActionButton label="下载" onClick={handleDownload} />
           <ActionButton label="复制图" onClick={handleCopyImage} />
@@ -118,7 +118,7 @@ function ActionButton({ label, onClick }: { label: string; onClick: () => void }
         event.stopPropagation()
         onClick()
       }}
-      className="w-full rounded-full bg-white/20 px-2 py-1.5 text-[10px] font-medium text-white whitespace-nowrap backdrop-blur-sm transition-colors hover:bg-white/32"
+      className="w-full rounded-full bg-white/20 px-2 py-1 text-2xs font-medium text-white whitespace-nowrap backdrop-blur-sm transition-colors hover:bg-white/30 active:bg-white/40"
     >
       {label}
     </button>

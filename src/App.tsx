@@ -103,7 +103,7 @@ function App() {
           type="button"
           onClick={cycleTheme}
           className="w-8 h-8 flex items-center justify-center rounded-full
-                     hover:bg-surface-container-high transition-colors text-on-surface-variant"
+                     hover:bg-on-surface/8 active:bg-on-surface/12 transition-colors text-on-surface-variant"
         >
           {themeIcon}
         </button>
@@ -235,11 +235,11 @@ function App() {
                 className={`w-8 h-full flex items-center justify-center transition-colors
                   ${i > 0 ? 'border-l border-outline' : ''}
                   ${theme === t
-                    ? 'bg-primary-dim text-primary'
-                    : 'bg-transparent text-on-surface-variant hover:bg-on-surface/8 hover:text-on-surface'
+                    ? 'bg-primary-dim text-primary hover:bg-primary/15 active:bg-primary/20'
+                    : 'bg-transparent text-on-surface-variant hover:bg-on-surface/8 active:bg-on-surface/12 hover:text-on-surface'
                   }`}
               >
-                <svg className="w-[15px] h-[15px]" fill="currentColor" viewBox="0 0 24 24">{icon}</svg>
+                <svg className="w-[18px] h-[18px]" fill="currentColor" viewBox="0 0 24 24">{icon}</svg>
               </button>
             ))}
           </div>
@@ -253,7 +253,7 @@ function App() {
               onClick={toggleSidebar}
               aria-label={sidebarCollapsed ? '展开侧边栏' : '收起侧边栏'}
               className="w-8 h-8 flex items-center justify-center rounded-full
-                         hover:bg-surface-container-high transition-colors text-on-surface-variant"
+                         hover:bg-on-surface/8 active:bg-on-surface/12 transition-colors text-on-surface-variant"
             >
               {collapseIcon}
             </button>

@@ -89,12 +89,12 @@ export function ReferenceImageUpload({ images, maxTotal, onAdd, onAddImage, onRe
                   type="button"
                   onClick={() => onRemove(img.id)}
                   aria-label="移除参考图"
-                  className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-error text-on-primary
+                  className="absolute -top-2 -right-2 w-5 h-5 bg-error text-on-primary
                              rounded-full flex items-center justify-center
                              opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-100
                              transition-opacity [box-shadow:0_2px_8px_rgba(0,0,0,0.45)]"
                 >
-                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
                   </svg>
                 </button>

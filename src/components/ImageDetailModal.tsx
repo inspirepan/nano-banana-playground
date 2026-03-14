@@ -122,8 +122,8 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRemove
                   className="absolute top-4 left-1/2 -translate-x-1/2 z-10
                              flex items-center gap-1 rounded-full
                              border border-outline-variant/70 bg-surface/82
-                             pl-2 pr-3 py-1 text-[11px] text-on-surface
-                             shadow-sm backdrop-blur-sm transition-colors hover:bg-surface"
+                             pl-2 pr-3 py-1 text-2xs text-on-surface
+                             shadow-sm backdrop-blur-sm transition-colors hover:bg-surface active:bg-surface-dim"
                   aria-label="关闭对比"
                 >
                   <svg className="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 24 24">
@@ -154,7 +154,7 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRemove
                          w-9 h-9 items-center justify-center rounded-full
                          border border-outline-variant/70 bg-surface/82
                          text-on-surface shadow-sm backdrop-blur-sm
-                         transition-colors hover:bg-surface"
+                         transition-colors hover:bg-surface active:bg-surface-dim"
               aria-label="上一张"
             >
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
@@ -170,7 +170,7 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRemove
                          w-9 h-9 items-center justify-center rounded-full
                          border border-outline-variant/70 bg-surface/82
                          text-on-surface shadow-sm backdrop-blur-sm
-                         transition-colors hover:bg-surface"
+                         transition-colors hover:bg-surface active:bg-surface-dim"
               aria-label="下一张"
             >
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
@@ -183,7 +183,7 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRemove
           {canNavigate && !refDetail && (
             <div className="pointer-events-none absolute bottom-14 left-1/2 -translate-x-1/2 z-10
                             rounded-full border border-outline-variant bg-surface/82 px-3 py-1
-                            text-[11px] font-mono text-on-surface shadow-sm backdrop-blur-sm">
+                            text-2xs font-mono text-on-surface shadow-sm backdrop-blur-sm">
               {currentIdx + 1} / {history.length}
             </div>
           )}
@@ -197,8 +197,8 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRemove
               onClick={onClose}
               className="flex h-7 w-7 items-center justify-center rounded-full
                          border border-outline-variant text-on-surface-variant
-                         hover:bg-surface-container-high hover:border-outline
-                         transition-colors"
+                         hover:bg-on-surface/8 hover:border-outline
+                         active:bg-on-surface/12 transition-colors"
               aria-label="关闭"
             >
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
@@ -214,21 +214,21 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRemove
                 <MetaRow label="分辨率" value={currentMeta.resolution} />
                 <MetaRow label="宽高比" value={currentMeta.aspectRatio} />
                 <div>
-                  <div className="mb-1 text-[11px] font-medium text-on-surface-variant">提示词</div>
+                  <div className="mb-1 text-2xs font-medium text-on-surface-variant">提示词</div>
                   <div className="max-h-[40vh] overflow-y-auto rounded-xl bg-surface-container px-3 py-2 text-xs leading-relaxed text-on-surface whitespace-pre-wrap">
                     {currentMeta.prompt}
                   </div>
                 </div>
                 {currentMeta.referenceImageIds.length > 0 && (
                   <div>
-                    <div className="mb-1 text-[11px] font-medium text-on-surface-variant">
+                    <div className="mb-1 text-2xs font-medium text-on-surface-variant">
                       参考图片 ({currentMeta.referenceImageIds.length})
                     </div>
-                    <div className="flex flex-wrap gap-1.5">
+                    <div className="flex flex-wrap gap-2">
                       {currentMeta.referenceImageIds.map((refId) => {
                         const refImg = history.find((h) => h.id === refId)
                         if (!refImg) return (
-                          <div key={refId} className="h-12 w-12 rounded-md bg-surface-container border border-outline-variant flex items-center justify-center text-[10px] text-on-surface-variant/40">?</div>
+                          <div key={refId} className="h-12 w-12 rounded-md bg-surface-container border border-outline-variant flex items-center justify-center text-2xs text-on-surface-variant/40">?</div>
                         )
                         return (
                           <img
@@ -257,7 +257,7 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRemove
             <div
               className={`pointer-events-none absolute inset-x-0 top-0 flex -translate-y-1/2 justify-center transition-all duration-300 ${toast ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}`}
             >
-              <div className="rounded-lg bg-on-surface/80 px-3.5 py-2 text-[12px] font-medium text-surface backdrop-blur-sm">
+              <div className="rounded-lg bg-on-surface/80 px-4 py-2 text-xs font-medium text-surface backdrop-blur-sm">
                 已复制
               </div>
             </div>
@@ -271,7 +271,7 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRemove
               <button
                 type="button"
                 onClick={() => { onRemove(currentImage.id); onClose() }}
-                className="w-full rounded-full bg-error-dim py-2 text-xs font-medium text-error transition-colors hover:opacity-80 active:opacity-80"
+                className="w-full rounded-full bg-error-dim py-2 text-xs font-medium text-error transition-colors hover:bg-error/15 active:bg-error/20"
               >
                 删除
               </button>
@@ -542,25 +542,25 @@ function ZoomableImageView({ src, alt, label, onSwipeLeft, onSwipeRight }: {
 
       <div className="pointer-events-none absolute left-4 top-4 flex items-center gap-2">
         {label && (
-          <div className="rounded-full border border-outline-variant bg-surface/82 px-2.5 py-1 text-[11px] text-on-surface-variant shadow-sm backdrop-blur-sm">
+          <div className="rounded-full border border-outline-variant bg-surface/82 px-3 py-1 text-2xs text-on-surface-variant shadow-sm backdrop-blur-sm">
             {label}
           </div>
         )}
-        <div className="rounded-full border border-outline-variant bg-surface/82 px-3 py-1 text-[11px] font-mono text-on-surface shadow-sm backdrop-blur-sm">
+        <div className="rounded-full border border-outline-variant bg-surface/82 px-3 py-1 text-2xs font-mono text-on-surface shadow-sm backdrop-blur-sm">
           {Math.round(scale * 100)}%
         </div>
       </div>
 
-      <div className="absolute right-4 top-4 flex gap-1.5">
+      <div className="absolute right-4 top-4 flex gap-2">
         <button
           type="button"
           onClick={() => zoomAtPoint(scaleRef.current * 1.25, { x: 0, y: 0 })}
           className="flex items-center gap-1 rounded-full border border-outline-variant/70
-                     bg-surface/82 pl-2 pr-3 py-1 text-[11px] text-on-surface
-                     shadow-sm backdrop-blur-sm transition-colors hover:bg-surface active:bg-surface"
+                     bg-surface/82 pl-2 pr-3 py-1 text-2xs text-on-surface
+                     shadow-sm backdrop-blur-sm transition-colors hover:bg-surface active:bg-surface-dim"
           aria-label="放大"
         >
-          <svg className="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 24 24">
             <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14zm.5-7H9v2H7v1h2v2h1v-2h2V9h-2z"/>
           </svg>
           放大
@@ -569,11 +569,11 @@ function ZoomableImageView({ src, alt, label, onSwipeLeft, onSwipeRight }: {
           type="button"
           onClick={resetView}
           className="flex items-center gap-1 rounded-full border border-outline-variant/70
-                     bg-surface/82 pl-2 pr-3 py-1 text-[11px] text-on-surface
-                     shadow-sm backdrop-blur-sm transition-colors hover:bg-surface active:bg-surface"
+                     bg-surface/82 pl-2 pr-3 py-1 text-2xs text-on-surface
+                     shadow-sm backdrop-blur-sm transition-colors hover:bg-surface active:bg-surface-dim"
           aria-label="重置"
         >
-          <svg className="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 24 24">
             <path d="M15 3l2.3 2.3-2.89 2.87 1.42 1.42L18.7 6.7 21 9V3zM3 9l2.3-2.3 2.87 2.89 1.42-1.42L6.7 5.3 9 3H3zm6 12-2.3-2.3 2.89-2.87-1.42-1.42L5.3 17.3 3 15v6zm12-6-2.3 2.3-2.87-2.89-1.42 1.42 2.89 2.87L15 21h6z"/>
           </svg>
           重置
@@ -581,7 +581,7 @@ function ZoomableImageView({ src, alt, label, onSwipeLeft, onSwipeRight }: {
       </div>
 
       <div className="pointer-events-none absolute inset-x-0 bottom-4 flex justify-center px-4">
-        <div className="rounded-full border border-outline-variant bg-surface/78 px-3 py-1 text-[11px] text-on-surface-variant shadow-sm backdrop-blur-sm">
+        <div className="rounded-full border border-outline-variant bg-surface/78 px-3 py-1 text-2xs text-on-surface-variant shadow-sm backdrop-blur-sm">
           滚轮或双指缩放，拖动查看细节
         </div>
       </div>
@@ -592,7 +592,7 @@ function ZoomableImageView({ src, alt, label, onSwipeLeft, onSwipeRight }: {
 function MetaRow({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <div className="mb-0.5 text-[11px] font-medium text-on-surface-variant">{label}</div>
+      <div className="mb-1 text-2xs font-medium text-on-surface-variant">{label}</div>
       <div className="text-xs text-on-surface">{value}</div>
     </div>
   )
@@ -603,7 +603,7 @@ function ModalAction({ label, onClick }: { label: string; onClick: () => void | 
     <button
       type="button"
       onClick={onClick}
-      className="flex-1 rounded-full bg-surface-container py-2 text-xs font-medium text-on-surface transition-colors hover:bg-surface-container-high active:bg-surface-container-high"
+      className="flex-1 rounded-full bg-surface-container py-2 text-xs font-medium text-on-surface transition-colors hover:bg-on-surface/8 active:bg-on-surface/12"
     >
       {label}
     </button>

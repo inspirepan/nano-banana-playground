@@ -104,7 +104,7 @@ export function StructuredPromptForm({
       {/* Scheme cards */}
       {schemes.length > 1 && (
         <div className="flex flex-col gap-2 ml-1">
-          <p className="text-[11px] text-on-surface-variant/60 leading-snug">
+          <p className="text-2xs text-on-surface-variant/60 leading-snug">
             AI 生成了 {schemes.length} 个创意方案，选择一个查看和编辑，或一键全部生成
           </p>
           {schemes.map((scheme, i) => {
@@ -114,13 +114,13 @@ export function StructuredPromptForm({
                 key={i}
                 type="button"
                 onClick={() => onSelectScheme(i)}
-                className={`flex items-start gap-2.5 text-left px-3 py-2.5 rounded-2xl transition-colors w-full
+                className={`flex items-start gap-2 text-left px-3 py-2 rounded-xl transition-colors w-full
                   ${isSelected
-                    ? 'bg-primary-dim hover:bg-primary/15'
-                    : 'bg-surface-container-high hover:bg-on-surface/10'
+                    ? 'bg-primary-dim hover:bg-primary/15 active:bg-primary/20'
+                    : 'bg-surface-container-high hover:bg-on-surface/8 active:bg-on-surface/12'
                   }`}
               >
-                <span className={`mt-0.5 inline-block w-3.5 h-3.5 rounded-full border-2 shrink-0
+                <span className={`mt-1 inline-block w-3.5 h-3.5 rounded-full border-2 shrink-0
                   ${isSelected
                     ? 'border-primary bg-primary shadow-[inset_0_0_0_2px_var(--color-primary-dim)]'
                     : 'border-on-surface-variant/40 bg-transparent'
@@ -129,7 +129,7 @@ export function StructuredPromptForm({
                   <div className={`text-xs font-semibold leading-none ${isSelected ? 'text-primary' : 'text-on-surface'}`}>
                     {scheme.title}
                   </div>
-                  <div className={`mt-1 text-[11px] leading-snug ${isSelected ? 'text-primary/70' : 'text-on-surface-variant'}`}>
+                  <div className={`mt-1 text-2xs leading-snug ${isSelected ? 'text-primary/70' : 'text-on-surface-variant'}`}>
                     {scheme.description}
                   </div>
                 </div>
@@ -141,8 +141,8 @@ export function StructuredPromptForm({
             <button
               type="button"
               onClick={onCancel}
-              className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-2xl transition-colors
-                         bg-error text-on-primary hover:bg-error/90
+              className="flex items-center justify-center gap-2 px-3 py-2 rounded-full transition-colors
+                         bg-error text-on-primary hover:bg-error/90 active:bg-error/80
                          text-xs font-medium"
             >
               取消生成
@@ -153,8 +153,8 @@ export function StructuredPromptForm({
               onClick={onGenerateAll}
               onMouseEnter={() => onDraftBatchOverride(schemes.length)}
               onMouseLeave={() => onDraftBatchOverride(null)}
-              className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-2xl transition-colors
-                         bg-tertiary-dim text-tertiary hover:bg-tertiary hover:text-on-tertiary
+              className="flex items-center justify-center gap-2 px-3 py-2 rounded-full transition-colors
+                         bg-tertiary-dim text-tertiary hover:bg-tertiary hover:text-on-tertiary active:opacity-90
                          text-xs font-medium"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
@@ -164,7 +164,7 @@ export function StructuredPromptForm({
             </button>
           )}
           {costPerImage !== null && (
-            <p className="text-center text-[11px] text-on-surface-variant/60 -mt-0.5">
+            <p className="text-center text-2xs text-on-surface-variant/60">
               预估费用约 ${(costPerImage * schemes.length).toFixed(3)}
               <span className="ml-1 opacity-70">({schemes.length} 张 x ${costPerImage.toFixed(3)})</span>
             </p>
@@ -173,12 +173,12 @@ export function StructuredPromptForm({
       )}
 
       {/* Mode indicator */}
-      <div className="flex gap-1.5">
+      <div className="flex gap-2">
         <button
           type="button"
           onClick={() => updateField('mode', 'generate')}
           className={`px-3 py-1 text-xs rounded-full transition-colors
-            ${!isEdit ? 'bg-primary-dim text-primary font-semibold hover:bg-primary/15' : 'bg-surface-container-high text-on-surface hover:bg-on-surface/10'}`}
+            ${!isEdit ? 'bg-primary-dim text-primary font-semibold hover:bg-primary/15 active:bg-primary/20' : 'bg-surface-container-high text-on-surface hover:bg-on-surface/8 active:bg-on-surface/12'}`}
         >
           生成
         </button>
@@ -186,7 +186,7 @@ export function StructuredPromptForm({
           type="button"
           onClick={() => updateField('mode', 'edit')}
           className={`px-3 py-1 text-xs rounded-full transition-colors
-            ${isEdit ? 'bg-primary-dim text-primary font-semibold hover:bg-primary/15' : 'bg-surface-container-high text-on-surface hover:bg-on-surface/10'}`}
+            ${isEdit ? 'bg-primary-dim text-primary font-semibold hover:bg-primary/15 active:bg-primary/20' : 'bg-surface-container-high text-on-surface hover:bg-on-surface/8 active:bg-on-surface/12'}`}
         >
           编辑
         </button>
@@ -199,7 +199,7 @@ export function StructuredPromptForm({
 
         return (
           <div key={key}>
-            <label className="block text-xs font-medium text-on-surface-variant mb-1.5">
+            <label className="block text-xs font-medium text-on-surface-variant mb-2">
               {label}
             </label>
             <textarea
@@ -211,7 +211,7 @@ export function StructuredPromptForm({
               }}
               placeholder={placeholder}
               rows={1}
-              className="w-full min-h-11 px-3 py-2.5 text-sm leading-5 bg-surface-container-high rounded-xl
+              className="w-full min-h-11 px-3 py-2 text-sm leading-5 bg-surface-container-high rounded-xl
                          border-b-2 border-b-transparent
                          hover:bg-surface-container-high
                          focus:bg-surface-container-high focus:border-b-primary focus:outline-none
@@ -224,14 +224,14 @@ export function StructuredPromptForm({
 
       {/* Buttons to reveal hidden empty fields */}
       {hiddenFields.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-2">
           {hiddenFields.map(({ key, label }) => (
             <button
               key={key}
               type="button"
               onClick={() => setExpanded((prev) => new Set(prev).add(key))}
-              className="px-2.5 py-1 text-xs rounded-full transition-colors
-                         bg-surface-container-high text-on-surface hover:bg-on-surface/10"
+              className="px-3 py-1 text-xs rounded-full transition-colors
+                         bg-surface-container-high text-on-surface hover:bg-on-surface/8 active:bg-on-surface/12"
             >
               + {label}
             </button>

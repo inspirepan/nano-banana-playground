@@ -56,11 +56,11 @@ export function AspectRatioSelector({ options, value, resolution, onChange }: Pr
               <button
                 type="button"
                 onClick={() => onChange(option)}
-                className={`flex items-center gap-2 px-3 py-2.5 rounded-2xl transition-colors text-left w-full
+                className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-colors text-left w-full
                   ${
                     selected
-                      ? 'bg-primary-dim hover:bg-primary/15'
-                      : 'bg-surface-container md:bg-surface-container-high hover:bg-surface-container-high md:hover:bg-on-surface/10'
+                      ? 'bg-primary-dim hover:bg-primary/15 active:bg-primary/20'
+                      : 'bg-surface-container md:bg-surface-container-high hover:bg-surface-container-high md:hover:bg-on-surface/8 md:active:bg-on-surface/12'
                   }`}
               >
                 <div className="flex items-center justify-center w-5 h-5 shrink-0">
@@ -74,8 +74,8 @@ export function AspectRatioSelector({ options, value, resolution, onChange }: Pr
                 </div>
               </button>
               {/* Pixel tooltip */}
-              <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5
-                              px-2 py-1 rounded-lg text-[10px] font-mono leading-none whitespace-nowrap
+              <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2
+                              px-2 py-1 rounded-lg text-2xs font-mono leading-none whitespace-nowrap
                               bg-on-surface text-surface
                               opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-10">
                 {px}×{py}
@@ -89,11 +89,11 @@ export function AspectRatioSelector({ options, value, resolution, onChange }: Pr
           type="button"
           onClick={() => setExpanded((v) => !v)}
           data-no-ripple
-          className="col-span-2 flex items-center gap-1 px-2 py-1 text-[11px] font-medium text-on-surface-variant hover:text-on-surface transition-none focus:outline-none"
+          className="col-span-2 flex items-center gap-1 px-2 py-1 text-2xs font-medium text-on-surface-variant hover:text-on-surface transition-none focus:outline-none"
         >
           <span>{expanded ? '收起' : `+${hiddenCount} 更多`}</span>
           <svg
-            className={`w-3 h-3 transition-transform ${expanded ? 'rotate-180' : ''}`}
+            className={`w-4 h-4 transition-transform ${expanded ? 'rotate-180' : ''}`}
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"

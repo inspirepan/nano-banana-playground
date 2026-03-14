@@ -369,13 +369,13 @@ export function PromptPanel({
         {/* Prompt header - fixed */}
         <div className="flex items-center justify-between mb-3 min-h-[28px] shrink-0">
           <label className="text-xs font-medium text-on-surface-variant">提示词</label>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2">
             {mode === 'text' && canParseToStructured && (
               <div className="relative group/parse">
                 <button type="button" onClick={handleParseToStructured}
-                  className="flex items-center gap-1 px-2.5 py-1 text-xs rounded-full transition-colors
-                             bg-surface-container text-on-surface-variant hover:bg-surface-container-high">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                  className="flex items-center gap-1 px-3 py-1 text-xs rounded-full transition-colors
+                             bg-surface-container text-on-surface-variant hover:bg-on-surface/8 active:bg-on-surface/12">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1.001 1.001 0 0 0 0-1.41l-2.34-2.34a1.001 1.001 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
                   </svg>
                   结构化编辑
@@ -389,8 +389,8 @@ export function PromptPanel({
               <>
                 <div className="relative group/reaugment">
                   <button type="button" onClick={() => handleAugment(true)} disabled={!originalPrompt}
-                    className="flex items-center gap-1 px-2.5 py-1 text-xs rounded-full transition-colors bg-tertiary-dim text-tertiary hover:bg-tertiary hover:text-on-tertiary disabled:opacity-40 disabled:pointer-events-none">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                    className="flex items-center gap-1 px-3 py-1 text-xs rounded-full transition-colors bg-tertiary-dim text-tertiary hover:bg-tertiary hover:text-on-tertiary active:opacity-90 disabled:opacity-40 disabled:pointer-events-none">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
                     </svg>
                     重新增强
@@ -401,8 +401,8 @@ export function PromptPanel({
                 </div>
                 <div className="relative group/backtxt">
                   <button type="button" onClick={handleBackToText}
-                    className="flex items-center gap-1 px-2.5 py-1 text-xs rounded-full transition-colors bg-surface-container text-on-surface-variant hover:bg-surface-container-high">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                    className="flex items-center gap-1 px-3 py-1 text-xs rounded-full transition-colors bg-surface-container text-on-surface-variant hover:bg-on-surface/8 active:bg-on-surface/12">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M6.99 11L3 15l3.99 4v-3H14v-2H6.99v-3zM21 9l-3.99-4v3H10v2h7.01v3L21 9z" />
                     </svg>
                     文本编辑
@@ -414,8 +414,8 @@ export function PromptPanel({
                 {originalPrompt !== null && (
                   <div className="relative group/discard">
                     <button type="button" onClick={handleDiscardAugment}
-                      className="flex items-center gap-1 px-2.5 py-1 text-xs rounded-full transition-colors bg-error-dim text-error hover:bg-error hover:text-on-primary">
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                      className="flex items-center gap-1 px-3 py-1 text-xs rounded-full transition-colors bg-error-dim text-error hover:bg-error hover:text-on-primary active:opacity-90">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
                       </svg>
                       放弃增强
@@ -438,11 +438,11 @@ export function PromptPanel({
             <textarea ref={textareaRef} value={prompt}
               onChange={(e) => { onPromptChange(e.target.value); autoResizeTextarea(e.target) }}
               placeholder="描述你想生成的图片..." rows={1}
-              className="w-full px-3 py-2.5 pb-10 text-sm bg-surface-container rounded-xl border-b-2 border-b-outline-variant hover:bg-surface-container-high hover:border-b-outline focus:bg-surface-container-high focus:border-b-primary focus:outline-none placeholder:text-on-surface-variant/50 resize-none transition-colors overflow-hidden" />
-            <div className="absolute left-2 right-2 bottom-3 flex items-center gap-1.5 mb-1">
+              className="w-full px-3 py-3 pb-10 text-sm bg-surface-container rounded-xl border-b-2 border-b-outline-variant hover:bg-surface-container-high hover:border-b-outline focus:bg-surface-container-high focus:border-b-primary focus:outline-none placeholder:text-on-surface-variant/50 resize-none transition-colors overflow-hidden" />
+            <div className="absolute left-2 right-2 bottom-3 flex items-center gap-2 mb-1">
               {prompt.trim() && (
                 <button type="button" onClick={handleClear}
-                  className="px-2.5 py-1 text-xs rounded-full transition-colors bg-amber-100 text-amber-800 hover:bg-amber-200 dark:bg-amber-900/40 dark:text-amber-300 dark:hover:bg-amber-900/60">
+                  className="px-3 py-1 text-xs rounded-full transition-colors bg-surface-container-high text-on-surface-variant hover:bg-on-surface/8 active:bg-on-surface/12">
                   清空
                 </button>
               )}
@@ -458,7 +458,7 @@ export function PromptPanel({
               {canAugment && (
                 <div className="relative group/augment">
                   <button type="button" onClick={() => handleAugment(false)}
-                    className="flex items-center gap-1 px-2.5 py-1 text-xs rounded-full transition-colors bg-tertiary-dim text-tertiary hover:bg-tertiary hover:text-on-tertiary">
+                    className="flex items-center gap-1 px-3 py-1 text-xs rounded-full transition-colors bg-tertiary-dim text-tertiary hover:bg-tertiary hover:text-on-tertiary active:opacity-90">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19.46 8l.79-1.75L22 5.46c.39-.18.39-.73 0-.91l-1.75-.79L19.46 2c-.18-.39-.73-.39-.91 0l-.79 1.75-1.76.79c-.39.18-.39.73 0 .91l1.75.79.79 1.76c.18.39.74.39.92 0zM11.5 9.5L9.91 6c-.35-.78-1.47-.78-1.82 0L6.5 9.5 3 11.09c-.78.36-.78 1.47 0 1.82l3.5 1.59L8.09 18c.36.78 1.47.78 1.82 0l1.59-3.5 3.5-1.59c.78-.36.78-1.47 0-1.82L11.5 9.5zm7.04 6.5l-.79 1.75-1.75.79c-.39.18-.39.73 0 .91l1.75.79.79 1.76c.18.39.73.39.91 0l.79-1.75 1.76-.79c.39-.18.39-.73 0-.91l-1.75-.79-.79-1.76c-.18-.39-.74-.39-.92 0z" /></svg>
                     增强
                   </button>
@@ -483,7 +483,7 @@ export function PromptPanel({
         )}
 
         {mode === 'structured' && schemes.length > 0 && (
-          <div className="bg-surface-container rounded-2xl md:flex-1 md:min-h-0 md:overflow-y-auto">
+          <div className="bg-surface-container rounded-xl md:flex-1 md:min-h-0 md:overflow-y-auto">
             <StructuredPromptForm
               schemes={schemes}
               currentIndex={currentSchemeIndex}
@@ -511,8 +511,8 @@ export function PromptPanel({
             <div className="flex flex-wrap gap-2">
               {Array.from({ length: model.maxBatchCount }, (_, i) => i + 1).map((n) => (
                 <button key={n} type="button" onClick={() => onBatchCountChange(n)}
-                  className={`px-3.5 py-1.5 text-sm rounded-full transition-colors
-                    ${batchCount === n ? 'bg-primary-dim text-primary font-semibold hover:bg-primary/15' : 'bg-surface-container text-on-surface hover:bg-on-surface/10'}`}>
+                  className={`px-4 py-1 text-sm rounded-full transition-colors
+                    ${batchCount === n ? 'bg-primary-dim text-primary font-semibold hover:bg-primary/15 active:bg-primary/20' : 'bg-surface-container text-on-surface hover:bg-on-surface/8 active:bg-on-surface/12'}`}>
                   x{n}
                 </button>
               ))}
@@ -525,14 +525,14 @@ export function PromptPanel({
           <button type="button"
             onClick={isGenerating ? onCancel : () => onGenerate()}
             disabled={!isGenerating && !canGenerate}
-            className={`w-full py-2.5 text-sm font-medium rounded-full transition-colors
-              ${isGenerating ? 'bg-error text-on-primary hover:bg-error/90'
-                : canGenerate ? 'bg-primary text-on-primary hover:bg-primary-hover'
+            className={`w-full py-3 text-sm font-medium rounded-full transition-colors
+              ${isGenerating ? 'bg-error text-on-primary hover:bg-error/90 active:bg-error/80'
+                : canGenerate ? 'bg-primary text-on-primary hover:bg-primary-hover active:bg-primary/80'
                 : 'bg-surface-container-high text-on-surface-variant/50 cursor-not-allowed'}`}>
             {isGenerating ? '取消' : '生成'}
           </button>
           {!isGenerating && !apiKey.trim() && (
-            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1.5 bg-on-surface text-surface text-xs rounded-lg whitespace-nowrap pointer-events-none opacity-0 group-hover/btn:opacity-100 transition-opacity">
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-on-surface text-surface text-xs rounded-lg whitespace-nowrap pointer-events-none opacity-0 group-hover/btn:opacity-100 transition-opacity">
               请先配置 API 密钥
             </div>
           )}
@@ -549,10 +549,10 @@ export function PromptPanel({
 
       {/* Undo snackbar */}
       {undoToast && (
-        <div className="fixed bottom-6 inset-x-0 mx-auto w-fit z-50 flex items-center gap-2 pl-4 pr-2 py-2.5 bg-on-surface text-surface text-sm rounded-xl shadow-lg animate-[slideUp_200ms_ease-out]">
+        <div className="fixed bottom-6 inset-x-0 mx-auto w-fit z-50 flex items-center gap-2 pl-4 pr-2 py-3 bg-on-surface text-surface text-sm rounded-xl shadow-lg animate-[slideUp_200ms_ease-out]">
           <span>提示词已清空</span>
           <button type="button" onClick={handleUndo}
-            className="px-3 py-1 text-sm font-medium rounded-lg text-[#a8c7fa] dark:text-[#1a73e8] hover:bg-surface/10 transition-colors">撤销</button>
+            className="px-3 py-1 text-sm font-medium rounded-lg text-inverse-primary hover:bg-surface/10 active:bg-surface/15 transition-colors">撤销</button>
           <button type="button" onClick={handleDismissToast} className="p-1 rounded-full hover:bg-surface/10 transition-colors">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" /></svg>
           </button>

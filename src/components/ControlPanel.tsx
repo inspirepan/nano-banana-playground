@@ -43,17 +43,17 @@ export function ControlPanel({
         {/* Model Selector */}
         <div>
           <label className="block text-xs font-medium text-on-surface-variant mb-3">模型</label>
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-2">
             {MODEL_CONFIGS.map((m) => (
               <button
                 key={m.id}
                 type="button"
                 onClick={() => onSwitchModel(m.id)}
-                className={`block w-full px-5 py-2.5 text-xs rounded-2xl transition-colors text-center leading-snug
+                className={`block w-full px-5 py-2 text-xs rounded-xl transition-colors text-center leading-snug
                   ${
                     model.id === m.id
-                      ? 'bg-primary-dim text-primary font-medium hover:bg-primary/15'
-                      : 'bg-surface-container md:bg-surface-container-high text-on-surface font-medium hover:bg-surface-container-high md:hover:bg-on-surface/10'
+                      ? 'bg-primary-dim text-primary font-medium hover:bg-primary/15 active:bg-primary/20'
+                      : 'bg-surface-container md:bg-surface-container-high text-on-surface font-medium hover:bg-surface-container-high md:hover:bg-on-surface/8 md:active:bg-on-surface/12'
                   }`}
               >
                 🍌 {m.name}

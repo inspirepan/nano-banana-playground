@@ -18,8 +18,8 @@ export function ChipGroup({ label, options, value, onChange }: Props) {
             className={`px-3 py-2 text-xs rounded-full transition-colors
               ${
                 value === option
-                  ? 'bg-primary-dim text-primary font-medium hover:bg-primary/15'
-                  : 'bg-surface-container md:bg-surface-container-high text-on-surface font-medium hover:bg-surface-container-high md:hover:bg-on-surface/10'
+                  ? 'bg-primary-dim text-primary font-medium hover:bg-primary/15 active:bg-primary/20'
+                  : 'bg-surface-container md:bg-surface-container-high text-on-surface font-medium hover:bg-surface-container-high md:hover:bg-on-surface/8 md:active:bg-on-surface/12'
               }`}
           >
             {option}

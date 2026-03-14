@@ -55,7 +55,7 @@ function SkeletonCard({ aspectRatio, resolution }: { aspectRatio: string; resolu
   return (
     <div className="w-full h-full rounded-xl bg-surface-container overflow-hidden relative">
       <div className="absolute inset-0 flex items-center justify-center">
-        <div className="text-on-surface-variant/30 text-xs font-mono">{resolution} {aspectRatio}</div>
+        <div className="text-2xs font-mono text-on-surface-variant/30">{resolution} {aspectRatio}</div>
       </div>
       <div className="absolute skeleton-shimmer" style={{ animationDelay: `${delayRef.current}s` }} />
     </div>
@@ -68,7 +68,7 @@ function LoadingCard({ index }: { index: number }) {
       <div className="absolute inset-0 flex items-center justify-center">
         <div className="text-center space-y-2">
           <div className="w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin mx-auto" />
-          <div className="text-on-surface-variant/50 text-[11px] font-mono">{`生成中 #${index + 1}...`}</div>
+          <div className="text-2xs font-mono text-on-surface-variant/50">{`生成中 #${index + 1}...`}</div>
         </div>
       </div>
     </div>
@@ -80,8 +80,8 @@ function FailedCard({ index }: { index: number }) {
     <div className="w-full h-full rounded-xl border border-error/20 bg-error-dim/40 overflow-hidden relative">
       <div className="absolute inset-0 flex items-center justify-center">
         <div className="text-center space-y-2">
-          <div className="mx-auto flex h-5 w-5 items-center justify-center rounded-full bg-error/12 text-error text-[11px] font-bold">×</div>
-          <div className="text-error/80 text-[11px] font-mono">{`失败 #${index + 1}`}</div>
+          <div className="mx-auto flex h-5 w-5 items-center justify-center rounded-full bg-error/12 text-error text-xs font-bold">×</div>
+          <div className="text-2xs font-mono text-error/80">{`失败 #${index + 1}`}</div>
         </div>
       </div>
     </div>
@@ -175,7 +175,7 @@ export const OutputPanel = memo(function OutputPanel({
         <div className="mb-6">
           <div className="mb-2 flex items-center justify-between gap-3">
             <div className="text-xs font-medium text-on-surface-variant">预览</div>
-            <div className="text-[11px] font-mono text-on-surface-variant/50">
+            <div className="text-2xs font-mono text-on-surface-variant/50">
               {completedCount} / {draftCount}
             </div>
           </div>
@@ -209,7 +209,7 @@ export const OutputPanel = memo(function OutputPanel({
               type="button"
               onClick={handleExportAll}
               disabled={exporting}
-              className="text-[11px] text-primary hover:text-primary/80 transition-colors disabled:text-on-surface-variant/30"
+              className="text-2xs text-primary hover:text-primary/80 transition-colors disabled:text-on-surface-variant/30"
             >
               {exporting ? '导出中...' : '导出全部'}
             </button>
@@ -217,7 +217,7 @@ export const OutputPanel = memo(function OutputPanel({
           {batches.map((batch) => {
             return (
               <div key={batch.batchId}>
-                <div className="mb-2 flex items-center justify-between gap-3 text-[11px] font-mono text-on-surface-variant/50">
+                <div className="mb-2 flex items-center justify-between gap-3 text-2xs font-mono text-on-surface-variant/50">
                   <div>{formatTime(batch.timestamp)}</div>
                   <div className="truncate">
                     {batch.resolution} · {batch.aspectRatio} · {batch.images.length} 张
@@ -242,7 +242,7 @@ export const OutputPanel = memo(function OutputPanel({
             <button
               type="button"
               onClick={onClearAll}
-              className="text-[11px] text-error hover:text-error/80 transition-colors"
+              className="text-2xs text-error hover:text-error/80 transition-colors"
             >
               清除全部
             </button>
