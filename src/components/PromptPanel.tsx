@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import type { PlaygroundImage, StructuredPrompt } from '../lib/types'
 import type { ModelConfig } from '../config/models'
 import type { GenerationState } from '../hooks/usePlayground'
@@ -134,6 +134,16 @@ function parsePrompt(text: string): StructuredPrompt | null {
   return fields
 }
 
+// --- Auto-resize textarea ---
+const TEXTAREA_MIN_HEIGHT = 120 // min px (roughly 5 lines)
+const TEXTAREA_BOTTOM_PAD = 36 // space for bottom action buttons
+
+function autoResizeTextarea(el: HTMLTextAreaElement) {
+  el.style.height = 'auto'
+  const target = Math.max(el.scrollHeight + TEXTAREA_BOTTOM_PAD, TEXTAREA_MIN_HEIGHT)
+  el.style.height = `${target}px`
+}
+
 type Props = {
   model: ModelConfig
   resolution: string
@@ -176,9 +186,20 @@ export function PromptPanel({
   const [structuredFields, setStructuredFields] = useState<StructuredPrompt>(EMPTY_STRUCTURED)
   const [augmentError, setAugmentError] = useState<string | null>(null)
   const abortRef = useRef<AbortController | null>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  // Undo toast state
+  const [undoToast, setUndoToast] = useState<{ text: string; timer: number } | null>(null)
 
   const canAugment = apiKey.trim() !== '' && prompt.trim() !== ''
   const canParseToStructured = mode === 'text' && parsePrompt(prompt) !== null
+
+  // Auto-resize textarea when prompt changes externally (e.g. after augment round-trip)
+  useEffect(() => {
+    if (mode === 'text' && textareaRef.current) {
+      autoResizeTextarea(textareaRef.current)
+    }
+  }, [prompt, mode])
 
   const handleAugment = useCallback(async () => {
     if (!canAugment) return
@@ -226,6 +247,30 @@ export function PromptPanel({
     setMode('text')
   }, [])
 
+  const handleClear = useCallback(() => {
+    const saved = prompt
+    onPromptChange('')
+    // Show undo toast
+    const timer = window.setTimeout(() => setUndoToast(null), 5000)
+    // Clear any existing toast timer
+    setUndoToast((prev) => {
+      if (prev) window.clearTimeout(prev.timer)
+      return { text: saved, timer }
+    })
+  }, [prompt, onPromptChange])
+
+  const handleUndo = useCallback(() => {
+    if (!undoToast) return
+    onPromptChange(undoToast.text)
+    window.clearTimeout(undoToast.timer)
+    setUndoToast(null)
+  }, [undoToast, onPromptChange])
+
+  const handleDismissToast = useCallback(() => {
+    if (undoToast) window.clearTimeout(undoToast.timer)
+    setUndoToast(null)
+  }, [undoToast])
+
   return (
     <div className="w-full md:w-[360px] md:shrink-0 flex flex-col gap-4 overflow-y-auto py-4 pr-4">
       {/* Reference Images */}
@@ -257,18 +302,35 @@ export function PromptPanel({
         {mode === 'text' && (
           <div className="relative">
             <textarea
+              ref={textareaRef}
               value={prompt}
-              onChange={(e) => onPromptChange(e.target.value)}
+              onChange={(e) => {
+                onPromptChange(e.target.value)
+                autoResizeTextarea(e.target)
+              }}
               placeholder="描述你想生成的图片..."
-              rows={8}
-              className="w-full px-3 py-2.5 text-sm bg-surface-container rounded-xl
+              rows={1}
+              className="w-full px-3 py-2.5 pb-10 text-sm bg-surface-container rounded-xl
                          border-b-2 border-b-outline-variant
                          hover:bg-surface-container-high hover:border-b-outline
                          focus:bg-surface-container-high focus:border-b-primary focus:outline-none
-                         placeholder:text-on-surface-variant/50 resize-y transition-colors"
+                         placeholder:text-on-surface-variant/50 resize-none transition-colors
+                         overflow-hidden"
             />
-            {/* Bottom-right action buttons */}
-            <div className="absolute right-2 bottom-3 flex items-center gap-1.5">
+            {/* Bottom action bar inside textarea */}
+            <div className="absolute left-2 right-2 bottom-3 flex items-center gap-1.5 mb-1">
+              {prompt.trim() && (
+                <button
+                  type="button"
+                  onClick={handleClear}
+                  className="px-2.5 py-1 text-xs rounded-full transition-colors
+                             bg-amber-100 text-amber-800 hover:bg-amber-200
+                             dark:bg-amber-900/40 dark:text-amber-300 dark:hover:bg-amber-900/60"
+                >
+                  清空
+                </button>
+              )}
+              <div className="flex-1" />
               {canParseToStructured && (
                 <button
                   type="button"
@@ -360,6 +422,34 @@ export function PromptPanel({
           预估费用约 ${estimatedCost.toFixed(3)}
           <span className="ml-1 opacity-70">({batchCount} 张 × ${pricePerImage!.toFixed(3)})</span>
         </p>
+      )}
+
+      {/* Undo snackbar (MD3) */}
+      {undoToast && (
+        <div className="fixed bottom-6 inset-x-0 mx-auto w-fit z-50
+                        flex items-center gap-2 pl-4 pr-2 py-2.5
+                        bg-on-surface text-surface text-sm rounded-xl shadow-lg
+                        animate-[slideUp_200ms_ease-out]">
+          <span>提示词已清空</span>
+          <button
+            type="button"
+            onClick={handleUndo}
+            className="px-3 py-1 text-sm font-medium rounded-lg
+                       text-[#a8c7fa] dark:text-[#1a73e8]
+                       hover:bg-surface/10 transition-colors"
+          >
+            撤销
+          </button>
+          <button
+            type="button"
+            onClick={handleDismissToast}
+            className="p-1 rounded-full hover:bg-surface/10 transition-colors"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+            </svg>
+          </button>
+        </div>
       )}
     </div>
   )
