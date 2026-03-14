@@ -20,18 +20,76 @@ const EMPTY_STRUCTURED: StructuredPrompt = {
   constraints: '',
 }
 
+// Labels used in the text format, mapped to StructuredPrompt keys
+const LABEL_ENTRIES: [string, keyof StructuredPrompt][] = [
+  ['构图', 'composition'],
+  ['风格', 'style'],
+  ['光影', 'lighting'],
+  ['色彩', 'colorPalette'],
+  ['画中文字', 'textInImage'],
+  ['画面中的文字', 'textInImage'],
+  ['约束', 'constraints'],
+  ['避免', 'constraints'],
+]
+
 function assemblePrompt(fields: StructuredPrompt): string {
-  const parts: string[] = []
-  if (fields.subject) parts.push(fields.subject)
-  if (fields.action) parts.push(fields.action)
-  if (fields.scene) parts.push(fields.scene)
-  if (fields.composition) parts.push(`构图：${fields.composition}`)
-  if (fields.style) parts.push(`风格：${fields.style}`)
-  if (fields.lighting) parts.push(`光影：${fields.lighting}`)
-  if (fields.colorPalette) parts.push(`色彩：${fields.colorPalette}`)
-  if (fields.textInImage) parts.push(`画面中的文字："${fields.textInImage}"`)
-  if (fields.constraints) parts.push(`避免：${fields.constraints}`)
-  return parts.filter((p) => p.trim()).join('。')
+  const lines: string[] = []
+  // Description block (unlabeled)
+  const desc = [fields.subject, fields.action, fields.scene]
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .join('\n')
+  if (desc) lines.push(desc)
+  // Labeled sections
+  if (fields.composition.trim()) lines.push(`构图：${fields.composition.trim()}`)
+  if (fields.style.trim()) lines.push(`风格：${fields.style.trim()}`)
+  if (fields.lighting.trim()) lines.push(`光影：${fields.lighting.trim()}`)
+  if (fields.colorPalette.trim()) lines.push(`色彩：${fields.colorPalette.trim()}`)
+  if (fields.textInImage.trim()) lines.push(`画中文字："${fields.textInImage.trim()}"`)
+  if (fields.constraints.trim()) lines.push(`避免：${fields.constraints.trim()}`)
+  return lines.join('\n')
+}
+
+/**
+ * Parse a prompt string with labeled sections back into structured fields.
+ * Returns null if no labeled sections are found.
+ */
+function parsePrompt(text: string): StructuredPrompt | null {
+  // Find all label positions in the text
+  const markers: { pos: number; end: number; key: keyof StructuredPrompt }[] = []
+  for (const [label, key] of LABEL_ENTRIES) {
+    const needle = `${label}：`
+    let searchFrom = 0
+    // Only take the first occurrence of each label
+    const idx = text.indexOf(needle, searchFrom)
+    if (idx !== -1 && !markers.some((m) => m.key === key)) {
+      markers.push({ pos: idx, end: idx + needle.length, key })
+    }
+  }
+
+  if (markers.length === 0) return null
+
+  markers.sort((a, b) => a.pos - b.pos)
+
+  const fields: StructuredPrompt = { ...EMPTY_STRUCTURED }
+
+  // Text before first label -> subject (description block)
+  const desc = text.slice(0, markers[0].pos).replace(/[\n。\s]+$/, '').trim()
+  if (desc) fields.subject = desc
+
+  // Extract each labeled section
+  for (let i = 0; i < markers.length; i++) {
+    const start = markers[i].end
+    const end = i + 1 < markers.length ? markers[i + 1].pos : text.length
+    let value = text.slice(start, end).replace(/[\n。\s]+$/, '').trim()
+    const key = markers[i].key
+    if (key === 'textInImage') {
+      value = value.replace(/^["\u201C]|["\u201D]$/g, '')
+    }
+    fields[key] = value
+  }
+
+  return fields
 }
 
 type Props = {
@@ -76,12 +134,10 @@ export function PromptPanel({
   const [structuredFields, setStructuredFields] = useState<StructuredPrompt>(EMPTY_STRUCTURED)
   const [augmentError, setAugmentError] = useState<string | null>(null)
   const abortRef = useRef<AbortController | null>(null)
-  // Snapshot of the assembled prompt when last in structured mode
-  const assembledRef = useRef<string | null>(null)
 
   const canAugment = apiKey.trim() !== '' && prompt.trim() !== ''
-  // Cache is valid if fields exist and user hasn't edited the textarea since leaving structured mode
-  const hasCachedFields = assembledRef.current !== null && prompt === assembledRef.current
+  // Text is parseable into structured fields if it contains labeled sections
+  const canParseToStructured = mode === 'text' && parsePrompt(prompt) !== null
 
   const handleAugment = useCallback(async () => {
     if (!canAugment) return
@@ -94,9 +150,7 @@ export function PromptPanel({
     try {
       const result = await augmentPrompt(apiKey, prompt, controller.signal)
       setStructuredFields(result)
-      const assembled = assemblePrompt(result)
-      assembledRef.current = assembled
-      onPromptChange(assembled)
+      onPromptChange(assemblePrompt(result))
       setMode('structured')
     } catch (e) {
       if ((e as Error).name !== 'AbortError') {
@@ -114,19 +168,21 @@ export function PromptPanel({
   const handleFieldChange = useCallback(
     (fields: StructuredPrompt) => {
       setStructuredFields(fields)
-      const assembled = assemblePrompt(fields)
-      assembledRef.current = assembled
-      onPromptChange(assembled)
+      onPromptChange(assemblePrompt(fields))
     },
     [onPromptChange],
   )
 
-  const handleRestoreStructured = useCallback(() => {
+  const handleParseToStructured = useCallback(() => {
+    const parsed = parsePrompt(prompt)
+    if (!parsed) return
+    setStructuredFields(parsed)
+    // Re-assemble to normalize the format (newline-separated)
+    onPromptChange(assemblePrompt(parsed))
     setMode('structured')
-  }, [])
+  }, [prompt, onPromptChange])
 
   const handleBackToText = useCallback(() => {
-    // Keep structuredFields cached so user can switch back without re-calling API
     setMode('text')
   }, [])
 
@@ -171,34 +227,35 @@ export function PromptPanel({
                          focus:bg-surface-container-high focus:border-b-primary focus:outline-none
                          placeholder:text-on-surface-variant/50 resize-y transition-colors"
             />
-            {/* Bottom-right action: restore cached structured fields, or augment via API */}
-            {hasCachedFields ? (
-              <button
-                type="button"
-                onClick={handleRestoreStructured}
-                className="absolute right-2 bottom-3 flex items-center gap-1
-                           px-2.5 py-1 text-xs rounded-full transition-colors
-                           bg-primary-dim text-primary hover:bg-primary hover:text-on-primary"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1.001 1.001 0 0 0 0-1.41l-2.34-2.34a1.001 1.001 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
-                </svg>
-                结构化编辑
-              </button>
-            ) : canAugment ? (
-              <button
-                type="button"
-                onClick={handleAugment}
-                className="absolute right-2 bottom-3 flex items-center gap-1
-                           px-2.5 py-1 text-xs rounded-full transition-colors
-                           bg-primary-dim text-primary hover:bg-primary hover:text-on-primary"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M19.46 8l.79-1.75L22 5.46c.39-.18.39-.73 0-.91l-1.75-.79L19.46 2c-.18-.39-.73-.39-.91 0l-.79 1.75-1.76.79c-.39.18-.39.73 0 .91l1.75.79.79 1.76c.18.39.74.39.92 0zM11.5 9.5L9.91 6c-.35-.78-1.47-.78-1.82 0L6.5 9.5 3 11.09c-.78.36-.78 1.47 0 1.82l3.5 1.59L8.09 18c.36.78 1.47.78 1.82 0l1.59-3.5 3.5-1.59c.78-.36.78-1.47 0-1.82L11.5 9.5zm7.04 6.5l-.79 1.75-1.75.79c-.39.18-.39.73 0 .91l1.75.79.79 1.76c.18.39.73.39.91 0l.79-1.75 1.76-.79c.39-.18.39-.73 0-.91l-1.75-.79-.79-1.76c-.18-.39-.74-.39-.92 0z" />
-                </svg>
-                增强
-              </button>
-            ) : null}
+            {/* Bottom-right action buttons */}
+            <div className="absolute right-2 bottom-3 flex items-center gap-1.5">
+              {canParseToStructured && (
+                <button
+                  type="button"
+                  onClick={handleParseToStructured}
+                  className="flex items-center gap-1 px-2.5 py-1 text-xs rounded-full transition-colors
+                             bg-primary-dim text-primary hover:bg-primary hover:text-on-primary"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1.001 1.001 0 0 0 0-1.41l-2.34-2.34a1.001 1.001 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
+                  </svg>
+                  结构化编辑
+                </button>
+              )}
+              {canAugment && (
+                <button
+                  type="button"
+                  onClick={handleAugment}
+                  className="flex items-center gap-1 px-2.5 py-1 text-xs rounded-full transition-colors
+                             bg-primary-dim text-primary hover:bg-primary hover:text-on-primary"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19.46 8l.79-1.75L22 5.46c.39-.18.39-.73 0-.91l-1.75-.79L19.46 2c-.18-.39-.73-.39-.91 0l-.79 1.75-1.76.79c-.39.18-.39.73 0 .91l1.75.79.79 1.76c.18.39.74.39.92 0zM11.5 9.5L9.91 6c-.35-.78-1.47-.78-1.82 0L6.5 9.5 3 11.09c-.78.36-.78 1.47 0 1.82l3.5 1.59L8.09 18c.36.78 1.47.78 1.82 0l1.59-3.5 3.5-1.59c.78-.36.78-1.47 0-1.82L11.5 9.5zm7.04 6.5l-.79 1.75-1.75.79c-.39.18-.39.73 0 .91l1.75.79.79 1.76c.18.39.73.39.91 0l.79-1.75 1.76-.79c.39-.18.39-.73 0-.91l-1.75-.79-.79-1.76c-.18-.39-.74-.39-.92 0z" />
+                  </svg>
+                  增强
+                </button>
+              )}
+            </div>
           </div>
         )}
 
