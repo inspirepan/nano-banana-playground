@@ -39,16 +39,18 @@ export function AspectRatioSelector({ options, value, resolution, onChange }: Pr
   const isSelectedCommon = COMMON_RATIOS.includes(value)
   const [expanded, setExpanded] = useState(!isSelectedCommon)
 
+  const commonOptions = options.filter((o) => COMMON_RATIOS.includes(o) || o === value)
+  const extraOptions = options.filter((o) => !COMMON_RATIOS.includes(o) && o !== value)
   const visibleOptions = expanded
-    ? options
-    : options.filter((o) => COMMON_RATIOS.includes(o) || o === value)
+    ? [...commonOptions, ...extraOptions]
+    : commonOptions
 
   const hiddenCount = options.length - visibleOptions.length
 
   return (
     <div>
       <label className="block text-xs font-medium text-on-surface-variant mb-3">宽高比</label>
-      <div className="flex flex-col gap-1 items-start">
+      <div className="grid grid-cols-2 gap-1">
         {visibleOptions.map((option) => {
           const selected = value === option
           const [px, py] = computePixels(option, resolution)
@@ -58,7 +60,7 @@ export function AspectRatioSelector({ options, value, resolution, onChange }: Pr
               key={option}
               type="button"
               onClick={() => onChange(option)}
-              className={`flex items-center gap-2 px-2 py-2 rounded-2xl transition-colors text-left w-30
+              className={`flex items-center gap-2 px-2 py-2 rounded-2xl transition-colors text-left
                 ${
                   selected
                     ? 'bg-primary-dim'
@@ -75,7 +77,7 @@ export function AspectRatioSelector({ options, value, resolution, onChange }: Pr
                 <div className={`text-xs font-semibold leading-none ${selected ? 'text-primary' : 'text-on-surface'}`}>
                   {option}
                 </div>
-                <div className={`text-[10px] font-mono leading-none mt-1 truncate ${selected ? 'text-primary/70' : 'text-on-surface-variant/50'}`}>
+                <div className={`text-[8px] font-mono leading-none mt-1 truncate ${selected ? 'text-primary/70' : 'text-on-surface-variant/50'}`}>
                   {px}×{py}
                 </div>
               </div>
@@ -87,11 +89,11 @@ export function AspectRatioSelector({ options, value, resolution, onChange }: Pr
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
-          className="flex items-center gap-1 px-2 py-1 text-[11px] font-medium text-on-surface-variant hover:text-on-surface transition-colors"
+          className="col-span-2 flex items-center gap-1 px-2 py-1 text-[11px] font-medium text-on-surface-variant hover:text-on-surface"
         >
           <span>{expanded ? '收起' : `+${hiddenCount} 更多`}</span>
           <svg
-            className={`w-3 h-3 transition-transform ${expanded ? 'rotate-180' : ''}`}
+            className={`w-3 h-3 ${expanded ? 'rotate-180' : ''}`}
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"

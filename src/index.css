@@ -45,6 +45,10 @@
   --color-outline: #dadce0;
   --color-outline-variant: #e8eaed;
 
+  --color-tertiary: #6750a4;
+  --color-on-tertiary: #ffffff;
+  --color-tertiary-dim: rgba(103, 80, 164, 0.10);
+
   --color-error: #d93025;
   --color-error-dim: rgba(217, 48, 37, 0.08);
 }
@@ -97,6 +101,10 @@
     --color-on-surface-variant: #9aa0a6;
     --color-outline: #3c4043;
     --color-outline-variant: #333537;
+
+    --color-tertiary: #d0bcff;
+    --color-on-tertiary: #381e72;
+    --color-tertiary-dim: rgba(208, 188, 255, 0.12);
 
     --color-error: #f28b82;
     --color-error-dim: rgba(242, 139, 130, 0.12);

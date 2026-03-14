@@ -145,8 +145,7 @@ export function StructuredPromptForm({
               onMouseEnter={() => onDraftBatchOverride(schemes.length)}
               onMouseLeave={() => onDraftBatchOverride(null)}
               className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-2xl transition-colors
-                         bg-purple-100 text-purple-700 hover:bg-purple-600 hover:text-white
-                         dark:bg-purple-900/40 dark:text-purple-300 dark:hover:bg-purple-600 dark:hover:text-white
+                         bg-tertiary-dim text-tertiary hover:bg-tertiary hover:text-on-tertiary
                          text-xs font-medium"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">

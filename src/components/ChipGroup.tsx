@@ -15,11 +15,11 @@ export function ChipGroup({ label, options, value, onChange }: Props) {
             key={option}
             type="button"
             onClick={() => onChange(option)}
-            className={`px-3 py-1 text-xs rounded-full transition-colors
+            className={`px-3 py-2 text-xs rounded-full transition-colors
               ${
                 value === option
-                  ? 'bg-primary-dim text-primary font-semibold'
-                  : 'bg-surface-container text-on-surface font-semibold hover:bg-surface-container-high'
+                  ? 'bg-primary-dim text-primary font-medium'
+                  : 'bg-surface-container text-on-surface font-medium hover:bg-surface-container-high'
               }`}
           >
             {option}
