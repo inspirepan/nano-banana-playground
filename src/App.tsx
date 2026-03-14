@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Agentation } from 'agentation'
 import { usePlayground } from './hooks/usePlayground'
+import type { PlaygroundImage } from './lib/types'
 import { ControlPanel } from './components/ControlPanel'
 import { PromptPanel } from './components/PromptPanel'
 import { OutputPanel } from './components/OutputPanel'
@@ -16,6 +17,17 @@ function getInitialTheme(): Theme {
 function App() {
   const pg = usePlayground()
   const [theme, setTheme] = useState<Theme>(getInitialTheme)
+  const mobileRefAreaRef = useRef<HTMLDivElement>(null)
+
+  const handleAddToRef = (image: PlaygroundImage) => {
+    pg.addToReferences(image)
+    // On mobile, scroll to the reference image upload area after adding
+    if (window.innerWidth < 768) {
+      setTimeout(() => {
+        mobileRefAreaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }, 100)
+    }
+  }
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark')
     localStorage.setItem('nano-banana-theme', theme)
@@ -68,7 +80,7 @@ function App() {
           onAspectRatioChange={pg.setAspectRatio}
           onBatchCountChange={pg.setBatchCount}
         />
-        <div className="border-t border-outline/10">
+        <div ref={mobileRefAreaRef} className="border-t border-outline/10">
           <PromptPanel
             model={pg.model}
             resolution={pg.resolution}
@@ -95,7 +107,7 @@ function App() {
             batchCount={pg.batchCount}
             aspectRatio={pg.aspectRatio}
             resolution={pg.resolution}
-            onAddToRef={pg.addToReferences}
+            onAddToRef={handleAddToRef}
             onRemove={pg.removeFromHistory}
             onClearAll={pg.clearAllHistory}
           />
@@ -175,7 +187,7 @@ function App() {
         batchCount={pg.batchCount}
         aspectRatio={pg.aspectRatio}
         resolution={pg.resolution}
-        onAddToRef={pg.addToReferences}
+        onAddToRef={handleAddToRef}
         onRemove={pg.removeFromHistory}
         onClearAll={pg.clearAllHistory}
       />
