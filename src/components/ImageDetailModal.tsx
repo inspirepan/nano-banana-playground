@@ -25,8 +25,14 @@ type Size = {
 }
 
 export function ImageDetailModal({ image, history, onClose, onAddToRef, onRemove }: Props) {
-  const src = `data:${image.mimeType};base64,${image.data}`
-  const meta = image.source.type === 'generated' ? image.source : null
+  // Navigation: -1 means image is not in history (e.g. uploaded reference)
+  const [currentIdx, setCurrentIdx] = useState(() => history.findIndex(h => h.id === image.id))
+
+  const currentImage = currentIdx >= 0 ? history[currentIdx] : image
+  const currentSrc = `data:${currentImage.mimeType};base64,${currentImage.data}`
+  const currentMeta = currentImage.source.type === 'generated' ? currentImage.source : null
+  const canNavigate = currentIdx >= 0
+
   const [toast, setToast] = useState(false)
   const [refDetail, setRefDetail] = useState<PlaygroundImage | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -35,8 +41,29 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRemove
     scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
   }, [refDetail])
 
-  const modelName = meta
-    ? MODEL_CONFIGS.find((m) => m.id === meta.modelId)?.name ?? meta.modelId
+  // Reset compare view when navigating
+  useEffect(() => {
+    setRefDetail(null)
+  }, [currentIdx])
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (!canNavigate) return
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault()
+        setCurrentIdx(i => Math.max(0, i - 1))
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault()
+        setCurrentIdx(i => Math.min(history.length - 1, i + 1))
+      }
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [canNavigate, history.length])
+
+  const modelName = currentMeta
+    ? MODEL_CONFIGS.find((m) => m.id === currentMeta.modelId)?.name ?? currentMeta.modelId
     : null
 
   const showCopiedToast = () => {
@@ -46,24 +73,30 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRemove
 
   const handleDownload = () => {
     const anchor = document.createElement('a')
-    anchor.href = src
-    anchor.download = `nano-banana-${image.id.slice(0, 8)}.png`
+    anchor.href = currentSrc
+    anchor.download = `nano-banana-${currentImage.id.slice(0, 8)}.png`
     anchor.click()
   }
 
   const handleCopyImage = async () => {
-    const response = await fetch(src)
+    const response = await fetch(currentSrc)
     const blob = await response.blob()
     await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })])
     showCopiedToast()
   }
 
   const handleCopyPrompt = () => {
-    if (meta?.prompt) {
-      navigator.clipboard.writeText(meta.prompt)
+    if (currentMeta?.prompt) {
+      navigator.clipboard.writeText(currentMeta.prompt)
       showCopiedToast()
     }
   }
+
+  const goToPrev = useCallback(() => setCurrentIdx(i => Math.max(0, i - 1)), [])
+  const goToNext = useCallback(() => setCurrentIdx(i => Math.min(history.length - 1, i + 1)), [history.length])
+
+  const hasPrev = canNavigate && currentIdx > 0
+  const hasNext = canNavigate && currentIdx < history.length - 1
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
@@ -73,18 +106,82 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRemove
         className="relative flex flex-col md:flex-row max-h-[96vh] w-full max-w-[1400px] overflow-y-auto md:overflow-hidden rounded-[28px] border border-outline-variant bg-surface shadow-2xl"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className={`${refDetail ? 'shrink-0' : 'h-[45vh] shrink-0'} md:h-auto md:flex-1 md:shrink min-w-0 bg-surface-dim`}>
+        <div className={`${refDetail ? 'shrink-0' : 'h-[45vh] shrink-0'} relative md:h-auto md:flex-1 md:shrink min-w-0 bg-surface-dim`}>
           {refDetail ? (
             <div className="flex flex-col md:flex-row md:h-full gap-px">
               <div className="h-[33vh] md:h-auto md:flex-1 min-w-0 relative">
                 <ZoomableImageView key={`ref-${refDetail.id}`} src={`data:${refDetail.mimeType};base64,${refDetail.data}`} alt="" label="参考图" />
+                <button
+                  type="button"
+                  onClick={() => setRefDetail(null)}
+                  className="absolute top-4 left-1/2 -translate-x-1/2 z-10
+                             flex items-center gap-1 rounded-full
+                             border border-outline-variant/70 bg-surface/82
+                             pl-2 pr-3 py-1 text-[11px] text-on-surface
+                             shadow-sm backdrop-blur-sm transition-colors hover:bg-surface"
+                  aria-label="关闭对比"
+                >
+                  <svg className="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                  </svg>
+                  关闭对比
+                </button>
               </div>
               <div className="h-[33vh] md:h-auto md:flex-1 min-w-0 relative">
-                <ZoomableImageView key={`gen-${image.id}`} src={src} alt={meta?.prompt ?? ''} label="生成图" />
+                <ZoomableImageView key={`gen-${currentImage.id}`} src={currentSrc} alt={currentMeta?.prompt ?? ''} label="生成图" />
               </div>
             </div>
           ) : (
-            <ZoomableImageView key={image.id} src={src} alt={meta?.prompt ?? ''} />
+            <ZoomableImageView
+              key={currentImage.id}
+              src={currentSrc}
+              alt={currentMeta?.prompt ?? ''}
+              onSwipeLeft={hasNext ? goToNext : undefined}
+              onSwipeRight={hasPrev ? goToPrev : undefined}
+            />
+          )}
+
+          {/* Prev / Next arrows — desktop only */}
+          {!refDetail && hasPrev && (
+            <button
+              type="button"
+              onClick={goToPrev}
+              className="hidden md:flex absolute left-3 top-1/2 -translate-y-1/2 z-10
+                         w-9 h-9 items-center justify-center rounded-full
+                         border border-outline-variant/70 bg-surface/82
+                         text-on-surface shadow-sm backdrop-blur-sm
+                         transition-colors hover:bg-surface"
+              aria-label="上一张"
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
+              </svg>
+            </button>
+          )}
+          {!refDetail && hasNext && (
+            <button
+              type="button"
+              onClick={goToNext}
+              className="hidden md:flex absolute right-3 top-1/2 -translate-y-1/2 z-10
+                         w-9 h-9 items-center justify-center rounded-full
+                         border border-outline-variant/70 bg-surface/82
+                         text-on-surface shadow-sm backdrop-blur-sm
+                         transition-colors hover:bg-surface"
+              aria-label="下一张"
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/>
+              </svg>
+            </button>
+          )}
+
+          {/* Image counter */}
+          {canNavigate && !refDetail && (
+            <div className="pointer-events-none absolute bottom-14 left-1/2 -translate-x-1/2 z-10
+                            rounded-full border border-outline-variant bg-surface/82 px-3 py-1
+                            text-[11px] font-mono text-on-surface shadow-sm backdrop-blur-sm">
+              {currentIdx + 1} / {history.length}
+            </div>
           )}
         </div>
 
@@ -107,24 +204,24 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRemove
           </div>
 
           <div className="flex-1 space-y-4">
-            {meta && (
+            {currentMeta && (
               <>
                 <MetaRow label="模型" value={modelName!} />
-                <MetaRow label="分辨率" value={meta.resolution} />
-                <MetaRow label="宽高比" value={meta.aspectRatio} />
+                <MetaRow label="分辨率" value={currentMeta.resolution} />
+                <MetaRow label="宽高比" value={currentMeta.aspectRatio} />
                 <div>
                   <div className="mb-1 text-[11px] font-medium text-on-surface-variant">提示词</div>
                   <div className="max-h-[120px] overflow-y-auto rounded-lg bg-surface-container p-2.5 text-xs leading-relaxed text-on-surface">
-                    {meta.prompt}
+                    {currentMeta.prompt}
                   </div>
                 </div>
-                {meta.referenceImageIds.length > 0 && (
+                {currentMeta.referenceImageIds.length > 0 && (
                   <div>
                     <div className="mb-1 text-[11px] font-medium text-on-surface-variant">
-                      参考图片 ({meta.referenceImageIds.length})
+                      参考图片 ({currentMeta.referenceImageIds.length})
                     </div>
                     <div className="flex flex-wrap gap-1.5">
-                      {meta.referenceImageIds.map((refId) => {
+                      {currentMeta.referenceImageIds.map((refId) => {
                         const refImg = history.find((h) => h.id === refId)
                         if (!refImg) return (
                           <div key={refId} className="h-12 w-12 rounded-md bg-surface-container border border-outline-variant flex items-center justify-center text-[10px] text-on-surface-variant/40">?</div>
@@ -145,11 +242,11 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRemove
               </>
             )}
 
-            {image.source.type === 'upload' && (
-              <MetaRow label="来源" value={`上传: ${image.source.fileName}`} />
+            {currentImage.source.type === 'upload' && (
+              <MetaRow label="来源" value={`上传: ${currentImage.source.fileName}`} />
             )}
 
-            <MetaRow label="创建时间" value={new Date(image.timestamp).toLocaleString()} />
+            <MetaRow label="创建时间" value={new Date(currentImage.timestamp).toLocaleString()} />
           </div>
 
           <div className="relative mt-4 space-y-2 border-t border-outline-variant pt-4">
@@ -161,14 +258,14 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRemove
               </div>
             </div>
             <div className="flex gap-2">
-              <ModalAction label="+参考" onClick={() => { onAddToRef(image); onClose() }} />
+              <ModalAction label="+参考" onClick={() => { onAddToRef(currentImage); onClose() }} />
               <ModalAction label="保存" onClick={handleDownload} />
               <ModalAction label="复制图" onClick={handleCopyImage} />
-              {meta?.prompt && <ModalAction label="复制词" onClick={handleCopyPrompt} />}
+              {currentMeta?.prompt && <ModalAction label="复制词" onClick={handleCopyPrompt} />}
             </div>
             <button
               type="button"
-              onClick={() => { onRemove(image.id); onClose() }}
+              onClick={() => { onRemove(currentImage.id); onClose() }}
               className="w-full rounded-full bg-error-dim py-2 text-xs font-medium text-error transition-colors hover:opacity-80 active:opacity-80"
             >
               删除
@@ -181,7 +278,13 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRemove
   )
 }
 
-function ZoomableImageView({ src, alt, label }: { src: string; alt: string; label?: string }) {
+function ZoomableImageView({ src, alt, label, onSwipeLeft, onSwipeRight }: {
+  src: string
+  alt: string
+  label?: string
+  onSwipeLeft?: () => void
+  onSwipeRight?: () => void
+}) {
   const containerRef = useRef<HTMLDivElement>(null)
   const activePointersRef = useRef(new Map<number, Point>())
   const pointerStartsRef = useRef(new Map<number, Point>())
@@ -361,6 +464,22 @@ function ZoomableImageView({ src, alt, label }: { src: string; alt: string; labe
             }
           }
 
+          // Swipe navigation: single touch, not pinching, at fit scale
+          if (
+            event.pointerType === 'touch' &&
+            !wasPinching &&
+            activePointersRef.current.size === 0 &&
+            scaleRef.current <= FIT_SCALE &&
+            startPoint
+          ) {
+            const deltaX = endPoint.x - startPoint.x
+            const deltaY = endPoint.y - startPoint.y
+            if (Math.abs(deltaX) > 50 && Math.abs(deltaX) > Math.abs(deltaY)) {
+              if (deltaX < 0 && onSwipeLeft) onSwipeLeft()
+              if (deltaX > 0 && onSwipeRight) onSwipeRight()
+            }
+          }
+
           if (activePointersRef.current.size < 2) {
             didPinchRef.current = false
           }
@@ -399,7 +518,13 @@ function ZoomableImageView({ src, alt, label }: { src: string; alt: string; labe
             height: fitSize.height || undefined,
             transform: `translate3d(${offset.x}px, ${offset.y}px, 0) scale(${scale})`,
             transformOrigin: 'center center',
-            transition: isDragging || isInteracting ? 'none' : 'transform 160ms ease-out',
+            // hide until fitSize is ready to avoid the natural→contained size flash
+            opacity: fitSize.width ? 1 : 0,
+            transition: isDragging || isInteracting
+              ? 'none'
+              : fitSize.width
+                ? 'transform 160ms ease-out, opacity 120ms ease-out'
+                : 'none',
           }}
         />
       </div>
