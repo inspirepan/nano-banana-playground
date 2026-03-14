@@ -3,11 +3,12 @@ import type { PlaygroundImage } from '../lib/types'
 
 type Props = {
   image: PlaygroundImage
+  index?: number
   onAddToRef: (image: PlaygroundImage) => void
   onOpen: (image: PlaygroundImage) => void
 }
 
-export function ImageCard({ image, onAddToRef, onOpen }: Props) {
+export function ImageCard({ image, index, onAddToRef, onOpen }: Props) {
   const src = `data:${image.mimeType};base64,${image.data}`
   const meta = image.source.type === 'generated' ? image.source : null
   const [toast, setToast] = useState(false)
@@ -83,6 +84,9 @@ export function ImageCard({ image, onAddToRef, onOpen }: Props) {
       <div className="absolute inset-x-0 bottom-0 p-3">
         <div className="mb-2.5 min-w-0">
           <div className="line-clamp-2 text-[12px] font-medium leading-[1.45] text-white/90">
+            {index !== undefined && (
+              <span className="mr-1 text-white/50">#{index + 1}</span>
+            )}
             {meta?.prompt || '上传图片'}
           </div>
         </div>

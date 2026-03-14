@@ -187,10 +187,11 @@ export function OutputPanel({
                   </div>
                 </div>
                 <ImageGrid>
-                  {batch.images.map((img) => (
+                  {batch.images.map((img, i) => (
                     <GridCell key={img.id} aspectRatio={img.source.type === 'generated' ? img.source.aspectRatio : '1:1'}>
                       <ImageCard
                         image={img}
+                        index={batch.images.length > 1 ? i : undefined}
                         onAddToRef={onAddToRef}
                         onOpen={setDetailImage}
                       />

@@ -72,9 +72,9 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRemove
         className="relative flex flex-col md:flex-row max-h-[96vh] w-full max-w-[1400px] overflow-y-auto md:overflow-hidden rounded-[28px] border border-outline-variant bg-surface shadow-2xl"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className={`${refDetail ? 'shrink-0' : 'h-[45vh] shrink-0'} md:h-auto md:flex-1 md:shrink min-w-0 bg-surface-dim p-4`}>
+        <div className={`${refDetail ? 'shrink-0' : 'h-[45vh] shrink-0'} md:h-auto md:flex-1 md:shrink min-w-0 bg-surface-dim`}>
           {refDetail ? (
-            <div className="flex flex-col md:flex-row md:h-full gap-3">
+            <div className="flex flex-col md:flex-row md:h-full gap-px">
               <div className="h-[33vh] md:h-auto md:flex-1 min-w-0 relative">
                 <ZoomableImageView key={`ref-${refDetail.id}`} src={`data:${refDetail.mimeType};base64,${refDetail.data}`} alt="" label="参考图" />
               </div>
@@ -247,7 +247,7 @@ function ZoomableImageView({ src, alt, label }: { src: string; alt: string; labe
   }, [syncFitSize])
 
   return (
-    <div className="relative h-full min-h-0 md:min-h-[640px] w-full overflow-hidden rounded-2xl border border-outline-variant bg-surface-container shadow-sm">
+    <div className="relative h-full min-h-0 md:min-h-[640px] w-full overflow-hidden bg-surface-container">
       <div
         ref={containerRef}
         className="relative flex h-full w-full items-center justify-center overflow-hidden touch-none select-none"
