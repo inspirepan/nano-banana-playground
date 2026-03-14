@@ -17,6 +17,11 @@ export type GenerationSnapshot = {
   configHash: string
 }
 
+export type GenerationPreviewSlot =
+  | { status: 'pending' }
+  | { status: 'fulfilled'; image: PlaygroundImage }
+  | { status: 'rejected'; error: string }
+
 function computeConfigHash(modelId: string, resolution: string, aspectRatio: string, batchCount: number, prompt: string): string {
   return `${modelId}|${resolution}|${aspectRatio}|${batchCount}|${prompt}`
 }
@@ -35,6 +40,7 @@ export function usePlayground() {
   const [history, setHistory] = useState<PlaygroundImage[]>([])
   const [generationState, setGenerationState] = useState<GenerationState>('idle')
   const [generationSnapshot, setGenerationSnapshot] = useState<GenerationSnapshot | null>(null)
+  const [generationPreview, setGenerationPreview] = useState<GenerationPreviewSlot[]>([])
   const [lastGenHash, setLastGenHash] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const abortRef = useRef<AbortController | null>(null)
@@ -113,13 +119,14 @@ export function usePlayground() {
 
     setGenerationState('generating')
     setGenerationSnapshot({ batchId, batchCount: promptList.length, resolution, aspectRatio, configHash: hash })
+    setGenerationPreview(Array.from({ length: promptList.length }, (): GenerationPreviewSlot => ({ status: 'pending' })))
     setError(null)
 
     const controller = new AbortController()
     abortRef.current = controller
 
     try {
-      const promises = promptList.map((p) =>
+      const promises = promptList.map((p, index) =>
         generateImage({
           apiKey: apiKeyHook.apiKey,
           model,
@@ -128,9 +135,32 @@ export function usePlayground() {
           resolution,
           aspectRatio,
           batchId,
-        }, controller.signal),
+        }, controller.signal)
+          .then((image) => {
+            setGenerationPreview((prev) => {
+              if (prev[index]?.status === 'fulfilled') return prev
+              const next = [...prev]
+              next[index] = { status: 'fulfilled', image }
+              return next
+            })
+            return image
+          })
+          .catch((reason: unknown) => {
+            const error = reason instanceof Error ? reason : new Error('Unknown error')
+            if (error.name !== 'AbortError') {
+              setGenerationPreview((prev) => {
+                if (prev[index]?.status === 'rejected') return prev
+                const next = [...prev]
+                next[index] = { status: 'rejected', error: error.message }
+                return next
+              })
+            }
+            throw error
+          }),
       )
       const results = await Promise.allSettled(promises)
+
+      if (controller.signal.aborted) return
 
       const images: PlaygroundImage[] = []
       const errors: string[] = []
@@ -173,6 +203,7 @@ export function usePlayground() {
       }
     } finally {
       setGenerationSnapshot(null)
+      setGenerationPreview([])
     }
   }, [apiKeyHook, prompt, model, referenceImages, resolution, aspectRatio, batchCount])
 
@@ -180,6 +211,7 @@ export function usePlayground() {
     abortRef.current?.abort()
     setGenerationState('idle')
     setGenerationSnapshot(null)
+    setGenerationPreview([])
   }, [])
 
   const addToReferences = useCallback(
@@ -215,6 +247,7 @@ export function usePlayground() {
     history,
     generationState,
     generationSnapshot,
+    generationPreview,
     showDraft: lastGenHash !== currentConfigHash,
     error,
     switchModel,

@@ -267,13 +267,15 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRemove
               <ModalAction label="复制图" onClick={handleCopyImage} />
               {currentMeta?.prompt && <ModalAction label="复制词" onClick={handleCopyPrompt} />}
             </div>
-            <button
-              type="button"
-              onClick={() => { onRemove(currentImage.id); onClose() }}
-              className="w-full rounded-full bg-error-dim py-2 text-xs font-medium text-error transition-colors hover:opacity-80 active:opacity-80"
-            >
-              删除
-            </button>
+            {canNavigate && (
+              <button
+                type="button"
+                onClick={() => { onRemove(currentImage.id); onClose() }}
+                className="w-full rounded-full bg-error-dim py-2 text-xs font-medium text-error transition-colors hover:opacity-80 active:opacity-80"
+              >
+                删除
+              </button>
+            )}
           </div>
         </div>
       </div>

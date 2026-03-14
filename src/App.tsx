@@ -132,6 +132,7 @@ function App() {
             history={pg.history}
             generationState={pg.generationState}
             generationSnapshot={pg.generationSnapshot}
+            generationPreview={pg.generationPreview}
             showDraft={pg.showDraft}
             error={pg.error}
             batchCount={pg.batchCount}
@@ -273,6 +274,7 @@ function App() {
         history={pg.history}
         generationState={pg.generationState}
         generationSnapshot={pg.generationSnapshot}
+        generationPreview={pg.generationPreview}
         showDraft={pg.showDraft}
         error={pg.error}
         batchCount={pg.batchCount}

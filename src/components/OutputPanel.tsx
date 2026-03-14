@@ -1,7 +1,7 @@
 import { memo, useMemo, useRef, useState } from 'react'
 import JSZip from 'jszip'
 import type { PlaygroundImage } from '../lib/types'
-import type { GenerationState, GenerationSnapshot } from '../hooks/usePlayground'
+import type { GenerationPreviewSlot, GenerationState, GenerationSnapshot } from '../hooks/usePlayground'
 import { ImageCard } from './ImageCard'
 import { ImageDetailModal } from './ImageDetailModal'
 import { ImageGrid, GridCell } from './ImageGrid'
@@ -10,6 +10,7 @@ type Props = {
   history: PlaygroundImage[]
   generationState: GenerationState
   generationSnapshot: GenerationSnapshot | null
+  generationPreview: GenerationPreviewSlot[]
   showDraft: boolean
   error: string | null
   batchCount: number
@@ -74,6 +75,19 @@ function LoadingCard({ index }: { index: number }) {
   )
 }
 
+function FailedCard({ index }: { index: number }) {
+  return (
+    <div className="w-full h-full rounded-xl border border-error/20 bg-error-dim/40 overflow-hidden relative">
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div className="text-center space-y-2">
+          <div className="mx-auto flex h-5 w-5 items-center justify-center rounded-full bg-error/12 text-error text-[11px] font-bold">×</div>
+          <div className="text-error/80 text-[11px] font-mono">{`失败 #${index + 1}`}</div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function formatTime(ts: number): string {
   const now = Date.now()
   const diff = now - ts
@@ -87,6 +101,7 @@ export const OutputPanel = memo(function OutputPanel({
   history,
   generationState,
   generationSnapshot,
+  generationPreview,
   showDraft,
   error,
   batchCount,
@@ -127,6 +142,10 @@ export const OutputPanel = memo(function OutputPanel({
   const draftRatio = isGenerating && generationSnapshot ? generationSnapshot.aspectRatio : aspectRatio
   const draftRes = isGenerating && generationSnapshot ? generationSnapshot.resolution : resolution
   const draftCount = isGenerating && generationSnapshot ? generationSnapshot.batchCount : (draftBatchOverride ?? batchCount)
+  const previewSlots = isGenerating && generationPreview.length > 0
+    ? generationPreview
+    : Array.from({ length: draftCount }, (): GenerationPreviewSlot => ({ status: 'pending' }))
+  const completedCount = previewSlots.filter((slot) => slot.status === 'fulfilled').length
 
   return (
     <div className="flex-1 overflow-visible md:overflow-y-auto [scrollbar-gutter:stable] md:pl-6 md:pr-8">
@@ -154,11 +173,27 @@ export const OutputPanel = memo(function OutputPanel({
       {/* Loading */}
       {isGenerating && generationSnapshot && (
         <div className="mb-6">
-          <div className="text-xs font-medium text-on-surface-variant mb-2">生成中...</div>
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <div className="text-xs font-medium text-on-surface-variant">预览</div>
+            <div className="text-[11px] font-mono text-on-surface-variant/50">
+              {completedCount} / {draftCount}
+            </div>
+          </div>
           <ImageGrid>
-            {Array.from({ length: draftCount }, (_, i) => (
+            {previewSlots.map((slot, i) => (
               <GridCell key={i} aspectRatio={draftRatio}>
-                <LoadingCard index={i} />
+                {slot.status === 'fulfilled' ? (
+                  <ImageCard
+                    image={slot.image}
+                    index={draftCount > 1 ? i : undefined}
+                    onAddToRef={onAddToRef}
+                    onOpen={setDetailImage}
+                  />
+                ) : slot.status === 'rejected' ? (
+                  <FailedCard index={i} />
+                ) : (
+                  <LoadingCard index={i} />
+                )}
               </GridCell>
             ))}
           </ImageGrid>
