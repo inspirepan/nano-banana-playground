@@ -65,6 +65,18 @@
     background: var(--color-surface-dim);
     color: var(--color-on-surface);
   }
+
+  /* Custom resize handle: two subtle diagonal lines */
+  textarea::-webkit-resizer {
+    background-color: transparent;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12'%3E%3Cline x1='10' y1='4' x2='4' y2='10' stroke='%23c4c7cb' stroke-width='1.5' stroke-linecap='round'/%3E%3Cline x1='10' y1='7' x2='7' y2='10' stroke='%23c4c7cb' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: center;
+  }
+
+  .dark textarea::-webkit-resizer {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12'%3E%3Cline x1='10' y1='4' x2='4' y2='10' stroke='%235f6368' stroke-width='1.5' stroke-linecap='round'/%3E%3Cline x1='10' y1='7' x2='7' y2='10' stroke='%235f6368' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+  }
 }
 
 @keyframes shimmer {

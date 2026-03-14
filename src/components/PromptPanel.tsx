@@ -46,16 +46,18 @@ export function PromptPanel({
       />
 
       {/* Prompt */}
-      <div className="flex flex-col gap-2">
-        <label className="text-xs font-medium text-on-surface-variant">提示词</label>
+      <div>
+        <label className="block text-xs font-medium text-on-surface-variant mb-3">提示词</label>
         <textarea
           value={prompt}
           onChange={(e) => onPromptChange(e.target.value)}
           placeholder="描述你想生成的图片..."
           rows={8}
-          className="w-full px-3 py-2.5 text-sm bg-surface-container rounded-xl border border-outline-variant
-                     focus:border-primary focus:outline-none
-                     placeholder:text-on-surface-variant/50 resize-y"
+          className="w-full px-3 py-2.5 text-sm bg-surface-container rounded-xl
+                     border-b-2 border-b-outline-variant
+                     hover:bg-surface-container-high hover:border-b-outline
+                     focus:bg-surface-container-high focus:border-b-primary focus:outline-none
+                     placeholder:text-on-surface-variant/50 resize-y transition-colors"
         />
       </div>
 
@@ -64,7 +66,7 @@ export function PromptPanel({
         type="button"
         onClick={isGenerating ? onCancel : onGenerate}
         disabled={!isGenerating && !canGenerate}
-        className={`w-full py-2.5 text-sm font-medium rounded-xl transition-colors shrink-0
+        className={`w-full py-2.5 text-sm font-medium rounded-full transition-colors shrink-0
           ${
             isGenerating
               ? 'bg-error text-on-primary hover:bg-error/90'

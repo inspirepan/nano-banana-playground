@@ -50,19 +50,19 @@ export function ControlPanel({
         />
 
         {/* Model Selector */}
-        <div className="space-y-2">
-          <label className="text-xs font-medium text-on-surface-variant">模型</label>
+        <div>
+          <label className="block text-xs font-medium text-on-surface-variant mb-3">模型</label>
           <div className="flex gap-1.5">
             {MODEL_CONFIGS.map((m) => (
               <button
                 key={m.id}
                 type="button"
                 onClick={() => onSwitchModel(m.id)}
-                className={`flex-1 px-3 py-2 text-sm rounded-lg border transition-colors whitespace-nowrap
+                className={`flex-1 px-3 py-2 text-sm rounded-2xl transition-colors whitespace-nowrap
                   ${
                     model.id === m.id
-                      ? 'bg-primary text-on-primary border-primary'
-                      : 'bg-surface border-outline-variant text-on-surface hover:bg-surface-container'
+                      ? 'bg-primary-dim text-primary font-semibold'
+                      : 'bg-surface-container text-on-surface hover:bg-surface-container-high'
                   }`}
               >
                 {m.name}

@@ -62,8 +62,8 @@ export function ReferenceImageUpload({ images, maxTotal, onAdd, onAddImage, onRe
   }
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-baseline justify-between">
+    <div>
+      <div className="flex items-baseline justify-between mb-3">
         <label className="text-xs font-medium text-on-surface-variant">参考图片</label>
         <span className="text-xs text-on-surface-variant/60">
           {images.length}/{maxTotal}
@@ -73,8 +73,8 @@ export function ReferenceImageUpload({ images, maxTotal, onAdd, onAddImage, onRe
         onDrop={handleDrop}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
-        className={`min-h-[80px] rounded-xl border-2 border-dashed transition-colors p-3
-          ${dragOver ? 'border-primary bg-primary-dim' : 'border-outline-variant hover:border-primary/40'}`}
+        className={`min-h-[80px] rounded-xl transition-colors p-3
+          ${dragOver ? 'bg-primary-dim' : 'bg-surface-container hover:bg-surface-container-high'}`}
       >
         {images.length > 0 ? (
           <div className="flex flex-wrap gap-2">
@@ -83,7 +83,7 @@ export function ReferenceImageUpload({ images, maxTotal, onAdd, onAddImage, onRe
                 <img
                   src={`data:${img.mimeType};base64,${img.data}`}
                   alt={getLabel(img)}
-                  className="w-full h-full object-cover rounded-lg"
+                  className="w-full h-full object-cover rounded-xl"
                 />
                 <button
                   type="button"
@@ -92,7 +92,7 @@ export function ReferenceImageUpload({ images, maxTotal, onAdd, onAddImage, onRe
                              rounded-full text-xs flex items-center justify-center
                              opacity-0 group-hover:opacity-100 transition-opacity"
                 >
-                  x
+                  ×
                 </button>
               </div>
             ))}
@@ -100,8 +100,8 @@ export function ReferenceImageUpload({ images, maxTotal, onAdd, onAddImage, onRe
               <button
                 type="button"
                 onClick={() => inputRef.current?.click()}
-                className="w-16 h-16 rounded-lg border-2 border-dashed border-outline-variant
-                           hover:border-primary/40 flex items-center justify-center
+                className="w-16 h-16 rounded-xl bg-surface-container-high
+                           hover:bg-outline-variant flex items-center justify-center
                            text-on-surface-variant text-xl transition-colors"
               >
                 +
@@ -113,9 +113,9 @@ export function ReferenceImageUpload({ images, maxTotal, onAdd, onAddImage, onRe
             type="button"
             onClick={() => inputRef.current?.click()}
             className="w-full h-full min-h-[56px] flex flex-col items-center justify-center gap-1
-                       text-on-surface-variant text-sm cursor-pointer"
+                       text-on-surface-variant cursor-pointer"
           >
-            <span className="text-lg">+</span>
+            <span className="text-base">+</span>
             <span className="text-xs">拖放或点击上传</span>
           </button>
         )}

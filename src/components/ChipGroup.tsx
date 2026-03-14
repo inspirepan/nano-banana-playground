@@ -7,19 +7,19 @@ type Props = {
 
 export function ChipGroup({ label, options, value, onChange }: Props) {
   return (
-    <div className="space-y-2">
-      <label className="text-xs font-medium text-on-surface-variant">{label}</label>
+    <div>
+      <label className="block text-xs font-medium text-on-surface-variant mb-3">{label}</label>
       <div className="flex flex-wrap gap-2">
         {options.map((option) => (
           <button
             key={option}
             type="button"
             onClick={() => onChange(option)}
-            className={`px-4 py-2 text-sm rounded-lg border transition-colors
+            className={`px-3.5 py-1.5 text-sm rounded-full transition-colors
               ${
                 value === option
-                  ? 'bg-primary text-on-primary border-primary'
-                  : 'bg-surface border-outline-variant text-on-surface hover:bg-surface-container'
+                  ? 'bg-primary-dim text-primary font-semibold'
+                  : 'bg-surface-container text-on-surface hover:bg-surface-container-high'
               }`}
           >
             {option}

@@ -45,7 +45,7 @@ function groupByBatch(images: PlaygroundImage[]): HistoryBatch[] {
 
 function SkeletonCard({ aspectRatio, resolution }: { aspectRatio: string; resolution: string }) {
   return (
-    <div className="w-full h-full rounded-xl bg-surface-container border border-outline-variant overflow-hidden relative">
+    <div className="w-full h-full rounded-xl bg-surface-container overflow-hidden relative">
       <div className="absolute inset-0 flex items-center justify-center">
         <div className="text-on-surface-variant/30 text-xs font-mono">{resolution} {aspectRatio}</div>
       </div>
@@ -56,7 +56,7 @@ function SkeletonCard({ aspectRatio, resolution }: { aspectRatio: string; resolu
 
 function LoadingCard({ index }: { index: number }) {
   return (
-    <div className="w-full h-full rounded-xl bg-surface-container border border-primary/20 overflow-hidden relative">
+    <div className="w-full h-full rounded-xl bg-surface-container overflow-hidden relative">
       <div className="absolute inset-0 flex items-center justify-center">
         <div className="text-center space-y-2">
           <div className="w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin mx-auto" />
@@ -203,6 +203,7 @@ export function OutputPanel({
               清除全部
             </button>
           </div>
+          <div className="h-4" />
         </div>
       )}
 

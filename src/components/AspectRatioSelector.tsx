@@ -33,8 +33,8 @@ function shapeSize(ratio: string): { w: number; h: number } {
 
 export function AspectRatioSelector({ options, value, resolution, onChange }: Props) {
   return (
-    <div className="space-y-2">
-      <label className="text-xs font-medium text-on-surface-variant">宽高比</label>
+    <div>
+      <label className="block text-xs font-medium text-on-surface-variant mb-3">宽高比</label>
       <div className="grid grid-cols-3 gap-2">
         {options.map((option) => {
           const selected = value === option
@@ -45,25 +45,25 @@ export function AspectRatioSelector({ options, value, resolution, onChange }: Pr
               key={option}
               type="button"
               onClick={() => onChange(option)}
-              className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg border transition-colors
+              className={`flex items-center gap-2 px-2.5 py-2.5 rounded-2xl transition-colors text-left w-full
                 ${
                   selected
-                    ? 'border-primary bg-primary-dim'
-                    : 'border-outline-variant bg-surface hover:bg-surface-container'
+                    ? 'bg-primary-dim'
+                    : 'bg-surface-container hover:bg-surface-container-high'
                 }`}
             >
               <div className="flex items-center justify-center w-5 h-5 shrink-0">
                 <div
-                  className={`rounded-[2px] ${selected ? 'bg-primary' : 'bg-on-surface-variant/20'}`}
+                  className={`rounded-sm ${selected ? 'bg-primary' : 'bg-on-surface/25'}`}
                   style={{ width: shape.w, height: shape.h }}
                 />
               </div>
-              <div className="text-left min-w-0 overflow-hidden">
-                <div className={`text-xs font-medium leading-none ${selected ? 'text-primary' : 'text-on-surface'}`}>
+              <div className="min-w-0 overflow-hidden">
+                <div className={`text-xs font-semibold leading-none ${selected ? 'text-primary' : 'text-on-surface'}`}>
                   {option}
                 </div>
-                <div className="text-[8px] text-on-surface-variant font-mono leading-none mt-1 truncate">
-                  {px}x{py}
+                <div className={`text-[9px] font-mono leading-none mt-1 truncate ${selected ? 'text-primary/70' : 'text-on-surface-variant/50'}`}>
+                  {px}×{py}
                 </div>
               </div>
             </button>
