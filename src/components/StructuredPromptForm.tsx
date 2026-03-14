@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef, useLayoutEffect } from 'react'
 import type { StructuredPrompt, PromptScheme } from '../lib/types'
 
 type FieldKey = keyof StructuredPrompt
@@ -71,6 +71,12 @@ export function StructuredPromptForm({
   const coreFields = isEdit ? EDIT_CORE : GENERATE_CORE
 
   const [expanded, setExpanded] = useState<Set<FieldKey>>(new Set())
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  // Re-measure all textareas after layout to handle flex/scroll containers
+  useLayoutEffect(() => {
+    containerRef.current?.querySelectorAll<HTMLTextAreaElement>('textarea').forEach(autoResize)
+  }, [fields])
 
   const updateField = (key: FieldKey, value: string) => {
     onChangeScheme(currentIndex, { ...fields, [key]: value })
@@ -91,7 +97,7 @@ export function StructuredPromptForm({
   const hiddenFields = fieldDefs.filter(({ key }) => !isFieldVisible(key))
 
   return (
-    <div className="flex flex-col gap-3">
+    <div ref={containerRef} className="flex flex-col gap-3">
       {/* Scheme cards */}
       {schemes.length > 1 && (
         <div className="flex flex-col gap-2 ml-1">

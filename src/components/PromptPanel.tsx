@@ -352,19 +352,22 @@ export function PromptPanel({
   const estimatedCost = pricePerImage !== undefined ? pricePerImage * batchCount : null
 
   return (
-    <div className="w-full md:w-[360px] md:shrink-0 flex flex-col gap-4 overflow-y-auto py-4 pr-4">
-      {/* Reference Images */}
-      <ReferenceImageUpload
-        images={referenceImages}
-        maxTotal={maxRef}
-        onAdd={onAddReferenceImages}
-        onAddImage={onAddReferenceImage}
-        onRemove={onRemoveReferenceImage}
-      />
+    <div className="w-full md:w-[360px] md:shrink-0 flex flex-col py-4 pr-4 md:h-full">
+      {/* Reference Images - fixed */}
+      <div className="shrink-0">
+        <ReferenceImageUpload
+          images={referenceImages}
+          maxTotal={maxRef}
+          onAdd={onAddReferenceImages}
+          onAddImage={onAddReferenceImage}
+          onRemove={onRemoveReferenceImage}
+        />
+      </div>
 
-      {/* Prompt area -- mode-dependent */}
-      <div>
-        <div className="flex items-center justify-between mb-3 min-h-[28px]">
+      {/* Prompt section */}
+      <div className="mt-4 md:flex-1 md:min-h-0 flex flex-col">
+        {/* Prompt header - fixed */}
+        <div className="flex items-center justify-between mb-3 min-h-[28px] shrink-0">
           <label className="text-xs font-medium text-on-surface-variant">提示词</label>
           <div className="flex items-center gap-1.5">
             {mode === 'text' && canParseToStructured && (
@@ -426,6 +429,9 @@ export function PromptPanel({
             )}
           </div>
         </div>
+
+        {/* Prompt content - scrollable on desktop */}
+        <div className="md:flex-1 md:overflow-y-auto md:min-h-0">
 
         {mode === 'text' && (
           <div className="relative">
@@ -491,49 +497,53 @@ export function PromptPanel({
         )}
 
         {augmentError && <p className="mt-2 text-xs text-error">{augmentError}</p>}
-      </div>
+        </div>{/* end scrollable content */}
+      </div>{/* end prompt section */}
 
-      {/* Batch count */}
-      {mode !== 'augmenting' && (
-        <div>
-          <label className="block text-xs font-medium text-on-surface-variant mb-2">数量</label>
-          <div className="flex flex-wrap gap-2">
-            {Array.from({ length: model.maxBatchCount }, (_, i) => i + 1).map((n) => (
-              <button key={n} type="button" onClick={() => onBatchCountChange(n)}
-                className={`px-3.5 py-1.5 text-sm rounded-full transition-colors
-                  ${batchCount === n ? 'bg-primary-dim text-primary font-semibold' : 'bg-surface-container text-on-surface hover:bg-surface-container-high'}`}>
-                x{n}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Generate Button */}
-      <div className="relative group/btn shrink-0">
-        <button type="button"
-          onClick={isGenerating ? onCancel : () => onGenerate()}
-          disabled={!isGenerating && !canGenerate}
-          className={`w-full py-2.5 text-sm font-medium rounded-full transition-colors
-            ${isGenerating ? 'bg-error text-on-primary hover:bg-error/90'
-              : canGenerate ? 'bg-primary text-on-primary hover:bg-primary-hover'
-              : 'bg-surface-container-high text-on-surface-variant/50 cursor-not-allowed'}`}>
-          {isGenerating ? '取消' : '生成'}
-        </button>
-        {!isGenerating && !apiKey.trim() && (
-          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1.5 bg-on-surface text-surface text-xs rounded-lg whitespace-nowrap pointer-events-none opacity-0 group-hover/btn:opacity-100 transition-opacity">
-            请先配置 API 密钥
+      {/* Fixed bottom: batch count + generate button + cost */}
+      <div className="flex flex-col gap-4 shrink-0 mt-4">
+        {/* Batch count */}
+        {mode !== 'augmenting' && (
+          <div>
+            <label className="block text-xs font-medium text-on-surface-variant mb-2">数量</label>
+            <div className="flex flex-wrap gap-2">
+              {Array.from({ length: model.maxBatchCount }, (_, i) => i + 1).map((n) => (
+                <button key={n} type="button" onClick={() => onBatchCountChange(n)}
+                  className={`px-3.5 py-1.5 text-sm rounded-full transition-colors
+                    ${batchCount === n ? 'bg-primary-dim text-primary font-semibold' : 'bg-surface-container text-on-surface hover:bg-surface-container-high'}`}>
+                  x{n}
+                </button>
+              ))}
+            </div>
           </div>
         )}
-      </div>
 
-      {/* Cost estimate */}
-      {estimatedCost !== null && (
-        <p className="text-center text-xs text-on-surface-variant/60 -mt-2">
-          预估费用约 ${estimatedCost.toFixed(3)}
-          <span className="ml-1 opacity-70">({batchCount} 张 x ${pricePerImage!.toFixed(3)})</span>
-        </p>
-      )}
+        {/* Generate Button */}
+        <div className="relative group/btn">
+          <button type="button"
+            onClick={isGenerating ? onCancel : () => onGenerate()}
+            disabled={!isGenerating && !canGenerate}
+            className={`w-full py-2.5 text-sm font-medium rounded-full transition-colors
+              ${isGenerating ? 'bg-error text-on-primary hover:bg-error/90'
+                : canGenerate ? 'bg-primary text-on-primary hover:bg-primary-hover'
+                : 'bg-surface-container-high text-on-surface-variant/50 cursor-not-allowed'}`}>
+            {isGenerating ? '取消' : '生成'}
+          </button>
+          {!isGenerating && !apiKey.trim() && (
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1.5 bg-on-surface text-surface text-xs rounded-lg whitespace-nowrap pointer-events-none opacity-0 group-hover/btn:opacity-100 transition-opacity">
+              请先配置 API 密钥
+            </div>
+          )}
+        </div>
+
+        {/* Cost estimate */}
+        {estimatedCost !== null && (
+          <p className="text-center text-xs text-on-surface-variant/60 -mt-2">
+            预估费用约 ${estimatedCost.toFixed(3)}
+            <span className="ml-1 opacity-70">({batchCount} 张 x ${pricePerImage!.toFixed(3)})</span>
+          </p>
+        )}
+      </div>
 
       {/* Undo snackbar */}
       {undoToast && (
