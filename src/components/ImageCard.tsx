@@ -50,7 +50,7 @@ export function ImageCard({ image, index, onAddToRef, onOpen }: Props) {
           onOpen(image)
         }
       }}
-      className="group relative h-full w-full cursor-pointer overflow-hidden rounded-2xl border border-outline-variant bg-surface-container"
+      className="@container group relative h-full w-full cursor-pointer overflow-hidden rounded-2xl border border-outline-variant bg-surface-container"
     >
       <img
         src={src}
@@ -66,7 +66,7 @@ export function ImageCard({ image, index, onAddToRef, onOpen }: Props) {
 
       {/* Copied toast */}
       <div
-        className={`pointer-events-none absolute inset-x-0 top-1/2 flex -translate-y-1/2 justify-center transition-all duration-300 ${toast ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}`}
+        className={`pointer-events-none absolute inset-x-0 top-1/2 z-10 flex -translate-y-1/2 justify-center transition-all duration-300 ${toast ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}`}
       >
         <div className="rounded-full bg-black/70 px-4 py-2 text-[12px] font-medium text-white backdrop-blur-sm">
           已复制
@@ -92,7 +92,7 @@ export function ImageCard({ image, index, onAddToRef, onOpen }: Props) {
         </div>
 
         {/* Action buttons — pill shape, slide up on hover */}
-        <div className="flex gap-1.5 opacity-0 translate-y-1.5 transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100">
+        <div className="hidden md:grid grid-cols-2 @[200px]:grid-cols-4 gap-1 opacity-0 translate-y-1.5 transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100">
           <ActionButton label="+参考" onClick={() => onAddToRef(image)} />
           <ActionButton label="下载" onClick={handleDownload} />
           <ActionButton label="复制图" onClick={handleCopyImage} />
@@ -111,7 +111,7 @@ function ActionButton({ label, onClick }: { label: string; onClick: () => void }
         event.stopPropagation()
         onClick()
       }}
-      className="flex-1 rounded-full bg-white/20 px-2 py-1.5 text-[10px] font-medium text-white backdrop-blur-sm transition-colors hover:bg-white/32"
+      className="w-full rounded-full bg-white/20 px-2 py-1.5 text-[10px] font-medium text-white whitespace-nowrap backdrop-blur-sm transition-colors hover:bg-white/32"
     >
       {label}
     </button>
