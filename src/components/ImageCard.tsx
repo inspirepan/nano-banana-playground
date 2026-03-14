@@ -54,34 +54,41 @@ export function ImageCard({ image, onAddToRef, onOpen }: Props) {
       <img
         src={src}
         alt={meta?.prompt ?? ''}
-        className="block h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+        className="block h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
       />
 
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/0 opacity-90 transition-opacity group-hover:opacity-100" />
+      {/* Gradient scrim */}
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
 
+      {/* MD3 state layer on hover */}
+      <div className="pointer-events-none absolute inset-0 bg-black/0 transition-colors duration-200 group-hover:bg-black/10" />
+
+      {/* Copied toast */}
       <div
         className={`pointer-events-none absolute inset-x-0 top-1/2 flex -translate-y-1/2 justify-center transition-all duration-300 ${toast ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}`}
       >
-        <div className="rounded-lg bg-black/75 px-3.5 py-2 text-[12px] font-medium text-white backdrop-blur-sm">
+        <div className="rounded-full bg-black/70 px-4 py-2 text-[12px] font-medium text-white backdrop-blur-sm">
           已复制
         </div>
       </div>
 
+      {/* Meta chip — top right, pill */}
       {meta && (
-        <div className="absolute top-2 right-2 rounded-md bg-black/55 px-2 py-1 text-[10px] font-mono text-white backdrop-blur-sm">
-          {meta.resolution} {meta.aspectRatio}
+        <div className="pointer-events-none absolute top-2.5 right-2.5 rounded-full bg-black/40 px-2.5 py-1 text-[10px] font-medium text-white/90 backdrop-blur-md">
+          {meta.resolution} · {meta.aspectRatio}
         </div>
       )}
 
-      <div className="absolute inset-x-0 bottom-0 p-2.5">
-        <div className="mb-2 min-w-0">
-          <div className="text-[10px] font-mono text-white/65">点击查看详情</div>
-          <div className="mt-1 line-clamp-2 text-[11px] leading-4 text-white/92">
+      {/* Bottom content */}
+      <div className="absolute inset-x-0 bottom-0 p-3">
+        <div className="mb-2.5 min-w-0">
+          <div className="line-clamp-2 text-[12px] font-medium leading-[1.45] text-white/90">
             {meta?.prompt || '上传图片'}
           </div>
         </div>
 
-        <div className="flex gap-1 opacity-0 transition-all translate-y-2 group-hover:translate-y-0 group-hover:opacity-100">
+        {/* Action buttons — pill shape, slide up on hover */}
+        <div className="flex gap-1.5 opacity-0 translate-y-1.5 transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100">
           <ActionButton label="+参考" onClick={() => onAddToRef(image)} />
           <ActionButton label="下载" onClick={handleDownload} />
           <ActionButton label="复制图" onClick={handleCopyImage} />
@@ -100,7 +107,7 @@ function ActionButton({ label, onClick }: { label: string; onClick: () => void }
         event.stopPropagation()
         onClick()
       }}
-      className="flex-1 rounded-md bg-white/18 px-1.5 py-1 text-[10px] font-medium text-white backdrop-blur-sm transition-colors hover:bg-white/28"
+      className="flex-1 rounded-full bg-white/20 px-2 py-1.5 text-[10px] font-medium text-white backdrop-blur-sm transition-colors hover:bg-white/32"
     >
       {label}
     </button>

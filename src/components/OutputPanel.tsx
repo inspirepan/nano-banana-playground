@@ -127,7 +127,7 @@ export function OutputPanel({
   const draftCount = isGenerating && generationSnapshot ? generationSnapshot.batchCount : batchCount
 
   return (
-    <div className="flex-1 overflow-visible md:overflow-y-auto md:pr-1">
+    <div className="flex-1 overflow-visible md:overflow-y-auto [scrollbar-gutter:stable] md:pr-8">
       <div className="h-4" />
       {error && (
         <div className="mb-4 px-4 py-3 bg-error-dim text-error text-sm rounded-xl border border-error/20">
