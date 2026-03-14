@@ -191,6 +191,60 @@ export function PromptPanel({
   // Undo toast state
   const [undoToast, setUndoToast] = useState<{ text: string; timer: number } | null>(null)
 
+  // --- Undo/redo history ---
+  const historyRef = useRef({ entries: [prompt], index: 0 })
+  const debounceRef = useRef<number>(0)
+  const navigatingRef = useRef(false)
+  // Force re-render when history pointer changes (for button disabled state)
+  const [, setHistoryTick] = useState(0)
+
+  const canUndo = historyRef.current.index > 0
+  const canRedo = historyRef.current.index < historyRef.current.entries.length - 1
+
+  // Record prompt changes with debounce
+  useEffect(() => {
+    if (navigatingRef.current) {
+      navigatingRef.current = false
+      return
+    }
+    window.clearTimeout(debounceRef.current)
+    debounceRef.current = window.setTimeout(() => {
+      const h = historyRef.current
+      if (h.entries[h.index] === prompt) return
+      // Discard any forward history
+      h.entries = h.entries.slice(0, h.index + 1)
+      h.entries.push(prompt)
+      h.index = h.entries.length - 1
+      setHistoryTick((t) => t + 1)
+    }, 500)
+    return () => window.clearTimeout(debounceRef.current)
+  }, [prompt])
+
+  const handleHistoryUndo = useCallback(() => {
+    const h = historyRef.current
+    if (h.index <= 0) return
+    // Flush any pending debounce so current text is saved
+    window.clearTimeout(debounceRef.current)
+    if (h.entries[h.index] !== prompt) {
+      h.entries = h.entries.slice(0, h.index + 1)
+      h.entries.push(prompt)
+      h.index = h.entries.length - 1
+    }
+    h.index--
+    navigatingRef.current = true
+    onPromptChange(h.entries[h.index])
+    setHistoryTick((t) => t + 1)
+  }, [prompt, onPromptChange])
+
+  const handleHistoryRedo = useCallback(() => {
+    const h = historyRef.current
+    if (h.index >= h.entries.length - 1) return
+    h.index++
+    navigatingRef.current = true
+    onPromptChange(h.entries[h.index])
+    setHistoryTick((t) => t + 1)
+  }, [onPromptChange])
+
   const canAugment = apiKey.trim() !== '' && prompt.trim() !== ''
   const canParseToStructured = mode === 'text' && parsePrompt(prompt) !== null
 
@@ -330,6 +384,32 @@ export function PromptPanel({
                   清空
                 </button>
               )}
+              <button
+                type="button"
+                onClick={handleHistoryUndo}
+                disabled={!canUndo}
+                className="flex items-center justify-center w-6 h-6 rounded-full transition-colors
+                           text-on-surface-variant hover:bg-surface-container-high
+                           disabled:opacity-25 disabled:pointer-events-none"
+                title="撤销"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12.5 8c-2.65 0-5.05 1-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                onClick={handleHistoryRedo}
+                disabled={!canRedo}
+                className="flex items-center justify-center w-6 h-6 rounded-full transition-colors
+                           text-on-surface-variant hover:bg-surface-container-high
+                           disabled:opacity-25 disabled:pointer-events-none"
+                title="重做"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M18.4 10.6C16.55 8.99 14.15 8 11.5 8c-4.65 0-8.58 3.03-9.96 7.22L3.9 16c1.05-3.19 4.05-5.5 7.6-5.5 1.95 0 3.73.72 5.12 1.88L13 16h9V7l-3.6 3.6z" />
+                </svg>
+              </button>
               <div className="flex-1" />
               {canParseToStructured && (
                 <button
