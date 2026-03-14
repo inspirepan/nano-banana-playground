@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import type { StructuredPrompt } from '../lib/types'
 
 type FieldKey = keyof StructuredPrompt
@@ -49,6 +49,9 @@ export function StructuredPromptForm({ fields, onChange }: Props) {
   const fieldDefs = isEdit ? EDIT_FIELDS : GENERATE_FIELDS
   const coreFields = isEdit ? EDIT_CORE : GENERATE_CORE
 
+  // Track manually expanded fields (clicked via "+ label" buttons)
+  const [expanded, setExpanded] = useState<Set<FieldKey>>(new Set())
+
   const updateField = (key: FieldKey, value: string) => {
     onChange({ ...fields, [key]: value })
   }
@@ -59,9 +62,18 @@ export function StructuredPromptForm({ fields, onChange }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fields])
 
-  const hiddenFields = fieldDefs.filter(({ key }) =>
-    !coreFields.has(key) && (fields[key] as string).trim() === '',
-  )
+  const isFieldVisible = (key: FieldKey): boolean => {
+    if (coreFields.has(key)) return true
+    if ((fields[key] as string).trim() !== '') return true
+    if (expanded.has(key)) return true
+    return false
+  }
+
+  const hiddenFields = fieldDefs.filter(({ key }) => !isFieldVisible(key))
+
+  const handleExpand = (key: FieldKey) => {
+    setExpanded((prev) => new Set(prev).add(key))
+  }
 
   return (
     <div className="flex flex-col gap-3">
@@ -86,8 +98,8 @@ export function StructuredPromptForm({ fields, onChange }: Props) {
       </div>
 
       {fieldDefs.map(({ key, label, placeholder }) => {
+        if (!isFieldVisible(key)) return null
         const value = fields[key] as string
-        if (!coreFields.has(key) && value.trim() === '') return null
 
         return (
           <div key={key}>
@@ -121,7 +133,7 @@ export function StructuredPromptForm({ fields, onChange }: Props) {
             <button
               key={key}
               type="button"
-              onClick={() => onChange({ ...fields, [key]: ' ' })}
+              onClick={() => handleExpand(key)}
               className="px-2.5 py-1 text-xs rounded-full transition-colors
                          bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
             >

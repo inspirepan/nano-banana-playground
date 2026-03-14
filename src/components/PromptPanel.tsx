@@ -82,7 +82,7 @@ function assemblePrompt(fields: StructuredPrompt): string {
     if (fields.constraints.trim()) lines.push(`避免：${fields.constraints.trim()}`)
   }
 
-  return lines.join('\n')
+  return lines.join('\n\n')
 }
 
 // Edit-only labels used to detect edit mode text
@@ -176,13 +176,13 @@ export function PromptPanel({
   onCancel,
 }: Props) {
   const isGenerating = generationState === 'generating'
-  const canGenerate = apiKey.trim() !== '' && prompt.trim() !== '' && !isGenerating
   const maxRef = model.maxReferenceImages + model.maxCharacterImages
 
   const pricePerImage = model.imagePriceByResolution[resolution]
   const estimatedCost = pricePerImage !== undefined ? pricePerImage * batchCount : null
 
   const [mode, setMode] = useState<PromptMode>('text')
+  const canGenerate = apiKey.trim() !== '' && prompt.trim() !== '' && !isGenerating && mode !== 'augmenting'
   const [structuredFields, setStructuredFields] = useState<StructuredPrompt>(EMPTY_STRUCTURED)
   const [augmentError, setAugmentError] = useState<string | null>(null)
   const abortRef = useRef<AbortController | null>(null)
@@ -338,19 +338,77 @@ export function PromptPanel({
 
       {/* Prompt area -- mode-dependent */}
       <div>
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between mb-3 min-h-[28px]">
           <label className="text-xs font-medium text-on-surface-variant">
             提示词
           </label>
-          {mode === 'structured' && (
-            <button
-              type="button"
-              onClick={handleBackToText}
-              className="text-xs text-on-surface-variant hover:text-on-surface transition-colors"
-            >
-              返回文本编辑
-            </button>
-          )}
+          <div className="flex items-center gap-1.5">
+            {mode === 'text' && canParseToStructured && (
+              <div className="relative group/parse">
+                <button
+                  type="button"
+                  onClick={handleParseToStructured}
+                  className="flex items-center gap-1 px-2.5 py-1 text-xs rounded-full transition-colors
+                             bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1.001 1.001 0 0 0 0-1.41l-2.34-2.34a1.001 1.001 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
+                  </svg>
+                  结构化编辑
+                </button>
+                <div className="absolute bottom-full right-0 mb-2 pointer-events-none whitespace-nowrap
+                                bg-on-surface text-surface text-xs px-2 py-1 rounded
+                                opacity-0 group-hover/parse:opacity-100
+                                transition-opacity duration-150 delay-500 group-hover/parse:delay-500 z-50">
+                  解析标签字段，切换到表单编辑
+                </div>
+              </div>
+            )}
+            {mode === 'structured' && (
+              <>
+                <div className="relative group/reaugment">
+                  <button
+                    type="button"
+                    onClick={handleAugment}
+                    disabled={!canAugment}
+                    className="flex items-center gap-1 px-2.5 py-1 text-xs rounded-full transition-colors
+                               bg-primary-dim text-primary hover:bg-primary hover:text-on-primary
+                               disabled:opacity-40 disabled:pointer-events-none"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
+                    </svg>
+                    重新增强
+                  </button>
+                  <div className="absolute bottom-full left-0 mb-2 pointer-events-none whitespace-nowrap
+                                  bg-on-surface text-surface text-xs px-2 py-1 rounded
+                                  opacity-0 group-hover/reaugment:opacity-100
+                                  transition-opacity duration-150 delay-500 group-hover/reaugment:delay-500 z-50">
+                    通过 Gemini Flash Lite 重新生成结构化提示词
+                  </div>
+                </div>
+                <div className="relative group/backtxt">
+                  <button
+                    type="button"
+                    onClick={handleBackToText}
+                    className="flex items-center gap-1 px-2.5 py-1 text-xs rounded-full transition-colors
+                               bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M6.99 11L3 15l3.99 4v-3H14v-2H6.99v-3zM21 9l-3.99-4v3H10v2h7.01v3L21 9z" />
+                    </svg>
+                    文本编辑
+                  </button>
+                  <div className="absolute bottom-full right-0 mb-2 pointer-events-none whitespace-nowrap
+                                  bg-on-surface text-surface text-xs px-2 py-1 rounded
+                                  opacity-0 group-hover/backtxt:opacity-100
+                                  transition-opacity duration-150 delay-500 group-hover/backtxt:delay-500 z-50">
+                    切换到纯文本编辑模式
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
         </div>
 
         {mode === 'text' && (
@@ -411,31 +469,30 @@ export function PromptPanel({
                 </svg>
               </button>
               <div className="flex-1" />
-              {canParseToStructured && (
-                <button
-                  type="button"
-                  onClick={handleParseToStructured}
-                  className="flex items-center gap-1 px-2.5 py-1 text-xs rounded-full transition-colors
-                             bg-primary-dim text-primary hover:bg-primary hover:text-on-primary"
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1.001 1.001 0 0 0 0-1.41l-2.34-2.34a1.001 1.001 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
-                  </svg>
-                  结构化编辑
-                </button>
-              )}
               {canAugment && (
-                <button
-                  type="button"
-                  onClick={handleAugment}
-                  className="flex items-center gap-1 px-2.5 py-1 text-xs rounded-full transition-colors
-                             bg-primary-dim text-primary hover:bg-primary hover:text-on-primary"
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M19.46 8l.79-1.75L22 5.46c.39-.18.39-.73 0-.91l-1.75-.79L19.46 2c-.18-.39-.73-.39-.91 0l-.79 1.75-1.76.79c-.39.18-.39.73 0 .91l1.75.79.79 1.76c.18.39.74.39.92 0zM11.5 9.5L9.91 6c-.35-.78-1.47-.78-1.82 0L6.5 9.5 3 11.09c-.78.36-.78 1.47 0 1.82l3.5 1.59L8.09 18c.36.78 1.47.78 1.82 0l1.59-3.5 3.5-1.59c.78-.36.78-1.47 0-1.82L11.5 9.5zm7.04 6.5l-.79 1.75-1.75.79c-.39.18-.39.73 0 .91l1.75.79.79 1.76c.18.39.73.39.91 0l.79-1.75 1.76-.79c.39-.18.39-.73 0-.91l-1.75-.79-.79-1.76c-.18-.39-.74-.39-.92 0z" />
-                  </svg>
-                  增强
-                </button>
+                <div className="relative group/augment">
+                  <button
+                    type="button"
+                    onClick={handleAugment}
+                    className="flex items-center gap-1 px-2.5 py-1 text-xs rounded-full transition-colors
+                               bg-primary-dim text-primary hover:bg-primary hover:text-on-primary"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M19.46 8l.79-1.75L22 5.46c.39-.18.39-.73 0-.91l-1.75-.79L19.46 2c-.18-.39-.73-.39-.91 0l-.79 1.75-1.76.79c-.39.18-.39.73 0 .91l1.75.79.79 1.76c.18.39.74.39.92 0zM11.5 9.5L9.91 6c-.35-.78-1.47-.78-1.82 0L6.5 9.5 3 11.09c-.78.36-.78 1.47 0 1.82l3.5 1.59L8.09 18c.36.78 1.47.78 1.82 0l1.59-3.5 3.5-1.59c.78-.36.78-1.47 0-1.82L11.5 9.5zm7.04 6.5l-.79 1.75-1.75.79c-.39.18-.39.73 0 .91l1.75.79.79 1.76c.18.39.73.39.91 0l.79-1.75 1.76-.79c.39-.18.39-.73 0-.91l-1.75-.79-.79-1.76c-.18-.39-.74-.39-.92 0z" />
+                    </svg>
+                    增强
+                  </button>
+                  <div
+                    className="absolute bottom-full right-0 mb-2
+                               pointer-events-none whitespace-nowrap
+                               bg-on-surface text-surface text-xs px-2 py-1 rounded
+                               opacity-0 group-hover/augment:opacity-100
+                               transition-opacity duration-150 delay-500 group-hover/augment:delay-500
+                               z-50"
+                  >
+                    通过 Gemini Flash Lite 生成结构化提示词
+                  </div>
+                </div>
               )}
             </div>
           </div>
@@ -445,7 +502,9 @@ export function PromptPanel({
           <div className="flex flex-col items-center justify-center gap-3 py-8
                           bg-surface-container rounded-xl">
             <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-            <p className="text-xs text-on-surface-variant">正在分析提示词...</p>
+            <p className="text-xs text-on-surface-variant">正在分析提示词...
+              <span className="opacity-50 ml-1">gemini-3.1-flash-lite</span>
+            </p>
             <button
               type="button"
               onClick={handleCancelAugment}

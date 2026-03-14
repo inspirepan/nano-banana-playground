@@ -211,7 +211,7 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRemove
                 <MetaRow label="宽高比" value={currentMeta.aspectRatio} />
                 <div>
                   <div className="mb-1 text-[11px] font-medium text-on-surface-variant">提示词</div>
-                  <div className="max-h-[120px] overflow-y-auto rounded-lg bg-surface-container p-2.5 text-xs leading-relaxed text-on-surface">
+                  <div className="max-h-[120px] overflow-y-auto rounded-lg bg-surface-container p-2.5 text-xs leading-relaxed text-on-surface whitespace-pre-wrap">
                     {currentMeta.prompt}
                   </div>
                 </div>
