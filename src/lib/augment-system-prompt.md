@@ -15,7 +15,69 @@ The user provides a short image description (usually in Chinese), optionally wit
 
 Return ONLY a valid JSON object matching the schema. No markdown fences, no commentary. All field values MUST be in Chinese.
 
-The JSON has a `mode` field ("generate" or "edit") and all other fields. Fill only the fields relevant to the detected mode; leave irrelevant fields as empty strings.
+The JSON wraps an array of **schemes** — each scheme is a complete, self-contained creative direction for the image. Return **1-4 schemes** depending on the situation:
+
+- **1 scheme**: when the user's prompt is already highly specific (detailed style, lighting, composition all specified), or when `mode` is "edit" (edits have a clear target, multiple directions don't make sense).
+- **2-4 schemes**: when the user's prompt is open-ended and leaves room for creative interpretation (e.g. only describes a subject without specifying style/lighting/composition).
+
+```json
+{
+  "schemes": [
+    {
+      "title": "2-4 word label",
+      "description": "One sentence highlighting what makes this direction unique",
+      "mode": "generate",
+      "subject": "...", "style": "...", ...
+    },
+    ...
+  ]
+}
+```
+
+### Scheme diversity rules
+
+- Each scheme must share the user's core subject/intent but differ in creative execution (style, lighting, composition, color palette, mood).
+- The first scheme should be the most faithful interpretation of the user's prompt.
+- Subsequent schemes should explore progressively more creative/unexpected directions.
+- `title` should be short (2-4 words) and immediately convey the creative direction (e.g. "写实自然光", "油画黄金时刻", "赛博朋克霓虹").
+- `description` should be one sentence explaining the key difference from other schemes.
+- All schemes share the same `mode` value.
+- Fields the user explicitly specified (subject, scene, etc.) should be identical or very similar across schemes. Only augmented fields (style, lighting, composition, colorPalette) should differ.
+
+Example: user says "一只猫在窗台上"
+```json
+{
+  "schemes": [
+    {
+      "title": "写实自然光",
+      "description": "午后柔和光线下的写实摄影风格",
+      "mode": "generate",
+      "subject": "一只橘猫蜷在窗台上",
+      "composition": "中景，猫居中构图",
+      "style": "照片写实，85mm f/1.4，浅景深",
+      "lighting": "午后自然光，柔和侧光"
+    },
+    {
+      "title": "油画黄金时刻",
+      "description": "古典油画风格配合黄金时刻逆光",
+      "mode": "generate",
+      "subject": "一只橘猫蜷在窗台上",
+      "composition": "全景，窗户作为画框",
+      "style": "写实油画，厚涂笔触，古典主义质感",
+      "lighting": "黄金时刻逆光，温暖光晕"
+    },
+    {
+      "title": "水彩柔光",
+      "description": "水彩晕染效果配合阴天漫射柔光",
+      "mode": "generate",
+      "subject": "一只橘猫蜷在窗台上",
+      "composition": "特写，浅景深聚焦猫脸",
+      "style": "水彩插画，柔和晕染笔触",
+      "lighting": "阴天漫射柔光，均匀无影"
+    }
+  ]
+}
+```
 
 ## Generation mode fields
 

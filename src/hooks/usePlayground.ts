@@ -95,32 +95,32 @@ export function usePlayground() {
     setReferenceImages((prev) => prev.filter((img) => img.id !== id))
   }, [])
 
-  const generate = useCallback(async () => {
-    if (!apiKeyHook.apiKey || !prompt.trim()) return
+  const generate = useCallback(async (prompts?: string[]) => {
+    if (!apiKeyHook.apiKey) return
+    const promptList = prompts ?? (prompt.trim() ? Array.from({ length: batchCount }, () => prompt.trim()) : [])
+    if (promptList.length === 0) return
 
     const batchId = crypto.randomUUID()
-    const hash = computeConfigHash(model.id, resolution, aspectRatio, batchCount, prompt)
+    const hash = computeConfigHash(model.id, resolution, aspectRatio, promptList.length, promptList[0])
 
     setGenerationState('generating')
-    setGenerationSnapshot({ batchId, batchCount, resolution, aspectRatio, configHash: hash })
+    setGenerationSnapshot({ batchId, batchCount: promptList.length, resolution, aspectRatio, configHash: hash })
     setError(null)
 
     const controller = new AbortController()
     abortRef.current = controller
 
-    const params: GenerateParams = {
-      apiKey: apiKeyHook.apiKey,
-      model,
-      prompt: prompt.trim(),
-      referenceImages,
-      resolution,
-      aspectRatio,
-      batchId,
-    }
-
     try {
-      const promises = Array.from({ length: batchCount }, () =>
-        generateImage(params, controller.signal),
+      const promises = promptList.map((p) =>
+        generateImage({
+          apiKey: apiKeyHook.apiKey,
+          model,
+          prompt: p,
+          referenceImages,
+          resolution,
+          aspectRatio,
+          batchId,
+        }, controller.signal),
       )
       const results = await Promise.allSettled(promises)
 

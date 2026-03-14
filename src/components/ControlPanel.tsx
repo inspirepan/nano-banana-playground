@@ -1,14 +1,13 @@
 import { MODEL_CONFIGS, type ModelConfig } from '../config/models'
 import type { ApiKeyStatus } from '../hooks/useApiKey'
 import { ApiKeyInput } from './ApiKeyInput'
-import { ChipGroup } from './ChipGroup'
+import { ChipGroup } from './ChipGroup'  // still used for resolution
 import { AspectRatioSelector } from './AspectRatioSelector'
 
 type Props = {
   model: ModelConfig
   resolution: string
   aspectRatio: string
-  batchCount: number
   apiKey: string
   apiKeyStatus: ApiKeyStatus
   onSubmitApiKey: (key: string) => void
@@ -16,14 +15,12 @@ type Props = {
   onSwitchModel: (id: string) => void
   onResolutionChange: (v: string) => void
   onAspectRatioChange: (v: string) => void
-  onBatchCountChange: (v: number) => void
 }
 
 export function ControlPanel({
   model,
   resolution,
   aspectRatio,
-  batchCount,
   apiKey,
   apiKeyStatus,
   onSubmitApiKey,
@@ -31,13 +28,7 @@ export function ControlPanel({
   onSwitchModel,
   onResolutionChange,
   onAspectRatioChange,
-  onBatchCountChange,
 }: Props) {
-  const batchOptions = Array.from(
-    { length: model.maxBatchCount },
-    (_, i) => `x${i + 1}`,
-  )
-
   return (
     <div className="flex-1 min-h-0 overflow-visible md:overflow-y-auto">
       <div className="space-y-5">
@@ -85,14 +76,6 @@ export function ControlPanel({
           value={aspectRatio}
           resolution={resolution}
           onChange={onAspectRatioChange}
-        />
-
-        {/* Batch Count */}
-        <ChipGroup
-          label="数量"
-          options={batchOptions}
-          value={`x${batchCount}`}
-          onChange={(v) => onBatchCountChange(parseInt(v.slice(1)))}
         />
       </div>
     </div>

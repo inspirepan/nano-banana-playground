@@ -70,7 +70,6 @@ function App() {
           model={pg.model}
           resolution={pg.resolution}
           aspectRatio={pg.aspectRatio}
-          batchCount={pg.batchCount}
           apiKey={pg.apiKey}
           apiKeyStatus={pg.apiKeyStatus}
           onSubmitApiKey={pg.submitApiKey}
@@ -78,7 +77,6 @@ function App() {
           onSwitchModel={pg.switchModel}
           onResolutionChange={pg.setResolution}
           onAspectRatioChange={pg.setAspectRatio}
-          onBatchCountChange={pg.setBatchCount}
         />
         <div ref={mobileRefAreaRef} className="border-t border-outline/10">
           <PromptPanel
@@ -90,6 +88,7 @@ function App() {
             generationState={pg.generationState}
             apiKey={pg.apiKey}
             onPromptChange={pg.setPrompt}
+            onBatchCountChange={pg.setBatchCount}
             onAddReferenceImages={pg.addReferenceImages}
             onAddReferenceImage={pg.addToReferences}
             onRemoveReferenceImage={pg.removeReferenceImage}
@@ -126,7 +125,6 @@ function App() {
           model={pg.model}
           resolution={pg.resolution}
           aspectRatio={pg.aspectRatio}
-          batchCount={pg.batchCount}
           apiKey={pg.apiKey}
           apiKeyStatus={pg.apiKeyStatus}
           onSubmitApiKey={pg.submitApiKey}
@@ -134,7 +132,6 @@ function App() {
           onSwitchModel={pg.switchModel}
           onResolutionChange={pg.setResolution}
           onAspectRatioChange={pg.setAspectRatio}
-          onBatchCountChange={pg.setBatchCount}
         />
 
         <div className="mt-auto pt-4">
@@ -171,6 +168,7 @@ function App() {
         generationState={pg.generationState}
         apiKey={pg.apiKey}
         onPromptChange={pg.setPrompt}
+        onBatchCountChange={pg.setBatchCount}
         onAddReferenceImages={pg.addReferenceImages}
         onAddReferenceImage={pg.addToReferences}
         onRemoveReferenceImage={pg.removeReferenceImage}

@@ -42,3 +42,9 @@ export type StructuredPrompt = {
   targetScene: string
   invariants: string
 }
+
+export type PromptScheme = {
+  title: string
+  description: string
+  fields: StructuredPrompt
+}

@@ -1,5 +1,5 @@
 import type { ModelConfig } from '../config/models'
-import type { PlaygroundImage, StructuredPrompt } from './types'
+import type { PlaygroundImage, PromptScheme } from './types'
 import AUGMENT_SYSTEM_PROMPT from './augment-system-prompt.md?raw'
 
 export type GenerateParams = {
@@ -119,32 +119,34 @@ const AUGMENT_MODEL = 'gemini-3.1-flash-lite-preview'
 
 const S = 'STRING' as const
 
-const STRUCTURED_PROMPT_SCHEMA = {
+const FIELD_PROPS = {
+  mode: { type: S, enum: ['generate', 'edit'] },
+  subject: { type: S }, action: { type: S }, scene: { type: S },
+  composition: { type: S }, style: { type: S }, lighting: { type: S },
+  colorPalette: { type: S }, textInImage: { type: S }, constraints: { type: S },
+  editType: { type: S }, primaryRequest: { type: S }, referenceRole: { type: S },
+  targetScene: { type: S }, invariants: { type: S },
+} as const
+
+const FIELD_KEYS = Object.keys(FIELD_PROPS) as string[]
+
+const SCHEMES_SCHEMA = {
   type: 'OBJECT' as const,
   properties: {
-    mode: { type: S, enum: ['generate', 'edit'] },
-    // Generation fields
-    subject: { type: S },
-    action: { type: S },
-    scene: { type: S },
-    composition: { type: S },
-    style: { type: S },
-    lighting: { type: S },
-    colorPalette: { type: S },
-    textInImage: { type: S },
-    constraints: { type: S },
-    // Edit fields
-    editType: { type: S },
-    primaryRequest: { type: S },
-    referenceRole: { type: S },
-    targetScene: { type: S },
-    invariants: { type: S },
+    schemes: {
+      type: 'ARRAY' as const,
+      items: {
+        type: 'OBJECT' as const,
+        properties: {
+          title: { type: S },
+          description: { type: S },
+          ...FIELD_PROPS,
+        },
+        required: ['title', 'description', ...FIELD_KEYS],
+      },
+    },
   },
-  required: [
-    'mode',
-    'subject', 'action', 'scene', 'composition', 'style', 'lighting', 'colorPalette', 'textInImage', 'constraints',
-    'editType', 'primaryRequest', 'referenceRole', 'targetScene', 'invariants',
-  ],
+  required: ['schemes'],
 }
 
 export async function augmentPrompt(
@@ -152,7 +154,7 @@ export async function augmentPrompt(
   rawPrompt: string,
   referenceImages: PlaygroundImage[],
   signal?: AbortSignal,
-): Promise<StructuredPrompt> {
+): Promise<PromptScheme[]> {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${AUGMENT_MODEL}:generateContent`
 
   const parts: ApiPart[] = [{ text: rawPrompt }]
@@ -170,7 +172,7 @@ export async function augmentPrompt(
     contents: [{ parts }],
     generationConfig: {
       responseMimeType: 'application/json',
-      responseSchema: STRUCTURED_PROMPT_SCHEMA,
+      responseSchema: SCHEMES_SCHEMA,
     },
   }
 
@@ -199,5 +201,18 @@ export async function augmentPrompt(
     throw new Error('No text in augmentation response')
   }
 
-  return JSON.parse(textPart.text) as StructuredPrompt
+  const raw = JSON.parse(textPart.text) as { schemes: Array<Record<string, string>> }
+
+  return raw.schemes.map((s) => ({
+    title: s.title ?? '',
+    description: s.description ?? '',
+    fields: {
+      mode: (s.mode === 'edit' ? 'edit' : 'generate') as 'generate' | 'edit',
+      subject: s.subject ?? '', action: s.action ?? '', scene: s.scene ?? '',
+      composition: s.composition ?? '', style: s.style ?? '', lighting: s.lighting ?? '',
+      colorPalette: s.colorPalette ?? '', textInImage: s.textInImage ?? '', constraints: s.constraints ?? '',
+      editType: s.editType ?? '', primaryRequest: s.primaryRequest ?? '',
+      referenceRole: s.referenceRole ?? '', targetScene: s.targetScene ?? '', invariants: s.invariants ?? '',
+    },
+  }))
 }

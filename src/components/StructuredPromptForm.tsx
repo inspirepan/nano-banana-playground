@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import type { StructuredPrompt } from '../lib/types'
+import type { StructuredPrompt, PromptScheme } from '../lib/types'
 
 type FieldKey = keyof StructuredPrompt
 
@@ -40,23 +40,36 @@ function autoResize(el: HTMLTextAreaElement) {
 }
 
 type Props = {
-  fields: StructuredPrompt
-  onChange: (fields: StructuredPrompt) => void
+  schemes: PromptScheme[]
+  currentIndex: number
+  costPerImage: number | null
+  onSelectScheme: (index: number) => void
+  onChangeScheme: (index: number, fields: StructuredPrompt) => void
+  onGenerateAll: () => void
 }
 
-export function StructuredPromptForm({ fields, onChange }: Props) {
+export function StructuredPromptForm({
+  schemes,
+  currentIndex,
+  costPerImage,
+  onSelectScheme,
+  onChangeScheme,
+  onGenerateAll,
+}: Props) {
+  const current = schemes[currentIndex]
+  if (!current) return null
+
+  const fields = current.fields
   const isEdit = fields.mode === 'edit'
   const fieldDefs = isEdit ? EDIT_FIELDS : GENERATE_FIELDS
   const coreFields = isEdit ? EDIT_CORE : GENERATE_CORE
 
-  // Track manually expanded fields (clicked via "+ label" buttons)
   const [expanded, setExpanded] = useState<Set<FieldKey>>(new Set())
 
   const updateField = (key: FieldKey, value: string) => {
-    onChange({ ...fields, [key]: value })
+    onChangeScheme(currentIndex, { ...fields, [key]: value })
   }
 
-  // Re-run autoResize when fields change (e.g. after API fills values)
   const textareaRef = useCallback((el: HTMLTextAreaElement | null) => {
     if (el) autoResize(el)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -71,17 +84,67 @@ export function StructuredPromptForm({ fields, onChange }: Props) {
 
   const hiddenFields = fieldDefs.filter(({ key }) => !isFieldVisible(key))
 
-  const handleExpand = (key: FieldKey) => {
-    setExpanded((prev) => new Set(prev).add(key))
-  }
-
   return (
     <div className="flex flex-col gap-3">
+      {/* Scheme cards */}
+      {schemes.length > 1 && (
+        <div className="flex flex-col gap-2 ml-1">
+          {schemes.map((scheme, i) => {
+            const isSelected = i === currentIndex
+            return (
+              <button
+                key={i}
+                type="button"
+                onClick={() => onSelectScheme(i)}
+                className={`flex items-start gap-2.5 text-left px-3 py-2.5 rounded-2xl transition-colors w-full
+                  ${isSelected
+                    ? 'bg-primary-dim'
+                    : 'bg-surface-container hover:bg-surface-container-high'
+                  }`}
+              >
+                <span className={`mt-0.5 inline-block w-3.5 h-3.5 rounded-full border-2 shrink-0
+                  ${isSelected
+                    ? 'border-primary bg-primary shadow-[inset_0_0_0_2px_var(--color-primary-dim)]'
+                    : 'border-on-surface-variant/40 bg-transparent'
+                  }`} />
+                <div className="min-w-0">
+                  <div className={`text-xs font-semibold leading-none ${isSelected ? 'text-primary' : 'text-on-surface'}`}>
+                    {scheme.title}
+                  </div>
+                  <div className={`mt-1 text-[11px] leading-snug ${isSelected ? 'text-primary/70' : 'text-on-surface-variant'}`}>
+                    {scheme.description}
+                  </div>
+                </div>
+              </button>
+            )
+          })}
+          {/* Generate all schemes button */}
+          <button
+            type="button"
+            onClick={onGenerateAll}
+            className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-2xl transition-colors
+                       bg-surface-container hover:bg-surface-container-high
+                       text-xs font-medium text-on-surface-variant"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M19.46 8l.79-1.75L22 5.46c.39-.18.39-.73 0-.91l-1.75-.79L19.46 2c-.18-.39-.73-.39-.91 0l-.79 1.75-1.76.79c-.39.18-.39.73 0 .91l1.75.79.79 1.76c.18.39.74.39.92 0zM11.5 9.5L9.91 6c-.35-.78-1.47-.78-1.82 0L6.5 9.5 3 11.09c-.78.36-.78 1.47 0 1.82l3.5 1.59L8.09 18c.36.78 1.47.78 1.82 0l1.59-3.5 3.5-1.59c.78-.36.78-1.47 0-1.82L11.5 9.5z" />
+            </svg>
+            各生成一张 ({schemes.length} 张)
+          </button>
+          {costPerImage !== null && (
+            <p className="text-center text-[11px] text-on-surface-variant/60 -mt-0.5">
+              预估费用约 ${(costPerImage * schemes.length).toFixed(3)}
+              <span className="ml-1 opacity-70">({schemes.length} 张 x ${costPerImage.toFixed(3)})</span>
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Mode indicator */}
       <div className="flex gap-1.5">
         <button
           type="button"
-          onClick={() => onChange({ ...fields, mode: 'generate' })}
+          onClick={() => updateField('mode', 'generate')}
           className={`px-3 py-1 text-xs rounded-full transition-colors
             ${!isEdit ? 'bg-primary-dim text-primary font-semibold' : 'bg-surface-container text-on-surface hover:bg-surface-container-high'}`}
         >
@@ -89,7 +152,7 @@ export function StructuredPromptForm({ fields, onChange }: Props) {
         </button>
         <button
           type="button"
-          onClick={() => onChange({ ...fields, mode: 'edit' })}
+          onClick={() => updateField('mode', 'edit')}
           className={`px-3 py-1 text-xs rounded-full transition-colors
             ${isEdit ? 'bg-primary-dim text-primary font-semibold' : 'bg-surface-container text-on-surface hover:bg-surface-container-high'}`}
         >
@@ -97,6 +160,7 @@ export function StructuredPromptForm({ fields, onChange }: Props) {
         </button>
       </div>
 
+      {/* Fields for current scheme */}
       {fieldDefs.map(({ key, label, placeholder }) => {
         if (!isFieldVisible(key)) return null
         const value = fields[key] as string
@@ -133,7 +197,7 @@ export function StructuredPromptForm({ fields, onChange }: Props) {
             <button
               key={key}
               type="button"
-              onClick={() => handleExpand(key)}
+              onClick={() => setExpanded((prev) => new Set(prev).add(key))}
               className="px-2.5 py-1 text-xs rounded-full transition-colors
                          bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
             >
