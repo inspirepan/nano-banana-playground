@@ -37,7 +37,7 @@ The JSON wraps an array of **schemes** — each scheme is a complete, self-conta
 ### Scheme diversity rules
 
 - Each scheme must share the user's core subject/intent but differ in creative execution (style, lighting, composition, color palette, mood).
-- The first scheme should be the most faithful interpretation of the user's prompt.
+- The first scheme is the default selection shown to the user — place the most recommended direction first. It should be the most faithful and effective interpretation of the user's prompt.
 - Subsequent schemes should explore progressively more creative/unexpected directions.
 - `title` should be short (2-4 words) and immediately convey the creative direction (e.g. "写实自然光", "油画黄金时刻", "赛博朋克霓虹").
 - `description` should be one sentence explaining the key difference from other schemes.
