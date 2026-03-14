@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Agentation } from 'agentation'
 import { usePlayground } from './hooks/usePlayground'
 import { TopBar } from './components/TopBar'
 import { ControlPanel } from './components/ControlPanel'
@@ -72,6 +73,7 @@ function App() {
           onClearAll={pg.clearAllHistory}
         />
       </div>
+      {import.meta.env.DEV && <Agentation />}
     </div>
   )
 }
