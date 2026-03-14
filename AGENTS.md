@@ -64,6 +64,17 @@ docs/refs/                  # API 和提示词参考文档
 
 > `TopBar.tsx` 和 `HistoryDrawer.tsx` 存在于代码库中但未挂载，勿重复引入。
 
+## 设计规范
+
+严格遵循 **Google Material Design 3（MD3）**规范：
+
+- **色彩系统**：使用 MD3 动态色彩角色（`primary`、`on-primary`、`surface`、`surface-variant`、`outline` 等），通过 CSS 变量映射到 `index.css` 主题令牌，亮/暗色方案各自定义完整角色。
+- **排版**：遵循 MD3 字阶（Display / Headline / Title / Body / Label），对应 `size`、`line-height`、`weight` 三元组，不随意自定义字号。
+- **组件形态**：按钮、输入框、卡片、芯片等控件的圆角、高程、状态层（hover 8%、pressed 12%、focus 12% `on-surface`）均照 MD3 规格实现。
+- **间距**：使用 MD3 4pt 基础网格（`4 / 8 / 12 / 16 / 24 / 32 / 48px`）。
+- **图标**：使用 Material Symbols（Rounded 风格）。
+- **禁止**：不引入 Material Web 或 MUI 等组件库，所有 MD3 控件手写实现。
+
 ## 开发规范
 
 - **类型**：禁止 `any`，用正确类型或带类型缩小的 `unknown`。
