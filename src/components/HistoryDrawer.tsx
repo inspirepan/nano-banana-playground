@@ -74,6 +74,7 @@ export function HistoryDrawer({ history, onAddToRef, onRemove, onClearAll }: Pro
       {detailImage && (
         <ImageDetailModal
           image={detailImage}
+          history={history}
           onClose={() => setDetailImage(null)}
           onAddToRef={onAddToRef}
           onRemove={onRemove}

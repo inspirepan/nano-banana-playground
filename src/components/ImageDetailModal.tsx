@@ -7,6 +7,7 @@ const MAX_SCALE = 6
 
 type Props = {
   image: PlaygroundImage
+  history: PlaygroundImage[]
   onClose: () => void
   onAddToRef: (image: PlaygroundImage) => void
   onRemove: (id: string) => void
@@ -22,10 +23,11 @@ type Size = {
   height: number
 }
 
-export function ImageDetailModal({ image, onClose, onAddToRef, onRemove }: Props) {
+export function ImageDetailModal({ image, history, onClose, onAddToRef, onRemove }: Props) {
   const src = `data:${image.mimeType};base64,${image.data}`
   const meta = image.source.type === 'generated' ? image.source : null
   const [toast, setToast] = useState(false)
+  const [refDetail, setRefDetail] = useState<PlaygroundImage | null>(null)
 
   const modelName = meta
     ? MODEL_CONFIGS.find((m) => m.id === meta.modelId)?.name ?? meta.modelId
@@ -65,7 +67,18 @@ export function ImageDetailModal({ image, onClose, onAddToRef, onRemove }: Props
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex-1 min-w-0 bg-surface-dim p-4">
-          <ZoomableImageView key={image.id} src={src} alt={meta?.prompt ?? ''} />
+          {refDetail ? (
+            <div className="flex h-full gap-3">
+              <div className="flex-1 min-w-0 relative">
+                <ZoomableImageView key={`ref-${refDetail.id}`} src={`data:${refDetail.mimeType};base64,${refDetail.data}`} alt="" label="参考图" />
+              </div>
+              <div className="flex-1 min-w-0 relative">
+                <ZoomableImageView key={`gen-${image.id}`} src={src} alt={meta?.prompt ?? ''} label="生成图" />
+              </div>
+            </div>
+          ) : (
+            <ZoomableImageView key={image.id} src={src} alt={meta?.prompt ?? ''} />
+          )}
         </div>
 
         <div className="flex w-[320px] shrink-0 flex-col overflow-y-auto border-l border-outline-variant p-6">
@@ -94,9 +107,25 @@ export function ImageDetailModal({ image, onClose, onAddToRef, onRemove }: Props
                 </div>
                 {meta.referenceImageIds.length > 0 && (
                   <div>
-                    <div className="mb-1 text-[11px] font-medium text-on-surface-variant">参考图片</div>
-                    <div className="font-mono text-xs text-on-surface-variant">
-                      {meta.referenceImageIds.length} 张图片
+                    <div className="mb-1 text-[11px] font-medium text-on-surface-variant">
+                      参考图片 ({meta.referenceImageIds.length})
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {meta.referenceImageIds.map((refId) => {
+                        const refImg = history.find((h) => h.id === refId)
+                        if (!refImg) return (
+                          <div key={refId} className="h-12 w-12 rounded-md bg-surface-container border border-outline-variant flex items-center justify-center text-[10px] text-on-surface-variant/40">?</div>
+                        )
+                        return (
+                          <img
+                            key={refId}
+                            src={`data:${refImg.mimeType};base64,${refImg.data}`}
+                            alt=""
+                            className={`h-12 w-12 rounded-md object-cover border cursor-pointer transition-colors ${refDetail?.id === refImg.id ? 'border-primary' : 'border-outline-variant hover:border-primary/40'}`}
+                            onClick={() => setRefDetail((prev) => prev?.id === refImg.id ? null : refImg)}
+                          />
+                        )
+                      })}
                     </div>
                   </div>
                 )}
@@ -134,11 +163,12 @@ export function ImageDetailModal({ image, onClose, onAddToRef, onRemove }: Props
           </div>
         </div>
       </div>
+
     </div>
   )
 }
 
-function ZoomableImageView({ src, alt }: { src: string; alt: string }) {
+function ZoomableImageView({ src, alt, label }: { src: string; alt: string; label?: string }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const activePointersRef = useRef(new Map<number, Point>())
   const pointerStartsRef = useRef(new Map<number, Point>())
@@ -361,8 +391,15 @@ function ZoomableImageView({ src, alt }: { src: string; alt: string }) {
         />
       </div>
 
-      <div className="pointer-events-none absolute left-4 top-4 rounded-full border border-outline-variant bg-surface/82 px-3 py-1 text-[11px] font-mono text-on-surface shadow-sm backdrop-blur-sm">
-        {Math.round(scale * 100)}%
+      <div className="pointer-events-none absolute left-4 top-4 flex items-center gap-2">
+        {label && (
+          <div className="rounded-full border border-outline-variant bg-surface/82 px-2.5 py-1 text-[11px] text-on-surface-variant shadow-sm backdrop-blur-sm">
+            {label}
+          </div>
+        )}
+        <div className="rounded-full border border-outline-variant bg-surface/82 px-3 py-1 text-[11px] font-mono text-on-surface shadow-sm backdrop-blur-sm">
+          {Math.round(scale * 100)}%
+        </div>
       </div>
 
       <div className="absolute right-4 top-4 flex gap-2">

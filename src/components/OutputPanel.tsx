@@ -180,6 +180,7 @@ export function OutputPanel({
       {detailImage && (
         <ImageDetailModal
           image={detailImage}
+          history={history}
           onClose={() => setDetailImage(null)}
           onAddToRef={onAddToRef}
           onRemove={onRemove}
