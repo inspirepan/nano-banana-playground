@@ -1,0 +1,73 @@
+@import url('https://fonts.googleapis.com/css2?family=Google+Sans+Code:ital,wght@0,300..800;1,300..800&family=Google+Sans+Flex:opsz,wght@6..144,1..1000&display=swap');
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: 'Google Sans Flex', system-ui, sans-serif;
+  --font-mono: 'Google Sans Code', ui-monospace, monospace;
+
+  /* Light palette (default) */
+  --color-primary: #1a73e8;
+  --color-primary-hover: #1557b0;
+  --color-primary-dim: rgba(26, 115, 232, 0.08);
+  --color-on-primary: #ffffff;
+
+  --color-surface: #ffffff;
+  --color-surface-dim: #f8f9fa;
+  --color-surface-container: #f1f3f4;
+  --color-surface-container-high: #e8eaed;
+
+  --color-on-surface: #1f1f1f;
+  --color-on-surface-variant: #5f6368;
+  --color-outline: #dadce0;
+  --color-outline-variant: #e8eaed;
+
+  --color-error: #d93025;
+  --color-error-dim: rgba(217, 48, 37, 0.08);
+}
+
+@layer base {
+  body {
+    margin: 0;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background: var(--color-surface-dim);
+    color: var(--color-on-surface);
+  }
+
+  .skeleton-shimmer {
+    animation: shimmer 2s ease-in-out infinite;
+  }
+
+  /* Dark theme overrides via .dark class */
+  .dark {
+    --color-primary: #8ab4f8;
+    --color-primary-hover: #aecbfa;
+    --color-primary-dim: rgba(138, 180, 248, 0.12);
+    --color-on-primary: #1f1f1f;
+
+    --color-surface: #1f1f1f;
+    --color-surface-dim: #131314;
+    --color-surface-container: #282a2c;
+    --color-surface-container-high: #333537;
+
+    --color-on-surface: #e3e3e3;
+    --color-on-surface-variant: #9aa0a6;
+    --color-outline: #3c4043;
+    --color-outline-variant: #333537;
+
+    --color-error: #f28b82;
+    --color-error-dim: rgba(242, 139, 130, 0.12);
+  }
+
+  .dark body {
+    background: var(--color-surface-dim);
+    color: var(--color-on-surface);
+  }
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}

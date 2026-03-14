@@ -1,0 +1,133 @@
+import { useCallback, useRef, useState } from 'react'
+import type { PlaygroundImage } from '../lib/types'
+
+type Props = {
+  images: PlaygroundImage[]
+  maxTotal: number
+  onAdd: (files: File[]) => void
+  onAddImage: (image: PlaygroundImage) => void
+  onRemove: (id: string) => void
+}
+
+export function ReferenceImageUpload({ images, maxTotal, onAdd, onAddImage, onRemove }: Props) {
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [dragOver, setDragOver] = useState(false)
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault()
+      setDragOver(false)
+
+      // Check for playground image data (dragged from history)
+      const imageJson = e.dataTransfer.getData('application/x-playground-image')
+      if (imageJson) {
+        try {
+          const img: PlaygroundImage = JSON.parse(imageJson)
+          // Avoid adding duplicates
+          onAddImage(img)
+          return
+        } catch { /* fall through to file handling */ }
+      }
+
+      // Regular file drop
+      const files = Array.from(e.dataTransfer.files).filter((f) =>
+        f.type.startsWith('image/'),
+      )
+      if (files.length > 0) onAdd(files)
+    },
+    [onAdd, onAddImage],
+  )
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    setDragOver(true)
+  }, [])
+
+  const handleDragLeave = useCallback(() => {
+    setDragOver(false)
+  }, [])
+
+  const handleFileSelect = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const files = Array.from(e.target.files || [])
+      if (files.length > 0) onAdd(files)
+      e.target.value = ''
+    },
+    [onAdd],
+  )
+
+  const getLabel = (img: PlaygroundImage) => {
+    if (img.source.type === 'upload') return img.source.fileName
+    return `gen-${img.id.slice(0, 6)}`
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-baseline justify-between">
+        <label className="text-xs font-medium text-on-surface-variant">参考图片</label>
+        <span className="text-xs text-on-surface-variant/60">
+          {images.length}/{maxTotal}
+        </span>
+      </div>
+      <div
+        onDrop={handleDrop}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        className={`min-h-[80px] rounded-xl border-2 border-dashed transition-colors p-3
+          ${dragOver ? 'border-primary bg-primary-dim' : 'border-outline-variant hover:border-primary/40'}`}
+      >
+        {images.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            {images.map((img) => (
+              <div key={img.id} className="relative group w-16 h-16">
+                <img
+                  src={`data:${img.mimeType};base64,${img.data}`}
+                  alt={getLabel(img)}
+                  className="w-full h-full object-cover rounded-lg"
+                />
+                <button
+                  type="button"
+                  onClick={() => onRemove(img.id)}
+                  className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-error text-on-primary
+                             rounded-full text-xs flex items-center justify-center
+                             opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  x
+                </button>
+              </div>
+            ))}
+            {images.length < maxTotal && (
+              <button
+                type="button"
+                onClick={() => inputRef.current?.click()}
+                className="w-16 h-16 rounded-lg border-2 border-dashed border-outline-variant
+                           hover:border-primary/40 flex items-center justify-center
+                           text-on-surface-variant text-xl transition-colors"
+              >
+                +
+              </button>
+            )}
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            className="w-full h-full min-h-[56px] flex flex-col items-center justify-center gap-1
+                       text-on-surface-variant text-sm cursor-pointer"
+          >
+            <span className="text-lg">+</span>
+            <span className="text-xs">拖放或点击上传</span>
+          </button>
+        )}
+      </div>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        onChange={handleFileSelect}
+        className="hidden"
+      />
+    </div>
+  )
+}
