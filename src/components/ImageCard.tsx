@@ -39,10 +39,17 @@ export function ImageCard({ image, index, onAddToRef, onOpen }: Props) {
     }
   }
 
+  const handleDragStart = (event: React.DragEvent) => {
+    event.dataTransfer.setData('application/x-playground-image', JSON.stringify(image))
+    event.dataTransfer.effectAllowed = 'copy'
+  }
+
   return (
     <div
       role="button"
       tabIndex={0}
+      draggable
+      onDragStart={handleDragStart}
       onClick={() => onOpen(image)}
       onKeyDown={(event) => {
         if (event.key === 'Enter' || event.key === ' ') {
