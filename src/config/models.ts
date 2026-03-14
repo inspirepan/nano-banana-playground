@@ -9,6 +9,8 @@ export type ModelConfig = {
   maxReferenceImages: number
   maxCharacterImages: number
   maxBatchCount: number
+  // price per image in USD, keyed by resolution string
+  imagePriceByResolution: Record<string, number>
 }
 
 export const MODEL_CONFIGS: ModelConfig[] = [
@@ -26,6 +28,8 @@ export const MODEL_CONFIGS: ModelConfig[] = [
     maxReferenceImages: 10,
     maxCharacterImages: 4,
     maxBatchCount: 4,
+    // source: https://ai.google.dev/gemini-api/docs/pricing
+    imagePriceByResolution: { '512': 0.045, '1K': 0.067, '2K': 0.101, '4K': 0.151 },
   },
   {
     id: 'nano-banana-pro',
@@ -41,6 +45,9 @@ export const MODEL_CONFIGS: ModelConfig[] = [
     maxReferenceImages: 6,
     maxCharacterImages: 5,
     maxBatchCount: 4,
+    // source: https://ai.google.dev/gemini-api/docs/pricing
+    // 1K and 2K share the same token count (1120), hence same price
+    imagePriceByResolution: { '1K': 0.134, '2K': 0.134, '4K': 0.240 },
   },
 ]
 

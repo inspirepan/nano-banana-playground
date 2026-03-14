@@ -71,6 +71,8 @@ function App() {
         <div className="border-t border-outline/10">
           <PromptPanel
             model={pg.model}
+            resolution={pg.resolution}
+            batchCount={pg.batchCount}
             prompt={pg.prompt}
             referenceImages={pg.referenceImages}
             generationState={pg.generationState}
@@ -150,6 +152,8 @@ function App() {
 
       <PromptPanel
         model={pg.model}
+        resolution={pg.resolution}
+        batchCount={pg.batchCount}
         prompt={pg.prompt}
         referenceImages={pg.referenceImages}
         generationState={pg.generationState}

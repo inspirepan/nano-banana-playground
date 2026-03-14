@@ -5,6 +5,8 @@ import { ReferenceImageUpload } from './ReferenceImageUpload'
 
 type Props = {
   model: ModelConfig
+  resolution: string
+  batchCount: number
   prompt: string
   referenceImages: PlaygroundImage[]
   generationState: GenerationState
@@ -19,6 +21,8 @@ type Props = {
 
 export function PromptPanel({
   model,
+  resolution,
+  batchCount,
   prompt,
   referenceImages,
   generationState,
@@ -33,6 +37,9 @@ export function PromptPanel({
   const isGenerating = generationState === 'generating'
   const canGenerate = apiKey.trim() !== '' && prompt.trim() !== '' && !isGenerating
   const maxRef = model.maxReferenceImages + model.maxCharacterImages
+
+  const pricePerImage = model.imagePriceByResolution[resolution]
+  const estimatedCost = pricePerImage !== undefined ? pricePerImage * batchCount : null
 
   return (
     <div className="w-full md:w-[300px] md:shrink-0 flex flex-col gap-4 overflow-y-auto py-4">
@@ -88,6 +95,14 @@ export function PromptPanel({
           </div>
         )}
       </div>
+
+      {/* Cost estimate */}
+      {estimatedCost !== null && (
+        <p className="text-center text-xs text-on-surface-variant/60 -mt-2">
+          预估费用约 ${estimatedCost.toFixed(3)}
+          <span className="ml-1 opacity-70">({batchCount} 张 × ${pricePerImage!.toFixed(3)})</span>
+        </p>
+      )}
     </div>
   )
 }
