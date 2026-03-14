@@ -2,8 +2,9 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { PlaygroundImage } from '../lib/types'
 import { MODEL_CONFIGS } from '../config/models'
 
-const MIN_SCALE = 1
+const MIN_SCALE = 0.5
 const MAX_SCALE = 6
+const FIT_SCALE = 1
 
 type Props = {
   image: PlaygroundImage
@@ -182,12 +183,12 @@ function ZoomableImageView({ src, alt, label }: { src: string; alt: string; labe
   const pinchStartRef = useRef<{ center: Point; distance: number; scale: number; offset: Point } | null>(null)
   const naturalSizeRef = useRef<Size>({ width: 0, height: 0 })
   const fitSizeRef = useRef<Size>({ width: 0, height: 0 })
-  const scaleRef = useRef(MIN_SCALE)
+  const scaleRef = useRef(FIT_SCALE)
   const offsetRef = useRef<Point>({ x: 0, y: 0 })
   const lastTapRef = useRef<{ at: number; point: Point } | null>(null)
   const didPinchRef = useRef(false)
 
-  const [scale, setScale] = useState(MIN_SCALE)
+  const [scale, setScale] = useState(FIT_SCALE)
   const [offset, setOffset] = useState<Point>({ x: 0, y: 0 })
   const [fitSize, setFitSize] = useState<Size>({ width: 0, height: 0 })
   const [isDragging, setIsDragging] = useState(false)
@@ -221,7 +222,7 @@ function ZoomableImageView({ src, alt, label }: { src: string; alt: string; labe
     didPinchRef.current = false
     setIsDragging(false)
     setIsInteracting(false)
-    applyView(MIN_SCALE, { x: 0, y: 0 })
+    applyView(FIT_SCALE, { x: 0, y: 0 })
   }, [applyView])
 
   const zoomAtPoint = useCallback((targetScale: number, anchor: Point) => {
@@ -253,7 +254,7 @@ function ZoomableImageView({ src, alt, label }: { src: string; alt: string; labe
         className="relative flex h-full w-full items-center justify-center overflow-hidden touch-none select-none"
         onDoubleClick={(event) => {
           const point = getRelativePoint(containerRef.current, event.clientX, event.clientY)
-          if (scaleRef.current > MIN_SCALE) {
+          if (scaleRef.current > FIT_SCALE) {
             resetView()
             return
           }
@@ -272,7 +273,7 @@ function ZoomableImageView({ src, alt, label }: { src: string; alt: string; labe
           if (activePointersRef.current.size === 1) {
             dragStartRef.current = { point, offset: offsetRef.current }
             pinchStartRef.current = null
-            setIsDragging(scaleRef.current > MIN_SCALE)
+            setIsDragging(scaleRef.current > FIT_SCALE)
           }
 
           if (activePointersRef.current.size === 2) {
@@ -343,7 +344,7 @@ function ZoomableImageView({ src, alt, label }: { src: string; alt: string; labe
             const lastTap = lastTapRef.current
 
             if (lastTap && now - lastTap.at < 280 && getDistance(lastTap.point, endPoint) < 28) {
-              if (scaleRef.current > MIN_SCALE) {
+              if (scaleRef.current > FIT_SCALE) {
                 resetView()
               } else {
                 zoomAtPoint(2.5, endPoint)
@@ -373,7 +374,7 @@ function ZoomableImageView({ src, alt, label }: { src: string; alt: string; labe
           const delta = Math.exp(-event.deltaY * 0.0015)
           zoomAtPoint(scaleRef.current * delta, point)
         }}
-        style={{ cursor: scale > MIN_SCALE ? (isDragging ? 'grabbing' : 'grab') : 'default' }}
+        style={{ cursor: scale > FIT_SCALE ? (isDragging ? 'grabbing' : 'grab') : 'default' }}
       >
         <img
           src={src}
@@ -492,7 +493,7 @@ function getContainedSize(viewport: Size, naturalSize: Size): Size {
 }
 
 function clampOffset(offset: Point, scale: number, viewport: Size, fitSize: Size): Point {
-  if (!viewport.width || !viewport.height || !fitSize.width || !fitSize.height || scale <= MIN_SCALE) {
+  if (!viewport.width || !viewport.height || !fitSize.width || !fitSize.height || scale <= FIT_SCALE) {
     return { x: 0, y: 0 }
   }
 
