@@ -463,7 +463,7 @@ export function PromptPanel({
                     增强
                   </button>
                   <div className="absolute bottom-full right-0 mb-2 pointer-events-none whitespace-nowrap bg-on-surface text-surface text-xs px-2 py-1 rounded opacity-0 group-hover/augment:opacity-100 transition-opacity duration-150 delay-500 group-hover/augment:delay-500 z-50">
-                    AI 生成结构化提示词
+                    Gemini Flash Lite 生成结构化提示词
                   </div>
                 </div>
               )}
