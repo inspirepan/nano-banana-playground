@@ -4,13 +4,12 @@ import { ImageDetailModal } from './ImageDetailModal'
 
 type Props = {
   history: PlaygroundImage[]
-  onEdit: (image: PlaygroundImage) => void
   onAddToRef: (image: PlaygroundImage) => void
   onRemove: (id: string) => void
   onClearAll: () => void
 }
 
-export function HistoryDrawer({ history, onEdit, onAddToRef, onRemove, onClearAll }: Props) {
+export function HistoryDrawer({ history, onAddToRef, onRemove, onClearAll }: Props) {
   const [expanded, setExpanded] = useState(false)
   const [detailImage, setDetailImage] = useState<PlaygroundImage | null>(null)
 
@@ -76,7 +75,6 @@ export function HistoryDrawer({ history, onEdit, onAddToRef, onRemove, onClearAl
         <ImageDetailModal
           image={detailImage}
           onClose={() => setDetailImage(null)}
-          onEdit={onEdit}
           onAddToRef={onAddToRef}
           onRemove={onRemove}
         />

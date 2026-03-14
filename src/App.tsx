@@ -67,7 +67,6 @@ function App() {
           batchCount={pg.batchCount}
           aspectRatio={pg.aspectRatio}
           resolution={pg.resolution}
-          onEdit={pg.editImage}
           onAddToRef={pg.addToReferences}
           onRemove={pg.removeFromHistory}
           onClearAll={pg.clearAllHistory}

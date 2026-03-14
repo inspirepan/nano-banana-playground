@@ -8,7 +8,6 @@ const MAX_SCALE = 6
 type Props = {
   image: PlaygroundImage
   onClose: () => void
-  onEdit: (image: PlaygroundImage) => void
   onAddToRef: (image: PlaygroundImage) => void
   onRemove: (id: string) => void
 }
@@ -23,19 +22,39 @@ type Size = {
   height: number
 }
 
-export function ImageDetailModal({ image, onClose, onEdit, onAddToRef, onRemove }: Props) {
+export function ImageDetailModal({ image, onClose, onAddToRef, onRemove }: Props) {
   const src = `data:${image.mimeType};base64,${image.data}`
   const meta = image.source.type === 'generated' ? image.source : null
+  const [toast, setToast] = useState(false)
 
   const modelName = meta
     ? MODEL_CONFIGS.find((m) => m.id === meta.modelId)?.name ?? meta.modelId
     : null
+
+  const showCopiedToast = () => {
+    setToast(true)
+    setTimeout(() => setToast(false), 1500)
+  }
 
   const handleDownload = () => {
     const anchor = document.createElement('a')
     anchor.href = src
     anchor.download = `nano-banana-${image.id.slice(0, 8)}.png`
     anchor.click()
+  }
+
+  const handleCopyImage = async () => {
+    const response = await fetch(src)
+    const blob = await response.blob()
+    await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })])
+    showCopiedToast()
+  }
+
+  const handleCopyPrompt = () => {
+    if (meta?.prompt) {
+      navigator.clipboard.writeText(meta.prompt)
+      showCopiedToast()
+    }
   }
 
   return (
@@ -91,11 +110,19 @@ export function ImageDetailModal({ image, onClose, onEdit, onAddToRef, onRemove 
             <MetaRow label="创建时间" value={new Date(image.timestamp).toLocaleString()} />
           </div>
 
-          <div className="mt-4 space-y-2 border-t border-outline-variant pt-4">
+          <div className="relative mt-4 space-y-2 border-t border-outline-variant pt-4">
+            <div
+              className={`pointer-events-none absolute inset-x-0 top-0 flex -translate-y-1/2 justify-center transition-all duration-300 ${toast ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}`}
+            >
+              <div className="rounded-lg bg-on-surface/80 px-3.5 py-2 text-[12px] font-medium text-surface backdrop-blur-sm">
+                已复制
+              </div>
+            </div>
             <div className="flex gap-2">
-              <ModalAction label="编辑" onClick={() => { onEdit(image); onClose() }} />
               <ModalAction label="+参考" onClick={() => { onAddToRef(image); onClose() }} />
               <ModalAction label="保存" onClick={handleDownload} />
+              <ModalAction label="复制图" onClick={handleCopyImage} />
+              {meta?.prompt && <ModalAction label="复制词" onClick={handleCopyPrompt} />}
             </div>
             <button
               type="button"
@@ -357,7 +384,7 @@ function ZoomableImageView({ src, alt }: { src: string; alt: string }) {
 
       <div className="pointer-events-none absolute inset-x-0 bottom-4 flex justify-center px-4">
         <div className="rounded-full border border-outline-variant bg-surface/78 px-3 py-1 text-[11px] text-on-surface-variant shadow-sm backdrop-blur-sm">
-          双击或双指缩放，拖动查看细节
+          滚轮或双指缩放，拖动查看细节
         </div>
       </div>
     </div>
@@ -373,7 +400,7 @@ function MetaRow({ label, value }: { label: string; value: string }) {
   )
 }
 
-function ModalAction({ label, onClick }: { label: string; onClick: () => void }) {
+function ModalAction({ label, onClick }: { label: string; onClick: () => void | Promise<void> }) {
   return (
     <button
       type="button"

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import type { PlaygroundImage } from '../lib/types'
 
 type Props = {
@@ -9,6 +10,12 @@ type Props = {
 export function ImageCard({ image, onAddToRef, onOpen }: Props) {
   const src = `data:${image.mimeType};base64,${image.data}`
   const meta = image.source.type === 'generated' ? image.source : null
+  const [toast, setToast] = useState(false)
+
+  const showCopiedToast = () => {
+    setToast(true)
+    setTimeout(() => setToast(false), 1500)
+  }
 
   const handleDownload = () => {
     const anchor = document.createElement('a')
@@ -21,11 +28,13 @@ export function ImageCard({ image, onAddToRef, onOpen }: Props) {
     const response = await fetch(src)
     const blob = await response.blob()
     await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })])
+    showCopiedToast()
   }
 
   const handleCopyPrompt = () => {
     if (meta?.prompt) {
       navigator.clipboard.writeText(meta.prompt)
+      showCopiedToast()
     }
   }
 
@@ -49,6 +58,14 @@ export function ImageCard({ image, onAddToRef, onOpen }: Props) {
       />
 
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/0 opacity-90 transition-opacity group-hover:opacity-100" />
+
+      <div
+        className={`pointer-events-none absolute inset-x-0 top-1/2 flex -translate-y-1/2 justify-center transition-all duration-300 ${toast ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}`}
+      >
+        <div className="rounded-lg bg-black/75 px-3.5 py-2 text-[12px] font-medium text-white backdrop-blur-sm">
+          已复制
+        </div>
+      </div>
 
       {meta && (
         <div className="absolute top-2 right-2 rounded-md bg-black/55 px-2 py-1 text-[10px] font-mono text-white backdrop-blur-sm">

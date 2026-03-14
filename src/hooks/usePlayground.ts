@@ -174,11 +174,6 @@ export function usePlayground() {
     setGenerationSnapshot(null)
   }, [])
 
-  const editImage = useCallback((image: PlaygroundImage) => {
-    setReferenceImages([image])
-    setPrompt('')
-  }, [setPrompt])
-
   const addToReferences = useCallback(
     (image: PlaygroundImage) => {
       const maxTotal = model.maxReferenceImages + model.maxCharacterImages
@@ -223,7 +218,6 @@ export function usePlayground() {
     removeReferenceImage,
     generate,
     cancelGeneration,
-    editImage,
     addToReferences,
     removeFromHistory,
     clearAllHistory,

@@ -14,7 +14,6 @@ type Props = {
   batchCount: number
   aspectRatio: string
   resolution: string
-  onEdit: (image: PlaygroundImage) => void
   onAddToRef: (image: PlaygroundImage) => void
   onRemove: (id: string) => void
   onClearAll: () => void
@@ -85,7 +84,6 @@ export function OutputPanel({
   batchCount,
   aspectRatio,
   resolution,
-  onEdit,
   onAddToRef,
   onRemove,
   onClearAll,
@@ -183,7 +181,6 @@ export function OutputPanel({
         <ImageDetailModal
           image={detailImage}
           onClose={() => setDetailImage(null)}
-          onEdit={onEdit}
           onAddToRef={onAddToRef}
           onRemove={onRemove}
         />
