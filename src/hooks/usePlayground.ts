@@ -101,7 +101,8 @@ export function usePlayground() {
     if (promptList.length === 0) return
 
     const batchId = crypto.randomUUID()
-    const hash = computeConfigHash(model.id, resolution, aspectRatio, promptList.length, promptList[0])
+    // Use current state values for hash so showDraft comparison works after generation
+    const hash = computeConfigHash(model.id, resolution, aspectRatio, batchCount, prompt)
 
     setGenerationState('generating')
     setGenerationSnapshot({ batchId, batchCount: promptList.length, resolution, aspectRatio, configHash: hash })

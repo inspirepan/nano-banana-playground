@@ -383,7 +383,7 @@ export function PromptPanel({
               <>
                 <div className="relative group/reaugment">
                   <button type="button" onClick={() => handleAugment(true)} disabled={!originalPrompt}
-                    className="flex items-center gap-1 px-2.5 py-1 text-xs rounded-full transition-colors bg-primary-dim text-primary hover:bg-primary hover:text-on-primary disabled:opacity-40 disabled:pointer-events-none">
+                    className="flex items-center gap-1 px-2.5 py-1 text-xs rounded-full transition-colors bg-purple-100 text-purple-700 hover:bg-purple-600 hover:text-white dark:bg-purple-900/40 dark:text-purple-300 dark:hover:bg-purple-600 dark:hover:text-white disabled:opacity-40 disabled:pointer-events-none">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
                     </svg>
@@ -449,7 +449,7 @@ export function PromptPanel({
               {canAugment && (
                 <div className="relative group/augment">
                   <button type="button" onClick={() => handleAugment(false)}
-                    className="flex items-center gap-1 px-2.5 py-1 text-xs rounded-full transition-colors bg-primary-dim text-primary hover:bg-primary hover:text-on-primary">
+                    className="flex items-center gap-1 px-2.5 py-1 text-xs rounded-full transition-colors bg-purple-100 text-purple-700 hover:bg-purple-600 hover:text-white dark:bg-purple-900/40 dark:text-purple-300 dark:hover:bg-purple-600 dark:hover:text-white">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19.46 8l.79-1.75L22 5.46c.39-.18.39-.73 0-.91l-1.75-.79L19.46 2c-.18-.39-.73-.39-.91 0l-.79 1.75-1.76.79c-.39.18-.39.73 0 .91l1.75.79.79 1.76c.18.39.74.39.92 0zM11.5 9.5L9.91 6c-.35-.78-1.47-.78-1.82 0L6.5 9.5 3 11.09c-.78.36-.78 1.47 0 1.82l3.5 1.59L8.09 18c.36.78 1.47.78 1.82 0l1.59-3.5 3.5-1.59c.78-.36.78-1.47 0-1.82L11.5 9.5zm7.04 6.5l-.79 1.75-1.75.79c-.39.18-.39.73 0 .91l1.75.79.79 1.76c.18.39.73.39.91 0l.79-1.75 1.76-.79c.39-.18.39-.73 0-.91l-1.75-.79-.79-1.76c-.18-.39-.74-.39-.92 0z" /></svg>
                     增强
                   </button>
@@ -478,9 +478,11 @@ export function PromptPanel({
             schemes={schemes}
             currentIndex={currentSchemeIndex}
             costPerImage={pricePerImage ?? null}
+            isGenerating={isGenerating}
             onSelectScheme={handleSelectScheme}
             onChangeScheme={handleChangeScheme}
             onGenerateAll={handleGenerateAll}
+            onCancel={onCancel}
           />
         )}
 
