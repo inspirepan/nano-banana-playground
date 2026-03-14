@@ -1,5 +1,6 @@
 import { MODEL_CONFIGS, type ModelConfig } from '../config/models'
-import { ApiKeyInput, type ApiKeyStatus } from './ApiKeyInput'
+import type { ApiKeyStatus } from '../hooks/useApiKey'
+import { ApiKeyInput } from './ApiKeyInput'
 import { ChipGroup } from './ChipGroup'
 import { AspectRatioSelector } from './AspectRatioSelector'
 

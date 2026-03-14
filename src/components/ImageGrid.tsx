@@ -1,83 +1,134 @@
-import { useRef, useState, useEffect } from 'react'
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 
-const GRID_COLS = 4
 const GRID_GAP = 12
+const DEFAULT_GRID_COLS = 4
 
-// Map aspect ratio to grid cell spans
-export function getGridSpan(ratio: number): { cols: number; rows: number } {
-  if (ratio >= 6) return { cols: 3, rows: 1 }    // 8:1
-  if (ratio >= 3) return { cols: 2, rows: 1 }    // 4:1
-  if (ratio > 1.6) return { cols: 2, rows: 1 }   // 16:9, 21:9
-  if (ratio >= 0.55) return { cols: 1, rows: 1 } // 1:1, 3:2, 2:3, 3:4, 4:3, 4:5, 5:4
-  if (ratio >= 0.2) return { cols: 1, rows: 2 }  // 9:16, 1:4
-  return { cols: 1, rows: 3 }                     // 1:8
+type GridSpan = {
+  cols: number
+  rows: number
 }
 
-export function parseAspectRatio(ratio: string): number {
-  const [w, h] = ratio.split(':').map(Number)
-  return w / h
+const ASPECT_RATIO_SPANS: Record<string, GridSpan> = {
+  '1:1': { cols: 1, rows: 1 },
+  '2:3': { cols: 1, rows: 2 },
+  '3:4': { cols: 1, rows: 2 },
+  '4:5': { cols: 1, rows: 2 },
+  '9:16': { cols: 1, rows: 2 },
+  '1:4': { cols: 1, rows: 2 },
+  '1:8': { cols: 1, rows: 3 },
+  '3:2': { cols: 2, rows: 1 },
+  '4:3': { cols: 2, rows: 1 },
+  '5:4': { cols: 2, rows: 1 },
+  '16:9': { cols: 2, rows: 1 },
+  '4:1': { cols: 2, rows: 1 },
+  '21:9': { cols: 3, rows: 1 },
+  '8:1': { cols: 3, rows: 1 },
 }
 
-// Compute row height so images fill cells without blank space.
-// For a cell spanning (cols x rows), the cell pixel size is:
-//   width  = cols * colWidth + (cols-1) * gap
-//   height = rows * rowHeight + (rows-1) * gap
-// We want width/height = ratio, solve for rowHeight:
-//   rowHeight = (cellWidth) / (ratio * rows) - (rows-1)*gap/rows  (approx)
-// Simplified: rowHeight = cellWidth / (ratio * rows)
-// where cellWidth = cols * colWidth + (cols-1) * gap
-function computeRowHeight(colWidth: number, ratio: number): number {
-  const span = getGridSpan(ratio)
-  const cellWidth = span.cols * colWidth + (span.cols - 1) * GRID_GAP
-  const cellHeight = cellWidth / ratio
-  // Account for row gaps in multi-row spans
-  const rowHeight = (cellHeight - (span.rows - 1) * GRID_GAP) / span.rows
-  return Math.max(40, Math.round(rowHeight))
+function getGridCols(width: number): number {
+  if (width < 560) return 2
+  return 4
 }
 
-type Props = {
-  ratio: number
-  children: React.ReactNode
+function parseAspectRatio(ratio: string): number {
+  const [width, height] = ratio.split(':').map(Number)
+  return width / height
 }
 
-export function ImageGrid({ ratio, children }: Props) {
+function getFallbackSpan(ratio: number): GridSpan {
+  if (ratio >= 5) return { cols: 3, rows: 1 }
+  if (ratio > 1.4) return { cols: 2, rows: 1 }
+  if (ratio >= 0.8) return { cols: 1, rows: 1 }
+  if (ratio >= 0.3) return { cols: 1, rows: 2 }
+  return { cols: 1, rows: 3 }
+}
+
+function getGridSpan(aspectRatio: string): GridSpan {
+  return ASPECT_RATIO_SPANS[aspectRatio] ?? getFallbackSpan(parseAspectRatio(aspectRatio))
+}
+
+function normalizeGridSpan(span: GridSpan, gridCols: number): GridSpan {
+  if (gridCols === 2) {
+    return {
+      cols: Math.min(span.cols, 2),
+      rows: Math.min(span.rows, 2),
+    }
+  }
+
+  return {
+    cols: Math.min(span.cols, gridCols),
+    rows: span.rows,
+  }
+}
+
+const GridColsContext = createContext(DEFAULT_GRID_COLS)
+
+type ImageGridProps = {
+  children: ReactNode
+}
+
+export function ImageGrid({ children }: ImageGridProps) {
   const ref = useRef<HTMLDivElement>(null)
-  const [rowHeight, setRowHeight] = useState(160)
+  const [gridCols, setGridCols] = useState(DEFAULT_GRID_COLS)
+  const [rowHeight, setRowHeight] = useState(120)
 
   useEffect(() => {
-    const el = ref.current
-    if (!el) return
+    const element = ref.current
+    if (!element) return
+
     const update = () => {
-      const width = el.clientWidth
-      const colWidth = (width - (GRID_COLS - 1) * GRID_GAP) / GRID_COLS
-      setRowHeight(computeRowHeight(colWidth, ratio))
+      const width = element.clientWidth
+      const cols = getGridCols(width)
+      const colWidth = (width - (cols - 1) * GRID_GAP) / cols
+
+      setGridCols(cols)
+      setRowHeight(Math.max(72, Math.round(colWidth)))
     }
+
     update()
+
     const observer = new ResizeObserver(update)
-    observer.observe(el)
+    observer.observe(element)
+
     return () => observer.disconnect()
-  }, [ratio])
+  }, [])
 
   return (
-    <div
-      ref={ref}
-      className="grid gap-3"
-      style={{
-        gridTemplateColumns: `repeat(${GRID_COLS}, 1fr)`,
-        gridAutoRows: rowHeight,
-      }}
-    >
-      {children}
-    </div>
+    <GridColsContext.Provider value={gridCols}>
+      <div
+        ref={ref}
+        className="grid gap-3"
+        style={{
+          gridTemplateColumns: `repeat(${gridCols}, minmax(0, 1fr))`,
+          gridAutoRows: `${rowHeight}px`,
+          gridAutoFlow: 'dense',
+        }}
+      >
+        {children}
+      </div>
+    </GridColsContext.Provider>
   )
 }
 
-export function GridCell({ cols, rows, children }: { cols: number; rows: number; children: React.ReactNode }) {
+type GridCellProps = {
+  children: ReactNode
+  aspectRatio?: string
+  cols?: number
+  rows?: number
+}
+
+export function GridCell({ children, aspectRatio, cols, rows }: GridCellProps) {
+  const gridCols = useContext(GridColsContext)
+  const baseSpan = aspectRatio
+    ? getGridSpan(aspectRatio)
+    : { cols: cols ?? 1, rows: rows ?? 1 }
+  const span = normalizeGridSpan(baseSpan, gridCols)
+
   return (
     <div
       style={{
-        gridColumn: `span ${Math.min(cols, GRID_COLS)}`,
-        gridRow: `span ${rows}`,
+        gridColumn: `span ${span.cols}`,
+        gridRow: `span ${span.rows}`,
       }}
     >
       {children}

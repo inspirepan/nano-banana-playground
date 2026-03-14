@@ -3,7 +3,7 @@ import type { PlaygroundImage } from '../lib/types'
 import type { GenerationState, GenerationSnapshot } from '../hooks/usePlayground'
 import { ImageCard } from './ImageCard'
 import { ImageDetailModal } from './ImageDetailModal'
-import { ImageGrid, GridCell, getGridSpan, parseAspectRatio } from './ImageGrid'
+import { ImageGrid, GridCell } from './ImageGrid'
 
 type Props = {
   history: PlaygroundImage[]
@@ -97,8 +97,6 @@ export function OutputPanel({
   const draftRatio = isGenerating && generationSnapshot ? generationSnapshot.aspectRatio : aspectRatio
   const draftRes = isGenerating && generationSnapshot ? generationSnapshot.resolution : resolution
   const draftCount = isGenerating && generationSnapshot ? generationSnapshot.batchCount : batchCount
-  const draftNumRatio = parseAspectRatio(draftRatio)
-  const draftSpan = getGridSpan(draftNumRatio)
 
   return (
     <div className="flex-1 overflow-y-auto pr-1">
@@ -112,9 +110,9 @@ export function OutputPanel({
       {!isGenerating && showDraft && (
         <div className="mb-6">
           <div className="text-[11px] text-on-surface-variant/50 font-mono mb-2">草稿</div>
-          <ImageGrid ratio={draftNumRatio}>
+          <ImageGrid>
             {Array.from({ length: draftCount }, (_, i) => (
-              <GridCell key={i} cols={draftSpan.cols} rows={draftSpan.rows}>
+              <GridCell key={i} aspectRatio={draftRatio}>
                 <SkeletonCard aspectRatio={draftRatio} resolution={draftRes} />
               </GridCell>
             ))}
@@ -126,9 +124,9 @@ export function OutputPanel({
       {isGenerating && generationSnapshot && (
         <div className="mb-6">
           <div className="text-[11px] text-on-surface-variant/50 font-mono mb-2">生成中...</div>
-          <ImageGrid ratio={draftNumRatio}>
+          <ImageGrid>
             {Array.from({ length: draftCount }, (_, i) => (
-              <GridCell key={i} cols={draftSpan.cols} rows={draftSpan.rows}>
+              <GridCell key={i} aspectRatio={draftRatio}>
                 <LoadingCard index={i} />
               </GridCell>
             ))}
@@ -150,22 +148,22 @@ export function OutputPanel({
             </button>
           </div>
           {batches.map((batch) => {
-            const batchRatio = parseAspectRatio(batch.aspectRatio)
-            const span = getGridSpan(batchRatio)
             return (
               <div key={batch.batchId}>
-                <div className="text-[11px] text-on-surface-variant/50 font-mono mb-2">
-                  {formatTime(batch.timestamp)}
+                <div className="mb-2 flex items-center justify-between gap-3 text-[11px] font-mono text-on-surface-variant/50">
+                  <div>{formatTime(batch.timestamp)}</div>
+                  <div className="truncate">
+                    {batch.resolution} · {batch.aspectRatio} · {batch.images.length} 张
+                  </div>
                 </div>
-                <ImageGrid ratio={batchRatio}>
+                <ImageGrid>
                   {batch.images.map((img) => (
-                    <GridCell key={img.id} cols={span.cols} rows={span.rows}>
-                      <div
-                        onClick={() => setDetailImage(img)}
-                        className="cursor-pointer w-full h-full"
-                      >
-                        <ImageCard image={img} onAddToRef={onAddToRef} />
-                      </div>
+                    <GridCell key={img.id} aspectRatio={img.source.type === 'generated' ? img.source.aspectRatio : '1:1'}>
+                      <ImageCard
+                        image={img}
+                        onAddToRef={onAddToRef}
+                        onOpen={setDetailImage}
+                      />
                     </GridCell>
                   ))}
                 </ImageGrid>

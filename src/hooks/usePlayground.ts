@@ -4,7 +4,7 @@ import { generateImage, type GenerateParams } from '../lib/api'
 import type { PlaygroundImage } from '../lib/types'
 import { isKeyError } from '../lib/validateKey'
 import { saveToHistory, loadHistory, deleteFromHistory, clearHistory } from '../lib/history'
-import { useApiKey } from '../components/ApiKeyInput'
+import { useApiKey } from './useApiKey'
 
 export type GenerationState = 'idle' | 'generating' | 'error'
 
