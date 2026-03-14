@@ -63,8 +63,8 @@ export function AspectRatioSelector({ options, value, resolution, onChange }: Pr
               className={`flex items-center gap-2 px-3 py-2.5 rounded-2xl transition-colors text-left
                 ${
                   selected
-                    ? 'bg-primary-dim'
-                    : 'bg-surface-container-high hover:bg-outline/20'
+                    ? 'bg-primary-dim hover:bg-primary/15'
+                    : 'bg-surface-container-high hover:bg-on-surface/10'
                 }`}
             >
               <div className="flex items-center justify-center w-5 h-5 shrink-0">

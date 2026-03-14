@@ -512,7 +512,7 @@ export function PromptPanel({
               {Array.from({ length: model.maxBatchCount }, (_, i) => i + 1).map((n) => (
                 <button key={n} type="button" onClick={() => onBatchCountChange(n)}
                   className={`px-3.5 py-1.5 text-sm rounded-full transition-colors
-                    ${batchCount === n ? 'bg-primary-dim text-primary font-semibold' : 'bg-surface-container text-on-surface hover:bg-surface-container-high'}`}>
+                    ${batchCount === n ? 'bg-primary-dim text-primary font-semibold hover:bg-primary/15' : 'bg-surface-container text-on-surface hover:bg-on-surface/10'}`}>
                   x{n}
                 </button>
               ))}

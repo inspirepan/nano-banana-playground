@@ -116,8 +116,8 @@ export function StructuredPromptForm({
                 onClick={() => onSelectScheme(i)}
                 className={`flex items-start gap-2.5 text-left px-3 py-2.5 rounded-2xl transition-colors w-full
                   ${isSelected
-                    ? 'bg-primary-dim'
-                    : 'bg-surface-container-high hover:bg-outline/20'
+                    ? 'bg-primary-dim hover:bg-primary/15'
+                    : 'bg-surface-container-high hover:bg-on-surface/10'
                   }`}
               >
                 <span className={`mt-0.5 inline-block w-3.5 h-3.5 rounded-full border-2 shrink-0
@@ -178,7 +178,7 @@ export function StructuredPromptForm({
           type="button"
           onClick={() => updateField('mode', 'generate')}
           className={`px-3 py-1 text-xs rounded-full transition-colors
-            ${!isEdit ? 'bg-primary-dim text-primary font-semibold' : 'bg-surface-container-high text-on-surface hover:bg-outline/20'}`}
+            ${!isEdit ? 'bg-primary-dim text-primary font-semibold hover:bg-primary/15' : 'bg-surface-container-high text-on-surface hover:bg-on-surface/10'}`}
         >
           生成
         </button>
@@ -186,7 +186,7 @@ export function StructuredPromptForm({
           type="button"
           onClick={() => updateField('mode', 'edit')}
           className={`px-3 py-1 text-xs rounded-full transition-colors
-            ${isEdit ? 'bg-primary-dim text-primary font-semibold' : 'bg-surface-container-high text-on-surface hover:bg-outline/20'}`}
+            ${isEdit ? 'bg-primary-dim text-primary font-semibold hover:bg-primary/15' : 'bg-surface-container-high text-on-surface hover:bg-on-surface/10'}`}
         >
           编辑
         </button>
@@ -231,7 +231,7 @@ export function StructuredPromptForm({
               type="button"
               onClick={() => setExpanded((prev) => new Set(prev).add(key))}
               className="px-2.5 py-1 text-xs rounded-full transition-colors
-                         bg-surface-container-high text-on-surface hover:bg-outline/20"
+                         bg-surface-container-high text-on-surface hover:bg-on-surface/10"
             >
               + {label}
             </button>

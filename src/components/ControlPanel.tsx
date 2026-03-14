@@ -52,8 +52,8 @@ export function ControlPanel({
                 className={`block w-full px-4 py-2 text-xs rounded-2xl transition-colors text-center leading-snug
                   ${
                     model.id === m.id
-                      ? 'bg-primary-dim text-primary font-medium'
-                      : 'bg-surface-container-high text-on-surface font-medium hover:bg-outline/20'
+                      ? 'bg-primary-dim text-primary font-medium hover:bg-primary/15'
+                      : 'bg-surface-container-high text-on-surface font-medium hover:bg-on-surface/10'
                   }`}
               >
                 🍌 {m.name}
