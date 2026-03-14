@@ -89,7 +89,7 @@ export const ImageCard = memo(function ImageCard({ image, index, onAddToRef, onO
 
       {/* Bottom content */}
       <div className="absolute inset-x-0 bottom-0 p-3">
-        <div className="mb-2.5 min-w-0">
+        <div className="mb-2.5 min-w-0 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
           <div className="line-clamp-2 text-[12px] font-medium leading-[1.45] text-white/90">
             {index !== undefined && (
               <span className="mr-1 text-white/50">#{index + 1}</span>
