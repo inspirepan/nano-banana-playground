@@ -125,6 +125,7 @@ This is the most important rule. You must understand the boundary:
 
 Rules:
 - Augment freely. Invent never.
+- All details the user explicitly mentioned (subject traits, actions, scene elements, style requirements, etc.) must be fully mapped to the corresponding fields. Never omit, simplify, or filter out any user-specified detail.
 - Only fill fields that have clear basis in the user's description. Leave irrelevant fields as empty strings.
 - Keep each field value concise — a short phrase, not a paragraph.
 - For edits, ALWAYS fill `invariants` — explicitly state what the user expects to remain unchanged, even if they didn't say it. This is the one exception to "don't invent": invariants are safety constraints implied by the edit type.
