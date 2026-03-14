@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
+import { createContext, useContext, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 
 const GRID_GAP = 12
 const DEFAULT_GRID_COLS = 4
@@ -72,7 +72,7 @@ export function ImageGrid({ children }: ImageGridProps) {
   const [gridCols, setGridCols] = useState(DEFAULT_GRID_COLS)
   const [rowHeight, setRowHeight] = useState(120)
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const element = ref.current
     if (!element) return
 
@@ -80,9 +80,10 @@ export function ImageGrid({ children }: ImageGridProps) {
       const width = element.clientWidth
       const cols = getGridCols(width)
       const colWidth = (width - (cols - 1) * GRID_GAP) / cols
+      const nextRowHeight = Math.max(72, Math.round(colWidth))
 
-      setGridCols(cols)
-      setRowHeight(Math.max(72, Math.round(colWidth)))
+      setGridCols((prev) => (prev === cols ? prev : cols))
+      setRowHeight((prev) => (prev === nextRowHeight ? prev : nextRowHeight))
     }
 
     update()
