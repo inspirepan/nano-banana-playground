@@ -13,6 +13,7 @@ type Props = {
   showDraft: boolean
   error: string | null
   batchCount: number
+  draftBatchOverride: number | null
   aspectRatio: string
   resolution: string
   onAddToRef: (image: PlaygroundImage) => void
@@ -89,6 +90,7 @@ export function OutputPanel({
   showDraft,
   error,
   batchCount,
+  draftBatchOverride,
   aspectRatio,
   resolution,
   onAddToRef,
@@ -124,7 +126,7 @@ export function OutputPanel({
 
   const draftRatio = isGenerating && generationSnapshot ? generationSnapshot.aspectRatio : aspectRatio
   const draftRes = isGenerating && generationSnapshot ? generationSnapshot.resolution : resolution
-  const draftCount = isGenerating && generationSnapshot ? generationSnapshot.batchCount : batchCount
+  const draftCount = isGenerating && generationSnapshot ? generationSnapshot.batchCount : (draftBatchOverride ?? batchCount)
 
   return (
     <div className="flex-1 overflow-visible md:overflow-y-auto [scrollbar-gutter:stable] md:pr-8">

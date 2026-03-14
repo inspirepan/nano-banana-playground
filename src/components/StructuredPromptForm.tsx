@@ -48,6 +48,7 @@ type Props = {
   onChangeScheme: (index: number, fields: StructuredPrompt) => void
   onGenerateAll: () => void
   onCancel: () => void
+  onDraftBatchOverride: (count: number | null) => void
 }
 
 export function StructuredPromptForm({
@@ -59,6 +60,7 @@ export function StructuredPromptForm({
   onChangeScheme,
   onGenerateAll,
   onCancel,
+  onDraftBatchOverride,
 }: Props) {
   const current = schemes[currentIndex]
   if (!current) return null
@@ -93,6 +95,9 @@ export function StructuredPromptForm({
       {/* Scheme cards */}
       {schemes.length > 1 && (
         <div className="flex flex-col gap-2 ml-1">
+          <p className="text-[11px] text-on-surface-variant/60 leading-snug">
+            AI 生成了 {schemes.length} 个创意方案，选择一个查看和编辑，或一键全部生成
+          </p>
           {schemes.map((scheme, i) => {
             const isSelected = i === currentIndex
             return (
@@ -137,6 +142,8 @@ export function StructuredPromptForm({
             <button
               type="button"
               onClick={onGenerateAll}
+              onMouseEnter={() => onDraftBatchOverride(schemes.length)}
+              onMouseLeave={() => onDraftBatchOverride(null)}
               className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-2xl transition-colors
                          bg-purple-100 text-purple-700 hover:bg-purple-600 hover:text-white
                          dark:bg-purple-900/40 dark:text-purple-300 dark:hover:bg-purple-600 dark:hover:text-white

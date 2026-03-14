@@ -17,6 +17,7 @@ function getInitialTheme(): Theme {
 function App() {
   const pg = usePlayground()
   const [theme, setTheme] = useState<Theme>(getInitialTheme)
+  const [draftBatchOverride, setDraftBatchOverride] = useState<number | null>(null)
   const mobileRefAreaRef = useRef<HTMLDivElement>(null)
 
   const handleAddToRef = (image: PlaygroundImage) => {
@@ -94,6 +95,7 @@ function App() {
             onRemoveReferenceImage={pg.removeReferenceImage}
             onGenerate={pg.generate}
             onCancel={pg.cancelGeneration}
+            onDraftBatchOverride={setDraftBatchOverride}
           />
         </div>
         <div className="border-t border-outline/10">
@@ -104,6 +106,7 @@ function App() {
             showDraft={pg.showDraft}
             error={pg.error}
             batchCount={pg.batchCount}
+            draftBatchOverride={draftBatchOverride}
             aspectRatio={pg.aspectRatio}
             resolution={pg.resolution}
             onAddToRef={handleAddToRef}
@@ -174,6 +177,7 @@ function App() {
         onRemoveReferenceImage={pg.removeReferenceImage}
         onGenerate={pg.generate}
         onCancel={pg.cancelGeneration}
+        onDraftBatchOverride={setDraftBatchOverride}
       />
 
       <OutputPanel
@@ -183,6 +187,7 @@ function App() {
         showDraft={pg.showDraft}
         error={pg.error}
         batchCount={pg.batchCount}
+        draftBatchOverride={draftBatchOverride}
         aspectRatio={pg.aspectRatio}
         resolution={pg.resolution}
         onAddToRef={handleAddToRef}

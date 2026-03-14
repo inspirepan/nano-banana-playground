@@ -106,6 +106,7 @@ type Props = {
   onRemoveReferenceImage: (id: string) => void
   onGenerate: (prompts?: string[]) => void
   onCancel: () => void
+  onDraftBatchOverride: (count: number | null) => void
 }
 
 export function PromptPanel({
@@ -123,6 +124,7 @@ export function PromptPanel({
   onRemoveReferenceImage,
   onGenerate,
   onCancel,
+  onDraftBatchOverride,
 }: Props) {
   const isGenerating = generationState === 'generating'
   const maxRef = model.maxReferenceImages + model.maxCharacterImages
@@ -483,6 +485,7 @@ export function PromptPanel({
             onChangeScheme={handleChangeScheme}
             onGenerateAll={handleGenerateAll}
             onCancel={onCancel}
+            onDraftBatchOverride={onDraftBatchOverride}
           />
         )}
 
