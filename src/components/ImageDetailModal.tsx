@@ -41,6 +41,14 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRemove
     scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
   }, [refDetail])
 
+  const goToPrev = useCallback(() => {
+    setCurrentIdx(i => Math.max(0, i - 1))
+  }, [])
+
+  const goToNext = useCallback(() => {
+    setCurrentIdx(i => Math.min(history.length - 1, i + 1))
+  }, [history.length])
+
   // Reset compare view when navigating
   useEffect(() => {
     setRefDetail(null)
@@ -52,15 +60,15 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRemove
       if (!canNavigate) return
       if (e.key === 'ArrowLeft') {
         e.preventDefault()
-        setCurrentIdx(i => Math.max(0, i - 1))
+        goToPrev()
       } else if (e.key === 'ArrowRight') {
         e.preventDefault()
-        setCurrentIdx(i => Math.min(history.length - 1, i + 1))
+        goToNext()
       }
     }
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
-  }, [canNavigate, history.length])
+  }, [canNavigate, goToNext, goToPrev])
 
   const modelName = currentMeta
     ? MODEL_CONFIGS.find((m) => m.id === currentMeta.modelId)?.name ?? currentMeta.modelId
@@ -92,9 +100,6 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRemove
     }
   }
 
-  const goToPrev = useCallback(() => setCurrentIdx(i => Math.max(0, i - 1)), [])
-  const goToNext = useCallback(() => setCurrentIdx(i => Math.min(history.length - 1, i + 1)), [history.length])
-
   const hasPrev = canNavigate && currentIdx > 0
   const hasNext = canNavigate && currentIdx < history.length - 1
 
@@ -110,7 +115,7 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRemove
           {refDetail ? (
             <div className="flex flex-col md:flex-row md:h-full gap-px">
               <div className="h-[33vh] md:h-auto md:flex-1 min-w-0 relative">
-                <ZoomableImageView key={`ref-${refDetail.id}`} src={`data:${refDetail.mimeType};base64,${refDetail.data}`} alt="" label="参考图" />
+                <ZoomableImageView src={`data:${refDetail.mimeType};base64,${refDetail.data}`} alt="" label="参考图" />
                 <button
                   type="button"
                   onClick={() => setRefDetail(null)}
@@ -128,12 +133,11 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRemove
                 </button>
               </div>
               <div className="h-[33vh] md:h-auto md:flex-1 min-w-0 relative">
-                <ZoomableImageView key={`gen-${currentImage.id}`} src={currentSrc} alt={currentMeta?.prompt ?? ''} label="生成图" />
+                <ZoomableImageView src={currentSrc} alt={currentMeta?.prompt ?? ''} label="生成图" />
               </div>
             </div>
           ) : (
             <ZoomableImageView
-              key={currentImage.id}
               src={currentSrc}
               alt={currentMeta?.prompt ?? ''}
               onSwipeLeft={hasNext ? goToNext : undefined}
@@ -356,6 +360,10 @@ function ZoomableImageView({ src, alt, label, onSwipeLeft, onSwipeRight }: {
     return () => observer.disconnect()
   }, [syncFitSize])
 
+  useEffect(() => {
+    lastTapRef.current = null
+  }, [src])
+
   return (
     <div className="relative h-full min-h-0 md:min-h-[640px] w-full overflow-hidden bg-surface-container">
       <div
@@ -510,6 +518,7 @@ function ZoomableImageView({ src, alt, label, onSwipeLeft, onSwipeRight }: {
               width: event.currentTarget.naturalWidth,
               height: event.currentTarget.naturalHeight,
             }
+            resetView()
             syncFitSize()
           }}
           className="shrink-0 object-contain shadow-2xl"
