@@ -53,7 +53,7 @@ export function ControlPanel({
                   ${
                     model.id === m.id
                       ? 'bg-primary-dim text-primary font-medium'
-                      : 'bg-surface-container text-on-surface font-medium hover:bg-surface-container-high'
+                      : 'bg-surface-container-high text-on-surface font-medium hover:bg-outline/20'
                   }`}
               >
                 🍌 {m.name}

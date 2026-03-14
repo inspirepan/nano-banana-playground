@@ -34,7 +34,7 @@ export function ApiKeyInput({ apiKey, status, onSubmit, onReset }: Props) {
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
             placeholder="粘贴你的 Gemini API Key"
-            className="flex-1 min-w-0 px-3 py-1.5 text-sm bg-surface-container rounded-2xl
+            className="flex-1 min-w-0 px-3 py-1.5 text-sm bg-surface-container-high rounded-2xl
                        focus:outline-none focus:ring-2 focus:ring-primary/40
                        transition-all
                        placeholder:text-on-surface-variant/40"
@@ -60,7 +60,7 @@ export function ApiKeyInput({ apiKey, status, onSubmit, onReset }: Props) {
     return (
       <div>
         <label className="block text-xs font-medium text-on-surface-variant mb-3">API Key</label>
-        <div className="flex items-center gap-3 px-3 py-1.5 text-sm bg-surface-container rounded-2xl">
+        <div className="flex items-center gap-3 px-3 py-1.5 text-sm bg-surface-container-high rounded-2xl">
           <div className="w-3.5 h-3.5 border-2 border-primary/30 border-t-primary rounded-full animate-spin shrink-0" />
           <span className="text-on-surface-variant">验证中...</span>
         </div>
@@ -73,7 +73,7 @@ export function ApiKeyInput({ apiKey, status, onSubmit, onReset }: Props) {
   return (
     <div>
       <label className="block text-xs font-medium text-on-surface-variant mb-3">API Key</label>
-      <div className="flex items-center gap-3 px-3 py-1.5 bg-surface-container rounded-2xl">
+      <div className="flex items-center gap-3 px-3 py-1.5 bg-surface-container-high rounded-2xl">
         <svg className="w-4 h-4 text-[#34a853] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
         </svg>

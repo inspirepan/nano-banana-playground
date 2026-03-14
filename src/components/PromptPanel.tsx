@@ -352,7 +352,7 @@ export function PromptPanel({
   const estimatedCost = pricePerImage !== undefined ? pricePerImage * batchCount : null
 
   return (
-    <div className="w-full md:w-[360px] md:shrink-0 flex flex-col py-4 pr-4 md:h-full">
+    <div className="w-full md:w-[360px] md:shrink-0 flex flex-col py-4 md:h-full">
       {/* Reference Images - fixed */}
       <div className="shrink-0">
         <ReferenceImageUpload
@@ -430,8 +430,8 @@ export function PromptPanel({
           </div>
         </div>
 
-        {/* Prompt content - scrollable on desktop */}
-        <div className="md:flex-1 md:overflow-y-auto md:min-h-0">
+        {/* Prompt content */}
+        <div className="md:flex-1 md:min-h-0 flex flex-col">
 
         {mode === 'text' && (
           <div className="relative">
@@ -483,17 +483,19 @@ export function PromptPanel({
         )}
 
         {mode === 'structured' && schemes.length > 0 && (
-          <StructuredPromptForm
-            schemes={schemes}
-            currentIndex={currentSchemeIndex}
-            costPerImage={pricePerImage ?? null}
-            isGenerating={isGenerating}
-            onSelectScheme={handleSelectScheme}
-            onChangeScheme={handleChangeScheme}
-            onGenerateAll={handleGenerateAll}
-            onCancel={onCancel}
-            onDraftBatchOverride={onDraftBatchOverride}
-          />
+          <div className="bg-surface-container rounded-2xl md:flex-1 md:min-h-0 md:overflow-y-auto">
+            <StructuredPromptForm
+              schemes={schemes}
+              currentIndex={currentSchemeIndex}
+              costPerImage={pricePerImage ?? null}
+              isGenerating={isGenerating}
+              onSelectScheme={handleSelectScheme}
+              onChangeScheme={handleChangeScheme}
+              onGenerateAll={handleGenerateAll}
+              onCancel={onCancel}
+              onDraftBatchOverride={onDraftBatchOverride}
+            />
+          </div>
         )}
 
         {augmentError && <p className="mt-2 text-xs text-error">{augmentError}</p>}

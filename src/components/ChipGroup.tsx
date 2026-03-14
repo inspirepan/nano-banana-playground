@@ -19,7 +19,7 @@ export function ChipGroup({ label, options, value, onChange }: Props) {
               ${
                 value === option
                   ? 'bg-primary-dim text-primary font-medium'
-                  : 'bg-surface-container text-on-surface font-medium hover:bg-surface-container-high'
+                  : 'bg-surface-container-high text-on-surface font-medium hover:bg-outline/20'
               }`}
           >
             {option}

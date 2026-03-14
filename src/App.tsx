@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Agentation } from 'agentation'
 import { usePlayground } from './hooks/usePlayground'
 import type { PlaygroundImage } from './lib/types'
@@ -19,6 +19,9 @@ function App() {
   const addToReferences = pg.addToReferences
   const [theme, setTheme] = useState<Theme>(getInitialTheme)
   const [draftBatchOverride, setDraftBatchOverride] = useState<number | null>(null)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    return localStorage.getItem('nano-banana-sidebar-collapsed') === 'true'
+  })
   const mobileRefAreaRef = useRef<HTMLDivElement>(null)
 
   const handleAddToRef = useCallback((image: PlaygroundImage) => {
@@ -36,6 +39,31 @@ function App() {
   }, [theme])
 
   const toggleTheme = () => setTheme((t) => (t === 'light' ? 'dark' : 'light'))
+
+  const toggleSidebar = useCallback(() => {
+    setSidebarCollapsed((c) => {
+      const next = !c
+      localStorage.setItem('nano-banana-sidebar-collapsed', String(next))
+      return next
+    })
+  }, [])
+
+  // Chevron icon rotates when sidebar collapses
+  const collapseIcon = useMemo(
+    () => (
+      <svg
+        className={`w-[18px] h-[18px] transition-transform duration-300 ease-[cubic-bezier(0.2,0,0,1)] ${
+          sidebarCollapsed ? 'rotate-180' : ''
+        }`}
+        fill="currentColor"
+        viewBox="0 0 24 24"
+      >
+        {/* chevron_left */}
+        <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
+      </svg>
+    ),
+    [sidebarCollapsed]
+  )
 
   const themeIcon =
     theme === 'light' ? (
@@ -119,27 +147,63 @@ function App() {
     </div>
 
     {/* Desktop layout */}
-    <div className="hidden md:flex h-screen gap-6 pl-8">
-      <div className="w-[192px] shrink-0 flex flex-col py-4">
-        <h1 className="text-base font-medium text-on-surface mb-4">
-          Nano Banana Playground
-        </h1>
+    <div className="hidden md:flex h-screen gap-6">
+      {/* Left sidebar — collapsible
+          Layer 1 (outer): width transition + tooltip positioning context, no overflow clip
+          Layer 2 (inner): overflow-hidden clips content during width animation             */}
+      <div
+        className={`relative shrink-0
+                    transition-[width] duration-300 ease-[cubic-bezier(0.2,0,0,1)]
+                    ${sidebarCollapsed ? 'w-10' : 'w-[200px]'}`}
+      >
+        {/* 🍌 — visible when collapsed, positioned in Layer 1 (no overflow clip) */}
+        <div
+          className={`absolute top-4 left-0 w-10 flex justify-center pointer-events-none
+                      transition-opacity duration-200
+                      ${sidebarCollapsed ? 'opacity-100' : 'opacity-0'}`}
+        >
+          <span className="text-base leading-none select-none">🍌</span>
+        </div>
 
-        <ControlPanel
-          model={pg.model}
-          resolution={pg.resolution}
-          aspectRatio={pg.aspectRatio}
-          apiKey={pg.apiKey}
-          apiKeyStatus={pg.apiKeyStatus}
-          onSubmitApiKey={pg.submitApiKey}
-          onResetApiKey={pg.resetApiKey}
-          onSwitchModel={pg.switchModel}
-          onResolutionChange={pg.setResolution}
-          onAspectRatioChange={pg.setAspectRatio}
-        />
+        {/* Layer 2: content clip + border */}
+        <div className="h-full overflow-hidden bg-surface-container border-r border-outline/10 flex flex-col py-4 pb-14 pl-4">
+          {/* Title — fades out when collapsed */}
+          <div className="mb-4 shrink-0">
+            <h1
+              className={`text-sm font-medium text-on-surface whitespace-nowrap
+                          transition-opacity duration-200
+                          ${sidebarCollapsed ? 'opacity-0' : 'opacity-100'}`}
+            >
+              Nano Banana Playground
+            </h1>
+          </div>
 
-        <div className="mt-auto pt-4">
-          <div className="relative inline-flex group">
+          {/* ControlPanel — fades out when collapsed */}
+          <div
+            className={`flex-1 min-h-0 overflow-y-auto transition-opacity duration-200
+                        ${sidebarCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+          >
+            <ControlPanel
+              model={pg.model}
+              resolution={pg.resolution}
+              aspectRatio={pg.aspectRatio}
+              apiKey={pg.apiKey}
+              apiKeyStatus={pg.apiKeyStatus}
+              onSubmitApiKey={pg.submitApiKey}
+              onResetApiKey={pg.resetApiKey}
+              onSwitchModel={pg.switchModel}
+              onResolutionChange={pg.setResolution}
+              onAspectRatioChange={pg.setAspectRatio}
+            />
+          </div>
+        </div>
+
+        {/* Theme toggle — absolute bottom-left, outside overflow clip, tooltip unclipped */}
+        <div
+          className={`absolute bottom-4 left-4 z-10 transition-opacity duration-200
+                      ${sidebarCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+        >
+          <div className="relative group">
             <button
               type="button"
               onClick={toggleTheme}
@@ -148,16 +212,40 @@ function App() {
             >
               {themeIcon}
             </button>
-            {/* Google-style tooltip */}
             <div
-              className="absolute left-full top-1/2 -translate-y-1/2 ml-2
+              className="absolute left-0 bottom-full mb-2
                          pointer-events-none whitespace-nowrap
                          bg-on-surface text-surface text-xs px-2 py-1 rounded
                          opacity-0 group-hover:opacity-100
-                         transition-opacity duration-150 delay-500 group-hover:delay-500
+                         transition-opacity duration-150 delay-500
                          z-50"
             >
               {theme === 'light' ? '切换到深色模式' : '切换到浅色模式'}
+            </div>
+          </div>
+        </div>
+
+        {/* Collapse toggle — absolute bottom-right, always visible, tooltip unclipped */}
+        <div className="absolute bottom-4 right-1 z-10">
+          <div className="relative group">
+            <button
+              type="button"
+              onClick={toggleSidebar}
+              aria-label={sidebarCollapsed ? '展开侧边栏' : '收起侧边栏'}
+              className="w-8 h-8 flex items-center justify-center rounded-full
+                         hover:bg-surface-container-high transition-colors text-on-surface-variant"
+            >
+              {collapseIcon}
+            </button>
+            <div
+              className="absolute right-0 bottom-full mb-2
+                         pointer-events-none whitespace-nowrap
+                         bg-on-surface text-surface text-xs px-2 py-1 rounded
+                         opacity-0 group-hover:opacity-100
+                         transition-opacity duration-150 delay-500
+                         z-50"
+            >
+              {sidebarCollapsed ? '展开侧边栏' : '收起侧边栏'}
             </div>
           </div>
         </div>

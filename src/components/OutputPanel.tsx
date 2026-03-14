@@ -129,7 +129,7 @@ export const OutputPanel = memo(function OutputPanel({
   const draftCount = isGenerating && generationSnapshot ? generationSnapshot.batchCount : (draftBatchOverride ?? batchCount)
 
   return (
-    <div className="flex-1 overflow-visible md:overflow-y-auto [scrollbar-gutter:stable] md:pr-8">
+    <div className="flex-1 overflow-visible md:overflow-y-auto [scrollbar-gutter:stable] md:pl-6 md:pr-8 md:bg-surface-container">
       <div className="h-4" />
       {error && (
         <div className="mb-4 px-4 py-3 bg-error-dim text-error text-sm rounded-xl border border-error/20">

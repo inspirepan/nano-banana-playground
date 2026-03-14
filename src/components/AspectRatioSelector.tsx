@@ -60,11 +60,11 @@ export function AspectRatioSelector({ options, value, resolution, onChange }: Pr
               key={option}
               type="button"
               onClick={() => onChange(option)}
-              className={`flex items-center gap-2 px-2 py-2 rounded-2xl transition-colors text-left
+              className={`flex items-center gap-2 px-3 py-2.5 rounded-2xl transition-colors text-left
                 ${
                   selected
                     ? 'bg-primary-dim'
-                    : 'bg-surface-container hover:bg-surface-container-high'
+                    : 'bg-surface-container-high hover:bg-outline/20'
                 }`}
             >
               <div className="flex items-center justify-center w-5 h-5 shrink-0">
