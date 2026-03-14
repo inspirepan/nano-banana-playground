@@ -34,9 +34,12 @@ const EDIT_FIELDS: FieldConfig[] = [
 const GENERATE_CORE: Set<FieldKey> = new Set(['subject', 'scene', 'style'])
 const EDIT_CORE: Set<FieldKey> = new Set(['primaryRequest', 'referenceRole', 'invariants'])
 
+const TEXTAREA_MIN_HEIGHT = 44
+const TEXTAREA_EXTRA_HEIGHT = 6
+
 function autoResize(el: HTMLTextAreaElement) {
   el.style.height = 'auto'
-  el.style.height = `${el.scrollHeight}px`
+  el.style.height = `${Math.max(el.scrollHeight + TEXTAREA_EXTRA_HEIGHT, TEXTAREA_MIN_HEIGHT)}px`
 }
 
 type Props = {
@@ -208,12 +211,12 @@ export function StructuredPromptForm({
               }}
               placeholder={placeholder}
               rows={1}
-              className="w-full px-3 py-2 text-xs bg-surface-container-high rounded-xl
+              className="w-full min-h-11 px-3 py-2.5 text-sm leading-5 bg-surface-container-high rounded-xl
                          border-b-2 border-b-transparent
                          hover:bg-surface-container-high
                          focus:bg-surface-container-high focus:border-b-primary focus:outline-none
                          placeholder:text-on-surface-variant/50 resize-none transition-colors
-                         overflow-hidden"
+                         overflow-hidden md:min-h-0 md:py-2 md:text-xs md:leading-4"
             />
           </div>
         )
