@@ -116,7 +116,7 @@ function App() {
 
     {/* Desktop layout */}
     <div className="hidden md:flex h-screen gap-6 pl-8">
-      <div className="w-[280px] shrink-0 flex flex-col py-4">
+      <div className="w-[252px] shrink-0 flex flex-col py-4">
         <h1 className="text-base font-medium text-on-surface whitespace-nowrap mb-4">
           Nano Banana Playground
         </h1>

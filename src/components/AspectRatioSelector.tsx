@@ -35,7 +35,7 @@ export function AspectRatioSelector({ options, value, resolution, onChange }: Pr
   return (
     <div>
       <label className="block text-xs font-medium text-on-surface-variant mb-3">宽高比</label>
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-2 gap-1.5">
         {options.map((option) => {
           const selected = value === option
           const [px, py] = computePixels(option, resolution)
@@ -45,7 +45,7 @@ export function AspectRatioSelector({ options, value, resolution, onChange }: Pr
               key={option}
               type="button"
               onClick={() => onChange(option)}
-              className={`flex items-center gap-2 px-2.5 py-2.5 rounded-2xl transition-colors text-left w-full
+              className={`flex items-center gap-2 px-2 py-2 rounded-2xl transition-colors text-left w-full
                 ${
                   selected
                     ? 'bg-primary-dim'
@@ -62,7 +62,7 @@ export function AspectRatioSelector({ options, value, resolution, onChange }: Pr
                 <div className={`text-xs font-semibold leading-none ${selected ? 'text-primary' : 'text-on-surface'}`}>
                   {option}
                 </div>
-                <div className={`text-[9px] font-mono leading-none mt-1 truncate ${selected ? 'text-primary/70' : 'text-on-surface-variant/50'}`}>
+                <div className={`text-[10px] font-mono leading-none mt-1 truncate ${selected ? 'text-primary/70' : 'text-on-surface-variant/50'}`}>
                   {px}×{py}
                 </div>
               </div>
