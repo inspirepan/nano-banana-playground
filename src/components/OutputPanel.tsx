@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import JSZip from 'jszip'
 import type { PlaygroundImage } from '../lib/types'
 import type { GenerationState, GenerationSnapshot } from '../hooks/usePlayground'
@@ -43,13 +43,19 @@ function groupByBatch(images: PlaygroundImage[]): HistoryBatch[] {
   return Array.from(map.values()).sort((a, b) => b.timestamp - a.timestamp)
 }
 
+const SHIMMER_DURATION = 2000 // ms, must match CSS animation duration
+
 function SkeletonCard({ aspectRatio, resolution }: { aspectRatio: string; resolution: string }) {
+  // Compute delay once on mount and never change it — prevents animation restart on re-render.
+  // -(Date.now() % duration) anchors all cards to the same global clock epoch.
+  const delayRef = useRef(-(Date.now() % SHIMMER_DURATION) / 1000)
+
   return (
     <div className="w-full h-full rounded-xl bg-surface-container overflow-hidden relative">
       <div className="absolute inset-0 flex items-center justify-center">
         <div className="text-on-surface-variant/30 text-xs font-mono">{resolution} {aspectRatio}</div>
       </div>
-      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent skeleton-shimmer" />
+      <div className="absolute skeleton-shimmer" style={{ animationDelay: `${delayRef.current}s` }} />
     </div>
   )
 }
@@ -132,7 +138,7 @@ export function OutputPanel({
       {/* Draft skeleton */}
       {!isGenerating && showDraft && (
         <div className="mb-6">
-          <div className="text-[11px] text-on-surface-variant/50 font-mono mb-2">预览</div>
+          <div className="text-xs font-medium text-on-surface-variant mb-2">预览</div>
           <ImageGrid>
             {Array.from({ length: draftCount }, (_, i) => (
               <GridCell key={i} aspectRatio={draftRatio}>
@@ -146,7 +152,7 @@ export function OutputPanel({
       {/* Loading */}
       {isGenerating && generationSnapshot && (
         <div className="mb-6">
-          <div className="text-[11px] text-on-surface-variant/50 font-mono mb-2">生成中...</div>
+          <div className="text-xs font-medium text-on-surface-variant mb-2">生成中...</div>
           <ImageGrid>
             {Array.from({ length: draftCount }, (_, i) => (
               <GridCell key={i} aspectRatio={draftRatio}>
@@ -161,7 +167,7 @@ export function OutputPanel({
       {batches.length > 0 && (
         <div className="space-y-6">
           <div className="flex items-center justify-between">
-            <div className="text-[11px] text-on-surface-variant/50 font-mono">历史记录 (本地浏览器存储)</div>
+            <div className="text-xs font-medium text-on-surface-variant">历史记录 (本地浏览器存储)</div>
             <button
               type="button"
               onClick={handleExportAll}
