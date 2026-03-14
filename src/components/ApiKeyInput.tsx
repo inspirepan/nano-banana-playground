@@ -27,7 +27,7 @@ export function ApiKeyInput({ apiKey, status, onSubmit, onReset }: Props) {
         {status === 'invalid' && (
           <div className="text-xs text-error mb-2">密钥无效或已过期，请重新输入。</div>
         )}
-        <div className="flex gap-2">
+        <div className="flex gap-2 px-0.5">
           <input
             type="password"
             value={draft}

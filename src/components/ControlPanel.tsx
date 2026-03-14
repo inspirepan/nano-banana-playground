@@ -77,6 +77,7 @@ export function ControlPanel({
           resolution={resolution}
           onChange={onAspectRatioChange}
         />
+
       </div>
     </div>
   )

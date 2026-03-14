@@ -6,6 +6,9 @@ A pure frontend playground for Gemini image generation. No backend — your API 
 
 ## Features
 
+### Design
+Built on **Google Material Design 3** end-to-end: dynamic color roles (`primary`, `surface`, `outline`, etc.), MD3 type scale (Display / Headline / Title / Body / Label), 4pt grid spacing, correct state layers (hover 8%, pressed 12%), and Material Symbols Rounded icons — all hand-implemented without any component library.
+
 ### Models & Output
 - **Nano Banana 2** (`gemini-3.1-flash-image-preview`) and **Nano Banana Pro** — switch models instantly
 - Resolution: 512 / 1K / 2K / 4K
