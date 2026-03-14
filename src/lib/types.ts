@@ -24,6 +24,8 @@ export type PlaygroundImage = {
 }
 
 export type StructuredPrompt = {
+  mode: 'generate' | 'edit'
+  // Generation fields
   subject: string
   action: string
   scene: string
@@ -33,4 +35,10 @@ export type StructuredPrompt = {
   colorPalette: string
   textInImage: string
   constraints: string
+  // Edit fields
+  editType: string
+  primaryRequest: string
+  referenceRole: string
+  targetScene: string
+  invariants: string
 }

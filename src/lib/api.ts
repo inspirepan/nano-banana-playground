@@ -117,32 +117,57 @@ export async function generateImage(
 
 const AUGMENT_MODEL = 'gemini-3.1-flash-lite-preview'
 
+const S = 'STRING' as const
+
 const STRUCTURED_PROMPT_SCHEMA = {
   type: 'OBJECT' as const,
   properties: {
-    subject: { type: 'STRING' as const },
-    action: { type: 'STRING' as const },
-    scene: { type: 'STRING' as const },
-    composition: { type: 'STRING' as const },
-    style: { type: 'STRING' as const },
-    lighting: { type: 'STRING' as const },
-    colorPalette: { type: 'STRING' as const },
-    textInImage: { type: 'STRING' as const },
-    constraints: { type: 'STRING' as const },
+    mode: { type: S, enum: ['generate', 'edit'] },
+    // Generation fields
+    subject: { type: S },
+    action: { type: S },
+    scene: { type: S },
+    composition: { type: S },
+    style: { type: S },
+    lighting: { type: S },
+    colorPalette: { type: S },
+    textInImage: { type: S },
+    constraints: { type: S },
+    // Edit fields
+    editType: { type: S },
+    primaryRequest: { type: S },
+    referenceRole: { type: S },
+    targetScene: { type: S },
+    invariants: { type: S },
   },
-  required: ['subject', 'action', 'scene', 'composition', 'style', 'lighting', 'colorPalette', 'textInImage', 'constraints'],
+  required: [
+    'mode',
+    'subject', 'action', 'scene', 'composition', 'style', 'lighting', 'colorPalette', 'textInImage', 'constraints',
+    'editType', 'primaryRequest', 'referenceRole', 'targetScene', 'invariants',
+  ],
 }
 
 export async function augmentPrompt(
   apiKey: string,
   rawPrompt: string,
+  referenceImages: PlaygroundImage[],
   signal?: AbortSignal,
 ): Promise<StructuredPrompt> {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${AUGMENT_MODEL}:generateContent`
 
+  const parts: ApiPart[] = [{ text: rawPrompt }]
+  for (const img of referenceImages) {
+    parts.push({
+      inline_data: {
+        mime_type: img.mimeType,
+        data: img.data,
+      },
+    })
+  }
+
   const body = {
     system_instruction: { parts: [{ text: AUGMENT_SYSTEM_PROMPT }] },
-    contents: [{ parts: [{ text: rawPrompt }] }],
+    contents: [{ parts }],
     generationConfig: {
       responseMimeType: 'application/json',
       responseSchema: STRUCTURED_PROMPT_SCHEMA,

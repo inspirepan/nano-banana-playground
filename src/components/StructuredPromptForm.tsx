@@ -9,7 +9,7 @@ type FieldConfig = {
   placeholder: string
 }
 
-const FIELDS: FieldConfig[] = [
+const GENERATE_FIELDS: FieldConfig[] = [
   { key: 'subject', label: '主体', placeholder: '主角或物体描述' },
   { key: 'action', label: '动作/姿态', placeholder: '主体在做什么' },
   { key: 'scene', label: '场景/背景', placeholder: '环境或背景描述' },
@@ -21,19 +21,34 @@ const FIELDS: FieldConfig[] = [
   { key: 'constraints', label: '约束/避免', placeholder: '不要出现的元素' },
 ]
 
-const CORE_FIELDS: Set<FieldKey> = new Set(['subject', 'scene', 'style'])
+const EDIT_FIELDS: FieldConfig[] = [
+  { key: 'editType', label: '编辑类型', placeholder: '风格迁移、物体编辑、背景替换...' },
+  { key: 'primaryRequest', label: '编辑请求', placeholder: '需要做什么修改' },
+  { key: 'referenceRole', label: '参考图说明', placeholder: '每张参考图的用途' },
+  { key: 'targetScene', label: '目标场景', placeholder: '编辑后的场景描述' },
+  { key: 'style', label: '目标风格', placeholder: '编辑后的风格描述' },
+  { key: 'invariants', label: '保持不变', placeholder: '哪些部分不能改动' },
+  { key: 'constraints', label: '约束/避免', placeholder: '不要出现的元素' },
+]
 
-type Props = {
-  fields: StructuredPrompt
-  onChange: (fields: StructuredPrompt) => void
-}
+const GENERATE_CORE: Set<FieldKey> = new Set(['subject', 'scene', 'style'])
+const EDIT_CORE: Set<FieldKey> = new Set(['primaryRequest', 'referenceRole', 'invariants'])
 
 function autoResize(el: HTMLTextAreaElement) {
   el.style.height = 'auto'
   el.style.height = `${el.scrollHeight}px`
 }
 
+type Props = {
+  fields: StructuredPrompt
+  onChange: (fields: StructuredPrompt) => void
+}
+
 export function StructuredPromptForm({ fields, onChange }: Props) {
+  const isEdit = fields.mode === 'edit'
+  const fieldDefs = isEdit ? EDIT_FIELDS : GENERATE_FIELDS
+  const coreFields = isEdit ? EDIT_CORE : GENERATE_CORE
+
   const updateField = (key: FieldKey, value: string) => {
     onChange({ ...fields, [key]: value })
   }
@@ -44,15 +59,35 @@ export function StructuredPromptForm({ fields, onChange }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fields])
 
-  const hiddenFields = FIELDS.filter(({ key }) =>
-    !CORE_FIELDS.has(key) && fields[key].trim() === '',
+  const hiddenFields = fieldDefs.filter(({ key }) =>
+    !coreFields.has(key) && (fields[key] as string).trim() === '',
   )
 
   return (
     <div className="flex flex-col gap-3">
-      {FIELDS.map(({ key, label, placeholder }) => {
-        const value = fields[key]
-        if (!CORE_FIELDS.has(key) && value.trim() === '') return null
+      {/* Mode indicator */}
+      <div className="flex gap-1.5">
+        <button
+          type="button"
+          onClick={() => onChange({ ...fields, mode: 'generate' })}
+          className={`px-3 py-1 text-xs rounded-full transition-colors
+            ${!isEdit ? 'bg-primary-dim text-primary font-semibold' : 'bg-surface-container text-on-surface hover:bg-surface-container-high'}`}
+        >
+          生成
+        </button>
+        <button
+          type="button"
+          onClick={() => onChange({ ...fields, mode: 'edit' })}
+          className={`px-3 py-1 text-xs rounded-full transition-colors
+            ${isEdit ? 'bg-primary-dim text-primary font-semibold' : 'bg-surface-container text-on-surface hover:bg-surface-container-high'}`}
+        >
+          编辑
+        </button>
+      </div>
+
+      {fieldDefs.map(({ key, label, placeholder }) => {
+        const value = fields[key] as string
+        if (!coreFields.has(key) && value.trim() === '') return null
 
         return (
           <div key={key}>

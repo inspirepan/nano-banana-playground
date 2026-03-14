@@ -9,6 +9,7 @@ import { StructuredPromptForm } from './StructuredPromptForm'
 type PromptMode = 'text' | 'augmenting' | 'structured'
 
 const EMPTY_STRUCTURED: StructuredPrompt = {
+  mode: 'generate',
   subject: '',
   action: '',
   scene: '',
@@ -18,10 +19,17 @@ const EMPTY_STRUCTURED: StructuredPrompt = {
   colorPalette: '',
   textInImage: '',
   constraints: '',
+  editType: '',
+  primaryRequest: '',
+  referenceRole: '',
+  targetScene: '',
+  invariants: '',
 }
 
-// Labels used in the text format, mapped to StructuredPrompt keys
-const LABEL_ENTRIES: [string, keyof StructuredPrompt][] = [
+// --- Label mappings for text <-> structured round-tripping ---
+
+// Generate mode labels
+const GEN_LABEL_ENTRIES: [string, keyof StructuredPrompt][] = [
   ['构图', 'composition'],
   ['风格', 'style'],
   ['光影', 'lighting'],
@@ -32,38 +40,69 @@ const LABEL_ENTRIES: [string, keyof StructuredPrompt][] = [
   ['避免', 'constraints'],
 ]
 
+// Edit mode labels
+const EDIT_LABEL_ENTRIES: [string, keyof StructuredPrompt][] = [
+  ['编辑类型', 'editType'],
+  ['编辑请求', 'primaryRequest'],
+  ['参考图说明', 'referenceRole'],
+  ['目标场景', 'targetScene'],
+  ['目标风格', 'style'],
+  ['风格', 'style'],
+  ['保持不变', 'invariants'],
+  ['约束', 'constraints'],
+  ['避免', 'constraints'],
+]
+
+const ALL_LABEL_ENTRIES = [...GEN_LABEL_ENTRIES, ...EDIT_LABEL_ENTRIES]
+
 function assemblePrompt(fields: StructuredPrompt): string {
   const lines: string[] = []
-  // Description block (unlabeled)
-  const desc = [fields.subject, fields.action, fields.scene]
-    .map((s) => s.trim())
-    .filter(Boolean)
-    .join('\n')
-  if (desc) lines.push(desc)
-  // Labeled sections
-  if (fields.composition.trim()) lines.push(`构图：${fields.composition.trim()}`)
-  if (fields.style.trim()) lines.push(`风格：${fields.style.trim()}`)
-  if (fields.lighting.trim()) lines.push(`光影：${fields.lighting.trim()}`)
-  if (fields.colorPalette.trim()) lines.push(`色彩：${fields.colorPalette.trim()}`)
-  if (fields.textInImage.trim()) lines.push(`画中文字："${fields.textInImage.trim()}"`)
-  if (fields.constraints.trim()) lines.push(`避免：${fields.constraints.trim()}`)
+
+  if (fields.mode === 'edit') {
+    if (fields.editType.trim()) lines.push(`编辑类型：${fields.editType.trim()}`)
+    if (fields.primaryRequest.trim()) lines.push(`编辑请求：${fields.primaryRequest.trim()}`)
+    if (fields.referenceRole.trim()) lines.push(`参考图说明：${fields.referenceRole.trim()}`)
+    if (fields.targetScene.trim()) lines.push(`目标场景：${fields.targetScene.trim()}`)
+    if (fields.style.trim()) lines.push(`目标风格：${fields.style.trim()}`)
+    if (fields.invariants.trim()) lines.push(`保持不变：${fields.invariants.trim()}`)
+    if (fields.constraints.trim()) lines.push(`避免：${fields.constraints.trim()}`)
+  } else {
+    // Description block (unlabeled)
+    const desc = [fields.subject, fields.action, fields.scene]
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .join('\n')
+    if (desc) lines.push(desc)
+    // Labeled sections
+    if (fields.composition.trim()) lines.push(`构图：${fields.composition.trim()}`)
+    if (fields.style.trim()) lines.push(`风格：${fields.style.trim()}`)
+    if (fields.lighting.trim()) lines.push(`光影：${fields.lighting.trim()}`)
+    if (fields.colorPalette.trim()) lines.push(`色彩：${fields.colorPalette.trim()}`)
+    if (fields.textInImage.trim()) lines.push(`画中文字："${fields.textInImage.trim()}"`)
+    if (fields.constraints.trim()) lines.push(`避免：${fields.constraints.trim()}`)
+  }
+
   return lines.join('\n')
 }
 
-/**
- * Parse a prompt string with labeled sections back into structured fields.
- * Returns null if no labeled sections are found.
- */
+// Edit-only labels used to detect edit mode text
+const EDIT_ONLY_LABELS = ['编辑类型', '编辑请求', '参考图说明', '保持不变', '目标场景', '目标风格']
+
 function parsePrompt(text: string): StructuredPrompt | null {
+  // Deduplicate labels: longer labels first to avoid partial matches
+  const uniqueEntries = ALL_LABEL_ENTRIES.slice().sort((a, b) => b[0].length - a[0].length)
+
   // Find all label positions in the text
-  const markers: { pos: number; end: number; key: keyof StructuredPrompt }[] = []
-  for (const [label, key] of LABEL_ENTRIES) {
+  const markers: { pos: number; end: number; key: keyof StructuredPrompt; label: string }[] = []
+  const usedKeys = new Set<string>()
+  for (const [label, key] of uniqueEntries) {
     const needle = `${label}：`
-    let searchFrom = 0
-    // Only take the first occurrence of each label
-    const idx = text.indexOf(needle, searchFrom)
-    if (idx !== -1 && !markers.some((m) => m.key === key)) {
-      markers.push({ pos: idx, end: idx + needle.length, key })
+    const idx = text.indexOf(needle)
+    // Take first occurrence, skip if this key already matched by a longer label
+    const dedupeKey = `${key}:${idx}`
+    if (idx !== -1 && !usedKeys.has(dedupeKey) && !markers.some((m) => m.key === key)) {
+      markers.push({ pos: idx, end: idx + needle.length, key, label })
+      usedKeys.add(dedupeKey)
     }
   }
 
@@ -71,17 +110,20 @@ function parsePrompt(text: string): StructuredPrompt | null {
 
   markers.sort((a, b) => a.pos - b.pos)
 
-  const fields: StructuredPrompt = { ...EMPTY_STRUCTURED }
+  // Detect mode: if any edit-only label is present, it's edit mode
+  const isEdit = markers.some((m) => EDIT_ONLY_LABELS.includes(m.label))
 
-  // Text before first label -> subject (description block)
-  const desc = text.slice(0, markers[0].pos).replace(/[\n。\s]+$/, '').trim()
-  if (desc) fields.subject = desc
+  const fields: StructuredPrompt = { ...EMPTY_STRUCTURED, mode: isEdit ? 'edit' : 'generate' }
+
+  // Text before first label -> subject (generate) or ignored (edit)
+  const desc = text.slice(0, markers[0].pos).replace(/[\n\s]+$/, '').trim()
+  if (desc && !isEdit) fields.subject = desc
 
   // Extract each labeled section
   for (let i = 0; i < markers.length; i++) {
     const start = markers[i].end
     const end = i + 1 < markers.length ? markers[i + 1].pos : text.length
-    let value = text.slice(start, end).replace(/[\n。\s]+$/, '').trim()
+    let value = text.slice(start, end).replace(/[\n\s]+$/, '').trim()
     const key = markers[i].key
     if (key === 'textInImage') {
       value = value.replace(/^["\u201C]|["\u201D]$/g, '')
@@ -136,7 +178,6 @@ export function PromptPanel({
   const abortRef = useRef<AbortController | null>(null)
 
   const canAugment = apiKey.trim() !== '' && prompt.trim() !== ''
-  // Text is parseable into structured fields if it contains labeled sections
   const canParseToStructured = mode === 'text' && parsePrompt(prompt) !== null
 
   const handleAugment = useCallback(async () => {
@@ -148,7 +189,7 @@ export function PromptPanel({
     abortRef.current = controller
 
     try {
-      const result = await augmentPrompt(apiKey, prompt, controller.signal)
+      const result = await augmentPrompt(apiKey, prompt, referenceImages, controller.signal)
       setStructuredFields(result)
       onPromptChange(assemblePrompt(result))
       setMode('structured')
@@ -158,7 +199,7 @@ export function PromptPanel({
         setMode('text')
       }
     }
-  }, [apiKey, prompt, canAugment, onPromptChange])
+  }, [apiKey, prompt, referenceImages, canAugment, onPromptChange])
 
   const handleCancelAugment = useCallback(() => {
     abortRef.current?.abort()
@@ -177,7 +218,6 @@ export function PromptPanel({
     const parsed = parsePrompt(prompt)
     if (!parsed) return
     setStructuredFields(parsed)
-    // Re-assemble to normalize the format (newline-separated)
     onPromptChange(assemblePrompt(parsed))
     setMode('structured')
   }, [prompt, onPromptChange])
