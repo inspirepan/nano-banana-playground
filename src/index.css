@@ -146,3 +146,12 @@
   0% { transform: rotate(45deg) translateX(-60%); }
   100% { transform: rotate(45deg) translateX(60%); }
 }
+
+@layer base {
+  /* base styles required by JS ripple */
+  button {
+    position: relative;
+    overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+  }
+}

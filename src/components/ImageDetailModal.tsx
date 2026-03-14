@@ -94,9 +94,15 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRemove
             <button
               type="button"
               onClick={onClose}
-              className="flex h-7 w-7 items-center justify-center rounded-full text-sm text-on-surface-variant hover:bg-surface-container"
+              className="flex h-7 w-7 items-center justify-center rounded-full
+                         border border-outline-variant text-on-surface-variant
+                         hover:bg-surface-container-high hover:border-outline
+                         transition-colors"
+              aria-label="关闭"
             >
-              x
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+              </svg>
             </button>
           </div>
 
@@ -163,7 +169,7 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRemove
             <button
               type="button"
               onClick={() => { onRemove(image.id); onClose() }}
-              className="w-full rounded-lg py-1.5 text-xs text-error transition-colors hover:bg-error-dim"
+              className="w-full rounded-full bg-error-dim py-2 text-xs font-medium text-error transition-colors hover:opacity-80 active:opacity-80"
             >
               删除
             </button>
@@ -409,19 +415,31 @@ function ZoomableImageView({ src, alt, label }: { src: string; alt: string; labe
         </div>
       </div>
 
-      <div className="absolute right-4 top-4 flex gap-2">
+      <div className="absolute right-4 top-4 flex gap-1.5">
         <button
           type="button"
           onClick={() => zoomAtPoint(scaleRef.current * 1.25, { x: 0, y: 0 })}
-          className="rounded-full border border-outline-variant bg-surface/82 px-3 py-1 text-[11px] text-on-surface shadow-sm backdrop-blur-sm transition-colors hover:bg-surface"
+          className="flex items-center gap-1 rounded-full border border-outline-variant/70
+                     bg-surface/82 pl-2 pr-3 py-1 text-[11px] text-on-surface
+                     shadow-sm backdrop-blur-sm transition-colors hover:bg-surface active:bg-surface"
+          aria-label="放大"
         >
+          <svg className="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14zm.5-7H9v2H7v1h2v2h1v-2h2V9h-2z"/>
+          </svg>
           放大
         </button>
         <button
           type="button"
           onClick={resetView}
-          className="rounded-full border border-outline-variant bg-surface/82 px-3 py-1 text-[11px] text-on-surface shadow-sm backdrop-blur-sm transition-colors hover:bg-surface"
+          className="flex items-center gap-1 rounded-full border border-outline-variant/70
+                     bg-surface/82 pl-2 pr-3 py-1 text-[11px] text-on-surface
+                     shadow-sm backdrop-blur-sm transition-colors hover:bg-surface active:bg-surface"
+          aria-label="重置"
         >
+          <svg className="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M15 3l2.3 2.3-2.89 2.87 1.42 1.42L18.7 6.7 21 9V3zM3 9l2.3-2.3 2.87 2.89 1.42-1.42L6.7 5.3 9 3H3zm6 12-2.3-2.3 2.89-2.87-1.42-1.42L5.3 17.3 3 15v6zm12-6-2.3 2.3-2.87-2.89-1.42 1.42 2.89 2.87L15 21h6z"/>
+          </svg>
           重置
         </button>
       </div>
@@ -449,7 +467,7 @@ function ModalAction({ label, onClick }: { label: string; onClick: () => void | 
     <button
       type="button"
       onClick={onClick}
-      className="flex-1 rounded-lg bg-surface-container py-1.5 text-xs font-medium text-on-surface transition-colors hover:bg-surface-container-high"
+      className="flex-1 rounded-full bg-surface-container py-2 text-xs font-medium text-on-surface transition-colors hover:bg-surface-container-high active:bg-surface-container-high"
     >
       {label}
     </button>
