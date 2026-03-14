@@ -28,6 +28,11 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRemove
   const meta = image.source.type === 'generated' ? image.source : null
   const [toast, setToast] = useState(false)
   const [refDetail, setRefDetail] = useState<PlaygroundImage | null>(null)
+  const scrollRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
+  }, [refDetail])
 
   const modelName = meta
     ? MODEL_CONFIGS.find((m) => m.id === meta.modelId)?.name ?? meta.modelId
@@ -63,16 +68,17 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRemove
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-white/72 backdrop-blur-[2px] dark:bg-black/60" />
       <div
-        className="relative flex max-h-[96vh] w-full max-w-[1400px] overflow-hidden rounded-[28px] border border-outline-variant bg-surface shadow-2xl"
+        ref={scrollRef}
+        className="relative flex flex-col md:flex-row max-h-[96vh] w-full max-w-[1400px] overflow-y-auto md:overflow-hidden rounded-[28px] border border-outline-variant bg-surface shadow-2xl"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex-1 min-w-0 bg-surface-dim p-4">
+        <div className={`${refDetail ? 'shrink-0' : 'h-[45vh] shrink-0'} md:h-auto md:flex-1 md:shrink min-w-0 bg-surface-dim p-4`}>
           {refDetail ? (
-            <div className="flex h-full gap-3">
-              <div className="flex-1 min-w-0 relative">
+            <div className="flex flex-col md:flex-row md:h-full gap-3">
+              <div className="h-[33vh] md:h-auto md:flex-1 min-w-0 relative">
                 <ZoomableImageView key={`ref-${refDetail.id}`} src={`data:${refDetail.mimeType};base64,${refDetail.data}`} alt="" label="参考图" />
               </div>
-              <div className="flex-1 min-w-0 relative">
+              <div className="h-[33vh] md:h-auto md:flex-1 min-w-0 relative">
                 <ZoomableImageView key={`gen-${image.id}`} src={src} alt={meta?.prompt ?? ''} label="生成图" />
               </div>
             </div>
@@ -81,7 +87,7 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRemove
           )}
         </div>
 
-        <div className="flex w-[320px] shrink-0 flex-col overflow-y-auto border-l border-outline-variant p-6">
+        <div className="flex w-full md:w-[320px] md:shrink-0 flex-col md:overflow-y-auto border-t md:border-t-0 md:border-l border-outline-variant p-6">
           <div className="mb-4 flex items-center justify-between">
             <span className="text-sm font-medium text-on-surface">详情</span>
             <button
@@ -241,7 +247,7 @@ function ZoomableImageView({ src, alt, label }: { src: string; alt: string; labe
   }, [syncFitSize])
 
   return (
-    <div className="relative h-full min-h-[640px] w-full overflow-hidden rounded-2xl border border-outline-variant bg-surface-container shadow-sm">
+    <div className="relative h-full min-h-0 md:min-h-[640px] w-full overflow-hidden rounded-2xl border border-outline-variant bg-surface-container shadow-sm">
       <div
         ref={containerRef}
         className="relative flex h-full w-full items-center justify-center overflow-hidden touch-none select-none"

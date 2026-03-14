@@ -39,7 +39,7 @@ export function ControlPanel({
   )
 
   return (
-    <div className="flex-1 min-h-0 overflow-y-auto">
+    <div className="flex-1 min-h-0 overflow-visible md:overflow-y-auto">
       <div className="space-y-5">
         {/* API Key */}
         <ApiKeyInput
