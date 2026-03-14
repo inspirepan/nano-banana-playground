@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Agentation } from 'agentation'
 import { usePlayground } from './hooks/usePlayground'
 import type { PlaygroundImage } from './lib/types'
@@ -16,19 +16,20 @@ function getInitialTheme(): Theme {
 
 function App() {
   const pg = usePlayground()
+  const addToReferences = pg.addToReferences
   const [theme, setTheme] = useState<Theme>(getInitialTheme)
   const [draftBatchOverride, setDraftBatchOverride] = useState<number | null>(null)
   const mobileRefAreaRef = useRef<HTMLDivElement>(null)
 
-  const handleAddToRef = (image: PlaygroundImage) => {
-    pg.addToReferences(image)
+  const handleAddToRef = useCallback((image: PlaygroundImage) => {
+    addToReferences(image)
     // On mobile, scroll to the reference image upload area after adding
     if (window.innerWidth < 768) {
       setTimeout(() => {
         mobileRefAreaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
       }, 100)
     }
-  }
+  }, [addToReferences])
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark')
     localStorage.setItem('nano-banana-theme', theme)

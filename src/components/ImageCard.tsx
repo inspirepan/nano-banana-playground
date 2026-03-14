@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { memo, useMemo, useState } from 'react'
 import type { PlaygroundImage } from '../lib/types'
 
 type Props = {
@@ -8,8 +8,8 @@ type Props = {
   onOpen: (image: PlaygroundImage) => void
 }
 
-export function ImageCard({ image, index, onAddToRef, onOpen }: Props) {
-  const src = `data:${image.mimeType};base64,${image.data}`
+export const ImageCard = memo(function ImageCard({ image, index, onAddToRef, onOpen }: Props) {
+  const src = useMemo(() => `data:${image.mimeType};base64,${image.data}`, [image.data, image.mimeType])
   const meta = image.source.type === 'generated' ? image.source : null
   const [toast, setToast] = useState(false)
 
@@ -108,7 +108,7 @@ export function ImageCard({ image, index, onAddToRef, onOpen }: Props) {
       </div>
     </div>
   )
-}
+})
 
 function ActionButton({ label, onClick }: { label: string; onClick: () => void }) {
   return (

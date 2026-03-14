@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { MODEL_CONFIGS, DEFAULT_MODEL, type ModelConfig } from '../config/models'
-import { generateImage, type GenerateParams } from '../lib/api'
+import { generateImage } from '../lib/api'
 import type { PlaygroundImage } from '../lib/types'
 import { isKeyError } from '../lib/validateKey'
 import { saveToHistory, loadHistory, deleteFromHistory, clearHistory } from '../lib/history'
@@ -30,7 +30,6 @@ export function usePlayground() {
   const [prompt, setPromptRaw] = useState(() => localStorage.getItem('nano-banana-prompt') || '')
   const setPrompt = useCallback((v: string) => {
     setPromptRaw(v)
-    localStorage.setItem('nano-banana-prompt', v)
   }, [])
   const [referenceImages, setReferenceImages] = useState<PlaygroundImage[]>([])
   const [history, setHistory] = useState<PlaygroundImage[]>([])
@@ -45,6 +44,14 @@ export function usePlayground() {
   useEffect(() => {
     loadHistory().then(setHistory)
   }, [])
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      localStorage.setItem('nano-banana-prompt', prompt)
+    }, 200)
+
+    return () => window.clearTimeout(timer)
+  }, [prompt])
 
   const switchModel = useCallback((modelId: string) => {
     const config = MODEL_CONFIGS.find((m) => m.id === modelId)

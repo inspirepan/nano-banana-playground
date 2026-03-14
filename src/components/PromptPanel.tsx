@@ -7,6 +7,7 @@ import { ReferenceImageUpload } from './ReferenceImageUpload'
 import { StructuredPromptForm } from './StructuredPromptForm'
 
 type PromptMode = 'text' | 'augmenting' | 'structured'
+type StructuredPromptTextKey = Exclude<keyof StructuredPrompt, 'mode'>
 
 const EMPTY_STRUCTURED: StructuredPrompt = {
   mode: 'generate',
@@ -17,13 +18,13 @@ const EMPTY_STRUCTURED: StructuredPrompt = {
 
 // --- Label mappings for text <-> structured round-tripping ---
 
-const GEN_LABEL_ENTRIES: [string, keyof StructuredPrompt][] = [
+const GEN_LABEL_ENTRIES: [string, StructuredPromptTextKey][] = [
   ['构图', 'composition'], ['风格', 'style'], ['光影', 'lighting'],
   ['色彩', 'colorPalette'], ['画中文字', 'textInImage'], ['画面中的文字', 'textInImage'],
   ['约束', 'constraints'], ['避免', 'constraints'],
 ]
 
-const EDIT_LABEL_ENTRIES: [string, keyof StructuredPrompt][] = [
+const EDIT_LABEL_ENTRIES: [string, StructuredPromptTextKey][] = [
   ['编辑类型', 'editType'], ['编辑请求', 'primaryRequest'],
   ['参考图说明', 'referenceRole'], ['目标场景', 'targetScene'],
   ['目标风格', 'style'], ['风格', 'style'],
@@ -58,7 +59,7 @@ function assemblePrompt(fields: StructuredPrompt): string {
 
 function parsePrompt(text: string): StructuredPrompt | null {
   const uniqueEntries = ALL_LABEL_ENTRIES.slice().sort((a, b) => b[0].length - a[0].length)
-  const markers: { pos: number; end: number; key: keyof StructuredPrompt; label: string }[] = []
+  const markers: { pos: number; end: number; key: StructuredPromptTextKey; label: string }[] = []
   for (const [label, key] of uniqueEntries) {
     const needle = `${label}：`
     const idx = text.indexOf(needle)

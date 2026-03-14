@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { memo, useMemo, useRef, useState } from 'react'
 import JSZip from 'jszip'
 import type { PlaygroundImage } from '../lib/types'
 import type { GenerationState, GenerationSnapshot } from '../hooks/usePlayground'
@@ -83,7 +83,7 @@ function formatTime(ts: number): string {
   return new Date(ts).toLocaleDateString()
 }
 
-export function OutputPanel({
+export const OutputPanel = memo(function OutputPanel({
   history,
   generationState,
   generationSnapshot,
@@ -122,7 +122,7 @@ export function OutputPanel({
       setExporting(false)
     }
   }
-  const batches = groupByBatch(history)
+  const batches = useMemo(() => groupByBatch(history), [history])
 
   const draftRatio = isGenerating && generationSnapshot ? generationSnapshot.aspectRatio : aspectRatio
   const draftRes = isGenerating && generationSnapshot ? generationSnapshot.resolution : resolution
@@ -233,4 +233,4 @@ export function OutputPanel({
       )}
     </div>
   )
-}
+})
