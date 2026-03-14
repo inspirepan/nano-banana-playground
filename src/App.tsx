@@ -25,8 +25,8 @@ function App() {
   const toggleTheme = () => setTheme((t) => (t === 'light' ? 'dark' : 'light'))
 
   return (
-    <div className="h-screen flex gap-6 px-8 py-4">
-      <div className="w-[320px] shrink-0 flex flex-col">
+    <div className="h-screen flex gap-6 px-8">
+      <div className="w-[320px] shrink-0 flex flex-col py-4">
         <h1 className="text-base font-medium text-on-surface whitespace-nowrap mb-4">
           Nano Banana Playground
         </h1>

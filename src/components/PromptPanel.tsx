@@ -35,7 +35,7 @@ export function PromptPanel({
   const maxRef = model.maxReferenceImages + model.maxCharacterImages
 
   return (
-    <div className="w-[300px] shrink-0 flex flex-col gap-4 overflow-y-auto">
+    <div className="w-[300px] shrink-0 flex flex-col gap-4 overflow-y-auto py-4">
       {/* Reference Images */}
       <ReferenceImageUpload
         images={referenceImages}

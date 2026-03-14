@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import JSZip from 'jszip'
 import type { PlaygroundImage } from '../lib/types'
 import type { GenerationState, GenerationSnapshot } from '../hooks/usePlayground'
 import { ImageCard } from './ImageCard'
@@ -89,7 +90,30 @@ export function OutputPanel({
   onClearAll,
 }: Props) {
   const [detailImage, setDetailImage] = useState<PlaygroundImage | null>(null)
+  const [exporting, setExporting] = useState(false)
   const isGenerating = generationState === 'generating'
+
+  const handleExportAll = async () => {
+    if (exporting || history.length === 0) return
+    setExporting(true)
+    try {
+      const zip = new JSZip()
+      for (const img of history) {
+        const ext = img.mimeType === 'image/png' ? 'png' : 'jpg'
+        const name = `nano-banana-${img.id.slice(0, 8)}.${ext}`
+        zip.file(name, img.data, { base64: true })
+      }
+      const blob = await zip.generateAsync({ type: 'blob' })
+      const url = URL.createObjectURL(blob)
+      const anchor = document.createElement('a')
+      anchor.href = url
+      anchor.download = `nano-banana-export-${new Date().toISOString().slice(0, 10)}.zip`
+      anchor.click()
+      URL.revokeObjectURL(url)
+    } finally {
+      setExporting(false)
+    }
+  }
   const batches = groupByBatch(history)
 
   const draftRatio = isGenerating && generationSnapshot ? generationSnapshot.aspectRatio : aspectRatio
@@ -98,6 +122,7 @@ export function OutputPanel({
 
   return (
     <div className="flex-1 overflow-y-auto pr-1">
+      <div className="h-4" />
       {error && (
         <div className="mb-4 px-4 py-3 bg-error-dim text-error text-sm rounded-xl border border-error/20">
           {error}
@@ -107,7 +132,7 @@ export function OutputPanel({
       {/* Draft skeleton */}
       {!isGenerating && showDraft && (
         <div className="mb-6">
-          <div className="text-[11px] text-on-surface-variant/50 font-mono mb-2">草稿</div>
+          <div className="text-[11px] text-on-surface-variant/50 font-mono mb-2">预览</div>
           <ImageGrid>
             {Array.from({ length: draftCount }, (_, i) => (
               <GridCell key={i} aspectRatio={draftRatio}>
@@ -136,13 +161,14 @@ export function OutputPanel({
       {batches.length > 0 && (
         <div className="space-y-6">
           <div className="flex items-center justify-between">
-            <div className="text-[11px] text-on-surface-variant/50 font-mono">历史记录</div>
+            <div className="text-[11px] text-on-surface-variant/50 font-mono">历史记录 (本地浏览器存储)</div>
             <button
               type="button"
-              onClick={onClearAll}
-              className="text-[11px] text-error hover:text-error/80 transition-colors"
+              onClick={handleExportAll}
+              disabled={exporting}
+              className="text-[11px] text-primary hover:text-primary/80 transition-colors disabled:text-on-surface-variant/30"
             >
-              清除全部
+              {exporting ? '导出中...' : '导出全部'}
             </button>
           </div>
           {batches.map((batch) => {
@@ -168,6 +194,15 @@ export function OutputPanel({
               </div>
             )
           })}
+          <div className="flex justify-center py-2">
+            <button
+              type="button"
+              onClick={onClearAll}
+              className="text-[11px] text-error hover:text-error/80 transition-colors"
+            >
+              清除全部
+            </button>
+          </div>
         </div>
       )}
 
