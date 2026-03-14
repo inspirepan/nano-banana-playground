@@ -36,15 +36,11 @@ function shapeSize(ratio: string): { w: number; h: number } {
 }
 
 export function AspectRatioSelector({ options, value, resolution, onChange }: Props) {
-  const isSelectedCommon = COMMON_RATIOS.includes(value)
-  const [expanded, setExpanded] = useState(!isSelectedCommon)
+  const [expanded, setExpanded] = useState(!COMMON_RATIOS.includes(value))
 
-  const commonOptions = options.filter((o) => COMMON_RATIOS.includes(o) || o === value)
-  const extraOptions = options.filter((o) => !COMMON_RATIOS.includes(o) && o !== value)
-  const visibleOptions = expanded
-    ? [...commonOptions, ...extraOptions]
-    : commonOptions
-
+  // collapsed: show common ratios + selected (if non-common), in original order
+  const collapsedSet = new Set([...COMMON_RATIOS, value])
+  const visibleOptions = expanded ? options : options.filter((o) => collapsedSet.has(o))
   const hiddenCount = options.length - visibleOptions.length
 
   return (
@@ -56,32 +52,35 @@ export function AspectRatioSelector({ options, value, resolution, onChange }: Pr
           const [px, py] = computePixels(option, resolution)
           const shape = shapeSize(option)
           return (
-            <button
-              key={option}
-              type="button"
-              onClick={() => onChange(option)}
-              className={`flex items-center gap-2 px-3 py-2.5 rounded-2xl transition-colors text-left
-                ${
-                  selected
-                    ? 'bg-primary-dim hover:bg-primary/15'
-                    : 'bg-surface-container-high hover:bg-on-surface/10'
-                }`}
-            >
-              <div className="flex items-center justify-center w-5 h-5 shrink-0">
-                <div
-                  className={`rounded-sm ${selected ? 'bg-primary' : 'bg-on-surface/25'}`}
-                  style={{ width: shape.w, height: shape.h }}
-                />
-              </div>
-              <div className="min-w-0 overflow-hidden">
-                <div className={`text-xs font-semibold leading-none ${selected ? 'text-primary' : 'text-on-surface'}`}>
+            <div key={option} className="relative group">
+              <button
+                type="button"
+                onClick={() => onChange(option)}
+                className={`flex items-center gap-2 px-3 py-2.5 rounded-2xl transition-colors text-left w-full
+                  ${
+                    selected
+                      ? 'bg-primary-dim hover:bg-primary/15'
+                      : 'bg-surface-container md:bg-surface-container-high hover:bg-surface-container-high md:hover:bg-on-surface/10'
+                  }`}
+              >
+                <div className="flex items-center justify-center w-5 h-5 shrink-0">
+                  <div
+                    className={`rounded-sm ${selected ? 'bg-primary' : 'bg-on-surface/25'}`}
+                    style={{ width: shape.w, height: shape.h }}
+                  />
+                </div>
+                <div className={`text-xs font-medium leading-none ${selected ? 'text-primary' : 'text-on-surface'}`}>
                   {option}
                 </div>
-                <div className={`text-[8px] font-mono leading-none mt-1 truncate ${selected ? 'text-primary/70' : 'text-on-surface-variant/50'}`}>
-                  {px}×{py}
-                </div>
+              </button>
+              {/* Pixel tooltip */}
+              <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5
+                              px-2 py-1 rounded-lg text-[10px] font-mono leading-none whitespace-nowrap
+                              bg-on-surface text-surface
+                              opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-10">
+                {px}×{py}
               </div>
-            </button>
+            </div>
           )
         })}
 
@@ -89,11 +88,12 @@ export function AspectRatioSelector({ options, value, resolution, onChange }: Pr
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
-          className="col-span-2 flex items-center gap-1 px-2 py-1 text-[11px] font-medium text-on-surface-variant hover:text-on-surface"
+          data-no-ripple
+          className="col-span-2 flex items-center gap-1 px-2 py-1 text-[11px] font-medium text-on-surface-variant hover:text-on-surface transition-none focus:outline-none"
         >
           <span>{expanded ? '收起' : `+${hiddenCount} 更多`}</span>
           <svg
-            className={`w-3 h-3 ${expanded ? 'rotate-180' : ''}`}
+            className={`w-3 h-3 transition-transform ${expanded ? 'rotate-180' : ''}`}
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"

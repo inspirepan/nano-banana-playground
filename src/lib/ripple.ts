@@ -6,7 +6,7 @@ export function initRipple() {
 
   document.addEventListener('pointerdown', (event) => {
     const button = (event.target as Element).closest('button')
-    if (!button || button.disabled) return
+    if (!button || button.disabled || button.dataset.noRipple !== undefined) return
 
     const rect = button.getBoundingClientRect()
     const x = event.clientX - rect.left

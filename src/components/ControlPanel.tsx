@@ -30,7 +30,7 @@ export function ControlPanel({
   onAspectRatioChange,
 }: Props) {
   return (
-    <div className="flex-1 min-h-0 overflow-visible md:overflow-y-auto md:pr-2">
+    <div className="flex-1 min-h-0 overflow-visible md:overflow-y-auto md:pr-4">
       <div className="space-y-5">
         {/* API Key */}
         <ApiKeyInput
@@ -49,11 +49,11 @@ export function ControlPanel({
                 key={m.id}
                 type="button"
                 onClick={() => onSwitchModel(m.id)}
-                className={`block w-full px-4 py-2 text-xs rounded-2xl transition-colors text-center leading-snug
+                className={`block w-full px-5 py-2.5 text-xs rounded-2xl transition-colors text-center leading-snug
                   ${
                     model.id === m.id
                       ? 'bg-primary-dim text-primary font-medium hover:bg-primary/15'
-                      : 'bg-surface-container-high text-on-surface font-medium hover:bg-on-surface/10'
+                      : 'bg-surface-container md:bg-surface-container-high text-on-surface font-medium hover:bg-surface-container-high md:hover:bg-on-surface/10'
                   }`}
               >
                 🍌 {m.name}
