@@ -1,5 +1,6 @@
 import type { ModelConfig } from '../config/models'
-import type { PlaygroundImage } from './types'
+import type { PlaygroundImage, StructuredPrompt } from './types'
+import AUGMENT_SYSTEM_PROMPT from './augment-system-prompt.md?raw'
 
 export type GenerateParams = {
   apiKey: string
@@ -112,4 +113,66 @@ export async function generateImage(
     },
     timestamp: Date.now(),
   }
+}
+
+const AUGMENT_MODEL = 'gemini-3.1-flash-lite-preview'
+
+const STRUCTURED_PROMPT_SCHEMA = {
+  type: 'OBJECT' as const,
+  properties: {
+    subject: { type: 'STRING' as const },
+    action: { type: 'STRING' as const },
+    scene: { type: 'STRING' as const },
+    composition: { type: 'STRING' as const },
+    style: { type: 'STRING' as const },
+    lighting: { type: 'STRING' as const },
+    colorPalette: { type: 'STRING' as const },
+    textInImage: { type: 'STRING' as const },
+    constraints: { type: 'STRING' as const },
+  },
+  required: ['subject', 'action', 'scene', 'composition', 'style', 'lighting', 'colorPalette', 'textInImage', 'constraints'],
+}
+
+export async function augmentPrompt(
+  apiKey: string,
+  rawPrompt: string,
+  signal?: AbortSignal,
+): Promise<StructuredPrompt> {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${AUGMENT_MODEL}:generateContent`
+
+  const body = {
+    system_instruction: { parts: [{ text: AUGMENT_SYSTEM_PROMPT }] },
+    contents: [{ parts: [{ text: rawPrompt }] }],
+    generationConfig: {
+      responseMimeType: 'application/json',
+      responseSchema: STRUCTURED_PROMPT_SCHEMA,
+    },
+  }
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-goog-api-key': apiKey,
+    },
+    body: JSON.stringify(body),
+    signal,
+  })
+
+  const data: ApiResponse = await res.json()
+
+  if (data.error) {
+    throw new Error(data.error.message)
+  }
+
+  if (!data.candidates?.length) {
+    throw new Error('No response from model')
+  }
+
+  const textPart = data.candidates[0].content.parts.find((p) => p.text)
+  if (!textPart?.text) {
+    throw new Error('No text in augmentation response')
+  }
+
+  return JSON.parse(textPart.text) as StructuredPrompt
 }

@@ -22,3 +22,15 @@ export type PlaygroundImage = {
   source: ImageSource
   timestamp: number
 }
+
+export type StructuredPrompt = {
+  subject: string
+  action: string
+  scene: string
+  composition: string
+  style: string
+  lighting: string
+  colorPalette: string
+  textInImage: string
+  constraints: string
+}
