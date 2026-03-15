@@ -120,6 +120,7 @@ export const OutputPanel = memo(function OutputPanel({
 }: Props) {
   const [detailImage, setDetailImage] = useState<PlaygroundImageMeta | null>(null)
   const [exporting, setExporting] = useState(false)
+  const [confirmClear, setConfirmClear] = useState(false)
   const isGenerating = generationState === 'generating'
 
   const handleExportAll = async () => {
@@ -315,13 +316,33 @@ export const OutputPanel = memo(function OutputPanel({
           )}
 
           <div className="flex justify-center py-2">
-            <button
-              type="button"
-              onClick={onClearAll}
-              className="text-2xs text-error hover:text-error/80 transition-colors"
-            >
-              清除全部
-            </button>
+            {confirmClear ? (
+              <div className="flex items-center gap-3">
+                <span className="text-2xs text-on-surface-variant/60">确认清除全部历史？</span>
+                <button
+                  type="button"
+                  onClick={() => { setConfirmClear(false); onClearAll() }}
+                  className="text-2xs text-error hover:text-error/80 transition-colors"
+                >
+                  确认
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmClear(false)}
+                  className="text-2xs text-on-surface-variant/50 hover:text-on-surface-variant transition-colors"
+                >
+                  取消
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setConfirmClear(true)}
+                className="text-2xs text-error hover:text-error/80 transition-colors"
+              >
+                清除全部
+              </button>
+            )}
           </div>
           <div className="h-4" />
         </div>
