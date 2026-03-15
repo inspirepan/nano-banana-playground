@@ -259,16 +259,21 @@ export function PromptPanel({
 
     const controller = new AbortController()
     abortRef.current = controller
+    // 30s timeout — handles cases where API is unreachable (e.g. no proxy)
+    const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(30_000)])
 
     try {
-      const result = await augmentPrompt(apiKey, sourcePrompt, referenceImages, controller.signal)
+      const result = await augmentPrompt(apiKey, sourcePrompt, referenceImages, signal)
       onSchemesChange(result)
       onCurrentSchemeIndexChange(0)
       onPromptChange(assemblePrompt(result[0].fields))
       onModeChange('structured')
     } catch (e) {
       if ((e as Error).name !== 'AbortError') {
-        setAugmentError((e as Error).message)
+        const msg = (e as Error).name === 'TimeoutError'
+          ? '请求超时（30s），请检查网络连接或代理配置后重试'
+          : (e as Error).message
+        setAugmentError(msg)
         onModeChange(useOriginal ? 'structured' : 'text')
       }
     } finally {
@@ -426,10 +431,10 @@ export function PromptPanel({
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
                       </svg>
-                      放弃增强
+                      退出增强
                     </button>
                     <div className="absolute bottom-full right-0 mb-2 pointer-events-none whitespace-nowrap bg-on-surface text-surface text-xs px-2 py-1 rounded opacity-0 group-hover/discard:opacity-100 transition-opacity duration-150 delay-500 group-hover/discard:delay-500 z-50">
-                      丢弃增强结果，恢复原始提示词
+                      恢复原始提示词，退出增强模式
                     </div>
                   </div>
                 )}

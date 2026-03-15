@@ -203,6 +203,14 @@ export function usePlayground() {
 
     const controller = new AbortController()
     abortRef.current = controller
+    // 2min timeout — handles cases where API is unreachable (e.g. no proxy)
+    const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(120_000)])
+
+    const toDisplayError = (e: unknown): string => {
+      const err = e instanceof Error ? e : new Error(String(e))
+      if (err.name === 'TimeoutError') return '请求超时（2min），请检查网络连接或代理配置后重试'
+      return err.message
+    }
 
     try {
       const promises = promptList.map((p, index) =>
@@ -214,7 +222,7 @@ export function usePlayground() {
           resolution,
           aspectRatio,
           batchId,
-        }, controller.signal)
+        }, signal)
           .then((image) => {
             setGenerationPreview((prev) => {
               if (prev[index]?.status === 'fulfilled') return prev
@@ -230,7 +238,7 @@ export function usePlayground() {
               setGenerationPreview((prev) => {
                 if (prev[index]?.status === 'rejected') return prev
                 const next = [...prev]
-                next[index] = { status: 'rejected', error: error.message }
+                next[index] = { status: 'rejected', error: toDisplayError(error) }
                 return next
               })
             }
@@ -247,7 +255,7 @@ export function usePlayground() {
         if (r.status === 'fulfilled') {
           images.push(r.value)
         } else {
-          errors.push(r.reason?.message || 'Unknown error')
+          errors.push(toDisplayError(r.reason))
         }
       }
 
@@ -273,7 +281,7 @@ export function usePlayground() {
       }
     } catch (e) {
       if ((e as Error).name !== 'AbortError') {
-        const msg = (e as Error).message
+        const msg = toDisplayError(e)
         setGenerationState('error')
         setError(msg)
         if (isKeyError(msg)) {
