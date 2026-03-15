@@ -115,7 +115,7 @@ export async function generateImage(
   }
 }
 
-const AUGMENT_MODEL = 'gemini-3.1-flash-lite-preview'
+const AUGMENT_MODEL = 'gemini-3-flash-preview'
 
 const S = 'STRING' as const
 
@@ -155,15 +155,17 @@ export async function augmentPrompt(
   referenceImages: PlaygroundImage[],
   signal?: AbortSignal,
 ): Promise<PromptScheme[]> {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${AUGMENT_MODEL}:generateContent`
+  // Use v1alpha for mediaResolution support on reference images
+  const url = `https://generativelanguage.googleapis.com/v1alpha/models/${AUGMENT_MODEL}:generateContent`
 
-  const parts: ApiPart[] = [{ text: rawPrompt }]
+  const parts: Array<Record<string, unknown>> = [{ text: rawPrompt }]
   for (const img of referenceImages) {
     parts.push({
       inline_data: {
         mime_type: img.mimeType,
         data: img.data,
       },
+      mediaResolution: { level: 'media_resolution_high' },
     })
   }
 
@@ -173,6 +175,7 @@ export async function augmentPrompt(
     generationConfig: {
       responseMimeType: 'application/json',
       responseSchema: SCHEMES_SCHEMA,
+      thinkingConfig: { thinkingLevel: 'medium' },
     },
   }
 

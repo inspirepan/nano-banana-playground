@@ -505,7 +505,7 @@ export function PromptPanel({
                     增强
                   </button>
                   <div className="absolute bottom-full right-0 mb-2 pointer-events-none whitespace-nowrap bg-on-surface text-surface text-xs px-2 py-1 rounded opacity-0 group-hover/augment:opacity-100 transition-opacity duration-150 delay-500 group-hover/augment:delay-500 z-50">
-                    Gemini Flash Lite 生成结构化提示词
+                    Gemini 3 Flash 生成结构化提示词
                   </div>
                 </div>
               )}
@@ -517,7 +517,7 @@ export function PromptPanel({
           <div className="flex flex-col items-center justify-center gap-3 py-8 bg-surface-container rounded-xl">
             <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
             <p className="text-xs text-on-surface-variant">正在分析提示词...
-              <span className="opacity-50 ml-1">Gemini 3.1 Flash Lite</span>
+              <span className="opacity-50 ml-1">Gemini 3 Flash</span>
             </p>
             <button type="button" onClick={handleCancelAugment}
               className="text-xs text-on-surface-variant hover:text-on-surface transition-colors">取消</button>
