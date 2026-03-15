@@ -352,7 +352,7 @@ export function PromptPanel({
   const estimatedCost = pricePerImage !== undefined ? pricePerImage * batchCount : null
 
   return (
-    <div className="w-full md:w-[360px] md:shrink-0 flex flex-col py-4 md:h-full">
+    <div className={`w-full md:flex-1 md:shrink-0 md:min-w-[360px] flex flex-col py-4 md:h-full${mode === 'text' ? ' md:overflow-y-auto' : ''}`}>
       {/* Reference Images - fixed */}
       <div className="shrink-0">
         <ReferenceImageUpload
@@ -365,7 +365,7 @@ export function PromptPanel({
       </div>
 
       {/* Prompt section */}
-      <div className="mt-4 md:flex-1 md:min-h-0 flex flex-col">
+      <div className={`mt-4 flex flex-col${mode !== 'text' ? ' md:flex-1 md:min-h-0' : ''}`}>
         {/* Prompt header - fixed */}
         <div className="flex items-center justify-between mb-3 min-h-[28px] shrink-0">
           <label className="text-xs font-medium text-on-surface-variant">提示词</label>
@@ -431,7 +431,7 @@ export function PromptPanel({
         </div>
 
         {/* Prompt content */}
-        <div className="md:flex-1 md:min-h-0 flex flex-col">
+        <div className={`flex flex-col${mode !== 'text' ? ' md:flex-1 md:min-h-0' : ''}`}>
 
         {mode === 'text' && (
           <div className="relative">
@@ -502,8 +502,8 @@ export function PromptPanel({
         </div>{/* end scrollable content */}
       </div>{/* end prompt section */}
 
-      {/* Fixed bottom: batch count + generate button + cost */}
-      <div className="flex flex-col gap-4 shrink-0 mt-4">
+      {/* Batch count + generate button + cost */}
+      <div className={`flex flex-col gap-4 mt-4${mode !== 'text' ? ' shrink-0' : ''}`}>
         {/* Batch count */}
         {mode !== 'augmenting' && (
           <div>

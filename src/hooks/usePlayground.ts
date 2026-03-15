@@ -248,7 +248,7 @@ export function usePlayground() {
     generationState,
     generationSnapshot,
     generationPreview,
-    showDraft: lastGenHash !== currentConfigHash,
+    showDraft: prompt.trim() !== '' && lastGenHash !== currentConfigHash,
     error,
     switchModel,
     setResolution,

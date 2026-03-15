@@ -20,6 +20,7 @@ function App() {
   const [theme, setTheme] = useState<Theme>(getInitialTheme)
   const [draftBatchOverride, setDraftBatchOverride] = useState<number | null>(null)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    if (window.innerWidth < 1280) return true
     return localStorage.getItem('nano-banana-sidebar-collapsed') === 'true'
   })
   const mobileRefAreaRef = useRef<HTMLDivElement>(null)
@@ -45,6 +46,16 @@ function App() {
     document.documentElement.classList.toggle('dark', theme === 'dark')
     localStorage.setItem('nano-banana-theme', theme)
   }, [theme])
+
+  // Auto-collapse sidebar when viewport drops below xl (1280px)
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1280px)')
+    const handle = (e: MediaQueryListEvent) => {
+      if (!e.matches) setSidebarCollapsed(true)
+    }
+    mq.addEventListener('change', handle)
+    return () => mq.removeEventListener('change', handle)
+  }, [])
 
   // Cycles light → dark → system → light for the mobile top-bar button
   const cycleTheme = () => setTheme((t) => (t === 'light' ? 'dark' : t === 'dark' ? 'system' : 'light'))
