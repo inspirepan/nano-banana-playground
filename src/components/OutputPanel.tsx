@@ -1,13 +1,16 @@
-import { memo, useMemo, useRef, useState, useEffect } from 'react'
+import { memo, useMemo, useRef, useState, useEffect, useCallback } from 'react'
 import JSZip from 'jszip'
-import type { PlaygroundImage } from '../lib/types'
+import type { PlaygroundImageMeta } from '../lib/types'
 import type { GenerationPreviewSlot, GenerationState, GenerationSnapshot } from '../hooks/usePlayground'
+import { loadImageBlobs } from '../lib/history'
+import { getBlobFromCache, putBlobInCache } from '../hooks/useImageSrc'
 import { ImageCard } from './ImageCard'
 import { ImageDetailModal } from './ImageDetailModal'
 import { ImageGrid, GridCell } from './ImageGrid'
 
 type Props = {
-  history: PlaygroundImage[]
+  history: PlaygroundImageMeta[]
+  historyHasMore: boolean
   generationState: GenerationState
   generationSnapshot: GenerationSnapshot | null
   generationPreview: GenerationPreviewSlot[]
@@ -18,21 +21,22 @@ type Props = {
   draftLabels: string[] | null
   aspectRatio: string
   resolution: string
-  onAddToRef: (image: PlaygroundImage) => void
-  onRegenerate: (image: PlaygroundImage) => void
+  onAddToRef: (image: PlaygroundImageMeta) => void
+  onRegenerate: (image: PlaygroundImageMeta) => void
   onRemove: (id: string) => void
   onClearAll: () => void
+  onLoadMore: () => void
 }
 
 type HistoryBatch = {
   batchId: string
   resolution: string
   aspectRatio: string
-  images: PlaygroundImage[]
+  images: PlaygroundImageMeta[]
   timestamp: number
 }
 
-function groupByBatch(images: PlaygroundImage[]): HistoryBatch[] {
+function groupByBatch(images: PlaygroundImageMeta[]): HistoryBatch[] {
   const map = new Map<string, HistoryBatch>()
   for (const img of images) {
     if (img.source.type !== 'generated') continue
@@ -78,7 +82,7 @@ function FailedCard({ index }: { index: number }) {
     <div className="w-full h-full rounded-xl border border-error/20 bg-error-dim/40 overflow-hidden relative">
       <div className="absolute inset-0 flex items-center justify-center">
         <div className="text-center space-y-2">
-          <div className="mx-auto flex h-5 w-5 items-center justify-center rounded-full bg-error/12 text-error text-xs font-bold">×</div>
+          <div className="mx-auto flex h-5 w-5 items-center justify-center rounded-full bg-error/12 text-error text-xs font-bold">&times;</div>
           <div className="text-2xs tabular-nums text-error/80">{`失败 #${index + 1}`}</div>
         </div>
       </div>
@@ -97,6 +101,7 @@ function formatTime(ts: number): string {
 
 export const OutputPanel = memo(function OutputPanel({
   history,
+  historyHasMore,
   generationState,
   generationSnapshot,
   generationPreview,
@@ -111,8 +116,9 @@ export const OutputPanel = memo(function OutputPanel({
   onRegenerate,
   onRemove,
   onClearAll,
+  onLoadMore,
 }: Props) {
-  const [detailImage, setDetailImage] = useState<PlaygroundImage | null>(null)
+  const [detailImage, setDetailImage] = useState<PlaygroundImageMeta | null>(null)
   const [exporting, setExporting] = useState(false)
   const isGenerating = generationState === 'generating'
 
@@ -120,11 +126,20 @@ export const OutputPanel = memo(function OutputPanel({
     if (exporting || history.length === 0) return
     setExporting(true)
     try {
+      // Load all blobs that aren't cached yet
+      const needLoad = history.filter((img) => !getBlobFromCache(img.id)).map((img) => img.id)
+      if (needLoad.length > 0) {
+        const blobs = await loadImageBlobs(needLoad)
+        for (const [id, data] of blobs) putBlobInCache(id, data)
+      }
+
       const zip = new JSZip()
       for (const img of history) {
+        const data = getBlobFromCache(img.id)
+        if (!data) continue
         const ext = img.mimeType === 'image/png' ? 'png' : 'jpg'
         const name = `nano-banana-${img.id.slice(0, 8)}.${ext}`
-        zip.file(name, img.data, { base64: true })
+        zip.file(name, data, { base64: true })
       }
       const blob = await zip.generateAsync({ type: 'blob' })
       const url = URL.createObjectURL(blob)
@@ -174,6 +189,24 @@ export const OutputPanel = memo(function OutputPanel({
     return () => cancelAnimationFrame(frameId)
   }, [hasSkeletons])
 
+  // Infinite scroll sentinel
+  const sentinelRef = useRef<HTMLDivElement>(null)
+  const onLoadMoreStable = useCallback(() => { onLoadMore() }, [onLoadMore])
+
+  useEffect(() => {
+    const el = sentinelRef.current
+    if (!el || !historyHasMore) return
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) onLoadMoreStable()
+      },
+      { rootMargin: '400px' },
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [historyHasMore, onLoadMoreStable])
+
   return (
     <div ref={scrollRef} className="flex-1 md:flex-[2_1_0%] overflow-visible md:overflow-y-auto [scrollbar-gutter:stable] md:pl-6 md:pr-8">
       <div className="h-4" />
@@ -217,6 +250,7 @@ export const OutputPanel = memo(function OutputPanel({
                 {slot.status === 'fulfilled' ? (
                   <ImageCard
                     image={slot.image}
+                    inlineData={slot.image.data}
                     index={draftCount > 1 ? i : undefined}
                     onAddToRef={onAddToRef}
                     onRegenerate={onRegenerate}
@@ -272,6 +306,14 @@ export const OutputPanel = memo(function OutputPanel({
               </div>
             )
           })}
+
+          {/* Infinite scroll sentinel */}
+          {historyHasMore && (
+            <div ref={sentinelRef} className="flex justify-center py-4">
+              <div className="text-2xs text-on-surface-variant/40">加载更多...</div>
+            </div>
+          )}
+
           <div className="flex justify-center py-2">
             <button
               type="button"

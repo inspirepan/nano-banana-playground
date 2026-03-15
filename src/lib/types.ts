@@ -15,12 +15,17 @@ export type GeneratedSource = {
 
 export type ImageSource = UploadSource | GeneratedSource
 
-export type PlaygroundImage = {
+// Metadata only — no binary data
+export type PlaygroundImageMeta = {
   id: string
-  data: string // base64
   mimeType: string
   source: ImageSource
   timestamp: number
+}
+
+// Full image with base64 data
+export type PlaygroundImage = PlaygroundImageMeta & {
+  data: string // base64
 }
 
 export type PromptMode = 'text' | 'augmenting' | 'structured'

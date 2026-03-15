@@ -1,17 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { PlaygroundImage } from '../lib/types'
+import type { PlaygroundImageMeta } from '../lib/types'
 import { MODEL_CONFIGS } from '../config/models'
+import { ensureBlobLoaded, useImageSrc } from '../hooks/useImageSrc'
 
 const MIN_SCALE = 0.5
 const MAX_SCALE = 6
 const FIT_SCALE = 1
 
 type Props = {
-  image: PlaygroundImage
-  history: PlaygroundImage[]
+  image: PlaygroundImageMeta
+  history: PlaygroundImageMeta[]
   onClose: () => void
-  onAddToRef: (image: PlaygroundImage) => void
-  onRegenerate: (image: PlaygroundImage) => void
+  onAddToRef: (image: PlaygroundImageMeta) => void
+  onRegenerate: (image: PlaygroundImageMeta) => void
   onRemove: (id: string) => void
 }
 
@@ -30,17 +31,31 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
   const [currentIdx, setCurrentIdx] = useState(() => history.findIndex(h => h.id === image.id))
 
   const currentImage = currentIdx >= 0 ? history[currentIdx] : image
-  const currentSrc = `data:${currentImage.mimeType};base64,${currentImage.data}`
+  const { ref: imgRef, src: currentSrc } = useImageSrc(currentImage.id, currentImage.mimeType)
   const currentMeta = currentImage.source.type === 'generated' ? currentImage.source : null
   const canNavigate = currentIdx >= 0
 
   const [toast, setToast] = useState(false)
-  const [refDetail, setRefDetail] = useState<PlaygroundImage | null>(null)
+  const [refDetailId, setRefDetailId] = useState<string | null>(null)
+  const [refDetailSrc, setRefDetailSrc] = useState<string | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
+
+  // Load ref detail image blob when selected
+  useEffect(() => {
+    if (!refDetailId) {
+      setRefDetailSrc(null)
+      return
+    }
+    const refImg = history.find(h => h.id === refDetailId)
+    if (!refImg) return
+    ensureBlobLoaded(refImg.id, refImg.mimeType).then((src) => {
+      if (src) setRefDetailSrc(src)
+    })
+  }, [refDetailId, history])
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
-  }, [refDetail])
+  }, [refDetailId])
 
   const goToPrev = useCallback(() => {
     setCurrentIdx(i => Math.max(0, i - 1))
@@ -52,8 +67,13 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
 
   // Reset compare view when navigating
   useEffect(() => {
-    setRefDetail(null)
+    setRefDetailId(null)
   }, [currentIdx])
+
+  // Eagerly load the current image blob when navigating
+  useEffect(() => {
+    ensureBlobLoaded(currentImage.id, currentImage.mimeType)
+  }, [currentImage.id, currentImage.mimeType])
 
   // Keyboard navigation
   useEffect(() => {
@@ -81,6 +101,7 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
   }
 
   const handleDownload = () => {
+    if (!currentSrc) return
     const anchor = document.createElement('a')
     anchor.href = currentSrc
     anchor.download = `nano-banana-${currentImage.id.slice(0, 8)}.png`
@@ -88,6 +109,7 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
   }
 
   const handleCopyImage = async () => {
+    if (!currentSrc) return
     const response = await fetch(currentSrc)
     const blob = await response.blob()
     await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })])
@@ -110,14 +132,14 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
         className="relative flex flex-col md:flex-row max-h-[96vh] w-full max-w-[1400px] overflow-y-auto md:overflow-hidden rounded-[28px] border border-outline-variant bg-surface shadow-2xl"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className={`${refDetail ? 'shrink-0' : 'h-[45vh] shrink-0'} relative md:h-auto md:flex-1 md:shrink min-w-0 bg-surface-dim`}>
-          {refDetail ? (
+        <div ref={imgRef} className={`${refDetailId ? 'shrink-0' : 'h-[45vh] shrink-0'} relative md:h-auto md:flex-1 md:shrink min-w-0 bg-surface-dim`}>
+          {refDetailId && refDetailSrc ? (
             <div className="flex flex-col md:flex-row md:h-full gap-px">
               <div className="h-[33vh] md:h-auto md:flex-1 min-w-0 relative">
-                <ZoomableImageView src={`data:${refDetail.mimeType};base64,${refDetail.data}`} alt="" label="参考图" />
+                <ZoomableImageView src={refDetailSrc} alt="" label="参考图" />
                 <button
                   type="button"
-                  onClick={() => setRefDetail(null)}
+                  onClick={() => setRefDetailId(null)}
                   className="absolute top-4 left-1/2 -translate-x-1/2 z-10
                              flex items-center gap-1 rounded-full
                              border border-outline-variant/70 bg-surface/82
@@ -130,12 +152,12 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
                 </button>
               </div>
               <div className="h-[33vh] md:h-auto md:flex-1 min-w-0 relative">
-                <ZoomableImageView src={currentSrc} alt={currentMeta?.prompt ?? ''} label="生成图" />
+                <ZoomableImageView src={currentSrc ?? ''} alt={currentMeta?.prompt ?? ''} label="生成图" />
               </div>
             </div>
           ) : (
             <ZoomableImageView
-              src={currentSrc}
+              src={currentSrc ?? ''}
               alt={currentMeta?.prompt ?? ''}
               onSwipeLeft={hasNext ? goToNext : undefined}
               onSwipeRight={hasPrev ? goToPrev : undefined}
@@ -143,7 +165,7 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
           )}
 
           {/* Prev / Next arrows — desktop only */}
-          {!refDetail && hasPrev && (
+          {!refDetailId && hasPrev && (
             <button
               type="button"
               onClick={goToPrev}
@@ -157,7 +179,7 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
               <span className="material-symbols-rounded text-base">chevron_left</span>
             </button>
           )}
-          {!refDetail && hasNext && (
+          {!refDetailId && hasNext && (
             <button
               type="button"
               onClick={goToNext}
@@ -173,7 +195,7 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
           )}
 
           {/* Image counter */}
-          {canNavigate && !refDetail && (
+          {canNavigate && !refDetailId && (
             <div className="pointer-events-none absolute bottom-14 left-1/2 -translate-x-1/2 z-10
                             rounded-full border border-outline-variant bg-surface/82 px-3 py-1
                             text-2xs font-mono text-on-surface shadow-sm backdrop-blur-sm">
@@ -222,12 +244,11 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
                           <div key={refId} className="h-12 w-12 rounded-md bg-surface-container border border-outline-variant flex items-center justify-center text-2xs text-on-surface-variant/40">?</div>
                         )
                         return (
-                          <img
+                          <RefThumbnail
                             key={refId}
-                            src={`data:${refImg.mimeType};base64,${refImg.data}`}
-                            alt=""
-                            className={`h-12 w-12 rounded-md object-cover border cursor-pointer transition-colors ${refDetail?.id === refImg.id ? 'border-primary' : 'border-outline-variant hover:border-primary/40'}`}
-                            onClick={() => setRefDetail((prev) => prev?.id === refImg.id ? null : refImg)}
+                            image={refImg}
+                            isActive={refDetailId === refImg.id}
+                            onClick={() => setRefDetailId((prev) => prev === refImg.id ? null : refImg.id)}
                           />
                         )
                       })}
@@ -271,6 +292,25 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
         </div>
       </div>
 
+    </div>
+  )
+}
+
+function RefThumbnail({ image, isActive, onClick }: { image: PlaygroundImageMeta; isActive: boolean; onClick: () => void }) {
+  const { ref, src } = useImageSrc(image.id, image.mimeType)
+
+  return (
+    <div ref={ref} className="h-12 w-12">
+      {src ? (
+        <img
+          src={src}
+          alt=""
+          className={`h-12 w-12 rounded-md object-cover border cursor-pointer transition-colors ${isActive ? 'border-primary' : 'border-outline-variant hover:border-primary/40'}`}
+          onClick={onClick}
+        />
+      ) : (
+        <div className="h-12 w-12 rounded-md bg-surface-container border border-outline-variant animate-pulse" />
+      )}
     </div>
   )
 }
@@ -502,33 +542,39 @@ function ZoomableImageView({ src, alt, label, onSwipeLeft, onSwipeRight }: {
         }}
         style={{ cursor: scale > FIT_SCALE ? (isDragging ? 'grabbing' : 'grab') : 'default' }}
       >
-        <img
-          src={src}
-          alt={alt}
-          draggable={false}
-          onLoad={(event) => {
-            naturalSizeRef.current = {
-              width: event.currentTarget.naturalWidth,
-              height: event.currentTarget.naturalHeight,
-            }
-            resetView()
-            syncFitSize()
-          }}
-          className="shrink-0 object-contain shadow-2xl"
-          style={{
-            width: fitSize.width || undefined,
-            height: fitSize.height || undefined,
-            transform: `translate3d(${offset.x}px, ${offset.y}px, 0) scale(${scale})`,
-            transformOrigin: 'center center',
-            // hide until fitSize is ready to avoid the natural→contained size flash
-            opacity: fitSize.width ? 1 : 0,
-            transition: isDragging || isInteracting
-              ? 'none'
-              : fitSize.width
-                ? 'transform 160ms ease-out, opacity 120ms ease-out'
-                : 'none',
-          }}
-        />
+        {src ? (
+          <img
+            src={src}
+            alt={alt}
+            draggable={false}
+            onLoad={(event) => {
+              naturalSizeRef.current = {
+                width: event.currentTarget.naturalWidth,
+                height: event.currentTarget.naturalHeight,
+              }
+              resetView()
+              syncFitSize()
+            }}
+            className="shrink-0 object-contain shadow-2xl"
+            style={{
+              width: fitSize.width || undefined,
+              height: fitSize.height || undefined,
+              transform: `translate3d(${offset.x}px, ${offset.y}px, 0) scale(${scale})`,
+              transformOrigin: 'center center',
+              // hide until fitSize is ready to avoid the natural->contained size flash
+              opacity: fitSize.width ? 1 : 0,
+              transition: isDragging || isInteracting
+                ? 'none'
+                : fitSize.width
+                  ? 'transform 160ms ease-out, opacity 120ms ease-out'
+                  : 'none',
+            }}
+          />
+        ) : (
+          <div className="flex items-center justify-center">
+            <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+          </div>
+        )}
       </div>
 
       <div className="pointer-events-none absolute left-4 top-4 flex items-center gap-2">

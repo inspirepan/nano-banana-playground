@@ -1,16 +1,18 @@
-import { memo, useMemo, useState } from 'react'
-import type { PlaygroundImage } from '../lib/types'
+import { memo, useState } from 'react'
+import type { PlaygroundImageMeta } from '../lib/types'
+import { useImageSrc, getBlobFromCache } from '../hooks/useImageSrc'
 
 type Props = {
-  image: PlaygroundImage
+  image: PlaygroundImageMeta
+  inlineData?: string
   index?: number
-  onAddToRef: (image: PlaygroundImage) => void
-  onRegenerate: (image: PlaygroundImage) => void
-  onOpen: (image: PlaygroundImage) => void
+  onAddToRef: (image: PlaygroundImageMeta) => void
+  onRegenerate: (image: PlaygroundImageMeta) => void
+  onOpen: (image: PlaygroundImageMeta) => void
 }
 
-export const ImageCard = memo(function ImageCard({ image, index, onAddToRef, onRegenerate, onOpen }: Props) {
-  const src = useMemo(() => `data:${image.mimeType};base64,${image.data}`, [image.data, image.mimeType])
+export const ImageCard = memo(function ImageCard({ image, inlineData, index, onAddToRef, onRegenerate, onOpen }: Props) {
+  const { ref, src } = useImageSrc(image.id, image.mimeType, inlineData)
   const meta = image.source.type === 'generated' ? image.source : null
   const [toast, setToast] = useState(false)
 
@@ -20,6 +22,7 @@ export const ImageCard = memo(function ImageCard({ image, index, onAddToRef, onR
   }
 
   const handleDownload = () => {
+    if (!src) return
     const anchor = document.createElement('a')
     anchor.href = src
     anchor.download = `nano-banana-${image.id.slice(0, 8)}.png`
@@ -27,6 +30,7 @@ export const ImageCard = memo(function ImageCard({ image, index, onAddToRef, onR
   }
 
   const handleCopyImage = async () => {
+    if (!src) return
     const response = await fetch(src)
     const blob = await response.blob()
     await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })])
@@ -38,12 +42,15 @@ export const ImageCard = memo(function ImageCard({ image, index, onAddToRef, onR
   }
 
   const handleDragStart = (event: React.DragEvent) => {
-    event.dataTransfer.setData('application/x-playground-image', JSON.stringify(image))
+    const data = getBlobFromCache(image.id)
+    const payload = data ? { ...image, data } : image
+    event.dataTransfer.setData('application/x-playground-image', JSON.stringify(payload))
     event.dataTransfer.effectAllowed = 'copy'
   }
 
   return (
     <div
+      ref={ref}
       role="button"
       tabIndex={0}
       draggable
@@ -57,11 +64,15 @@ export const ImageCard = memo(function ImageCard({ image, index, onAddToRef, onR
       }}
       className="@container group relative h-full w-full cursor-pointer overflow-hidden rounded-xl border border-outline-variant bg-surface-container"
     >
-      <img
-        src={src}
-        alt={meta?.prompt ?? ''}
-        className="block h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
-      />
+      {src ? (
+        <img
+          src={src}
+          alt={meta?.prompt ?? ''}
+          className="block h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+        />
+      ) : (
+        <div className="h-full w-full animate-pulse bg-surface-container-high" />
+      )}
 
       {/* Gradient scrim */}
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
@@ -87,7 +98,7 @@ export const ImageCard = memo(function ImageCard({ image, index, onAddToRef, onR
 
       {/* Bottom content */}
       <div className="absolute inset-x-0 bottom-0 p-3">
-        <div className="mb-2 min-w-0 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+        <div className="mb-2 min-w-0">
           <div className="line-clamp-2 text-xs font-medium leading-[1.45] text-white/90">
             {index !== undefined && (
               <span className="mr-1 text-white/50">#{index + 1}</span>

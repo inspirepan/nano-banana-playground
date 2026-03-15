@@ -1,9 +1,9 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { MODEL_CONFIGS, DEFAULT_MODEL, type ModelConfig } from '../config/models'
 import { generateImage } from '../lib/api'
-import type { PersistedPromptMode, PlaygroundImage, PromptScheme } from '../lib/types'
+import type { PersistedPromptMode, PlaygroundImage, PlaygroundImageMeta, PromptScheme } from '../lib/types'
 import { isKeyError } from '../lib/validateKey'
-import { saveToHistory, loadHistory, deleteFromHistory, clearHistory } from '../lib/history'
+import { saveToHistory, loadHistoryPage, deleteFromHistory, clearHistory, loadImageBlobs } from '../lib/history'
 import {
   readSimpleUrlParams,
   readStateBlobParam,
@@ -13,6 +13,7 @@ import {
   updateUrl,
 } from '../lib/urlState'
 import { useApiKey } from './useApiKey'
+import { putBlobInCache, getBlobFromCache, removeBlobFromCache, clearBlobCache } from './useImageSrc'
 
 export type GenerationState = 'idle' | 'generating' | 'error'
 
@@ -28,6 +29,8 @@ export type GenerationPreviewSlot =
   | { status: 'pending' }
   | { status: 'fulfilled'; image: PlaygroundImage }
   | { status: 'rejected'; error: string }
+
+const HISTORY_PAGE_SIZE = 20
 
 // Read simple (non-compressed) URL params once at module load to safely init useState
 const _initial = readSimpleUrlParams()
@@ -67,7 +70,9 @@ export function usePlayground() {
   const [originalPrompt, setOriginalPromptRaw] = useState<string | null>(null)
 
   const [referenceImages, setReferenceImages] = useState<PlaygroundImage[]>([])
-  const [history, setHistory] = useState<PlaygroundImage[]>([])
+  const [history, setHistory] = useState<PlaygroundImageMeta[]>([])
+  const [historyHasMore, setHistoryHasMore] = useState(true)
+  const historyLoadingRef = useRef(false)
   const [generationState, setGenerationState] = useState<GenerationState>('idle')
   const [generationSnapshot, setGenerationSnapshot] = useState<GenerationSnapshot | null>(null)
   const [generationPreview, setGenerationPreview] = useState<GenerationPreviewSlot[]>([])
@@ -78,9 +83,12 @@ export function usePlayground() {
   const mode = modeRaw === 'structured' && schemes.length === 0 ? 'text' : modeRaw
   const currentSchemeIndex = schemes.length === 0 ? 0 : Math.min(currentSchemeIndexRaw, schemes.length - 1)
 
-  // Load history and decompress URL state blob on mount
+  // Load first page and decompress URL state blob on mount
   useEffect(() => {
-    loadHistory().then(setHistory)
+    loadHistoryPage(0, HISTORY_PAGE_SIZE).then(({ items, hasMore }) => {
+      setHistory(items)
+      setHistoryHasMore(hasMore)
+    })
 
     const sParam = readStateBlobParam()
     if (sParam) {
@@ -96,6 +104,19 @@ export function usePlayground() {
         .catch(() => {})
     }
   }, [])
+
+  // Load more history pages (infinite scroll)
+  const loadMoreHistory = useCallback(async () => {
+    if (!historyHasMore || historyLoadingRef.current) return
+    historyLoadingRef.current = true
+    try {
+      const { items, hasMore } = await loadHistoryPage(history.length, HISTORY_PAGE_SIZE)
+      setHistory((prev) => [...prev, ...items])
+      setHistoryHasMore(hasMore)
+    } finally {
+      historyLoadingRef.current = false
+    }
+  }, [history.length, historyHasMore])
 
   useEffect(() => {
     if (prompt || schemes.length > 0 || originalPrompt !== null || mode === 'structured') {
@@ -194,6 +215,24 @@ export function usePlayground() {
     setReferenceImages(newRefs)
   }, [])
 
+  // Resolve PlaygroundImageMeta[] to PlaygroundImage[] by loading blobs from cache/DB
+  const resolveFullImages = useCallback(async (metas: PlaygroundImageMeta[]): Promise<PlaygroundImage[]> => {
+    const needLoad: string[] = []
+    for (const m of metas) {
+      if (!getBlobFromCache(m.id)) needLoad.push(m.id)
+    }
+    if (needLoad.length > 0) {
+      const blobs = await loadImageBlobs(needLoad)
+      for (const [id, data] of blobs) putBlobInCache(id, data)
+    }
+    const result: PlaygroundImage[] = []
+    for (const m of metas) {
+      const data = getBlobFromCache(m.id)
+      if (data) result.push({ ...m, data })
+    }
+    return result
+  }, [])
+
   const generate = useCallback(async (prompts?: string[]) => {
     if (!apiKeyHook.apiKey) return
     const promptList = prompts ?? (prompt.trim() ? Array.from({ length: batchCount }, () => prompt.trim()) : [])
@@ -266,9 +305,12 @@ export function usePlayground() {
 
       for (const img of images) {
         await saveToHistory(img)
+        // Cache the blob so it's instantly available for display
+        putBlobInCache(img.id, img.data)
       }
       if (images.length > 0) {
-        setHistory((prev) => [...images, ...prev])
+        const metas: PlaygroundImageMeta[] = images.map(({ data: _, ...meta }) => meta)
+        setHistory((prev) => [...metas, ...prev])
       }
 
       if (images.length === 0 && errors.length > 0) {
@@ -307,22 +349,28 @@ export function usePlayground() {
   }, [])
 
   const addToReferences = useCallback(
-    (image: PlaygroundImage) => {
+    async (image: PlaygroundImageMeta) => {
       const maxTotal = model.maxReferenceImages + model.maxCharacterImages
       if (referenceImages.length >= maxTotal) return
-      setReferenceImages((prev) => [...prev, image])
+      const [full] = await resolveFullImages([image])
+      if (full) {
+        setReferenceImages((prev) => [...prev, full])
+      }
     },
-    [model, referenceImages.length],
+    [model, referenceImages.length, resolveFullImages],
   )
 
   const removeFromHistory = useCallback(async (id: string) => {
     await deleteFromHistory(id)
+    removeBlobFromCache(id)
     setHistory((prev) => prev.filter((img) => img.id !== id))
   }, [])
 
   const clearAllHistory = useCallback(async () => {
     await clearHistory()
+    clearBlobCache()
     setHistory([])
+    setHistoryHasMore(false)
   }, [])
 
   return {
@@ -341,6 +389,7 @@ export function usePlayground() {
     originalPrompt,
     referenceImages,
     history,
+    historyHasMore,
     generationState,
     generationSnapshot,
     generationPreview,
@@ -358,10 +407,12 @@ export function usePlayground() {
     addReferenceImages,
     removeReferenceImage,
     restoreSession,
+    resolveFullImages,
     generate,
     cancelGeneration,
     addToReferences,
     removeFromHistory,
     clearAllHistory,
+    loadMoreHistory,
   }
 }

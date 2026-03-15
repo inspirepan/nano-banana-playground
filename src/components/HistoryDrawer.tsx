@@ -1,17 +1,18 @@
 import { useState } from 'react'
-import type { PlaygroundImage } from '../lib/types'
+import type { PlaygroundImageMeta } from '../lib/types'
+import { useImageSrc, getBlobFromCache } from '../hooks/useImageSrc'
 import { ImageDetailModal } from './ImageDetailModal'
 
 type Props = {
-  history: PlaygroundImage[]
-  onAddToRef: (image: PlaygroundImage) => void
+  history: PlaygroundImageMeta[]
+  onAddToRef: (image: PlaygroundImageMeta) => void
   onRemove: (id: string) => void
   onClearAll: () => void
 }
 
 export function HistoryDrawer({ history, onAddToRef, onRemove, onClearAll }: Props) {
   const [expanded, setExpanded] = useState(false)
-  const [detailImage, setDetailImage] = useState<PlaygroundImage | null>(null)
+  const [detailImage, setDetailImage] = useState<PlaygroundImageMeta | null>(null)
 
   if (history.length === 0) return null
 
@@ -88,28 +89,34 @@ function HistoryThumbnail({
   image,
   onClick,
 }: {
-  image: PlaygroundImage
+  image: PlaygroundImageMeta
   onClick: () => void
 }) {
-  const src = `data:${image.mimeType};base64,${image.data}`
+  const { ref, src } = useImageSrc(image.id, image.mimeType)
   const meta = image.source.type === 'generated' ? image.source : null
 
   const handleDragStart = (e: React.DragEvent) => {
-    e.dataTransfer.setData('application/x-playground-image', JSON.stringify(image))
+    const data = getBlobFromCache(image.id)
+    const payload = data ? { ...image, data } : image
+    e.dataTransfer.setData('application/x-playground-image', JSON.stringify(payload))
     e.dataTransfer.effectAllowed = 'copy'
   }
 
   return (
-    <div className="relative group shrink-0">
-      <img
-        src={src}
-        alt={meta?.prompt ?? ''}
-        draggable
-        onDragStart={handleDragStart}
-        className="h-20 w-auto rounded-lg object-cover cursor-pointer border border-outline-variant
-                   hover:border-primary/40 transition-colors"
-        onClick={onClick}
-      />
+    <div ref={ref} className="relative group shrink-0">
+      {src ? (
+        <img
+          src={src}
+          alt={meta?.prompt ?? ''}
+          draggable
+          onDragStart={handleDragStart}
+          className="h-20 w-auto rounded-lg object-cover cursor-pointer border border-outline-variant
+                     hover:border-primary/40 transition-colors"
+          onClick={onClick}
+        />
+      ) : (
+        <div className="h-20 w-20 rounded-lg bg-surface-container-high border border-outline-variant animate-pulse cursor-pointer" onClick={onClick} />
+      )}
       {meta && (
         <div className="absolute top-1 right-1 px-1 bg-black/50 text-white text-[8px] font-mono rounded">
           {meta.resolution}

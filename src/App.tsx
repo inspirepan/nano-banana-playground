@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Agentation } from 'agentation'
 import { usePlayground } from './hooks/usePlayground'
-import type { PlaygroundImage } from './lib/types'
+import type { PlaygroundImage, PlaygroundImageMeta } from './lib/types'
 import { ControlPanel } from './components/ControlPanel'
 import { PromptPanel } from './components/PromptPanel'
 import { OutputPanel } from './components/OutputPanel'
@@ -36,7 +36,7 @@ function App() {
   const mobileRefAreaRef = useRef<HTMLDivElement>(null)
   const mobileOutputAreaRef = useRef<HTMLDivElement>(null)
 
-  const handleAddToRef = useCallback((image: PlaygroundImage) => {
+  const handleAddToRef = useCallback((image: PlaygroundImageMeta) => {
     addToReferences(image)
     // On mobile, scroll to the reference image upload area after adding
     if (window.innerWidth < 768) {
@@ -46,10 +46,11 @@ function App() {
     }
   }, [addToReferences])
 
-  const handleRegenerate = useCallback((image: PlaygroundImage) => {
+  const handleRegenerate = useCallback(async (image: PlaygroundImageMeta) => {
     if (image.source.type !== 'generated') return
     const meta = image.source
-    const refs = pg.history.filter((h) => meta.referenceImageIds.includes(h.id))
+    const refMetas = pg.history.filter((h) => meta.referenceImageIds.includes(h.id))
+    const refs = await pg.resolveFullImages(refMetas)
     pg.restoreSession(meta.prompt, refs)
     pg.setMode('text')
     const message = refs.length > 0
@@ -58,7 +59,7 @@ function App() {
     if (regenToastTimer.current) clearTimeout(regenToastTimer.current)
     setRegenToast(message)
     regenToastTimer.current = setTimeout(() => setRegenToast(null), 2500)
-  }, [pg.history, pg.restoreSession])
+  }, [pg.history, pg.restoreSession, pg.resolveFullImages])
   useEffect(() => {
     if (theme === 'system') {
       const mq = window.matchMedia('(prefers-color-scheme: dark)')
@@ -183,6 +184,7 @@ function App() {
         <div ref={mobileOutputAreaRef} className="border-t border-outline/10">
           <OutputPanel
             history={pg.history}
+            historyHasMore={pg.historyHasMore}
             generationState={pg.generationState}
             generationSnapshot={pg.generationSnapshot}
             generationPreview={pg.generationPreview}
@@ -197,6 +199,7 @@ function App() {
             onRegenerate={handleRegenerate}
             onRemove={pg.removeFromHistory}
             onClearAll={pg.clearAllHistory}
+            onLoadMore={pg.loadMoreHistory}
           />
         </div>
       </div>

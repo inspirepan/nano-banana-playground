@@ -1,17 +1,47 @@
-import type { PlaygroundImage } from './types'
+import type { PlaygroundImage, PlaygroundImageMeta } from './types'
 
 const DB_NAME = 'nano-banana-playground'
-const DB_VERSION = 1
-const STORE_NAME = 'history'
+const DB_VERSION = 2
+const META_STORE = 'history'
+const BLOB_STORE = 'blobs'
 
 function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, DB_VERSION)
-    req.onupgradeneeded = () => {
+    req.onupgradeneeded = (event) => {
       const db = req.result
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        const store = db.createObjectStore(STORE_NAME, { keyPath: 'id' })
+      const tx = req.transaction!
+
+      // v1: create history store
+      if (!db.objectStoreNames.contains(META_STORE)) {
+        const store = db.createObjectStore(META_STORE, { keyPath: 'id' })
         store.createIndex('timestamp', 'timestamp', { unique: false })
+      }
+
+      // v2: create blobs store + migrate data out of history records
+      if ((event.oldVersion ?? 0) < 2) {
+        if (!db.objectStoreNames.contains(BLOB_STORE)) {
+          db.createObjectStore(BLOB_STORE, { keyPath: 'id' })
+        }
+
+        // Migrate existing records: move `data` field to blobs store
+        if (event.oldVersion >= 1) {
+          const metaStore = tx.objectStore(META_STORE)
+          const blobStore = tx.objectStore(BLOB_STORE)
+          const cursorReq = metaStore.openCursor()
+          cursorReq.onsuccess = () => {
+            const cursor = cursorReq.result
+            if (cursor) {
+              const record = cursor.value
+              if (record.data) {
+                blobStore.put({ id: record.id, data: record.data })
+                const { data: _, ...meta } = record
+                cursor.update(meta)
+              }
+              cursor.continue()
+            }
+          }
+        }
       }
     }
     req.onsuccess = () => resolve(req.result)
@@ -21,39 +51,93 @@ function openDB(): Promise<IDBDatabase> {
 
 export async function saveToHistory(image: PlaygroundImage): Promise<void> {
   const db = await openDB()
+  const { data, ...meta } = image
   return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, 'readwrite')
-    tx.objectStore(STORE_NAME).put(image)
+    const tx = db.transaction([META_STORE, BLOB_STORE], 'readwrite')
+    tx.objectStore(META_STORE).put(meta)
+    tx.objectStore(BLOB_STORE).put({ id: image.id, data })
     tx.oncomplete = () => resolve()
     tx.onerror = () => reject(tx.error)
   })
 }
 
-export async function loadHistory(): Promise<PlaygroundImage[]> {
+// Load a page of metadata (no blob data), sorted by timestamp descending
+export async function loadHistoryPage(
+  offset: number,
+  limit: number,
+): Promise<{ items: PlaygroundImageMeta[]; hasMore: boolean }> {
   const db = await openDB()
   return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, 'readonly')
-    const index = tx.objectStore(STORE_NAME).index('timestamp')
+    const tx = db.transaction(META_STORE, 'readonly')
+    const index = tx.objectStore(META_STORE).index('timestamp')
     const req = index.openCursor(null, 'prev')
-    const results: PlaygroundImage[] = []
+    const results: PlaygroundImageMeta[] = []
+    let advanced = false
+
     req.onsuccess = () => {
       const cursor = req.result
-      if (cursor) {
-        results.push(cursor.value)
+      if (!cursor) {
+        resolve({ items: results, hasMore: false })
+        return
+      }
+      if (offset > 0 && !advanced) {
+        advanced = true
+        cursor.advance(offset)
+        return
+      }
+      if (results.length < limit) {
+        results.push(cursor.value as PlaygroundImageMeta)
         cursor.continue()
       } else {
-        resolve(results)
+        resolve({ items: results, hasMore: true })
       }
     }
     req.onerror = () => reject(req.error)
   })
 }
 
+// Load blob data for a single image
+export async function loadImageBlob(id: string): Promise<string | null> {
+  const db = await openDB()
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(BLOB_STORE, 'readonly')
+    const req = tx.objectStore(BLOB_STORE).get(id)
+    req.onsuccess = () => resolve(req.result?.data ?? null)
+    req.onerror = () => reject(req.error)
+  })
+}
+
+// Load blob data for multiple images
+export async function loadImageBlobs(ids: string[]): Promise<Map<string, string>> {
+  if (ids.length === 0) return new Map()
+  const db = await openDB()
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(BLOB_STORE, 'readonly')
+    const store = tx.objectStore(BLOB_STORE)
+    const result = new Map<string, string>()
+    let pending = ids.length
+
+    for (const id of ids) {
+      const req = store.get(id)
+      req.onsuccess = () => {
+        if (req.result?.data) result.set(id, req.result.data)
+        if (--pending === 0) resolve(result)
+      }
+      req.onerror = () => {
+        if (--pending === 0) resolve(result)
+      }
+    }
+
+    tx.onerror = () => reject(tx.error)
+  })
+}
+
 export async function deleteFromHistory(id: string): Promise<void> {
   const db = await openDB()
   return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, 'readwrite')
-    tx.objectStore(STORE_NAME).delete(id)
+    const tx = db.transaction([META_STORE, BLOB_STORE], 'readwrite')
+    tx.objectStore(META_STORE).delete(id)
+    tx.objectStore(BLOB_STORE).delete(id)
     tx.oncomplete = () => resolve()
     tx.onerror = () => reject(tx.error)
   })
@@ -62,9 +146,21 @@ export async function deleteFromHistory(id: string): Promise<void> {
 export async function clearHistory(): Promise<void> {
   const db = await openDB()
   return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, 'readwrite')
-    tx.objectStore(STORE_NAME).clear()
+    const tx = db.transaction([META_STORE, BLOB_STORE], 'readwrite')
+    tx.objectStore(META_STORE).clear()
+    tx.objectStore(BLOB_STORE).clear()
     tx.oncomplete = () => resolve()
     tx.onerror = () => reject(tx.error)
+  })
+}
+
+// Count total items in history
+export async function countHistory(): Promise<number> {
+  const db = await openDB()
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(META_STORE, 'readonly')
+    const req = tx.objectStore(META_STORE).count()
+    req.onsuccess = () => resolve(req.result)
+    req.onerror = () => reject(req.error)
   })
 }
