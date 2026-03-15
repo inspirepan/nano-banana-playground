@@ -1,4 +1,4 @@
-import { memo, useMemo, useRef, useState } from 'react'
+import { memo, useMemo, useRef, useState, useEffect } from 'react'
 import JSZip from 'jszip'
 import type { PlaygroundImage } from '../lib/types'
 import type { GenerationPreviewSlot, GenerationState, GenerationSnapshot } from '../hooks/usePlayground'
@@ -15,6 +15,7 @@ type Props = {
   error: string | null
   batchCount: number
   draftBatchOverride: number | null
+  draftLabels: string[] | null
   aspectRatio: string
   resolution: string
   onAddToRef: (image: PlaygroundImage) => void
@@ -47,15 +48,17 @@ function groupByBatch(images: PlaygroundImage[]): HistoryBatch[] {
 
 const SHIMMER_DURATION = 2000 // ms, must match CSS animation duration
 
-function SkeletonCard({ aspectRatio, resolution }: { aspectRatio: string; resolution: string }) {
+function SkeletonCard({ aspectRatio, resolution, label }: { aspectRatio: string; resolution: string; label?: string }) {
   // Compute delay once on mount and never change it — prevents animation restart on re-render.
   // -(Date.now() % duration) anchors all cards to the same global clock epoch.
   const delayRef = useRef(-(Date.now() % SHIMMER_DURATION) / 1000)
 
   return (
     <div className="w-full h-full rounded-xl bg-surface-container overflow-hidden relative">
-      <div className="absolute inset-0 flex items-center justify-center">
-        <div className="text-2xs font-mono text-on-surface-variant/30">{resolution} {aspectRatio}</div>
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
+        {label && <div className="text-sm font-medium text-on-surface-variant/40 px-2 text-center">{label}</div>}
+        <div className="text-xs font-mono text-on-surface-variant/30">{resolution} {aspectRatio}</div>
+        <div className="text-sm text-on-surface-variant/25">按「生成」键确认</div>
       </div>
       <div className="absolute skeleton-shimmer" style={{ animationDelay: `${delayRef.current}s` }} />
     </div>
@@ -106,6 +109,7 @@ export const OutputPanel = memo(function OutputPanel({
   error,
   batchCount,
   draftBatchOverride,
+  draftLabels,
   aspectRatio,
   resolution,
   onAddToRef,
@@ -147,8 +151,17 @@ export const OutputPanel = memo(function OutputPanel({
     : Array.from({ length: draftCount }, (): GenerationPreviewSlot => ({ status: 'pending' }))
   const completedCount = previewSlots.filter((slot) => slot.status === 'fulfilled').length
 
+  const scrollRef = useRef<HTMLDivElement>(null)
+
+  // Scroll to top when preview becomes visible so skeleton is always in view
+  useEffect(() => {
+    if (showDraft || isGenerating) {
+      scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }, [showDraft, isGenerating])
+
   return (
-    <div className="flex-1 md:flex-[2_1_0%] overflow-visible md:overflow-y-auto [scrollbar-gutter:stable] md:pl-6 md:pr-8">
+    <div ref={scrollRef} className="flex-1 md:flex-[2_1_0%] overflow-visible md:overflow-y-auto [scrollbar-gutter:stable] md:pl-6 md:pr-8">
       <div className="h-4" />
       {error && (
         <div className="mb-4 px-4 py-3 bg-error-dim text-error text-sm rounded-xl border border-error/20">
@@ -156,19 +169,24 @@ export const OutputPanel = memo(function OutputPanel({
         </div>
       )}
 
-      {/* Draft skeleton */}
-      {!isGenerating && showDraft && (
-        <div className="mb-6">
-          <div className="text-xs font-medium text-on-surface-variant mb-2">预览</div>
-          <ImageGrid>
-            {Array.from({ length: draftCount }, (_, i) => (
-              <GridCell key={i} aspectRatio={draftRatio}>
-                <SkeletonCard aspectRatio={draftRatio} resolution={draftRes} />
-              </GridCell>
-            ))}
-          </ImageGrid>
+      {/* Draft skeleton — animated enter/exit via grid-rows */}
+      <div
+        className={`grid transition-[grid-template-rows,opacity] duration-200 ease-[cubic-bezier(0.2,0,0,1)]
+          ${!isGenerating && showDraft ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0 pointer-events-none'}`}
+      >
+        <div className="overflow-hidden min-h-0">
+          <div className="mb-6">
+            <div className="text-xs font-medium text-on-surface-variant mb-2">预览</div>
+            <ImageGrid>
+              {Array.from({ length: draftCount }, (_, i) => (
+                <GridCell key={i} aspectRatio={draftRatio}>
+                  <SkeletonCard aspectRatio={draftRatio} resolution={draftRes} label={draftLabels?.[i]} />
+                </GridCell>
+              ))}
+            </ImageGrid>
+          </div>
         </div>
-      )}
+      </div>
 
       {/* Loading */}
       {isGenerating && generationSnapshot && (

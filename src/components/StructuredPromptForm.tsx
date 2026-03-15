@@ -51,7 +51,8 @@ type Props = {
   onSelectScheme: (index: number) => void
   onChangeScheme: (index: number, fields: StructuredPrompt) => void
   onGenerateAll: () => void
-  onDraftBatchOverride: (count: number | null) => void
+  onDraftBatchOverride: (count: number | null, labels?: string[]) => void
+  onDraftPreviewHover: (show: boolean) => void
 }
 
 export function StructuredPromptForm({
@@ -63,6 +64,7 @@ export function StructuredPromptForm({
   onChangeScheme,
   onGenerateAll,
   onDraftBatchOverride,
+  onDraftPreviewHover,
 }: Props) {
   const current = schemes[currentIndex]
   if (!current) return null
@@ -145,12 +147,15 @@ export function StructuredPromptForm({
                     ? 'border-primary bg-primary shadow-[inset_0_0_0_2px_var(--color-primary-dim)]'
                     : 'border-on-surface-variant/40 bg-transparent'
                   }`} />
-                <div className="min-w-0">
-                  <div className={`text-xs font-semibold leading-none ${isSelected ? 'text-primary' : 'text-on-surface'}`}>
-                    {scheme.title}
-                  </div>
-                  <div className={`mt-1 text-2xs leading-snug ${isSelected ? 'text-primary/70' : 'text-on-surface-variant'}`}>
-                    {scheme.description}
+                <div className="min-w-0 grid grid-cols-[auto_1fr] gap-x-0">
+                  <span className="text-xs font-medium text-on-surface-variant leading-none pt-px">方案{i + 1}：</span>
+                  <div>
+                    <div className={`text-xs font-semibold leading-none ${isSelected ? 'text-primary' : 'text-on-surface'}`}>
+                      {scheme.title}
+                    </div>
+                    <div className={`mt-1 text-2xs leading-snug ${isSelected ? 'text-primary/70' : 'text-on-surface-variant'}`}>
+                      {scheme.description}
+                    </div>
                   </div>
                 </div>
               </button>
@@ -161,8 +166,8 @@ export function StructuredPromptForm({
             type="button"
             disabled={isGenerating}
             onClick={() => { onDraftBatchOverride(null); onGenerateAll() }}
-            onMouseEnter={() => !isGenerating && onDraftBatchOverride(schemes.length)}
-            onMouseLeave={() => onDraftBatchOverride(null)}
+            onMouseEnter={() => { if (!isGenerating) { onDraftBatchOverride(schemes.length, schemes.map((s) => s.title)); onDraftPreviewHover(true) } }}
+            onMouseLeave={() => { onDraftBatchOverride(null); onDraftPreviewHover(false) }}
             className="flex items-center justify-center gap-2 px-3 py-2 rounded-full transition-colors
                        text-xs font-medium
                        bg-tertiary-dim text-tertiary hover:bg-tertiary hover:text-on-tertiary active:opacity-90
@@ -180,6 +185,13 @@ export function StructuredPromptForm({
             </p>
           )}
         </div>
+      )}
+
+      {/* Current scheme title */}
+      {current.title && (
+        <p className="text-sm font-bold text-on-surface leading-snug ml-1">
+          <span className="font-medium text-on-surface-variant">方案{currentIndex + 1}：</span>{current.title}
+        </p>
       )}
 
       {/* Mode indicator */}

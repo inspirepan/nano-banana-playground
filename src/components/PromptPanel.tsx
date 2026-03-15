@@ -145,7 +145,9 @@ type Props = {
   onRemoveReferenceImage: (id: string) => void
   onGenerate: (prompts?: string[]) => void
   onCancel: () => void
-  onDraftBatchOverride: (count: number | null) => void
+  onDraftBatchOverride: (count: number | null, labels?: string[]) => void
+  onDraftPreviewHover: (show: boolean) => void
+  onDraftLabelsOverride: (labels: string[] | null) => void
 }
 
 export function PromptPanel({
@@ -172,6 +174,8 @@ export function PromptPanel({
   onGenerate,
   onCancel,
   onDraftBatchOverride,
+  onDraftPreviewHover,
+  onDraftLabelsOverride,
 }: Props) {
   const isGenerating = generationState === 'generating'
   const maxRef = model.maxReferenceImages + model.maxCharacterImages
@@ -520,6 +524,7 @@ export function PromptPanel({
               onChangeScheme={handleChangeScheme}
               onGenerateAll={handleGenerateAll}
               onDraftBatchOverride={onDraftBatchOverride}
+              onDraftPreviewHover={onDraftPreviewHover}
             />
           </div>
         )}
@@ -547,7 +552,21 @@ export function PromptPanel({
         )}
 
         {/* Generate Button */}
-        <div className="relative group/btn">
+        <div
+          className="relative group/btn"
+          onMouseEnter={() => {
+            onDraftPreviewHover(true)
+            if (currentMode === 'structured' && schemes[currentSchemeIndex]) {
+              const title = schemes[currentSchemeIndex].title
+              onDraftLabelsOverride(Array.from({ length: batchCount }, () => title))
+            } else if (currentMode === 'text' && prompt.trim()) {
+              const firstLine = prompt.trimStart().split('\n')[0]
+              const short = firstLine.length > 10 ? firstLine.slice(0, 10) + '…' : firstLine
+              onDraftLabelsOverride(Array.from({ length: batchCount }, () => short))
+            }
+          }}
+          onMouseLeave={() => { onDraftPreviewHover(false); onDraftLabelsOverride(null) }}
+        >
           <button type="button"
             onClick={isGenerating ? onCancel : () => onGenerate()}
             disabled={!isGenerating && !canGenerate}

@@ -19,6 +19,13 @@ function App() {
   const addToReferences = pg.addToReferences
   const [theme, setTheme] = useState<Theme>(getInitialTheme)
   const [draftBatchOverride, setDraftBatchOverride] = useState<number | null>(null)
+  const [draftLabels, setDraftLabels] = useState<string[] | null>(null)
+  const [draftPreviewHover, setDraftPreviewHover] = useState(false)
+
+  const handleDraftBatchOverride = useCallback((count: number | null, labels?: string[]) => {
+    setDraftBatchOverride(count)
+    setDraftLabels(count !== null && labels ? labels : null)
+  }, [])
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     if (window.innerWidth < 1280) return true
     return localStorage.getItem('nano-banana-sidebar-collapsed') === 'true'
@@ -167,7 +174,9 @@ function App() {
             onRemoveReferenceImage={pg.removeReferenceImage}
             onGenerate={pg.generate}
             onCancel={pg.cancelGeneration}
-            onDraftBatchOverride={setDraftBatchOverride}
+            onDraftBatchOverride={handleDraftBatchOverride}
+            onDraftPreviewHover={setDraftPreviewHover}
+            onDraftLabelsOverride={setDraftLabels}
           />
         </div>
         <div ref={mobileOutputAreaRef} className="border-t border-outline/10">
@@ -176,10 +185,11 @@ function App() {
             generationState={pg.generationState}
             generationSnapshot={pg.generationSnapshot}
             generationPreview={pg.generationPreview}
-            showDraft={pg.showDraft}
+            showDraft={draftPreviewHover}
             error={pg.error}
             batchCount={pg.batchCount}
             draftBatchOverride={draftBatchOverride}
+            draftLabels={draftLabels}
             aspectRatio={pg.aspectRatio}
             resolution={pg.resolution}
             onAddToRef={handleAddToRef}
@@ -333,7 +343,9 @@ function App() {
         onRemoveReferenceImage={pg.removeReferenceImage}
         onGenerate={pg.generate}
         onCancel={pg.cancelGeneration}
-        onDraftBatchOverride={setDraftBatchOverride}
+        onDraftBatchOverride={handleDraftBatchOverride}
+        onDraftPreviewHover={setDraftPreviewHover}
+        onDraftLabelsOverride={setDraftLabels}
       />
 
       <OutputPanel
@@ -341,10 +353,11 @@ function App() {
         generationState={pg.generationState}
         generationSnapshot={pg.generationSnapshot}
         generationPreview={pg.generationPreview}
-        showDraft={pg.showDraft}
+        showDraft={draftPreviewHover}
         error={pg.error}
         batchCount={pg.batchCount}
         draftBatchOverride={draftBatchOverride}
+        draftLabels={draftLabels}
         aspectRatio={pg.aspectRatio}
         resolution={pg.resolution}
         onAddToRef={handleAddToRef}
