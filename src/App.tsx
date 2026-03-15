@@ -21,6 +21,8 @@ function App() {
   const [draftBatchOverride, setDraftBatchOverride] = useState<number | null>(null)
   const [draftLabels, setDraftLabels] = useState<string[] | null>(null)
   const [draftPreviewHover, setDraftPreviewHover] = useState(false)
+  const [regenToast, setRegenToast] = useState<string | null>(null)
+  const regenToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const handleDraftBatchOverride = useCallback((count: number | null, labels?: string[]) => {
     setDraftBatchOverride(count)
@@ -42,6 +44,20 @@ function App() {
       }, 100)
     }
   }, [addToReferences])
+
+  const handleRegenerate = useCallback((image: PlaygroundImage) => {
+    if (image.source.type !== 'generated') return
+    const meta = image.source
+    const refs = pg.history.filter((h) => meta.referenceImageIds.includes(h.id))
+    pg.restoreSession(meta.prompt, refs)
+    pg.setMode('text')
+    const message = refs.length > 0
+      ? `已还原提示词和 ${refs.length} 张参考图`
+      : '已还原提示词'
+    if (regenToastTimer.current) clearTimeout(regenToastTimer.current)
+    setRegenToast(message)
+    regenToastTimer.current = setTimeout(() => setRegenToast(null), 2500)
+  }, [pg.history, pg.restoreSession])
   useEffect(() => {
     if (theme === 'system') {
       const mq = window.matchMedia('(prefers-color-scheme: dark)')
@@ -193,6 +209,7 @@ function App() {
             aspectRatio={pg.aspectRatio}
             resolution={pg.resolution}
             onAddToRef={handleAddToRef}
+            onRegenerate={handleRegenerate}
             onRemove={pg.removeFromHistory}
             onClearAll={pg.clearAllHistory}
           />
@@ -361,10 +378,21 @@ function App() {
         aspectRatio={pg.aspectRatio}
         resolution={pg.resolution}
         onAddToRef={handleAddToRef}
+        onRegenerate={handleRegenerate}
         onRemove={pg.removeFromHistory}
         onClearAll={pg.clearAllHistory}
       />
       {import.meta.env.DEV && <Agentation />}
+    </div>
+
+    {/* Regen toast — global, bottom-center */}
+    <div
+      className={`pointer-events-none fixed bottom-8 left-1/2 z-[100] -translate-x-1/2 transition-all duration-300
+        ${regenToast ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}
+    >
+      <div className="rounded-full bg-on-surface/85 px-5 py-2.5 text-sm font-medium text-surface shadow-lg backdrop-blur-sm whitespace-nowrap">
+        {regenToast}
+      </div>
     </div>
     </>
   )

@@ -19,6 +19,7 @@ type Props = {
   aspectRatio: string
   resolution: string
   onAddToRef: (image: PlaygroundImage) => void
+  onRegenerate: (image: PlaygroundImage) => void
   onRemove: (id: string) => void
   onClearAll: () => void
 }
@@ -113,6 +114,7 @@ export const OutputPanel = memo(function OutputPanel({
   aspectRatio,
   resolution,
   onAddToRef,
+  onRegenerate,
   onRemove,
   onClearAll,
 }: Props) {
@@ -205,6 +207,7 @@ export const OutputPanel = memo(function OutputPanel({
                     image={slot.image}
                     index={draftCount > 1 ? i : undefined}
                     onAddToRef={onAddToRef}
+                    onRegenerate={onRegenerate}
                     onOpen={setDetailImage}
                   />
                 ) : slot.status === 'rejected' ? (
@@ -248,6 +251,7 @@ export const OutputPanel = memo(function OutputPanel({
                         image={img}
                         index={batch.images.length > 1 ? i : undefined}
                         onAddToRef={onAddToRef}
+                        onRegenerate={onRegenerate}
                         onOpen={setDetailImage}
                       />
                     </GridCell>
@@ -281,6 +285,7 @@ export const OutputPanel = memo(function OutputPanel({
           history={history}
           onClose={() => setDetailImage(null)}
           onAddToRef={onAddToRef}
+          onRegenerate={onRegenerate}
           onRemove={onRemove}
         />
       )}

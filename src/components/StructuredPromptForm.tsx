@@ -187,8 +187,8 @@ export function StructuredPromptForm({
         </div>
       )}
 
-      {/* Current scheme title */}
-      {current.title && (
+      {/* Current scheme title - only shown when there are multiple AI-generated schemes */}
+      {schemes.length > 1 && current.title && (
         <p className="text-sm font-bold text-on-surface leading-snug ml-1">
           <span className="font-medium text-on-surface-variant">方案{currentIndex + 1}：</span>{current.title}
         </p>

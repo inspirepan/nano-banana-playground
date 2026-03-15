@@ -5,10 +5,11 @@ type Props = {
   image: PlaygroundImage
   index?: number
   onAddToRef: (image: PlaygroundImage) => void
+  onRegenerate: (image: PlaygroundImage) => void
   onOpen: (image: PlaygroundImage) => void
 }
 
-export const ImageCard = memo(function ImageCard({ image, index, onAddToRef, onOpen }: Props) {
+export const ImageCard = memo(function ImageCard({ image, index, onAddToRef, onRegenerate, onOpen }: Props) {
   const src = useMemo(() => `data:${image.mimeType};base64,${image.data}`, [image.data, image.mimeType])
   const meta = image.source.type === 'generated' ? image.source : null
   const [toast, setToast] = useState(false)
@@ -32,11 +33,8 @@ export const ImageCard = memo(function ImageCard({ image, index, onAddToRef, onO
     showCopiedToast()
   }
 
-  const handleCopyPrompt = () => {
-    if (meta?.prompt) {
-      navigator.clipboard.writeText(meta.prompt)
-      showCopiedToast()
-    }
+  const handleRegenerate = () => {
+    onRegenerate(image)
   }
 
   const handleDragStart = (event: React.DragEvent) => {
@@ -103,7 +101,7 @@ export const ImageCard = memo(function ImageCard({ image, index, onAddToRef, onO
           <ActionButton label="+参考" onClick={() => onAddToRef(image)} />
           <ActionButton label="下载" onClick={handleDownload} />
           <ActionButton label="复制图" onClick={handleCopyImage} />
-          {meta?.prompt && <ActionButton label="复制词" onClick={handleCopyPrompt} />}
+          {meta?.prompt && <ActionButton label="重新生成" onClick={handleRegenerate} />}
         </div>
       </div>
     </div>

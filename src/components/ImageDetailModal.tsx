@@ -11,6 +11,7 @@ type Props = {
   history: PlaygroundImage[]
   onClose: () => void
   onAddToRef: (image: PlaygroundImage) => void
+  onRegenerate: (image: PlaygroundImage) => void
   onRemove: (id: string) => void
 }
 
@@ -24,7 +25,7 @@ type Size = {
   height: number
 }
 
-export function ImageDetailModal({ image, history, onClose, onAddToRef, onRemove }: Props) {
+export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegenerate, onRemove }: Props) {
   // Navigation: -1 means image is not in history (e.g. uploaded reference)
   const [currentIdx, setCurrentIdx] = useState(() => history.findIndex(h => h.id === image.id))
 
@@ -93,11 +94,9 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRemove
     showCopiedToast()
   }
 
-  const handleCopyPrompt = () => {
-    if (currentMeta?.prompt) {
-      navigator.clipboard.writeText(currentMeta.prompt)
-      showCopiedToast()
-    }
+  const handleRegenerate = () => {
+    onRegenerate(currentImage)
+    onClose()
   }
 
   const hasPrev = canNavigate && currentIdx > 0
@@ -265,7 +264,7 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRemove
               <ModalAction label="+参考" onClick={() => { onAddToRef(currentImage); onClose() }} />
               <ModalAction label="保存" onClick={handleDownload} />
               <ModalAction label="复制图" onClick={handleCopyImage} />
-              {currentMeta?.prompt && <ModalAction label="复制词" onClick={handleCopyPrompt} />}
+              {currentMeta?.prompt && <ModalAction label="重新生成" onClick={handleRegenerate} />}
             </div>
             {canNavigate && (
               <button

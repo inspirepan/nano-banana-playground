@@ -189,6 +189,11 @@ export function usePlayground() {
     setReferenceImages((prev) => prev.filter((img) => img.id !== id))
   }, [])
 
+  const restoreSession = useCallback((newPrompt: string, newRefs: PlaygroundImage[]) => {
+    setPromptRaw(newPrompt)
+    setReferenceImages(newRefs)
+  }, [])
+
   const generate = useCallback(async (prompts?: string[]) => {
     if (!apiKeyHook.apiKey) return
     const promptList = prompts ?? (prompt.trim() ? Array.from({ length: batchCount }, () => prompt.trim()) : [])
@@ -352,6 +357,7 @@ export function usePlayground() {
     setOriginalPrompt,
     addReferenceImages,
     removeReferenceImage,
+    restoreSession,
     generate,
     cancelGeneration,
     addToReferences,
