@@ -1,6 +1,5 @@
 import { useState, useRef, useCallback, useEffect, type ReactNode } from 'react'
 import type { PlaygroundImage, StructuredPrompt, PromptScheme } from '../lib/types'
-import { getSessionId, loadDraft, saveDraft } from '../lib/draft'
 import type { ModelConfig } from '../config/models'
 import type { GenerationState } from '../hooks/usePlayground'
 import { augmentPrompt } from '../lib/api'
@@ -90,13 +89,12 @@ function parsePrompt(text: string): StructuredPrompt | null {
   const markers: { pos: number; end: number; key: StructuredPromptTextKey; label: string }[] = []
   for (const [label, key] of uniqueEntries) {
     const needle = `${label}：`
-    // Only match at line start (beginning of text or after \n)
     let idx = -1
     if (text.startsWith(needle)) {
       idx = 0
     } else {
       const nlIdx = text.indexOf(`\n${needle}`)
-      if (nlIdx !== -1) idx = nlIdx + 1  // skip \n, point to label start
+      if (nlIdx !== -1) idx = nlIdx + 1
     }
     if (idx !== -1 && !markers.some((m) => m.key === key)) {
       markers.push({ pos: idx, end: idx + needle.length, key, label })
@@ -111,7 +109,7 @@ function parsePrompt(text: string): StructuredPrompt | null {
   for (let i = 0; i < markers.length; i++) {
     const start = markers[i].end
     const end = i + 1 < markers.length ? markers[i + 1].pos : text.length
-    let value = text.slice(start, end).replace(/[\n\s]+$/, '').trim()
+    const value = text.slice(start, end).replace(/[\n\s]+$/, '').trim()
     fields[markers[i].key] = value
   }
   return fields
@@ -131,11 +129,16 @@ type Props = {
   resolution: string
   batchCount: number
   prompt: string
+  schemes: PromptScheme[]
+  originalPrompt: string | null
+  urlSchemesLoaded: boolean
   referenceImages: PlaygroundImage[]
   generationState: GenerationState
   apiKey: string
   onPromptChange: (v: string) => void
   onBatchCountChange: (v: number) => void
+  onSchemesChange: (schemes: PromptScheme[]) => void
+  onOriginalPromptChange: (p: string | null) => void
   onAddReferenceImages: (files: File[]) => void
   onAddReferenceImage: (image: PlaygroundImage) => void
   onRemoveReferenceImage: (id: string) => void
@@ -149,11 +152,16 @@ export function PromptPanel({
   resolution,
   batchCount,
   prompt,
+  schemes,
+  originalPrompt,
+  urlSchemesLoaded,
   referenceImages,
   generationState,
   apiKey,
   onPromptChange,
   onBatchCountChange,
+  onSchemesChange,
+  onOriginalPromptChange,
   onAddReferenceImages,
   onAddReferenceImage,
   onRemoveReferenceImage,
@@ -166,32 +174,20 @@ export function PromptPanel({
 
   const pricePerImage = model.imagePriceByResolution[resolution]
 
-  // Stable session ID and initial draft — read once on mount
-  const sessionId = useRef(getSessionId()).current
-  const initialDraft = useRef(loadDraft(sessionId)).current
-
-  const [mode, setMode] = useState<PromptMode>(() => {
-    if (initialDraft?.schemes && initialDraft.schemes.length > 0) return 'structured'
-    return 'text'
-  })
-  const canGenerate = apiKey.trim() !== '' && prompt.trim() !== '' && !isGenerating && mode !== 'augmenting'
-
-  // Schemes state
-  const [schemes, setSchemes] = useState<PromptScheme[]>(() => {
-    if (initialDraft?.schemes && initialDraft.schemes.length > 0 && mode === 'structured') {
-      return initialDraft.schemes
-    }
-    if (mode === 'structured') {
-      const fields = parsePrompt(prompt) ?? EMPTY_STRUCTURED
-      return [{ title: '方案 1', description: '', fields }]
-    }
-    return []
-  })
+  const [mode, setMode] = useState<PromptMode>('text')
   const [currentSchemeIndex, setCurrentSchemeIndex] = useState(0)
 
-  const [originalPrompt, setOriginalPrompt] = useState<string | null>(
-    () => initialDraft?.originalPrompt ?? null,
-  )
+  // Switch to structured mode once URL schemes are decoded
+  useEffect(() => {
+    if (urlSchemesLoaded && schemes.length > 0 && mode === 'text') {
+      setMode('structured')
+    }
+  // Only react to the urlSchemesLoaded transition — not to every scheme edit
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [urlSchemesLoaded])
+
+  const canGenerate = apiKey.trim() !== '' && prompt.trim() !== '' && !isGenerating && mode !== 'augmenting'
+
   const [augmentError, setAugmentError] = useState<string | null>(null)
   const abortRef = useRef<AbortController | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -260,8 +256,7 @@ export function PromptPanel({
     if (!sourcePrompt.trim()) return
 
     if (!useOriginal) {
-      setOriginalPrompt(sourcePrompt)
-      saveDraft(sessionId, { originalPrompt: sourcePrompt })
+      onOriginalPromptChange(sourcePrompt)
     }
 
     setMode('augmenting')
@@ -272,10 +267,8 @@ export function PromptPanel({
 
     try {
       const result = await augmentPrompt(apiKey, sourcePrompt, referenceImages, controller.signal)
-      setSchemes(result)
+      onSchemesChange(result)
       setCurrentSchemeIndex(0)
-      saveDraft(sessionId, { schemes: result })
-      // Set prompt to first scheme's assembled text
       onPromptChange(assemblePrompt(result[0].fields))
       setMode('structured')
     } catch (e) {
@@ -284,7 +277,7 @@ export function PromptPanel({
         setMode(useOriginal ? 'structured' : 'text')
       }
     }
-  }, [sessionId, apiKey, prompt, originalPrompt, referenceImages, canAugment, onPromptChange])
+  }, [apiKey, prompt, originalPrompt, referenceImages, canAugment, onPromptChange, onSchemesChange, onOriginalPromptChange])
 
   const handleCancelAugment = useCallback(() => {
     abortRef.current?.abort()
@@ -300,14 +293,11 @@ export function PromptPanel({
   }, [schemes, onPromptChange])
 
   const handleChangeScheme = useCallback((index: number, fields: StructuredPrompt) => {
-    setSchemes((prev) => {
-      const next = [...prev]
-      next[index] = { ...next[index], fields }
-      saveDraft(sessionId, { schemes: next })
-      return next
-    })
+    const next = [...schemes]
+    next[index] = { ...next[index], fields }
+    onSchemesChange(next)
     onPromptChange(assemblePrompt(fields))
-  }, [sessionId, onPromptChange])
+  }, [schemes, onSchemesChange, onPromptChange])
 
   const handleGenerateAll = useCallback(() => {
     const prompts = schemes.map((s) => assemblePrompt(s.fields))
@@ -316,29 +306,24 @@ export function PromptPanel({
 
   // --- Mode switching ---
   const handleParseToStructured = useCallback(() => {
-    // If we have existing schemes (from a previous augmentation), restore them
     if (schemes.length > 0) {
-      // Update the current scheme's fields from the (possibly edited) prompt text
       const parsed = parsePrompt(prompt)
       if (parsed) {
         const updated = [...schemes]
         updated[currentSchemeIndex] = { ...updated[currentSchemeIndex], fields: parsed }
-        setSchemes(updated)
-        saveDraft(sessionId, { schemes: updated })
+        onSchemesChange(updated)
       }
       setMode('structured')
       return
     }
-    // No existing schemes — create one from prompt text
     const parsed = parsePrompt(prompt)
     if (!parsed) return
     const scheme: PromptScheme = { title: '方案 1', description: '', fields: parsed }
-    setSchemes([scheme])
+    onSchemesChange([scheme])
     setCurrentSchemeIndex(0)
-    saveDraft(sessionId, { schemes: [scheme] })
     onPromptChange(assemblePrompt(parsed))
     setMode('structured')
-  }, [sessionId, prompt, schemes, currentSchemeIndex, onPromptChange])
+  }, [prompt, schemes, currentSchemeIndex, onPromptChange, onSchemesChange])
 
   const handleBackToText = useCallback(() => {
     setMode('text')
@@ -346,11 +331,10 @@ export function PromptPanel({
 
   const handleDiscardAugment = useCallback(() => {
     if (originalPrompt !== null) onPromptChange(originalPrompt)
-    saveDraft(sessionId, { schemes: null, originalPrompt: null })
-    setOriginalPrompt(null)
-    setSchemes([])
+    onOriginalPromptChange(null)
+    onSchemesChange([])
     setMode('text')
-  }, [sessionId, originalPrompt, onPromptChange])
+  }, [originalPrompt, onPromptChange, onSchemesChange, onOriginalPromptChange])
 
   // --- Clear / Undo toast ---
   const handleClear = useCallback(() => {

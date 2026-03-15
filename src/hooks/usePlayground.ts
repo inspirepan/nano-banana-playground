@@ -1,10 +1,16 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { MODEL_CONFIGS, DEFAULT_MODEL, type ModelConfig } from '../config/models'
 import { generateImage } from '../lib/api'
-import type { PlaygroundImage } from '../lib/types'
+import type { PlaygroundImage, PromptScheme } from '../lib/types'
 import { isKeyError } from '../lib/validateKey'
 import { saveToHistory, loadHistory, deleteFromHistory, clearHistory } from '../lib/history'
-import { getSessionId, loadDraft, saveDraft, cleanupOldDrafts, getOtherDrafts, adoptDraft, type DraftEntry } from '../lib/draft'
+import {
+  readSimpleUrlParams,
+  readStateBlobParam,
+  decompressStateBlob,
+  compressStateBlob,
+  updateUrl,
+} from '../lib/urlState'
 import { useApiKey } from './useApiKey'
 
 export type GenerationState = 'idle' | 'generating' | 'error'
@@ -27,18 +33,43 @@ function computeConfigHash(modelId: string, resolution: string, aspectRatio: str
   return `${modelId}|${resolution}|${aspectRatio}|${batchCount}|${prompt}`
 }
 
+// Read simple (non-compressed) URL params once at module load to safely init useState
+const _initial = readSimpleUrlParams()
+
+function resolveModel(modelId: string | null): ModelConfig {
+  if (modelId) {
+    const found = MODEL_CONFIGS.find((m) => m.id === modelId)
+    if (found) return found
+  }
+  return DEFAULT_MODEL
+}
+
 export function usePlayground() {
   const apiKeyHook = useApiKey()
-  const sessionId = useRef(getSessionId()).current
-  const [model, setModel] = useState<ModelConfig>(DEFAULT_MODEL)
-  const [resolution, setResolution] = useState(DEFAULT_MODEL.defaultResolution)
-  const [aspectRatio, setAspectRatio] = useState(DEFAULT_MODEL.defaultAspectRatio)
-  const [batchCount, setBatchCount] = useState(1)
-  const [prompt, setPromptRaw] = useState(() => loadDraft(sessionId)?.prompt || '')
-  const [orphanedDrafts, setOrphanedDrafts] = useState<DraftEntry[]>(() => getOtherDrafts(sessionId))
-  const setPrompt = useCallback((v: string) => {
-    setPromptRaw(v)
-  }, [])
+  const [model, setModel] = useState<ModelConfig>(() => resolveModel(_initial.modelId))
+  const [resolution, setResolutionRaw] = useState(() => {
+    const m = resolveModel(_initial.modelId)
+    if (_initial.resolution && m.resolutions.includes(_initial.resolution)) return _initial.resolution
+    return m.defaultResolution
+  })
+  const [aspectRatio, setAspectRatioRaw] = useState(() => {
+    const m = resolveModel(_initial.modelId)
+    if (_initial.aspectRatio && m.aspectRatios.includes(_initial.aspectRatio)) return _initial.aspectRatio
+    return m.defaultAspectRatio
+  })
+  const [batchCount, setBatchCountRaw] = useState(() => {
+    const m = resolveModel(_initial.modelId)
+    if (_initial.batchCount !== null) return Math.min(Math.max(1, _initial.batchCount), m.maxBatchCount)
+    return 1
+  })
+  const [prompt, setPromptRaw] = useState('')
+
+  // Lifted from PromptPanel — persisted in URL
+  const [schemes, setSchemesRaw] = useState<PromptScheme[]>([])
+  const [originalPrompt, setOriginalPromptRaw] = useState<string | null>(null)
+  // True once the async URL schemes param has been decoded (or confirmed absent)
+  const [urlSchemesLoaded, setUrlSchemesLoaded] = useState(false)
+
   const [referenceImages, setReferenceImages] = useState<PlaygroundImage[]>([])
   const [history, setHistory] = useState<PlaygroundImage[]>([])
   const [generationState, setGenerationState] = useState<GenerationState>('idle')
@@ -50,29 +81,66 @@ export function usePlayground() {
 
   const currentConfigHash = computeConfigHash(model.id, resolution, aspectRatio, batchCount, prompt)
 
+  // Load history and decompress URL state blob on mount
   useEffect(() => {
     loadHistory().then(setHistory)
-    cleanupOldDrafts()
+
+    const sParam = readStateBlobParam()
+    if (sParam) {
+      decompressStateBlob(sParam)
+        .then((data) => {
+          if (data.prompt) setPromptRaw(data.prompt)
+          if (data.schemes?.length) setSchemesRaw(data.schemes)
+          if (data.originalPrompt) setOriginalPromptRaw(data.originalPrompt)
+        })
+        .catch(() => {})
+        .finally(() => setUrlSchemesLoaded(true))
+    } else {
+      setUrlSchemesLoaded(true)
+    }
   }, [])
 
+  // --- Debounced URL sync ---
+  const urlDebounceRef = useRef<number>(0)
+
+  // Sync all state to URL as a single compressed blob (s) + plain config params
   useEffect(() => {
-    const timer = window.setTimeout(() => {
-      saveDraft(sessionId, { prompt })
-    }, 200)
-    return () => window.clearTimeout(timer)
-  }, [prompt, sessionId])
+    window.clearTimeout(urlDebounceRef.current)
+    urlDebounceRef.current = window.setTimeout(async () => {
+      const hasState = prompt || schemes.length > 0 || originalPrompt !== null
+      const compressedS = hasState
+        ? await compressStateBlob({ prompt, schemes, originalPrompt })
+        : null
+      updateUrl({
+        m: model.id !== DEFAULT_MODEL.id ? model.id : null,
+        r: resolution !== DEFAULT_MODEL.defaultResolution ? resolution : null,
+        a: aspectRatio !== DEFAULT_MODEL.defaultAspectRatio ? aspectRatio : null,
+        n: batchCount !== 1 ? String(batchCount) : null,
+        s: compressedS,
+      })
+    }, 300)
+    return () => window.clearTimeout(urlDebounceRef.current)
+  }, [model.id, resolution, aspectRatio, batchCount, prompt, schemes, originalPrompt])
+
+  // --- Setters that update state (URL sync runs via effects above) ---
+  const setPrompt = useCallback((v: string) => setPromptRaw(v), [])
+  const setResolution = useCallback((v: string) => setResolutionRaw(v), [])
+  const setAspectRatio = useCallback((v: string) => setAspectRatioRaw(v), [])
+  const setBatchCount = useCallback((v: number) => setBatchCountRaw(v), [])
+  const setSchemes = useCallback((v: PromptScheme[]) => setSchemesRaw(v), [])
+  const setOriginalPrompt = useCallback((v: string | null) => setOriginalPromptRaw(v), [])
 
   const switchModel = useCallback((modelId: string) => {
     const config = MODEL_CONFIGS.find((m) => m.id === modelId)
     if (!config) return
     setModel(config)
-    setResolution((prev) =>
+    setResolutionRaw((prev) =>
       config.resolutions.includes(prev) ? prev : config.defaultResolution,
     )
-    setAspectRatio((prev) =>
+    setAspectRatioRaw((prev) =>
       config.aspectRatios.includes(prev) ? prev : config.defaultAspectRatio,
     )
-    setBatchCount((prev) => Math.min(prev, config.maxBatchCount))
+    setBatchCountRaw((prev) => Math.min(prev, config.maxBatchCount))
   }, [])
 
   const addReferenceImages = useCallback(
@@ -117,7 +185,6 @@ export function usePlayground() {
     if (promptList.length === 0) return
 
     const batchId = crypto.randomUUID()
-    // Use current state values for hash so showDraft comparison works after generation
     const hash = computeConfigHash(model.id, resolution, aspectRatio, batchCount, prompt)
 
     setGenerationState('generating')
@@ -236,20 +303,6 @@ export function usePlayground() {
     setHistory([])
   }, [])
 
-  const adoptOrphanDraft = useCallback((fromSessionId: string, onRestore: (prompt: string) => void) => {
-    const data = adoptDraft(fromSessionId, sessionId)
-    if (data) {
-      setPromptRaw(data.prompt)
-      onRestore(data.prompt)
-      setOrphanedDrafts(getOtherDrafts(sessionId))
-    }
-  }, [sessionId])
-
-  const dismissOrphanDraft = useCallback((fromSessionId: string) => {
-    // Just remove from the orphaned list — leave the draft in storage
-    setOrphanedDrafts((prev) => prev.filter((d) => d.sessionId !== fromSessionId))
-  }, [])
-
   return {
     apiKey: apiKeyHook.apiKey,
     apiKeyStatus: apiKeyHook.status,
@@ -260,6 +313,9 @@ export function usePlayground() {
     aspectRatio,
     batchCount,
     prompt,
+    schemes,
+    originalPrompt,
+    urlSchemesLoaded,
     referenceImages,
     history,
     generationState,
@@ -267,13 +323,13 @@ export function usePlayground() {
     generationPreview,
     showDraft: prompt.trim() !== '' && lastGenHash !== currentConfigHash,
     error,
-    sessionId,
-    orphanedDrafts,
     switchModel,
     setResolution,
     setAspectRatio,
     setBatchCount,
     setPrompt,
+    setSchemes,
+    setOriginalPrompt,
     addReferenceImages,
     removeReferenceImage,
     generate,
@@ -281,7 +337,5 @@ export function usePlayground() {
     addToReferences,
     removeFromHistory,
     clearAllHistory,
-    adoptOrphanDraft,
-    dismissOrphanDraft,
   }
 }
