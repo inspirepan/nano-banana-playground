@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useCallback, useEffect, type ReactNode } from 'react'
 import type { PlaygroundImage, StructuredPrompt, PromptScheme } from '../lib/types'
 import { getSessionId, loadDraft, saveDraft } from '../lib/draft'
 import type { ModelConfig } from '../config/models'
@@ -35,6 +35,33 @@ const EDIT_LABEL_ENTRIES: [string, StructuredPromptTextKey][] = [
 const ALL_LABEL_ENTRIES = [...GEN_LABEL_ENTRIES, ...EDIT_LABEL_ENTRIES]
 const EDIT_ONLY_LABELS = ['编辑类型', '编辑请求', '参考图说明', '保持不变', '目标场景', '目标风格']
 
+// Deduplicated label list for syntax highlighting, longest-first to avoid prefix conflicts
+const HIGHLIGHT_LABELS = [...new Set(ALL_LABEL_ENTRIES.map(([label]) => label))]
+  .sort((a, b) => b.length - a.length)
+
+function renderHighlighted(text: string): ReactNode[] {
+  const parts: ReactNode[] = []
+  const lines = text.split('\n')
+  for (let i = 0; i < lines.length; i++) {
+    if (i > 0) parts.push('\n')
+    const line = lines[i]
+    let found = false
+    for (const label of HIGHLIGHT_LABELS) {
+      const needle = `${label}：`
+      if (line.startsWith(needle)) {
+        const rest = line.slice(needle.length).replace(/^ /, '')
+        parts.push(
+          <span key={i}><span className="rounded bg-primary-dim text-primary">{label}</span>：{rest}</span>
+        )
+        found = true
+        break
+      }
+    }
+    if (!found) parts.push(<span key={i}>{line}</span>)
+  }
+  return parts
+}
+
 function assemblePrompt(fields: StructuredPrompt): string {
   const lines: string[] = []
   if (fields.mode === 'edit') {
@@ -63,7 +90,14 @@ function parsePrompt(text: string): StructuredPrompt | null {
   const markers: { pos: number; end: number; key: StructuredPromptTextKey; label: string }[] = []
   for (const [label, key] of uniqueEntries) {
     const needle = `${label}：`
-    const idx = text.indexOf(needle)
+    // Only match at line start (beginning of text or after \n)
+    let idx = -1
+    if (text.startsWith(needle)) {
+      idx = 0
+    } else {
+      const nlIdx = text.indexOf(`\n${needle}`)
+      if (nlIdx !== -1) idx = nlIdx + 1  // skip \n, point to label start
+    }
     if (idx !== -1 && !markers.some((m) => m.key === key)) {
       markers.push({ pos: idx, end: idx + needle.length, key, label })
     }
@@ -429,10 +463,24 @@ export function PromptPanel({
 
         {mode === 'text' && (
           <div className="relative">
-            <textarea ref={textareaRef} value={prompt}
-              onChange={(e) => { onPromptChange(e.target.value); autoResizeTextarea(e.target) }}
-              placeholder="描述你想生成的图片..." rows={1}
-              className="w-full px-3 py-3 pb-10 text-sm bg-surface-container rounded-xl border-b-2 border-b-outline-variant hover:bg-surface-container-high hover:border-b-outline focus:bg-surface-container-high focus:border-b-primary focus:outline-none placeholder:text-on-surface-variant/50 resize-none transition-colors overflow-hidden" />
+            {/* Container owns bg/border/focus-within states */}
+            <div className="relative rounded-xl border-b-2 border-b-outline-variant bg-surface-container hover:bg-surface-container-high hover:border-b-outline focus-within:bg-surface-container-high focus-within:border-b-primary transition-colors">
+              {/* Mirror: renders label badges behind the transparent textarea */}
+              <div
+                aria-hidden="true"
+                className="absolute inset-0 px-3 py-3 pb-10 text-sm text-on-surface whitespace-pre-wrap break-words pointer-events-none overflow-hidden rounded-xl"
+              >
+                {prompt
+                  ? renderHighlighted(prompt)
+                  : <span className="text-on-surface-variant/50">描述你想生成的图片...</span>
+                }
+              </div>
+              <textarea ref={textareaRef} value={prompt}
+                onChange={(e) => { onPromptChange(e.target.value); autoResizeTextarea(e.target) }}
+                placeholder="描述你想生成的图片..." rows={1}
+                style={{ caretColor: 'var(--color-on-surface)' }}
+                className="relative w-full px-3 py-3 pb-10 text-sm text-transparent bg-transparent focus:outline-none placeholder:text-transparent resize-none overflow-hidden" />
+            </div>
             <div className="absolute left-2 right-2 bottom-3 flex items-center gap-2 mb-1">
               {prompt.trim() && (
                 <button type="button" onClick={handleClear}
