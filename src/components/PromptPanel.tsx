@@ -1,12 +1,10 @@
 import { useState, useRef, useCallback, useEffect, type ReactNode } from 'react'
-import type { PlaygroundImage, StructuredPrompt, PromptScheme } from '../lib/types'
+import type { PersistedPromptMode, PlaygroundImage, StructuredPrompt, PromptMode, PromptScheme } from '../lib/types'
 import type { ModelConfig } from '../config/models'
 import type { GenerationState } from '../hooks/usePlayground'
 import { augmentPrompt } from '../lib/api'
 import { ReferenceImageUpload } from './ReferenceImageUpload'
 import { StructuredPromptForm } from './StructuredPromptForm'
-
-type PromptMode = 'text' | 'augmenting' | 'structured'
 type StructuredPromptTextKey = Exclude<keyof StructuredPrompt, 'mode'>
 
 const EMPTY_STRUCTURED: StructuredPrompt = {
@@ -129,15 +127,18 @@ type Props = {
   resolution: string
   batchCount: number
   prompt: string
+  mode: PersistedPromptMode
   schemes: PromptScheme[]
+  currentSchemeIndex: number
   originalPrompt: string | null
-  urlSchemesLoaded: boolean
   referenceImages: PlaygroundImage[]
   generationState: GenerationState
   apiKey: string
   onPromptChange: (v: string) => void
   onBatchCountChange: (v: number) => void
+  onModeChange: (v: PersistedPromptMode) => void
   onSchemesChange: (schemes: PromptScheme[]) => void
+  onCurrentSchemeIndexChange: (v: number) => void
   onOriginalPromptChange: (p: string | null) => void
   onAddReferenceImages: (files: File[]) => void
   onAddReferenceImage: (image: PlaygroundImage) => void
@@ -152,15 +153,18 @@ export function PromptPanel({
   resolution,
   batchCount,
   prompt,
+  mode,
   schemes,
+  currentSchemeIndex,
   originalPrompt,
-  urlSchemesLoaded,
   referenceImages,
   generationState,
   apiKey,
   onPromptChange,
   onBatchCountChange,
+  onModeChange,
   onSchemesChange,
+  onCurrentSchemeIndexChange,
   onOriginalPromptChange,
   onAddReferenceImages,
   onAddReferenceImage,
@@ -174,19 +178,10 @@ export function PromptPanel({
 
   const pricePerImage = model.imagePriceByResolution[resolution]
 
-  const [mode, setMode] = useState<PromptMode>('text')
-  const [currentSchemeIndex, setCurrentSchemeIndex] = useState(0)
+  const [isAugmenting, setIsAugmenting] = useState(false)
+  const currentMode: PromptMode = isAugmenting ? 'augmenting' : mode
 
-  // Switch to structured mode once URL schemes are decoded
-  useEffect(() => {
-    if (urlSchemesLoaded && schemes.length > 0 && mode === 'text') {
-      setMode('structured')
-    }
-  // Only react to the urlSchemesLoaded transition — not to every scheme edit
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [urlSchemesLoaded])
-
-  const canGenerate = apiKey.trim() !== '' && prompt.trim() !== '' && !isGenerating && mode !== 'augmenting'
+  const canGenerate = apiKey.trim() !== '' && prompt.trim() !== '' && !isGenerating && currentMode !== 'augmenting'
 
   const [augmentError, setAugmentError] = useState<string | null>(null)
   const abortRef = useRef<AbortController | null>(null)
@@ -243,11 +238,11 @@ export function PromptPanel({
   }, [onPromptChange])
 
   const canAugment = apiKey.trim() !== '' && prompt.trim() !== ''
-  const canParseToStructured = mode === 'text' && parsePrompt(prompt) !== null
+  const canParseToStructured = currentMode === 'text' && parsePrompt(prompt) !== null
 
   useEffect(() => {
-    if (mode === 'text' && textareaRef.current) autoResizeTextarea(textareaRef.current)
-  }, [prompt, mode])
+    if (currentMode === 'text' && textareaRef.current) autoResizeTextarea(textareaRef.current)
+  }, [prompt, currentMode])
 
   // --- Augment ---
   const handleAugment = useCallback(async (useOriginal = false) => {
@@ -259,7 +254,7 @@ export function PromptPanel({
       onOriginalPromptChange(sourcePrompt)
     }
 
-    setMode('augmenting')
+    setIsAugmenting(true)
     setAugmentError(null)
 
     const controller = new AbortController()
@@ -268,29 +263,31 @@ export function PromptPanel({
     try {
       const result = await augmentPrompt(apiKey, sourcePrompt, referenceImages, controller.signal)
       onSchemesChange(result)
-      setCurrentSchemeIndex(0)
+      onCurrentSchemeIndexChange(0)
       onPromptChange(assemblePrompt(result[0].fields))
-      setMode('structured')
+      onModeChange('structured')
     } catch (e) {
       if ((e as Error).name !== 'AbortError') {
         setAugmentError((e as Error).message)
-        setMode(useOriginal ? 'structured' : 'text')
+        onModeChange(useOriginal ? 'structured' : 'text')
       }
+    } finally {
+      setIsAugmenting(false)
     }
-  }, [apiKey, prompt, originalPrompt, referenceImages, canAugment, onPromptChange, onSchemesChange, onOriginalPromptChange])
+  }, [apiKey, prompt, originalPrompt, referenceImages, canAugment, onPromptChange, onModeChange, onSchemesChange, onCurrentSchemeIndexChange, onOriginalPromptChange])
 
   const handleCancelAugment = useCallback(() => {
     abortRef.current?.abort()
-    setMode('text')
+    setIsAugmenting(false)
   }, [])
 
   // --- Scheme management ---
   const handleSelectScheme = useCallback((index: number) => {
-    setCurrentSchemeIndex(index)
+    onCurrentSchemeIndexChange(index)
     if (schemes[index]) {
       onPromptChange(assemblePrompt(schemes[index].fields))
     }
-  }, [schemes, onPromptChange])
+  }, [schemes, onPromptChange, onCurrentSchemeIndexChange])
 
   const handleChangeScheme = useCallback((index: number, fields: StructuredPrompt) => {
     const next = [...schemes]
@@ -313,28 +310,28 @@ export function PromptPanel({
         updated[currentSchemeIndex] = { ...updated[currentSchemeIndex], fields: parsed }
         onSchemesChange(updated)
       }
-      setMode('structured')
+      onModeChange('structured')
       return
     }
     const parsed = parsePrompt(prompt)
     if (!parsed) return
     const scheme: PromptScheme = { title: '方案 1', description: '', fields: parsed }
     onSchemesChange([scheme])
-    setCurrentSchemeIndex(0)
+    onCurrentSchemeIndexChange(0)
     onPromptChange(assemblePrompt(parsed))
-    setMode('structured')
-  }, [prompt, schemes, currentSchemeIndex, onPromptChange, onSchemesChange])
+    onModeChange('structured')
+  }, [prompt, schemes, currentSchemeIndex, onPromptChange, onModeChange, onSchemesChange, onCurrentSchemeIndexChange])
 
   const handleBackToText = useCallback(() => {
-    setMode('text')
-  }, [])
+    onModeChange('text')
+  }, [onModeChange])
 
   const handleDiscardAugment = useCallback(() => {
     if (originalPrompt !== null) onPromptChange(originalPrompt)
     onOriginalPromptChange(null)
     onSchemesChange([])
-    setMode('text')
-  }, [originalPrompt, onPromptChange, onSchemesChange, onOriginalPromptChange])
+    onModeChange('text')
+  }, [originalPrompt, onPromptChange, onModeChange, onSchemesChange, onOriginalPromptChange])
 
   // --- Clear / Undo toast ---
   const handleClear = useCallback(() => {
@@ -363,7 +360,7 @@ export function PromptPanel({
   const estimatedCost = pricePerImage !== undefined ? pricePerImage * batchCount : null
 
   return (
-    <div className={`w-full md:flex-1 md:shrink-0 md:min-w-[360px] flex flex-col py-4 md:h-full${mode === 'text' ? ' md:overflow-y-auto' : ''}`}>
+    <div className={`w-full md:flex-1 md:shrink-0 md:min-w-[360px] flex flex-col py-4 md:h-full${currentMode === 'text' ? ' md:overflow-y-auto' : ''}`}>
       {/* Reference Images - fixed */}
       <div className="shrink-0">
         <ReferenceImageUpload
@@ -376,12 +373,12 @@ export function PromptPanel({
       </div>
 
       {/* Prompt section */}
-      <div className={`mt-4 flex flex-col${mode !== 'text' ? ' md:flex-1 md:min-h-0' : ''}`}>
+      <div className={`mt-4 flex flex-col${currentMode !== 'text' ? ' md:flex-1 md:min-h-0' : ''}`}>
         {/* Prompt header - fixed */}
         <div className="flex items-center justify-between mb-3 min-h-[28px] shrink-0">
           <label className="text-xs font-medium text-on-surface-variant">提示词</label>
           <div className="flex items-center gap-2">
-            {mode === 'text' && canParseToStructured && (
+            {currentMode === 'text' && canParseToStructured && (
               <div className="relative group/parse">
                 <button type="button" onClick={handleParseToStructured}
                   className="flex items-center gap-1 px-3 py-1 text-xs rounded-full transition-colors
@@ -396,7 +393,7 @@ export function PromptPanel({
                 </div>
               </div>
             )}
-            {mode === 'structured' && (
+            {currentMode === 'structured' && (
               <>
                 <div className="relative group/reaugment">
                   <button type="button" onClick={() => handleAugment(true)} disabled={!originalPrompt}
@@ -442,9 +439,9 @@ export function PromptPanel({
         </div>
 
         {/* Prompt content */}
-        <div className={`flex flex-col${mode !== 'text' ? ' md:flex-1 md:min-h-0' : ''}`}>
+        <div className={`flex flex-col${currentMode !== 'text' ? ' md:flex-1 md:min-h-0' : ''}`}>
 
-        {mode === 'text' && (
+        {currentMode === 'text' && (
           <div className="relative">
             {/* Container owns bg/border/focus-within states */}
             <div className="relative rounded-xl border-b-2 border-b-outline-variant bg-surface-container hover:bg-surface-container-high hover:border-b-outline focus-within:bg-surface-container-high focus-within:border-b-primary transition-colors">
@@ -496,7 +493,7 @@ export function PromptPanel({
           </div>
         )}
 
-        {mode === 'augmenting' && (
+        {currentMode === 'augmenting' && (
           <div className="flex flex-col items-center justify-center gap-3 py-8 bg-surface-container rounded-xl">
             <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
             <p className="text-xs text-on-surface-variant">正在分析提示词...
@@ -507,7 +504,7 @@ export function PromptPanel({
           </div>
         )}
 
-        {mode === 'structured' && schemes.length > 0 && (
+        {currentMode === 'structured' && schemes.length > 0 && (
           <div className="bg-surface-container rounded-xl md:flex-1 md:min-h-0 md:overflow-y-auto">
             <StructuredPromptForm
               schemes={schemes}
@@ -528,9 +525,9 @@ export function PromptPanel({
       </div>{/* end prompt section */}
 
       {/* Batch count + generate button + cost */}
-      <div className={`flex flex-col gap-4 mt-4${mode !== 'text' ? ' shrink-0' : ''}`}>
+      <div className={`flex flex-col gap-4 mt-4${currentMode !== 'text' ? ' shrink-0' : ''}`}>
         {/* Batch count */}
-        {mode !== 'augmenting' && (
+        {currentMode !== 'augmenting' && (
           <div>
             <label className="block text-xs font-medium text-on-surface-variant mb-2">数量</label>
             <div className="flex flex-wrap gap-2">

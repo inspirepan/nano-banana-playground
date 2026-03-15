@@ -1,29 +1,27 @@
-import type { PromptScheme } from './types'
+import type { BrotliWasmType } from 'brotli-wasm'
+import type { PersistedPromptMode, PromptScheme } from './types'
 
 // --- Compression ---
 
+const BROTLI_QUALITY = 6
+
+let brotliPromise: Promise<BrotliWasmType> | null = null
+
+function getBrotli(): Promise<BrotliWasmType> {
+  if (brotliPromise === null) {
+    brotliPromise = import('brotli-wasm').then((module) => module.default)
+  }
+  return brotliPromise
+}
+
+export function preloadStateBlobCodec(): void {
+  void getBrotli()
+}
+
 async function compress(text: string): Promise<string> {
   const bytes = new TextEncoder().encode(text)
-  const stream = new CompressionStream('brotli')
-  const writer = stream.writable.getWriter()
-  writer.write(bytes)
-  writer.close()
-
-  const chunks: Uint8Array[] = []
-  const reader = stream.readable.getReader()
-  while (true) {
-    const { done, value } = await reader.read()
-    if (done) break
-    chunks.push(value)
-  }
-
-  const totalLength = chunks.reduce((acc, c) => acc + c.length, 0)
-  const result = new Uint8Array(totalLength)
-  let offset = 0
-  for (const chunk of chunks) {
-    result.set(chunk, offset)
-    offset += chunk.length
-  }
+  const brotli = await getBrotli()
+  const result = brotli.compress(bytes, { quality: BROTLI_QUALITY })
 
   // base64url (URL-safe, no padding)
   return btoa(String.fromCharCode(...result))
@@ -37,27 +35,8 @@ async function decompress(b64url: string): Promise<string> {
   const b64 = b64url.replace(/-/g, '+').replace(/_/g, '/')
   const padded = b64 + '=='.slice(0, (4 - (b64.length % 4)) % 4)
   const bytes = Uint8Array.from(atob(padded), (c) => c.charCodeAt(0))
-
-  const stream = new DecompressionStream('brotli')
-  const writer = stream.writable.getWriter()
-  writer.write(bytes)
-  writer.close()
-
-  const chunks: Uint8Array[] = []
-  const reader = stream.readable.getReader()
-  while (true) {
-    const { done, value } = await reader.read()
-    if (done) break
-    chunks.push(value)
-  }
-
-  const totalLength = chunks.reduce((acc, c) => acc + c.length, 0)
-  const result = new Uint8Array(totalLength)
-  let offset = 0
-  for (const chunk of chunks) {
-    result.set(chunk, offset)
-    offset += chunk.length
-  }
+  const brotli = await getBrotli()
+  const result = brotli.decompress(bytes)
 
   return new TextDecoder().decode(result)
 }
@@ -68,6 +47,8 @@ export type StateBlob = {
   prompt: string
   schemes: PromptScheme[]
   originalPrompt: string | null
+  mode: PersistedPromptMode
+  currentSchemeIndex: number
 }
 
 const EMPTY_FIELDS: PromptScheme['fields'] = {
@@ -105,6 +86,8 @@ type CompactStateBlob = [
   prompt: string,
   schemes: CompactScheme[],
   originalPrompt: string | null,
+  mode: 0 | 1,
+  currentSchemeIndex: number,
 ]
 
 function toCompactScheme(scheme: PromptScheme): CompactScheme {
@@ -149,15 +132,21 @@ function fromCompactScheme(scheme: CompactScheme): PromptScheme {
 }
 
 function isCompactStateBlob(value: unknown): value is CompactStateBlob {
-  if (!Array.isArray(value) || value.length !== 3) {
+  if (!Array.isArray(value) || value.length !== 5) {
     return false
   }
 
-  const [prompt, schemes, originalPrompt] = value
+  const [prompt, schemes, originalPrompt, mode, currentSchemeIndex] = value
   if (typeof prompt !== 'string' || !Array.isArray(schemes)) {
     return false
   }
   if (originalPrompt !== null && typeof originalPrompt !== 'string') {
+    return false
+  }
+  if (mode !== 0 && mode !== 1) {
+    return false
+  }
+  if (!Number.isInteger(currentSchemeIndex) || currentSchemeIndex < 0) {
     return false
   }
 
@@ -185,6 +174,8 @@ export async function compressStateBlob(data: StateBlob): Promise<string> {
     data.prompt,
     data.schemes.map(toCompactScheme),
     data.originalPrompt,
+    data.mode === 'structured' ? 1 : 0,
+    data.currentSchemeIndex,
   ]
   return compress(JSON.stringify(compact))
 }
@@ -197,11 +188,13 @@ export async function decompressStateBlob(b64url: string): Promise<StateBlob> {
     throw new Error('Invalid state blob')
   }
 
-  const [prompt, schemes, originalPrompt] = raw
+  const [prompt, schemes, originalPrompt, mode, currentSchemeIndex] = raw
   return {
     prompt,
     schemes: schemes.map(fromCompactScheme),
     originalPrompt,
+    mode: mode === 1 ? 'structured' : 'text',
+    currentSchemeIndex,
   }
 }
 

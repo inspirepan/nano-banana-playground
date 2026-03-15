@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { MODEL_CONFIGS, DEFAULT_MODEL, type ModelConfig } from '../config/models'
 import { generateImage } from '../lib/api'
-import type { PlaygroundImage, PromptScheme } from '../lib/types'
+import type { PersistedPromptMode, PlaygroundImage, PromptScheme } from '../lib/types'
 import { isKeyError } from '../lib/validateKey'
 import { saveToHistory, loadHistory, deleteFromHistory, clearHistory } from '../lib/history'
 import {
@@ -9,6 +9,7 @@ import {
   readStateBlobParam,
   decompressStateBlob,
   compressStateBlob,
+  preloadStateBlobCodec,
   updateUrl,
 } from '../lib/urlState'
 import { useApiKey } from './useApiKey'
@@ -65,10 +66,10 @@ export function usePlayground() {
   const [prompt, setPromptRaw] = useState('')
 
   // Lifted from PromptPanel — persisted in URL
+  const [modeRaw, setModeRaw] = useState<PersistedPromptMode>('text')
   const [schemes, setSchemesRaw] = useState<PromptScheme[]>([])
+  const [currentSchemeIndexRaw, setCurrentSchemeIndexRaw] = useState(0)
   const [originalPrompt, setOriginalPromptRaw] = useState<string | null>(null)
-  // True once the async URL schemes param has been decoded (or confirmed absent)
-  const [urlSchemesLoaded, setUrlSchemesLoaded] = useState(false)
 
   const [referenceImages, setReferenceImages] = useState<PlaygroundImage[]>([])
   const [history, setHistory] = useState<PlaygroundImage[]>([])
@@ -79,6 +80,8 @@ export function usePlayground() {
   const [error, setError] = useState<string | null>(null)
   const abortRef = useRef<AbortController | null>(null)
 
+  const mode = modeRaw === 'structured' && schemes.length === 0 ? 'text' : modeRaw
+  const currentSchemeIndex = schemes.length === 0 ? 0 : Math.min(currentSchemeIndexRaw, schemes.length - 1)
   const currentConfigHash = computeConfigHash(model.id, resolution, aspectRatio, batchCount, prompt)
 
   // Load history and decompress URL state blob on mount
@@ -87,18 +90,24 @@ export function usePlayground() {
 
     const sParam = readStateBlobParam()
     if (sParam) {
+      preloadStateBlobCodec()
       decompressStateBlob(sParam)
         .then((data) => {
-          if (data.prompt) setPromptRaw(data.prompt)
-          if (data.schemes?.length) setSchemesRaw(data.schemes)
-          if (data.originalPrompt) setOriginalPromptRaw(data.originalPrompt)
+          setPromptRaw(data.prompt)
+          setModeRaw(data.mode)
+          setSchemesRaw(data.schemes)
+          setCurrentSchemeIndexRaw(data.currentSchemeIndex)
+          setOriginalPromptRaw(data.originalPrompt)
         })
         .catch(() => {})
-        .finally(() => setUrlSchemesLoaded(true))
-    } else {
-      setUrlSchemesLoaded(true)
     }
   }, [])
+
+  useEffect(() => {
+    if (prompt || schemes.length > 0 || originalPrompt !== null || mode === 'structured') {
+      preloadStateBlobCodec()
+    }
+  }, [prompt, schemes.length, originalPrompt, mode])
 
   // --- Debounced URL sync ---
   const urlDebounceRef = useRef<number>(0)
@@ -109,7 +118,7 @@ export function usePlayground() {
     urlDebounceRef.current = window.setTimeout(async () => {
       const hasState = prompt || schemes.length > 0 || originalPrompt !== null
       const compressedS = hasState
-        ? await compressStateBlob({ prompt, schemes, originalPrompt })
+        ? await compressStateBlob({ prompt, mode, schemes, currentSchemeIndex, originalPrompt })
         : null
       updateUrl({
         m: model.id !== DEFAULT_MODEL.id ? model.id : null,
@@ -120,14 +129,16 @@ export function usePlayground() {
       })
     }, 300)
     return () => window.clearTimeout(urlDebounceRef.current)
-  }, [model.id, resolution, aspectRatio, batchCount, prompt, schemes, originalPrompt])
+  }, [model.id, resolution, aspectRatio, batchCount, prompt, mode, schemes, currentSchemeIndex, originalPrompt])
 
   // --- Setters that update state (URL sync runs via effects above) ---
   const setPrompt = useCallback((v: string) => setPromptRaw(v), [])
   const setResolution = useCallback((v: string) => setResolutionRaw(v), [])
   const setAspectRatio = useCallback((v: string) => setAspectRatioRaw(v), [])
   const setBatchCount = useCallback((v: number) => setBatchCountRaw(v), [])
+  const setMode = useCallback((v: PersistedPromptMode) => setModeRaw(v), [])
   const setSchemes = useCallback((v: PromptScheme[]) => setSchemesRaw(v), [])
+  const setCurrentSchemeIndex = useCallback((v: number) => setCurrentSchemeIndexRaw(v), [])
   const setOriginalPrompt = useCallback((v: string | null) => setOriginalPromptRaw(v), [])
 
   const switchModel = useCallback((modelId: string) => {
@@ -313,9 +324,10 @@ export function usePlayground() {
     aspectRatio,
     batchCount,
     prompt,
+    mode,
     schemes,
+    currentSchemeIndex,
     originalPrompt,
-    urlSchemesLoaded,
     referenceImages,
     history,
     generationState,
@@ -328,7 +340,9 @@ export function usePlayground() {
     setAspectRatio,
     setBatchCount,
     setPrompt,
+    setMode,
     setSchemes,
+    setCurrentSchemeIndex,
     setOriginalPrompt,
     addReferenceImages,
     removeReferenceImage,

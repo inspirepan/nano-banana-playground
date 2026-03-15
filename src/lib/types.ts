@@ -43,6 +43,9 @@ export type StructuredPrompt = {
   invariants: string
 }
 
+export type PromptMode = 'text' | 'augmenting' | 'structured'
+export type PersistedPromptMode = Exclude<PromptMode, 'augmenting'>
+
 export type PromptScheme = {
   title: string
   description: string

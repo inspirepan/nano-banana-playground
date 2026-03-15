@@ -41,19 +41,21 @@ afterEach(() => vi.unstubAllGlobals())
 
 describe('compressStateBlob / decompressStateBlob round-trip', () => {
   it('prompt only (text mode, no schemes)', async () => {
-    const data: StateBlob = { prompt: '一只橘猫坐在窗台上', schemes: [], originalPrompt: null }
+    const data: StateBlob = { prompt: '一只橘猫坐在窗台上', mode: 'text', schemes: [], currentSchemeIndex: 0, originalPrompt: null }
     expect(await decompressStateBlob(await compressStateBlob(data))).toEqual(data)
   })
 
   it('empty state', async () => {
-    const data: StateBlob = { prompt: '', schemes: [], originalPrompt: null }
+    const data: StateBlob = { prompt: '', mode: 'text', schemes: [], currentSchemeIndex: 0, originalPrompt: null }
     expect(await decompressStateBlob(await compressStateBlob(data))).toEqual(data)
   })
 
   it('prompt + single generate scheme (sparse fields)', async () => {
     const data: StateBlob = {
       prompt: '风格：水彩\n色彩：冷色调',
+      mode: 'structured',
       schemes: [makeScheme('方案 1', { subject: '山脉', style: '水彩' })],
+      currentSchemeIndex: 0,
       originalPrompt: null,
     }
     expect(await decompressStateBlob(await compressStateBlob(data))).toEqual(data)
@@ -62,12 +64,14 @@ describe('compressStateBlob / decompressStateBlob round-trip', () => {
   it('prompt + single edit scheme', async () => {
     const data: StateBlob = {
       prompt: '编辑类型：风格迁移\n编辑请求：转换为水彩画',
+      mode: 'structured',
       schemes: [makeScheme('方案 1', {
         mode: 'edit',
         editType: '风格迁移',
         primaryRequest: '转换为水彩画',
         invariants: '保持人物位置不变',
       })],
+      currentSchemeIndex: 0,
       originalPrompt: null,
     }
     expect(await decompressStateBlob(await compressStateBlob(data))).toEqual(data)
@@ -76,12 +80,29 @@ describe('compressStateBlob / decompressStateBlob round-trip', () => {
   it('multiple schemes with originalPrompt', async () => {
     const data: StateBlob = {
       prompt: '主体：富士山\n风格：水彩',
+      mode: 'structured',
       schemes: [
         makeScheme('方案 1', { subject: '富士山', style: '水彩' }),
         makeScheme('方案 2', { subject: '富士山', style: '油画', lighting: '黄金时段' }),
         makeScheme('方案 3', { subject: '富士山', composition: '远景', colorPalette: '冷色调' }),
       ],
+      currentSchemeIndex: 2,
       originalPrompt: '富士山',
+    }
+    expect(await decompressStateBlob(await compressStateBlob(data))).toEqual(data)
+  })
+
+  it('text mode keeps schemes and selected scheme index', async () => {
+    const data: StateBlob = {
+      prompt: '把第二个方案改成更克制、更写实的电影海报风格',
+      mode: 'text',
+      schemes: [
+        makeScheme('方案 1', { subject: '富士山', style: '水彩' }),
+        makeScheme('方案 2', { subject: '富士山', style: '电影海报', lighting: '夜景霓虹' }),
+        makeScheme('方案 3', { subject: '富士山', style: '极简主义' }),
+      ],
+      currentSchemeIndex: 1,
+      originalPrompt: '富士山'
     }
     expect(await decompressStateBlob(await compressStateBlob(data))).toEqual(data)
   })
@@ -89,11 +110,13 @@ describe('compressStateBlob / decompressStateBlob round-trip', () => {
   it('scheme with all fields filled', async () => {
     const data: StateBlob = {
       prompt: 'full fields test',
+      mode: 'structured',
       schemes: [makeScheme('方案 1', {
         subject: '主体', action: '动作', scene: '场景', composition: '构图',
         style: '风格', lighting: '光影', colorPalette: '色彩',
         textInImage: '画中文字', constraints: '约束',
       })],
+      currentSchemeIndex: 0,
       originalPrompt: '原始提示词',
     }
     expect(await decompressStateBlob(await compressStateBlob(data))).toEqual(data)
@@ -102,7 +125,9 @@ describe('compressStateBlob / decompressStateBlob round-trip', () => {
   it('unicode, emoji, and special chars in prompt', async () => {
     const data: StateBlob = {
       prompt: '日本の富士山 🗻 with "quotes" & <brackets> — en dash',
+      mode: 'text',
       schemes: [],
+      currentSchemeIndex: 0,
       originalPrompt: null,
     }
     expect(await decompressStateBlob(await compressStateBlob(data))).toEqual(data)
@@ -110,7 +135,7 @@ describe('compressStateBlob / decompressStateBlob round-trip', () => {
 
   it('long prompt (several hundred characters)', async () => {
     const long = '一只橘猫坐在窗台上，望向夕阳。'.repeat(30)
-    const data: StateBlob = { prompt: long, schemes: [], originalPrompt: null }
+    const data: StateBlob = { prompt: long, mode: 'text', schemes: [], currentSchemeIndex: 0, originalPrompt: null }
     expect(await decompressStateBlob(await compressStateBlob(data))).toEqual(data)
   })
 })
@@ -121,7 +146,9 @@ describe('stripFields: empty fields are stripped before compression and restored
   it('restores all 15 field keys even when scheme has mostly empty fields', async () => {
     const data: StateBlob = {
       prompt: 'test',
+      mode: 'structured',
       schemes: [makeScheme('方案 1', { subject: '猫' })],
+      currentSchemeIndex: 0,
       originalPrompt: null,
     }
     const restored = await decompressStateBlob(await compressStateBlob(data))
@@ -133,7 +160,9 @@ describe('stripFields: empty fields are stripped before compression and restored
   it('preserves filled fields and restores empty ones as empty strings', async () => {
     const data: StateBlob = {
       prompt: 'test',
+      mode: 'structured',
       schemes: [makeScheme('方案 1', { subject: '猫', style: '水彩' })],
+      currentSchemeIndex: 0,
       originalPrompt: null,
     }
     const { fields } = (await decompressStateBlob(await compressStateBlob(data))).schemes[0]
@@ -149,16 +178,20 @@ describe('stripFields: empty fields are stripped before compression and restored
     // a scheme with all fields filled with placeholder text.
     const sparse: StateBlob = {
       prompt: 'test',
+      mode: 'structured',
       schemes: [makeScheme('方案 1', { subject: '猫' })],
+      currentSchemeIndex: 0,
       originalPrompt: null,
     }
     const dense: StateBlob = {
       prompt: 'test',
+      mode: 'structured',
       schemes: [makeScheme('方案 1', {
         subject: '主体描述文字', action: '动作描述文字', scene: '场景描述文字',
         composition: '构图描述文字', style: '风格描述文字', lighting: '光影描述文字',
         colorPalette: '色彩描述文字', textInImage: '画中文字', constraints: '约束描述文字',
       })],
+      currentSchemeIndex: 0,
       originalPrompt: null,
     }
     const sparseLen = (await compressStateBlob(sparse)).length
@@ -263,10 +296,33 @@ describe('updateUrl', () => {
 // --- Full pipeline: compress → URL → decompress ---
 
 describe('full pipeline: write to URL then read back', () => {
+  it('prompt-only text state survives a URL write/read cycle', async () => {
+    const original: StateBlob = {
+      prompt: '一只猫坐在窗台，望向夕阳',
+      mode: 'text',
+      schemes: [],
+      currentSchemeIndex: 0,
+      originalPrompt: null,
+    }
+
+    const replaceState = mockWindow('')
+    const compressed = await compressStateBlob(original)
+    updateUrl({ s: compressed })
+
+    const writtenUrl = replaceState.mock.calls[0][2] as string
+    const sParam = new URLSearchParams(writtenUrl.split('?')[1]).get('s')
+    expect(sParam).not.toBeNull()
+
+    const restored = await decompressStateBlob(sParam!)
+    expect(restored).toEqual(original)
+  })
+
   it('state survives a URL write/read cycle', async () => {
     const original: StateBlob = {
       prompt: '一只猫坐在窗台，望向夕阳',
+      mode: 'structured',
       schemes: [makeScheme('方案 1', { subject: '猫', style: '油画' })],
+      currentSchemeIndex: 0,
       originalPrompt: '一只猫',
     }
 
