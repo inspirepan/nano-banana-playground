@@ -282,9 +282,7 @@ export function PromptPanel({
                 <div className="relative group/reaugment">
                   <button type="button" onClick={() => handleAugment(true)} disabled={!originalPrompt}
                     className="flex items-center gap-1 px-3 py-1 text-xs rounded-full transition-colors bg-tertiary-dim text-tertiary hover:bg-tertiary hover:text-on-tertiary active:opacity-90 disabled:opacity-40 disabled:pointer-events-none">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
-                    </svg>
+                    <span className="material-symbols-rounded text-sm">refresh</span>
                     重新润色
                   </button>
                   <div className="absolute bottom-full left-0 mb-2 pointer-events-none whitespace-nowrap bg-on-surface text-surface text-xs px-2 py-1 rounded opacity-0 group-hover/reaugment:opacity-100 transition-opacity duration-150 delay-500 group-hover/reaugment:delay-500 z-50">
@@ -295,9 +293,7 @@ export function PromptPanel({
                   <div className="relative group/discard">
                     <button type="button" onClick={handleDiscardAugment}
                       className="flex items-center gap-1 px-3 py-1 text-xs rounded-full transition-colors bg-error-dim text-error hover:bg-error hover:text-on-primary active:opacity-90">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12.5 8c-2.65 0-5.05 1-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z" />
-                      </svg>
+                      <span className="material-symbols-rounded text-sm">undo</span>
                       撤销润色
                     </button>
                     <div className="absolute bottom-full right-0 mb-2 pointer-events-none whitespace-nowrap bg-on-surface text-surface text-xs px-2 py-1 rounded opacity-0 group-hover/discard:opacity-100 transition-opacity duration-150 delay-500 group-hover/discard:delay-500 z-50">
@@ -329,7 +325,7 @@ export function PromptPanel({
             {/* Scheme chips - only for multiple schemes */}
             {currentMode === 'structured' && schemes.length > 1 && (
               <div className="mb-3 flex flex-col gap-1.5">
-                <p className="text-2xs text-on-surface-variant/60 leading-snug ml-1">
+                <p className="text-2xs text-on-surface-variant leading-snug ml-1">
                   AI 生成了 {schemes.length} 个创意方案，选择查看或一键全部生成
                 </p>
                 {/* Chips row: scheme chips + generate-all */}
@@ -337,32 +333,46 @@ export function PromptPanel({
                   {schemes.map((scheme, i) => {
                     const isSelected = i === currentSchemeIndex
                     return (
-                      <button key={i} type="button" onClick={() => handleSelectScheme(i)}
-                        className={`px-4 py-1.5 text-sm font-medium rounded-full transition-colors
-                          ${isSelected
-                            ? 'bg-primary-dim text-primary font-semibold hover:bg-primary/15 active:bg-primary/20'
-                            : 'bg-surface-container text-on-surface hover:bg-on-surface/8 active:bg-on-surface/12'
-                          }`}>
-                        {scheme.title}
-                      </button>
+                      <div key={i} className="relative group">
+                        <button type="button" onClick={() => handleSelectScheme(i)}
+                          className={`px-4 py-1.5 text-sm font-medium rounded-full transition-colors
+                            ${isSelected
+                              ? 'bg-primary-dim text-primary hover:bg-primary/15 active:bg-primary/20'
+                              : 'bg-surface-container text-on-surface hover:bg-on-surface/8 active:bg-on-surface/12'
+                            }`}>
+                          {scheme.title}
+                        </button>
+                        {scheme.description && (
+                          <div className="absolute bottom-full left-0 mb-2 w-48
+                                          pointer-events-none bg-on-surface text-surface text-xs
+                                          px-2 py-1 rounded leading-snug
+                                          opacity-0 group-hover:opacity-100 transition-opacity duration-150 delay-500 z-50">
+                            {scheme.description}
+                          </div>
+                        )}
+                      </div>
                     )
                   })}
-                  <button type="button" disabled={isGenerating}
-                    onClick={() => { onDraftBatchOverride(null); handleGenerateAll() }}
-                    onMouseEnter={() => { if (!isGenerating) { onDraftBatchOverride(schemes.length, schemes.map((s) => s.title)); onDraftPreviewHover(true) } }}
-                    onMouseLeave={() => { onDraftBatchOverride(null); onDraftPreviewHover(false) }}
-                    className="flex items-center gap-1 px-4 py-1.5 text-sm rounded-full transition-colors
-                               font-medium bg-tertiary-dim text-tertiary hover:bg-tertiary hover:text-on-tertiary active:opacity-90
-                               disabled:opacity-40 disabled:pointer-events-none">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M19.46 8l.79-1.75L22 5.46c.39-.18.39-.73 0-.91l-1.75-.79L19.46 2c-.18-.39-.73-.39-.91 0l-.79 1.75-1.76.79c-.39.18-.39.73 0 .91l1.75.79.79 1.76c.18.39.74.39.92 0zM11.5 9.5L9.91 6c-.35-.78-1.47-.78-1.82 0L6.5 9.5 3 11.09c-.78.36-.78 1.47 0 1.82l3.5 1.59L8.09 18c.36.78 1.47.78 1.82 0l1.59-3.5 3.5-1.59c.78-.36.78-1.47 0-1.82L11.5 9.5z" />
-                    </svg>
-                    各生成一张
-                  </button>
+                  <div className="relative group/gen-all">
+                    <button type="button" disabled={isGenerating}
+                      onClick={() => { onDraftBatchOverride(null); handleGenerateAll() }}
+                      onMouseEnter={() => { if (!isGenerating) { onDraftBatchOverride(schemes.length, schemes.map((s) => s.title)); onDraftPreviewHover(true) } }}
+                      onMouseLeave={() => { onDraftBatchOverride(null); onDraftPreviewHover(false) }}
+                      className="flex items-center gap-1 px-4 py-1.5 text-sm rounded-full transition-colors
+                                 font-medium bg-tertiary-dim text-tertiary hover:bg-tertiary hover:text-on-tertiary active:opacity-90
+                                 disabled:opacity-40 disabled:pointer-events-none">
+                      各生成一张
+                    </button>
+                    <div className="absolute bottom-full left-0 mb-2 pointer-events-none whitespace-nowrap
+                                    bg-on-surface text-surface text-xs px-2 py-1 rounded
+                                    opacity-0 group-hover/gen-all:opacity-100 transition-opacity duration-150 delay-500 z-50">
+                      每个方案各生成 1 张，共 {schemes.length} 张
+                    </div>
+                  </div>
                 </div>
                 {/* Selected scheme description */}
                 {schemes[currentSchemeIndex]?.description && (
-                  <p className="text-2xs text-on-surface-variant leading-snug ml-1">
+                  <p className="text-xs text-on-surface-variant leading-snug ml-1 mt-2">
                     {schemes[currentSchemeIndex].description}
                   </p>
                 )}
@@ -371,7 +381,7 @@ export function PromptPanel({
 
             {/* Text editor with label highlighting */}
             <div className="relative">
-              <div className="relative rounded-xl border-b-2 border-b-outline-variant bg-surface-container hover:bg-surface-container-high hover:border-b-outline focus-within:bg-surface-container-high focus-within:border-b-primary transition-colors">
+              <div className="relative rounded-xl border-b-2 border-b-outline-variant bg-surface-container hover:bg-surface-container-high focus-within:bg-surface-container-high focus-within:border-b-primary transition-colors">
                 <div
                   aria-hidden="true"
                   className="absolute inset-0 px-3 py-3 pb-10 text-sm text-on-surface whitespace-pre-wrap break-words pointer-events-none overflow-hidden rounded-xl"
@@ -388,26 +398,26 @@ export function PromptPanel({
                   className="relative w-full px-3 py-3 pb-10 text-sm text-transparent bg-transparent focus:outline-none placeholder:text-transparent resize-none overflow-hidden" />
               </div>
               <div className="absolute left-2 right-2 bottom-3 flex items-center gap-2 mb-1">
+                <button type="button" onClick={handleHistoryUndo} disabled={!canUndo} title="撤销"
+                  className="flex items-center justify-center w-6 h-6 rounded-full transition-colors text-on-surface-variant hover:bg-surface-container-high disabled:opacity-25 disabled:pointer-events-none">
+                  <span className="material-symbols-rounded text-sm">undo</span>
+                </button>
+                <button type="button" onClick={handleHistoryRedo} disabled={!canRedo} title="重做"
+                  className="flex items-center justify-center w-6 h-6 rounded-full transition-colors text-on-surface-variant hover:bg-surface-container-high disabled:opacity-25 disabled:pointer-events-none">
+                  <span className="material-symbols-rounded text-sm">redo</span>
+                </button>
                 {prompt.trim() && (
                   <button type="button" onClick={handleClear}
                     className="px-3 py-1 text-xs rounded-full transition-colors bg-surface-container-high text-on-surface-variant hover:bg-on-surface/8 active:bg-on-surface/12">
                     清空
                   </button>
                 )}
-                <button type="button" onClick={handleHistoryUndo} disabled={!canUndo} title="撤销"
-                  className="flex items-center justify-center w-6 h-6 rounded-full transition-colors text-on-surface-variant hover:bg-surface-container-high disabled:opacity-25 disabled:pointer-events-none">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12.5 8c-2.65 0-5.05 1-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z" /></svg>
-                </button>
-                <button type="button" onClick={handleHistoryRedo} disabled={!canRedo} title="重做"
-                  className="flex items-center justify-center w-6 h-6 rounded-full transition-colors text-on-surface-variant hover:bg-surface-container-high disabled:opacity-25 disabled:pointer-events-none">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.4 10.6C16.55 8.99 14.15 8 11.5 8c-4.65 0-8.58 3.03-9.96 7.22L3.9 16c1.05-3.19 4.05-5.5 7.6-5.5 1.95 0 3.73.72 5.12 1.88L13 16h9V7l-3.6 3.6z" /></svg>
-                </button>
                 <div className="flex-1" />
                 {currentMode === 'text' && canAugment && (
                   <div className="relative group/augment">
                     <button type="button" onClick={() => handleAugment(false)}
                       className="flex items-center gap-1 px-3 py-1 text-xs rounded-full transition-colors bg-tertiary-dim text-tertiary hover:bg-tertiary hover:text-on-tertiary active:opacity-90">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19.46 8l.79-1.75L22 5.46c.39-.18.39-.73 0-.91l-1.75-.79L19.46 2c-.18-.39-.73-.39-.91 0l-.79 1.75-1.76.79c-.39.18-.39.73 0 .91l1.75.79.79 1.76c.18.39.74.39.92 0zM11.5 9.5L9.91 6c-.35-.78-1.47-.78-1.82 0L6.5 9.5 3 11.09c-.78.36-.78 1.47 0 1.82l3.5 1.59L8.09 18c.36.78 1.47.78 1.82 0l1.59-3.5 3.5-1.59c.78-.36.78-1.47 0-1.82L11.5 9.5zm7.04 6.5l-.79 1.75-1.75.79c-.39.18-.39.73 0 .91l1.75.79.79 1.76c.18.39.73.39.91 0l.79-1.75 1.76-.79c.39-.18.39-.73 0-.91l-1.75-.79-.79-1.76c-.18-.39-.74-.39-.92 0z" /></svg>
+                      <span className="material-symbols-rounded text-sm">auto_awesome</span>
                       润色
                     </button>
                     <div className="absolute bottom-full right-0 mb-2 pointer-events-none whitespace-nowrap bg-on-surface text-surface text-xs px-2 py-1 rounded opacity-0 group-hover/augment:opacity-100 transition-opacity duration-150 delay-500 group-hover/augment:delay-500 z-50">
@@ -433,7 +443,7 @@ export function PromptPanel({
             <div className="flex flex-wrap gap-2">
               {Array.from({ length: model.maxBatchCount }, (_, i) => i + 1).map((n) => (
                 <button key={n} type="button" onClick={() => onBatchCountChange(n)}
-                  className={`px-4 py-1 text-sm rounded-full transition-colors
+                  className={`px-4 py-1.5 text-sm rounded-full tabular-nums transition-colors
                     ${batchCount === n ? 'bg-primary-dim text-primary font-semibold hover:bg-primary/15 active:bg-primary/20' : 'bg-surface-container text-on-surface hover:bg-on-surface/8 active:bg-on-surface/12'}`}>
                   x{n}
                 </button>
@@ -446,6 +456,7 @@ export function PromptPanel({
         <div
           className="relative group/btn"
           onMouseEnter={() => {
+            if (!canGenerate) return
             onDraftPreviewHover(true)
             if (currentMode === 'structured' && schemes[currentSchemeIndex]) {
               const title = schemes[currentSchemeIndex].title
@@ -468,7 +479,7 @@ export function PromptPanel({
             {isGenerating ? '取消' : '生成'}
           </button>
           {!isGenerating && !apiKey.trim() && (
-            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-on-surface text-surface text-xs rounded-lg whitespace-nowrap pointer-events-none opacity-0 group-hover/btn:opacity-100 transition-opacity">
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-on-surface text-surface text-xs rounded whitespace-nowrap pointer-events-none opacity-0 group-hover/btn:opacity-100 transition-opacity">
               请先配置 API Key
             </div>
           )}
@@ -485,12 +496,12 @@ export function PromptPanel({
 
       {/* Undo snackbar */}
       {undoToast && (
-        <div className="fixed bottom-6 inset-x-0 mx-auto w-fit z-50 flex items-center gap-2 pl-4 pr-2 py-3 bg-on-surface text-surface text-sm rounded-xl shadow-lg animate-[slideUp_200ms_ease-out]">
+        <div className="fixed bottom-6 inset-x-0 mx-auto w-fit z-50 flex items-center gap-2 pl-4 pr-2 py-3 bg-on-surface text-surface text-sm rounded shadow-lg animate-[slideUp_200ms_ease-out]">
           <span>提示词已清空</span>
           <button type="button" onClick={handleUndo}
-            className="px-3 py-1 text-sm font-medium rounded-lg text-inverse-primary hover:bg-surface/10 active:bg-surface/15 transition-colors">撤销</button>
+            className="px-3 py-1 text-sm font-medium rounded-full text-inverse-primary hover:bg-surface/10 active:bg-surface/15 transition-colors">撤销</button>
           <button type="button" onClick={handleDismissToast} className="p-1 rounded-full hover:bg-surface/10 transition-colors">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" /></svg>
+            <span className="material-symbols-rounded text-base">close</span>
           </button>
         </div>
       )}

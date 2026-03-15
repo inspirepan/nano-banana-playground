@@ -56,7 +56,7 @@ export function AspectRatioSelector({ options, value, resolution, onChange }: Pr
               <button
                 type="button"
                 onClick={() => onChange(option)}
-                className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-colors text-left w-full
+                className={`flex items-center gap-2 px-3 py-3 rounded-xl transition-colors text-left w-full
                   ${
                     selected
                       ? 'bg-primary-dim hover:bg-primary/15 active:bg-primary/20'
@@ -69,7 +69,7 @@ export function AspectRatioSelector({ options, value, resolution, onChange }: Pr
                     style={{ width: shape.w, height: shape.h }}
                   />
                 </div>
-                <div className={`text-xs font-medium leading-none ${selected ? 'text-primary' : 'text-on-surface'}`}>
+                <div className={`text-sm font-medium leading-none tabular-nums ${selected ? 'text-primary' : 'text-on-surface'}`}>
                   {option}
                 </div>
               </button>
@@ -89,18 +89,10 @@ export function AspectRatioSelector({ options, value, resolution, onChange }: Pr
           type="button"
           onClick={() => setExpanded((v) => !v)}
           data-no-ripple
-          className="col-span-2 flex items-center gap-1 px-2 py-1 text-2xs font-medium text-on-surface-variant hover:text-on-surface transition-none focus:outline-none"
+          className="col-span-2 flex items-center gap-1 px-2 py-1 text-xs font-medium text-on-surface-variant hover:text-on-surface transition-none focus:outline-none"
         >
           <span>{expanded ? '收起' : `+${hiddenCount} 更多`}</span>
-          <svg
-            className={`w-4 h-4 transition-transform ${expanded ? 'rotate-180' : ''}`}
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2.5}
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-          </svg>
+          <span className={`material-symbols-rounded text-sm transition-transform ${expanded ? 'rotate-180' : ''}`}>expand_more</span>
         </button>
       </div>
     </div>

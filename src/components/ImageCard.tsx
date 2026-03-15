@@ -80,7 +80,7 @@ export const ImageCard = memo(function ImageCard({ image, index, onAddToRef, onR
 
       {/* Meta chip — top right, pill */}
       {meta && (
-        <div className="pointer-events-none absolute top-2 right-2 rounded-full bg-black/40 px-2 py-1 text-2xs font-medium text-white/90 backdrop-blur-md">
+        <div className="pointer-events-none absolute top-2 right-2 rounded-full bg-black/40 px-2 py-1 text-2xs font-medium tabular-nums text-white/90 backdrop-blur-md">
           {meta.resolution} · {meta.aspectRatio}
         </div>
       )}

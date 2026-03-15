@@ -49,7 +49,7 @@ export function ControlPanel({
                 key={m.id}
                 type="button"
                 onClick={() => onSwitchModel(m.id)}
-                className={`block w-full px-5 py-2 text-xs rounded-xl transition-colors text-center leading-snug
+                className={`block w-full px-5 py-3 text-sm rounded-xl transition-colors text-center leading-snug
                   ${
                     model.id === m.id
                       ? 'bg-primary-dim text-primary font-medium hover:bg-primary/15 active:bg-primary/20'

@@ -5,6 +5,7 @@ import type { PlaygroundImage } from './lib/types'
 import { ControlPanel } from './components/ControlPanel'
 import { PromptPanel } from './components/PromptPanel'
 import { OutputPanel } from './components/OutputPanel'
+import { AppTitle } from './components/AppTitle'
 
 type Theme = 'light' | 'dark' | 'system'
 
@@ -104,36 +105,20 @@ function App() {
   // Chevron icon rotates when sidebar collapses
   const collapseIcon = useMemo(
     () => (
-      <svg
-        className={`w-[18px] h-[18px] transition-transform duration-300 ease-[cubic-bezier(0.2,0,0,1)] ${
-          sidebarCollapsed ? 'rotate-180' : ''
-        }`}
-        fill="currentColor"
-        viewBox="0 0 24 24"
-      >
-        {/* chevron_left */}
-        <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
-      </svg>
+      <span className={`material-symbols-rounded text-[18px] transition-transform duration-300 ease-[cubic-bezier(0.2,0,0,1)] ${
+        sidebarCollapsed ? 'rotate-180' : ''
+      }`}>chevron_left</span>
     ),
     [sidebarCollapsed]
   )
 
   const themeIcon =
     theme === 'light' ? (
-      // dark_mode - Material Symbols filled
-      <svg className="w-[18px] h-[18px]" fill="currentColor" viewBox="0 0 24 24">
-        <path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z" />
-      </svg>
+      <span className="material-symbols-rounded text-[18px]">dark_mode</span>
     ) : theme === 'dark' ? (
-      // light_mode - Material Symbols filled
-      <svg className="w-[18px] h-[18px]" fill="currentColor" viewBox="0 0 24 24">
-        <path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1zM5.99 4.58c-.39-.39-1.03-.39-1.41 0-.39.39-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41L5.99 4.58zm12.37 12.37c-.39-.39-1.03-.39-1.41 0-.39.39-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0 .39-.39.39-1.03 0-1.41l-1.06-1.06zm1.06-10.96c.39-.39.39-1.03 0-1.41-.39-.39-1.03-.39-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06zM7.05 18.36c.39-.39.39-1.03 0-1.41-.39-.39-1.03-.39-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06z" />
-      </svg>
+      <span className="material-symbols-rounded text-[18px]">light_mode</span>
     ) : (
-      // contrast / half-circle for "follow system"
-      <svg className="w-[18px] h-[18px]" fill="currentColor" viewBox="0 0 24 24">
-        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18V4c4.41 0 8 3.59 8 8s-3.59 8-8 8z" />
-      </svg>
+      <span className="material-symbols-rounded text-[18px]">contrast</span>
     )
 
   return (
@@ -142,7 +127,7 @@ function App() {
     <div className="flex flex-col h-[100dvh] md:hidden">
       {/* Top bar */}
       <div className="flex items-center justify-between px-4 py-3 shrink-0 border-b border-outline/10">
-        <h1 className="text-sm font-medium text-on-surface">Nano Banana Playground</h1>
+        <AppTitle className="text-xl text-on-surface" />
         <button
           type="button"
           onClick={cycleTheme}
@@ -225,7 +210,7 @@ function App() {
       <div
         className={`relative shrink-0
                     transition-[width] duration-300 ease-[cubic-bezier(0.2,0,0,1)]
-                    ${sidebarCollapsed ? 'w-10' : 'w-[200px]'}`}
+                    ${sidebarCollapsed ? 'w-10' : 'w-[240px]'}`}
       >
         {/* 🍌 — visible when collapsed, positioned in Layer 1 (no overflow clip) */}
         <div
@@ -240,13 +225,11 @@ function App() {
         <div className="h-full overflow-hidden bg-surface-container border-r border-outline/10 flex flex-col py-4 pb-14 pl-4">
           {/* Title — fades out when collapsed */}
           <div className="mb-4 shrink-0">
-            <h1
-              className={`text-sm font-medium text-on-surface whitespace-nowrap
+            <AppTitle
+              className={`text-xl text-on-surface whitespace-nowrap
                           transition-opacity duration-200
                           ${sidebarCollapsed ? 'opacity-0' : 'opacity-100'}`}
-            >
-              Nano Banana Playground
-            </h1>
+            />
           </div>
 
           {/* ControlPanel — fades out when collapsed */}
@@ -277,12 +260,9 @@ function App() {
           {/* overflow-hidden removed — individual corner rounding lets tooltips escape */}
           <div className="flex items-center h-8 rounded-full border border-outline">
             {([
-              { t: 'light' as const, label: '浅色',
-                icon: <path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1zM5.99 4.58c-.39-.39-1.03-.39-1.41 0-.39.39-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41L5.99 4.58zm12.37 12.37c-.39-.39-1.03-.39-1.41 0-.39.39-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0 .39-.39.39-1.03 0-1.41l-1.06-1.06zm1.06-10.96c.39-.39.39-1.03 0-1.41-.39-.39-1.03-.39-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06zM7.05 18.36c.39-.39.39-1.03 0-1.41-.39-.39-1.03-.39-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06z" /> },
-              { t: 'dark' as const, label: '深色',
-                icon: <path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z" /> },
-              { t: 'system' as const, label: '跟随系统',
-                icon: <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18V4c4.41 0 8 3.59 8 8s-3.59 8-8 8z" /> },
+              { t: 'light' as const, label: '浅色', icon: 'light_mode' },
+              { t: 'dark' as const, label: '深色', icon: 'dark_mode' },
+              { t: 'system' as const, label: '跟随系统', icon: 'contrast' },
             ]).map(({ t, label, icon }, i, arr) => (
               <div key={t} className="relative group/theme">
                 <button
@@ -296,11 +276,11 @@ function App() {
                       : 'bg-transparent text-on-surface-variant hover:bg-on-surface/8 active:bg-on-surface/12 hover:text-on-surface'
                     }`}
                 >
-                  <svg className="w-[18px] h-[18px]" fill="currentColor" viewBox="0 0 24 24">{icon}</svg>
+                  <span className="material-symbols-rounded text-[18px]">{icon}</span>
                 </button>
                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2
                                 pointer-events-none whitespace-nowrap
-                                bg-on-surface text-surface text-xs px-2 py-1 rounded-lg
+                                bg-on-surface text-surface text-xs px-2 py-1 rounded
                                 opacity-0 group-hover/theme:opacity-100
                                 transition-opacity duration-150 delay-500
                                 z-50">

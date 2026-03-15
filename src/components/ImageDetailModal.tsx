@@ -125,9 +125,7 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
                              shadow-sm backdrop-blur-sm transition-colors hover:bg-surface active:bg-surface-dim"
                   aria-label="关闭对比"
                 >
-                  <svg className="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
-                  </svg>
+                  <span className="material-symbols-rounded text-sm shrink-0">close</span>
                   关闭对比
                 </button>
               </div>
@@ -156,9 +154,7 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
                          transition-colors hover:bg-surface active:bg-surface-dim"
               aria-label="上一张"
             >
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
-              </svg>
+              <span className="material-symbols-rounded text-base">chevron_left</span>
             </button>
           )}
           {!refDetail && hasNext && (
@@ -172,9 +168,7 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
                          transition-colors hover:bg-surface active:bg-surface-dim"
               aria-label="下一张"
             >
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/>
-              </svg>
+              <span className="material-symbols-rounded text-base">chevron_right</span>
             </button>
           )}
 
@@ -200,9 +194,7 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
                          active:bg-on-surface/12 transition-colors"
               aria-label="关闭"
             >
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
-              </svg>
+              <span className="material-symbols-rounded text-base">close</span>
             </button>
           </div>
 
@@ -256,7 +248,7 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
             <div
               className={`pointer-events-none absolute inset-x-0 top-0 flex -translate-y-1/2 justify-center transition-all duration-300 ${toast ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}`}
             >
-              <div className="rounded-lg bg-on-surface/80 px-4 py-2 text-xs font-medium text-surface backdrop-blur-sm">
+              <div className="rounded bg-on-surface/80 px-4 py-2 text-xs font-medium text-surface backdrop-blur-sm">
                 已复制
               </div>
             </div>
@@ -559,9 +551,7 @@ function ZoomableImageView({ src, alt, label, onSwipeLeft, onSwipeRight }: {
                      shadow-sm backdrop-blur-sm transition-colors hover:bg-surface active:bg-surface-dim"
           aria-label="放大"
         >
-          <svg className="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14zm.5-7H9v2H7v1h2v2h1v-2h2V9h-2z"/>
-          </svg>
+          <span className="material-symbols-rounded text-sm shrink-0">zoom_in</span>
           放大
         </button>
         <button
@@ -572,9 +562,7 @@ function ZoomableImageView({ src, alt, label, onSwipeLeft, onSwipeRight }: {
                      shadow-sm backdrop-blur-sm transition-colors hover:bg-surface active:bg-surface-dim"
           aria-label="重置"
         >
-          <svg className="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M15 3l2.3 2.3-2.89 2.87 1.42 1.42L18.7 6.7 21 9V3zM3 9l2.3-2.3 2.87 2.89 1.42-1.42L6.7 5.3 9 3H3zm6 12-2.3-2.3 2.89-2.87-1.42-1.42L5.3 17.3 3 15v6zm12-6-2.3 2.3-2.87-2.89-1.42 1.42 2.89 2.87L15 21h6z"/>
-          </svg>
+          <span className="material-symbols-rounded text-sm shrink-0">zoom_out_map</span>
           重置
         </button>
       </div>

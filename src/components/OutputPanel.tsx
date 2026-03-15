@@ -47,21 +47,15 @@ function groupByBatch(images: PlaygroundImage[]): HistoryBatch[] {
   return Array.from(map.values()).sort((a, b) => b.timestamp - a.timestamp)
 }
 
-const SHIMMER_DURATION = 2000 // ms, must match CSS animation duration
-
 function SkeletonCard({ aspectRatio, resolution, label }: { aspectRatio: string; resolution: string; label?: string }) {
-  // Compute delay once on mount and never change it — prevents animation restart on re-render.
-  // -(Date.now() % duration) anchors all cards to the same global clock epoch.
-  const delayRef = useRef(-(Date.now() % SHIMMER_DURATION) / 1000)
-
   return (
     <div className="w-full h-full rounded-xl bg-surface-container overflow-hidden relative">
       <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
         {label && <div className="text-sm font-medium text-on-surface-variant/40 px-2 text-center">{label}</div>}
-        <div className="text-xs font-mono text-on-surface-variant/30">{resolution} {aspectRatio}</div>
+        <div className="text-xs tabular-nums text-on-surface-variant/30">{resolution} {aspectRatio}</div>
         <div className="text-sm text-on-surface-variant/25">按「生成」键确认</div>
       </div>
-      <div className="absolute skeleton-shimmer" style={{ animationDelay: `${delayRef.current}s` }} />
+      <div className="absolute skeleton-shimmer" />
     </div>
   )
 }
@@ -72,7 +66,7 @@ function LoadingCard({ index }: { index: number }) {
       <div className="absolute inset-0 flex items-center justify-center">
         <div className="text-center space-y-2">
           <div className="w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin mx-auto" />
-          <div className="text-2xs font-mono text-on-surface-variant/50">{`生成中 #${index + 1}...`}</div>
+          <div className="text-2xs tabular-nums text-on-surface-variant/50">{`生成中 #${index + 1}...`}</div>
         </div>
       </div>
     </div>
@@ -85,7 +79,7 @@ function FailedCard({ index }: { index: number }) {
       <div className="absolute inset-0 flex items-center justify-center">
         <div className="text-center space-y-2">
           <div className="mx-auto flex h-5 w-5 items-center justify-center rounded-full bg-error/12 text-error text-xs font-bold">×</div>
-          <div className="text-2xs font-mono text-error/80">{`失败 #${index + 1}`}</div>
+          <div className="text-2xs tabular-nums text-error/80">{`失败 #${index + 1}`}</div>
         </div>
       </div>
     </div>
@@ -161,6 +155,24 @@ export const OutputPanel = memo(function OutputPanel({
       scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
     }
   }, [showDraft, isGenerating])
+
+  // Global shimmer clock: rAF drives a shared CSS variable so all skeletons stay in sync
+  const hasSkeletons = showDraft || (isGenerating && previewSlots.some((s) => s.status === 'pending'))
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el || !hasSkeletons) return
+    let frameId: number
+    const DURATION = 2000
+    const tick = () => {
+      const t = (Date.now() % DURATION) / DURATION
+      // Approximate CSS ease-in-out
+      const e = t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2
+      el.style.setProperty('--shimmer-x', `${-60 + 120 * e}%`)
+      frameId = requestAnimationFrame(tick)
+    }
+    frameId = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(frameId)
+  }, [hasSkeletons])
 
   return (
     <div ref={scrollRef} className="flex-1 md:flex-[2_1_0%] overflow-visible md:overflow-y-auto [scrollbar-gutter:stable] md:pl-6 md:pr-8">
@@ -241,7 +253,7 @@ export const OutputPanel = memo(function OutputPanel({
                 <div className="mb-2 flex items-center justify-between gap-3 text-2xs font-mono text-on-surface-variant/50">
                   <div>{formatTime(batch.timestamp)}</div>
                   <div className="truncate">
-                    {batch.resolution} · {batch.aspectRatio} · {batch.images.length} 张
+                    {batch.resolution} · {batch.aspectRatio} · {batch.images.length}张
                   </div>
                 </div>
                 <ImageGrid>

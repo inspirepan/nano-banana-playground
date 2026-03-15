@@ -63,6 +63,16 @@
   --color-inverse-primary: #8ab4f8;
 }
 
+/* Material Symbols Rounded icon font */
+.material-symbols-rounded {
+  font-family: 'Material Symbols Rounded';
+  font-variation-settings: 'FILL' 1, 'wght' 300, 'GRAD' 0, 'opsz' 20;
+  line-height: 1;
+  display: inline-block;
+  user-select: none;
+  font-style: normal;
+}
+
 @layer base {
   body {
     margin: 0;
@@ -70,6 +80,7 @@
     -moz-osx-font-smoothing: grayscale;
     background: var(--color-surface-dim);
     color: var(--color-on-surface);
+    font-variation-settings: 'opsz' 13;
   }
 
   .skeleton-shimmer {
@@ -83,7 +94,7 @@
       rgba(0, 0, 0, 0.07) 50%,
       transparent 65%
     );
-    animation: shimmer 2s ease-in-out infinite;
+    transform: rotate(45deg) translateX(var(--shimmer-x, -60%));
   }
 
   .dark .skeleton-shimmer {
@@ -128,6 +139,7 @@
   .dark body {
     background: var(--color-surface-dim);
     color: var(--color-on-surface);
+    font-variation-settings: 'GRAD' 60, 'opsz' 13;
   }
 
   /* Custom scrollbar — thin, adaptive for light/dark */
@@ -165,11 +177,6 @@
   }
 }
 
-@keyframes shimmer {
-  0% { transform: rotate(45deg) translateX(-60%); }
-  100% { transform: rotate(45deg) translateX(60%); }
-}
-
 @keyframes slideUp {
   from { opacity: 0; translate: 0 12px; }
   to { opacity: 1; translate: 0 0; }
@@ -181,5 +188,17 @@
     position: relative;
     overflow: hidden;
     -webkit-tap-highlight-color: transparent;
+  }
+
+  /* App title — condensed/bold default; JS animates per-char on mousemove */
+  .app-title {
+    font-variation-settings: 'wght' 650, 'wdth' 65, 'opsz' 24, 'GRAD' 0;
+  }
+  .dark .app-title {
+    font-variation-settings: 'wght' 650, 'wdth' 65, 'opsz' 24, 'GRAD' 60;
+  }
+  /* Per-char spans: smooth trail as mouse moves away */
+  .app-title span {
+    transition: font-variation-settings 0.4s cubic-bezier(0.2, 0, 0, 1);
   }
 }

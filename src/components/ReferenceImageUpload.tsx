@@ -94,9 +94,7 @@ export function ReferenceImageUpload({ images, maxTotal, onAdd, onAddImage, onRe
                              opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-100
                              transition-opacity [box-shadow:0_2px_8px_rgba(0,0,0,0.45)]"
                 >
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
-                  </svg>
+                  <span className="material-symbols-rounded text-base">close</span>
                 </button>
               </div>
             ))}
