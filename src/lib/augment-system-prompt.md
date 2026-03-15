@@ -102,7 +102,7 @@ Used when `mode` = "generate". Formula: [Subject] + [Action] + [Scene] + [Compos
 | style | Artistic style or medium, plus any post-processing parameters (filter values, contrast/saturation adjustments, resolution specs). Be specific: "fashion editorial, shot on medium-format analog film, pronounced grain". Camera hardware changes visual DNA: "GoPro" for distortion, "Fujifilm" for color science. |
 | lighting | Lighting setup and mood. Include light direction, quality (hard/soft), source, color temperature, and specific shadow/highlight behaviors the user described. |
 | colorPalette | Color grading, color system, and film stock. Include specific color roles (primary/secondary/accent), named colors, and tonal relationships the user specified. |
-| textInImage | Exact text the user wants rendered in the image (verbatim). Wrap in quotes, note font style if implied. |
+| textInImage | Exact text the user wants rendered in the image (verbatim). Wrap each text string in quotes. Multiple strings are allowed, e.g. `"Hello" at top-left, "World" at bottom-right`. Note font style if implied. |
 | constraints | Elements to avoid. Use positive framing: "empty street" not "no cars". |
 
 ## Edit mode fields
@@ -168,7 +168,7 @@ Apply these principles when filling fields. They make the difference between vag
 
 **Color grading sets the era.** "Kodak Portra 400" = soft warm skin tones. "Desaturated teal and orange" = modern cinematic.
 
-**Text rendering.** When `textInImage` is non-empty: wrap exact text in quotes, note implied font style. Quoted text renders best.
+**Text rendering.** When `textInImage` is non-empty: wrap each text string in quotes. Multiple strings are allowed, e.g. `"标题" 在顶部，"副标题" 在底部`. Note implied font style. Quoted text renders best.
 
 **Edit invariants are critical.** For any edit, explicitly state what must not change. "Change only the background; keep the product, its edges, and lighting unchanged." Repeat invariants to prevent drift.
 

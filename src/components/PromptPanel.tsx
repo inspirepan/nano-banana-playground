@@ -79,7 +79,7 @@ function assemblePrompt(fields: StructuredPrompt): string {
     if (fields.style.trim()) lines.push(`风格：${fields.style.trim()}`)
     if (fields.lighting.trim()) lines.push(`光影：${fields.lighting.trim()}`)
     if (fields.colorPalette.trim()) lines.push(`色彩：${fields.colorPalette.trim()}`)
-    if (fields.textInImage.trim()) lines.push(`画中文字："${fields.textInImage.trim()}"`)
+    if (fields.textInImage.trim()) lines.push(`画中文字：${fields.textInImage.trim()}`)
     if (fields.constraints.trim()) lines.push(`避免：${fields.constraints.trim()}`)
   }
   return lines.join('\n\n')
@@ -112,7 +112,6 @@ function parsePrompt(text: string): StructuredPrompt | null {
     const start = markers[i].end
     const end = i + 1 < markers.length ? markers[i + 1].pos : text.length
     let value = text.slice(start, end).replace(/[\n\s]+$/, '').trim()
-    if (markers[i].key === 'textInImage') value = value.replace(/^["\u201C]|["\u201D]$/g, '')
     fields[markers[i].key] = value
   }
   return fields
