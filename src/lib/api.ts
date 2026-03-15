@@ -29,6 +29,9 @@ type ApiResponse = {
   error?: { message: string; code: number }
 }
 
+const GENERATE_MAX_RETRIES = 2
+const GENERATE_RETRY_DELAYS = [1000, 3000]
+
 export async function generateImage(
   params: GenerateParams,
   signal?: AbortSignal,
@@ -58,7 +61,7 @@ export async function generateImage(
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model.apiModel}:generateContent`
 
-  const res = await fetch(url, {
+  const requestInit: RequestInit = {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -66,53 +69,78 @@ export async function generateImage(
     },
     body: JSON.stringify(body),
     signal,
-  })
-
-  const data: ApiResponse = await res.json()
-
-  if (data.error) {
-    throw new Error(data.error.message)
   }
 
-  if (!data.candidates?.length) {
-    throw new Error('No response from model')
+  let lastError: unknown
+  for (let attempt = 0; attempt <= GENERATE_MAX_RETRIES; attempt++) {
+    if (attempt > 0) {
+      const delay = GENERATE_RETRY_DELAYS[attempt - 1]
+      await new Promise((r) => setTimeout(r, delay))
+      if (signal?.aborted) throw signal.reason
+    }
+
+    let res: Response
+    try {
+      res = await fetch(url, requestInit)
+    } catch (e) {
+      lastError = e
+      if (isRetryable(e) && attempt < GENERATE_MAX_RETRIES) continue
+      throw e
+    }
+
+    if (isRetryable(null, res.status) && attempt < GENERATE_MAX_RETRIES) {
+      lastError = new Error(`Server error ${res.status}`)
+      continue
+    }
+
+    const data: ApiResponse = await res.json()
+
+    if (data.error) {
+      throw new Error(data.error.message)
+    }
+
+    if (!data.candidates?.length) {
+      throw new Error('No response from model')
+    }
+
+    const imagePart = data.candidates[0].content.parts.find(
+      (p) => p.inlineData || p.inline_data,
+    )
+
+    if (!imagePart) {
+      const textPart = data.candidates[0].content.parts.find((p) => p.text)
+      throw new Error(textPart?.text || 'No image in response')
+    }
+
+    const imageData = imagePart.inlineData ?? imagePart.inline_data
+    if (!imageData) {
+      throw new Error('No image data in response')
+    }
+
+    const mimeType =
+      ('mimeType' in imageData ? imageData.mimeType : undefined) ??
+      ('mime_type' in imageData ? imageData.mime_type : undefined) ??
+      'image/png'
+    const base64 = imageData.data
+
+    return {
+      id: crypto.randomUUID(),
+      data: base64,
+      mimeType,
+      source: {
+        type: 'generated',
+        modelId: model.id,
+        prompt,
+        resolution,
+        aspectRatio,
+        referenceImageIds: referenceImages.map((r) => r.id),
+        batchId,
+      },
+      timestamp: Date.now(),
+    }
   }
 
-  const imagePart = data.candidates[0].content.parts.find(
-    (p) => p.inlineData || p.inline_data,
-  )
-
-  if (!imagePart) {
-    const textPart = data.candidates[0].content.parts.find((p) => p.text)
-    throw new Error(textPart?.text || 'No image in response')
-  }
-
-  const imageData = imagePart.inlineData ?? imagePart.inline_data
-  if (!imageData) {
-    throw new Error('No image data in response')
-  }
-
-  const mimeType =
-    ('mimeType' in imageData ? imageData.mimeType : undefined) ??
-    ('mime_type' in imageData ? imageData.mime_type : undefined) ??
-    'image/png'
-  const base64 = imageData.data
-
-  return {
-    id: crypto.randomUUID(),
-    data: base64,
-    mimeType,
-    source: {
-      type: 'generated',
-      modelId: model.id,
-      prompt,
-      resolution,
-      aspectRatio,
-      referenceImageIds: referenceImages.map((r) => r.id),
-      batchId,
-    },
-    timestamp: Date.now(),
-  }
+  throw lastError
 }
 
 const AUGMENT_MODEL = 'gemini-3-flash-preview'

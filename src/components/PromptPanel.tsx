@@ -417,11 +417,10 @@ export function PromptPanel({
                   <div className="relative group/augment">
                     <button type="button" onClick={() => handleAugment(false)}
                       className="flex items-center gap-1 px-3 py-1 text-xs rounded-full transition-colors bg-tertiary-dim text-tertiary hover:bg-tertiary hover:text-on-tertiary active:opacity-90">
-                      <span className="material-symbols-rounded text-sm">auto_awesome</span>
-                      润色
+润色
                     </button>
                     <div className="absolute bottom-full right-0 mb-2 pointer-events-none whitespace-nowrap bg-on-surface text-surface text-xs px-2 py-1 rounded opacity-0 group-hover/augment:opacity-100 transition-opacity duration-150 delay-500 group-hover/augment:delay-500 z-50">
-                      Gemini 3 Flash 润色提示词
+                      使用 Gemini 3 Flash 润色提示词
                     </div>
                   </div>
                 )}
@@ -437,20 +436,18 @@ export function PromptPanel({
       {/* Batch count + generate button + cost */}
       <div className="flex flex-col gap-4 mt-4">
         {/* Batch count */}
-        {currentMode !== 'augmenting' && (
-          <div>
-            <label className="block text-xs font-medium text-on-surface-variant mb-2">数量</label>
-            <div className="flex flex-wrap gap-2">
-              {Array.from({ length: model.maxBatchCount }, (_, i) => i + 1).map((n) => (
-                <button key={n} type="button" onClick={() => onBatchCountChange(n)}
-                  className={`px-4 py-1.5 text-sm rounded-full tabular-nums transition-colors
-                    ${batchCount === n ? 'bg-primary-dim text-primary font-semibold hover:bg-primary/15 active:bg-primary/20' : 'bg-surface-container text-on-surface hover:bg-on-surface/8 active:bg-on-surface/12'}`}>
-                  x{n}
-                </button>
-              ))}
-            </div>
+        <div>
+          <label className="block text-xs font-medium text-on-surface-variant mb-2">数量</label>
+          <div className="flex flex-wrap gap-2">
+            {Array.from({ length: model.maxBatchCount }, (_, i) => i + 1).map((n) => (
+              <button key={n} type="button" onClick={() => onBatchCountChange(n)}
+                className={`px-4 py-1.5 text-sm rounded-full tabular-nums transition-colors
+                  ${batchCount === n ? 'bg-primary-dim text-primary font-semibold hover:bg-primary/15 active:bg-primary/20' : 'bg-surface-container text-on-surface hover:bg-on-surface/8 active:bg-on-surface/12'}`}>
+                x{n}
+              </button>
+            ))}
           </div>
-        )}
+        </div>
 
         {/* Generate Button */}
         <div

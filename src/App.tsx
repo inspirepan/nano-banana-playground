@@ -276,7 +276,7 @@ function App() {
                       : 'bg-transparent text-on-surface-variant hover:bg-on-surface/8 active:bg-on-surface/12 hover:text-on-surface'
                     }`}
                 >
-                  <span className="material-symbols-rounded text-[18px]">{icon}</span>
+                  <span className="material-symbols-rounded" style={{ fontSize: 18, fontVariationSettings: "'FILL' 1, 'wght' 300, 'GRAD' 0, 'opsz' 18" }}>{icon}</span>
                 </button>
                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2
                                 pointer-events-none whitespace-nowrap
