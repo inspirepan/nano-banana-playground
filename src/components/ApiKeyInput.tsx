@@ -35,20 +35,20 @@ export function ApiKeyInput({ apiKey, status, onSubmit, onReset }: Props) {
             onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
             placeholder="粘贴你的 Gemini API Key"
             className="flex-1 min-w-0 px-3 py-2 text-sm bg-surface-container md:bg-surface-container-high rounded-xl
-                       focus:outline-none focus:ring-1 focus:ring-primary
+                       border border-transparent focus:border-primary focus:outline-none
                        transition-all
-                       placeholder:text-on-surface-variant/40"
+                       placeholder:text-xs placeholder:text-on-surface-variant/40"
           />
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={!draft.trim()}
-            className="px-3 py-2 text-sm font-medium rounded-full bg-primary text-on-primary
-                       hover:bg-primary-hover active:bg-primary/80 transition-colors
-                       disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
-          >
-            设置
-          </button>
+          {draft.trim() && (
+            <button
+              type="button"
+              onClick={handleSubmit}
+              className="px-3 py-2 text-sm font-medium rounded-full bg-primary text-on-primary
+                         hover:bg-primary-hover active:bg-primary/80 transition-colors shrink-0"
+            >
+              设置
+            </button>
+          )}
         </div>
         {error && <div className="text-xs text-error mt-2">{error}</div>}
       </div>

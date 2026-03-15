@@ -533,7 +533,7 @@ export function PromptPanel({
           </button>
           {!isGenerating && !apiKey.trim() && (
             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-on-surface text-surface text-xs rounded-lg whitespace-nowrap pointer-events-none opacity-0 group-hover/btn:opacity-100 transition-opacity">
-              请先配置 API 密钥
+              请先配置 API Key
             </div>
           )}
         </div>
