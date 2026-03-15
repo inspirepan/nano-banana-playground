@@ -24,6 +24,7 @@ function App() {
     return localStorage.getItem('nano-banana-sidebar-collapsed') === 'true'
   })
   const mobileRefAreaRef = useRef<HTMLDivElement>(null)
+  const mobileOutputAreaRef = useRef<HTMLDivElement>(null)
 
   const handleAddToRef = useCallback((image: PlaygroundImage) => {
     addToReferences(image)
@@ -46,6 +47,15 @@ function App() {
     document.documentElement.classList.toggle('dark', theme === 'dark')
     localStorage.setItem('nano-banana-theme', theme)
   }, [theme])
+
+  // Scroll to output area on mobile when generation starts
+  useEffect(() => {
+    if (pg.generationState === 'generating' && window.innerWidth < 768) {
+      setTimeout(() => {
+        mobileOutputAreaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }, 100)
+    }
+  }, [pg.generationState])
 
   // Auto-collapse sidebar when viewport drops below xl (1280px)
   useEffect(() => {
@@ -160,7 +170,7 @@ function App() {
             onDraftBatchOverride={setDraftBatchOverride}
           />
         </div>
-        <div className="border-t border-outline/10">
+        <div ref={mobileOutputAreaRef} className="border-t border-outline/10">
           <OutputPanel
             history={pg.history}
             generationState={pg.generationState}

@@ -514,7 +514,6 @@ export function PromptPanel({
               onSelectScheme={handleSelectScheme}
               onChangeScheme={handleChangeScheme}
               onGenerateAll={handleGenerateAll}
-              onCancel={onCancel}
               onDraftBatchOverride={onDraftBatchOverride}
             />
           </div>
