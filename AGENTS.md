@@ -85,6 +85,10 @@ docs/refs/                  # API 和提示词参考文档
 - **暗色模式**：基于 `<html>` 的 `.dark` 类名，不用 `prefers-color-scheme`。
 - **UI 文字**：全部中文；代码注释保持英文。
 
+## 评测
+
+提示词增强（`src/lib/augment-system-prompt.md`）有 LLM-as-Judge 回归测试：`eval/cases.json` 定义用例与断言，`eval/run.py`（`uv run eval/run.py -j 6`）调用增强模型后用 judge 模型逐条判定 + 打分。修改增强提示词后必须跑通。
+
 ## 精选知识源
 
 - Gemini 图像生成 API：`docs/refs/nano-banana-api-guide.md`

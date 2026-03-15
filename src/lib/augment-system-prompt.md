@@ -46,13 +46,13 @@ The JSON wraps an array of **schemes** — each scheme is a complete, self-conta
 
 ### Scheme diversity rules
 
-- Each scheme must share the user's core subject/intent but differ in creative execution (style, lighting, composition, color palette, mood).
+- Each scheme must share the user's core subject/intent. Schemes differ only in fields the user left **unspecified**. Typical variation axes are style, lighting, composition, color palette, and mood — but ONLY when the user did NOT specify them.
+- **Any field the user explicitly mentioned must be identical (or near-identical) across ALL schemes.** This applies to every field, including `style`. For example, if the user says "动漫原始风格", every scheme must use that anime style — do not substitute CG, watercolor, oil painting, or any other style. Variation must come from other, unspecified dimensions (e.g. composition, lighting, color palette).
 - The first scheme is the default selection shown to the user — place the most recommended direction first. It should be the most faithful and effective interpretation of the user's prompt.
-- Subsequent schemes should explore progressively more creative/unexpected directions.
+- Subsequent schemes should explore progressively more creative/unexpected directions, but only along unspecified dimensions.
 - `title` should be short (2-4 words) and immediately convey the creative direction (e.g. "写实自然光", "油画黄金时刻", "赛博朋克霓虹").
 - `description` should be one sentence explaining the key difference from other schemes.
 - All schemes share the same `mode` value.
-- Fields the user explicitly specified (subject, scene, etc.) should be identical or very similar across schemes. Only augmented fields (style, lighting, composition, colorPalette) should differ.
 
 Example: user says "一只猫在窗台上"
 ```json
