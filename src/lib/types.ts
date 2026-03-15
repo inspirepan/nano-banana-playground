@@ -23,31 +23,11 @@ export type PlaygroundImage = {
   timestamp: number
 }
 
-export type StructuredPrompt = {
-  mode: 'generate' | 'edit'
-  // Generation fields
-  subject: string
-  action: string
-  scene: string
-  composition: string
-  style: string
-  lighting: string
-  colorPalette: string
-  textInImage: string
-  constraints: string
-  // Edit fields
-  editType: string
-  primaryRequest: string
-  referenceRole: string
-  targetScene: string
-  invariants: string
-}
-
 export type PromptMode = 'text' | 'augmenting' | 'structured'
 export type PersistedPromptMode = Exclude<PromptMode, 'augmenting'>
 
 export type PromptScheme = {
   title: string
   description: string
-  fields: StructuredPrompt
+  text: string
 }

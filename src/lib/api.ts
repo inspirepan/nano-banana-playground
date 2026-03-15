@@ -149,6 +149,46 @@ const SCHEMES_SCHEMA = {
   required: ['schemes'],
 }
 
+// Convert structured API response fields into a readable labelled-text prompt
+function assemblePrompt(s: Record<string, string>): string {
+  const v = (key: string) => {
+    const raw = s[key]?.trim()
+    return raw && raw !== '无' ? raw : ''
+  }
+  const lines: string[] = []
+  const isEdit = s.mode === 'edit'
+  if (isEdit) {
+    if (v('editType')) lines.push(`编辑类型：${v('editType')}`)
+    if (v('primaryRequest')) lines.push(`编辑请求：${v('primaryRequest')}`)
+    if (v('referenceRole')) lines.push(`参考图说明：${v('referenceRole')}`)
+    if (v('targetScene')) lines.push(`目标场景：${v('targetScene')}`)
+    if (v('style')) lines.push(`目标风格：${v('style')}`)
+    if (v('invariants')) lines.push(`保持不变：${v('invariants')}`)
+    if (v('constraints')) lines.push(`避免：${v('constraints')}`)
+  } else {
+    const desc = [v('subject'), v('action'), v('scene')].filter(Boolean).join('\n')
+    if (desc) lines.push(desc)
+    if (v('composition')) lines.push(`构图：${v('composition')}`)
+    if (v('style')) lines.push(`风格：${v('style')}`)
+    if (v('lighting')) lines.push(`光影：${v('lighting')}`)
+    if (v('colorPalette')) lines.push(`色彩：${v('colorPalette')}`)
+    if (v('textInImage')) lines.push(`画中文字：${v('textInImage')}`)
+    if (v('constraints')) lines.push(`避免：${v('constraints')}`)
+  }
+  return lines.join('\n\n')
+}
+
+const AUGMENT_MAX_RETRIES = 2
+const AUGMENT_RETRY_DELAYS = [1000, 3000]
+
+function isRetryable(error: unknown, status?: number): boolean {
+  // Network errors (ERR_CONNECTION_CLOSED, DNS failure, etc.)
+  if (error instanceof TypeError) return true
+  // Server errors
+  if (status !== undefined && status >= 500) return true
+  return false
+}
+
 export async function augmentPrompt(
   apiKey: string,
   rawPrompt: string,
@@ -179,7 +219,7 @@ export async function augmentPrompt(
     },
   }
 
-  const res = await fetch(url, {
+  const requestInit: RequestInit = {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -187,35 +227,53 @@ export async function augmentPrompt(
     },
     body: JSON.stringify(body),
     signal,
-  })
-
-  const data: ApiResponse = await res.json()
-
-  if (data.error) {
-    throw new Error(data.error.message)
   }
 
-  if (!data.candidates?.length) {
-    throw new Error('No response from model')
+  let lastError: unknown
+  for (let attempt = 0; attempt <= AUGMENT_MAX_RETRIES; attempt++) {
+    if (attempt > 0) {
+      const delay = AUGMENT_RETRY_DELAYS[attempt - 1]
+      await new Promise((r) => setTimeout(r, delay))
+      if (signal?.aborted) throw signal.reason
+    }
+
+    let res: Response
+    try {
+      res = await fetch(url, requestInit)
+    } catch (e) {
+      lastError = e
+      if (isRetryable(e) && attempt < AUGMENT_MAX_RETRIES) continue
+      throw e
+    }
+
+    if (isRetryable(null, res.status) && attempt < AUGMENT_MAX_RETRIES) {
+      lastError = new Error(`Server error ${res.status}`)
+      continue
+    }
+
+    const data: ApiResponse = await res.json()
+
+    if (data.error) {
+      throw new Error(data.error.message)
+    }
+
+    if (!data.candidates?.length) {
+      throw new Error('No response from model')
+    }
+
+    const textPart = data.candidates[0].content.parts.find((p) => p.text)
+    if (!textPart?.text) {
+      throw new Error('No text in augmentation response')
+    }
+
+    const raw = JSON.parse(textPart.text) as { schemes: Array<Record<string, string>> }
+
+    return raw.schemes.map((s) => ({
+      title: s.title ?? '',
+      description: s.description ?? '',
+      text: assemblePrompt(s),
+    }))
   }
 
-  const textPart = data.candidates[0].content.parts.find((p) => p.text)
-  if (!textPart?.text) {
-    throw new Error('No text in augmentation response')
-  }
-
-  const raw = JSON.parse(textPart.text) as { schemes: Array<Record<string, string>> }
-
-  return raw.schemes.map((s) => ({
-    title: s.title ?? '',
-    description: s.description ?? '',
-    fields: {
-      mode: (s.mode === 'edit' ? 'edit' : 'generate') as 'generate' | 'edit',
-      subject: s.subject ?? '', action: s.action ?? '', scene: s.scene ?? '',
-      composition: s.composition ?? '', style: s.style ?? '', lighting: s.lighting ?? '',
-      colorPalette: s.colorPalette ?? '', textInImage: s.textInImage ?? '', constraints: s.constraints ?? '',
-      editType: s.editType ?? '', primaryRequest: s.primaryRequest ?? '',
-      referenceRole: s.referenceRole ?? '', targetScene: s.targetScene ?? '', invariants: s.invariants ?? '',
-    },
-  }))
+  throw lastError
 }

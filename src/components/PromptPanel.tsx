@@ -1,40 +1,15 @@
 import { useState, useRef, useCallback, useEffect, type ReactNode } from 'react'
-import type { PersistedPromptMode, PlaygroundImage, StructuredPrompt, PromptMode, PromptScheme } from '../lib/types'
+import type { PersistedPromptMode, PlaygroundImage, PromptMode, PromptScheme } from '../lib/types'
 import type { ModelConfig } from '../config/models'
 import type { GenerationState } from '../hooks/usePlayground'
 import { augmentPrompt } from '../lib/api'
 import { ReferenceImageUpload } from './ReferenceImageUpload'
-import { StructuredPromptForm } from './StructuredPromptForm'
-type StructuredPromptTextKey = Exclude<keyof StructuredPrompt, 'mode'>
 
-const EMPTY_STRUCTURED: StructuredPrompt = {
-  mode: 'generate',
-  subject: '', action: '', scene: '', composition: '', style: '',
-  lighting: '', colorPalette: '', textInImage: '', constraints: '',
-  editType: '', primaryRequest: '', referenceRole: '', targetScene: '', invariants: '',
-}
-
-// --- Label mappings for text <-> structured round-tripping ---
-
-const GEN_LABEL_ENTRIES: [string, StructuredPromptTextKey][] = [
-  ['构图', 'composition'], ['风格', 'style'], ['光影', 'lighting'],
-  ['色彩', 'colorPalette'], ['画中文字', 'textInImage'], ['画面中的文字', 'textInImage'],
-  ['约束', 'constraints'], ['避免', 'constraints'],
+// Labels for syntax highlighting in text editor, longest-first to avoid prefix conflicts
+const HIGHLIGHT_LABELS = [
+  '参考图说明', '画面中的文字', '画中文字', '编辑类型', '编辑请求',
+  '目标场景', '目标风格', '保持不变', '构图', '风格', '光影', '色彩', '约束', '避免',
 ]
-
-const EDIT_LABEL_ENTRIES: [string, StructuredPromptTextKey][] = [
-  ['编辑类型', 'editType'], ['编辑请求', 'primaryRequest'],
-  ['参考图说明', 'referenceRole'], ['目标场景', 'targetScene'],
-  ['目标风格', 'style'], ['风格', 'style'],
-  ['保持不变', 'invariants'], ['约束', 'constraints'], ['避免', 'constraints'],
-]
-
-const ALL_LABEL_ENTRIES = [...GEN_LABEL_ENTRIES, ...EDIT_LABEL_ENTRIES]
-const EDIT_ONLY_LABELS = ['编辑类型', '编辑请求', '参考图说明', '保持不变', '目标场景', '目标风格']
-
-// Deduplicated label list for syntax highlighting, longest-first to avoid prefix conflicts
-const HIGHLIGHT_LABELS = [...new Set(ALL_LABEL_ENTRIES.map(([label]) => label))]
-  .sort((a, b) => b.length - a.length)
 
 function renderHighlighted(text: string): ReactNode[] {
   const parts: ReactNode[] = []
@@ -48,7 +23,7 @@ function renderHighlighted(text: string): ReactNode[] {
       if (line.startsWith(needle)) {
         const rest = line.slice(needle.length).replace(/^ /, '')
         parts.push(
-          <span key={i}><span className="rounded bg-primary-dim text-primary">{label}</span>：{rest}</span>
+          <span key={i}><span className="rounded bg-tertiary-dim text-tertiary">{label}</span>：{rest}</span>
         )
         found = true
         break
@@ -57,60 +32,6 @@ function renderHighlighted(text: string): ReactNode[] {
     if (!found) parts.push(<span key={i}>{line}</span>)
   }
   return parts
-}
-
-function assemblePrompt(fields: StructuredPrompt): string {
-  const lines: string[] = []
-  if (fields.mode === 'edit') {
-    if (fields.editType.trim()) lines.push(`编辑类型：${fields.editType.trim()}`)
-    if (fields.primaryRequest.trim()) lines.push(`编辑请求：${fields.primaryRequest.trim()}`)
-    if (fields.referenceRole.trim()) lines.push(`参考图说明：${fields.referenceRole.trim()}`)
-    if (fields.targetScene.trim()) lines.push(`目标场景：${fields.targetScene.trim()}`)
-    if (fields.style.trim()) lines.push(`目标风格：${fields.style.trim()}`)
-    if (fields.invariants.trim()) lines.push(`保持不变：${fields.invariants.trim()}`)
-    if (fields.constraints.trim()) lines.push(`避免：${fields.constraints.trim()}`)
-  } else {
-    const desc = [fields.subject, fields.action, fields.scene].map((s) => s.trim()).filter(Boolean).join('\n')
-    if (desc) lines.push(desc)
-    if (fields.composition.trim()) lines.push(`构图：${fields.composition.trim()}`)
-    if (fields.style.trim()) lines.push(`风格：${fields.style.trim()}`)
-    if (fields.lighting.trim()) lines.push(`光影：${fields.lighting.trim()}`)
-    if (fields.colorPalette.trim()) lines.push(`色彩：${fields.colorPalette.trim()}`)
-    if (fields.textInImage.trim()) lines.push(`画中文字：${fields.textInImage.trim()}`)
-    if (fields.constraints.trim()) lines.push(`避免：${fields.constraints.trim()}`)
-  }
-  return lines.join('\n\n')
-}
-
-function parsePrompt(text: string): StructuredPrompt | null {
-  const uniqueEntries = ALL_LABEL_ENTRIES.slice().sort((a, b) => b[0].length - a[0].length)
-  const markers: { pos: number; end: number; key: StructuredPromptTextKey; label: string }[] = []
-  for (const [label, key] of uniqueEntries) {
-    const needle = `${label}：`
-    let idx = -1
-    if (text.startsWith(needle)) {
-      idx = 0
-    } else {
-      const nlIdx = text.indexOf(`\n${needle}`)
-      if (nlIdx !== -1) idx = nlIdx + 1
-    }
-    if (idx !== -1 && !markers.some((m) => m.key === key)) {
-      markers.push({ pos: idx, end: idx + needle.length, key, label })
-    }
-  }
-  if (markers.length === 0) return null
-  markers.sort((a, b) => a.pos - b.pos)
-  const isEdit = markers.some((m) => EDIT_ONLY_LABELS.includes(m.label))
-  const fields: StructuredPrompt = { ...EMPTY_STRUCTURED, mode: isEdit ? 'edit' : 'generate' }
-  const desc = text.slice(0, markers[0].pos).replace(/[\n\s]+$/, '').trim()
-  if (desc && !isEdit) fields.subject = desc
-  for (let i = 0; i < markers.length; i++) {
-    const start = markers[i].end
-    const end = i + 1 < markers.length ? markers[i + 1].pos : text.length
-    const value = text.slice(start, end).replace(/[\n\s]+$/, '').trim()
-    fields[markers[i].key] = value
-  }
-  return fields
 }
 
 // --- Auto-resize textarea ---
@@ -242,10 +163,9 @@ export function PromptPanel({
   }, [onPromptChange])
 
   const canAugment = apiKey.trim() !== '' && prompt.trim() !== ''
-  const canParseToStructured = currentMode === 'text' && parsePrompt(prompt) !== null
 
   useEffect(() => {
-    if (currentMode === 'text' && textareaRef.current) autoResizeTextarea(textareaRef.current)
+    if (currentMode !== 'augmenting' && textareaRef.current) autoResizeTextarea(textareaRef.current)
   }, [prompt, currentMode])
 
   // --- Augment ---
@@ -270,7 +190,7 @@ export function PromptPanel({
       const result = await augmentPrompt(apiKey, sourcePrompt, referenceImages, signal)
       onSchemesChange(result)
       onCurrentSchemeIndexChange(0)
-      onPromptChange(assemblePrompt(result[0].fields))
+      onPromptChange(result[0].text)
       onModeChange('structured')
     } catch (e) {
       if ((e as Error).name !== 'AbortError') {
@@ -292,48 +212,18 @@ export function PromptPanel({
 
   // --- Scheme management ---
   const handleSelectScheme = useCallback((index: number) => {
-    onCurrentSchemeIndexChange(index)
-    if (schemes[index]) {
-      onPromptChange(assemblePrompt(schemes[index].fields))
-    }
-  }, [schemes, onPromptChange, onCurrentSchemeIndexChange])
-
-  const handleChangeScheme = useCallback((index: number, fields: StructuredPrompt) => {
+    // Save current text back to current scheme before switching
     const next = [...schemes]
-    next[index] = { ...next[index], fields }
+    next[currentSchemeIndex] = { ...next[currentSchemeIndex], text: prompt }
     onSchemesChange(next)
-    onPromptChange(assemblePrompt(fields))
-  }, [schemes, onSchemesChange, onPromptChange])
+    onCurrentSchemeIndexChange(index)
+    if (next[index]) onPromptChange(next[index].text)
+  }, [schemes, prompt, currentSchemeIndex, onPromptChange, onCurrentSchemeIndexChange, onSchemesChange])
 
   const handleGenerateAll = useCallback(() => {
-    const prompts = schemes.map((s) => assemblePrompt(s.fields))
+    const prompts = schemes.map((s, i) => i === currentSchemeIndex ? prompt : s.text)
     onGenerate(prompts)
-  }, [schemes, onGenerate])
-
-  // --- Mode switching ---
-  const handleParseToStructured = useCallback(() => {
-    if (schemes.length > 0) {
-      const parsed = parsePrompt(prompt)
-      if (parsed) {
-        const updated = [...schemes]
-        updated[currentSchemeIndex] = { ...updated[currentSchemeIndex], fields: parsed }
-        onSchemesChange(updated)
-      }
-      onModeChange('structured')
-      return
-    }
-    const parsed = parsePrompt(prompt)
-    if (!parsed) return
-    const scheme: PromptScheme = { title: '方案 1', description: '', fields: parsed }
-    onSchemesChange([scheme])
-    onCurrentSchemeIndexChange(0)
-    onPromptChange(assemblePrompt(parsed))
-    onModeChange('structured')
-  }, [prompt, schemes, currentSchemeIndex, onPromptChange, onModeChange, onSchemesChange, onCurrentSchemeIndexChange])
-
-  const handleBackToText = useCallback(() => {
-    onModeChange('text')
-  }, [onModeChange])
+  }, [schemes, prompt, currentSchemeIndex, onGenerate])
 
   const handleDiscardAugment = useCallback(() => {
     if (originalPrompt !== null) onPromptChange(originalPrompt)
@@ -369,8 +259,8 @@ export function PromptPanel({
   const estimatedCost = pricePerImage !== undefined ? pricePerImage * batchCount : null
 
   return (
-    <div className={`w-full md:flex-1 md:shrink-0 md:min-w-[360px] flex flex-col py-4 md:h-full${currentMode === 'text' ? ' md:overflow-y-auto' : ''}`}>
-      {/* Reference Images - fixed */}
+    <div className="w-full md:flex-1 md:shrink-0 md:min-w-[360px] flex flex-col py-4 md:h-full md:overflow-y-auto">
+      {/* Reference Images */}
       <div className="shrink-0">
         <ReferenceImageUpload
           images={referenceImages}
@@ -382,26 +272,11 @@ export function PromptPanel({
       </div>
 
       {/* Prompt section */}
-      <div className={`mt-4 flex flex-col${currentMode !== 'text' ? ' md:flex-1 md:min-h-0' : ''}`}>
-        {/* Prompt header - fixed */}
+      <div className="mt-4 flex flex-col">
+        {/* Header */}
         <div className="flex items-center justify-between mb-3 min-h-[28px] shrink-0">
           <label className="text-xs font-medium text-on-surface-variant">提示词</label>
           <div className="flex items-center gap-2">
-            {currentMode === 'text' && canParseToStructured && (
-              <div className="relative group/parse">
-                <button type="button" onClick={handleParseToStructured}
-                  className="flex items-center gap-1 px-3 py-1 text-xs rounded-full transition-colors
-                             bg-surface-container text-on-surface-variant hover:bg-on-surface/8 active:bg-on-surface/12">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1.001 1.001 0 0 0 0-1.41l-2.34-2.34a1.001 1.001 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
-                  </svg>
-                  结构化编辑
-                </button>
-                <div className="absolute bottom-full right-0 mb-2 pointer-events-none whitespace-nowrap bg-on-surface text-surface text-xs px-2 py-1 rounded opacity-0 group-hover/parse:opacity-100 transition-opacity duration-150 delay-500 group-hover/parse:delay-500 z-50">
-                  解析标签字段，切换到表单编辑
-                </div>
-              </div>
-            )}
             {currentMode === 'structured' && (
               <>
                 <div className="relative group/reaugment">
@@ -410,22 +285,10 @@ export function PromptPanel({
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
                     </svg>
-                    重新增强
+                    重新润色
                   </button>
                   <div className="absolute bottom-full left-0 mb-2 pointer-events-none whitespace-nowrap bg-on-surface text-surface text-xs px-2 py-1 rounded opacity-0 group-hover/reaugment:opacity-100 transition-opacity duration-150 delay-500 group-hover/reaugment:delay-500 z-50">
-                    基于原始提示词重新增强
-                  </div>
-                </div>
-                <div className="relative group/backtxt">
-                  <button type="button" onClick={handleBackToText}
-                    className="flex items-center gap-1 px-3 py-1 text-xs rounded-full transition-colors bg-surface-container text-on-surface-variant hover:bg-on-surface/8 active:bg-on-surface/12">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M6.99 11L3 15l3.99 4v-3H14v-2H6.99v-3zM21 9l-3.99-4v3H10v2h7.01v3L21 9z" />
-                    </svg>
-                    文本编辑
-                  </button>
-                  <div className="absolute bottom-full right-0 mb-2 pointer-events-none whitespace-nowrap bg-on-surface text-surface text-xs px-2 py-1 rounded opacity-0 group-hover/backtxt:opacity-100 transition-opacity duration-150 delay-500 group-hover/backtxt:delay-500 z-50">
-                    切换到纯文本编辑模式
+                    基于原始提示词重新润色
                   </div>
                 </div>
                 {originalPrompt !== null && (
@@ -433,12 +296,12 @@ export function PromptPanel({
                     <button type="button" onClick={handleDiscardAugment}
                       className="flex items-center gap-1 px-3 py-1 text-xs rounded-full transition-colors bg-error-dim text-error hover:bg-error hover:text-on-primary active:opacity-90">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+                        <path d="M12.5 8c-2.65 0-5.05 1-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z" />
                       </svg>
-                      退出增强
+                      撤销润色
                     </button>
                     <div className="absolute bottom-full right-0 mb-2 pointer-events-none whitespace-nowrap bg-on-surface text-surface text-xs px-2 py-1 rounded opacity-0 group-hover/discard:opacity-100 transition-opacity duration-150 delay-500 group-hover/discard:delay-500 z-50">
-                      恢复原始提示词，退出增强模式
+                      恢复原始提示词
                     </div>
                   </div>
                 )}
@@ -448,64 +311,12 @@ export function PromptPanel({
         </div>
 
         {/* Prompt content */}
-        <div className={`flex flex-col${currentMode !== 'text' ? ' md:flex-1 md:min-h-0' : ''}`}>
-
-        {currentMode === 'text' && (
-          <div className="relative">
-            {/* Container owns bg/border/focus-within states */}
-            <div className="relative rounded-xl border-b-2 border-b-outline-variant bg-surface-container hover:bg-surface-container-high hover:border-b-outline focus-within:bg-surface-container-high focus-within:border-b-primary transition-colors">
-              {/* Mirror: renders label badges behind the transparent textarea */}
-              <div
-                aria-hidden="true"
-                className="absolute inset-0 px-3 py-3 pb-10 text-sm text-on-surface whitespace-pre-wrap break-words pointer-events-none overflow-hidden rounded-xl"
-              >
-                {prompt
-                  ? renderHighlighted(prompt)
-                  : <span className="text-on-surface-variant/50">描述你想生成的图片...</span>
-                }
-              </div>
-              <textarea ref={textareaRef} value={prompt}
-                onChange={(e) => { onPromptChange(e.target.value); autoResizeTextarea(e.target) }}
-                placeholder="描述你想生成的图片..." rows={1}
-                style={{ caretColor: 'var(--color-on-surface)' }}
-                className="relative w-full px-3 py-3 pb-10 text-sm text-transparent bg-transparent focus:outline-none placeholder:text-transparent resize-none overflow-hidden" />
-            </div>
-            <div className="absolute left-2 right-2 bottom-3 flex items-center gap-2 mb-1">
-              {prompt.trim() && (
-                <button type="button" onClick={handleClear}
-                  className="px-3 py-1 text-xs rounded-full transition-colors bg-surface-container-high text-on-surface-variant hover:bg-on-surface/8 active:bg-on-surface/12">
-                  清空
-                </button>
-              )}
-              <button type="button" onClick={handleHistoryUndo} disabled={!canUndo} title="撤销"
-                className="flex items-center justify-center w-6 h-6 rounded-full transition-colors text-on-surface-variant hover:bg-surface-container-high disabled:opacity-25 disabled:pointer-events-none">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12.5 8c-2.65 0-5.05 1-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z" /></svg>
-              </button>
-              <button type="button" onClick={handleHistoryRedo} disabled={!canRedo} title="重做"
-                className="flex items-center justify-center w-6 h-6 rounded-full transition-colors text-on-surface-variant hover:bg-surface-container-high disabled:opacity-25 disabled:pointer-events-none">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.4 10.6C16.55 8.99 14.15 8 11.5 8c-4.65 0-8.58 3.03-9.96 7.22L3.9 16c1.05-3.19 4.05-5.5 7.6-5.5 1.95 0 3.73.72 5.12 1.88L13 16h9V7l-3.6 3.6z" /></svg>
-              </button>
-              <div className="flex-1" />
-              {canAugment && (
-                <div className="relative group/augment">
-                  <button type="button" onClick={() => handleAugment(false)}
-                    className="flex items-center gap-1 px-3 py-1 text-xs rounded-full transition-colors bg-tertiary-dim text-tertiary hover:bg-tertiary hover:text-on-tertiary active:opacity-90">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19.46 8l.79-1.75L22 5.46c.39-.18.39-.73 0-.91l-1.75-.79L19.46 2c-.18-.39-.73-.39-.91 0l-.79 1.75-1.76.79c-.39.18-.39.73 0 .91l1.75.79.79 1.76c.18.39.74.39.92 0zM11.5 9.5L9.91 6c-.35-.78-1.47-.78-1.82 0L6.5 9.5 3 11.09c-.78.36-.78 1.47 0 1.82l3.5 1.59L8.09 18c.36.78 1.47.78 1.82 0l1.59-3.5 3.5-1.59c.78-.36.78-1.47 0-1.82L11.5 9.5zm7.04 6.5l-.79 1.75-1.75.79c-.39.18-.39.73 0 .91l1.75.79.79 1.76c.18.39.73.39.91 0l.79-1.75 1.76-.79c.39-.18.39-.73 0-.91l-1.75-.79-.79-1.76c-.18-.39-.74-.39-.92 0z" /></svg>
-                    增强
-                  </button>
-                  <div className="absolute bottom-full right-0 mb-2 pointer-events-none whitespace-nowrap bg-on-surface text-surface text-xs px-2 py-1 rounded opacity-0 group-hover/augment:opacity-100 transition-opacity duration-150 delay-500 group-hover/augment:delay-500 z-50">
-                    Gemini 3 Flash 生成结构化提示词
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+        <div className="flex flex-col">
 
         {currentMode === 'augmenting' && (
           <div className="flex flex-col items-center justify-center gap-3 py-8 bg-surface-container rounded-xl">
             <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-            <p className="text-xs text-on-surface-variant">正在分析提示词...
+            <p className="text-xs text-on-surface-variant">正在润色提示词...
               <span className="opacity-50 ml-1">Gemini 3 Flash</span>
             </p>
             <button type="button" onClick={handleCancelAugment}
@@ -513,28 +324,108 @@ export function PromptPanel({
           </div>
         )}
 
-        {currentMode === 'structured' && schemes.length > 0 && (
-          <div className="bg-surface-container rounded-xl md:flex-1 md:min-h-0 md:overflow-y-auto">
-            <StructuredPromptForm
-              schemes={schemes}
-              currentIndex={currentSchemeIndex}
-              costPerImage={pricePerImage ?? null}
-              isGenerating={isGenerating}
-              onSelectScheme={handleSelectScheme}
-              onChangeScheme={handleChangeScheme}
-              onGenerateAll={handleGenerateAll}
-              onDraftBatchOverride={onDraftBatchOverride}
-              onDraftPreviewHover={onDraftPreviewHover}
-            />
-          </div>
+        {currentMode !== 'augmenting' && (
+          <>
+            {/* Scheme chips - only for multiple schemes */}
+            {currentMode === 'structured' && schemes.length > 1 && (
+              <div className="mb-3 flex flex-col gap-1.5">
+                <p className="text-2xs text-on-surface-variant/60 leading-snug ml-1">
+                  AI 生成了 {schemes.length} 个创意方案，选择查看或一键全部生成
+                </p>
+                {/* Chips row: scheme chips + generate-all */}
+                <div className="flex flex-wrap items-center gap-2">
+                  {schemes.map((scheme, i) => {
+                    const isSelected = i === currentSchemeIndex
+                    return (
+                      <button key={i} type="button" onClick={() => handleSelectScheme(i)}
+                        className={`px-4 py-1.5 text-sm font-medium rounded-full transition-colors
+                          ${isSelected
+                            ? 'bg-primary-dim text-primary font-semibold hover:bg-primary/15 active:bg-primary/20'
+                            : 'bg-surface-container text-on-surface hover:bg-on-surface/8 active:bg-on-surface/12'
+                          }`}>
+                        {scheme.title}
+                      </button>
+                    )
+                  })}
+                  <button type="button" disabled={isGenerating}
+                    onClick={() => { onDraftBatchOverride(null); handleGenerateAll() }}
+                    onMouseEnter={() => { if (!isGenerating) { onDraftBatchOverride(schemes.length, schemes.map((s) => s.title)); onDraftPreviewHover(true) } }}
+                    onMouseLeave={() => { onDraftBatchOverride(null); onDraftPreviewHover(false) }}
+                    className="flex items-center gap-1 px-4 py-1.5 text-sm rounded-full transition-colors
+                               font-medium bg-tertiary-dim text-tertiary hover:bg-tertiary hover:text-on-tertiary active:opacity-90
+                               disabled:opacity-40 disabled:pointer-events-none">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M19.46 8l.79-1.75L22 5.46c.39-.18.39-.73 0-.91l-1.75-.79L19.46 2c-.18-.39-.73-.39-.91 0l-.79 1.75-1.76.79c-.39.18-.39.73 0 .91l1.75.79.79 1.76c.18.39.74.39.92 0zM11.5 9.5L9.91 6c-.35-.78-1.47-.78-1.82 0L6.5 9.5 3 11.09c-.78.36-.78 1.47 0 1.82l3.5 1.59L8.09 18c.36.78 1.47.78 1.82 0l1.59-3.5 3.5-1.59c.78-.36.78-1.47 0-1.82L11.5 9.5z" />
+                    </svg>
+                    各生成一张
+                  </button>
+                </div>
+                {/* Selected scheme description */}
+                {schemes[currentSchemeIndex]?.description && (
+                  <p className="text-2xs text-on-surface-variant leading-snug ml-1">
+                    {schemes[currentSchemeIndex].description}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Text editor with label highlighting */}
+            <div className="relative">
+              <div className="relative rounded-xl border-b-2 border-b-outline-variant bg-surface-container hover:bg-surface-container-high hover:border-b-outline focus-within:bg-surface-container-high focus-within:border-b-primary transition-colors">
+                <div
+                  aria-hidden="true"
+                  className="absolute inset-0 px-3 py-3 pb-10 text-sm text-on-surface whitespace-pre-wrap break-words pointer-events-none overflow-hidden rounded-xl"
+                >
+                  {prompt
+                    ? renderHighlighted(prompt)
+                    : <span className="text-on-surface-variant/50">描述你想生成的图片...</span>
+                  }
+                </div>
+                <textarea ref={textareaRef} value={prompt}
+                  onChange={(e) => { onPromptChange(e.target.value); autoResizeTextarea(e.target) }}
+                  placeholder="描述你想生成的图片..." rows={1}
+                  style={{ caretColor: 'var(--color-on-surface)' }}
+                  className="relative w-full px-3 py-3 pb-10 text-sm text-transparent bg-transparent focus:outline-none placeholder:text-transparent resize-none overflow-hidden" />
+              </div>
+              <div className="absolute left-2 right-2 bottom-3 flex items-center gap-2 mb-1">
+                {prompt.trim() && (
+                  <button type="button" onClick={handleClear}
+                    className="px-3 py-1 text-xs rounded-full transition-colors bg-surface-container-high text-on-surface-variant hover:bg-on-surface/8 active:bg-on-surface/12">
+                    清空
+                  </button>
+                )}
+                <button type="button" onClick={handleHistoryUndo} disabled={!canUndo} title="撤销"
+                  className="flex items-center justify-center w-6 h-6 rounded-full transition-colors text-on-surface-variant hover:bg-surface-container-high disabled:opacity-25 disabled:pointer-events-none">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12.5 8c-2.65 0-5.05 1-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z" /></svg>
+                </button>
+                <button type="button" onClick={handleHistoryRedo} disabled={!canRedo} title="重做"
+                  className="flex items-center justify-center w-6 h-6 rounded-full transition-colors text-on-surface-variant hover:bg-surface-container-high disabled:opacity-25 disabled:pointer-events-none">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.4 10.6C16.55 8.99 14.15 8 11.5 8c-4.65 0-8.58 3.03-9.96 7.22L3.9 16c1.05-3.19 4.05-5.5 7.6-5.5 1.95 0 3.73.72 5.12 1.88L13 16h9V7l-3.6 3.6z" /></svg>
+                </button>
+                <div className="flex-1" />
+                {currentMode === 'text' && canAugment && (
+                  <div className="relative group/augment">
+                    <button type="button" onClick={() => handleAugment(false)}
+                      className="flex items-center gap-1 px-3 py-1 text-xs rounded-full transition-colors bg-tertiary-dim text-tertiary hover:bg-tertiary hover:text-on-tertiary active:opacity-90">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19.46 8l.79-1.75L22 5.46c.39-.18.39-.73 0-.91l-1.75-.79L19.46 2c-.18-.39-.73-.39-.91 0l-.79 1.75-1.76.79c-.39.18-.39.73 0 .91l1.75.79.79 1.76c.18.39.74.39.92 0zM11.5 9.5L9.91 6c-.35-.78-1.47-.78-1.82 0L6.5 9.5 3 11.09c-.78.36-.78 1.47 0 1.82l3.5 1.59L8.09 18c.36.78 1.47.78 1.82 0l1.59-3.5 3.5-1.59c.78-.36.78-1.47 0-1.82L11.5 9.5zm7.04 6.5l-.79 1.75-1.75.79c-.39.18-.39.73 0 .91l1.75.79.79 1.76c.18.39.73.39.91 0l.79-1.75 1.76-.79c.39-.18.39-.73 0-.91l-1.75-.79-.79-1.76c-.18-.39-.74-.39-.92 0z" /></svg>
+                      润色
+                    </button>
+                    <div className="absolute bottom-full right-0 mb-2 pointer-events-none whitespace-nowrap bg-on-surface text-surface text-xs px-2 py-1 rounded opacity-0 group-hover/augment:opacity-100 transition-opacity duration-150 delay-500 group-hover/augment:delay-500 z-50">
+                      Gemini 3 Flash 润色提示词
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </>
         )}
 
         {augmentError && <p className="mt-2 text-xs text-error">{augmentError}</p>}
-        </div>{/* end scrollable content */}
+        </div>{/* end prompt content */}
       </div>{/* end prompt section */}
 
       {/* Batch count + generate button + cost */}
-      <div className={`flex flex-col gap-4 mt-4${currentMode !== 'text' ? ' shrink-0' : ''}`}>
+      <div className="flex flex-col gap-4 mt-4">
         {/* Batch count */}
         {currentMode !== 'augmenting' && (
           <div>

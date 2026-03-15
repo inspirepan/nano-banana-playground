@@ -1,5 +1,5 @@
 import type { BrotliWasmType } from 'brotli-wasm'
-import type { PersistedPromptMode, PromptScheme } from './types'
+import type { PersistedPromptMode } from './types'
 
 // --- Compression ---
 
@@ -45,42 +45,14 @@ async function decompress(b64url: string): Promise<string> {
 
 export type StateBlob = {
   prompt: string
-  schemes: PromptScheme[]
+  schemes: Array<{ title: string; description: string; text: string }>
   originalPrompt: string | null
   mode: PersistedPromptMode
   currentSchemeIndex: number
 }
 
-const EMPTY_FIELDS: PromptScheme['fields'] = {
-  mode: 'generate',
-  subject: '', action: '', scene: '', composition: '', style: '',
-  lighting: '', colorPalette: '', textInImage: '', constraints: '',
-  editType: '', primaryRequest: '', referenceRole: '', targetScene: '', invariants: '',
-}
-
-const FIELD_KEYS = [
-  'subject',
-  'action',
-  'scene',
-  'composition',
-  'style',
-  'lighting',
-  'colorPalette',
-  'textInImage',
-  'constraints',
-  'editType',
-  'primaryRequest',
-  'referenceRole',
-  'targetScene',
-  'invariants',
-] as const satisfies ReadonlyArray<Exclude<keyof PromptScheme['fields'], 'mode'>>
-
-type CompactScheme = [
-  title: string,
-  description: string,
-  mode: 0 | 1,
-  fieldPairs: Array<number | string>,
-]
+// Compact: [prompt, [[title, desc, text], ...], originalPrompt, mode(0|1), schemeIndex]
+type CompactScheme = [title: string, description: string, text: string]
 
 type CompactStateBlob = [
   prompt: string,
@@ -90,89 +62,24 @@ type CompactStateBlob = [
   currentSchemeIndex: number,
 ]
 
-function toCompactScheme(scheme: PromptScheme): CompactScheme {
-  const fieldPairs: Array<number | string> = []
-  for (let i = 0; i < FIELD_KEYS.length; i += 1) {
-    const key = FIELD_KEYS[i]
-    const value = scheme.fields[key]
-    if (value !== '') {
-      fieldPairs.push(i, value)
-    }
-  }
-
-  return [
-    scheme.title,
-    scheme.description,
-    scheme.fields.mode === 'edit' ? 1 : 0,
-    fieldPairs,
-  ]
-}
-
-function fromCompactScheme(scheme: CompactScheme): PromptScheme {
-  const [title, description, mode, fieldPairs] = scheme
-  const fields: PromptScheme['fields'] = {
-    ...EMPTY_FIELDS,
-    mode: mode === 1 ? 'edit' : 'generate',
-  }
-
-  for (let i = 0; i < fieldPairs.length; i += 2) {
-    const fieldIndex = fieldPairs[i]
-    const fieldValue = fieldPairs[i + 1]
-    if (typeof fieldIndex !== 'number' || typeof fieldValue !== 'string') {
-      throw new Error('Invalid compact state blob')
-    }
-    const fieldKey = FIELD_KEYS[fieldIndex]
-    if (!fieldKey) {
-      throw new Error('Invalid compact state blob')
-    }
-    fields[fieldKey] = fieldValue
-  }
-
-  return { title, description, fields }
-}
-
 function isCompactStateBlob(value: unknown): value is CompactStateBlob {
-  if (!Array.isArray(value) || value.length !== 5) {
-    return false
-  }
-
+  if (!Array.isArray(value) || value.length !== 5) return false
   const [prompt, schemes, originalPrompt, mode, currentSchemeIndex] = value
-  if (typeof prompt !== 'string' || !Array.isArray(schemes)) {
-    return false
+  if (typeof prompt !== 'string' || !Array.isArray(schemes)) return false
+  if (originalPrompt !== null && typeof originalPrompt !== 'string') return false
+  if (mode !== 0 && mode !== 1) return false
+  if (!Number.isInteger(currentSchemeIndex) || currentSchemeIndex < 0) return false
+  for (const s of schemes) {
+    if (!Array.isArray(s) || s.length !== 3) return false
+    if (s.some((v) => typeof v !== 'string')) return false
   }
-  if (originalPrompt !== null && typeof originalPrompt !== 'string') {
-    return false
-  }
-  if (mode !== 0 && mode !== 1) {
-    return false
-  }
-  if (!Number.isInteger(currentSchemeIndex) || currentSchemeIndex < 0) {
-    return false
-  }
-
-  for (const scheme of schemes) {
-    if (!Array.isArray(scheme) || scheme.length !== 4) {
-      return false
-    }
-    const [title, description, mode, fieldPairs] = scheme
-    if (typeof title !== 'string' || typeof description !== 'string') {
-      return false
-    }
-    if (mode !== 0 && mode !== 1) {
-      return false
-    }
-    if (!Array.isArray(fieldPairs)) {
-      return false
-    }
-  }
-
   return true
 }
 
 export async function compressStateBlob(data: StateBlob): Promise<string> {
   const compact: CompactStateBlob = [
     data.prompt,
-    data.schemes.map(toCompactScheme),
+    data.schemes.map((s): CompactScheme => [s.title, s.description, s.text]),
     data.originalPrompt,
     data.mode === 'structured' ? 1 : 0,
     data.currentSchemeIndex,
@@ -183,15 +90,11 @@ export async function compressStateBlob(data: StateBlob): Promise<string> {
 export async function decompressStateBlob(b64url: string): Promise<StateBlob> {
   const json = await decompress(b64url)
   const raw = JSON.parse(json) as unknown
-
-  if (!isCompactStateBlob(raw)) {
-    throw new Error('Invalid state blob')
-  }
-
+  if (!isCompactStateBlob(raw)) throw new Error('Invalid state blob')
   const [prompt, schemes, originalPrompt, mode, currentSchemeIndex] = raw
   return {
     prompt,
-    schemes: schemes.map(fromCompactScheme),
+    schemes: schemes.map(([title, description, text]) => ({ title, description, text })),
     originalPrompt,
     mode: mode === 1 ? 'structured' : 'text',
     currentSchemeIndex,
