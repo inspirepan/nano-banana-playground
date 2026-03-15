@@ -4,6 +4,7 @@ import { generateImage } from '../lib/api'
 import type { PlaygroundImage } from '../lib/types'
 import { isKeyError } from '../lib/validateKey'
 import { saveToHistory, loadHistory, deleteFromHistory, clearHistory } from '../lib/history'
+import { getSessionId, loadDraft, saveDraft, cleanupOldDrafts, getOtherDrafts, adoptDraft, type DraftEntry } from '../lib/draft'
 import { useApiKey } from './useApiKey'
 
 export type GenerationState = 'idle' | 'generating' | 'error'
@@ -28,11 +29,13 @@ function computeConfigHash(modelId: string, resolution: string, aspectRatio: str
 
 export function usePlayground() {
   const apiKeyHook = useApiKey()
+  const sessionId = useRef(getSessionId()).current
   const [model, setModel] = useState<ModelConfig>(DEFAULT_MODEL)
   const [resolution, setResolution] = useState(DEFAULT_MODEL.defaultResolution)
   const [aspectRatio, setAspectRatio] = useState(DEFAULT_MODEL.defaultAspectRatio)
   const [batchCount, setBatchCount] = useState(1)
-  const [prompt, setPromptRaw] = useState(() => localStorage.getItem('nano-banana-prompt') || '')
+  const [prompt, setPromptRaw] = useState(() => loadDraft(sessionId)?.prompt || '')
+  const [orphanedDrafts, setOrphanedDrafts] = useState<DraftEntry[]>(() => getOtherDrafts(sessionId))
   const setPrompt = useCallback((v: string) => {
     setPromptRaw(v)
   }, [])
@@ -49,15 +52,15 @@ export function usePlayground() {
 
   useEffect(() => {
     loadHistory().then(setHistory)
+    cleanupOldDrafts()
   }, [])
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      localStorage.setItem('nano-banana-prompt', prompt)
+      saveDraft(sessionId, { prompt })
     }, 200)
-
     return () => window.clearTimeout(timer)
-  }, [prompt])
+  }, [prompt, sessionId])
 
   const switchModel = useCallback((modelId: string) => {
     const config = MODEL_CONFIGS.find((m) => m.id === modelId)
@@ -233,6 +236,20 @@ export function usePlayground() {
     setHistory([])
   }, [])
 
+  const adoptOrphanDraft = useCallback((fromSessionId: string, onRestore: (prompt: string) => void) => {
+    const data = adoptDraft(fromSessionId, sessionId)
+    if (data) {
+      setPromptRaw(data.prompt)
+      onRestore(data.prompt)
+      setOrphanedDrafts(getOtherDrafts(sessionId))
+    }
+  }, [sessionId])
+
+  const dismissOrphanDraft = useCallback((fromSessionId: string) => {
+    // Just remove from the orphaned list — leave the draft in storage
+    setOrphanedDrafts((prev) => prev.filter((d) => d.sessionId !== fromSessionId))
+  }, [])
+
   return {
     apiKey: apiKeyHook.apiKey,
     apiKeyStatus: apiKeyHook.status,
@@ -250,6 +267,8 @@ export function usePlayground() {
     generationPreview,
     showDraft: prompt.trim() !== '' && lastGenHash !== currentConfigHash,
     error,
+    sessionId,
+    orphanedDrafts,
     switchModel,
     setResolution,
     setAspectRatio,
@@ -262,5 +281,7 @@ export function usePlayground() {
     addToReferences,
     removeFromHistory,
     clearAllHistory,
+    adoptOrphanDraft,
+    dismissOrphanDraft,
   }
 }

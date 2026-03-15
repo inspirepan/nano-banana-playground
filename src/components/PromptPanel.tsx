@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import type { PlaygroundImage, StructuredPrompt, PromptScheme } from '../lib/types'
+import { getSessionId, loadDraft, saveDraft } from '../lib/draft'
 import type { ModelConfig } from '../config/models'
 import type { GenerationState } from '../hooks/usePlayground'
 import { augmentPrompt } from '../lib/api'
@@ -132,27 +133,21 @@ export function PromptPanel({
 
   const pricePerImage = model.imagePriceByResolution[resolution]
 
-  // Restore structured state from localStorage
+  // Stable session ID and initial draft — read once on mount
+  const sessionId = useRef(getSessionId()).current
+  const initialDraft = useRef(loadDraft(sessionId)).current
+
   const [mode, setMode] = useState<PromptMode>(() => {
-    const saved = localStorage.getItem('nano-banana-schemes')
-    if (saved) {
-      const parsed = parsePrompt(prompt)
-      if (parsed) return 'structured'
-    }
+    if (initialDraft?.schemes && initialDraft.schemes.length > 0) return 'structured'
     return 'text'
   })
   const canGenerate = apiKey.trim() !== '' && prompt.trim() !== '' && !isGenerating && mode !== 'augmenting'
 
   // Schemes state
   const [schemes, setSchemes] = useState<PromptScheme[]>(() => {
-    try {
-      const saved = localStorage.getItem('nano-banana-schemes')
-      if (saved && mode === 'structured') {
-        const parsed = JSON.parse(saved) as PromptScheme[]
-        if (parsed.length > 0) return parsed
-      }
-    } catch { /* ignore */ }
-    // Fallback: single scheme from current prompt
+    if (initialDraft?.schemes && initialDraft.schemes.length > 0 && mode === 'structured') {
+      return initialDraft.schemes
+    }
     if (mode === 'structured') {
       const fields = parsePrompt(prompt) ?? EMPTY_STRUCTURED
       return [{ title: '方案 1', description: '', fields }]
@@ -162,7 +157,7 @@ export function PromptPanel({
   const [currentSchemeIndex, setCurrentSchemeIndex] = useState(0)
 
   const [originalPrompt, setOriginalPrompt] = useState<string | null>(
-    () => localStorage.getItem('nano-banana-original-prompt'),
+    () => initialDraft?.originalPrompt ?? null,
   )
   const [augmentError, setAugmentError] = useState<string | null>(null)
   const abortRef = useRef<AbortController | null>(null)
@@ -233,7 +228,7 @@ export function PromptPanel({
 
     if (!useOriginal) {
       setOriginalPrompt(sourcePrompt)
-      localStorage.setItem('nano-banana-original-prompt', sourcePrompt)
+      saveDraft(sessionId, { originalPrompt: sourcePrompt })
     }
 
     setMode('augmenting')
@@ -246,7 +241,7 @@ export function PromptPanel({
       const result = await augmentPrompt(apiKey, sourcePrompt, referenceImages, controller.signal)
       setSchemes(result)
       setCurrentSchemeIndex(0)
-      localStorage.setItem('nano-banana-schemes', JSON.stringify(result))
+      saveDraft(sessionId, { schemes: result })
       // Set prompt to first scheme's assembled text
       onPromptChange(assemblePrompt(result[0].fields))
       setMode('structured')
@@ -256,7 +251,7 @@ export function PromptPanel({
         setMode(useOriginal ? 'structured' : 'text')
       }
     }
-  }, [apiKey, prompt, originalPrompt, referenceImages, canAugment, onPromptChange])
+  }, [sessionId, apiKey, prompt, originalPrompt, referenceImages, canAugment, onPromptChange])
 
   const handleCancelAugment = useCallback(() => {
     abortRef.current?.abort()
@@ -275,11 +270,11 @@ export function PromptPanel({
     setSchemes((prev) => {
       const next = [...prev]
       next[index] = { ...next[index], fields }
-      localStorage.setItem('nano-banana-schemes', JSON.stringify(next))
+      saveDraft(sessionId, { schemes: next })
       return next
     })
     onPromptChange(assemblePrompt(fields))
-  }, [onPromptChange])
+  }, [sessionId, onPromptChange])
 
   const handleGenerateAll = useCallback(() => {
     const prompts = schemes.map((s) => assemblePrompt(s.fields))
@@ -296,7 +291,7 @@ export function PromptPanel({
         const updated = [...schemes]
         updated[currentSchemeIndex] = { ...updated[currentSchemeIndex], fields: parsed }
         setSchemes(updated)
-        localStorage.setItem('nano-banana-schemes', JSON.stringify(updated))
+        saveDraft(sessionId, { schemes: updated })
       }
       setMode('structured')
       return
@@ -307,10 +302,10 @@ export function PromptPanel({
     const scheme: PromptScheme = { title: '方案 1', description: '', fields: parsed }
     setSchemes([scheme])
     setCurrentSchemeIndex(0)
-    localStorage.setItem('nano-banana-schemes', JSON.stringify([scheme]))
+    saveDraft(sessionId, { schemes: [scheme] })
     onPromptChange(assemblePrompt(parsed))
     setMode('structured')
-  }, [prompt, schemes, currentSchemeIndex, onPromptChange])
+  }, [sessionId, prompt, schemes, currentSchemeIndex, onPromptChange])
 
   const handleBackToText = useCallback(() => {
     setMode('text')
@@ -318,12 +313,11 @@ export function PromptPanel({
 
   const handleDiscardAugment = useCallback(() => {
     if (originalPrompt !== null) onPromptChange(originalPrompt)
-    localStorage.removeItem('nano-banana-schemes')
-    localStorage.removeItem('nano-banana-original-prompt')
+    saveDraft(sessionId, { schemes: null, originalPrompt: null })
     setOriginalPrompt(null)
     setSchemes([])
     setMode('text')
-  }, [originalPrompt, onPromptChange])
+  }, [sessionId, originalPrompt, onPromptChange])
 
   // --- Clear / Undo toast ---
   const handleClear = useCallback(() => {
