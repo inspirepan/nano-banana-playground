@@ -172,7 +172,7 @@ export function StructuredPromptForm({
           ) : (
             <button
               type="button"
-              onClick={onGenerateAll}
+              onClick={() => { onDraftBatchOverride(null); onGenerateAll() }}
               onMouseEnter={() => onDraftBatchOverride(schemes.length)}
               onMouseLeave={() => onDraftBatchOverride(null)}
               className="flex items-center justify-center gap-2 px-3 py-2 rounded-full transition-colors

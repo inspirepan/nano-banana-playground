@@ -22,17 +22,12 @@ export type GenerationSnapshot = {
   batchCount: number
   resolution: string
   aspectRatio: string
-  configHash: string
 }
 
 export type GenerationPreviewSlot =
   | { status: 'pending' }
   | { status: 'fulfilled'; image: PlaygroundImage }
   | { status: 'rejected'; error: string }
-
-function computeConfigHash(modelId: string, resolution: string, aspectRatio: string, batchCount: number, prompt: string): string {
-  return `${modelId}|${resolution}|${aspectRatio}|${batchCount}|${prompt}`
-}
 
 // Read simple (non-compressed) URL params once at module load to safely init useState
 const _initial = readSimpleUrlParams()
@@ -76,13 +71,12 @@ export function usePlayground() {
   const [generationState, setGenerationState] = useState<GenerationState>('idle')
   const [generationSnapshot, setGenerationSnapshot] = useState<GenerationSnapshot | null>(null)
   const [generationPreview, setGenerationPreview] = useState<GenerationPreviewSlot[]>([])
-  const [lastGenHash, setLastGenHash] = useState<string | null>(null)
+  const [genCompleted, setGenCompleted] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const abortRef = useRef<AbortController | null>(null)
 
   const mode = modeRaw === 'structured' && schemes.length === 0 ? 'text' : modeRaw
   const currentSchemeIndex = schemes.length === 0 ? 0 : Math.min(currentSchemeIndexRaw, schemes.length - 1)
-  const currentConfigHash = computeConfigHash(model.id, resolution, aspectRatio, batchCount, prompt)
 
   // Load history and decompress URL state blob on mount
   useEffect(() => {
@@ -129,6 +123,11 @@ export function usePlayground() {
       })
     }, 300)
     return () => window.clearTimeout(urlDebounceRef.current)
+  }, [model.id, resolution, aspectRatio, batchCount, prompt, mode, schemes, currentSchemeIndex, originalPrompt])
+
+  // Reset showDraft flag whenever any urlState-tracked value changes
+  useEffect(() => {
+    setGenCompleted(false)
   }, [model.id, resolution, aspectRatio, batchCount, prompt, mode, schemes, currentSchemeIndex, originalPrompt])
 
   // --- Setters that update state (URL sync runs via effects above) ---
@@ -196,10 +195,9 @@ export function usePlayground() {
     if (promptList.length === 0) return
 
     const batchId = crypto.randomUUID()
-    const hash = computeConfigHash(model.id, resolution, aspectRatio, batchCount, prompt)
 
     setGenerationState('generating')
-    setGenerationSnapshot({ batchId, batchCount: promptList.length, resolution, aspectRatio, configHash: hash })
+    setGenerationSnapshot({ batchId, batchCount: promptList.length, resolution, aspectRatio })
     setGenerationPreview(Array.from({ length: promptList.length }, (): GenerationPreviewSlot => ({ status: 'pending' })))
     setError(null)
 
@@ -268,7 +266,7 @@ export function usePlayground() {
         }
       } else {
         setGenerationState('idle')
-        setLastGenHash(hash)
+        setGenCompleted(true)
         if (errors.length > 0) {
           setError(`${images.length} succeeded, ${errors.length} failed: ${errors[0]}`)
         }
@@ -333,7 +331,7 @@ export function usePlayground() {
     generationState,
     generationSnapshot,
     generationPreview,
-    showDraft: prompt.trim() !== '' && lastGenHash !== currentConfigHash,
+    showDraft: prompt.trim() !== '' && !genCompleted,
     error,
     switchModel,
     setResolution,
