@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useLayoutEffect } from 'react'
+import { useState, useCallback, useRef, useLayoutEffect, useEffect } from 'react'
 import type { StructuredPrompt, PromptScheme } from '../lib/types'
 
 type FieldKey = keyof StructuredPrompt
@@ -33,13 +33,14 @@ const EDIT_FIELDS: FieldConfig[] = [
 
 const GENERATE_CORE: Set<FieldKey> = new Set(['subject', 'scene', 'style'])
 const EDIT_CORE: Set<FieldKey> = new Set(['primaryRequest', 'referenceRole', 'invariants'])
-
-const TEXTAREA_MIN_HEIGHT = 44
-const TEXTAREA_EXTRA_HEIGHT = 6
+const TEXTAREA_ROUNDING_BUFFER = 1
 
 function autoResize(el: HTMLTextAreaElement) {
+  const minHeight = Number.parseFloat(window.getComputedStyle(el).minHeight) || 0
+  const borderBoxOffset = el.offsetHeight - el.clientHeight
+
   el.style.height = 'auto'
-  el.style.height = `${Math.max(el.scrollHeight + TEXTAREA_EXTRA_HEIGHT, TEXTAREA_MIN_HEIGHT)}px`
+  el.style.height = `${Math.max(el.scrollHeight + borderBoxOffset + TEXTAREA_ROUNDING_BUFFER, minHeight)}px`
 }
 
 type Props = {
@@ -76,10 +77,32 @@ export function StructuredPromptForm({
   const [expanded, setExpanded] = useState<Set<FieldKey>>(new Set())
   const containerRef = useRef<HTMLDivElement>(null)
 
+  const resizeAllTextareas = useCallback(() => {
+    containerRef.current?.querySelectorAll<HTMLTextAreaElement>('textarea').forEach(autoResize)
+  }, [])
+
   // Re-measure all textareas after layout to handle flex/scroll containers
   useLayoutEffect(() => {
-    containerRef.current?.querySelectorAll<HTMLTextAreaElement>('textarea').forEach(autoResize)
-  }, [fields])
+    resizeAllTextareas()
+  }, [fields, resizeAllTextareas])
+
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+
+    let lastWidth = container.getBoundingClientRect().width
+    const observer = new ResizeObserver(([entry]) => {
+      const nextWidth = entry.contentRect.width
+      if (Math.abs(nextWidth - lastWidth) < 1) return
+      lastWidth = nextWidth
+      resizeAllTextareas()
+    })
+
+    observer.observe(container)
+    void document.fonts.ready.then(resizeAllTextareas)
+
+    return () => observer.disconnect()
+  }, [resizeAllTextareas])
 
   const updateField = (key: FieldKey, value: string) => {
     onChangeScheme(currentIndex, { ...fields, [key]: value })
@@ -87,8 +110,7 @@ export function StructuredPromptForm({
 
   const textareaRef = useCallback((el: HTMLTextAreaElement | null) => {
     if (el) autoResize(el)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fields])
+  }, [])
 
   const isFieldVisible = (key: FieldKey): boolean => {
     if (coreFields.has(key)) return true
@@ -211,7 +233,7 @@ export function StructuredPromptForm({
               }}
               placeholder={placeholder}
               rows={1}
-              className="w-full min-h-11 px-3 py-2 text-sm leading-5 bg-surface-container-high rounded-xl
+              className="w-full box-border min-h-11 px-3 py-2 text-sm leading-5 bg-surface-container-high rounded-xl
                          border-b-2 border-b-transparent
                          hover:bg-surface-container-high
                          focus:bg-surface-container-high focus:border-b-primary focus:outline-none
