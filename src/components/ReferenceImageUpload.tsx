@@ -64,8 +64,8 @@ export function ReferenceImageUpload({ images, maxTotal, onAdd, onAddImage, onRe
   return (
     <div>
       <div className="flex items-baseline justify-between mb-3">
-        <label className="text-xs font-medium text-on-surface-variant">参考图片</label>
-        <span className="text-xs text-on-surface-variant/60">
+        <label className="text-sm font-medium text-on-surface-variant">参考图片</label>
+        <span className="text-sm text-on-surface-variant/60">
           {images.length}/{maxTotal}
         </span>
       </div>
@@ -73,11 +73,11 @@ export function ReferenceImageUpload({ images, maxTotal, onAdd, onAddImage, onRe
         onDrop={handleDrop}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
-        className={`min-h-[80px] rounded-xl transition-colors p-3
+        className={`min-h-[120px] rounded-2xl transition-colors p-4 flex flex-col justify-center
           ${dragOver ? 'bg-primary-dim' : 'bg-surface-container hover:bg-surface-container-high'}`}
       >
         {images.length > 0 ? (
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 w-full">
             {images.map((img) => (
               <div key={img.id} className="relative group w-16 h-16">
                 <img
@@ -118,7 +118,7 @@ export function ReferenceImageUpload({ images, maxTotal, onAdd, onAddImage, onRe
                        text-on-surface-variant cursor-pointer"
           >
             <span className="text-base">+</span>
-            <span className="text-xs">拖放或点击上传</span>
+            <span className="text-sm">拖放或点击上传</span>
           </button>
         )}
       </div>
