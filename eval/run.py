@@ -16,6 +16,7 @@ Usage:
 """
 
 import argparse
+import base64
 import json
 import os
 import sys
@@ -29,8 +30,9 @@ MAX_RETRIES = 3
 RETRY_DELAY = 2  # seconds, doubles each retry
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
+EVAL_DIR = Path(__file__).resolve().parent
 SYSTEM_PROMPT_PATH = REPO_ROOT / "src" / "lib" / "augment-system-prompt.md"
-CASES_PATH = Path(__file__).resolve().parent / "cases.json"
+CASES_PATH = EVAL_DIR / "cases.json"
 
 AUGMENT_MODEL = "gemini-3-flash-preview"
 JUDGE_MODEL = "gemini-3.1-flash-lite-preview"
@@ -146,11 +148,25 @@ def _post_with_retry(url: str, headers: dict, body: dict, timeout: int) -> dict:
             time.sleep(delay)
 
 
-def call_augment(api_key: str, system_prompt: str, user_prompt: str) -> dict:
+def _load_image_part(image_path: str) -> dict:
+    """Load an image file as a Gemini inline_data part."""
+    path = EVAL_DIR / image_path
+    data = base64.b64encode(path.read_bytes()).decode()
+    suffix = path.suffix.lower().lstrip(".")
+    mime = {"jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png", "webp": "image/webp"}.get(suffix, "image/jpeg")
+    return {"inline_data": {"mime_type": mime, "data": data}}
+
+
+def call_augment(api_key: str, system_prompt: str, user_prompt: str, image_paths: list[str] | None = None) -> dict:
     url = f"{API_BASE}/models/{AUGMENT_MODEL}:generateContent"
+    parts: list[dict] = []
+    if image_paths:
+        for p in image_paths:
+            parts.append(_load_image_part(p))
+    parts.append({"text": user_prompt})
     body = {
         "system_instruction": {"parts": [{"text": system_prompt}]},
-        "contents": [{"parts": [{"text": user_prompt}]}],
+        "contents": [{"parts": parts}],
         "generationConfig": {
             "responseMimeType": "application/json",
             "responseSchema": SCHEMES_SCHEMA,
@@ -159,8 +175,8 @@ def call_augment(api_key: str, system_prompt: str, user_prompt: str) -> dict:
     }
     headers = {"Content-Type": "application/json", "x-goog-api-key": api_key}
     data = _post_with_retry(url, headers, body, timeout=120)
-    parts = data["candidates"][0]["content"]["parts"]
-    text = next(p["text"] for p in reversed(parts) if "text" in p)
+    parts_resp = data["candidates"][0]["content"]["parts"]
+    text = next(p["text"] for p in reversed(parts_resp) if "text" in p)
     return json.loads(text)
 
 
@@ -228,6 +244,7 @@ def run_case(
     """Run one case: augment -> judge assertions + score."""
     case_id = case["id"]
     prompt = case["prompt"]
+    image_paths: list[str] | None = case.get("images")
     assertion_texts = case["assertions"]
     rubric = case.get("rubric", "")
     lines: list[str] = []
@@ -235,9 +252,11 @@ def run_case(
     lines.append(f"\n{'=' * 60}")
     lines.append(f"CASE: {case_id}")
     lines.append(f"PROMPT: {prompt}")
+    if image_paths:
+        lines.append(f"IMAGES: {', '.join(image_paths)}")
 
     try:
-        result = call_augment(api_key, system_prompt, prompt)
+        result = call_augment(api_key, system_prompt, prompt, image_paths)
     except Exception as e:
         lines.append(f"  AUGMENT ERROR: {e}")
         assertions = [

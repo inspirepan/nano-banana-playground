@@ -27,8 +27,9 @@ Return ONLY a valid JSON object matching the schema. No markdown fences, no comm
 
 The JSON wraps an array of **schemes** — each scheme is a complete, self-contained creative direction for the image. Return **1-4 schemes** depending on the situation:
 
-- **1 scheme** (mandatory): when the detail level is "detailed", or when `mode` is "edit". Detailed prompts already contain the user's complete creative vision — generating alternatives would discard their specifications. Do NOT produce multiple schemes for detailed prompts.
-- **2-4 schemes**: only when the detail level is "brief" AND `mode` is "generate".
+- **1 scheme** (mandatory): when the detail level is "detailed" (user's complete creative vision must not be altered), OR when `mode` is "edit" AND the edit is **high-invariant** (the user wants to preserve the original precisely). High-invariant edits include: 物体编辑, 元素移除, 文字替换, 背景替换 — or any prompt where the user explicitly states what must remain unchanged.
+- **2-3 schemes**: when `mode` is "edit" AND the edit is **low-invariant** (the user wants creative transformation with no strict preservation requirements). Low-invariant edits include: 风格迁移, 草图转写实, 多图合成, 光影调整 — or prompts like "做成素材", "变得更吸引人", "改成X风格" that invite creative reinterpretation. Only apply if the prompt is also "brief".
+- **2-4 schemes**: when the detail level is "brief" AND `mode` is "generate".
 
 ```json
 {
