@@ -51,7 +51,7 @@ export async function generateImage(
   const body = {
     contents: [{ parts }],
     generationConfig: {
-      responseModalities: ['TEXT', 'IMAGE'],
+      responseModalities: ['IMAGE'],
       imageConfig: {
         aspectRatio,
         imageSize: resolution,
@@ -109,7 +109,9 @@ export async function generateImage(
 
     if (!imagePart) {
       const textPart = data.candidates[0].content.parts.find((p) => p.text)
-      throw new Error(textPart?.text || 'No image in response')
+      lastError = new Error(textPart?.text || 'No image in response')
+      if (attempt < GENERATE_MAX_RETRIES) continue
+      throw lastError
     }
 
     const imageData = imagePart.inlineData ?? imagePart.inline_data
