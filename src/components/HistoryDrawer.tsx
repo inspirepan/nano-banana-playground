@@ -94,7 +94,7 @@ function HistoryThumbnail({
   image: PlaygroundImageMeta
   onClick: () => void
 }) {
-  const { ref, src } = useImageSrc(image.id, image.mimeType)
+  const { ref, src } = useImageSrc(image.id, image.mimeType, undefined, { variant: 'preview' })
   const meta = image.source.type === 'generated' ? image.source : null
 
   const handleDragStart = (e: React.DragEvent) => {
@@ -110,6 +110,8 @@ function HistoryThumbnail({
         <img
           src={src}
           alt={meta?.prompt ?? ''}
+          loading="lazy"
+          decoding="async"
           draggable
           onDragStart={handleDragStart}
           className="h-20 w-auto rounded-lg object-cover cursor-pointer border border-outline-variant

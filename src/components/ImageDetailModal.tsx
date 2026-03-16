@@ -362,7 +362,7 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
 }
 
 function RefThumbnail({ image, isActive, onClick }: { image: PlaygroundImageMeta; isActive: boolean; onClick: () => void }) {
-  const { ref, src } = useImageSrc(image.id, image.mimeType)
+  const { ref, src } = useImageSrc(image.id, image.mimeType, undefined, { variant: 'preview' })
 
   return (
     <div ref={ref} className="h-12 w-12">
@@ -370,6 +370,8 @@ function RefThumbnail({ image, isActive, onClick }: { image: PlaygroundImageMeta
         <img
           src={src}
           alt=""
+          loading="lazy"
+          decoding="async"
           className={`h-12 w-12 rounded-md object-cover border cursor-pointer transition-colors ${isActive ? 'border-primary' : 'border-outline-variant hover:border-primary/40'}`}
           onClick={onClick}
         />

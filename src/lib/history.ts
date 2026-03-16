@@ -1,9 +1,10 @@
 import type { PlaygroundImage, PlaygroundImageMeta } from './types'
 
 const DB_NAME = 'nano-banana-playground'
-const DB_VERSION = 2
+const DB_VERSION = 3
 const META_STORE = 'history'
 const BLOB_STORE = 'blobs'
+const PREVIEW_STORE = 'previews'
 
 function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -41,6 +42,13 @@ function openDB(): Promise<IDBDatabase> {
               cursor.continue()
             }
           }
+        }
+      }
+
+      // v3: store 512px previews separately from original blobs
+      if ((event.oldVersion ?? 0) < 3) {
+        if (!db.objectStoreNames.contains(PREVIEW_STORE)) {
+          db.createObjectStore(PREVIEW_STORE, { keyPath: 'id' })
         }
       }
     }
@@ -107,6 +115,26 @@ export async function loadImageBlob(id: string): Promise<string | null> {
   })
 }
 
+export async function loadImagePreview(id: string): Promise<string | null> {
+  const db = await openDB()
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(PREVIEW_STORE, 'readonly')
+    const req = tx.objectStore(PREVIEW_STORE).get(id)
+    req.onsuccess = () => resolve(req.result?.data ?? null)
+    req.onerror = () => reject(req.error)
+  })
+}
+
+export async function saveImagePreview(id: string, data: string): Promise<void> {
+  const db = await openDB()
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(PREVIEW_STORE, 'readwrite')
+    tx.objectStore(PREVIEW_STORE).put({ id, data })
+    tx.oncomplete = () => resolve()
+    tx.onerror = () => reject(tx.error)
+  })
+}
+
 // Load blob data for multiple images
 export async function loadImageBlobs(ids: string[]): Promise<Map<string, string>> {
   if (ids.length === 0) return new Map()
@@ -160,9 +188,10 @@ export async function loadImageMetas(ids: string[]): Promise<Map<string, Playgro
 export async function deleteFromHistory(id: string): Promise<void> {
   const db = await openDB()
   return new Promise((resolve, reject) => {
-    const tx = db.transaction([META_STORE, BLOB_STORE], 'readwrite')
+    const tx = db.transaction([META_STORE, BLOB_STORE, PREVIEW_STORE], 'readwrite')
     tx.objectStore(META_STORE).delete(id)
     tx.objectStore(BLOB_STORE).delete(id)
+    tx.objectStore(PREVIEW_STORE).delete(id)
     tx.oncomplete = () => resolve()
     tx.onerror = () => reject(tx.error)
   })
@@ -171,9 +200,10 @@ export async function deleteFromHistory(id: string): Promise<void> {
 export async function clearHistory(): Promise<void> {
   const db = await openDB()
   return new Promise((resolve, reject) => {
-    const tx = db.transaction([META_STORE, BLOB_STORE], 'readwrite')
+    const tx = db.transaction([META_STORE, BLOB_STORE, PREVIEW_STORE], 'readwrite')
     tx.objectStore(META_STORE).clear()
     tx.objectStore(BLOB_STORE).clear()
+    tx.objectStore(PREVIEW_STORE).clear()
     tx.oncomplete = () => resolve()
     tx.onerror = () => reject(tx.error)
   })

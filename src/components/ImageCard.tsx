@@ -1,6 +1,6 @@
 import { memo, useState } from 'react'
 import type { PlaygroundImageMeta } from '../lib/types'
-import { useImageSrc, getBlobFromCache } from '../hooks/useImageSrc'
+import { ensureBlobLoaded, useImageSrc, getBlobFromCache } from '../hooks/useImageSrc'
 
 type Props = {
   image: PlaygroundImageMeta
@@ -12,7 +12,7 @@ type Props = {
 }
 
 export const ImageCard = memo(function ImageCard({ image, inlineData, index, onAddToRef, onRegenerate, onOpen }: Props) {
-  const { ref, src } = useImageSrc(image.id, image.mimeType, inlineData)
+  const { ref, src } = useImageSrc(image.id, image.mimeType, inlineData, { variant: 'preview' })
   const meta = image.source.type === 'generated' ? image.source : null
   const [toast, setToast] = useState(false)
 
@@ -21,17 +21,27 @@ export const ImageCard = memo(function ImageCard({ image, inlineData, index, onA
     setTimeout(() => setToast(false), 1500)
   }
 
-  const handleDownload = () => {
-    if (!src) return
+  const resolveFullSrc = async () => {
+    if (inlineData) {
+      return `data:${image.mimeType};base64,${inlineData}`
+    }
+
+    return ensureBlobLoaded(image.id, image.mimeType)
+  }
+
+  const handleDownload = async () => {
+    const fullSrc = await resolveFullSrc()
+    if (!fullSrc) return
     const anchor = document.createElement('a')
-    anchor.href = src
+    anchor.href = fullSrc
     anchor.download = `nano-banana-${image.id.slice(0, 8)}.png`
     anchor.click()
   }
 
   const handleCopyImage = async () => {
-    if (!src) return
-    const response = await fetch(src)
+    const fullSrc = await resolveFullSrc()
+    if (!fullSrc) return
+    const response = await fetch(fullSrc)
     const blob = await response.blob()
     await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })])
     showCopiedToast()
@@ -68,6 +78,8 @@ export const ImageCard = memo(function ImageCard({ image, inlineData, index, onA
         <img
           src={src}
           alt={meta?.prompt ?? ''}
+          loading="lazy"
+          decoding="async"
           className="block h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
         />
       ) : (
