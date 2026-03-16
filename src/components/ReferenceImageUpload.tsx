@@ -90,13 +90,13 @@ export function ReferenceImageUpload({ images, maxTotal, onAdd, onAddImage, onRe
                   onClick={() => onRemove(img.id)}
                   aria-label="移除参考图"
                   className="absolute -top-1.5 -right-1.5 w-5 h-5
-                             bg-error-container text-on-error-container
-                             hover:bg-error hover:text-on-primary hover:scale-110
+                             bg-on-surface/60 text-surface
+                             hover:bg-on-surface/80
                              rounded-full flex items-center justify-center
-                             transition-all duration-150
-                             [box-shadow:0_1px_3px_rgba(0,0,0,0.25)]"
+                             opacity-0 group-hover:opacity-100
+                             transition-opacity duration-150"
                 >
-                  <span className="material-symbols-rounded leading-none" style={{ fontSize: 12, fontVariationSettings: "'wght' 700" }}>close</span>
+                  <span className="material-symbols-rounded leading-none" style={{ fontSize: 12, fontVariationSettings: "'wght' 500" }}>close</span>
                 </button>
               </div>
             ))}
