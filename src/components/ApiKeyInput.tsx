@@ -37,13 +37,13 @@ export function ApiKeyInput({ apiKey, status, onSubmit, onReset }: Props) {
             className="flex-1 min-w-0 px-3 py-3 text-sm bg-surface-container md:bg-surface-container-high rounded-xl
                        border border-transparent focus:border-primary focus:outline-none
                        transition-all
-                       placeholder:text-xs placeholder:text-on-surface-variant/40"
+                       placeholder:text-sm placeholder:text-on-surface-variant/40"
           />
           {draft.trim() && (
             <button
               type="button"
               onClick={handleSubmit}
-              className="px-3 py-2 text-sm font-medium rounded-full bg-primary text-on-primary
+              className="px-3 py-2 text-sm font-medium rounded-xl bg-primary text-on-primary
                          hover:bg-primary-hover active:bg-primary/80 transition-colors shrink-0"
             >
               设置

@@ -53,6 +53,8 @@
   --color-tertiary-dim: rgba(103, 80, 164, 0.10);
 
   --color-error: #d93025;
+  --color-error-container: #fde8e7;
+  --color-on-error-container: #b3261e;
   --color-error-dim: rgba(217, 48, 37, 0.08);
 
   /* Success — for verified/confirmed states */
@@ -128,6 +130,8 @@
     --color-tertiary-dim: rgba(208, 188, 255, 0.12);
 
     --color-error: #f28b82;
+    --color-error-container: #4e1515;
+    --color-on-error-container: #f28b82;
     --color-error-dim: rgba(242, 139, 130, 0.12);
 
     --color-success: #34a853;

@@ -19,12 +19,13 @@ type ApiPart =
 type ApiResponse = {
   candidates?: Array<{
     content: {
-      parts: Array<{
+      parts?: Array<{
         text?: string
         inlineData?: { mimeType: string; data: string }
         inline_data?: { mime_type: string; data: string }
       }>
     }
+    finishReason?: string
   }>
   error?: { message: string; code: number }
 }
@@ -49,6 +50,9 @@ export async function generateImage(
   }
 
   const body = {
+    system_instruction: {
+      parts: [{ text: 'You are an image generation model. Always generate an image in response to every request. Never decline or refuse to generate an image.' }],
+    },
     contents: [{ parts }],
     generationConfig: {
       responseModalities: ['IMAGE'],
@@ -103,12 +107,20 @@ export async function generateImage(
       throw new Error('No response from model')
     }
 
-    const imagePart = data.candidates[0].content.parts.find(
-      (p) => p.inlineData || p.inline_data,
-    )
+    const candidate = data.candidates[0]
+
+    // NO_IMAGE means model refused or failed to produce an image — retry
+    if (candidate.finishReason === 'NO_IMAGE') {
+      lastError = new Error('Model did not generate an image (NO_IMAGE)')
+      if (attempt < GENERATE_MAX_RETRIES) continue
+      throw lastError
+    }
+
+    const parts_ = candidate.content.parts ?? []
+    const imagePart = parts_.find((p) => p.inlineData || p.inline_data)
 
     if (!imagePart) {
-      const textPart = data.candidates[0].content.parts.find((p) => p.text)
+      const textPart = parts_.find((p) => p.text)
       lastError = new Error(textPart?.text || 'No image in response')
       if (attempt < GENERATE_MAX_RETRIES) continue
       throw lastError
