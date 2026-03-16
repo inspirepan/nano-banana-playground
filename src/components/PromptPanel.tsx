@@ -272,18 +272,63 @@ export function PromptPanel({
     setUndoToast(null)
   }, [undoToast])
 
+  // --- Drag-and-drop for reference images (panel-wide) ---
+  const [dragOver, setDragOver] = useState(false)
+  const dragCountRef = useRef(0)
+
+  const handlePanelDragEnter = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    dragCountRef.current++
+    if (dragCountRef.current === 1) setDragOver(true)
+  }, [])
+
+  const handlePanelDragLeave = useCallback(() => {
+    dragCountRef.current--
+    if (dragCountRef.current === 0) setDragOver(false)
+  }, [])
+
+  const handlePanelDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+  }, [])
+
+  const handlePanelDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    dragCountRef.current = 0
+    setDragOver(false)
+
+    // Check for playground image data (dragged from history)
+    const imageJson = e.dataTransfer.getData('application/x-playground-image')
+    if (imageJson) {
+      try {
+        const img: PlaygroundImage = JSON.parse(imageJson)
+        onAddReferenceImage(img)
+        return
+      } catch { /* fall through to file handling */ }
+    }
+
+    const files = Array.from(e.dataTransfer.files).filter((f) =>
+      f.type.startsWith('image/'),
+    )
+    if (files.length > 0) onAddReferenceImages(files)
+  }, [onAddReferenceImages, onAddReferenceImage])
+
   // --- Cost estimate ---
   const estimatedCost = pricePerImage !== undefined ? pricePerImage * batchCount : null
 
   return (
-    <div ref={panelRef} className="w-full md:flex-1 md:shrink-0 md:min-w-[360px] flex flex-col px-2 py-4 md:h-full md:overflow-y-auto">
+    <div ref={panelRef}
+      onDragEnter={handlePanelDragEnter}
+      onDragLeave={handlePanelDragLeave}
+      onDragOver={handlePanelDragOver}
+      onDrop={handlePanelDrop}
+      className="w-full md:flex-1 md:shrink-0 md:min-w-[360px] flex flex-col px-2 py-4 md:h-full md:overflow-y-auto relative">
       {/* Reference Images */}
       <div className="shrink-0">
         <ReferenceImageUpload
           images={referenceImages}
           maxTotal={maxRef}
+          dragOver={dragOver}
           onAdd={onAddReferenceImages}
-          onAddImage={onAddReferenceImage}
           onRemove={onRemoveReferenceImage}
         />
       </div>
@@ -548,6 +593,11 @@ export function PromptPanel({
           </p>
         )}
       </div>
+
+      {/* Drag overlay */}
+      {dragOver && (
+        <div className="absolute inset-0 z-40 rounded-2xl border-2 border-dashed border-primary/50 bg-primary/5 pointer-events-none" />
+      )}
 
       {/* Undo snackbar */}
       {undoToast && (
