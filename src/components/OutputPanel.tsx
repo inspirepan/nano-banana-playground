@@ -1,4 +1,4 @@
-import { memo, useMemo, useRef, useState, useEffect, useCallback } from 'react'
+import { memo, useMemo, useRef, useState, useEffect, useLayoutEffect, useCallback } from 'react'
 import JSZip from 'jszip'
 import type { PlaygroundImageMeta } from '../lib/types'
 import type { GenerationPreviewSlot, GenerationState, GenerationSnapshot } from '../hooks/usePlayground'
@@ -123,6 +123,32 @@ export const OutputPanel = memo(function OutputPanel({
   const [confirmClear, setConfirmClear] = useState(false)
   const isGenerating = generationState === 'generating'
 
+  // Settled state: after generation, keep preview cards in-place as the latest "batch"
+  const lastGenRef = useRef<{ preview: GenerationPreviewSlot[]; ratio: string; res: string; count: number; batchId: string } | null>(null)
+  if (isGenerating && generationPreview.length > 0 && generationSnapshot) {
+    lastGenRef.current = {
+      preview: generationPreview,
+      ratio: generationSnapshot.aspectRatio,
+      res: generationSnapshot.resolution,
+      count: generationSnapshot.batchCount,
+      batchId: generationSnapshot.batchId,
+    }
+  }
+
+  const [settled, setSettled] = useState(false)
+  const prevGeneratingRef = useRef(false)
+  useLayoutEffect(() => {
+    const wasGenerating = prevGeneratingRef.current
+    if (wasGenerating && !isGenerating && lastGenRef.current) setSettled(true)
+    if (!wasGenerating && isGenerating) { setSettled(false); lastGenRef.current = null }
+    prevGeneratingRef.current = isGenerating
+  }, [isGenerating])
+
+  // Clear settled when user starts a new draft or generation
+  useEffect(() => {
+    if (settled && (showDraft || isGenerating)) setSettled(false)
+  }, [settled, showDraft, isGenerating])
+
   const handleExportAll = async () => {
     if (exporting || history.length === 0) return
     setExporting(true)
@@ -155,13 +181,23 @@ export const OutputPanel = memo(function OutputPanel({
   }
   const batches = useMemo(() => groupByBatch(history), [history])
 
-  const draftRatio = isGenerating && generationSnapshot ? generationSnapshot.aspectRatio : aspectRatio
-  const draftRes = isGenerating && generationSnapshot ? generationSnapshot.resolution : resolution
-  const draftCount = isGenerating && generationSnapshot ? generationSnapshot.batchCount : (draftBatchOverride ?? batchCount)
-  const previewSlots = isGenerating && generationPreview.length > 0
-    ? generationPreview
+  // Settled data: generation completed, cards stay in-place
+  const settledData = settled && !showDraft && !isGenerating ? lastGenRef.current : null
+  const previewVisible = showDraft || isGenerating || !!settledData
+
+  const draftRatio = settledData ? settledData.ratio : isGenerating && generationSnapshot ? generationSnapshot.aspectRatio : aspectRatio
+  const draftRes = settledData ? settledData.res : isGenerating && generationSnapshot ? generationSnapshot.resolution : resolution
+  const draftCount = settledData ? settledData.count : isGenerating && generationSnapshot ? generationSnapshot.batchCount : (draftBatchOverride ?? batchCount)
+  const previewSlots = settledData ? settledData.preview
+    : isGenerating && generationPreview.length > 0 ? generationPreview
     : Array.from({ length: draftCount }, (): GenerationPreviewSlot => ({ status: 'pending' }))
   const completedCount = previewSlots.filter((slot) => slot.status === 'fulfilled').length
+
+  // Hide the settled batch from history to avoid duplication
+  const settledBatchId = settledData?.batchId ?? null
+  const displayBatches = settledBatchId
+    ? batches.filter((b) => b.batchId !== settledBatchId)
+    : batches
 
   const scrollRef = useRef<HTMLDivElement>(null)
 
@@ -217,19 +253,30 @@ export const OutputPanel = memo(function OutputPanel({
         </div>
       )}
 
-      {/* Unified preview — draft skeleton morphs into generation progress in-place */}
+      {/* Unified preview — draft skeleton / generation progress / settled results */}
       <div
         className={`grid transition-[grid-template-rows,opacity] duration-200 ease-[cubic-bezier(0.2,0,0,1)]
-          ${showDraft || isGenerating ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0 pointer-events-none'}`}
+          ${previewVisible ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0 pointer-events-none'}`}
       >
         <div className="overflow-hidden min-h-0">
           <div className="mb-6">
             <div className="mb-2 flex items-center justify-between gap-3">
-              <div className="text-sm font-medium text-on-surface-variant">预览</div>
-              {isGenerating && (
-                <div className="text-2xs font-mono text-on-surface-variant/50">
-                  {completedCount} / {draftCount}
-                </div>
+              {settledData ? (
+                <>
+                  <div className="text-xs font-mono text-on-surface-variant/50">刚刚</div>
+                  <div className="text-xs font-mono text-on-surface-variant/50 truncate">
+                    {settledData.res} · {settledData.ratio} · {settledData.count}张
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="text-sm font-medium text-on-surface-variant">预览</div>
+                  {isGenerating && (
+                    <div className="text-2xs font-mono text-on-surface-variant/50">
+                      {completedCount} / {draftCount}
+                    </div>
+                  )}
+                </>
               )}
             </div>
             <ImageGrid>
@@ -259,7 +306,7 @@ export const OutputPanel = memo(function OutputPanel({
       </div>
 
       {/* History batches */}
-      {batches.length > 0 && (
+      {displayBatches.length > 0 && (
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div className="text-sm font-medium text-on-surface-variant">历史记录 (本地浏览器存储)</div>
@@ -272,7 +319,7 @@ export const OutputPanel = memo(function OutputPanel({
               {exporting ? '导出中...' : '导出全部'}
             </button>
           </div>
-          {batches.map((batch) => {
+          {displayBatches.map((batch) => {
             return (
               <div key={batch.batchId}>
                 <div className="mb-2 flex items-center justify-between gap-3 text-xs font-mono text-on-surface-variant/50">
@@ -338,7 +385,7 @@ export const OutputPanel = memo(function OutputPanel({
         </div>
       )}
 
-      {batches.length === 0 && !isGenerating && (
+      {displayBatches.length === 0 && !isGenerating && !settledData && (
         <div className="mt-4 text-center text-on-surface-variant/40 text-sm">
           设置选项并输入提示词来生成图片
         </div>
