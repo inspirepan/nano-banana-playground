@@ -217,56 +217,46 @@ export const OutputPanel = memo(function OutputPanel({
         </div>
       )}
 
-      {/* Draft skeleton — animated enter/exit via grid-rows */}
+      {/* Unified preview — draft skeleton morphs into generation progress in-place */}
       <div
         className={`grid transition-[grid-template-rows,opacity] duration-200 ease-[cubic-bezier(0.2,0,0,1)]
-          ${!isGenerating && showDraft ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0 pointer-events-none'}`}
+          ${showDraft || isGenerating ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0 pointer-events-none'}`}
       >
         <div className="overflow-hidden min-h-0">
           <div className="mb-6">
-            <div className="text-sm font-medium text-on-surface-variant mb-2">预览</div>
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <div className="text-sm font-medium text-on-surface-variant">预览</div>
+              {isGenerating && (
+                <div className="text-2xs font-mono text-on-surface-variant/50">
+                  {completedCount} / {draftCount}
+                </div>
+              )}
+            </div>
             <ImageGrid>
-              {Array.from({ length: draftCount }, (_, i) => (
+              {previewSlots.map((slot, i) => (
                 <GridCell key={i} aspectRatio={draftRatio}>
-                  <SkeletonCard aspectRatio={draftRatio} resolution={draftRes} label={draftLabels?.[i]} />
+                  {slot.status === 'fulfilled' ? (
+                    <ImageCard
+                      image={slot.image}
+                      inlineData={slot.image.data}
+                      index={draftCount > 1 ? i : undefined}
+                      onAddToRef={onAddToRef}
+                      onRegenerate={onRegenerate}
+                      onOpen={setDetailImage}
+                    />
+                  ) : slot.status === 'rejected' ? (
+                    <FailedCard index={i} />
+                  ) : isGenerating ? (
+                    <LoadingCard index={i} />
+                  ) : (
+                    <SkeletonCard aspectRatio={draftRatio} resolution={draftRes} label={draftLabels?.[i]} />
+                  )}
                 </GridCell>
               ))}
             </ImageGrid>
           </div>
         </div>
       </div>
-
-      {/* Loading */}
-      {isGenerating && generationSnapshot && (
-        <div className="mb-6">
-          <div className="mb-2 flex items-center justify-between gap-3">
-            <div className="text-sm font-medium text-on-surface-variant">预览</div>
-            <div className="text-2xs font-mono text-on-surface-variant/50">
-              {completedCount} / {draftCount}
-            </div>
-          </div>
-          <ImageGrid>
-            {previewSlots.map((slot, i) => (
-              <GridCell key={i} aspectRatio={draftRatio}>
-                {slot.status === 'fulfilled' ? (
-                  <ImageCard
-                    image={slot.image}
-                    inlineData={slot.image.data}
-                    index={draftCount > 1 ? i : undefined}
-                    onAddToRef={onAddToRef}
-                    onRegenerate={onRegenerate}
-                    onOpen={setDetailImage}
-                  />
-                ) : slot.status === 'rejected' ? (
-                  <FailedCard index={i} />
-                ) : (
-                  <LoadingCard index={i} />
-                )}
-              </GridCell>
-            ))}
-          </ImageGrid>
-        </div>
-      )}
 
       {/* History batches */}
       {batches.length > 0 && (
