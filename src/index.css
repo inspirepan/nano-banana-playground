@@ -201,8 +201,8 @@
   .dark .app-title {
     font-variation-settings: 'wght' 650, 'wdth' 65, 'opsz' 24, 'GRAD' 60;
   }
-  /* Per-char spans: smooth trail as mouse moves away */
+  /* Per-char spans: transition only on leave (JS removes it during mousemove) */
   .app-title span {
-    transition: font-variation-settings 0.4s cubic-bezier(0.2, 0, 0, 1);
+    transition: font-variation-settings 0.3s cubic-bezier(0.2, 0, 0, 1);
   }
 }
