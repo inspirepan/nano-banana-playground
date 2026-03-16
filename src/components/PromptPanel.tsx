@@ -284,7 +284,7 @@ export function PromptPanel({
         {currentMode === 'augmenting' && (
           <div className="flex flex-col items-center justify-center gap-3 py-8 bg-surface-container rounded-xl">
             <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-            <p className="text-xs text-on-surface-variant">正在使用 <span className="opacity-50">Gemini 3 Flash</span> 润色提示词...</p>
+            <p className="text-xs text-on-surface-variant">正在使用 <span className="opacity-50">Gemini 3 Flash</span> 增强提示词...</p>
             <button type="button" onClick={handleCancelAugment}
               className="text-xs text-on-surface-variant hover:text-on-surface transition-colors">取消</button>
           </div>
@@ -297,19 +297,17 @@ export function PromptPanel({
               <div className="mb-4 rounded-2xl border border-outline-variant/40 bg-surface-container/50 px-4 py-3 flex flex-col gap-3">
                 {/* Header: title + action links */}
                 <div className="flex items-center gap-3">
-                  {schemes.length > 1 && (
-                    <p className="text-sm text-on-surface-variant">
-                      {schemes.length} 个润色方案
-                    </p>
-                  )}
+                  <p className="text-sm text-on-surface-variant">
+                    {schemes.length > 1 ? `${schemes.length} 个增强方案` : 'AI 已增强提示词'}
+                  </p>
                   <div className="flex-1" />
                   <div className="relative group/reaugment">
                     <button type="button" onClick={() => handleAugment(true)} disabled={!originalPrompt}
                       className="text-xs text-on-surface-variant/70 hover:text-on-surface transition-colors disabled:opacity-40 disabled:pointer-events-none">
-                      重新润色
+                      重新增强
                     </button>
                     <div className="absolute bottom-full right-0 mb-2 pointer-events-none whitespace-nowrap bg-on-surface text-surface text-xs px-2 py-1 rounded opacity-0 group-hover/reaugment:opacity-100 transition-opacity duration-150 delay-500 group-hover/reaugment:delay-500 z-50">
-                      基于原始提示词重新润色
+                      基于原始提示词重新增强
                     </div>
                   </div>
                   {schemes.length > 1 && (
@@ -332,7 +330,7 @@ export function PromptPanel({
                     <div className="relative group/discard">
                       <button type="button" onClick={handleDiscardAugment}
                         className="text-xs text-on-surface-variant/70 hover:text-on-surface transition-colors">
-                        退出润色
+                        退出增强
                       </button>
                       <div className="absolute bottom-full right-0 mb-2 pointer-events-none whitespace-nowrap bg-on-surface text-surface text-xs px-2 py-1 rounded opacity-0 group-hover/discard:opacity-100 transition-opacity duration-150 delay-500 group-hover/discard:delay-500 z-50">
                         恢复原始提示词
@@ -417,10 +415,10 @@ export function PromptPanel({
                   <div className="relative group/augment">
                     <button type="button" onClick={() => handleAugment(false)}
                       className="text-xs text-tertiary hover:text-tertiary/80 transition-colors">
-                      润色
+                      增强
                     </button>
                     <div className="absolute bottom-full right-0 mb-2 pointer-events-none whitespace-nowrap bg-on-surface text-surface text-xs px-2 py-1 rounded opacity-0 group-hover/augment:opacity-100 transition-opacity duration-150 delay-500 group-hover/augment:delay-500 z-50">
-                      使用 Gemini 3 Flash 润色提示词
+                      使用 Gemini 3 Flash 增强提示词
                     </div>
                   </div>
                 )}
