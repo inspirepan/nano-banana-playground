@@ -257,6 +257,12 @@ export function usePlayground() {
     }
 
     try {
+      // Persist reference images to IndexedDB so they can be shown in detail modal later
+      for (const refImg of referenceImages) {
+        await saveToHistory(refImg)
+        putBlobInCache(refImg.id, refImg.data)
+      }
+
       const promises = promptList.map((p, index) =>
         generateImage({
           apiKey: apiKeyHook.apiKey,

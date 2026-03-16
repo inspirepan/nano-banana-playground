@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { PlaygroundImageMeta } from '../lib/types'
 import { MODEL_CONFIGS } from '../config/models'
 import { ensureBlobLoaded, useImageSrc } from '../hooks/useImageSrc'
+import { loadImageMetas } from '../lib/history'
 
 const MIN_SCALE = 0.5
 const MAX_SCALE = 6
@@ -40,15 +41,31 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
   const [refDetailSrc, setRefDetailSrc] = useState<string | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
 
+  // Resolve reference image metas not present in `history` from IndexedDB
+  const [dbRefMetas, setDbRefMetas] = useState<Map<string, PlaygroundImageMeta>>(new Map())
+  const missingRefIds = useMemo(() => {
+    if (!currentMeta) return []
+    return currentMeta.referenceImageIds.filter((id) => !history.find((h) => h.id === id))
+  }, [currentMeta, history])
+
+  useEffect(() => {
+    if (missingRefIds.length === 0) return
+    loadImageMetas(missingRefIds).then(setDbRefMetas)
+  }, [missingRefIds])
+
+  const findRefImage = useCallback((id: string): PlaygroundImageMeta | undefined => {
+    return history.find((h) => h.id === id) ?? dbRefMetas.get(id)
+  }, [history, dbRefMetas])
+
   // Load ref detail image blob when selected
   useEffect(() => {
     if (!refDetailId) return
-    const refImg = history.find(h => h.id === refDetailId)
+    const refImg = findRefImage(refDetailId)
     if (!refImg) return
     ensureBlobLoaded(refImg.id, refImg.mimeType).then((src) => {
       if (src) setRefDetailSrc(src)
     })
-  }, [refDetailId, history])
+  }, [refDetailId, findRefImage])
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
@@ -233,7 +250,7 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {currentMeta.referenceImageIds.map((refId) => {
-                        const refImg = history.find((h) => h.id === refId)
+                        const refImg = findRefImage(refId)
                         if (!refImg) return (
                           <div key={refId} className="h-12 w-12 rounded-md bg-surface-container border border-outline-variant flex items-center justify-center text-2xs text-on-surface-variant/40">?</div>
                         )

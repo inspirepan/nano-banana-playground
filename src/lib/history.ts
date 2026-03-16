@@ -132,6 +132,31 @@ export async function loadImageBlobs(ids: string[]): Promise<Map<string, string>
   })
 }
 
+// Load metadata for multiple images by ID
+export async function loadImageMetas(ids: string[]): Promise<Map<string, PlaygroundImageMeta>> {
+  if (ids.length === 0) return new Map()
+  const db = await openDB()
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(META_STORE, 'readonly')
+    const store = tx.objectStore(META_STORE)
+    const result = new Map<string, PlaygroundImageMeta>()
+    let pending = ids.length
+
+    for (const id of ids) {
+      const req = store.get(id)
+      req.onsuccess = () => {
+        if (req.result) result.set(id, req.result as PlaygroundImageMeta)
+        if (--pending === 0) resolve(result)
+      }
+      req.onerror = () => {
+        if (--pending === 0) resolve(result)
+      }
+    }
+
+    tx.onerror = () => reject(tx.error)
+  })
+}
+
 export async function deleteFromHistory(id: string): Promise<void> {
   const db = await openDB()
   return new Promise((resolve, reject) => {
