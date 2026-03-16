@@ -8,7 +8,7 @@ type Props = {
 export function ChipGroup({ label, options, value, onChange }: Props) {
   return (
     <div>
-      <label className="block text-xs font-medium text-on-surface-variant mb-3">{label}</label>
+      <label className="block text-sm font-medium text-on-surface-variant mb-3">{label}</label>
       <div className="flex flex-wrap gap-2">
         {options.map((option) => (
           <button

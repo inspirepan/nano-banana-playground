@@ -224,7 +224,7 @@ export const OutputPanel = memo(function OutputPanel({
       >
         <div className="overflow-hidden min-h-0">
           <div className="mb-6">
-            <div className="text-xs font-medium text-on-surface-variant mb-2">预览</div>
+            <div className="text-sm font-medium text-on-surface-variant mb-2">预览</div>
             <ImageGrid>
               {Array.from({ length: draftCount }, (_, i) => (
                 <GridCell key={i} aspectRatio={draftRatio}>
@@ -240,7 +240,7 @@ export const OutputPanel = memo(function OutputPanel({
       {isGenerating && generationSnapshot && (
         <div className="mb-6">
           <div className="mb-2 flex items-center justify-between gap-3">
-            <div className="text-xs font-medium text-on-surface-variant">预览</div>
+            <div className="text-sm font-medium text-on-surface-variant">预览</div>
             <div className="text-2xs font-mono text-on-surface-variant/50">
               {completedCount} / {draftCount}
             </div>
@@ -272,12 +272,12 @@ export const OutputPanel = memo(function OutputPanel({
       {batches.length > 0 && (
         <div className="space-y-6">
           <div className="flex items-center justify-between">
-            <div className="text-xs font-medium text-on-surface-variant">历史记录 (本地浏览器存储)</div>
+            <div className="text-sm font-medium text-on-surface-variant">历史记录 (本地浏览器存储)</div>
             <button
               type="button"
               onClick={handleExportAll}
               disabled={exporting}
-              className="text-2xs text-primary hover:text-primary/80 transition-colors disabled:text-on-surface-variant/30"
+              className="text-sm text-primary hover:text-primary/80 transition-colors disabled:text-on-surface-variant/30"
             >
               {exporting ? '导出中...' : '导出全部'}
             </button>
@@ -285,7 +285,7 @@ export const OutputPanel = memo(function OutputPanel({
           {batches.map((batch) => {
             return (
               <div key={batch.batchId}>
-                <div className="mb-2 flex items-center justify-between gap-3 text-2xs font-mono text-on-surface-variant/50">
+                <div className="mb-2 flex items-center justify-between gap-3 text-sm font-mono text-on-surface-variant/50">
                   <div>{formatTime(batch.timestamp)}</div>
                   <div className="truncate">
                     {batch.resolution} · {batch.aspectRatio} · {batch.images.length}张
@@ -318,18 +318,18 @@ export const OutputPanel = memo(function OutputPanel({
           <div className="flex justify-center py-2">
             {confirmClear ? (
               <div className="flex items-center gap-3">
-                <span className="text-2xs text-on-surface-variant/60">确认清除全部历史？</span>
+                <span className="text-sm text-on-surface-variant/60">确认清除全部历史？</span>
                 <button
                   type="button"
                   onClick={() => { setConfirmClear(false); onClearAll() }}
-                  className="text-2xs text-error hover:text-error/80 transition-colors"
+                  className="text-sm text-error hover:text-error/80 transition-colors"
                 >
                   确认
                 </button>
                 <button
                   type="button"
                   onClick={() => setConfirmClear(false)}
-                  className="text-2xs text-on-surface-variant/50 hover:text-on-surface-variant transition-colors"
+                  className="text-sm text-on-surface-variant/50 hover:text-on-surface-variant transition-colors"
                 >
                   取消
                 </button>
@@ -338,7 +338,7 @@ export const OutputPanel = memo(function OutputPanel({
               <button
                 type="button"
                 onClick={() => setConfirmClear(true)}
-                className="text-2xs text-error hover:text-error/80 transition-colors"
+                className="text-sm text-error hover:text-error/80 transition-colors"
               >
                 清除全部
               </button>

@@ -42,7 +42,7 @@ export function ControlPanel({
 
         {/* Model Selector */}
         <div>
-          <label className="block text-xs font-medium text-on-surface-variant mb-3">模型</label>
+          <label className="block text-sm font-medium text-on-surface-variant mb-3">模型</label>
           <div className="flex flex-col gap-2">
             {MODEL_CONFIGS.map((m) => (
               <button

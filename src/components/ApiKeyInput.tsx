@@ -23,7 +23,7 @@ export function ApiKeyInput({ apiKey, status, onSubmit, onReset }: Props) {
   if (status === 'empty' || status === 'invalid') {
     return (
       <div>
-        <label className="block text-xs font-medium text-on-surface-variant mb-3">API Key</label>
+        <label className="block text-sm font-medium text-on-surface-variant mb-3">API Key</label>
         {status === 'invalid' && (
           <div className="text-xs text-error mb-2">密钥无效或已过期，请重新输入。</div>
         )}
@@ -59,7 +59,7 @@ export function ApiKeyInput({ apiKey, status, onSubmit, onReset }: Props) {
   if (status === 'validating') {
     return (
       <div>
-        <label className="block text-xs font-medium text-on-surface-variant mb-3">API Key</label>
+        <label className="block text-sm font-medium text-on-surface-variant mb-3">API Key</label>
         <div className="flex items-center gap-3 px-3 py-3 text-sm bg-surface-container md:bg-surface-container-high rounded-xl">
           <div className="w-3.5 h-3.5 border-2 border-primary/30 border-t-primary rounded-full animate-spin shrink-0" />
           <span className="text-on-surface-variant">验证中...</span>
@@ -72,7 +72,7 @@ export function ApiKeyInput({ apiKey, status, onSubmit, onReset }: Props) {
   const masked = apiKey.slice(0, 4) + '...' + apiKey.slice(-4)
   return (
     <div>
-      <label className="block text-xs font-medium text-on-surface-variant mb-3">API Key</label>
+      <label className="block text-sm font-medium text-on-surface-variant mb-3">API Key</label>
       <div className="flex items-center gap-3 px-3 py-3 bg-surface-container md:bg-surface-container-high rounded-xl">
         <span className="material-symbols-rounded text-sm text-success shrink-0">check</span>
         <span className="text-on-surface-variant font-mono text-xs flex-1 truncate">{masked}</span>

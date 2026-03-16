@@ -45,7 +45,7 @@ export function AspectRatioSelector({ options, value, resolution, onChange }: Pr
 
   return (
     <div>
-      <label className="block text-xs font-medium text-on-surface-variant mb-3">宽高比</label>
+      <label className="block text-sm font-medium text-on-surface-variant mb-3">宽高比</label>
       <div className="grid grid-cols-2 gap-1">
         {visibleOptions.map((option) => {
           const selected = value === option
