@@ -231,14 +231,59 @@ function isRetryable(error: unknown, status?: number): boolean {
   return false
 }
 
-export async function augmentPrompt(
+// Extract complete scheme objects from partially-streamed JSON.
+// The expected shape is {"schemes": [{...}, {...}, ...]}.
+// We bracket-count inside the top-level array to find each complete object.
+function extractCompleteSchemes(json: string): PromptScheme[] {
+  const arrayStart = json.indexOf('[')
+  if (arrayStart < 0) return []
+
+  const schemes: PromptScheme[] = []
+  let depth = 0
+  let objectStart = -1
+  let inString = false
+  let escape = false
+
+  for (let i = arrayStart + 1; i < json.length; i++) {
+    const ch = json[i]
+    if (escape) { escape = false; continue }
+    if (ch === '\\' && inString) { escape = true; continue }
+    if (ch === '"') { inString = !inString; continue }
+    if (inString) continue
+
+    if (ch === '{') {
+      if (depth === 0) objectStart = i
+      depth++
+    } else if (ch === '}') {
+      depth--
+      if (depth === 0 && objectStart >= 0) {
+        try {
+          const s = JSON.parse(json.slice(objectStart, i + 1)) as Record<string, string>
+          schemes.push({
+            title: s.title ?? '',
+            description: s.description ?? '',
+            text: assemblePrompt(s),
+          })
+        } catch { /* incomplete */ }
+        objectStart = -1
+      }
+    }
+  }
+
+  return schemes
+}
+
+export type AugmentStreamCallback = (schemes: PromptScheme[], done: boolean) => void
+
+export async function augmentPromptStream(
   apiKey: string,
   rawPrompt: string,
   referenceImages: PlaygroundImage[],
+  onUpdate: AugmentStreamCallback,
   signal?: AbortSignal,
 ): Promise<PromptScheme[]> {
-  // Use v1alpha for mediaResolution support on reference images
-  const url = `https://generativelanguage.googleapis.com/v1alpha/models/${AUGMENT_MODEL}:generateContent`
+  // Use v1alpha for mediaResolution support; streaming via SSE
+  const url = `https://generativelanguage.googleapis.com/v1alpha/models/${AUGMENT_MODEL}:streamGenerateContent?alt=sse`
 
   const parts: Array<Record<string, unknown>> = [{ text: rawPrompt }]
   for (const img of referenceImages) {
@@ -293,28 +338,78 @@ export async function augmentPrompt(
       continue
     }
 
-    const data: ApiResponse = await res.json()
-
-    if (data.error) {
-      throw new Error(data.error.message)
+    if (!res.ok) {
+      const data = await res.json()
+      throw new Error(data.error?.message ?? `HTTP ${res.status}`)
     }
 
-    if (!data.candidates?.length) {
-      throw new Error('No response from model')
+    if (!res.body) {
+      throw new Error('No response body')
     }
 
-    const textPart = data.candidates[0].content.parts?.find((p) => p.text)
-    if (!textPart?.text) {
-      throw new Error('No text in augmentation response')
+    const reader = res.body.getReader()
+    const decoder = new TextDecoder()
+    let sseBuffer = ''
+    let jsonText = ''
+    let emittedCount = 0
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        sseBuffer += decoder.decode(value, { stream: true })
+
+        // Split on newlines to find complete SSE data lines
+        const lines = sseBuffer.split('\n')
+        sseBuffer = lines.pop() ?? ''
+
+        for (const line of lines) {
+          const trimmed = line.trim()
+          if (!trimmed.startsWith('data:')) continue
+          const payload = trimmed.slice(5).trim()
+          if (!payload || payload === '[DONE]') continue
+
+          try {
+            const event = JSON.parse(payload)
+            const eventParts = event.candidates?.[0]?.content?.parts
+            if (!eventParts) continue
+            for (const part of eventParts) {
+              if (part.thought) continue
+              if (part.text != null) jsonText += part.text
+            }
+          } catch { /* skip malformed SSE events */ }
+        }
+
+        // Emit newly completed schemes
+        const parsed = extractCompleteSchemes(jsonText)
+        if (parsed.length > emittedCount) {
+          emittedCount = parsed.length
+          onUpdate(parsed, false)
+        }
+      }
+    } finally {
+      reader.releaseLock()
     }
 
-    const raw = JSON.parse(textPart.text) as { schemes: Array<Record<string, string>> }
+    // Final parse
+    let finalSchemes: PromptScheme[]
+    try {
+      const raw = JSON.parse(jsonText) as { schemes: Array<Record<string, string>> }
+      finalSchemes = raw.schemes.map((s) => ({
+        title: s.title ?? '',
+        description: s.description ?? '',
+        text: assemblePrompt(s),
+      }))
+    } catch {
+      // If final JSON parse fails but we extracted partial schemes, use those
+      const partial = extractCompleteSchemes(jsonText)
+      if (partial.length === 0) throw new Error('Failed to parse augmentation response')
+      finalSchemes = partial
+    }
 
-    return raw.schemes.map((s) => ({
-      title: s.title ?? '',
-      description: s.description ?? '',
-      text: assemblePrompt(s),
-    }))
+    onUpdate(finalSchemes, true)
+    return finalSchemes
   }
 
   throw lastError

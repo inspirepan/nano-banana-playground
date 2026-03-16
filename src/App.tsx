@@ -307,7 +307,7 @@ function App() {
               {collapseIcon}
             </button>
             <div
-              className="absolute right-0 bottom-full mb-2
+              className="absolute left-0 bottom-full mb-2
                          pointer-events-none whitespace-nowrap
                          bg-on-surface text-surface text-xs px-2 py-1 rounded
                          opacity-0 group-hover:opacity-100

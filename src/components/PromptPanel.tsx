@@ -1,8 +1,8 @@
 import { useState, useRef, useCallback, useEffect, type ReactNode } from 'react'
-import type { PersistedPromptMode, PlaygroundImage, PromptMode, PromptScheme } from '../lib/types'
+import type { PersistedPromptMode, PlaygroundImage, PromptScheme } from '../lib/types'
 import type { ModelConfig } from '../config/models'
 import type { GenerationState } from '../hooks/usePlayground'
-import { augmentPrompt } from '../lib/api'
+import { augmentPromptStream } from '../lib/api'
 import { ReferenceImageUpload } from './ReferenceImageUpload'
 
 // Labels for syntax highlighting in text editor, longest-first to avoid prefix conflicts
@@ -104,10 +104,9 @@ export function PromptPanel({
   const pricePerImage = model.imagePriceByResolution[resolution]
 
   const [isAugmenting, setIsAugmenting] = useState(false)
-  const currentMode: PromptMode = isAugmenting ? 'augmenting' : mode
   const hasPrompt = prompt.trim() !== ''
 
-  const canGenerate = apiKey.trim() !== '' && hasPrompt && !isGenerating && currentMode !== 'augmenting'
+  const canGenerate = apiKey.trim() !== '' && hasPrompt && !isGenerating && !isAugmenting
 
   const [augmentError, setAugmentError] = useState<string | null>(null)
   const abortRef = useRef<AbortController | null>(null)
@@ -166,10 +165,10 @@ export function PromptPanel({
   const canAugment = apiKey.trim() !== '' && hasPrompt
 
   useEffect(() => {
-    if (currentMode !== 'augmenting' && textareaRef.current) autoResizeTextarea(textareaRef.current)
-  }, [prompt, currentMode])
+    if ((!isAugmenting || schemes.length > 0) && textareaRef.current) autoResizeTextarea(textareaRef.current)
+  }, [prompt, isAugmenting, schemes.length])
 
-  // --- Augment ---
+  // --- Augment (streaming) ---
   const handleAugment = useCallback(async (useOriginal = false) => {
     if (!canAugment && !useOriginal) return
     const sourcePrompt = useOriginal && originalPrompt ? originalPrompt : prompt
@@ -181,25 +180,41 @@ export function PromptPanel({
 
     setIsAugmenting(true)
     setAugmentError(null)
+    onSchemesChange([])
+    onCurrentSchemeIndexChange(0)
 
     const controller = new AbortController()
     abortRef.current = controller
-    // 30s timeout — handles cases where API is unreachable (e.g. no proxy)
-    const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(30_000)])
+    // 120s timeout — thinking + streaming can take a while
+    const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(120_000)])
 
+    let gotSchemes = false
+    let firstScheme = true
     try {
-      const result = await augmentPrompt(apiKey, sourcePrompt, referenceImages, signal)
-      onSchemesChange(result)
-      onCurrentSchemeIndexChange(0)
-      onPromptChange(result[0].text)
-      onModeChange('structured')
+      await augmentPromptStream(apiKey, sourcePrompt, referenceImages, (schemes, done) => {
+        if (schemes.length > 0) {
+          gotSchemes = true
+          onSchemesChange(schemes)
+          if (firstScheme) {
+            firstScheme = false
+            onCurrentSchemeIndexChange(0)
+            onPromptChange(schemes[0].text)
+          }
+        }
+        if (done) {
+          onModeChange('structured')
+        }
+      }, signal)
     } catch (e) {
       if ((e as Error).name !== 'AbortError') {
         const msg = (e as Error).name === 'TimeoutError'
-          ? '请求超时（30s），请检查网络连接或代理配置后重试'
+          ? '请求超时，请检查网络连接或代理配置后重试'
           : (e as Error).message
         setAugmentError(msg)
-        onModeChange(useOriginal ? 'structured' : 'text')
+        onModeChange(gotSchemes ? 'structured' : (useOriginal ? 'structured' : 'text'))
+      } else if (gotSchemes) {
+        // User cancelled but we have partial results — keep them
+        onModeChange('structured')
       }
     } finally {
       setIsAugmenting(false)
@@ -282,7 +297,7 @@ export function PromptPanel({
         {/* Prompt content */}
         <div className="flex flex-col">
 
-        {currentMode === 'augmenting' && (
+        {isAugmenting && schemes.length === 0 && (
           <div className="flex flex-col items-center justify-center gap-3 py-8 bg-surface-container rounded-xl">
             <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
             <p className="text-xs text-on-surface-variant">正在使用 <span className="opacity-50">Gemini 3 Flash</span> 增强提示词...</p>
@@ -291,70 +306,89 @@ export function PromptPanel({
           </div>
         )}
 
-        {currentMode !== 'augmenting' && (
+        {(!isAugmenting || schemes.length > 0) && (
           <>
             {/* Augment result card */}
-            {currentMode === 'structured' && schemes.length > 0 && (
+            {schemes.length > 0 && (mode === 'structured' || isAugmenting) && (
               <div className="mb-4 rounded-2xl border border-outline-variant/40 bg-surface-container/50 px-4 py-3 flex flex-col gap-3">
                 {/* Header: title + action links */}
                 <div className="flex items-center gap-3">
-                  <p className="text-sm text-on-surface-variant">
-                    {schemes.length > 1 ? `${schemes.length} 个增强方案` : 'AI 已增强提示词'}
-                  </p>
-                  <div className="flex-1" />
-                  <div className="relative group/reaugment">
-                    <button type="button" onClick={() => handleAugment(true)} disabled={!originalPrompt}
-                      className="text-xs text-on-surface-variant/70 hover:text-on-surface transition-colors disabled:opacity-40 disabled:pointer-events-none">
-                      重新增强
-                    </button>
-                    <div className="absolute bottom-full right-0 mb-2 pointer-events-none whitespace-nowrap bg-on-surface text-surface text-xs px-2 py-1 rounded opacity-0 group-hover/reaugment:opacity-100 transition-opacity duration-150 delay-500 group-hover/reaugment:delay-500 z-50">
-                      基于原始提示词重新增强
-                    </div>
-                  </div>
-                  {schemes.length > 1 && (
-                    <div className="relative group/gen-all">
-                      <button type="button" disabled={isGenerating}
-                        onClick={() => { onDraftBatchOverride(null); handleGenerateAll() }}
-                        onMouseEnter={() => { if (!isGenerating) { onDraftBatchOverride(schemes.length, schemes.map((s) => s.title)); onDraftPreviewHover(true) } }}
-                        onMouseLeave={() => { onDraftBatchOverride(null); onDraftPreviewHover(false) }}
-                        className="text-xs text-on-surface-variant/70 hover:text-on-surface transition-colors disabled:opacity-40 disabled:pointer-events-none">
-                        各生成一张
-                      </button>
-                      <div className="absolute bottom-full right-0 mb-2 pointer-events-none whitespace-nowrap
-                                      bg-on-surface text-surface text-xs px-2 py-1 rounded
-                                      opacity-0 group-hover/gen-all:opacity-100 transition-opacity duration-150 delay-500 z-50">
-                        每个方案各生成 1 张，共 {schemes.length} 张
-                      </div>
-                    </div>
+                  {isAugmenting ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-tertiary border-t-transparent rounded-full animate-spin shrink-0" />
+                      <p className="text-sm text-on-surface-variant">
+                        已生成 {schemes.length} 个方案...
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-sm text-on-surface-variant">
+                      {schemes.length > 1 ? `${schemes.length} 个增强方案` : 'AI 已增强提示词'}
+                    </p>
                   )}
-                  {originalPrompt !== null && (
-                    <div className="relative group/discard">
-                      <button type="button" onClick={handleDiscardAugment}
-                        className="text-xs text-on-surface-variant/70 hover:text-on-surface transition-colors">
-                        退出增强
-                      </button>
-                      <div className="absolute bottom-full right-0 mb-2 pointer-events-none whitespace-nowrap bg-on-surface text-surface text-xs px-2 py-1 rounded opacity-0 group-hover/discard:opacity-100 transition-opacity duration-150 delay-500 group-hover/discard:delay-500 z-50">
-                        恢复原始提示词
+                  <div className="flex-1" />
+                  {isAugmenting ? (
+                    <button type="button" onClick={handleCancelAugment}
+                      className="text-xs text-on-surface-variant/70 hover:text-on-surface transition-colors">
+                      取消
+                    </button>
+                  ) : (
+                    <>
+                      <div className="relative group/reaugment">
+                        <button type="button" onClick={() => handleAugment(true)} disabled={!originalPrompt}
+                          className="text-xs text-on-surface-variant/70 hover:text-on-surface transition-colors disabled:opacity-40 disabled:pointer-events-none">
+                          重新增强
+                        </button>
+                        <div className="absolute bottom-full right-0 mb-2 pointer-events-none whitespace-nowrap bg-on-surface text-surface text-xs px-2 py-1 rounded opacity-0 group-hover/reaugment:opacity-100 transition-opacity duration-150 delay-500 group-hover/reaugment:delay-500 z-50">
+                          基于原始提示词重新增强
+                        </div>
                       </div>
-                    </div>
+                      {schemes.length > 1 && (
+                        <div className="relative group/gen-all">
+                          <button type="button" disabled={isGenerating}
+                            onClick={() => { onDraftBatchOverride(null); handleGenerateAll() }}
+                            onMouseEnter={() => { if (!isGenerating) { onDraftBatchOverride(schemes.length, schemes.map((s) => s.title)); onDraftPreviewHover(true) } }}
+                            onMouseLeave={() => { onDraftBatchOverride(null); onDraftPreviewHover(false) }}
+                            className="text-xs text-on-surface-variant/70 hover:text-on-surface transition-colors disabled:opacity-40 disabled:pointer-events-none">
+                            各生成一张
+                          </button>
+                          <div className="absolute bottom-full right-0 mb-2 pointer-events-none whitespace-nowrap
+                                          bg-on-surface text-surface text-xs px-2 py-1 rounded
+                                          opacity-0 group-hover/gen-all:opacity-100 transition-opacity duration-150 delay-500 z-50">
+                            每个方案各生成 1 张，共 {schemes.length} 张
+                          </div>
+                        </div>
+                      )}
+                      {originalPrompt !== null && (
+                        <div className="relative group/discard">
+                          <button type="button" onClick={handleDiscardAugment}
+                            className="text-xs text-on-surface-variant/70 hover:text-on-surface transition-colors">
+                            退出增强
+                          </button>
+                          <div className="absolute bottom-full right-0 mb-2 pointer-events-none whitespace-nowrap bg-on-surface text-surface text-xs px-2 py-1 rounded opacity-0 group-hover/discard:opacity-100 transition-opacity duration-150 delay-500 group-hover/discard:delay-500 z-50">
+                            恢复原始提示词
+                          </div>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
                 {/* Scheme chips */}
-                {schemes.length > 1 && (
+                {schemes.length >= 1 && (
                   <div className="flex flex-wrap items-center gap-2">
                     {schemes.map((scheme, i) => {
                       const isSelected = i === currentSchemeIndex
                       return (
                         <div key={i} className="relative group">
                           <button type="button" onClick={() => handleSelectScheme(i)}
+                            disabled={isAugmenting}
                             className={`px-3 py-3 text-sm font-medium rounded-xl transition-colors
                               ${isSelected
                                 ? 'bg-tertiary-dim text-tertiary hover:bg-tertiary/15 active:bg-tertiary/20'
                                 : 'bg-surface text-on-surface hover:bg-on-surface/8 active:bg-on-surface/12'
-                              }`}>
+                              } ${isAugmenting ? 'pointer-events-none' : ''}`}>
                             {scheme.title}
                           </button>
-                          {scheme.description && (
+                          {scheme.description && !isAugmenting && (
                             <div className="absolute bottom-full left-0 mb-2 w-48
                                             pointer-events-none bg-on-surface text-surface text-xs
                                             px-2 py-1 rounded leading-snug
@@ -365,10 +399,13 @@ export function PromptPanel({
                         </div>
                       )
                     })}
+                    {isAugmenting && (
+                      <div className="w-3 h-3 border-[1.5px] border-on-surface-variant/30 border-t-on-surface-variant/70 rounded-full animate-spin" />
+                    )}
                   </div>
                 )}
                 {/* Selected scheme description */}
-                {schemes[currentSchemeIndex]?.description && (
+                {!isAugmenting && schemes[currentSchemeIndex]?.description && (
                   <p className="text-sm text-on-surface-variant leading-relaxed px-3">
                     <span className="font-medium text-tertiary">{schemes[currentSchemeIndex].title}</span>
                     <span className="mx-1 opacity-40">|</span>
@@ -392,6 +429,7 @@ export function PromptPanel({
                 </div>
                 <textarea ref={textareaRef} value={prompt}
                   onChange={(e) => { onPromptChange(e.target.value); autoResizeTextarea(e.target) }}
+                  readOnly={isAugmenting}
                   rows={1}
                   style={{ caretColor: 'var(--color-on-surface)' }}
                   className="relative box-border w-full px-4 py-4 pb-12 text-sm text-transparent bg-transparent focus:outline-none resize-none overflow-hidden" />
@@ -410,7 +448,7 @@ export function PromptPanel({
                   清空
                 </button>
                 <div className="flex-1" />
-                {currentMode === 'text' && (
+                {mode === 'text' && !isAugmenting && (
                   <div className="relative group/augment">
                     <button type="button" onClick={() => handleAugment(false)} disabled={!canAugment}
                       className={`text-xs text-tertiary hover:text-tertiary/80 transition-colors disabled:pointer-events-none ${canAugment ? '' : 'invisible'}`}>
@@ -452,10 +490,10 @@ export function PromptPanel({
           onMouseEnter={() => {
             if (!canGenerate) return
             onDraftPreviewHover(true)
-            if (currentMode === 'structured' && schemes[currentSchemeIndex]) {
+            if (mode === 'structured' && schemes[currentSchemeIndex]) {
               const title = schemes[currentSchemeIndex].title
               onDraftLabelsOverride(Array.from({ length: batchCount }, () => title))
-            } else if (currentMode === 'text' && prompt.trim()) {
+            } else if (mode === 'text' && prompt.trim()) {
               const firstLine = prompt.trimStart().split('\n')[0]
               const short = firstLine.length > 10 ? firstLine.slice(0, 10) + '…' : firstLine
               onDraftLabelsOverride(Array.from({ length: batchCount }, () => short))
