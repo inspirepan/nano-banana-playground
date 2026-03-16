@@ -102,9 +102,22 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
     return () => window.removeEventListener('keydown', handleKey)
   }, [canNavigate, goToNext, goToPrev])
 
-  const modelName = currentMeta
-    ? MODEL_CONFIGS.find((m) => m.id === currentMeta.modelId)?.name ?? currentMeta.modelId
-    : null
+  const modelConfig = currentMeta ? MODEL_CONFIGS.find((m) => m.id === currentMeta.modelId) : null
+  const modelName = modelConfig?.name ?? currentMeta?.modelId ?? null
+
+  // Compute actual cost from token usage; fall back to per-image estimate if no token data
+  const estimatedCost = (() => {
+    if (!currentMeta || !modelConfig) return null
+    const usage = currentMeta.tokenUsage
+    if (usage) {
+      const inputCost = usage.inputTokens * modelConfig.inputPricePerMillion / 1_000_000
+      const imageCost = usage.imageOutputTokens * modelConfig.imageOutputPricePerMillion / 1_000_000
+      const textCost = usage.textOutputTokens * modelConfig.textOutputPricePerMillion / 1_000_000
+      return inputCost + imageCost + textCost
+    }
+    // Legacy images without token data: use per-image lookup
+    return modelConfig.imagePriceByResolution[currentMeta.resolution] ?? null
+  })()
 
   const showCopiedToast = () => {
     setToast(true)
@@ -237,6 +250,47 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
                 <MetaRow label="模型" value={modelName!} />
                 <MetaRow label="分辨率" value={currentMeta.resolution} />
                 <MetaRow label="宽高比" value={currentMeta.aspectRatio} />
+                {(estimatedCost !== null || currentMeta.tokenUsage) && (
+                  <div>
+                  <div className="mb-1 text-sm font-medium text-on-surface-variant">消耗</div>
+                  <div className="rounded-xl border border-outline-variant bg-surface-container px-3 py-2.5 space-y-2">
+                    {estimatedCost !== null && (
+                      <div className="flex items-baseline justify-between">
+                        <span className="text-xs text-on-surface-variant">费用</span>
+                        <span className="text-sm font-medium text-on-surface font-mono">
+                          ${estimatedCost.toFixed(4)}
+                          {!currentMeta.tokenUsage && <span className="ml-1 text-xs font-normal text-on-surface-variant">估算</span>}
+                        </span>
+                      </div>
+                    )}
+                    {currentMeta.tokenUsage && (
+                      <>
+                        {estimatedCost !== null && <div className="border-t border-outline-variant" />}
+                        <div className="flex items-baseline justify-between">
+                          <span className="text-xs text-on-surface-variant">输入 Token</span>
+                          <span className="text-xs font-mono text-on-surface">
+                            {currentMeta.tokenUsage.inputTokens.toLocaleString()}
+                          </span>
+                        </div>
+                        <div className="flex items-baseline justify-between">
+                          <span className="text-xs text-on-surface-variant">图片输出 Token</span>
+                          <span className="text-xs font-mono text-on-surface">
+                            {currentMeta.tokenUsage.imageOutputTokens.toLocaleString()}
+                          </span>
+                        </div>
+                        {currentMeta.tokenUsage.textOutputTokens > 0 && (
+                          <div className="flex items-baseline justify-between">
+                            <span className="text-xs text-on-surface-variant">思考 Token</span>
+                            <span className="text-xs font-mono text-on-surface">
+                              {currentMeta.tokenUsage.textOutputTokens.toLocaleString()}
+                            </span>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                  </div>
+                )}
                 <div>
                   <div className="mb-1 text-sm font-medium text-on-surface-variant">提示词</div>
                   <div className="max-h-[40vh] overflow-y-auto rounded-xl bg-surface-container px-3 py-2 text-xs leading-relaxed text-on-surface whitespace-pre-wrap">

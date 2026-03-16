@@ -1,5 +1,5 @@
 import type { ModelConfig } from '../config/models'
-import type { PlaygroundImage, PromptScheme } from './types'
+import type { PlaygroundImage, PromptScheme, TokenUsage } from './types'
 import AUGMENT_SYSTEM_PROMPT from './augment-system-prompt.md?raw'
 
 export type GenerateParams = {
@@ -28,6 +28,12 @@ type ApiResponse = {
     finishReason?: string
   }>
   error?: { message: string; code: number }
+  usageMetadata?: {
+    promptTokenCount?: number
+    candidatesTokenCount?: number
+    totalTokenCount?: number
+    candidatesTokensDetails?: Array<{ modality: string; tokenCount: number }>
+  }
 }
 
 const REQUEST_TIMEOUT_MS = 5 * 60 * 1000 // 5 minutes
@@ -140,6 +146,21 @@ export async function generateImage(
       'image/png'
     const base64 = imageData.data
 
+    let tokenUsage: TokenUsage | undefined
+    if (data.usageMetadata) {
+      const details = data.usageMetadata.candidatesTokensDetails ?? []
+      const imageOutputTokens = details.find((d) => d.modality === 'IMAGE')?.tokenCount ?? 0
+      const totalOutputTokens = data.usageMetadata.candidatesTokenCount ?? 0
+      // thinking tokens may not appear in candidatesTokensDetails, so use subtraction
+      const textOutputTokens = totalOutputTokens - imageOutputTokens
+      tokenUsage = {
+        inputTokens: data.usageMetadata.promptTokenCount ?? 0,
+        imageOutputTokens,
+        textOutputTokens,
+        totalTokens: data.usageMetadata.totalTokenCount ?? 0,
+      }
+    }
+
     return {
       id: crypto.randomUUID(),
       data: base64,
@@ -152,6 +173,7 @@ export async function generateImage(
         aspectRatio,
         referenceImageIds: referenceImages.map((r) => r.id),
         batchId,
+        tokenUsage,
       },
       timestamp: Date.now(),
     }

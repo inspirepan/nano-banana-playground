@@ -3,6 +3,13 @@ export type UploadSource = {
   fileName: string
 }
 
+export type TokenUsage = {
+  inputTokens: number
+  imageOutputTokens: number  // image modality output tokens (drives most of the cost)
+  textOutputTokens: number   // text + thinking output tokens
+  totalTokens: number
+}
+
 export type GeneratedSource = {
   type: 'generated'
   modelId: string
@@ -11,6 +18,7 @@ export type GeneratedSource = {
   aspectRatio: string
   referenceImageIds: string[]
   batchId: string
+  tokenUsage?: TokenUsage
 }
 
 export type ImageSource = UploadSource | GeneratedSource

@@ -9,8 +9,13 @@ export type ModelConfig = {
   maxReferenceImages: number
   maxCharacterImages: number
   maxBatchCount: number
-  // price per image in USD, keyed by resolution string
+  // price per image in USD, keyed by resolution string (used for pre-generation estimate)
   imagePriceByResolution: Record<string, number>
+  // token-based pricing per 1M tokens in USD (used for post-generation actual cost)
+  // source: https://ai.google.dev/gemini-api/docs/pricing
+  inputPricePerMillion: number       // text + image input tokens
+  imageOutputPricePerMillion: number // image output tokens
+  textOutputPricePerMillion: number  // text + thinking output tokens
 }
 
 export const MODEL_CONFIGS: ModelConfig[] = [
@@ -28,8 +33,10 @@ export const MODEL_CONFIGS: ModelConfig[] = [
     maxReferenceImages: 10,
     maxCharacterImages: 4,
     maxBatchCount: 4,
-    // source: https://ai.google.dev/gemini-api/docs/pricing
     imagePriceByResolution: { '512': 0.045, '1K': 0.067, '2K': 0.101, '4K': 0.151 },
+    inputPricePerMillion: 0.50,
+    imageOutputPricePerMillion: 60.00,
+    textOutputPricePerMillion: 3.00,
   },
   {
     id: 'nano-banana-pro',
@@ -45,9 +52,11 @@ export const MODEL_CONFIGS: ModelConfig[] = [
     maxReferenceImages: 6,
     maxCharacterImages: 5,
     maxBatchCount: 4,
-    // source: https://ai.google.dev/gemini-api/docs/pricing
     // 1K and 2K share the same token count (1120), hence same price
     imagePriceByResolution: { '1K': 0.134, '2K': 0.134, '4K': 0.240 },
+    inputPricePerMillion: 2.00,
+    imageOutputPricePerMillion: 120.00,
+    textOutputPricePerMillion: 12.00,
   },
 ]
 
