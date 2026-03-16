@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Agentation } from 'agentation'
 import { usePlayground } from './hooks/usePlayground'
-import type { PlaygroundImage, PlaygroundImageMeta } from './lib/types'
+import type { PlaygroundImageMeta } from './lib/types'
 import { ControlPanel } from './components/ControlPanel'
 import { PromptPanel } from './components/PromptPanel'
 import { OutputPanel } from './components/OutputPanel'
@@ -350,6 +350,7 @@ function App() {
 
       <OutputPanel
         history={pg.history}
+        historyHasMore={pg.historyHasMore}
         generationState={pg.generationState}
         generationSnapshot={pg.generationSnapshot}
         generationPreview={pg.generationPreview}
@@ -364,6 +365,7 @@ function App() {
         onRegenerate={handleRegenerate}
         onRemove={pg.removeFromHistory}
         onClearAll={pg.clearAllHistory}
+        onLoadMore={pg.loadMoreHistory}
       />
       {import.meta.env.DEV && <Agentation />}
     </div>
