@@ -37,10 +37,12 @@ function renderHighlighted(text: string): ReactNode[] {
 // --- Auto-resize textarea ---
 const TEXTAREA_MIN_HEIGHT = 120
 
-function autoResizeTextarea(el: HTMLTextAreaElement) {
+function autoResizeTextarea(el: HTMLTextAreaElement, scrollContainer?: HTMLElement | null) {
+  const prevScroll = scrollContainer?.scrollTop
   const borderHeight = el.offsetHeight - el.clientHeight
   el.style.height = 'auto'
   el.style.height = `${Math.max(el.scrollHeight + borderHeight + 1, TEXTAREA_MIN_HEIGHT)}px`
+  if (scrollContainer && prevScroll !== undefined) scrollContainer.scrollTop = prevScroll
 }
 
 type Props = {
@@ -111,6 +113,7 @@ export function PromptPanel({
   const [augmentError, setAugmentError] = useState<string | null>(null)
   const abortRef = useRef<AbortController | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
 
   // Undo toast state
   const [undoToast, setUndoToast] = useState<{ text: string; timer: number } | null>(null)
@@ -165,7 +168,7 @@ export function PromptPanel({
   const canAugment = apiKey.trim() !== '' && hasPrompt
 
   useEffect(() => {
-    if ((!isAugmenting || schemes.length > 0) && textareaRef.current) autoResizeTextarea(textareaRef.current)
+    if ((!isAugmenting || schemes.length > 0) && textareaRef.current) autoResizeTextarea(textareaRef.current, panelRef.current)
   }, [prompt, isAugmenting, schemes.length])
 
   // --- Augment (streaming) ---
@@ -275,7 +278,7 @@ export function PromptPanel({
   const estimatedCost = pricePerImage !== undefined ? pricePerImage * batchCount : null
 
   return (
-    <div className="w-full md:flex-1 md:shrink-0 md:min-w-[360px] flex flex-col px-2 py-4 md:h-full md:overflow-y-auto">
+    <div ref={panelRef} className="w-full md:flex-1 md:shrink-0 md:min-w-[360px] flex flex-col px-2 py-4 md:h-full md:overflow-y-auto">
       {/* Reference Images */}
       <div className="shrink-0">
         <ReferenceImageUpload
@@ -428,7 +431,7 @@ export function PromptPanel({
                   }
                 </div>
                 <textarea ref={textareaRef} value={prompt}
-                  onChange={(e) => { onPromptChange(e.target.value); autoResizeTextarea(e.target) }}
+                  onChange={(e) => { onPromptChange(e.target.value); autoResizeTextarea(e.target, panelRef.current) }}
                   readOnly={isAugmenting}
                   rows={1}
                   style={{ caretColor: 'var(--color-on-surface)' }}
