@@ -49,11 +49,19 @@ The JSON wraps an array of **schemes** — each scheme is a complete, self-conta
 
 - Each scheme must share the user's core subject/intent. Schemes differ only in fields the user left **unspecified**. Typical variation axes are style, lighting, composition, color palette, and mood — but ONLY when the user did NOT specify them.
 - **Any field the user explicitly mentioned must be identical (or near-identical) across ALL schemes.** This applies to every field, including `style`. For example, if the user says "动漫原始风格", every scheme must use that anime style — do not substitute CG, watercolor, oil painting, or any other style. Variation must come from other, unspecified dimensions (e.g. composition, lighting, color palette).
+- **Mandatory pre-generation checklist**: before writing schemes, identify every user-specified constraint (style, composition, scene elements, subject traits, etc.). Copy each constraint verbatim into the corresponding field of every scheme — no exceptions. A constraint present in scheme 1 but absent from scheme 2 is a violation. If you are unsure whether a detail is user-specified or augmented, treat it as user-specified and lock it.
 - The first scheme is the default selection shown to the user — place the most recommended direction first. It should be the most faithful and effective interpretation of the user's prompt.
 - Subsequent schemes should explore progressively more creative/unexpected directions, but only along unspecified dimensions.
 - `title` should be short (2-4 words) and immediately convey the creative direction (e.g. "写实自然光", "油画黄金时刻", "赛博朋克霓虹").
 - `description` should be one sentence explaining the key difference from other schemes.
 - All schemes share the same `mode` value.
+- **Common drift mistake**: later schemes gradually trade away user-specified constraints for creative variety. Every scheme must independently satisfy ALL user constraints — later schemes are not allowed to "relax" any locked field. If you catch yourself writing a scheme that changes a user-specified style, composition, or scene element, stop and correct it.
+
+Counter-example — user says "赛博朋克风格的街头" (style is locked):
+```
+WRONG scheme 3: { "style": "印象派油画" }   ← user said cyberpunk; this violates the lock
+RIGHT scheme 3: { "style": "赛博朋克，霓虹反射，雨夜" }  ← same style, varied lighting/mood
+```
 
 Example: user says "一只猫在窗台上"
 ```json

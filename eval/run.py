@@ -100,6 +100,7 @@ Rules:
 - If even one scheme violates the assertion, the result is fail.
 - For assertions about count (e.g. "exactly 1 scheme"), check the array length.
 - For assertions about diversity, check that the specified fields are meaningfully different across schemes.
+- For keyword/element presence checks, apply semantic matching: a phrase is present if its meaning is clearly expressed, even if the exact wording differs. For example, "红木材质的太师椅" satisfies "contains 红木太师椅"; "窗边" satisfies "contains 窗台". Do not fail on superficial wording differences when the semantic intent is identical.
 
 Return JSON with:
 - "pass": true if the assertion holds, false otherwise
