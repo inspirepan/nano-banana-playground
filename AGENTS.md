@@ -85,6 +85,16 @@ docs/refs/                  # API 和提示词参考文档
 - **暗色模式**：基于 `<html>` 的 `.dark` 类名，不用 `prefers-color-scheme`。
 - **UI 文字**：全部中文；代码注释保持英文。
 
+## 提交前检查
+
+每次 commit 前必须依次执行：
+
+```bash
+npm run build   # TypeScript 类型检查 + Vite 构建
+```
+
+构建失败则不得提交。
+
 ## 评测
 
 提示词增强（`src/lib/augment-system-prompt.md`）有 LLM-as-Judge 回归测试：`eval/cases.json` 定义用例与断言，`eval/run.py`（`uv run eval/run.py -j 6`）调用增强模型后用 judge 模型逐条判定 + 打分。修改增强提示词后必须跑通。

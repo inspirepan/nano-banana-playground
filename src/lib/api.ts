@@ -303,7 +303,7 @@ export async function augmentPrompt(
       throw new Error('No response from model')
     }
 
-    const textPart = data.candidates[0].content.parts.find((p) => p.text)
+    const textPart = data.candidates[0].content.parts?.find((p) => p.text)
     if (!textPart?.text) {
       throw new Error('No text in augmentation response')
     }
