@@ -30,6 +30,8 @@ type ApiResponse = {
   error?: { message: string; code: number }
 }
 
+const REQUEST_TIMEOUT_MS = 5 * 60 * 1000 // 5 minutes
+
 const GENERATE_MAX_RETRIES = 2
 const GENERATE_RETRY_DELAYS = [1000, 3000]
 
@@ -65,6 +67,7 @@ export async function generateImage(
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model.apiModel}:generateContent`
 
+  const timeoutSignal = AbortSignal.timeout(REQUEST_TIMEOUT_MS)
   const requestInit: RequestInit = {
     method: 'POST',
     headers: {
@@ -72,7 +75,7 @@ export async function generateImage(
       'x-goog-api-key': apiKey,
     },
     body: JSON.stringify(body),
-    signal,
+    signal: signal ? AbortSignal.any([signal, timeoutSignal]) : timeoutSignal,
   }
 
   let lastError: unknown
@@ -306,6 +309,7 @@ export async function augmentPromptStream(
     },
   }
 
+  const augmentTimeoutSignal = AbortSignal.timeout(REQUEST_TIMEOUT_MS)
   const requestInit: RequestInit = {
     method: 'POST',
     headers: {
@@ -313,7 +317,7 @@ export async function augmentPromptStream(
       'x-goog-api-key': apiKey,
     },
     body: JSON.stringify(body),
-    signal,
+    signal: signal ? AbortSignal.any([signal, augmentTimeoutSignal]) : augmentTimeoutSignal,
   }
 
   let lastError: unknown
