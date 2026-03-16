@@ -275,7 +275,7 @@ export const OutputPanel = memo(function OutputPanel({
           {batches.map((batch) => {
             return (
               <div key={batch.batchId}>
-                <div className="mb-2 flex items-center justify-between gap-3 text-sm font-mono text-on-surface-variant/50">
+                <div className="mb-2 flex items-center justify-between gap-3 text-xs font-mono text-on-surface-variant/50">
                   <div>{formatTime(batch.timestamp)}</div>
                   <div className="truncate">
                     {batch.resolution} · {batch.aspectRatio} · {batch.images.length}张
