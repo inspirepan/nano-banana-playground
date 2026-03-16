@@ -106,6 +106,7 @@ export function PromptPanel({
   const pricePerImage = model.imagePriceByResolution[resolution]
 
   const [isAugmenting, setIsAugmenting] = useState(false)
+  const [schemesCollapsed, setSchemesCollapsed] = useState(false)
   const hasPrompt = prompt.trim() !== ''
 
   const canGenerate = apiKey.trim() !== '' && hasPrompt && !isGenerating && !isAugmenting
@@ -183,6 +184,7 @@ export function PromptPanel({
 
     setIsAugmenting(true)
     setAugmentError(null)
+    setSchemesCollapsed(false)
     onSchemesChange([])
     onCurrentSchemeIndexChange(0)
 
@@ -231,25 +233,21 @@ export function PromptPanel({
 
   // --- Scheme management ---
   const handleSelectScheme = useCallback((index: number) => {
-    // Save current text back to current scheme before switching
-    const next = [...schemes]
-    next[currentSchemeIndex] = { ...next[currentSchemeIndex], text: prompt }
-    onSchemesChange(next)
     onCurrentSchemeIndexChange(index)
-    if (next[index]) onPromptChange(next[index].text)
-  }, [schemes, prompt, currentSchemeIndex, onPromptChange, onCurrentSchemeIndexChange, onSchemesChange])
+    if (schemes[index]) onPromptChange(schemes[index].text)
+  }, [schemes, onPromptChange, onCurrentSchemeIndexChange])
 
   const handleGenerateAll = useCallback(() => {
-    const prompts = schemes.map((s, i) => i === currentSchemeIndex ? prompt : s.text)
+    const prompts = schemes.map((s) => s.text)
     onGenerate(prompts)
-  }, [schemes, prompt, currentSchemeIndex, onGenerate])
+  }, [schemes, onGenerate])
 
   const handleDiscardAugment = useCallback(() => {
-    if (originalPrompt !== null) onPromptChange(originalPrompt)
     onOriginalPromptChange(null)
     onSchemesChange([])
     onModeChange('text')
-  }, [originalPrompt, onPromptChange, onModeChange, onSchemesChange, onOriginalPromptChange])
+    setSchemesCollapsed(false)
+  }, [onModeChange, onSchemesChange, onOriginalPromptChange])
 
   // --- Clear / Undo toast ---
   const handleClear = useCallback(() => {
@@ -314,106 +312,128 @@ export function PromptPanel({
             {/* Augment result card */}
             {schemes.length > 0 && (mode === 'structured' || isAugmenting) && (
               <div className="mb-4 rounded-2xl border border-outline-variant/40 bg-surface-container/50 px-4 py-3 flex flex-col gap-3">
-                {/* Header: title + action links */}
-                <div className="flex items-center gap-3">
-                  {isAugmenting ? (
-                    <>
-                      <div className="w-3.5 h-3.5 border-2 border-tertiary border-t-transparent rounded-full animate-spin shrink-0" />
-                      <p className="text-sm text-on-surface-variant">
-                        已生成 {schemes.length} 个方案...
-                      </p>
-                    </>
-                  ) : (
-                    <p className="text-sm text-on-surface-variant">
-                      {schemes.length > 1 ? `${schemes.length} 个增强方案` : 'AI 已增强提示词'}
-                    </p>
-                  )}
-                  <div className="flex-1" />
-                  {isAugmenting ? (
-                    <button type="button" onClick={handleCancelAugment}
+                {schemesCollapsed && !isAugmenting ? (
+                  /* Collapsed: compact summary bar */
+                  <div className="flex items-center gap-2">
+                    <span className="px-3 py-1.5 text-sm font-medium rounded-lg bg-tertiary-dim text-tertiary">
+                      {schemes[currentSchemeIndex]?.title}
+                    </span>
+                    <button type="button" onClick={() => setSchemesCollapsed(false)}
                       className="text-xs text-on-surface-variant/70 hover:text-on-surface transition-colors">
-                      取消
+                      切换方案
                     </button>
-                  ) : (
-                    <>
-                      <div className="relative group/reaugment">
-                        <button type="button" onClick={() => handleAugment(true)} disabled={!originalPrompt}
-                          className="text-xs text-on-surface-variant/70 hover:text-on-surface transition-colors disabled:opacity-40 disabled:pointer-events-none">
-                          重新增强
-                        </button>
-                        <div className="absolute bottom-full right-0 mb-2 pointer-events-none whitespace-nowrap bg-on-surface text-surface text-xs px-2 py-1 rounded opacity-0 group-hover/reaugment:opacity-100 transition-opacity duration-150 delay-500 group-hover/reaugment:delay-500 z-50">
-                          基于原始提示词重新增强
-                        </div>
+                    <div className="flex-1" />
+                    <div className="relative group/close">
+                      <button type="button" onClick={handleDiscardAugment}
+                        className="flex items-center justify-center w-4 h-4 translate-y-px rounded-full text-on-surface-variant/50 hover:text-on-surface transition-colors">
+                        <span className="material-symbols-rounded text-sm leading-none">close</span>
+                      </button>
+                      <div className="absolute bottom-full right-0 mb-2 pointer-events-none whitespace-nowrap bg-on-surface text-surface text-xs px-2 py-1 rounded opacity-0 group-hover/close:opacity-100 transition-opacity duration-150 delay-500 z-50">
+                        退出增强模式
                       </div>
-                      {schemes.length > 1 && (
-                        <div className="relative group/gen-all">
-                          <button type="button" disabled={isGenerating}
-                            onClick={() => { onDraftBatchOverride(null); handleGenerateAll() }}
-                            onMouseEnter={() => { if (!isGenerating) { onDraftBatchOverride(schemes.length, schemes.map((s) => s.title)); onDraftPreviewHover(true) } }}
-                            onMouseLeave={() => { onDraftBatchOverride(null); onDraftPreviewHover(false) }}
-                            className="text-xs text-on-surface-variant/70 hover:text-on-surface transition-colors disabled:opacity-40 disabled:pointer-events-none">
-                            各生成一张
-                          </button>
-                          <div className="absolute bottom-full right-0 mb-2 pointer-events-none whitespace-nowrap
-                                          bg-on-surface text-surface text-xs px-2 py-1 rounded
-                                          opacity-0 group-hover/gen-all:opacity-100 transition-opacity duration-150 delay-500 z-50">
-                            每个方案各生成 1 张，共 {schemes.length} 张
-                          </div>
-                        </div>
+                    </div>
+                  </div>
+                ) : (
+                  /* Expanded: full scheme selector */
+                  <>
+                    {/* Header: title + action links */}
+                    <div className="flex items-center gap-3">
+                      {isAugmenting ? (
+                        <>
+                          <div className="w-3.5 h-3.5 border-2 border-tertiary border-t-transparent rounded-full animate-spin shrink-0" />
+                          <p className="text-sm text-on-surface-variant">
+                            已生成 {schemes.length} 个方案...
+                          </p>
+                        </>
+                      ) : (
+                        <p className="text-sm text-on-surface-variant">
+                          {schemes.length > 1 ? `${schemes.length} 个增强方案` : 'AI 已增强提示词'}
+                        </p>
                       )}
-                      {originalPrompt !== null && (
-                        <div className="relative group/discard">
-                          <button type="button" onClick={handleDiscardAugment}
-                            className="text-xs text-on-surface-variant/70 hover:text-on-surface transition-colors">
-                            退出增强
-                          </button>
-                          <div className="absolute bottom-full right-0 mb-2 pointer-events-none whitespace-nowrap bg-on-surface text-surface text-xs px-2 py-1 rounded opacity-0 group-hover/discard:opacity-100 transition-opacity duration-150 delay-500 group-hover/discard:delay-500 z-50">
-                            恢复原始提示词
+                      <div className="flex-1" />
+                      {isAugmenting ? (
+                        <button type="button" onClick={handleCancelAugment}
+                          className="text-xs text-on-surface-variant/70 hover:text-on-surface transition-colors">
+                          取消
+                        </button>
+                      ) : (
+                        <>
+                          <div className="relative group/reaugment">
+                            <button type="button" onClick={() => handleAugment(true)} disabled={!originalPrompt}
+                              className="text-xs text-on-surface-variant/70 hover:text-on-surface transition-colors disabled:opacity-40 disabled:pointer-events-none">
+                              重新增强
+                            </button>
+                            <div className="absolute bottom-full right-0 mb-2 pointer-events-none whitespace-nowrap bg-on-surface text-surface text-xs px-2 py-1 rounded opacity-0 group-hover/reaugment:opacity-100 transition-opacity duration-150 delay-500 group-hover/reaugment:delay-500 z-50">
+                              基于原始提示词重新增强
+                            </div>
                           </div>
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-                {/* Scheme chips */}
-                {schemes.length >= 1 && (
-                  <div className="flex flex-wrap items-center gap-2">
-                    {schemes.map((scheme, i) => {
-                      const isSelected = i === currentSchemeIndex
-                      return (
-                        <div key={i} className="relative group">
-                          <button type="button" onClick={() => handleSelectScheme(i)}
-                            disabled={isAugmenting}
-                            className={`px-3 py-3 text-sm font-medium rounded-xl transition-colors
-                              ${isSelected
-                                ? 'bg-tertiary-dim text-tertiary hover:bg-tertiary/15 active:bg-tertiary/20'
-                                : 'bg-surface text-on-surface hover:bg-on-surface/8 active:bg-on-surface/12'
-                              } ${isAugmenting ? 'pointer-events-none' : ''}`}>
-                            {scheme.title}
-                          </button>
-                          {scheme.description && !isAugmenting && (
-                            <div className="absolute bottom-full left-0 mb-2 w-48
-                                            pointer-events-none bg-on-surface text-surface text-xs
-                                            px-2 py-1 rounded leading-snug
-                                            opacity-0 group-hover:opacity-100 transition-opacity duration-150 delay-500 z-50">
-                              {scheme.description}
+                          {schemes.length > 1 && (
+                            <div className="relative group/gen-all">
+                              <button type="button" disabled={isGenerating}
+                                onClick={() => { onDraftBatchOverride(null); handleGenerateAll() }}
+                                onMouseEnter={() => { if (!isGenerating) { onDraftBatchOverride(schemes.length, schemes.map((s) => s.title)); onDraftPreviewHover(true) } }}
+                                onMouseLeave={() => { onDraftBatchOverride(null); onDraftPreviewHover(false) }}
+                                className="text-xs text-on-surface-variant/70 hover:text-on-surface transition-colors disabled:opacity-40 disabled:pointer-events-none">
+                                各生成一张
+                              </button>
+                              <div className="absolute bottom-full right-0 mb-2 pointer-events-none whitespace-nowrap
+                                              bg-on-surface text-surface text-xs px-2 py-1 rounded
+                                              opacity-0 group-hover/gen-all:opacity-100 transition-opacity duration-150 delay-500 z-50">
+                                每个方案各生成 1 张，共 {schemes.length} 张
+                              </div>
                             </div>
                           )}
-                        </div>
-                      )
-                    })}
-                    {isAugmenting && (
-                      <div className="w-3 h-3 border-[1.5px] border-on-surface-variant/30 border-t-on-surface-variant/70 rounded-full animate-spin" />
+                          <div className="relative group/discard">
+                            <button type="button" onClick={handleDiscardAugment}
+                              className="flex items-center justify-center w-4 h-4 translate-y-px rounded-full text-on-surface-variant/50 hover:text-on-surface transition-colors">
+                              <span className="material-symbols-rounded text-sm leading-none">close</span>
+                            </button>
+                            <div className="absolute bottom-full right-0 mb-1 pointer-events-none whitespace-nowrap bg-on-surface text-surface text-xs px-2 py-1 rounded opacity-0 group-hover/discard:opacity-100 transition-opacity duration-150 delay-500 group-hover/discard:delay-500 z-50">
+                              退出增强模式
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                    {/* Scheme chips */}
+                    {schemes.length >= 1 && (
+                      <div className="flex flex-wrap items-center gap-2">
+                        {schemes.map((scheme, i) => {
+                          const isSelected = i === currentSchemeIndex
+                          return (
+                            <div key={i} className="relative group">
+                              <button type="button" onClick={() => handleSelectScheme(i)}
+                                disabled={isAugmenting}
+                                className={`px-3 py-3 text-sm font-medium rounded-xl transition-colors
+                                  ${isSelected
+                                    ? 'bg-tertiary-dim text-tertiary hover:bg-tertiary/15 active:bg-tertiary/20'
+                                    : 'bg-surface text-on-surface hover:bg-on-surface/8 active:bg-on-surface/12'
+                                  } ${isAugmenting ? 'pointer-events-none' : ''}`}>
+                                {scheme.title}
+                              </button>
+                              {scheme.description && !isAugmenting && (
+                                <div className="absolute bottom-full left-0 mb-2 w-48
+                                                pointer-events-none bg-on-surface text-surface text-xs
+                                                px-2 py-1 rounded leading-snug
+                                                opacity-0 group-hover:opacity-100 transition-opacity duration-150 delay-500 z-50">
+                                  {scheme.description}
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })}
+                        {isAugmenting && (
+                          <div className="w-3 h-3 border-[1.5px] border-on-surface-variant/30 border-t-on-surface-variant/70 rounded-full animate-spin" />
+                        )}
+                      </div>
                     )}
-                  </div>
-                )}
-                {/* Selected scheme description */}
-                {!isAugmenting && schemes[currentSchemeIndex]?.description && (
-                  <p className="text-sm text-on-surface-variant leading-relaxed px-3">
-                    <span className="font-medium text-tertiary">{schemes[currentSchemeIndex].title}</span>
-                    <span className="mx-1 opacity-40">|</span>
-                    {schemes[currentSchemeIndex].description}
-                  </p>
+                    {/* Selected scheme description */}
+                    {!isAugmenting && schemes[currentSchemeIndex]?.description && (
+                      <p className="text-sm text-on-surface-variant leading-relaxed px-3">
+                        {schemes[currentSchemeIndex].description}
+                      </p>
+                    )}
+                  </>
                 )}
               </div>
             )}
@@ -505,7 +525,7 @@ export function PromptPanel({
           onMouseLeave={() => { onDraftPreviewHover(false); onDraftLabelsOverride(null) }}
         >
           <button type="button"
-            onClick={isGenerating ? onCancel : () => onGenerate()}
+            onClick={isGenerating ? onCancel : () => { if (schemes.length > 0) setSchemesCollapsed(true); onGenerate() }}
             disabled={!isGenerating && !canGenerate}
             className={`w-full py-3 text-sm font-medium rounded-full transition-colors
               ${isGenerating ? 'bg-error text-on-primary hover:bg-error/90 active:bg-error/80'
