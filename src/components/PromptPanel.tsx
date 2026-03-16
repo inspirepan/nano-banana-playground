@@ -36,11 +36,11 @@ function renderHighlighted(text: string): ReactNode[] {
 
 // --- Auto-resize textarea ---
 const TEXTAREA_MIN_HEIGHT = 120
-const TEXTAREA_BOTTOM_PAD = 36
 
 function autoResizeTextarea(el: HTMLTextAreaElement) {
+  const borderHeight = el.offsetHeight - el.clientHeight
   el.style.height = 'auto'
-  el.style.height = `${Math.max(el.scrollHeight + TEXTAREA_BOTTOM_PAD, TEXTAREA_MIN_HEIGHT)}px`
+  el.style.height = `${Math.max(el.scrollHeight + borderHeight + 1, TEXTAREA_MIN_HEIGHT)}px`
 }
 
 type Props = {
@@ -105,8 +105,9 @@ export function PromptPanel({
 
   const [isAugmenting, setIsAugmenting] = useState(false)
   const currentMode: PromptMode = isAugmenting ? 'augmenting' : mode
+  const hasPrompt = prompt.trim() !== ''
 
-  const canGenerate = apiKey.trim() !== '' && prompt.trim() !== '' && !isGenerating && currentMode !== 'augmenting'
+  const canGenerate = apiKey.trim() !== '' && hasPrompt && !isGenerating && currentMode !== 'augmenting'
 
   const [augmentError, setAugmentError] = useState<string | null>(null)
   const abortRef = useRef<AbortController | null>(null)
@@ -162,7 +163,7 @@ export function PromptPanel({
     setHistoryTick((t) => t + 1)
   }, [onPromptChange])
 
-  const canAugment = apiKey.trim() !== '' && prompt.trim() !== ''
+  const canAugment = apiKey.trim() !== '' && hasPrompt
 
   useEffect(() => {
     if (currentMode !== 'augmenting' && textareaRef.current) autoResizeTextarea(textareaRef.current)
@@ -379,7 +380,7 @@ export function PromptPanel({
 
             {/* Text editor with label highlighting */}
             <div className="relative">
-              <div className="relative rounded-2xl bg-surface-container hover:bg-surface-container-high focus-within:bg-surface-container-high transition-colors">
+              <div className="relative rounded-2xl bg-surface-container hover:bg-surface-container-high focus-within:bg-surface-container-high transition-colors min-h-[120px]">
                 <div
                   aria-hidden="true"
                   className="absolute inset-0 px-4 py-4 pb-12 text-sm text-on-surface whitespace-pre-wrap break-words pointer-events-none overflow-hidden rounded-2xl"
@@ -391,9 +392,9 @@ export function PromptPanel({
                 </div>
                 <textarea ref={textareaRef} value={prompt}
                   onChange={(e) => { onPromptChange(e.target.value); autoResizeTextarea(e.target) }}
-                  placeholder="描述你想生成的图片..." rows={1}
+                  rows={1}
                   style={{ caretColor: 'var(--color-on-surface)' }}
-                  className="relative w-full px-4 py-4 pb-12 text-sm text-transparent bg-transparent focus:outline-none placeholder:text-transparent resize-none overflow-hidden" />
+                  className="relative box-border w-full px-4 py-4 pb-12 text-sm text-transparent bg-transparent focus:outline-none resize-none overflow-hidden" />
               </div>
               <div className="absolute left-4 right-4 bottom-3 flex items-center gap-3">
                 <button type="button" onClick={handleHistoryUndo} disabled={!canUndo} title="撤销"
@@ -404,20 +405,18 @@ export function PromptPanel({
                   className="text-xs text-on-surface-variant/70 hover:text-on-surface transition-colors disabled:opacity-30 disabled:pointer-events-none">
                   重做
                 </button>
-                {prompt.trim() && (
-                  <button type="button" onClick={handleClear}
-                    className="text-xs text-on-surface-variant/70 hover:text-on-surface transition-colors">
-                    清空
-                  </button>
-                )}
+                <button type="button" onClick={handleClear} disabled={!hasPrompt}
+                  className={`text-xs text-on-surface-variant/70 hover:text-on-surface transition-colors disabled:pointer-events-none ${hasPrompt ? '' : 'invisible'}`}>
+                  清空
+                </button>
                 <div className="flex-1" />
-                {currentMode === 'text' && canAugment && (
+                {currentMode === 'text' && (
                   <div className="relative group/augment">
-                    <button type="button" onClick={() => handleAugment(false)}
-                      className="text-xs text-tertiary hover:text-tertiary/80 transition-colors">
+                    <button type="button" onClick={() => handleAugment(false)} disabled={!canAugment}
+                      className={`text-xs text-tertiary hover:text-tertiary/80 transition-colors disabled:pointer-events-none ${canAugment ? '' : 'invisible'}`}>
                       增强
                     </button>
-                    <div className="absolute bottom-full right-0 mb-2 pointer-events-none whitespace-nowrap bg-on-surface text-surface text-xs px-2 py-1 rounded opacity-0 group-hover/augment:opacity-100 transition-opacity duration-150 delay-500 group-hover/augment:delay-500 z-50">
+                    <div className={`absolute bottom-full right-0 mb-2 pointer-events-none whitespace-nowrap bg-on-surface text-surface text-xs px-2 py-1 rounded transition-opacity duration-150 delay-500 group-hover/augment:delay-500 z-50 ${canAugment ? 'opacity-0 group-hover/augment:opacity-100' : 'opacity-0'}`}>
                       使用 Gemini 3 Flash 增强提示词
                     </div>
                   </div>
