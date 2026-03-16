@@ -53,6 +53,7 @@ export function useImageSrc(
   useEffect(() => {
     const cached = blobCache.get(id)
     if (cached) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSrc(toDataUrl(mimeType, cached))
       loadedIdRef.current = id
     } else if (loadedIdRef.current !== id) {

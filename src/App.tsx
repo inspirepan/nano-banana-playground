@@ -17,7 +17,7 @@ function getInitialTheme(): Theme {
 
 function App() {
   const pg = usePlayground()
-  const addToReferences = pg.addToReferences
+  const { addToReferences, history: pgHistory, restoreSession, resolveFullImages, setMode } = pg
   const [theme, setTheme] = useState<Theme>(getInitialTheme)
   const [draftBatchOverride, setDraftBatchOverride] = useState<number | null>(null)
   const [draftLabels, setDraftLabels] = useState<string[] | null>(null)
@@ -49,17 +49,17 @@ function App() {
   const handleRegenerate = useCallback(async (image: PlaygroundImageMeta) => {
     if (image.source.type !== 'generated') return
     const meta = image.source
-    const refMetas = pg.history.filter((h) => meta.referenceImageIds.includes(h.id))
-    const refs = await pg.resolveFullImages(refMetas)
-    pg.restoreSession(meta.prompt, refs)
-    pg.setMode('text')
+    const refMetas = pgHistory.filter((h) => meta.referenceImageIds.includes(h.id))
+    const refs = await resolveFullImages(refMetas)
+    restoreSession(meta.prompt, refs)
+    setMode('text')
     const message = refs.length > 0
       ? `已还原提示词和 ${refs.length} 张参考图`
       : '已还原提示词'
     if (regenToastTimer.current) clearTimeout(regenToastTimer.current)
     setRegenToast(message)
     regenToastTimer.current = setTimeout(() => setRegenToast(null), 2500)
-  }, [pg.history, pg.restoreSession, pg.resolveFullImages])
+  }, [pgHistory, restoreSession, resolveFullImages, setMode])
   useEffect(() => {
     if (theme === 'system') {
       const mq = window.matchMedia('(prefers-color-scheme: dark)')

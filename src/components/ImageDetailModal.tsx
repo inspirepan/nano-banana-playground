@@ -42,10 +42,7 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
 
   // Load ref detail image blob when selected
   useEffect(() => {
-    if (!refDetailId) {
-      setRefDetailSrc(null)
-      return
-    }
+    if (!refDetailId) return
     const refImg = history.find(h => h.id === refDetailId)
     if (!refImg) return
     ensureBlobLoaded(refImg.id, refImg.mimeType).then((src) => {
@@ -59,16 +56,13 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
 
   const goToPrev = useCallback(() => {
     setCurrentIdx(i => Math.max(0, i - 1))
+    setRefDetailId(null)
   }, [])
 
   const goToNext = useCallback(() => {
     setCurrentIdx(i => Math.min(history.length - 1, i + 1))
-  }, [history.length])
-
-  // Reset compare view when navigating
-  useEffect(() => {
     setRefDetailId(null)
-  }, [currentIdx])
+  }, [history.length])
 
   // Eagerly load the current image blob when navigating
   useEffect(() => {
