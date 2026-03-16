@@ -112,7 +112,7 @@ export const ImageCard = memo(function ImageCard({ image, inlineData, index, onA
           <ActionButton label="+参考" onClick={() => onAddToRef(image)} />
           <ActionButton label="下载" onClick={handleDownload} />
           <ActionButton label="复制图" onClick={handleCopyImage} />
-          {meta?.prompt && <ActionButton label="重新生成" onClick={handleRegenerate} />}
+          {meta?.prompt && <ActionButton label="重做" onClick={handleRegenerate} />}
         </div>
       </div>
     </div>
@@ -127,7 +127,7 @@ function ActionButton({ label, onClick }: { label: string; onClick: () => void }
         event.stopPropagation()
         onClick()
       }}
-      className="w-full rounded-full bg-white/20 px-2 py-1 text-2xs font-medium text-white whitespace-nowrap backdrop-blur-sm transition-colors hover:bg-white/30 active:bg-white/40"
+      className="w-full rounded-xl bg-white/20 px-2 py-1.5 text-xs font-medium text-white whitespace-nowrap backdrop-blur-sm transition-colors hover:bg-white/30 active:bg-white/40"
     >
       {label}
     </button>

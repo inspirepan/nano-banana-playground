@@ -259,7 +259,7 @@ export function PromptPanel({
   const estimatedCost = pricePerImage !== undefined ? pricePerImage * batchCount : null
 
   return (
-    <div className="w-full md:flex-1 md:shrink-0 md:min-w-[360px] flex flex-col py-4 md:h-full md:overflow-y-auto">
+    <div className="w-full md:flex-1 md:shrink-0 md:min-w-[360px] flex flex-col px-2 py-4 md:h-full md:overflow-y-auto">
       {/* Reference Images */}
       <div className="shrink-0">
         <ReferenceImageUpload
@@ -276,34 +276,6 @@ export function PromptPanel({
         {/* Header */}
         <div className="flex items-center justify-between mb-4 min-h-[32px] shrink-0">
           <label className="text-sm font-medium text-on-surface-variant">提示词</label>
-          <div className="flex items-center gap-3">
-            {currentMode === 'structured' && (
-              <>
-                <div className="relative group/reaugment">
-                  <button type="button" onClick={() => handleAugment(true)} disabled={!originalPrompt}
-                    className="flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium rounded-full transition-colors bg-tertiary-dim text-tertiary hover:bg-tertiary hover:text-on-tertiary active:opacity-90 disabled:opacity-40 disabled:pointer-events-none">
-                    <span className="material-symbols-rounded text-[18px]">refresh</span>
-                    重新润色
-                  </button>
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 pointer-events-none whitespace-nowrap bg-on-surface text-surface text-xs px-2 py-1 rounded opacity-0 group-hover/reaugment:opacity-100 transition-opacity duration-150 delay-500 group-hover/reaugment:delay-500 z-50">
-                    基于原始提示词重新润色
-                  </div>
-                </div>
-                {originalPrompt !== null && (
-                  <div className="relative group/discard">
-                    <button type="button" onClick={handleDiscardAugment}
-                      className="flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium rounded-full transition-colors bg-error-dim text-error hover:bg-error hover:text-on-primary active:opacity-90">
-                      <span className="material-symbols-rounded text-[18px]">undo</span>
-                      撤销润色
-                    </button>
-                    <div className="absolute bottom-full right-0 mb-2 pointer-events-none whitespace-nowrap bg-on-surface text-surface text-xs px-2 py-1 rounded opacity-0 group-hover/discard:opacity-100 transition-opacity duration-150 delay-500 group-hover/discard:delay-500 z-50">
-                      恢复原始提示词
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
         </div>
 
         {/* Prompt content */}
@@ -312,9 +284,7 @@ export function PromptPanel({
         {currentMode === 'augmenting' && (
           <div className="flex flex-col items-center justify-center gap-3 py-8 bg-surface-container rounded-xl">
             <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-            <p className="text-xs text-on-surface-variant">正在润色提示词...
-              <span className="opacity-50 ml-1">Gemini 3 Flash</span>
-            </p>
+            <p className="text-xs text-on-surface-variant">正在使用 <span className="opacity-50">Gemini 3 Flash</span> 润色提示词...</p>
             <button type="button" onClick={handleCancelAugment}
               className="text-xs text-on-surface-variant hover:text-on-surface transition-colors">取消</button>
           </div>
@@ -322,57 +292,87 @@ export function PromptPanel({
 
         {currentMode !== 'augmenting' && (
           <>
-            {/* Scheme chips - only for multiple schemes */}
-            {currentMode === 'structured' && schemes.length > 1 && (
-              <div className="mb-4 flex flex-col gap-2">
-                <p className="text-xs text-on-surface-variant leading-snug ml-1">
-                  AI 生成了 {schemes.length} 个创意方案，选择查看或一键全部生成
-                </p>
-                {/* Chips row: scheme chips + generate-all */}
-                <div className="flex flex-wrap items-center gap-2">
-                  {schemes.map((scheme, i) => {
-                    const isSelected = i === currentSchemeIndex
-                    return (
-                      <div key={i} className="relative group">
-                        <button type="button" onClick={() => handleSelectScheme(i)}
-                          className={`px-4 py-1.5 text-sm font-medium rounded-full transition-colors
-                            ${isSelected
-                              ? 'bg-primary-dim text-primary hover:bg-primary/15 active:bg-primary/20'
-                              : 'bg-surface-container text-on-surface hover:bg-on-surface/8 active:bg-on-surface/12'
-                            }`}>
-                          {scheme.title}
-                        </button>
-                        {scheme.description && (
-                          <div className="absolute bottom-full left-0 mb-2 w-48
-                                          pointer-events-none bg-on-surface text-surface text-xs
-                                          px-2 py-1 rounded leading-snug
-                                          opacity-0 group-hover:opacity-100 transition-opacity duration-150 delay-500 z-50">
-                            {scheme.description}
-                          </div>
-                        )}
-                      </div>
-                    )
-                  })}
-                  <div className="relative group/gen-all">
-                    <button type="button" disabled={isGenerating}
-                      onClick={() => { onDraftBatchOverride(null); handleGenerateAll() }}
-                      onMouseEnter={() => { if (!isGenerating) { onDraftBatchOverride(schemes.length, schemes.map((s) => s.title)); onDraftPreviewHover(true) } }}
-                      onMouseLeave={() => { onDraftBatchOverride(null); onDraftPreviewHover(false) }}
-                      className="flex items-center gap-1 px-4 py-1.5 text-sm rounded-full transition-colors
-                                 font-medium bg-tertiary-dim text-tertiary hover:bg-tertiary hover:text-on-tertiary active:opacity-90
-                                 disabled:opacity-40 disabled:pointer-events-none">
-                      各生成一张
+            {/* Augment result card */}
+            {currentMode === 'structured' && schemes.length > 0 && (
+              <div className="mb-4 rounded-2xl border border-outline-variant/40 bg-surface-container/50 px-4 py-3 flex flex-col gap-3">
+                {/* Header: title + action links */}
+                <div className="flex items-center gap-3">
+                  {schemes.length > 1 && (
+                    <p className="text-sm text-on-surface-variant">
+                      {schemes.length} 个润色方案
+                    </p>
+                  )}
+                  <div className="flex-1" />
+                  <div className="relative group/reaugment">
+                    <button type="button" onClick={() => handleAugment(true)} disabled={!originalPrompt}
+                      className="text-xs text-on-surface-variant/70 hover:text-on-surface transition-colors disabled:opacity-40 disabled:pointer-events-none">
+                      重新润色
                     </button>
-                    <div className="absolute bottom-full left-0 mb-2 pointer-events-none whitespace-nowrap
-                                    bg-on-surface text-surface text-xs px-2 py-1 rounded
-                                    opacity-0 group-hover/gen-all:opacity-100 transition-opacity duration-150 delay-500 z-50">
-                      每个方案各生成 1 张，共 {schemes.length} 张
+                    <div className="absolute bottom-full right-0 mb-2 pointer-events-none whitespace-nowrap bg-on-surface text-surface text-xs px-2 py-1 rounded opacity-0 group-hover/reaugment:opacity-100 transition-opacity duration-150 delay-500 group-hover/reaugment:delay-500 z-50">
+                      基于原始提示词重新润色
                     </div>
                   </div>
+                  {schemes.length > 1 && (
+                    <div className="relative group/gen-all">
+                      <button type="button" disabled={isGenerating}
+                        onClick={() => { onDraftBatchOverride(null); handleGenerateAll() }}
+                        onMouseEnter={() => { if (!isGenerating) { onDraftBatchOverride(schemes.length, schemes.map((s) => s.title)); onDraftPreviewHover(true) } }}
+                        onMouseLeave={() => { onDraftBatchOverride(null); onDraftPreviewHover(false) }}
+                        className="text-xs text-on-surface-variant/70 hover:text-on-surface transition-colors disabled:opacity-40 disabled:pointer-events-none">
+                        各生成一张
+                      </button>
+                      <div className="absolute bottom-full right-0 mb-2 pointer-events-none whitespace-nowrap
+                                      bg-on-surface text-surface text-xs px-2 py-1 rounded
+                                      opacity-0 group-hover/gen-all:opacity-100 transition-opacity duration-150 delay-500 z-50">
+                        每个方案各生成 1 张，共 {schemes.length} 张
+                      </div>
+                    </div>
+                  )}
+                  {originalPrompt !== null && (
+                    <div className="relative group/discard">
+                      <button type="button" onClick={handleDiscardAugment}
+                        className="text-xs text-on-surface-variant/70 hover:text-on-surface transition-colors">
+                        退出润色
+                      </button>
+                      <div className="absolute bottom-full right-0 mb-2 pointer-events-none whitespace-nowrap bg-on-surface text-surface text-xs px-2 py-1 rounded opacity-0 group-hover/discard:opacity-100 transition-opacity duration-150 delay-500 group-hover/discard:delay-500 z-50">
+                        恢复原始提示词
+                      </div>
+                    </div>
+                  )}
                 </div>
+                {/* Scheme chips */}
+                {schemes.length > 1 && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    {schemes.map((scheme, i) => {
+                      const isSelected = i === currentSchemeIndex
+                      return (
+                        <div key={i} className="relative group">
+                          <button type="button" onClick={() => handleSelectScheme(i)}
+                            className={`px-3 py-3 text-sm font-medium rounded-xl transition-colors
+                              ${isSelected
+                                ? 'bg-tertiary-dim text-tertiary hover:bg-tertiary/15 active:bg-tertiary/20'
+                                : 'bg-surface text-on-surface hover:bg-on-surface/8 active:bg-on-surface/12'
+                              }`}>
+                            {scheme.title}
+                          </button>
+                          {scheme.description && (
+                            <div className="absolute bottom-full left-0 mb-2 w-48
+                                            pointer-events-none bg-on-surface text-surface text-xs
+                                            px-2 py-1 rounded leading-snug
+                                            opacity-0 group-hover:opacity-100 transition-opacity duration-150 delay-500 z-50">
+                              {scheme.description}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
                 {/* Selected scheme description */}
                 {schemes[currentSchemeIndex]?.description && (
-                  <p className="text-sm text-on-surface-variant leading-relaxed ml-1 mt-3 mb-1">
+                  <p className="text-sm text-on-surface-variant leading-relaxed px-3">
+                    <span className="font-medium text-tertiary">{schemes[currentSchemeIndex].title}</span>
+                    <span className="mx-1 opacity-40">|</span>
                     {schemes[currentSchemeIndex].description}
                   </p>
                 )}
@@ -397,18 +397,18 @@ export function PromptPanel({
                   style={{ caretColor: 'var(--color-on-surface)' }}
                   className="relative w-full px-4 py-4 pb-12 text-sm text-transparent bg-transparent focus:outline-none placeholder:text-transparent resize-none overflow-hidden" />
               </div>
-              <div className="absolute left-3 right-3 bottom-3 flex items-center gap-2">
+              <div className="absolute left-4 right-4 bottom-3 flex items-center gap-3">
                 <button type="button" onClick={handleHistoryUndo} disabled={!canUndo} title="撤销"
-                  className="flex items-center justify-center w-8 h-8 rounded-full transition-colors text-on-surface-variant hover:bg-on-surface/8 disabled:opacity-25 disabled:pointer-events-none">
-                  <span className="material-symbols-rounded text-[20px]">undo</span>
+                  className="text-xs text-on-surface-variant/70 hover:text-on-surface transition-colors disabled:opacity-30 disabled:pointer-events-none">
+                  撤销
                 </button>
                 <button type="button" onClick={handleHistoryRedo} disabled={!canRedo} title="重做"
-                  className="flex items-center justify-center w-8 h-8 rounded-full transition-colors text-on-surface-variant hover:bg-on-surface/8 disabled:opacity-25 disabled:pointer-events-none">
-                  <span className="material-symbols-rounded text-[20px]">redo</span>
+                  className="text-xs text-on-surface-variant/70 hover:text-on-surface transition-colors disabled:opacity-30 disabled:pointer-events-none">
+                  重做
                 </button>
                 {prompt.trim() && (
                   <button type="button" onClick={handleClear}
-                    className="px-4 py-1.5 text-sm rounded-full transition-colors bg-on-surface/5 text-on-surface-variant hover:bg-on-surface/10 active:bg-on-surface/15">
+                    className="text-xs text-on-surface-variant/70 hover:text-on-surface transition-colors">
                     清空
                   </button>
                 )}
@@ -416,7 +416,7 @@ export function PromptPanel({
                 {currentMode === 'text' && canAugment && (
                   <div className="relative group/augment">
                     <button type="button" onClick={() => handleAugment(false)}
-                      className="flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium rounded-full transition-colors bg-tertiary-dim text-tertiary hover:bg-tertiary hover:text-on-tertiary active:opacity-90">
+                      className="text-xs text-tertiary hover:text-tertiary/80 transition-colors">
                       润色
                     </button>
                     <div className="absolute bottom-full right-0 mb-2 pointer-events-none whitespace-nowrap bg-on-surface text-surface text-xs px-2 py-1 rounded opacity-0 group-hover/augment:opacity-100 transition-opacity duration-150 delay-500 group-hover/augment:delay-500 z-50">
@@ -441,8 +441,8 @@ export function PromptPanel({
           <div className="flex flex-wrap gap-2">
             {Array.from({ length: model.maxBatchCount }, (_, i) => i + 1).map((n) => (
               <button key={n} type="button" onClick={() => onBatchCountChange(n)}
-                className={`px-4 py-1.5 text-sm rounded-full tabular-nums transition-colors
-                  ${batchCount === n ? 'bg-primary-dim text-primary font-semibold hover:bg-primary/15 active:bg-primary/20' : 'bg-surface-container text-on-surface hover:bg-on-surface/8 active:bg-on-surface/12'}`}>
+                className={`px-3 py-3 text-sm rounded-xl tabular-nums transition-colors
+                  ${batchCount === n ? 'bg-primary-dim text-primary font-medium hover:bg-primary/15 active:bg-primary/20' : 'bg-surface-container text-on-surface font-medium hover:bg-on-surface/8 active:bg-on-surface/12'}`}>
                 x{n}
               </button>
             ))}

@@ -227,14 +227,14 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
                 <MetaRow label="分辨率" value={currentMeta.resolution} />
                 <MetaRow label="宽高比" value={currentMeta.aspectRatio} />
                 <div>
-                  <div className="mb-1 text-2xs font-medium text-on-surface-variant">提示词</div>
+                  <div className="mb-1 text-sm font-medium text-on-surface-variant">提示词</div>
                   <div className="max-h-[40vh] overflow-y-auto rounded-xl bg-surface-container px-3 py-2 text-xs leading-relaxed text-on-surface whitespace-pre-wrap">
                     {currentMeta.prompt}
                   </div>
                 </div>
                 {currentMeta.referenceImageIds.length > 0 && (
                   <div>
-                    <div className="mb-1 text-2xs font-medium text-on-surface-variant">
+                    <div className="mb-1 text-sm font-medium text-on-surface-variant">
                       参考图片 ({currentMeta.referenceImageIds.length})
                     </div>
                     <div className="flex flex-wrap gap-2">
@@ -277,13 +277,13 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
               <ModalAction label="+参考" onClick={() => { onAddToRef(currentImage); onClose() }} />
               <ModalAction label="保存" onClick={handleDownload} />
               <ModalAction label="复制图" onClick={handleCopyImage} />
-              {currentMeta?.prompt && <ModalAction label="重新生成" onClick={handleRegenerate} />}
+              {currentMeta?.prompt && <ModalAction label="重做" onClick={handleRegenerate} />}
             </div>
             {canNavigate && (
               <button
                 type="button"
                 onClick={() => { onRemove(currentImage.id); onClose() }}
-                className="w-full rounded-full bg-error-dim py-2 text-xs font-medium text-error transition-colors hover:bg-error/15 active:bg-error/20"
+                className="w-full rounded-xl bg-error-dim py-2.5 text-sm font-medium text-error transition-colors hover:bg-error/15 active:bg-error/20"
               >
                 删除
               </button>
@@ -625,8 +625,8 @@ function ZoomableImageView({ src, alt, label, onSwipeLeft, onSwipeRight }: {
 function MetaRow({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <div className="mb-1 text-2xs font-medium text-on-surface-variant">{label}</div>
-      <div className="text-xs text-on-surface">{value}</div>
+      <div className="mb-1 text-sm font-medium text-on-surface-variant">{label}</div>
+      <div className="text-sm text-on-surface">{value}</div>
     </div>
   )
 }
@@ -636,7 +636,7 @@ function ModalAction({ label, onClick }: { label: string; onClick: () => void | 
     <button
       type="button"
       onClick={onClick}
-      className="flex-1 rounded-full bg-surface-container py-2 text-xs font-medium text-on-surface transition-colors hover:bg-on-surface/8 active:bg-on-surface/12"
+      className="flex-1 rounded-xl bg-surface-container py-2.5 text-sm font-medium text-on-surface transition-colors hover:bg-on-surface/8 active:bg-on-surface/12"
     >
       {label}
     </button>
