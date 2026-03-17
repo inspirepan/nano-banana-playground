@@ -512,9 +512,8 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
                     onClick={() => setRefDetailId(null)}
                     className="absolute top-4 left-1/2 -translate-x-1/2 z-10
                                flex items-center gap-1 rounded-full
-                               border border-outline-variant/70 bg-surface/82
-                               pl-2 pr-3 py-1 text-2xs text-on-surface
-                               shadow-sm backdrop-blur-sm transition-colors hover:bg-surface active:bg-surface-dim"
+                               bg-black/40 pl-2 pr-3 py-1 text-2xs text-white
+                               backdrop-blur-sm transition-colors hover:bg-black/55 active:bg-black/60"
                     aria-label="关闭对比"
                   >
                     <span className="material-symbols-rounded text-sm shrink-0">close</span>
@@ -541,9 +540,8 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
                 onClick={goToPrev}
                 className="flex absolute left-3 top-1/2 -translate-y-1/2 z-10
                            w-9 h-9 items-center justify-center rounded-full
-                           border border-outline-variant/70 bg-surface/82
-                           text-on-surface shadow-sm backdrop-blur-sm
-                           transition-colors hover:bg-surface active:bg-surface-dim"
+                           bg-black/40 text-white backdrop-blur-sm
+                           transition-colors hover:bg-black/55 active:bg-black/60"
                 aria-label="上一张"
               >
                 <span className="material-symbols-rounded text-base">chevron_left</span>
@@ -555,9 +553,8 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
                 onClick={goToNext}
                 className="flex absolute right-3 top-1/2 -translate-y-1/2 z-10
                            w-9 h-9 items-center justify-center rounded-full
-                           border border-outline-variant/70 bg-surface/82
-                           text-on-surface shadow-sm backdrop-blur-sm
-                           transition-colors hover:bg-surface active:bg-surface-dim"
+                           bg-black/40 text-white backdrop-blur-sm
+                           transition-colors hover:bg-black/55 active:bg-black/60"
                 aria-label="下一张"
               >
                 <span className="material-symbols-rounded text-base">chevron_right</span>
@@ -566,9 +563,9 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
 
             {/* Image counter */}
             {canNavigate && !refDetailId && (
-              <div className="pointer-events-none absolute bottom-14 left-1/2 -translate-x-1/2 z-10
-                              rounded-full border border-outline-variant bg-surface/82 px-3 py-1
-                              text-2xs font-mono text-on-surface shadow-sm backdrop-blur-sm">
+              <div className="pointer-events-none absolute bottom-4 left-1/2 -translate-x-1/2 z-10
+                              rounded-full bg-black/40 px-3 py-1
+                              text-2xs font-mono text-white backdrop-blur-sm">
                 {currentIdx + 1} / {history.length}
               </div>
             )}
@@ -897,24 +894,24 @@ function ZoomableImageView({ src, alt, label, onSwipeLeft, onSwipeRight }: {
         )}
       </div>
 
-      <div className="pointer-events-none absolute left-4 top-4 flex items-center gap-2">
+      <div className="pointer-events-none absolute left-4 top-4 hidden md:flex items-center gap-2">
         {label && (
-          <div className="rounded-full border border-outline-variant bg-surface/82 px-3 py-1 text-2xs text-on-surface-variant shadow-sm backdrop-blur-sm">
+          <div className="rounded-full bg-black/40 px-3 py-1 text-2xs text-white backdrop-blur-sm">
             {label}
           </div>
         )}
-        <div className="rounded-full border border-outline-variant bg-surface/82 px-3 py-1 text-2xs font-mono text-on-surface shadow-sm backdrop-blur-sm">
+        <div className="rounded-full bg-black/40 px-3 py-1 text-2xs font-mono text-white backdrop-blur-sm">
           {Math.round(scale * 100)}%
         </div>
       </div>
 
-      <div className="absolute right-4 top-4 flex gap-2">
+      <div className="absolute right-4 top-4 hidden md:flex gap-2">
         <button
           type="button"
           onClick={() => zoomAtPoint(scaleRef.current * 1.25, { x: 0, y: 0 })}
-          className="flex items-center gap-1 rounded-full border border-outline-variant/70
-                     bg-surface/82 pl-2 pr-3 py-1 text-2xs text-on-surface
-                     shadow-sm backdrop-blur-sm transition-colors hover:bg-surface active:bg-surface-dim"
+          className="flex items-center gap-1 rounded-full
+                     bg-black/40 pl-2 pr-3 py-1 text-2xs text-white
+                     backdrop-blur-sm transition-colors hover:bg-black/55 active:bg-black/60"
           aria-label="放大"
         >
           <span className="material-symbols-rounded text-sm shrink-0">zoom_in</span>
@@ -923,9 +920,9 @@ function ZoomableImageView({ src, alt, label, onSwipeLeft, onSwipeRight }: {
         <button
           type="button"
           onClick={resetView}
-          className="flex items-center gap-1 rounded-full border border-outline-variant/70
-                     bg-surface/82 pl-2 pr-3 py-1 text-2xs text-on-surface
-                     shadow-sm backdrop-blur-sm transition-colors hover:bg-surface active:bg-surface-dim"
+          className="flex items-center gap-1 rounded-full
+                     bg-black/40 pl-2 pr-3 py-1 text-2xs text-white
+                     backdrop-blur-sm transition-colors hover:bg-black/55 active:bg-black/60"
           aria-label="重置"
         >
           <span className="material-symbols-rounded text-sm shrink-0">zoom_out_map</span>
@@ -933,11 +930,7 @@ function ZoomableImageView({ src, alt, label, onSwipeLeft, onSwipeRight }: {
         </button>
       </div>
 
-      <div className="pointer-events-none absolute inset-x-0 bottom-4 flex justify-center px-4">
-        <div className="rounded-full border border-outline-variant bg-surface/78 px-3 py-1 text-2xs text-on-surface-variant shadow-sm backdrop-blur-sm">
-          滚轮或双指缩放，拖动查看细节
-        </div>
-      </div>
+
     </div>
   )
 }
