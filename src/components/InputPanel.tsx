@@ -27,7 +27,7 @@ function renderHighlighted(text: string): ReactNode[] {
       if (line.startsWith(needle)) {
         const rest = line.slice(needle.length).replace(/^ /, '')
         parts.push(
-          <span key={i}><span className="text-tertiary">{label}</span>：{rest}</span>
+          <span key={i}><span className="text-tertiary bg-tertiary-dim rounded px-0.5">{label}</span>：{rest}</span>
         )
         found = true
         break
@@ -82,9 +82,6 @@ type Props = {
   onDraftBatchOverride: (count: number | null, labels?: string[]) => void
   onDraftPreviewHover: (show: boolean) => void
   onDraftLabelsOverride: (labels: string[] | null) => void
-  // desktop only — undefined on mobile
-  theme?: 'light' | 'dark' | 'system'
-  onThemeChange?: (t: 'light' | 'dark' | 'system') => void
 }
 
 export function InputPanel({
@@ -120,8 +117,6 @@ export function InputPanel({
   onDraftBatchOverride,
   onDraftPreviewHover,
   onDraftLabelsOverride,
-  theme,
-  onThemeChange,
 }: Props) {
   const isGenerating = generationState === 'generating'
   const maxRef = model.maxReferenceImages + model.maxCharacterImages
@@ -388,7 +383,7 @@ export function InputPanel({
       onDragLeave={handlePanelDragLeave}
       onDragOver={handlePanelDragOver}
       onDrop={handlePanelDrop}
-      className="w-full flex flex-col gap-4 px-2 py-4 md:px-4 md:flex-1 md:min-h-0 md:overflow-y-auto relative">
+      className="w-full flex flex-col gap-4 px-2 py-4 md:px-4 relative">
 
       {/* API Key */}
       <ApiKeyInput
@@ -698,40 +693,6 @@ export function InputPanel({
           </p>
         )}
       </div>
-
-      {/* Theme switcher — desktop only, in scroll flow */}
-      {theme !== undefined && onThemeChange && (
-        <div className="flex items-center h-8 w-fit rounded-full border border-outline">
-          {([
-            { t: 'light' as const, label: '浅色', icon: 'light_mode' },
-            { t: 'dark' as const, label: '深色', icon: 'dark_mode' },
-            { t: 'system' as const, label: '跟随系统', icon: 'contrast' },
-          ]).map(({ t, label, icon }, i, arr) => (
-            <div key={t} className="relative group/theme">
-              <button
-                type="button"
-                onClick={() => onThemeChange(t)}
-                className={`w-8 h-8 flex items-center justify-center transition-colors
-                  ${i === 0 ? 'rounded-l-full' : i === arr.length - 1 ? 'rounded-r-full' : ''}
-                  ${i > 0 ? 'border-l border-outline' : ''}
-                  ${theme === t
-                    ? 'bg-primary-dim text-primary hover:bg-primary/15 active:bg-primary/20'
-                    : 'bg-transparent text-on-surface-variant hover:bg-on-surface/8 active:bg-on-surface/12 hover:text-on-surface'
-                  }`}
-              >
-                <span className="material-symbols-rounded" style={{ fontSize: 18, fontVariationSettings: "'FILL' 1, 'wght' 300, 'GRAD' 0, 'opsz' 18" }}>{icon}</span>
-              </button>
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2
-                              pointer-events-none whitespace-nowrap
-                              bg-on-surface text-surface text-xs px-2 py-1 rounded
-                              opacity-0 group-hover/theme:opacity-100
-                              transition-opacity duration-150 delay-500 z-50">
-                {label}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
 
       {/* Drag overlay */}
       {dragOver && (

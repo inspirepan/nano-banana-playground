@@ -63,6 +63,9 @@
 
   /* Inverse surface — for snackbars and toasts */
   --color-inverse-primary: #8ab4f8;
+
+  /* Title color: default = on-surface (black/white), themed = primary */
+  --color-title: var(--color-on-surface);
 }
 
 /* Material Symbols Rounded icon font */
@@ -179,6 +182,165 @@
   .dark textarea::-webkit-resizer {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12'%3E%3Cline x1='10' y1='4' x2='4' y2='10' stroke='%235f6368' stroke-width='1.5' stroke-linecap='round'/%3E%3Cline x1='10' y1='7' x2='7' y2='10' stroke='%235f6368' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
   }
+}
+
+/* ============================================================
+   Color themes — override primary + tertiary families only.
+   Applied as a class on <html> alongside optional .dark.
+   Usage: <html class="theme-emerald"> or <html class="dark theme-rose">
+   ============================================================ */
+
+/* Non-default themes: tertiary mirrors primary so augment highlights match the theme color.
+   Dot color is a single fixed identity color shown in both light and dark modes. */
+
+/* Blue — MD Blue family */
+.theme-blue {
+  --color-primary: #1565c0;
+  --color-primary-hover: #0d47a1;
+  --color-primary-dim: color-mix(in srgb, #1565c0 8%, transparent);
+  --color-on-primary: #ffffff;
+  --color-inverse-primary: #90caf9;
+  --color-tertiary: #1565c0;
+  --color-on-tertiary: #ffffff;
+  --color-tertiary-dim: color-mix(in srgb, #1565c0 10%, transparent);
+  --color-title: var(--color-primary);
+}
+.dark.theme-blue {
+  --color-primary: #90caf9;
+  --color-primary-hover: #bbdefb;
+  --color-primary-dim: color-mix(in srgb, #90caf9 12%, transparent);
+  --color-on-primary: #0d47a1;
+  --color-inverse-primary: #1565c0;
+  --color-tertiary: #90caf9;
+  --color-on-tertiary: #0d47a1;
+  --color-tertiary-dim: color-mix(in srgb, #90caf9 12%, transparent);
+  --color-title: var(--color-primary);
+}
+
+/* Green — MD Green family */
+.theme-green {
+  --color-primary: #2e7d32;
+  --color-primary-hover: #1b5e20;
+  --color-primary-dim: color-mix(in srgb, #2e7d32 8%, transparent);
+  --color-on-primary: #ffffff;
+  --color-inverse-primary: #a5d6a7;
+  --color-tertiary: #2e7d32;
+  --color-on-tertiary: #ffffff;
+  --color-tertiary-dim: color-mix(in srgb, #2e7d32 10%, transparent);
+  --color-title: var(--color-primary);
+}
+.dark.theme-green {
+  --color-primary: #a5d6a7;
+  --color-primary-hover: #c8e6c9;
+  --color-primary-dim: color-mix(in srgb, #a5d6a7 12%, transparent);
+  --color-on-primary: #003300;
+  --color-inverse-primary: #2e7d32;
+  --color-tertiary: #a5d6a7;
+  --color-on-tertiary: #003300;
+  --color-tertiary-dim: color-mix(in srgb, #a5d6a7 12%, transparent);
+  --color-title: var(--color-primary);
+}
+
+/* Yellow — dark amber for light mode (readability), bright amber for dark mode */
+.theme-yellow {
+  --color-primary: #c77800;
+  --color-primary-hover: #a86300;
+  --color-primary-dim: color-mix(in srgb, #c77800 8%, transparent);
+  --color-on-primary: #ffffff;
+  --color-inverse-primary: #ffd54f;
+  --color-tertiary: #c77800;
+  --color-on-tertiary: #ffffff;
+  --color-tertiary-dim: color-mix(in srgb, #c77800 10%, transparent);
+  --color-title: var(--color-primary);
+}
+.dark.theme-yellow {
+  --color-primary: #ffd54f;
+  --color-primary-hover: #ffe082;
+  --color-primary-dim: color-mix(in srgb, #ffd54f 12%, transparent);
+  --color-on-primary: #3e2000;
+  --color-inverse-primary: #c77800;
+  --color-tertiary: #ffd54f;
+  --color-on-tertiary: #3e2000;
+  --color-tertiary-dim: color-mix(in srgb, #ffd54f 12%, transparent);
+  --color-title: var(--color-primary);
+}
+
+/* Pink — MD Pink family */
+.theme-pink {
+  --color-primary: #c2185b;
+  --color-primary-hover: #9a1248;
+  --color-primary-dim: color-mix(in srgb, #c2185b 8%, transparent);
+  --color-on-primary: #ffffff;
+  --color-inverse-primary: #f48fb1;
+  --color-tertiary: #c2185b;
+  --color-on-tertiary: #ffffff;
+  --color-tertiary-dim: color-mix(in srgb, #c2185b 10%, transparent);
+  --color-title: var(--color-primary);
+}
+.dark.theme-pink {
+  --color-primary: #f48fb1;
+  --color-primary-hover: #f8bbd0;
+  --color-primary-dim: color-mix(in srgb, #f48fb1 12%, transparent);
+  --color-on-primary: #6a0030;
+  --color-inverse-primary: #c2185b;
+  --color-tertiary: #f48fb1;
+  --color-on-tertiary: #6a0030;
+  --color-tertiary-dim: color-mix(in srgb, #f48fb1 12%, transparent);
+  --color-title: var(--color-primary);
+}
+
+/* Orange — MD Deep Orange family */
+.theme-orange {
+  --color-primary: #e65100;
+  --color-primary-hover: #bf4400;
+  --color-primary-dim: color-mix(in srgb, #e65100 8%, transparent);
+  --color-on-primary: #ffffff;
+  --color-inverse-primary: #ffb74d;
+  --color-tertiary: #e65100;
+  --color-on-tertiary: #ffffff;
+  --color-tertiary-dim: color-mix(in srgb, #e65100 10%, transparent);
+  --color-title: var(--color-primary);
+}
+.dark.theme-orange {
+  --color-primary: #ffb74d;
+  --color-primary-hover: #ffc66d;
+  --color-primary-dim: color-mix(in srgb, #ffb74d 12%, transparent);
+  --color-on-primary: #4a1a00;
+  --color-inverse-primary: #e65100;
+  --color-tertiary: #ffb74d;
+  --color-on-tertiary: #4a1a00;
+  --color-tertiary-dim: color-mix(in srgb, #ffb74d 12%, transparent);
+  --color-title: var(--color-primary);
+}
+
+/* Purple — MD Purple family */
+.theme-purple {
+  --color-primary: #6a1b9a;
+  --color-primary-hover: #4a148c;
+  --color-primary-dim: color-mix(in srgb, #6a1b9a 8%, transparent);
+  --color-on-primary: #ffffff;
+  --color-inverse-primary: #ce93d8;
+  --color-tertiary: #6a1b9a;
+  --color-on-tertiary: #ffffff;
+  --color-tertiary-dim: color-mix(in srgb, #6a1b9a 10%, transparent);
+  --color-title: var(--color-primary);
+}
+.dark.theme-purple {
+  --color-primary: #ce93d8;
+  --color-primary-hover: #e1bee7;
+  --color-primary-dim: color-mix(in srgb, #ce93d8 12%, transparent);
+  --color-on-primary: #4a0072;
+  --color-inverse-primary: #6a1b9a;
+  --color-tertiary: #ce93d8;
+  --color-on-tertiary: #4a0072;
+  --color-tertiary-dim: color-mix(in srgb, #ce93d8 12%, transparent);
+  --color-title: var(--color-primary);
+}
+
+/* Header frosted-glass fade: blur+background fade from opaque at top to transparent at bottom */
+.header-fade {
+  -webkit-mask-image: linear-gradient(to bottom, black 40%, transparent 100%);
+  mask-image: linear-gradient(to bottom, black 40%, transparent 100%);
 }
 
 @keyframes slideUp {

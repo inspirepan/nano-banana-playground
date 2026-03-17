@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { Agentation } from 'agentation'
 import { usePlayground } from './hooks/usePlayground'
 import type { PlaygroundImageMeta } from './lib/types'
@@ -7,6 +8,18 @@ import { OutputPanel } from './components/OutputPanel'
 import { AppTitle } from './components/AppTitle'
 
 type Theme = 'light' | 'dark' | 'system'
+type ColorThemeId = 'default' | 'blue' | 'green' | 'yellow' | 'pink' | 'orange' | 'purple'
+
+const COLOR_THEMES: { id: ColorThemeId; name: string; color: string }[] = [
+  { id: 'default', name: '默认', color: '#9e9e9e' },
+  { id: 'blue',    name: '蓝色', color: '#1976d2' },
+  { id: 'green',   name: '绿色', color: '#388e3c' },
+  { id: 'yellow',  name: '黄色', color: '#fdd835' },
+  { id: 'pink',    name: '粉色', color: '#e91e63' },
+  { id: 'orange',  name: '橙色', color: '#f57c00' },
+  { id: 'purple',  name: '紫色', color: '#7b1fa2' },
+]
+const COLOR_THEME_IDS = COLOR_THEMES.map((t) => t.id)
 
 function getInitialTheme(): Theme {
   const stored = localStorage.getItem('nano-banana-theme')
@@ -14,10 +27,124 @@ function getInitialTheme(): Theme {
   return 'system'
 }
 
+function getInitialColorTheme(): ColorThemeId {
+  const stored = localStorage.getItem('nano-banana-color-theme')
+  const id = stored && (COLOR_THEME_IDS as string[]).includes(stored) ? (stored as ColorThemeId) : 'default'
+  // Apply immediately to avoid flash
+  if (id !== 'default') document.documentElement.classList.add(`theme-${id}`)
+  return id
+}
+
+function ThemeSettings({ theme, colorTheme, onThemeChange, onColorThemeChange }: {
+  theme: Theme
+  colorTheme: ColorThemeId
+  onThemeChange: (t: Theme) => void
+  onColorThemeChange: (id: ColorThemeId) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const [pos, setPos] = useState<{ top: number; right: number } | null>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const buttonRef = useRef<HTMLButtonElement>(null)
+  const popoverRef = useRef<HTMLDivElement>(null)
+
+  const handleToggle = () => {
+    if (!open && buttonRef.current) {
+      const r = buttonRef.current.getBoundingClientRect()
+      setPos({ top: r.bottom + 4, right: window.innerWidth - r.right })
+    }
+    setOpen((v) => !v)
+  }
+
+  useEffect(() => {
+    if (!open) return
+    const handler = (e: MouseEvent) => {
+      const t = e.target as Node
+      if (!containerRef.current?.contains(t) && !popoverRef.current?.contains(t)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+
+  const BRIGHTNESS: { value: Theme; icon: string; label: string }[] = [
+    { value: 'light',  icon: 'light_mode', label: '浅色' },
+    { value: 'dark',   icon: 'dark_mode',  label: '深色' },
+    { value: 'system', icon: 'contrast',   label: '跟随系统' },
+  ]
+
+  const currentIcon = BRIGHTNESS.find((b) => b.value === theme)?.icon ?? 'contrast'
+
+  return (
+    <div ref={containerRef} className="relative">
+      {/* Trigger */}
+      <button
+        ref={buttonRef}
+        type="button"
+        onClick={handleToggle}
+        className={`w-8 h-8 flex items-center justify-center rounded-full transition-colors
+          ${open ? 'bg-on-surface/12 text-on-surface' : 'hover:bg-on-surface/8 active:bg-on-surface/12 text-on-surface-variant'}`}
+      >
+        <span className="material-symbols-rounded text-[18px]">{currentIcon}</span>
+      </button>
+
+      {/* Popover — portaled to body to escape backdrop-filter containing block */}
+      {open && pos && createPortal(
+        <div
+          ref={popoverRef}
+          style={{ top: pos.top, right: pos.right }}
+          className="fixed z-50 w-44 rounded-2xl bg-surface/40 backdrop-blur-xl shadow-lg border border-outline/10 py-2">
+          {/* Brightness */}
+          <p className="px-4 pt-1 pb-2 text-xs font-medium text-on-surface-variant">外观</p>
+          <div className="flex gap-1 px-3 pb-3">
+            {BRIGHTNESS.map(({ value, icon, label }) => (
+              <button
+                key={value}
+                type="button"
+                title={label}
+                onClick={() => onThemeChange(value)}
+                className={`flex-1 flex flex-col items-center gap-1 py-2 rounded-xl text-xs transition-colors
+                  ${theme === value
+                    ? 'bg-primary-dim text-primary'
+                    : 'text-on-surface-variant hover:bg-on-surface/8 active:bg-on-surface/12'}`}
+              >
+                <span className="material-symbols-rounded text-[12px]">{icon}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Divider */}
+          <div className="h-px bg-outline/10 mx-2 mb-1" />
+
+          {/* Color */}
+          <p className="px-4 pt-2 pb-1 text-xs font-medium text-on-surface-variant">颜色</p>
+          {COLOR_THEMES.map((ct) => (
+            <button
+              key={ct.id}
+              type="button"
+              onClick={() => { onColorThemeChange(ct.id); setOpen(false) }}
+              className={`w-full flex items-center gap-3 px-4 py-2 text-sm transition-colors
+                ${colorTheme === ct.id
+                  ? 'bg-primary-dim text-primary font-medium'
+                  : 'text-on-surface hover:bg-on-surface/8 active:bg-on-surface/12'}`}
+            >
+              <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: ct.color }} />
+              {ct.name}
+              {colorTheme === ct.id && (
+                <span className="material-symbols-rounded text-sm ml-auto">check</span>
+              )}
+            </button>
+          ))}
+        </div>,
+        document.body
+      )}
+    </div>
+  )
+}
+
 function App() {
   const pg = usePlayground()
   const { addToReferences, history: pgHistory, restoreSession, resolveFullImages, setMode } = pg
   const [theme, setTheme] = useState<Theme>(getInitialTheme)
+  const [colorTheme, setColorTheme] = useState<ColorThemeId>(getInitialColorTheme)
   const [draftBatchOverride, setDraftBatchOverride] = useState<number | null>(null)
   const [draftLabels, setDraftLabels] = useState<string[] | null>(null)
   const [draftPreviewHover, setDraftPreviewHover] = useState(false)
@@ -48,6 +175,15 @@ function App() {
     setRegenToast(message)
     regenToastTimer.current = setTimeout(() => setRegenToast(null), 2500)
   }, [pgHistory, restoreSession, resolveFullImages, setMode])
+  // Apply color theme class to <html> — useLayoutEffect so CSS vars update
+  // before AppTitle's useEffect reads --color-primary for the sweep
+  useLayoutEffect(() => {
+    const root = document.documentElement
+    COLOR_THEME_IDS.forEach((id) => root.classList.remove(`theme-${id}`))
+    if (colorTheme !== 'default') root.classList.add(`theme-${colorTheme}`)
+    localStorage.setItem('nano-banana-color-theme', colorTheme)
+  }, [colorTheme])
+
   useEffect(() => {
     if (theme === 'system') {
       const mq = window.matchMedia('(prefers-color-scheme: dark)')
@@ -70,36 +206,18 @@ function App() {
     }
   }, [pg.generationState])
 
-  // Cycles light → dark → system → light for the mobile top-bar button
-  const cycleTheme = () => setTheme((t) => (t === 'light' ? 'dark' : t === 'dark' ? 'system' : 'light'))
-
-  const themeIcon =
-    theme === 'light' ? (
-      <span className="material-symbols-rounded text-[18px]">dark_mode</span>
-    ) : theme === 'dark' ? (
-      <span className="material-symbols-rounded text-[18px]">light_mode</span>
-    ) : (
-      <span className="material-symbols-rounded text-[18px]">contrast</span>
-    )
-
   return (
     <>
     {/* Mobile layout */}
-    <div className="flex flex-col h-[100dvh] md:hidden">
-      {/* Top bar */}
-      <div className="flex items-center justify-between px-4 py-3 shrink-0 border-b border-outline/10">
-        <AppTitle className="text-xl text-on-surface" />
-        <button
-          type="button"
-          onClick={cycleTheme}
-          className="w-8 h-8 flex items-center justify-center rounded-full
-                     hover:bg-on-surface/8 active:bg-on-surface/12 transition-colors text-on-surface-variant"
-        >
-          {themeIcon}
-        </button>
+    <div className="flex flex-col h-[100dvh] md:hidden overflow-y-auto">
+      {/* Top bar — sticky so content scrolls behind it */}
+      <div className="sticky top-0 z-10 flex items-center px-4 pt-3 pb-8 bg-surface/20 backdrop-blur-md header-fade">
+        <AppTitle className="text-xl text-title" sweepKey={colorTheme} />
+        <div className="flex-1" />
+        <ThemeSettings theme={theme} colorTheme={colorTheme} onThemeChange={setTheme} onColorThemeChange={setColorTheme} />
       </div>
-      {/* Scrollable content: prompt panel + output stacked */}
-      <div className="flex-1 min-h-0 overflow-y-auto px-4">
+      {/* Content — no longer its own scroll container */}
+      <div className="px-4">
         <InputPanel
           model={pg.model}
           resolution={pg.resolution}
@@ -160,13 +278,14 @@ function App() {
 
     {/* Desktop layout — 2 columns: input panel + output panel */}
     <div className="hidden md:flex h-screen">
-      {/* Left input panel */}
-      <div className="w-1/3 min-w-[400px] shrink-0 flex flex-col h-screen border-r border-outline/10">
-        {/* Header: app title */}
-        <div className="px-4 pt-4 pb-2 shrink-0">
-          <AppTitle className="text-xl text-on-surface" />
+      {/* Left input panel — scroll container, header floats above content */}
+      <div className="w-1/3 min-w-[400px] shrink-0 flex flex-col h-screen border-r border-outline/10 overflow-y-auto">
+        {/* Header: app title + color swatches + theme toggle — sticky so content scrolls behind it */}
+        <div className="sticky top-0 z-10 flex items-center px-4 pt-3 pb-8 bg-surface/20 backdrop-blur-md header-fade">
+          <AppTitle className="text-xl text-title" sweepKey={colorTheme} />
+          <div className="flex-1" />
+          <ThemeSettings theme={theme} colorTheme={colorTheme} onThemeChange={setTheme} onColorThemeChange={setColorTheme} />
         </div>
-        {/* Scrollable input area */}
         <InputPanel
           model={pg.model}
           resolution={pg.resolution}
@@ -200,8 +319,6 @@ function App() {
           onDraftBatchOverride={handleDraftBatchOverride}
           onDraftPreviewHover={setDraftPreviewHover}
           onDraftLabelsOverride={setDraftLabels}
-          theme={theme}
-          onThemeChange={setTheme}
         />
       </div>
 
