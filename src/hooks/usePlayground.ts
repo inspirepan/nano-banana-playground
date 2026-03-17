@@ -63,7 +63,7 @@ export function usePlayground() {
   })
   const [prompt, setPromptRaw] = useState('')
 
-  // Lifted from PromptPanel — persisted in URL
+  // Lifted from InputPanel — persisted in URL
   const [modeRaw, setModeRaw] = useState<PersistedPromptMode>('text')
   const [schemes, setSchemesRaw] = useState<PromptScheme[]>([])
   const [currentSchemeIndexRaw, setCurrentSchemeIndexRaw] = useState(0)

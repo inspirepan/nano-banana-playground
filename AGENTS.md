@@ -9,7 +9,7 @@
   |
   +-- React SPA (Vite)
   |     |-- ControlPanel (模型/分辨率/比例/数量选择)
-  |     |-- PromptPanel (参考图 + 提示词 + 生成按钮)
+  |     |-- InputPanel (参考图 + 提示词 + 生成按钮)
   |     +-- OutputPanel (统一时间线：草稿骨架图 + 历史记录网格)
   |
   +-- Gemini REST API (直接从浏览器调用)
@@ -57,7 +57,7 @@ docs/refs/                  # API 和提示词参考文档
 | 模型 / 分辨率 / 批次选择 | `ControlPanel` → `ChipGroup` |
 | 比例选择器         | `AspectRatioSelector`     |
 | 参考图上传区       | `ReferenceImageUpload`    |
-| 提示词输入 + 生成按钮 | `PromptPanel`           |
+| 提示词输入 + 生成按钮 | `InputPanel`            |
 | 历史图片网格       | `OutputPanel` → `ImageGrid` → `ImageCard` |
 | 全屏查看 / 缩放 / 对比 | `ImageDetailModal`    |
 | 主题切换           | `App.tsx`（内联，非独立组件） |
