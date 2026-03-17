@@ -1,8 +1,12 @@
 import { useState, useRef, useCallback, useEffect, type ReactNode } from 'react'
 import type { PersistedPromptMode, PlaygroundImage, PromptScheme } from '../lib/types'
-import type { ModelConfig } from '../config/models'
+import { MODEL_CONFIGS, type ModelConfig } from '../config/models'
 import type { GenerationState } from '../hooks/usePlayground'
+import type { ApiKeyStatus } from '../hooks/useApiKey'
 import { augmentPromptStream } from '../lib/api'
+import { ApiKeyInput } from './ApiKeyInput'
+import { ChipGroup } from './ChipGroup'
+import { AspectRatioSelector } from './AspectRatioSelector'
 import { ReferenceImageUpload } from './ReferenceImageUpload'
 
 // Labels for syntax highlighting in text editor, longest-first to avoid prefix conflicts
@@ -48,6 +52,7 @@ function autoResizeTextarea(el: HTMLTextAreaElement, scrollContainer?: HTMLEleme
 type Props = {
   model: ModelConfig
   resolution: string
+  aspectRatio: string
   batchCount: number
   prompt: string
   mode: PersistedPromptMode
@@ -57,6 +62,12 @@ type Props = {
   referenceImages: PlaygroundImage[]
   generationState: GenerationState
   apiKey: string
+  apiKeyStatus: ApiKeyStatus
+  onSubmitApiKey: (key: string) => void
+  onResetApiKey: () => void
+  onSwitchModel: (id: string) => void
+  onResolutionChange: (v: string) => void
+  onAspectRatioChange: (v: string) => void
   onPromptChange: (v: string) => void
   onBatchCountChange: (v: number) => void
   onModeChange: (v: PersistedPromptMode) => void
@@ -71,11 +82,15 @@ type Props = {
   onDraftBatchOverride: (count: number | null, labels?: string[]) => void
   onDraftPreviewHover: (show: boolean) => void
   onDraftLabelsOverride: (labels: string[] | null) => void
+  // desktop only — undefined on mobile
+  theme?: 'light' | 'dark' | 'system'
+  onThemeChange?: (t: 'light' | 'dark' | 'system') => void
 }
 
-export function PromptPanel({
+export function InputPanel({
   model,
   resolution,
+  aspectRatio,
   batchCount,
   prompt,
   mode,
@@ -85,6 +100,12 @@ export function PromptPanel({
   referenceImages,
   generationState,
   apiKey,
+  apiKeyStatus,
+  onSubmitApiKey,
+  onResetApiKey,
+  onSwitchModel,
+  onResolutionChange,
+  onAspectRatioChange,
   onPromptChange,
   onBatchCountChange,
   onModeChange,
@@ -99,6 +120,8 @@ export function PromptPanel({
   onDraftBatchOverride,
   onDraftPreviewHover,
   onDraftLabelsOverride,
+  theme,
+  onThemeChange,
 }: Props) {
   const isGenerating = generationState === 'generating'
   const maxRef = model.maxReferenceImages + model.maxCharacterImages
@@ -361,22 +384,66 @@ export function PromptPanel({
       onDragLeave={handlePanelDragLeave}
       onDragOver={handlePanelDragOver}
       onDrop={handlePanelDrop}
-      className="w-full md:flex-1 md:shrink-0 md:min-w-[360px] flex flex-col px-2 py-4 md:h-full md:overflow-y-auto relative">
-      {/* Reference Images */}
-      <div className="shrink-0">
-        <ReferenceImageUpload
-          images={referenceImages}
-          maxTotal={maxRef}
-          dragOver={dragOver}
-          onAdd={onAddReferenceImages}
-          onRemove={onRemoveReferenceImage}
-        />
+      className="w-full flex flex-col gap-4 px-2 py-4 md:px-4 md:flex-1 md:min-h-0 md:overflow-y-auto relative">
+
+      {/* API Key */}
+      <ApiKeyInput
+        apiKey={apiKey}
+        status={apiKeyStatus}
+        onSubmit={onSubmitApiKey}
+        onReset={onResetApiKey}
+      />
+
+      {/* Model */}
+      <div>
+        <label className="block text-sm font-medium text-on-surface-variant mb-3">模型</label>
+        <div className="flex gap-2">
+          {MODEL_CONFIGS.map((m) => (
+            <button
+              key={m.id}
+              type="button"
+              onClick={() => onSwitchModel(m.id)}
+              className={`flex-1 px-3 py-3 text-sm rounded-xl transition-colors text-center leading-snug
+                ${model.id === m.id
+                  ? 'bg-primary-dim text-primary font-medium hover:bg-primary/15 active:bg-primary/20'
+                  : 'bg-surface-container text-on-surface font-medium hover:bg-on-surface/8 active:bg-on-surface/12'
+                }`}
+            >
+              🍌 {m.name}
+            </button>
+          ))}
+        </div>
       </div>
 
+      {/* Resolution */}
+      <ChipGroup
+        label="分辨率"
+        options={model.resolutions}
+        value={resolution}
+        onChange={onResolutionChange}
+      />
+
+      {/* Aspect Ratio */}
+      <AspectRatioSelector
+        options={model.aspectRatios}
+        value={aspectRatio}
+        resolution={resolution}
+        onChange={onAspectRatioChange}
+      />
+
+      {/* Reference Images */}
+      <ReferenceImageUpload
+        images={referenceImages}
+        maxTotal={maxRef}
+        dragOver={dragOver}
+        onAdd={onAddReferenceImages}
+        onRemove={onRemoveReferenceImage}
+      />
+
       {/* Prompt section */}
-      <div className="mt-4 flex flex-col">
+      <div className="flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between mb-4 min-h-[32px] shrink-0">
+        <div className="flex items-center justify-between mb-3 min-h-[32px] shrink-0">
           <label className="text-sm font-medium text-on-surface-variant">提示词</label>
         </div>
 
@@ -396,39 +463,35 @@ export function PromptPanel({
           <>
             {/* Augment result card */}
             {schemes.length > 0 && (mode === 'structured' || isAugmenting) && (
-              <div className="mb-4 rounded-2xl border border-outline-variant/40 bg-surface-container/50 px-4 py-3 flex flex-col gap-3">
-                {schemesCollapsed && !isAugmenting ? (
-                  /* Collapsed: compact summary bar */
-                  <div className="flex items-center gap-2">
-                    <span className="px-3 py-1.5 text-sm font-medium rounded-lg bg-tertiary-dim text-tertiary">
-                      {schemes[currentSchemeIndex]?.title}
-                    </span>
-                    <button type="button" onClick={() => setSchemesCollapsed(false)}
-                      className="text-xs text-on-surface-variant/70 hover:text-on-surface transition-colors">
-                      切换方案
-                    </button>
-                    <div className="flex-1" />
-                    <div className="relative group/close">
-                      <button type="button" onClick={handleDiscardAugment}
-                        className="flex items-center justify-center w-4 h-4 translate-y-px rounded-full text-on-surface-variant/50 hover:text-on-surface transition-colors">
-                        <span className="material-symbols-rounded text-sm leading-none">close</span>
+              <div className="mb-4 rounded-2xl border border-outline-variant/40 bg-surface-container/50 px-4 py-3 flex flex-col">
+                {/* Header row — always visible, content swaps instantly */}
+                <div className="flex items-center gap-2 min-h-[28px]">
+                  {schemesCollapsed && !isAugmenting ? (
+                    <>
+                      <span className="px-3 py-1.5 text-sm font-medium rounded-lg bg-tertiary-dim text-tertiary">
+                        {schemes[currentSchemeIndex]?.title}
+                      </span>
+                      <button type="button" onClick={() => setSchemesCollapsed(false)}
+                        className="text-xs text-on-surface-variant/70 hover:text-on-surface transition-colors">
+                        切换方案
                       </button>
-                      <div className="absolute bottom-full right-0 mb-2 pointer-events-none whitespace-nowrap bg-on-surface text-surface text-xs px-2 py-1 rounded opacity-0 group-hover/close:opacity-100 transition-opacity duration-150 delay-500 z-50">
-                        退出增强模式
+                      <div className="flex-1" />
+                      <div className="relative group/close">
+                        <button type="button" onClick={handleDiscardAugment}
+                          className="flex items-center justify-center w-4 h-4 translate-y-px rounded-full text-on-surface-variant/50 hover:text-on-surface transition-colors">
+                          <span className="material-symbols-rounded text-sm leading-none">close</span>
+                        </button>
+                        <div className="absolute bottom-full right-0 mb-2 pointer-events-none whitespace-nowrap bg-on-surface text-surface text-xs px-2 py-1 rounded opacity-0 group-hover/close:opacity-100 transition-opacity duration-150 delay-500 z-50">
+                          退出增强模式
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                ) : (
-                  /* Expanded: full scheme selector */
-                  <>
-                    {/* Header: title + action links */}
-                    <div className="flex items-center gap-3">
+                    </>
+                  ) : (
+                    <div className="flex items-center gap-3 w-full">
                       {isAugmenting ? (
                         <>
                           <div className="w-3.5 h-3.5 border-2 border-tertiary border-t-transparent rounded-full animate-spin shrink-0" />
-                          <p className="text-sm text-on-surface-variant">
-                            已生成 {schemes.length} 个方案...
-                          </p>
+                          <p className="text-sm text-on-surface-variant">已生成 {schemes.length} 个方案...</p>
                         </>
                       ) : (
                         <p className="text-sm text-on-surface-variant">
@@ -480,14 +543,20 @@ export function PromptPanel({
                         </>
                       )}
                     </div>
-                    {/* Scheme chips */}
-                    {schemes.length >= 1 && (
-                      <div className="flex flex-wrap items-center gap-2">
-                        {schemes.map((scheme, i) => {
-                          const isSelected = i === currentSchemeIndex
-                          return (
-                            <div key={i} className="relative group">
-                              <button type="button" onClick={() => handleSelectScheme(i)}
+                  )}
+                </div>
+
+                {/* Animated body: chips + description */}
+                <div className={`grid transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.2,0,0,1)] ${schemesCollapsed && !isAugmenting ? 'grid-rows-[0fr]' : 'grid-rows-[1fr]'}`}>
+                  <div className="overflow-hidden">
+                    <div className="flex flex-col gap-3 pt-3">
+                      {/* Scheme chips */}
+                      {schemes.length >= 1 && (
+                        <div className="flex flex-wrap items-center gap-2">
+                          {schemes.map((scheme, i) => {
+                            const isSelected = i === currentSchemeIndex
+                            return (
+                              <button key={i} type="button" onClick={() => handleSelectScheme(i)}
                                 disabled={isAugmenting}
                                 className={`px-3 py-3 text-sm font-medium rounded-xl transition-colors
                                   ${isSelected
@@ -496,30 +565,22 @@ export function PromptPanel({
                                   } ${isAugmenting ? 'pointer-events-none' : ''}`}>
                                 {scheme.title}
                               </button>
-                              {scheme.description && !isAugmenting && (
-                                <div className="absolute bottom-full left-0 mb-2 w-48
-                                                pointer-events-none bg-on-surface text-surface text-xs
-                                                px-2 py-1 rounded leading-snug
-                                                opacity-0 group-hover:opacity-100 transition-opacity duration-150 delay-500 z-50">
-                                  {scheme.description}
-                                </div>
-                              )}
-                            </div>
-                          )
-                        })}
-                        {isAugmenting && (
-                          <div className="w-3 h-3 border-[1.5px] border-on-surface-variant/30 border-t-on-surface-variant/70 rounded-full animate-spin" />
-                        )}
-                      </div>
-                    )}
-                    {/* Selected scheme description */}
-                    {!isAugmenting && schemes[currentSchemeIndex]?.description && (
-                      <p className="text-sm text-on-surface-variant leading-relaxed px-3">
-                        {schemes[currentSchemeIndex].description}
-                      </p>
-                    )}
-                  </>
-                )}
+                            )
+                          })}
+                          {isAugmenting && (
+                            <div className="w-3 h-3 border-[1.5px] border-on-surface-variant/30 border-t-on-surface-variant/70 rounded-full animate-spin" />
+                          )}
+                        </div>
+                      )}
+                      {/* Selected scheme description */}
+                      {!isAugmenting && schemes[currentSchemeIndex]?.description && (
+                        <p className="text-sm text-on-surface-variant leading-relaxed px-3">
+                          {schemes[currentSchemeIndex].description}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
 
@@ -577,7 +638,7 @@ export function PromptPanel({
       </div>{/* end prompt section */}
 
       {/* Batch count + generate button + cost */}
-      <div className="flex flex-col gap-4 mt-4">
+      <div className="flex flex-col gap-4">
         {/* Batch count */}
         <div>
           <label className="block text-sm font-medium text-on-surface-variant mb-3">数量</label>
@@ -633,6 +694,40 @@ export function PromptPanel({
           </p>
         )}
       </div>
+
+      {/* Theme switcher — desktop only, in scroll flow */}
+      {theme !== undefined && onThemeChange && (
+        <div className="flex items-center h-8 w-fit rounded-full border border-outline">
+          {([
+            { t: 'light' as const, label: '浅色', icon: 'light_mode' },
+            { t: 'dark' as const, label: '深色', icon: 'dark_mode' },
+            { t: 'system' as const, label: '跟随系统', icon: 'contrast' },
+          ]).map(({ t, label, icon }, i, arr) => (
+            <div key={t} className="relative group/theme">
+              <button
+                type="button"
+                onClick={() => onThemeChange(t)}
+                className={`w-8 h-8 flex items-center justify-center transition-colors
+                  ${i === 0 ? 'rounded-l-full' : i === arr.length - 1 ? 'rounded-r-full' : ''}
+                  ${i > 0 ? 'border-l border-outline' : ''}
+                  ${theme === t
+                    ? 'bg-primary-dim text-primary hover:bg-primary/15 active:bg-primary/20'
+                    : 'bg-transparent text-on-surface-variant hover:bg-on-surface/8 active:bg-on-surface/12 hover:text-on-surface'
+                  }`}
+              >
+                <span className="material-symbols-rounded" style={{ fontSize: 18, fontVariationSettings: "'FILL' 1, 'wght' 300, 'GRAD' 0, 'opsz' 18" }}>{icon}</span>
+              </button>
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2
+                              pointer-events-none whitespace-nowrap
+                              bg-on-surface text-surface text-xs px-2 py-1 rounded
+                              opacity-0 group-hover/theme:opacity-100
+                              transition-opacity duration-150 delay-500 z-50">
+                {label}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Drag overlay */}
       {dragOver && (

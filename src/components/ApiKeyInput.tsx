@@ -8,7 +8,7 @@ type Props = {
   onReset: () => void
 }
 
-export function ApiKeyInput({ apiKey, status, onSubmit, onReset }: Props) {
+export function ApiKeyInput({ status, onSubmit, onReset }: Props) {
   const [draft, setDraft] = useState('')
   const [error, setError] = useState<string | null>(null)
 
@@ -58,34 +58,26 @@ export function ApiKeyInput({ apiKey, status, onSubmit, onReset }: Props) {
   // Validating
   if (status === 'validating') {
     return (
-      <div>
-        <label className="block text-sm font-medium text-on-surface-variant mb-3">API Key</label>
-        <div className="flex items-center gap-3 px-3 py-3 text-sm bg-surface-container md:bg-surface-container-high rounded-xl">
-          <div className="w-3.5 h-3.5 border-2 border-primary/30 border-t-primary rounded-full animate-spin shrink-0" />
-          <span className="text-on-surface-variant">验证中...</span>
-        </div>
+      <div className="flex items-center gap-2">
+        <span className="text-sm font-medium text-on-surface-variant">API Key</span>
+        <div className="w-3.5 h-3.5 border-2 border-primary/30 border-t-primary rounded-full animate-spin shrink-0" />
+        <span className="text-xs text-on-surface-variant">验证中...</span>
       </div>
     )
   }
 
-  // Valid: show success state with masked key
-  const masked = apiKey.slice(0, 4) + '...' + apiKey.slice(-4)
+  // Valid: single-line compact
   return (
-    <div>
-      <label className="block text-sm font-medium text-on-surface-variant mb-3">API Key</label>
-      <div className="flex items-center gap-3 px-3 py-3 bg-surface-container md:bg-surface-container-high rounded-xl">
-        <span className="material-symbols-rounded text-sm text-success shrink-0">check</span>
-        <span className="text-on-surface-variant font-mono text-xs flex-1 truncate">{masked}</span>
-        <button
-          type="button"
-          onClick={onReset}
-          className="text-sm font-medium text-on-surface-variant hover:text-on-surface
-                     hover:bg-on-surface/8 active:bg-on-surface/12
-                     px-2 py-1 rounded-full transition-colors shrink-0"
-        >
-          重置
-        </button>
-      </div>
+    <div className="flex items-center gap-2">
+      <span className="text-sm font-medium text-on-surface-variant">API Key</span>
+      <span className="material-symbols-rounded text-base text-success leading-none">check</span>
+      <button
+        type="button"
+        onClick={onReset}
+        className="text-sm text-on-surface-variant/70 hover:text-on-surface transition-colors"
+      >
+        重置
+      </button>
     </div>
   )
 }
