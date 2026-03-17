@@ -465,7 +465,7 @@ export function InputPanel({
         {isAugmenting && schemes.length === 0 && (
           <div className="flex flex-col items-center justify-center gap-3 py-8 bg-surface-container rounded-xl">
             <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-            <p className="text-xs text-on-surface-variant">正在使用 <span className="opacity-50">Gemini 3 Flash</span> 增强提示词...</p>
+            <p className="text-xs text-on-surface-variant">正在使用 <span className="text-primary">Gemini 3 Flash</span> 增强提示词...</p>
             <button type="button" onClick={handleCancelAugment}
               className="text-xs text-on-surface-variant hover:text-on-surface transition-colors">取消</button>
           </div>

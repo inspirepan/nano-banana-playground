@@ -153,7 +153,7 @@ export function AppTitle({ className = '', sweepKey }: Props) {
 
   return (
     <h1
-      className={`app-title ${className}`.trim()}
+      className={`app-title leading-none ${className}`.trim()}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
     >

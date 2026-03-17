@@ -211,7 +211,7 @@ function App() {
     {/* Mobile layout */}
     <div className="flex flex-col h-[100dvh] md:hidden overflow-y-auto">
       {/* Top bar — sticky so content scrolls behind it */}
-      <div className="sticky top-0 z-10 flex items-center px-4 pt-3 pb-8 bg-surface/20 backdrop-blur-md header-fade">
+      <div className="sticky top-0 z-10 flex items-center px-4 pt-3 pb-2 bg-surface/20 backdrop-blur-md header-fade">
         <AppTitle className="text-xl text-title" sweepKey={colorTheme} />
         <div className="flex-1" />
         <ThemeSettings theme={theme} colorTheme={colorTheme} onThemeChange={setTheme} onColorThemeChange={setColorTheme} />
@@ -281,7 +281,7 @@ function App() {
       {/* Left input panel — scroll container, header floats above content */}
       <div className="w-1/3 min-w-[400px] shrink-0 flex flex-col h-screen border-r border-outline/10 overflow-y-auto">
         {/* Header: app title + color swatches + theme toggle — sticky so content scrolls behind it */}
-        <div className="sticky top-0 z-10 flex items-center px-4 pt-3 pb-8 bg-surface/20 backdrop-blur-md header-fade">
+        <div className="sticky top-0 z-10 flex items-center px-4 pt-3 pb-2 bg-surface/20 backdrop-blur-md header-fade">
           <AppTitle className="text-xl text-title" sweepKey={colorTheme} />
           <div className="flex-1" />
           <ThemeSettings theme={theme} colorTheme={colorTheme} onThemeChange={setTheme} onColorThemeChange={setColorTheme} />
