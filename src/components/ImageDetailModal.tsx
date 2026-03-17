@@ -39,7 +39,12 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
   const [toast, setToast] = useState(false)
   const [refDetailId, setRefDetailId] = useState<string | null>(null)
   const [refDetailSrc, setRefDetailSrc] = useState<string | null>(null)
+  const [sheetExpanded, setSheetExpanded] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
+  const mobileSheetRef = useRef<HTMLDivElement>(null)
+  const sheetContainerRef = useRef<HTMLDivElement>(null)
+  // Drag state for bottom sheet handle (refs avoid re-renders during drag)
+  const sheetDragRef = useRef<{ startY: number; startTranslate: number; collapsedTranslate: number } | null>(null)
 
   // Resolve reference image metas not present in `history` from IndexedDB
   const [dbRefMetas, setDbRefMetas] = useState<Map<string, PlaygroundImageMeta>>(new Map())
@@ -69,6 +74,7 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
+    mobileSheetRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
   }, [refDetailId])
 
   const goToPrev = useCallback(() => {
@@ -148,18 +154,181 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
   const hasPrev = canNavigate && currentIdx > 0
   const hasNext = canNavigate && currentIdx < history.length - 1
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="absolute inset-0 bg-white/72 backdrop-blur-[2px] dark:bg-black/60" />
+  // Shared metadata + actions content used in both mobile sheet and desktop panel
+  const metaContent = (
+    <div className="space-y-4">
+      {currentMeta && (
+        <>
+          <div>
+            <div className="mb-1 text-sm font-medium text-on-surface-variant">提示词</div>
+            <div className="max-h-[40vh] overflow-y-auto rounded-xl bg-surface-container px-3 py-2 text-xs leading-relaxed text-on-surface whitespace-pre-wrap">
+              {currentMeta.prompt}
+            </div>
+          </div>
+          <MetaRow label="模型" value={modelName!} />
+          <MetaRow label="分辨率" value={currentMeta.resolution} />
+          <MetaRow label="宽高比" value={currentMeta.aspectRatio} />
+          {(estimatedCost !== null || currentMeta.tokenUsage) && (
+            <div>
+              <div className="mb-1 text-sm font-medium text-on-surface-variant">消耗</div>
+              <div className="rounded-xl border border-outline-variant bg-surface-container px-3 py-2.5 space-y-2">
+                {estimatedCost !== null && (
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-xs text-on-surface-variant">费用</span>
+                    <span className="text-sm font-medium text-on-surface font-mono">
+                      ${estimatedCost.toFixed(4)}
+                      {!currentMeta.tokenUsage && <span className="ml-1 text-xs font-normal text-on-surface-variant">估算</span>}
+                    </span>
+                  </div>
+                )}
+                {currentMeta.tokenUsage && (
+                  <>
+                    {estimatedCost !== null && <div className="border-t border-outline-variant" />}
+                    <div className="flex items-baseline justify-between">
+                      <span className="text-xs text-on-surface-variant">输入 Token</span>
+                      <span className="text-xs font-mono text-on-surface">
+                        {currentMeta.tokenUsage.inputTokens.toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="flex items-baseline justify-between">
+                      <span className="text-xs text-on-surface-variant">图片输出 Token</span>
+                      <span className="text-xs font-mono text-on-surface">
+                        {currentMeta.tokenUsage.imageOutputTokens.toLocaleString()}
+                      </span>
+                    </div>
+                    {currentMeta.tokenUsage.textOutputTokens > 0 && (
+                      <div className="flex items-baseline justify-between">
+                        <span className="text-xs text-on-surface-variant">思考 Token</span>
+                        <span className="text-xs font-mono text-on-surface">
+                          {currentMeta.tokenUsage.textOutputTokens.toLocaleString()}
+                        </span>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+          {currentMeta.referenceImageIds.length > 0 && (
+            <div>
+              <div className="mb-1 text-sm font-medium text-on-surface-variant">
+                参考图片 ({currentMeta.referenceImageIds.length})
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {currentMeta.referenceImageIds.map((refId) => {
+                  const refImg = findRefImage(refId)
+                  if (!refImg) return (
+                    <div key={refId} className="h-12 w-12 rounded-md bg-surface-container border border-outline-variant flex items-center justify-center text-2xs text-on-surface-variant/40">?</div>
+                  )
+                  return (
+                    <RefThumbnail
+                      key={refId}
+                      image={refImg}
+                      isActive={refDetailId === refImg.id}
+                      onClick={() => setRefDetailId((prev) => prev === refImg.id ? null : refImg.id)}
+                    />
+                  )
+                })}
+              </div>
+            </div>
+          )}
+        </>
+      )}
+      {currentImage.source.type === 'upload' && (
+        <MetaRow label="来源" value={`上传: ${currentImage.source.fileName}`} />
+      )}
+      <MetaRow label="创建时间" value={new Date(currentImage.timestamp).toLocaleString()} />
+    </div>
+  )
+
+  const actionsContent = (
+    <div className="relative space-y-2">
       <div
-        ref={scrollRef}
-        className="relative flex flex-col md:flex-row max-h-[96vh] w-full max-w-[1400px] overflow-y-auto md:overflow-hidden rounded-[28px] border border-outline-variant bg-surface shadow-2xl"
-        onClick={(event) => event.stopPropagation()}
+        className={`pointer-events-none absolute inset-x-0 top-0 flex -translate-y-1/2 justify-center transition-all duration-300 ${toast ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}`}
       >
-        <div ref={imgRef} className={`${refDetailId ? 'shrink-0' : 'h-[45vh] shrink-0'} relative md:h-auto md:flex-1 md:shrink min-w-0 bg-surface-dim`}>
+        <div className="rounded bg-on-surface/80 px-4 py-2 text-xs font-medium text-surface backdrop-blur-sm">
+          已复制
+        </div>
+      </div>
+      <div className="flex gap-2">
+        <ModalAction label="+参考" onClick={() => { onAddToRef(currentImage); onClose() }} />
+        <ModalAction label="保存" onClick={handleDownload} />
+        <ModalAction label="复制图" onClick={handleCopyImage} />
+        {currentMeta?.prompt && <ModalAction label="重做" onClick={handleRegenerate} />}
+      </div>
+      {canNavigate && (
+        <button
+          type="button"
+          onClick={() => { onRemove(currentImage.id); onClose() }}
+          className="w-full rounded-xl bg-error-dim py-2.5 text-sm font-medium text-error transition-colors hover:bg-error/15 active:bg-error/20"
+        >
+          删除
+        </button>
+      )}
+    </div>
+  )
+
+  // Set initial collapsed position on mount; collapse sheet when navigating to a new image
+  useEffect(() => {
+    const el = sheetContainerRef.current
+    if (!el) return
+    el.style.transition = 'none'
+    el.style.transform = `translateY(${el.offsetHeight - 88}px)`
+    setSheetExpanded(false)
+  }, [currentImage.id])
+
+  // Snap the sheet to expanded or collapsed position
+  const snapSheet = useCallback((expand: boolean) => {
+    const el = sheetContainerRef.current
+    if (el) {
+      el.style.transition = 'transform 300ms ease-out'
+      el.style.transform = expand ? 'translateY(0)' : `translateY(${el.offsetHeight - 88}px)`
+    }
+    setSheetExpanded(expand)
+  }, [])
+
+  const handleSheetPointerDown = useCallback((e: React.PointerEvent<HTMLButtonElement>) => {
+    const el = sheetContainerRef.current
+    if (!el) return
+    const collapsedTranslate = el.offsetHeight - 88
+    const startTranslate = sheetExpanded ? 0 : collapsedTranslate
+    sheetDragRef.current = { startY: e.clientY, startTranslate, collapsedTranslate }
+    el.style.transition = 'none'
+    e.currentTarget.setPointerCapture(e.pointerId)
+  }, [sheetExpanded])
+
+  const handleSheetPointerMove = useCallback((e: React.PointerEvent<HTMLButtonElement>) => {
+    const drag = sheetDragRef.current
+    const el = sheetContainerRef.current
+    if (!drag || !el) return
+    const deltaY = e.clientY - drag.startY
+    const clamped = Math.max(0, Math.min(drag.collapsedTranslate, drag.startTranslate + deltaY))
+    el.style.transform = `translateY(${clamped}px)`
+  }, [])
+
+  const handleSheetPointerUp = useCallback((e: React.PointerEvent<HTMLButtonElement>) => {
+    const drag = sheetDragRef.current
+    if (!drag) return
+    const deltaY = e.clientY - drag.startY
+    const threshold = drag.collapsedTranslate * 0.3
+    // flick up (large negative delta) → expand; flick down (large positive) → collapse
+    const shouldExpand = sheetExpanded ? deltaY < threshold : deltaY < -threshold
+    sheetDragRef.current = null
+    snapSheet(shouldExpand)
+  }, [sheetExpanded, snapSheet])
+
+  return (
+    <>
+      {/* Sentinel div attached to imgRef — always in viewport so IntersectionObserver fires immediately */}
+      <div ref={imgRef} className="fixed top-0 left-0 w-0 h-0 pointer-events-none" aria-hidden />
+
+      {/* ── Mobile layout: full-screen image + bottom sheet ── */}
+      <div className="fixed inset-0 z-50 md:hidden bg-black" onClick={onClose}>
+        {/* Full-screen image */}
+        <div className="absolute inset-0" onClick={(e) => e.stopPropagation()}>
           {refDetailId && refDetailSrc ? (
-            <div className="flex flex-col md:flex-row md:h-full gap-px">
-              <div className="h-[33vh] md:h-auto md:flex-1 min-w-0 relative">
+            <div className="flex flex-col h-full gap-px">
+              <div className="flex-1 min-h-0 relative">
                 <ZoomableImageView src={refDetailSrc} alt="" label="参考图" />
                 <button
                   type="button"
@@ -175,7 +344,7 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
                   关闭对比
                 </button>
               </div>
-              <div className="h-[33vh] md:h-auto md:flex-1 min-w-0 relative">
+              <div className="flex-1 min-h-0 relative">
                 <ZoomableImageView src={currentSrc ?? ''} alt={currentMeta?.prompt ?? ''} label="生成图" />
               </div>
             </div>
@@ -187,177 +356,223 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
               onSwipeRight={hasPrev ? goToPrev : undefined}
             />
           )}
-
-          {/* Prev / Next arrows — desktop only */}
-          {!refDetailId && hasPrev && (
-            <button
-              type="button"
-              onClick={goToPrev}
-              className="hidden md:flex absolute left-3 top-1/2 -translate-y-1/2 z-10
-                         w-9 h-9 items-center justify-center rounded-full
-                         border border-outline-variant/70 bg-surface/82
-                         text-on-surface shadow-sm backdrop-blur-sm
-                         transition-colors hover:bg-surface active:bg-surface-dim"
-              aria-label="上一张"
-            >
-              <span className="material-symbols-rounded text-base">chevron_left</span>
-            </button>
-          )}
-          {!refDetailId && hasNext && (
-            <button
-              type="button"
-              onClick={goToNext}
-              className="hidden md:flex absolute right-3 top-1/2 -translate-y-1/2 z-10
-                         w-9 h-9 items-center justify-center rounded-full
-                         border border-outline-variant/70 bg-surface/82
-                         text-on-surface shadow-sm backdrop-blur-sm
-                         transition-colors hover:bg-surface active:bg-surface-dim"
-              aria-label="下一张"
-            >
-              <span className="material-symbols-rounded text-base">chevron_right</span>
-            </button>
-          )}
-
-          {/* Image counter */}
-          {canNavigate && !refDetailId && (
-            <div className="pointer-events-none absolute bottom-14 left-1/2 -translate-x-1/2 z-10
-                            rounded-full border border-outline-variant bg-surface/82 px-3 py-1
-                            text-2xs font-mono text-on-surface shadow-sm backdrop-blur-sm">
-              {currentIdx + 1} / {history.length}
-            </div>
-          )}
         </div>
 
-        <div className="flex w-full md:w-[320px] md:shrink-0 flex-col md:overflow-y-auto border-t md:border-t-0 md:border-l border-outline-variant p-6">
-          <div className="mb-4 flex items-center justify-between">
-            <span className="text-sm font-medium text-on-surface">详情</span>
+        {/* Close button — top right */}
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute top-4 right-4 z-20 flex h-9 w-9 items-center justify-center rounded-full
+                     bg-black/40 text-white backdrop-blur-sm
+                     active:bg-black/60 transition-colors"
+          aria-label="关闭"
+        >
+          <span className="material-symbols-rounded text-lg">close</span>
+        </button>
+
+        {/* Nav arrows */}
+        {!refDetailId && hasPrev && (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); goToPrev() }}
+            className="absolute left-3 top-1/2 -translate-y-1/2 z-20
+                       w-9 h-9 flex items-center justify-center rounded-full
+                       bg-black/40 text-white backdrop-blur-sm
+                       active:bg-black/60 transition-colors"
+            aria-label="上一张"
+          >
+            <span className="material-symbols-rounded text-base">chevron_left</span>
+          </button>
+        )}
+        {!refDetailId && hasNext && (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); goToNext() }}
+            className="absolute right-3 top-1/2 -translate-y-1/2 z-20
+                       w-9 h-9 flex items-center justify-center rounded-full
+                       bg-black/40 text-white backdrop-blur-sm
+                       active:bg-black/60 transition-colors"
+            aria-label="下一张"
+          >
+            <span className="material-symbols-rounded text-base">chevron_right</span>
+          </button>
+        )}
+
+        {/* Image counter */}
+        {canNavigate && !refDetailId && (
+          <div className="pointer-events-none absolute top-4 left-4 z-20
+                          rounded-full bg-black/40 px-3 py-1
+                          text-2xs font-mono text-white backdrop-blur-sm">
+            {currentIdx + 1} / {history.length}
+          </div>
+        )}
+
+        {/* Bottom sheet — transform managed directly via sheetContainerRef (no React style prop to avoid conflicts) */}
+        <div
+          ref={sheetContainerRef}
+          className="absolute inset-x-0 bottom-0 z-20"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Sheet panel */}
+          <div className="rounded-t-[28px] border-t border-outline-variant bg-surface shadow-2xl"
+               style={{ maxHeight: '82vh', display: 'flex', flexDirection: 'column' }}>
+            {/* Handle — drag or tap to toggle */}
             <button
               type="button"
-              onClick={onClose}
-              className="flex h-7 w-7 items-center justify-center rounded-full
-                         border border-outline-variant text-on-surface-variant
-                         hover:bg-on-surface/8 hover:border-outline
-                         active:bg-on-surface/12 transition-colors"
-              aria-label="关闭"
+              aria-label={sheetExpanded ? '收起详情' : '展开详情'}
+              onClick={() => snapSheet(!sheetExpanded)}
+              onPointerDown={handleSheetPointerDown}
+              onPointerMove={handleSheetPointerMove}
+              onPointerUp={handleSheetPointerUp}
+              onPointerCancel={() => { sheetDragRef.current = null; snapSheet(sheetExpanded) }}
+              className="w-full flex flex-col items-center pt-3 pb-2 shrink-0 active:bg-on-surface/8 transition-colors rounded-t-[28px] touch-none"
             >
-              <span className="material-symbols-rounded text-base">close</span>
-            </button>
-          </div>
-
-          <div className="flex-1 space-y-4">
-            {currentMeta && (
-              <>
-                <MetaRow label="模型" value={modelName!} />
-                <MetaRow label="分辨率" value={currentMeta.resolution} />
-                <MetaRow label="宽高比" value={currentMeta.aspectRatio} />
-                {(estimatedCost !== null || currentMeta.tokenUsage) && (
-                  <div>
-                  <div className="mb-1 text-sm font-medium text-on-surface-variant">消耗</div>
-                  <div className="rounded-xl border border-outline-variant bg-surface-container px-3 py-2.5 space-y-2">
-                    {estimatedCost !== null && (
-                      <div className="flex items-baseline justify-between">
-                        <span className="text-xs text-on-surface-variant">费用</span>
-                        <span className="text-sm font-medium text-on-surface font-mono">
-                          ${estimatedCost.toFixed(4)}
-                          {!currentMeta.tokenUsage && <span className="ml-1 text-xs font-normal text-on-surface-variant">估算</span>}
-                        </span>
-                      </div>
-                    )}
-                    {currentMeta.tokenUsage && (
-                      <>
-                        {estimatedCost !== null && <div className="border-t border-outline-variant" />}
-                        <div className="flex items-baseline justify-between">
-                          <span className="text-xs text-on-surface-variant">输入 Token</span>
-                          <span className="text-xs font-mono text-on-surface">
-                            {currentMeta.tokenUsage.inputTokens.toLocaleString()}
-                          </span>
-                        </div>
-                        <div className="flex items-baseline justify-between">
-                          <span className="text-xs text-on-surface-variant">图片输出 Token</span>
-                          <span className="text-xs font-mono text-on-surface">
-                            {currentMeta.tokenUsage.imageOutputTokens.toLocaleString()}
-                          </span>
-                        </div>
-                        {currentMeta.tokenUsage.textOutputTokens > 0 && (
-                          <div className="flex items-baseline justify-between">
-                            <span className="text-xs text-on-surface-variant">思考 Token</span>
-                            <span className="text-xs font-mono text-on-surface">
-                              {currentMeta.tokenUsage.textOutputTokens.toLocaleString()}
-                            </span>
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </div>
-                  </div>
+              <div className="w-9 h-1 rounded-full bg-on-surface/20" />
+              {/* Compact peek row — model · resolution · ratio */}
+              <div className="mt-2 flex items-center gap-2 text-xs text-on-surface-variant">
+                {currentMeta ? (
+                  <>
+                    <span className="font-medium text-on-surface">{modelName}</span>
+                    <span className="text-on-surface-variant/40">·</span>
+                    <span>{currentMeta.resolution}</span>
+                    <span className="text-on-surface-variant/40">·</span>
+                    <span>{currentMeta.aspectRatio}</span>
+                  </>
+                ) : (
+                  <span>{new Date(currentImage.timestamp).toLocaleString()}</span>
                 )}
-                <div>
-                  <div className="mb-1 text-sm font-medium text-on-surface-variant">提示词</div>
-                  <div className="max-h-[40vh] overflow-y-auto rounded-xl bg-surface-container px-3 py-2 text-xs leading-relaxed text-on-surface whitespace-pre-wrap">
-                    {currentMeta.prompt}
-                  </div>
-                </div>
-                {currentMeta.referenceImageIds.length > 0 && (
-                  <div>
-                    <div className="mb-1 text-sm font-medium text-on-surface-variant">
-                      参考图片 ({currentMeta.referenceImageIds.length})
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {currentMeta.referenceImageIds.map((refId) => {
-                        const refImg = findRefImage(refId)
-                        if (!refImg) return (
-                          <div key={refId} className="h-12 w-12 rounded-md bg-surface-container border border-outline-variant flex items-center justify-center text-2xs text-on-surface-variant/40">?</div>
-                        )
-                        return (
-                          <RefThumbnail
-                            key={refId}
-                            image={refImg}
-                            isActive={refDetailId === refImg.id}
-                            onClick={() => setRefDetailId((prev) => prev === refImg.id ? null : refImg.id)}
-                          />
-                        )
-                      })}
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-
-            {currentImage.source.type === 'upload' && (
-              <MetaRow label="来源" value={`上传: ${currentImage.source.fileName}`} />
-            )}
-
-            <MetaRow label="创建时间" value={new Date(currentImage.timestamp).toLocaleString()} />
-          </div>
-
-          <div className="relative mt-4 space-y-2 border-t border-outline-variant pt-4">
-            <div
-              className={`pointer-events-none absolute inset-x-0 top-0 flex -translate-y-1/2 justify-center transition-all duration-300 ${toast ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}`}
-            >
-              <div className="rounded bg-on-surface/80 px-4 py-2 text-xs font-medium text-surface backdrop-blur-sm">
-                已复制
+                <span
+                  className={`material-symbols-rounded text-sm ml-auto mr-0 transition-transform duration-300 ${sheetExpanded ? 'rotate-180' : ''}`}
+                >
+                  keyboard_arrow_up
+                </span>
               </div>
+            </button>
+
+            {/* Scrollable content — only visible when expanded */}
+            <div
+              ref={mobileSheetRef}
+              className="overflow-y-auto px-5 pb-2 shrink-1"
+              style={{ minHeight: 0 }}
+            >
+              {metaContent}
             </div>
-            <div className="flex gap-2">
-              <ModalAction label="+参考" onClick={() => { onAddToRef(currentImage); onClose() }} />
-              <ModalAction label="保存" onClick={handleDownload} />
-              <ModalAction label="复制图" onClick={handleCopyImage} />
-              {currentMeta?.prompt && <ModalAction label="重做" onClick={handleRegenerate} />}
+
+            {/* Actions — always visible at the bottom of the sheet */}
+            <div className="px-5 pb-6 pt-3 border-t border-outline-variant shrink-0">
+              {actionsContent}
             </div>
-            {canNavigate && (
-              <button
-                type="button"
-                onClick={() => { onRemove(currentImage.id); onClose() }}
-                className="w-full rounded-xl bg-error-dim py-2.5 text-sm font-medium text-error transition-colors hover:bg-error/15 active:bg-error/20"
-              >
-                删除
-              </button>
-            )}
           </div>
         </div>
       </div>
 
-    </div>
+      {/* ── Desktop layout: centered card with side panel (unchanged) ── */}
+      <div className="fixed inset-0 z-50 hidden md:flex items-center justify-center p-4" onClick={onClose}>
+        <div className="absolute inset-0 bg-white/72 backdrop-blur-[2px] dark:bg-black/60" />
+        <div
+          ref={scrollRef}
+          className="relative flex flex-row max-h-[96vh] w-full max-w-[1400px] overflow-hidden rounded-[28px] border border-outline-variant bg-surface shadow-2xl"
+          onClick={(event) => event.stopPropagation()}
+        >
+          <div className="relative h-auto flex-1 shrink min-w-0 bg-surface-dim">
+            {refDetailId && refDetailSrc ? (
+              <div className="flex flex-row h-full gap-px">
+                <div className="h-auto flex-1 min-w-0 relative">
+                  <ZoomableImageView src={refDetailSrc} alt="" label="参考图" />
+                  <button
+                    type="button"
+                    onClick={() => setRefDetailId(null)}
+                    className="absolute top-4 left-1/2 -translate-x-1/2 z-10
+                               flex items-center gap-1 rounded-full
+                               border border-outline-variant/70 bg-surface/82
+                               pl-2 pr-3 py-1 text-2xs text-on-surface
+                               shadow-sm backdrop-blur-sm transition-colors hover:bg-surface active:bg-surface-dim"
+                    aria-label="关闭对比"
+                  >
+                    <span className="material-symbols-rounded text-sm shrink-0">close</span>
+                    关闭对比
+                  </button>
+                </div>
+                <div className="h-auto flex-1 min-w-0 relative">
+                  <ZoomableImageView src={currentSrc ?? ''} alt={currentMeta?.prompt ?? ''} label="生成图" />
+                </div>
+              </div>
+            ) : (
+              <ZoomableImageView
+                src={currentSrc ?? ''}
+                alt={currentMeta?.prompt ?? ''}
+                onSwipeLeft={hasNext ? goToNext : undefined}
+                onSwipeRight={hasPrev ? goToPrev : undefined}
+              />
+            )}
+
+            {/* Prev / Next arrows */}
+            {!refDetailId && hasPrev && (
+              <button
+                type="button"
+                onClick={goToPrev}
+                className="flex absolute left-3 top-1/2 -translate-y-1/2 z-10
+                           w-9 h-9 items-center justify-center rounded-full
+                           border border-outline-variant/70 bg-surface/82
+                           text-on-surface shadow-sm backdrop-blur-sm
+                           transition-colors hover:bg-surface active:bg-surface-dim"
+                aria-label="上一张"
+              >
+                <span className="material-symbols-rounded text-base">chevron_left</span>
+              </button>
+            )}
+            {!refDetailId && hasNext && (
+              <button
+                type="button"
+                onClick={goToNext}
+                className="flex absolute right-3 top-1/2 -translate-y-1/2 z-10
+                           w-9 h-9 items-center justify-center rounded-full
+                           border border-outline-variant/70 bg-surface/82
+                           text-on-surface shadow-sm backdrop-blur-sm
+                           transition-colors hover:bg-surface active:bg-surface-dim"
+                aria-label="下一张"
+              >
+                <span className="material-symbols-rounded text-base">chevron_right</span>
+              </button>
+            )}
+
+            {/* Image counter */}
+            {canNavigate && !refDetailId && (
+              <div className="pointer-events-none absolute bottom-14 left-1/2 -translate-x-1/2 z-10
+                              rounded-full border border-outline-variant bg-surface/82 px-3 py-1
+                              text-2xs font-mono text-on-surface shadow-sm backdrop-blur-sm">
+                {currentIdx + 1} / {history.length}
+              </div>
+            )}
+          </div>
+
+          <div className="flex w-[320px] shrink-0 flex-col overflow-y-auto border-l border-outline-variant p-6">
+            <div className="mb-4 flex items-center justify-between">
+              <span className="text-sm font-medium text-on-surface">详情</span>
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex h-7 w-7 items-center justify-center rounded-full
+                           border border-outline-variant text-on-surface-variant
+                           hover:bg-on-surface/8 hover:border-outline
+                           active:bg-on-surface/12 transition-colors"
+                aria-label="关闭"
+              >
+                <span className="material-symbols-rounded text-base">close</span>
+              </button>
+            </div>
+
+            <div className="flex-1">
+              {metaContent}
+            </div>
+
+            <div className="mt-4 border-t border-outline-variant pt-4">
+              {actionsContent}
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
   )
 }
 
@@ -463,6 +678,22 @@ function ZoomableImageView({ src, alt, label, onSwipeLeft, onSwipeRight }: {
   useEffect(() => {
     lastTapRef.current = null
   }, [src])
+
+  // Attach wheel listener as non-passive so preventDefault() can block page scroll
+  useEffect(() => {
+    const element = containerRef.current
+    if (!element) return
+
+    const handleWheel = (event: WheelEvent) => {
+      event.preventDefault()
+      const point = getRelativePoint(containerRef.current, event.clientX, event.clientY)
+      const delta = Math.exp(-event.deltaY * 0.0015)
+      zoomAtPoint(scaleRef.current * delta, point)
+    }
+
+    element.addEventListener('wheel', handleWheel, { passive: false })
+    return () => element.removeEventListener('wheel', handleWheel)
+  }, [zoomAtPoint])
 
   return (
     <div className="relative h-full min-h-0 md:min-h-[640px] w-full overflow-hidden bg-surface-container">
@@ -600,12 +831,6 @@ function ZoomableImageView({ src, alt, label, onSwipeLeft, onSwipeRight }: {
           didPinchRef.current = false
           setIsDragging(false)
           setIsInteracting(false)
-        }}
-        onWheel={(event) => {
-          event.preventDefault()
-          const point = getRelativePoint(containerRef.current, event.clientX, event.clientY)
-          const delta = Math.exp(-event.deltaY * 0.0015)
-          zoomAtPoint(scaleRef.current * delta, point)
         }}
         style={{ cursor: scale > FIT_SCALE ? (isDragging ? 'grabbing' : 'grab') : 'default' }}
       >
