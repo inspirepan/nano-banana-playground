@@ -116,6 +116,10 @@ export function PromptPanel({
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
 
+  // Typewriter animation state
+  const [revealedLength, setRevealedLength] = useState<number | null>(null)
+  const typewriterRef = useRef({ target: '', raf: 0, current: 0 })
+
   // Undo toast state
   const [undoToast, setUndoToast] = useState<{ text: string; timer: number } | null>(null)
 
@@ -170,7 +174,38 @@ export function PromptPanel({
 
   useEffect(() => {
     if ((!isAugmenting || schemes.length > 0) && textareaRef.current) autoResizeTextarea(textareaRef.current, panelRef.current)
-  }, [prompt, isAugmenting, schemes.length])
+  }, [prompt, isAugmenting, schemes.length, revealedLength])
+
+  // Typewriter: animate text reveal during augmentation
+  useEffect(() => {
+    if (!isAugmenting) {
+      cancelAnimationFrame(typewriterRef.current.raf)
+      typewriterRef.current = { target: '', raf: 0, current: 0 }
+      setRevealedLength(null)
+      return
+    }
+    if (typewriterRef.current.target === prompt) return
+    cancelAnimationFrame(typewriterRef.current.raf)
+    const tw = { target: prompt, raf: 0, current: 0 }
+    typewriterRef.current = tw
+    const charsPerFrame = Math.max(3, Math.ceil(prompt.length / 100))
+    const tick = () => {
+      tw.current = Math.min(tw.current + charsPerFrame, tw.target.length)
+      if (tw.current >= tw.target.length) {
+        setRevealedLength(null)
+      } else {
+        setRevealedLength(tw.current)
+        tw.raf = requestAnimationFrame(tick)
+      }
+    }
+    setRevealedLength(0)
+    tw.raf = requestAnimationFrame(tick)
+  }, [isAugmenting, prompt])
+
+  useEffect(() => () => cancelAnimationFrame(typewriterRef.current.raf), [])
+
+  const displayPrompt = revealedLength !== null ? prompt.slice(0, revealedLength) : prompt
+  const isTyping = revealedLength !== null && isAugmenting
 
   // --- Augment (streaming) ---
   const handleAugment = useCallback(async (useOriginal = false) => {
@@ -188,6 +223,10 @@ export function PromptPanel({
     onSchemesChange([])
     onCurrentSchemeIndexChange(0)
 
+    // Seed typewriter target so the effect won't trigger on the existing prompt
+    cancelAnimationFrame(typewriterRef.current.raf)
+    typewriterRef.current = { target: prompt, raf: 0, current: 0 }
+
     const controller = new AbortController()
     abortRef.current = controller
     // 120s timeout — thinking + streaming can take a while
@@ -203,6 +242,7 @@ export function PromptPanel({
           if (firstScheme) {
             firstScheme = false
             onCurrentSchemeIndexChange(0)
+            setRevealedLength(0)
             onPromptChange(schemes[0].text)
           }
         }
@@ -491,11 +531,11 @@ export function PromptPanel({
                   className="absolute inset-0 px-4 py-4 pb-12 text-sm text-on-surface whitespace-pre-wrap break-words pointer-events-none overflow-hidden rounded-2xl"
                 >
                   {prompt
-                    ? renderHighlighted(prompt)
+                    ? <>{renderHighlighted(displayPrompt)}{isTyping && <span className="text-tertiary/70">|</span>}</>
                     : <span className="text-on-surface-variant/50">描述你想生成的图片...</span>
                   }
                 </div>
-                <textarea ref={textareaRef} value={prompt}
+                <textarea ref={textareaRef} value={displayPrompt}
                   onChange={(e) => { onPromptChange(e.target.value); autoResizeTextarea(e.target, panelRef.current) }}
                   readOnly={isAugmenting}
                   rows={1}
