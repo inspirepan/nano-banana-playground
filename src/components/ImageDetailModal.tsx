@@ -154,7 +154,75 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
   const hasPrev = canNavigate && currentIdx > 0
   const hasNext = canNavigate && currentIdx < history.length - 1
 
-  // Shared metadata + actions content used in both mobile sheet and desktop panel
+  // Shared cost block reused in both layouts
+  const costBlock = currentMeta && (estimatedCost !== null || currentMeta.tokenUsage) && (
+    <div>
+      <div className="mb-1 text-sm font-medium text-on-surface-variant">消耗</div>
+      <div className="rounded-xl border border-outline-variant bg-surface-container px-3 py-2.5 space-y-2">
+        {estimatedCost !== null && (
+          <div className="flex items-baseline justify-between">
+            <span className="text-xs text-on-surface-variant">费用</span>
+            <span className="text-sm font-medium text-on-surface font-mono">
+              ${estimatedCost.toFixed(4)}
+              {!currentMeta.tokenUsage && <span className="ml-1 text-xs font-normal text-on-surface-variant">估算</span>}
+            </span>
+          </div>
+        )}
+        {currentMeta.tokenUsage && (
+          <>
+            {estimatedCost !== null && <div className="border-t border-outline-variant" />}
+            <div className="flex items-baseline justify-between">
+              <span className="text-xs text-on-surface-variant">输入 Token</span>
+              <span className="text-xs font-mono text-on-surface">
+                {currentMeta.tokenUsage.inputTokens.toLocaleString()}
+              </span>
+            </div>
+            <div className="flex items-baseline justify-between">
+              <span className="text-xs text-on-surface-variant">图片输出 Token</span>
+              <span className="text-xs font-mono text-on-surface">
+                {currentMeta.tokenUsage.imageOutputTokens.toLocaleString()}
+              </span>
+            </div>
+            {currentMeta.tokenUsage.textOutputTokens > 0 && (
+              <div className="flex items-baseline justify-between">
+                <span className="text-xs text-on-surface-variant">思考 Token</span>
+                <span className="text-xs font-mono text-on-surface">
+                  {currentMeta.tokenUsage.textOutputTokens.toLocaleString()}
+                </span>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  )
+
+  // Shared ref images block reused in both layouts
+  const refImagesBlock = currentMeta && currentMeta.referenceImageIds.length > 0 && (
+    <div>
+      <div className="mb-1 text-sm font-medium text-on-surface-variant">
+        参考图片 ({currentMeta.referenceImageIds.length})
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {currentMeta.referenceImageIds.map((refId) => {
+          const refImg = findRefImage(refId)
+          if (!refImg) return (
+            <div key={refId} className="h-12 w-12 rounded-md bg-surface-container border border-outline-variant flex items-center justify-center text-2xs text-on-surface-variant/40">?</div>
+          )
+          return (
+            <RefThumbnail
+              key={refId}
+              image={refImg}
+              isActive={refDetailId === refImg.id}
+              onClick={() => setRefDetailId((prev) => prev === refImg.id ? null : refImg.id)}
+            />
+          )
+        })}
+      </div>
+    </div>
+  )
+
+  // Desktop: 模型 → 分辨率 → 宽高比 → 提示词 → 参考图片 → 来源 → 创建时间 → 消耗
   const metaContent = (
     <div className="space-y-4">
       {currentMeta && (
@@ -162,82 +230,42 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
           <MetaRow label="模型" value={modelName!} />
           <MetaRow label="分辨率" value={currentMeta.resolution} />
           <MetaRow label="宽高比" value={currentMeta.aspectRatio} />
-          {(estimatedCost !== null || currentMeta.tokenUsage) && (
-            <div>
-              <div className="mb-1 text-sm font-medium text-on-surface-variant">消耗</div>
-              <div className="rounded-xl border border-outline-variant bg-surface-container px-3 py-2.5 space-y-2">
-                {estimatedCost !== null && (
-                  <div className="flex items-baseline justify-between">
-                    <span className="text-xs text-on-surface-variant">费用</span>
-                    <span className="text-sm font-medium text-on-surface font-mono">
-                      ${estimatedCost.toFixed(4)}
-                      {!currentMeta.tokenUsage && <span className="ml-1 text-xs font-normal text-on-surface-variant">估算</span>}
-                    </span>
-                  </div>
-                )}
-                {currentMeta.tokenUsage && (
-                  <>
-                    {estimatedCost !== null && <div className="border-t border-outline-variant" />}
-                    <div className="flex items-baseline justify-between">
-                      <span className="text-xs text-on-surface-variant">输入 Token</span>
-                      <span className="text-xs font-mono text-on-surface">
-                        {currentMeta.tokenUsage.inputTokens.toLocaleString()}
-                      </span>
-                    </div>
-                    <div className="flex items-baseline justify-between">
-                      <span className="text-xs text-on-surface-variant">图片输出 Token</span>
-                      <span className="text-xs font-mono text-on-surface">
-                        {currentMeta.tokenUsage.imageOutputTokens.toLocaleString()}
-                      </span>
-                    </div>
-                    {currentMeta.tokenUsage.textOutputTokens > 0 && (
-                      <div className="flex items-baseline justify-between">
-                        <span className="text-xs text-on-surface-variant">思考 Token</span>
-                        <span className="text-xs font-mono text-on-surface">
-                          {currentMeta.tokenUsage.textOutputTokens.toLocaleString()}
-                        </span>
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
-          )}
           <div>
             <div className="mb-1 text-sm font-medium text-on-surface-variant">提示词</div>
             <div className="max-h-[40vh] overflow-y-auto rounded-xl bg-surface-container px-3 py-2 text-xs leading-relaxed text-on-surface whitespace-pre-wrap">
               {currentMeta.prompt}
             </div>
           </div>
-          {currentMeta.referenceImageIds.length > 0 && (
-            <div>
-              <div className="mb-1 text-sm font-medium text-on-surface-variant">
-                参考图片 ({currentMeta.referenceImageIds.length})
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {currentMeta.referenceImageIds.map((refId) => {
-                  const refImg = findRefImage(refId)
-                  if (!refImg) return (
-                    <div key={refId} className="h-12 w-12 rounded-md bg-surface-container border border-outline-variant flex items-center justify-center text-2xs text-on-surface-variant/40">?</div>
-                  )
-                  return (
-                    <RefThumbnail
-                      key={refId}
-                      image={refImg}
-                      isActive={refDetailId === refImg.id}
-                      onClick={() => setRefDetailId((prev) => prev === refImg.id ? null : refImg.id)}
-                    />
-                  )
-                })}
-              </div>
-            </div>
-          )}
+          {refImagesBlock}
         </>
       )}
       {currentImage.source.type === 'upload' && (
         <MetaRow label="来源" value={`上传: ${currentImage.source.fileName}`} />
       )}
       <MetaRow label="创建时间" value={new Date(currentImage.timestamp).toLocaleString()} />
+      {costBlock}
+    </div>
+  )
+
+  // Mobile: 提示词 → 参考图片 → 来源 → 创建时间 → 消耗 (model/res/ratio in peek row)
+  const metaContentMobile = (
+    <div className="space-y-4">
+      {currentMeta && (
+        <>
+          <div>
+            <div className="mb-1 text-sm font-medium text-on-surface-variant">提示词</div>
+            <div className="max-h-[40vh] overflow-y-auto rounded-xl bg-surface-container px-3 py-2 text-xs leading-relaxed text-on-surface whitespace-pre-wrap">
+              {currentMeta.prompt}
+            </div>
+          </div>
+          {refImagesBlock}
+        </>
+      )}
+      {currentImage.source.type === 'upload' && (
+        <MetaRow label="来源" value={`上传: ${currentImage.source.fileName}`} />
+      )}
+      <MetaRow label="创建时间" value={new Date(currentImage.timestamp).toLocaleString()} />
+      {costBlock}
     </div>
   )
 
@@ -455,7 +483,7 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
               className="overflow-y-auto px-5 pb-2 shrink-1"
               style={{ minHeight: 0 }}
             >
-              {metaContent}
+              {metaContentMobile}
             </div>
 
             {/* Actions — always visible at the bottom of the sheet */}
