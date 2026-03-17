@@ -41,7 +41,20 @@ function renderHighlighted(text: string): ReactNode[] {
 // --- Auto-resize textarea ---
 const TEXTAREA_MIN_HEIGHT = 120
 
-function autoResizeTextarea(el: HTMLTextAreaElement, scrollContainer?: HTMLElement | null) {
+function findScrollableAncestor(el: HTMLElement): HTMLElement | null {
+  let current = el.parentElement
+  while (current) {
+    const { overflowY } = getComputedStyle(current)
+    if ((overflowY === 'auto' || overflowY === 'scroll') && current.scrollHeight > current.clientHeight) {
+      return current
+    }
+    current = current.parentElement
+  }
+  return null
+}
+
+function autoResizeTextarea(el: HTMLTextAreaElement) {
+  const scrollContainer = findScrollableAncestor(el)
   const prevScroll = scrollContainer?.scrollTop
   const borderHeight = el.offsetHeight - el.clientHeight
   el.style.height = 'auto'
@@ -192,7 +205,7 @@ export function InputPanel({
 
   // Resize before paint so height is always correct when content changes (including after augment)
   useLayoutEffect(() => {
-    if ((!isAugmenting || schemes.length > 0) && textareaRef.current) autoResizeTextarea(textareaRef.current, panelRef.current)
+    if ((!isAugmenting || schemes.length > 0) && textareaRef.current) autoResizeTextarea(textareaRef.current)
   }, [prompt, isAugmenting, schemes.length, revealedLength])
 
   // Typewriter: animate text reveal during augmentation
@@ -596,7 +609,7 @@ export function InputPanel({
                   }
                 </div>
                 <textarea ref={textareaRef} value={displayPrompt}
-                  onChange={(e) => { onPromptChange(e.target.value); autoResizeTextarea(e.target, panelRef.current) }}
+                  onChange={(e) => { onPromptChange(e.target.value); autoResizeTextarea(e.target) }}
                   readOnly={isAugmenting}
                   rows={1}
                   style={{ caretColor: 'var(--color-on-surface)' }}
