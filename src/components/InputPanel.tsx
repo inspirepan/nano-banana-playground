@@ -193,7 +193,7 @@ export function InputPanel({
     setHistoryTick((t) => t + 1)
   }, [onPromptChange])
 
-  const canAugment = apiKey.trim() !== '' && hasPrompt
+  const canAugment = apiKey.trim() !== '' && (hasPrompt || referenceImages.length > 0)
 
   useEffect(() => {
     if ((!isAugmenting || schemes.length > 0) && textareaRef.current) autoResizeTextarea(textareaRef.current, panelRef.current)
@@ -233,8 +233,11 @@ export function InputPanel({
   // --- Augment (streaming) ---
   const handleAugment = useCallback(async (useOriginal = false) => {
     if (!canAugment && !useOriginal) return
-    const sourcePrompt = useOriginal && originalPrompt ? originalPrompt : prompt
-    if (!sourcePrompt.trim()) return
+    const sourcePrompt = useOriginal && originalPrompt !== null ? originalPrompt : prompt
+    if (!sourcePrompt.trim() && referenceImages.length === 0) return
+
+    // When prompt is empty but images are present, hint the model to work from images
+    const effectivePrompt = sourcePrompt.trim() || '用户的原始提示词是空的，请你基于图片提供几个创意方案'
 
     if (!useOriginal) {
       onOriginalPromptChange(sourcePrompt)
@@ -258,7 +261,7 @@ export function InputPanel({
     let gotSchemes = false
     let firstScheme = true
     try {
-      await augmentPromptStream(apiKey, sourcePrompt, referenceImages, (schemes, done) => {
+      await augmentPromptStream(apiKey, effectivePrompt, referenceImages, (schemes, done) => {
         if (schemes.length > 0) {
           gotSchemes = true
           onSchemesChange(schemes)
@@ -507,7 +510,7 @@ export function InputPanel({
                       ) : (
                         <>
                           <div className="relative group/reaugment">
-                            <button type="button" onClick={() => handleAugment(true)} disabled={!originalPrompt}
+                            <button type="button" onClick={() => handleAugment(true)} disabled={originalPrompt === null}
                               className="text-xs text-on-surface-variant/70 hover:text-on-surface transition-colors disabled:opacity-40 disabled:pointer-events-none">
                               重新增强
                             </button>
@@ -740,7 +743,7 @@ export function InputPanel({
           <span>提示词已清空</span>
           <button type="button" onClick={handleUndo}
             className="px-3 py-1 text-sm font-medium rounded-full text-inverse-primary hover:bg-surface/10 active:bg-surface/15 transition-colors">撤销</button>
-          <button type="button" onClick={handleDismissToast} className="p-1 rounded-full hover:bg-surface/10 transition-colors">
+          <button type="button" onClick={handleDismissToast} className="flex items-center justify-center p-1 rounded-full hover:bg-surface/10 transition-colors">
             <span className="material-symbols-rounded text-base">close</span>
           </button>
         </div>

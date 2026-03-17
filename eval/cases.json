@@ -72,6 +72,16 @@
     "rubric": "评分维度：(1) 正确识别为高不变量精确编辑，只返回 1 个 scheme；(2) invariants 字段的完整性（是否明确列出所有需要保留的元素）；(3) primaryRequest 的精确性；(4) 没有引入用户未要求的创意变化"
   },
   {
+    "id": "image-only-no-prompt",
+    "prompt": "用户的原始提示词是空的，请你基于图片提供几个创意方案",
+    "images": ["fixtures/flower-jiejie.jpg"],
+    "assertions": [
+      "至少返回 1 个 scheme",
+      "所有 scheme 的任意字段中（subject、scene、style、referenceRole、primaryRequest 等）必须出现与花卉/黄色/植物/枝条相关的描述，证明模型确实识别了参考图内容而非忽略图片"
+    ],
+    "rubric": "评分维度：(1) 是否真正识别了图片内容（结香花/黄色球状花序/枝条/浅景深背景虚化等），而非输出与图片无关的通用方案；(2) referenceRole 字段是否准确描述参考图角色；(3) 在无文字描述的情况下能否合理推断用户意图并给出创意方向；(4) 方案的整体质量与可执行性"
+  },
+  {
     "id": "detailed-single-scheme",
     "prompt": "一位穿着蓝色丝绒旗袍的年轻女性，手持白色纸扇，坐在红木太师椅上。背景是中式书房，墙上挂着水墨山水画，书架上摆满线装古籍。桌上有一盏黄铜台灯（已点亮）、一方砚台和几支毛笔。采用 85mm f/1.4 镜头拍摄，浅景深，暖色调自然光从左侧窗户照入。整体色调偏暖棕，Kodak Portra 400 胶片质感。",
     "assertions": [
