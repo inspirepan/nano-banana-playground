@@ -159,12 +159,6 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
     <div className="space-y-4">
       {currentMeta && (
         <>
-          <div>
-            <div className="mb-1 text-sm font-medium text-on-surface-variant">提示词</div>
-            <div className="max-h-[40vh] overflow-y-auto rounded-xl bg-surface-container px-3 py-2 text-xs leading-relaxed text-on-surface whitespace-pre-wrap">
-              {currentMeta.prompt}
-            </div>
-          </div>
           <MetaRow label="模型" value={modelName!} />
           <MetaRow label="分辨率" value={currentMeta.resolution} />
           <MetaRow label="宽高比" value={currentMeta.aspectRatio} />
@@ -209,6 +203,12 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
               </div>
             </div>
           )}
+          <div>
+            <div className="mb-1 text-sm font-medium text-on-surface-variant">提示词</div>
+            <div className="max-h-[40vh] overflow-y-auto rounded-xl bg-surface-container px-3 py-2 text-xs leading-relaxed text-on-surface whitespace-pre-wrap">
+              {currentMeta.prompt}
+            </div>
+          </div>
           {currentMeta.referenceImageIds.length > 0 && (
             <div>
               <div className="mb-1 text-sm font-medium text-on-surface-variant">
