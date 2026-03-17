@@ -1,4 +1,5 @@
-import { memo, useState } from 'react'
+import { memo, useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import type { PlaygroundImageMeta } from '../lib/types'
 import { ensureBlobLoaded, useImageSrc, getBlobFromCache } from '../hooks/useImageSrc'
 
@@ -8,13 +9,18 @@ type Props = {
   index?: number
   onAddToRef: (image: PlaygroundImageMeta) => void
   onRegenerate: (image: PlaygroundImageMeta) => void
+  onRemove: (id: string) => void
   onOpen: (image: PlaygroundImageMeta) => void
 }
 
-export const ImageCard = memo(function ImageCard({ image, inlineData, index, onAddToRef, onRegenerate, onOpen }: Props) {
+export const ImageCard = memo(function ImageCard({ image, inlineData, index, onAddToRef, onRegenerate, onRemove, onOpen }: Props) {
+  const CONTEXT_MENU_WIDTH = 160
+  const CONTEXT_MENU_ITEM_HEIGHT = 36
+  const CONTEXT_MENU_PADDING = 8
   const { ref, src } = useImageSrc(image.id, image.mimeType, inlineData, { variant: 'preview' })
   const meta = image.source.type === 'generated' ? image.source : null
   const [toast, setToast] = useState(false)
+  const [menu, setMenu] = useState<{ x: number; y: number } | null>(null)
 
   const showCopiedToast = () => {
     setToast(true)
@@ -51,6 +57,10 @@ export const ImageCard = memo(function ImageCard({ image, inlineData, index, onA
     onRegenerate(image)
   }
 
+  const handleDelete = () => {
+    onRemove(image.id)
+  }
+
   const handleDragStart = (event: React.DragEvent) => {
     const data = getBlobFromCache(image.id)
     const payload = data ? { ...image, data } : image
@@ -58,12 +68,45 @@ export const ImageCard = memo(function ImageCard({ image, inlineData, index, onA
     event.dataTransfer.effectAllowed = 'copy'
   }
 
+  useEffect(() => {
+    if (!menu) return
+    const handleClose = () => setMenu(null)
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMenu(null)
+    }
+    window.addEventListener('mousedown', handleClose)
+    window.addEventListener('scroll', handleClose, true)
+    window.addEventListener('resize', handleClose)
+    window.addEventListener('keydown', handleEscape)
+    return () => {
+      window.removeEventListener('mousedown', handleClose)
+      window.removeEventListener('scroll', handleClose, true)
+      window.removeEventListener('resize', handleClose)
+      window.removeEventListener('keydown', handleEscape)
+    }
+  }, [menu])
+
+  const actionItems: Array<{ label: string; onClick: () => void; danger?: boolean }> = [
+    { label: '+参考', onClick: () => onAddToRef(image) },
+    { label: '下载', onClick: handleDownload },
+    { label: '复制图', onClick: handleCopyImage },
+    ...(meta?.prompt ? [{ label: '重做', onClick: handleRegenerate }] : []),
+    { label: '删除', onClick: handleDelete, danger: true },
+  ]
+
   return (
     <div
       ref={ref}
       role="button"
       tabIndex={0}
       draggable
+      onContextMenu={(event) => {
+        event.preventDefault()
+        const menuHeight = actionItems.length * CONTEXT_MENU_ITEM_HEIGHT + CONTEXT_MENU_PADDING
+        const x = Math.min(event.clientX, window.innerWidth - CONTEXT_MENU_WIDTH - 8)
+        const y = Math.min(event.clientY, window.innerHeight - menuHeight - 8)
+        setMenu({ x: Math.max(8, x), y: Math.max(8, y) })
+      }}
       onDragStart={handleDragStart}
       onClick={() => onOpen(image)}
       onKeyDown={(event) => {
@@ -120,18 +163,43 @@ export const ImageCard = memo(function ImageCard({ image, inlineData, index, onA
         </div>
 
         {/* Action buttons — pill shape, slide up on hover */}
-        <div className="hidden md:grid grid-cols-2 @[200px]:grid-cols-4 gap-1 opacity-0 translate-y-2 transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100">
-          <ActionButton label="+参考" onClick={() => onAddToRef(image)} />
-          <ActionButton label="下载" onClick={handleDownload} />
-          <ActionButton label="复制图" onClick={handleCopyImage} />
-          {meta?.prompt && <ActionButton label="重做" onClick={handleRegenerate} />}
+        <div className="hidden md:grid grid-cols-2 @[200px]:grid-cols-5 gap-1 opacity-0 translate-y-2 transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100">
+          {actionItems.map((item) => (
+            <ActionButton key={item.label} label={item.label} onClick={item.onClick} danger={item.danger} />
+          ))}
         </div>
       </div>
+
+      {menu && createPortal(
+        <div
+          style={{ top: menu.y, left: menu.x }}
+          className="fixed z-[120] min-w-28 rounded-xl border border-outline-variant bg-surface-container p-1 shadow-xl"
+        >
+          {actionItems.map((item) => (
+            <button
+              key={item.label}
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation()
+                setMenu(null)
+                item.onClick()
+              }}
+              className={`flex w-full items-center rounded-lg px-3 py-2 text-left text-sm transition-colors
+                ${item.danger
+                  ? 'text-error hover:bg-error/12 active:bg-error/20'
+                  : 'text-on-surface hover:bg-on-surface/8 active:bg-on-surface/12'}`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>,
+        document.body,
+      )}
     </div>
   )
 })
 
-function ActionButton({ label, onClick }: { label: string; onClick: () => void }) {
+function ActionButton({ label, onClick, danger = false }: { label: string; onClick: () => void; danger?: boolean }) {
   return (
     <button
       type="button"
@@ -139,7 +207,10 @@ function ActionButton({ label, onClick }: { label: string; onClick: () => void }
         event.stopPropagation()
         onClick()
       }}
-      className="w-full rounded-xl bg-white/20 px-2 py-1.5 text-xs font-medium text-white whitespace-nowrap backdrop-blur-sm transition-colors hover:bg-white/30 active:bg-white/40"
+      className={`w-full rounded-xl px-2 py-1.5 text-xs font-medium whitespace-nowrap backdrop-blur-sm transition-colors
+        ${danger
+          ? 'bg-error/30 text-white hover:bg-error/40 active:bg-error/50'
+          : 'bg-white/20 text-white hover:bg-white/30 active:bg-white/40'}`}
     >
       {label}
     </button>

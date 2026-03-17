@@ -1,7 +1,7 @@
 import type { PlaygroundImage, PlaygroundImageMeta } from './types'
 
 const DB_NAME = 'nano-banana-playground'
-const DB_VERSION = 3
+const DB_VERSION = 4
 const META_STORE = 'history'
 const BLOB_STORE = 'blobs'
 const PREVIEW_STORE = 'previews'
@@ -45,10 +45,17 @@ function openDB(): Promise<IDBDatabase> {
         }
       }
 
-      // v3: store 512px previews separately from original blobs
+      // v3: store previews separately from original blobs
       if ((event.oldVersion ?? 0) < 3) {
         if (!db.objectStoreNames.contains(PREVIEW_STORE)) {
           db.createObjectStore(PREVIEW_STORE, { keyPath: 'id' })
+        }
+      }
+
+      // v4: invalidate old low-res previews so they can be regenerated with updated size
+      if ((event.oldVersion ?? 0) < 4) {
+        if (db.objectStoreNames.contains(PREVIEW_STORE)) {
+          tx.objectStore(PREVIEW_STORE).clear()
         }
       }
     }

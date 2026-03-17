@@ -289,6 +289,7 @@ export const OutputPanel = memo(function OutputPanel({
                       index={draftCount > 1 ? i : undefined}
                       onAddToRef={onAddToRef}
                       onRegenerate={onRegenerate}
+                      onRemove={onRemove}
                       onOpen={setDetailImage}
                     />
                   ) : slot.status === 'rejected' ? (
@@ -336,6 +337,7 @@ export const OutputPanel = memo(function OutputPanel({
                         index={batch.images.length > 1 ? i : undefined}
                         onAddToRef={onAddToRef}
                         onRegenerate={onRegenerate}
+                        onRemove={onRemove}
                         onOpen={setDetailImage}
                       />
                     </GridCell>

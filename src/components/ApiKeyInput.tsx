@@ -8,7 +8,7 @@ type Props = {
   onReset: () => void
 }
 
-export function ApiKeyInput({ status, onSubmit, onReset }: Props) {
+export function ApiKeyInput({ apiKey, status, onSubmit, onReset }: Props) {
   const [draft, setDraft] = useState('')
   const [error, setError] = useState<string | null>(null)
 
@@ -18,6 +18,8 @@ export function ApiKeyInput({ status, onSubmit, onReset }: Props) {
     setError(null)
     onSubmit(key)
   }
+
+  const maskedApiKey = `${apiKey.slice(0, 6)}••••${apiKey.slice(-4)}`
 
   // Input mode: no key set or invalid
   if (status === 'empty' || status === 'invalid') {
@@ -70,6 +72,7 @@ export function ApiKeyInput({ status, onSubmit, onReset }: Props) {
   return (
     <div className="flex items-center gap-2">
       <span className="text-sm font-medium text-on-surface-variant">API Key</span>
+      <span className="font-mono text-xs text-on-surface-variant/70">{maskedApiKey}</span>
       <span className="material-symbols-rounded text-base text-success leading-none">check</span>
       <button
         type="button"

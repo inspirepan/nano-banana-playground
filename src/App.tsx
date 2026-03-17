@@ -142,7 +142,16 @@ function ThemeSettings({ theme, colorTheme, onThemeChange, onColorThemeChange }:
 
 function App() {
   const pg = usePlayground()
-  const { addToReferences, history: pgHistory, restoreSession, resolveFullImages, setMode } = pg
+  const {
+    addToReferences,
+    history: pgHistory,
+    restoreSession,
+    resolveFullImages,
+    setMode,
+    switchModel,
+    setResolution,
+    setAspectRatio,
+  } = pg
   const [theme, setTheme] = useState<Theme>(getInitialTheme)
   const [colorTheme, setColorTheme] = useState<ColorThemeId>(getInitialColorTheme)
   const [draftBatchOverride, setDraftBatchOverride] = useState<number | null>(null)
@@ -164,6 +173,9 @@ function App() {
   const handleRegenerate = useCallback(async (image: PlaygroundImageMeta) => {
     if (image.source.type !== 'generated') return
     const meta = image.source
+    switchModel(meta.modelId)
+    setResolution(meta.resolution)
+    setAspectRatio(meta.aspectRatio)
     const refMetas = pgHistory.filter((h) => meta.referenceImageIds.includes(h.id))
     const refs = await resolveFullImages(refMetas)
     restoreSession(meta.prompt, refs)
@@ -174,7 +186,7 @@ function App() {
     if (regenToastTimer.current) clearTimeout(regenToastTimer.current)
     setRegenToast(message)
     regenToastTimer.current = setTimeout(() => setRegenToast(null), 2500)
-  }, [pgHistory, restoreSession, resolveFullImages, setMode])
+  }, [pgHistory, resolveFullImages, restoreSession, setAspectRatio, setMode, setResolution, switchModel])
   // Apply color theme class to <html> — useLayoutEffect so CSS vars update
   // before AppTitle's useEffect reads --color-primary for the sweep
   useLayoutEffect(() => {
