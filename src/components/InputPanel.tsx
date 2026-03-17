@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect, type ReactNode } from 'react'
+import { useState, useRef, useCallback, useEffect, useLayoutEffect, type ReactNode } from 'react'
 import type { PersistedPromptMode, PlaygroundImage, PromptScheme } from '../lib/types'
 import { MODEL_CONFIGS, type ModelConfig } from '../config/models'
 import type { GenerationState } from '../hooks/usePlayground'
@@ -195,7 +195,8 @@ export function InputPanel({
 
   const canAugment = apiKey.trim() !== '' && (hasPrompt || referenceImages.length > 0)
 
-  useEffect(() => {
+  // Resize before paint so height is always correct when content changes (including after augment)
+  useLayoutEffect(() => {
     if ((!isAugmenting || schemes.length > 0) && textareaRef.current) autoResizeTextarea(textareaRef.current, panelRef.current)
   }, [prompt, isAugmenting, schemes.length, revealedLength])
 
