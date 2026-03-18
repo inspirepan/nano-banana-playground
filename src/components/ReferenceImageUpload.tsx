@@ -85,7 +85,7 @@ export function ReferenceImageUpload({ images, maxTotal, dragOver, onAdd, onRemo
             ${dragOver ? 'bg-primary-dim' : 'bg-surface-container hover:bg-surface-container-high'}`}
         >
           <span className="material-symbols-rounded text-lg leading-none text-on-surface-variant/60">add_photo_alternate</span>
-          <span className="text-sm text-on-surface-variant/60">点击上传或拖入图片</span>
+          <span className="text-sm text-on-surface-variant/60">点击上传、拖入或粘贴图片</span>
         </button>
       )}
       <input

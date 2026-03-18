@@ -387,6 +387,28 @@ export function InputPanel({
     if (files.length > 0) onAddReferenceImages(files)
   }, [onAddReferenceImages, onAddReferenceImage])
 
+  const handlePanelPaste = useCallback((e: React.ClipboardEvent<HTMLDivElement>) => {
+    const imageFiles = Array.from(e.clipboardData.items)
+      .filter((item) => item.type.startsWith('image/'))
+      .map((item, index) => {
+        const file = item.getAsFile()
+        if (!file) return null
+        if (file.name) return file
+
+        const ext = file.type.split('/')[1] || 'png'
+        return new File([file], `pasted-image-${Date.now()}-${index + 1}.${ext}`, {
+          type: file.type,
+          lastModified: Date.now(),
+        })
+      })
+      .filter((file): file is File => file !== null)
+
+    if (imageFiles.length === 0) return
+
+    e.preventDefault()
+    onAddReferenceImages(imageFiles)
+  }, [onAddReferenceImages])
+
   // --- Cost estimate ---
   const estimatedCost = pricePerImage !== undefined ? pricePerImage * batchCount : null
 
@@ -396,6 +418,7 @@ export function InputPanel({
       onDragLeave={handlePanelDragLeave}
       onDragOver={handlePanelDragOver}
       onDrop={handlePanelDrop}
+      onPaste={handlePanelPaste}
       className="w-full flex flex-col gap-4 px-2 py-4 md:px-4 relative">
 
       {/* API Key */}
