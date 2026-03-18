@@ -72,20 +72,34 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
     })
   }, [refDetailId, findRefImage])
 
-  useEffect(() => {
+  const scrollRefDetailToTop = useCallback(() => {
     scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
     mobileSheetRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
-  }, [refDetailId])
+  }, [])
+
+  // Collapse sheet imperatively (used during navigation)
+  const collapseSheet = useCallback(() => {
+    const el = sheetContainerRef.current
+    if (el) {
+      el.style.transition = 'none'
+      el.style.transform = 'translateY(calc(100% - 88px))'
+    }
+    setSheetExpanded(false)
+  }, [])
 
   const goToPrev = useCallback(() => {
     setCurrentIdx(i => Math.max(0, i - 1))
     setRefDetailId(null)
-  }, [])
+    collapseSheet()
+    scrollRefDetailToTop()
+  }, [collapseSheet, scrollRefDetailToTop])
 
   const goToNext = useCallback(() => {
     setCurrentIdx(i => Math.min(history.length - 1, i + 1))
     setRefDetailId(null)
-  }, [history.length])
+    collapseSheet()
+    scrollRefDetailToTop()
+  }, [history.length, collapseSheet, scrollRefDetailToTop])
 
   // Eagerly load the current image blob when navigating
   useEffect(() => {
@@ -232,7 +246,7 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
               key={refId}
               image={refImg}
               isActive={refDetailId === refImg.id}
-              onClick={() => setRefDetailId((prev) => prev === refImg.id ? null : refImg.id)}
+              onClick={() => { setRefDetailId((prev) => prev === refImg.id ? null : refImg.id); scrollRefDetailToTop() }}
             />
           )
         })}
@@ -314,21 +328,12 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
     </div>
   )
 
-  // Set initial collapsed position on mount; collapse sheet when navigating to a new image
-  useEffect(() => {
-    const el = sheetContainerRef.current
-    if (!el) return
-    el.style.transition = 'none'
-    el.style.transform = `translateY(${el.offsetHeight - 88}px)`
-    setSheetExpanded(false)
-  }, [currentImage.id])
-
   // Snap the sheet to expanded or collapsed position
   const snapSheet = useCallback((expand: boolean) => {
     const el = sheetContainerRef.current
     if (el) {
       el.style.transition = 'transform 300ms ease-out'
-      el.style.transform = expand ? 'translateY(0)' : `translateY(${el.offsetHeight - 88}px)`
+      el.style.transform = expand ? 'translateY(0)' : 'translateY(calc(100% - 88px))'
     }
     setSheetExpanded(expand)
   }, [])
@@ -375,10 +380,10 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
           {refDetailId && refDetailSrc ? (
             <div className="flex flex-col h-full gap-px">
               <div className="flex-1 min-h-0 relative">
-                <ZoomableImageView src={refDetailSrc} alt="" label="参考图" />
+                <ZoomableImageView key={`ref-m-${refDetailId}`} src={refDetailSrc} alt="" label="参考图" />
                 <button
                   type="button"
-                  onClick={() => setRefDetailId(null)}
+                  onClick={() => { setRefDetailId(null); scrollRefDetailToTop() }}
                   className="absolute top-4 left-1/2 -translate-x-1/2 z-10
                              flex items-center gap-1 rounded-full
                              border border-outline-variant/70 bg-surface/82
@@ -391,11 +396,12 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
                 </button>
               </div>
               <div className="flex-1 min-h-0 relative">
-                <ZoomableImageView src={currentSrc ?? ''} alt={currentMeta?.prompt ?? ''} label="生成图" />
+                <ZoomableImageView key={`cur-m-${currentImage.id}`} src={currentSrc ?? ''} alt={currentMeta?.prompt ?? ''} label="生成图" />
               </div>
             </div>
           ) : (
             <ZoomableImageView
+              key={`main-m-${currentImage.id}`}
               src={currentSrc ?? ''}
               alt={currentMeta?.prompt ?? ''}
               onSwipeLeft={hasNext ? goToNext : undefined}
@@ -453,10 +459,11 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
           </div>
         )}
 
-        {/* Bottom sheet — transform managed directly via sheetContainerRef (no React style prop to avoid conflicts) */}
+        {/* Bottom sheet — initial collapsed via CSS; imperative transform overrides during drag/snap */}
         <div
           ref={sheetContainerRef}
           className="absolute inset-x-0 bottom-0 z-20"
+          style={{ transform: 'translateY(calc(100% - 88px))' }}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Sheet panel */}
@@ -524,10 +531,10 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
             {refDetailId && refDetailSrc ? (
               <div className="flex flex-row h-full gap-px">
                 <div className="h-auto flex-1 min-w-0 relative">
-                  <ZoomableImageView src={refDetailSrc} alt="" label="参考图" />
+                  <ZoomableImageView key={`ref-d-${refDetailId}`} src={refDetailSrc} alt="" label="参考图" />
                   <button
                     type="button"
-                    onClick={() => setRefDetailId(null)}
+                    onClick={() => { setRefDetailId(null); scrollRefDetailToTop() }}
                     className="absolute top-4 left-1/2 -translate-x-1/2 z-10
                                flex items-center gap-1 rounded-full
                                bg-black/40 pl-2 pr-3 py-1 text-2xs text-white
@@ -539,11 +546,12 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
                   </button>
                 </div>
                 <div className="h-auto flex-1 min-w-0 relative">
-                  <ZoomableImageView src={currentSrc ?? ''} alt={currentMeta?.prompt ?? ''} label="生成图" />
+                  <ZoomableImageView key={`cur-d-${currentImage.id}`} src={currentSrc ?? ''} alt={currentMeta?.prompt ?? ''} label="生成图" />
                 </div>
               </div>
             ) : (
               <ZoomableImageView
+                key={`main-d-${currentImage.id}`}
                 src={currentSrc ?? ''}
                 alt={currentMeta?.prompt ?? ''}
                 onSwipeLeft={hasNext ? goToNext : undefined}
@@ -717,10 +725,6 @@ function ZoomableImageView({ src, alt, label, onSwipeLeft, onSwipeRight }: {
 
     return () => observer.disconnect()
   }, [syncFitSize])
-
-  useEffect(() => {
-    lastTapRef.current = null
-  }, [src])
 
   // Attach wheel listener as non-passive so preventDefault() can block page scroll
   useEffect(() => {

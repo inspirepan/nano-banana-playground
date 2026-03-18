@@ -157,25 +157,23 @@ export function InputPanel({
   // --- Undo/redo history ---
   const historyRef = useRef({ entries: [prompt], index: 0 })
   const debounceRef = useRef<number>(0)
-  const navigatingRef = useRef(false)
   const [, setHistoryTick] = useState(0)
 
   const canUndo = historyRef.current.index > 0
   const canRedo = historyRef.current.index < historyRef.current.entries.length - 1
 
-  useEffect(() => {
-    if (navigatingRef.current) { navigatingRef.current = false; return }
+  // Debounced push to undo history — called from prompt-changing entry points
+  const pushHistory = useCallback((value: string) => {
     window.clearTimeout(debounceRef.current)
     debounceRef.current = window.setTimeout(() => {
       const h = historyRef.current
-      if (h.entries[h.index] === prompt) return
+      if (h.entries[h.index] === value) return
       h.entries = h.entries.slice(0, h.index + 1)
-      h.entries.push(prompt)
+      h.entries.push(value)
       h.index = h.entries.length - 1
       setHistoryTick((t) => t + 1)
     }, 500)
-    return () => window.clearTimeout(debounceRef.current)
-  }, [prompt])
+  }, [])
 
   const handleHistoryUndo = useCallback(() => {
     const h = historyRef.current
@@ -187,7 +185,6 @@ export function InputPanel({
       h.index = h.entries.length - 1
     }
     h.index--
-    navigatingRef.current = true
     onPromptChange(h.entries[h.index])
     setHistoryTick((t) => t + 1)
   }, [prompt, onPromptChange])
@@ -196,7 +193,6 @@ export function InputPanel({
     const h = historyRef.current
     if (h.index >= h.entries.length - 1) return
     h.index++
-    navigatingRef.current = true
     onPromptChange(h.entries[h.index])
     setHistoryTick((t) => t + 1)
   }, [onPromptChange])
@@ -234,7 +230,7 @@ export function InputPanel({
     tw.raf = requestAnimationFrame(tick)
   }, [isAugmenting, prompt])
 
-  useEffect(() => () => cancelAnimationFrame(typewriterRef.current.raf), [])
+  useEffect(() => () => { cancelAnimationFrame(typewriterRef.current.raf); window.clearTimeout(debounceRef.current) }, [])
 
   const displayPrompt = revealedLength !== null ? prompt.slice(0, revealedLength) : prompt
   const isTyping = revealedLength !== null && isAugmenting
@@ -279,6 +275,7 @@ export function InputPanel({
             onCurrentSchemeIndexChange(0)
             setRevealedLength(0)
             onPromptChange(schemes[0].text)
+            pushHistory(schemes[0].text)
           }
         }
         if (done) {
@@ -299,7 +296,7 @@ export function InputPanel({
     } finally {
       setIsAugmenting(false)
     }
-  }, [apiKey, prompt, originalPrompt, referenceImages, canAugment, onPromptChange, onModeChange, onSchemesChange, onCurrentSchemeIndexChange, onOriginalPromptChange])
+  }, [apiKey, prompt, originalPrompt, referenceImages, canAugment, onPromptChange, onModeChange, onSchemesChange, onCurrentSchemeIndexChange, onOriginalPromptChange, pushHistory])
 
   const handleCancelAugment = useCallback(() => {
     abortRef.current?.abort()
@@ -309,8 +306,11 @@ export function InputPanel({
   // --- Scheme management ---
   const handleSelectScheme = useCallback((index: number) => {
     onCurrentSchemeIndexChange(index)
-    if (schemes[index]) onPromptChange(schemes[index].text)
-  }, [schemes, onPromptChange, onCurrentSchemeIndexChange])
+    if (schemes[index]) {
+      onPromptChange(schemes[index].text)
+      pushHistory(schemes[index].text)
+    }
+  }, [schemes, onPromptChange, onCurrentSchemeIndexChange, pushHistory])
 
   const handleGenerateAll = useCallback(() => {
     const prompts = schemes.map((s) => s.text)
@@ -632,7 +632,7 @@ export function InputPanel({
                   }
                 </div>
                 <textarea ref={textareaRef} value={displayPrompt}
-                  onChange={(e) => { onPromptChange(e.target.value); autoResizeTextarea(e.target) }}
+                  onChange={(e) => { onPromptChange(e.target.value); pushHistory(e.target.value); autoResizeTextarea(e.target) }}
                   readOnly={isAugmenting}
                   rows={1}
                   style={{ caretColor: 'var(--color-on-surface)' }}

@@ -88,6 +88,11 @@
     font-variation-settings: 'opsz' 13;
   }
 
+  @keyframes shimmer {
+    0% { transform: rotate(45deg) translateX(-60%); }
+    100% { transform: rotate(45deg) translateX(60%); }
+  }
+
   .skeleton-shimmer {
     top: -100%;
     left: -100%;
@@ -99,7 +104,7 @@
       rgba(0, 0, 0, 0.07) 50%,
       transparent 65%
     );
-    transform: rotate(45deg) translateX(var(--shimmer-x, -60%));
+    animation: shimmer 2s ease-in-out infinite;
   }
 
   .dark .skeleton-shimmer {

@@ -76,12 +76,17 @@ export function usePlayground() {
   const [generationState, setGenerationState] = useState<GenerationState>('idle')
   const [generationSnapshot, setGenerationSnapshot] = useState<GenerationSnapshot | null>(null)
   const [generationPreview, setGenerationPreview] = useState<GenerationPreviewSlot[]>([])
-  const [genCompleted, setGenCompleted] = useState(false)
+  const [lastGenFingerprint, setLastGenFingerprint] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const abortRef = useRef<AbortController | null>(null)
 
   const mode = modeRaw === 'structured' && schemes.length === 0 ? 'text' : modeRaw
   const currentSchemeIndex = schemes.length === 0 ? 0 : Math.min(currentSchemeIndexRaw, schemes.length - 1)
+
+  // Fingerprint of editor state — used to derive showDraft without useEffect
+  const stateFingerprint = `${model.id}\0${resolution}\0${aspectRatio}\0${batchCount}\0${prompt}\0${mode}\0${currentSchemeIndex}\0${originalPrompt}\0${schemes.map(s => s.text).join('\0')}`
+  const stateFingerprintRef = useRef(stateFingerprint)
+  stateFingerprintRef.current = stateFingerprint
 
   // Load first page and decompress URL state blob on mount
   useEffect(() => {
@@ -144,11 +149,6 @@ export function usePlayground() {
       })
     }, 300)
     return () => window.clearTimeout(urlDebounceRef.current)
-  }, [model.id, resolution, aspectRatio, batchCount, prompt, mode, schemes, currentSchemeIndex, originalPrompt])
-
-  // Reset showDraft flag whenever any urlState-tracked value changes
-  useEffect(() => {
-    setGenCompleted(false)
   }, [model.id, resolution, aspectRatio, batchCount, prompt, mode, schemes, currentSchemeIndex, originalPrompt])
 
   // --- Setters that update state (URL sync runs via effects above) ---
@@ -327,7 +327,7 @@ export function usePlayground() {
         }
       } else {
         setGenerationState('idle')
-        setGenCompleted(true)
+        setLastGenFingerprint(stateFingerprintRef.current)
         if (errors.length > 0) {
           setError(`${images.length} succeeded, ${errors.length} failed: ${errors[0]}`)
         }
@@ -399,7 +399,7 @@ export function usePlayground() {
     generationState,
     generationSnapshot,
     generationPreview,
-    showDraft: prompt.trim() !== '' && !genCompleted,
+    showDraft: prompt.trim() !== '' && lastGenFingerprint !== stateFingerprint,
     error,
     switchModel,
     setResolution,

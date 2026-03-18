@@ -114,30 +114,29 @@ export function useImageSrc(
   })
 
   const ref = useRef<HTMLDivElement | null>(null)
-  const loadedIdRef = useRef('')
 
-  useEffect(() => {
-    loadedIdRef.current = ''
-  }, [variant])
+  // Sync src from cache when inputs change (render-time state adjustment)
+  const [prevInputs, setPrevInputs] = useState({ id, variant, mimeType, inlineData })
+  if (prevInputs.id !== id || prevInputs.variant !== variant || prevInputs.mimeType !== mimeType || prevInputs.inlineData !== inlineData) {
+    setPrevInputs({ id, variant, mimeType, inlineData })
 
-  useEffect(() => {
     const cached = variant === 'preview'
       ? previewCache.get(id)
       : (inlineData ?? blobCache.get(id))
     if (cached) {
-      setSrc(toDataUrl(mimeType, cached))
-      loadedIdRef.current = id
-      return
-    }
-
-    if (loadedIdRef.current !== id) {
+      const nextSrc = toDataUrl(mimeType, cached)
+      if (src !== nextSrc) setSrc(nextSrc)
+    } else if (src !== null) {
       setSrc(null)
-      loadedIdRef.current = ''
     }
-  }, [id, inlineData, mimeType, variant])
+  }
 
   useEffect(() => {
-    if (loadedIdRef.current === id) return
+    // Skip if cache already has it (sync path handled it)
+    const cached = variant === 'preview'
+      ? previewCache.get(id)
+      : (inlineData ?? blobCache.get(id))
+    if (cached) return
 
     const element = ref.current
     if (!element) return
@@ -156,7 +155,6 @@ export function useImageSrc(
       }
 
       setSrc(toDataUrl(mimeType, data))
-      loadedIdRef.current = id
     }
 
     const observer = new IntersectionObserver(

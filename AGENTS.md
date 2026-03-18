@@ -79,11 +79,109 @@ docs/refs/                  # API 和提示词参考文档
 
 - **类型**：禁止 `any`，用正确类型或带类型缩小的 `unknown`。
 - **内联样式**：禁止用于布局，仅允许 JS 计算的动态网格值（`ImageGrid` 行高）。
-- **派生状态**：不用 `useEffect`，直接渲染时计算或用 `useMemo`。
+- **禁止直接使用 `useEffect`**：详见下方「useEffect 禁令」章节。
 - **Prop drilling**：不超过 2 层，否则重构。
 - **存储**：base64 只存 IndexedDB，localStorage 仅存 API 密钥 / 提示词草稿 / 主题。
 - **暗色模式**：基于 `<html>` 的 `.dark` 类名，不用 `prefers-color-scheme`。
 - **UI 文字**：全部中文；代码注释保持英文。
+
+## useEffect 禁令
+
+**核心规则：禁止在组件或自定义 Hook 中直接调用 `useEffect`。** 对于必须在挂载时与外部系统同步的场景，使用 `useMountEffect()`：
+
+```typescript
+function useMountEffect(effect: () => void | (() => void)) {
+  useEffect(effect, []);
+}
+```
+
+大多数 `useEffect` 的使用场景都有更好的替代方案。以下五条规则覆盖了绝大多数情况：
+
+### 规则 1：派生状态，不要同步状态
+
+从其他 state/props 计算得出的值，直接在渲染时计算或用 `useMemo`，不要用 effect 设 state。
+
+```typescript
+// BAD: 多一次渲染，且有循环风险
+useEffect(() => {
+  setFilteredProducts(products.filter(p => p.inStock));
+}, [products]);
+
+// GOOD: 直接计算
+const filteredProducts = products.filter(p => p.inStock);
+```
+
+**嗅探测试**：你正在写 `useEffect(() => setX(deriveFromY(y)), [y])` —— 停下来，直接算。
+
+### 规则 2：事件处理器，不是 effect
+
+用户操作（点击、提交、切换）触发的逻辑，放在事件处理器中，不要用 state flag + effect 中继。
+
+```typescript
+// BAD: state 当 flag，effect 做事
+useEffect(() => {
+  if (liked) { postLike(); setLiked(false); }
+}, [liked]);
+
+// GOOD: 直接在 handler 里做
+<button onClick={() => postLike()}>Like</button>
+```
+
+**嗅探测试**：你正在构建"设置 flag -> effect 执行 -> 重置 flag"的链路。
+
+### 规则 3：用 key 重置，不要用依赖数组编排
+
+需要"当 ID 变化时重新开始"时，用 React 的 `key` 重挂载语义，不要在 effect 里手动重置状态。
+
+```typescript
+// BAD: effect 手动重置
+useEffect(() => {
+  resetLocalState();
+  loadEntity(entityId);
+}, [entityId]);
+
+// GOOD: key 驱动重挂载
+<EntityView key={entityId} entityId={entityId} />
+```
+
+**嗅探测试**：effect 的唯一作用是在某个 ID/prop 变化时重置本地状态。
+
+### 规则 4：useMountEffect 用于一次性外部同步
+
+仅限以下场景使用 `useMountEffect`：
+- DOM 集成（focus、scroll、第三方组件生命周期）
+- 浏览器 API 订阅（ResizeObserver、IntersectionObserver、事件监听）
+- 一次性初始化（加载历史记录、恢复 URL 状态）
+
+条件挂载优于条件 effect：
+
+```typescript
+// BAD: effect 里守卫条件
+useEffect(() => {
+  if (!isLoading) playVideo();
+}, [isLoading]);
+
+// GOOD: 条件满足后才挂载
+{!isLoading && <VideoPlayer />}
+// VideoPlayer 内部 useMountEffect(() => playVideo())
+```
+
+### 规则 5：动画用纯 CSS 或专用 Hook
+
+循环动画（shimmer、扫光）优先用 CSS `@keyframes`。命令式动画（打字机、手势缩放）封装到专用 Hook 中，内部可使用 `useEffect` + RAF，但组件层不直接调用 `useEffect`。
+
+### 合法的 useEffect 使用场景
+
+以下场景允许使用 `useEffect`（含带依赖数组的形式），因为它们本质上是与外部系统同步，不是派生状态也不是事件中继：
+
+- **DOM / 浏览器 API 同步**：`document.title`、`<html>` class、`localStorage`、`matchMedia` 监听
+- **观察者模式**：`IntersectionObserver`、`ResizeObserver`、`MutationObserver`
+- **原生事件监听**：`window.addEventListener('keydown', ...)`、非 passive `wheel` 事件
+- **异步数据加载**：从 IndexedDB 加载 blob、初始化时恢复 URL 状态
+- **命令式动画**：typewriter RAF、AppTitle 扫光（封装到 hook 或组件内部）
+- **挂载/卸载清理**：取消 RAF、清理定时器、重置 `document.title`
+
+新代码中使用上述场景的 `useEffect` 无需额外审批，但应优先考虑是否能用 `useMountEffect`（空依赖）或 `key` 重挂载替代。
 
 ## 提交前检查
 

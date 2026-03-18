@@ -10,6 +10,9 @@ import { AppTitle } from './components/AppTitle'
 type Theme = 'light' | 'dark' | 'system'
 type ColorThemeId = 'default' | 'blue' | 'green' | 'yellow' | 'pink' | 'orange' | 'purple'
 
+const BASE_TITLE = 'Nano Banana Playground'
+const TITLE_RESET_DELAY_MS = 8000
+
 const COLOR_THEMES: { id: ColorThemeId; name: string; color: string }[] = [
   { id: 'default', name: '默认', color: '#9e9e9e' },
   { id: 'blue',    name: '蓝色', color: '#1976d2' },
@@ -159,6 +162,9 @@ function App() {
   const [draftPreviewHover, setDraftPreviewHover] = useState(false)
   const [regenToast, setRegenToast] = useState<string | null>(null)
   const regenToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const titleResetTimerRef = useRef<number | null>(null)
+  const prevGenerationStateRef = useRef(pg.generationState)
+  const lastGenerationProgressRef = useRef({ done: 0, total: 0 })
 
   const handleDraftBatchOverride = useCallback((count: number | null, labels?: string[]) => {
     setDraftBatchOverride(count)
@@ -209,14 +215,66 @@ function App() {
     localStorage.setItem('nano-banana-theme', theme)
   }, [theme])
 
-  // Scroll to output area on mobile when generation starts
   useEffect(() => {
-    if (pg.generationState === 'generating' && window.innerWidth < 768) {
+    const clearTitleResetTimer = () => {
+      if (!titleResetTimerRef.current) return
+      window.clearTimeout(titleResetTimerRef.current)
+      titleResetTimerRef.current = null
+    }
+
+    const prevGenerationState = prevGenerationStateRef.current
+
+    if (pg.generationState === 'generating') {
+      clearTitleResetTimer()
+      const total = pg.generationPreview.length
+      const done = pg.generationPreview.filter((slot) => slot.status !== 'pending').length
+      lastGenerationProgressRef.current = { done, total }
+      document.title = total > 0
+        ? `〔${done}/${total}〕◐ 生成中 · ${BASE_TITLE}`
+        : `◐ 生成中 · ${BASE_TITLE}`
+    } else if (prevGenerationState === 'generating' && pg.generationState === 'idle') {
+      clearTitleResetTimer()
+      const { done, total } = lastGenerationProgressRef.current
+      if (total > 0 && done === total) {
+        document.title = `✓ 已完成 · ${BASE_TITLE}`
+        titleResetTimerRef.current = window.setTimeout(() => {
+          document.title = BASE_TITLE
+          titleResetTimerRef.current = null
+        }, TITLE_RESET_DELAY_MS)
+      } else {
+        document.title = BASE_TITLE
+      }
+    } else if (pg.generationState === 'error') {
+      clearTitleResetTimer()
+      document.title = `✕ 生成失败 · ${BASE_TITLE}`
+      titleResetTimerRef.current = window.setTimeout(() => {
+        document.title = BASE_TITLE
+        titleResetTimerRef.current = null
+      }, TITLE_RESET_DELAY_MS)
+    } else {
+      clearTitleResetTimer()
+      document.title = BASE_TITLE
+    }
+
+    prevGenerationStateRef.current = pg.generationState
+  }, [pg.generationState, pg.generationPreview])
+
+  useEffect(() => {
+    return () => {
+      if (titleResetTimerRef.current) window.clearTimeout(titleResetTimerRef.current)
+      document.title = BASE_TITLE
+    }
+  }, [])
+
+  // Wrap generate to scroll output into view on mobile
+  const handleGenerate = (prompts?: string[]) => {
+    pg.generate(prompts)
+    if (window.innerWidth < 768) {
       setTimeout(() => {
         mobileOutputAreaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
       }, 100)
     }
-  }, [pg.generationState])
+  }
 
   return (
     <>
@@ -258,7 +316,7 @@ function App() {
           onAddReferenceImages={pg.addReferenceImages}
           onAddReferenceImage={pg.addToReferences}
           onRemoveReferenceImage={pg.removeReferenceImage}
-          onGenerate={pg.generate}
+          onGenerate={handleGenerate}
           onCancel={pg.cancelGeneration}
           onDraftBatchOverride={handleDraftBatchOverride}
           onDraftPreviewHover={setDraftPreviewHover}
@@ -326,7 +384,7 @@ function App() {
           onAddReferenceImages={pg.addReferenceImages}
           onAddReferenceImage={pg.addToReferences}
           onRemoveReferenceImage={pg.removeReferenceImage}
-          onGenerate={pg.generate}
+          onGenerate={handleGenerate}
           onCancel={pg.cancelGeneration}
           onDraftBatchOverride={handleDraftBatchOverride}
           onDraftPreviewHover={setDraftPreviewHover}

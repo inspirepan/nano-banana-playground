@@ -1,4 +1,4 @@
-import { memo, useMemo, useRef, useState, useEffect, useLayoutEffect, useCallback } from 'react'
+import { memo, useMemo, useRef, useState, useEffect, useCallback } from 'react'
 import JSZip from 'jszip'
 import type { PlaygroundImageMeta } from '../lib/types'
 import type { GenerationPreviewSlot, GenerationState, GenerationSnapshot } from '../hooks/usePlayground'
@@ -137,17 +137,20 @@ export const OutputPanel = memo(function OutputPanel({
 
   const [settled, setSettled] = useState(false)
   const prevGeneratingRef = useRef(false)
-  useLayoutEffect(() => {
-    const wasGenerating = prevGeneratingRef.current
-    if (wasGenerating && !isGenerating && lastGenRef.current) setSettled(true)
-    if (!wasGenerating && isGenerating) { setSettled(false); lastGenRef.current = null }
-    prevGeneratingRef.current = isGenerating
-  }, [isGenerating])
 
-  // Clear settled when user starts a new draft or generation
-  useEffect(() => {
-    if (settled && (showDraft || isGenerating)) setSettled(false)
-  }, [settled, showDraft, isGenerating])
+  // Detect generation state transitions during render (replaces useLayoutEffect + useEffect)
+  if (prevGeneratingRef.current !== isGenerating) {
+    if (prevGeneratingRef.current && !isGenerating && lastGenRef.current) {
+      if (!settled) setSettled(true)
+    }
+    if (!prevGeneratingRef.current && isGenerating) {
+      if (settled) setSettled(false)
+      lastGenRef.current = null
+    }
+    prevGeneratingRef.current = isGenerating
+  } else if (settled && (showDraft || isGenerating)) {
+    setSettled(false)
+  }
 
   const handleExportAll = async () => {
     if (exporting || history.length === 0) return
@@ -207,24 +210,6 @@ export const OutputPanel = memo(function OutputPanel({
       scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
     }
   }, [showDraft, isGenerating])
-
-  // Global shimmer clock: rAF drives a shared CSS variable so all skeletons stay in sync
-  const hasSkeletons = showDraft || (isGenerating && previewSlots.some((s) => s.status === 'pending'))
-  useEffect(() => {
-    const el = scrollRef.current
-    if (!el || !hasSkeletons) return
-    let frameId: number
-    const DURATION = 2000
-    const tick = () => {
-      const t = (Date.now() % DURATION) / DURATION
-      // Approximate CSS ease-in-out
-      const e = t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2
-      el.style.setProperty('--shimmer-x', `${-60 + 120 * e}%`)
-      frameId = requestAnimationFrame(tick)
-    }
-    frameId = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(frameId)
-  }, [hasSkeletons])
 
   // Infinite scroll sentinel
   const sentinelRef = useRef<HTMLDivElement>(null)
