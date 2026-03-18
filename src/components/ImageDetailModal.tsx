@@ -141,8 +141,26 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
   const handleCopyImage = async () => {
     if (!currentSrc) return
     const response = await fetch(currentSrc)
-    const blob = await response.blob()
-    await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })])
+    const sourceBlob = await response.blob()
+    let clipboardBlob = sourceBlob
+
+    if (sourceBlob.type !== 'image/png') {
+      const bitmap = await createImageBitmap(sourceBlob)
+      const canvas = document.createElement('canvas')
+      canvas.width = bitmap.width
+      canvas.height = bitmap.height
+      const context = canvas.getContext('2d')
+      if (!context) return
+      context.drawImage(bitmap, 0, 0)
+      bitmap.close()
+      const pngBlob = await new Promise<Blob | null>((resolve) => {
+        canvas.toBlob(resolve, 'image/png')
+      })
+      if (!pngBlob) return
+      clipboardBlob = pngBlob
+    }
+
+    await navigator.clipboard.write([new ClipboardItem({ [clipboardBlob.type]: clipboardBlob })])
     showCopiedToast()
   }
 
