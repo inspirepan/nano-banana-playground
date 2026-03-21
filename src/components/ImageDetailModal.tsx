@@ -312,7 +312,7 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
       </div>
       <div className="flex gap-2">
         <ModalAction label="+参考" onClick={() => { onAddToRef(currentImage); onClose() }} />
-        <ModalAction label="保存" onClick={handleDownload} />
+        <ModalAction label="下载" onClick={handleDownload} />
         <ModalAction label="复制图" onClick={handleCopyImage} />
         {currentMeta?.prompt && <ModalAction label="重做" onClick={handleRegenerate} />}
       </div>
