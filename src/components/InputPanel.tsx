@@ -232,6 +232,19 @@ export function InputPanel({
 
   useEffect(() => () => { cancelAnimationFrame(typewriterRef.current.raf); window.clearTimeout(debounceRef.current) }, [])
 
+  // Cmd+Enter shortcut for generate
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.metaKey && e.key === 'Enter') {
+        e.preventDefault()
+        if (isGenerating) { onCancel() }
+        else if (canGenerate) { if (schemes.length > 0) setSchemesCollapsed(true); onGenerate() }
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [isGenerating, canGenerate, schemes.length, onCancel, onGenerate])
+
   const displayPrompt = revealedLength !== null ? prompt.slice(0, revealedLength) : prompt
   const isTyping = revealedLength !== null && isAugmenting
 
@@ -712,7 +725,14 @@ export function InputPanel({
               ${isGenerating ? 'bg-error text-on-primary hover:bg-error/90 active:bg-error/80'
                 : canGenerate ? 'bg-primary text-on-primary hover:bg-primary-hover active:bg-primary/80'
                 : 'bg-surface-container-high text-on-surface-variant/50 cursor-not-allowed'}`}>
-            {isGenerating ? '取消' : '生成'}
+            {isGenerating ? '取消' : <>
+              <span>生成</span>
+              <span className={`inline-flex items-center ml-2 ${canGenerate ? 'text-on-primary/50' : 'text-on-surface-variant/30'}`} aria-hidden="true">
+                <span className="inline-flex whitespace-pre text-xs leading-none">
+                  <kbd className="inline-flex font-sans"><span className="min-w-[1em] text-center">⌘</span></kbd> <kbd className="inline-flex font-sans"><span className="min-w-[1em] text-center">⏎</span></kbd>
+                </span>
+              </span>
+            </>}
           </button>
           {!isGenerating && !apiKey.trim() && (
             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-on-surface text-surface text-xs rounded whitespace-nowrap pointer-events-none opacity-0 group-hover/btn:opacity-100 transition-opacity">
