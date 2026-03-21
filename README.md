@@ -2,7 +2,7 @@
 
 A pure frontend playground for Gemini image generation. No backend — your API key stays in the browser.
 
-![Screenshot](docs/screenshot.jpeg)
+![Screenshot](docs/screenshot.png)
 
 ## Features
 
@@ -21,7 +21,6 @@ Flip between plain text and a structured form that breaks your prompt into discr
 
 The **AI Augment** button calls Gemini to expand your idea into 3 polished prompt schemes. You can pick one, edit it, or hit **Generate one per scheme** to produce all variants in a single batch.
 
-![Structured prompt augmentation](docs/screenshot-structured-prompt.jpeg)
 
 ### Reference Images
 - Drag files from your desktop or from the history grid — both work
