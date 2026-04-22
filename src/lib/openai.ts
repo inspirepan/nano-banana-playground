@@ -2,12 +2,21 @@
 
 // (aspectRatio, resolution) -> WxH string accepted by the API.
 // All values satisfy gpt-image-2 constraints: both edges divisible by 16,
-// long:short ratio <= 3:1, pixel count within [655,360, 8,294,400].
+// long:short ratio <= 3:1, long edge <= 3840, pixel count within
+// [655,360, 8,294,400].
 export const OPENAI_SIZE_TABLE: Record<string, Record<string, string>> = {
   '1:1':  { '1K': '1024x1024', '2K': '2048x2048', '4K': '2880x2880' },
   '3:2':  { '1K': '1536x1024', '2K': '2400x1600', '4K': '3456x2304' },
   '2:3':  { '1K': '1024x1536', '2K': '1600x2400', '4K': '2304x3456' },
+  '4:3':  { '1K': '1152x864',  '2K': '2048x1536', '4K': '3264x2448' },
+  '3:4':  { '1K': '864x1152',  '2K': '1536x2048', '4K': '2448x3264' },
+  '5:4':  { '1K': '1120x896',  '2K': '2240x1792', '4K': '3200x2560' },
+  '4:5':  { '1K': '896x1120',  '2K': '1792x2240', '4K': '2560x3200' },
   '16:9': { '1K': '1280x720',  '2K': '2048x1152', '4K': '3840x2160' },
+  '9:16': { '1K': '720x1280',  '2K': '1152x2048', '4K': '2160x3840' },
+  '21:9': { '1K': '1344x576',  '2K': '2016x864',  '4K': '3808x1632' },
+  '3:1':  { '1K': '1536x512',  '2K': '2400x800',  '4K': '3840x1280' },
+  '1:3':  { '1K': '512x1536',  '2K': '800x2400',  '4K': '1280x3840' },
 }
 
 export function openAISize(resolution: string, aspectRatio: string): string {
