@@ -191,6 +191,7 @@ export function InputPanel({
   const maxRef = model.maxReferenceImages + model.maxCharacterImages
 
   const pricePerImage = getPricePerImage(model, resolution, aspectRatio, quality)
+  const augmentModelLabel = model.provider === 'openai' ? 'GPT-5.4 mini' : 'Gemini 3 Flash'
 
   const [isAugmenting, setIsAugmenting] = useState(false)
   const [schemesCollapsed, setSchemesCollapsed] = useState(false)
@@ -335,7 +336,7 @@ export function InputPanel({
     let gotSchemes = false
     let firstScheme = true
     try {
-      await augmentPromptStream(apiKey, effectivePrompt, referenceImages, (schemes, done) => {
+      await augmentPromptStream(model.provider, apiKey, effectivePrompt, referenceImages, (schemes, done) => {
         if (schemes.length > 0) {
           gotSchemes = true
           onSchemesChange(schemes)
@@ -365,7 +366,7 @@ export function InputPanel({
     } finally {
       setIsAugmenting(false)
     }
-  }, [apiKey, prompt, originalPrompt, referenceImages, canAugment, onPromptChange, onModeChange, onSchemesChange, onCurrentSchemeIndexChange, onOriginalPromptChange, pushHistory])
+  }, [model.provider, apiKey, prompt, originalPrompt, referenceImages, canAugment, onPromptChange, onModeChange, onSchemesChange, onCurrentSchemeIndexChange, onOriginalPromptChange, pushHistory])
 
   const handleCancelAugment = useCallback(() => {
     abortRef.current?.abort()
@@ -568,7 +569,7 @@ export function InputPanel({
         {isAugmenting && schemes.length === 0 && (
           <div className="flex flex-col items-center justify-center gap-3 py-8 bg-surface-container rounded-xl">
             <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-            <p className="text-xs text-on-surface-variant">正在使用 <span className="text-primary">Gemini 3 Flash</span> 增强提示词...</p>
+            <p className="text-xs text-on-surface-variant">正在使用 <span className="text-primary">{augmentModelLabel}</span> 增强提示词...</p>
             <button type="button" onClick={handleCancelAugment}
               className="text-xs text-on-surface-variant hover:text-on-surface transition-colors">取消</button>
           </div>
@@ -732,14 +733,14 @@ export function InputPanel({
                   清空
                 </button>
                 <div className="flex-1" />
-                {mode === 'text' && !isAugmenting && model.provider === 'google' && (
+                {mode === 'text' && !isAugmenting && (
                   <div className="relative group/augment">
                     <button type="button" onClick={() => handleAugment(false)} disabled={!canAugment}
                       className={`text-xs text-tertiary hover:text-tertiary/80 transition-colors disabled:pointer-events-none ${canAugment ? '' : 'invisible'}`}>
                       增强
                     </button>
                     <div className={`absolute bottom-full right-0 mb-2 pointer-events-none whitespace-nowrap bg-on-surface text-surface text-xs px-2 py-1 rounded transition-opacity duration-150 delay-500 group-hover/augment:delay-500 z-50 ${canAugment ? 'opacity-0 group-hover/augment:opacity-100' : 'opacity-0'}`}>
-                      使用 Gemini 3 Flash 增强提示词
+                      使用 {augmentModelLabel} 增强提示词
                     </div>
                   </div>
                 )}

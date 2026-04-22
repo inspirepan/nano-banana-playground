@@ -304,7 +304,8 @@ async function generateImageOpenAI(
 }
 
 
-const AUGMENT_MODEL = 'gemini-3-flash-preview'
+const AUGMENT_MODEL_GOOGLE = 'gemini-3-flash-preview'
+const AUGMENT_MODEL_OPENAI = 'gpt-5.4-mini'
 
 const S = 'STRING' as const
 
@@ -336,6 +337,39 @@ const SCHEMES_SCHEMA = {
     },
   },
   required: ['schemes'],
+}
+
+// OpenAI JSON schema needs lowercase types, additionalProperties:false, and a
+// corresponding property entry for every `required` field.
+const S_OAI = 'string' as const
+const OPENAI_FIELD_PROPS = {
+  mode: { type: S_OAI, enum: ['generate', 'edit'] },
+  subject: { type: S_OAI }, action: { type: S_OAI }, scene: { type: S_OAI },
+  composition: { type: S_OAI }, style: { type: S_OAI }, lighting: { type: S_OAI },
+  colorPalette: { type: S_OAI }, textInImage: { type: S_OAI }, constraints: { type: S_OAI },
+  editType: { type: S_OAI }, primaryRequest: { type: S_OAI }, referenceRole: { type: S_OAI },
+  targetScene: { type: S_OAI }, invariants: { type: S_OAI },
+} as const
+
+const OPENAI_SCHEMES_SCHEMA = {
+  type: 'object' as const,
+  properties: {
+    schemes: {
+      type: 'array' as const,
+      items: {
+        type: 'object' as const,
+        properties: {
+          title: { type: S_OAI },
+          description: { type: S_OAI },
+          ...OPENAI_FIELD_PROPS,
+        },
+        required: ['title', 'description', ...FIELD_KEYS],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ['schemes'],
+  additionalProperties: false,
 }
 
 // Convert structured API response fields into a readable labelled-text prompt
@@ -423,47 +457,28 @@ function extractCompleteSchemes(json: string): PromptScheme[] {
 export type AugmentStreamCallback = (schemes: PromptScheme[], done: boolean) => void
 
 export async function augmentPromptStream(
+  provider: ModelConfig['provider'],
   apiKey: string,
   rawPrompt: string,
   referenceImages: PlaygroundImage[],
   onUpdate: AugmentStreamCallback,
   signal?: AbortSignal,
 ): Promise<PromptScheme[]> {
-  // Use v1alpha for mediaResolution support; streaming via SSE
-  const url = `https://generativelanguage.googleapis.com/v1alpha/models/${AUGMENT_MODEL}:streamGenerateContent?alt=sse`
-
-  const parts: Array<Record<string, unknown>> = [{ text: rawPrompt }]
-  for (const img of referenceImages) {
-    parts.push({
-      inline_data: {
-        mime_type: img.mimeType,
-        data: img.data,
-      },
-      mediaResolution: { level: 'media_resolution_high' },
-    })
+  if (provider === 'openai') {
+    return augmentPromptStreamOpenAI(apiKey, rawPrompt, referenceImages, onUpdate, signal)
   }
+  return augmentPromptStreamGoogle(apiKey, rawPrompt, referenceImages, onUpdate, signal)
+}
 
-  const body = {
-    system_instruction: { parts: [{ text: AUGMENT_SYSTEM_PROMPT }] },
-    contents: [{ parts }],
-    generationConfig: {
-      responseMimeType: 'application/json',
-      responseSchema: SCHEMES_SCHEMA,
-      thinkingConfig: { thinkingLevel: 'medium' },
-    },
-  }
-
-  const augmentTimeoutSignal = AbortSignal.timeout(REQUEST_TIMEOUT_MS)
-  const requestInit: RequestInit = {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-goog-api-key': apiKey,
-    },
-    body: JSON.stringify(body),
-    signal: signal ? AbortSignal.any([signal, augmentTimeoutSignal]) : augmentTimeoutSignal,
-  }
-
+// Drive the SSE retry/read/emit loop shared by both providers. `extractDelta`
+// pulls a text delta out of each data-event payload.
+async function runAugmentStream(
+  requestInit: RequestInit,
+  url: string,
+  extractDelta: (event: unknown) => string | null,
+  onUpdate: AugmentStreamCallback,
+  signal: AbortSignal | undefined,
+): Promise<PromptScheme[]> {
   let lastError: unknown
   for (let attempt = 0; attempt <= AUGMENT_MAX_RETRIES; attempt++) {
     if (attempt > 0) {
@@ -487,13 +502,11 @@ export async function augmentPromptStream(
     }
 
     if (!res.ok) {
-      const data = await res.json()
-      throw new Error(data.error?.message ?? `HTTP ${res.status}`)
+      const data = await res.json().catch(() => null)
+      throw new Error(data?.error?.message ?? `HTTP ${res.status}`)
     }
 
-    if (!res.body) {
-      throw new Error('No response body')
-    }
+    if (!res.body) throw new Error('No response body')
 
     const reader = res.body.getReader()
     const decoder = new TextDecoder()
@@ -507,8 +520,6 @@ export async function augmentPromptStream(
         if (done) break
 
         sseBuffer += decoder.decode(value, { stream: true })
-
-        // Split on newlines to find complete SSE data lines
         const lines = sseBuffer.split('\n')
         sseBuffer = lines.pop() ?? ''
 
@@ -517,19 +528,13 @@ export async function augmentPromptStream(
           if (!trimmed.startsWith('data:')) continue
           const payload = trimmed.slice(5).trim()
           if (!payload || payload === '[DONE]') continue
-
           try {
             const event = JSON.parse(payload)
-            const eventParts = event.candidates?.[0]?.content?.parts
-            if (!eventParts) continue
-            for (const part of eventParts) {
-              if (part.thought) continue
-              if (part.text != null) jsonText += part.text
-            }
+            const chunk = extractDelta(event)
+            if (chunk) jsonText += chunk
           } catch { /* skip malformed SSE events */ }
         }
 
-        // Emit newly completed schemes
         const parsed = extractCompleteSchemes(jsonText)
         if (parsed.length > emittedCount) {
           emittedCount = parsed.length
@@ -540,7 +545,6 @@ export async function augmentPromptStream(
       reader.releaseLock()
     }
 
-    // Final parse
     let finalSchemes: PromptScheme[]
     try {
       const raw = JSON.parse(jsonText) as { schemes: Array<Record<string, string>> }
@@ -550,7 +554,6 @@ export async function augmentPromptStream(
         text: assemblePrompt(s),
       }))
     } catch {
-      // If final JSON parse fails but we extracted partial schemes, use those
       const partial = extractCompleteSchemes(jsonText)
       if (partial.length === 0) throw new Error('Failed to parse augmentation response')
       finalSchemes = partial
@@ -561,4 +564,129 @@ export async function augmentPromptStream(
   }
 
   throw lastError
+}
+
+async function augmentPromptStreamGoogle(
+  apiKey: string,
+  rawPrompt: string,
+  referenceImages: PlaygroundImage[],
+  onUpdate: AugmentStreamCallback,
+  signal?: AbortSignal,
+): Promise<PromptScheme[]> {
+  // Use v1alpha for mediaResolution support; streaming via SSE
+  const url = `https://generativelanguage.googleapis.com/v1alpha/models/${AUGMENT_MODEL_GOOGLE}:streamGenerateContent?alt=sse`
+
+  const parts: Array<Record<string, unknown>> = [{ text: rawPrompt }]
+  for (const img of referenceImages) {
+    parts.push({
+      inline_data: {
+        mime_type: img.mimeType,
+        data: img.data,
+      },
+      mediaResolution: { level: 'media_resolution_high' },
+    })
+  }
+
+  const body = {
+    system_instruction: { parts: [{ text: AUGMENT_SYSTEM_PROMPT }] },
+    contents: [{ parts }],
+    generationConfig: {
+      responseMimeType: 'application/json',
+      responseSchema: SCHEMES_SCHEMA,
+      thinkingConfig: { thinkingLevel: 'medium' },
+    },
+  }
+
+  const timeoutSignal = AbortSignal.timeout(REQUEST_TIMEOUT_MS)
+  const requestInit: RequestInit = {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-goog-api-key': apiKey,
+    },
+    body: JSON.stringify(body),
+    signal: signal ? AbortSignal.any([signal, timeoutSignal]) : timeoutSignal,
+  }
+
+  // Gemini SSE events contain { candidates: [{ content: { parts: [{ text, thought }] } }] }
+  return runAugmentStream(
+    requestInit,
+    url,
+    (raw) => {
+      const event = raw as {
+        candidates?: Array<{ content?: { parts?: Array<{ text?: string; thought?: boolean }> } }>
+      }
+      const eventParts = event.candidates?.[0]?.content?.parts
+      if (!eventParts) return null
+      let text = ''
+      for (const part of eventParts) {
+        if (part.thought) continue
+        if (part.text != null) text += part.text
+      }
+      return text || null
+    },
+    onUpdate,
+    signal,
+  )
+}
+
+async function augmentPromptStreamOpenAI(
+  apiKey: string,
+  rawPrompt: string,
+  referenceImages: PlaygroundImage[],
+  onUpdate: AugmentStreamCallback,
+  signal?: AbortSignal,
+): Promise<PromptScheme[]> {
+  const url = 'https://api.openai.com/v1/responses'
+
+  const content: Array<Record<string, unknown>> = [{ type: 'input_text', text: rawPrompt }]
+  for (const img of referenceImages) {
+    content.push({
+      type: 'input_image',
+      image_url: `data:${img.mimeType || 'image/png'};base64,${img.data}`,
+    })
+  }
+
+  const body = {
+    model: AUGMENT_MODEL_OPENAI,
+    instructions: AUGMENT_SYSTEM_PROMPT,
+    input: [{ role: 'user', content }],
+    stream: true,
+    reasoning: { effort: 'medium' },
+    text: {
+      format: {
+        type: 'json_schema',
+        name: 'schemes',
+        strict: true,
+        schema: OPENAI_SCHEMES_SCHEMA,
+      },
+    },
+  }
+
+  const timeoutSignal = AbortSignal.timeout(REQUEST_TIMEOUT_MS)
+  const requestInit: RequestInit = {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify(body),
+    signal: signal ? AbortSignal.any([signal, timeoutSignal]) : timeoutSignal,
+  }
+
+  // OpenAI Responses API streams semantic events; output_text.delta carries
+  // the incremental JSON text we care about.
+  return runAugmentStream(
+    requestInit,
+    url,
+    (raw) => {
+      const event = raw as { type?: string; delta?: string }
+      if (event.type === 'response.output_text.delta' && typeof event.delta === 'string') {
+        return event.delta
+      }
+      return null
+    },
+    onUpdate,
+    signal,
+  )
 }
