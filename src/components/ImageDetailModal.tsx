@@ -227,10 +227,7 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
         {currentMeta ? (
           <>
             <span className="text-[12.5px] font-medium text-(--color-text)">{modelName}</span>
-            {modelConfig?.provider === 'google' && (
-              <span className="tag accent">🍌 {modelName}</span>
-            )}
-            <span className="mono text-[11px] text-(--color-text-4)">{pxDim}</span>
+            <span className="mono text-[12.5px] text-(--color-text-4)">{pxDim}</span>
           </>
         ) : (
           <span className="text-[12.5px] font-medium text-(--color-text)">上传图片</span>

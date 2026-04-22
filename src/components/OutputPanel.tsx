@@ -2,6 +2,7 @@ import { memo, useMemo, useRef, useState, useEffect, useCallback } from 'react'
 import JSZip from 'jszip'
 import type { PlaygroundImageMeta } from '../lib/types'
 import type { GenerationPreviewSlot, GenerationState, GenerationSnapshot } from '../hooks/usePlayground'
+import { MODEL_CONFIGS } from '../config/models'
 import { loadImageBlobs } from '../lib/history'
 import { getBlobFromCache, putBlobInCache } from '../hooks/useImageSrc'
 import { ImageCard } from './ImageCard'
@@ -33,6 +34,7 @@ type HistoryBatch = {
   batchId: string
   resolution: string
   aspectRatio: string
+  modelId: string
   images: PlaygroundImageMeta[]
   timestamp: number
 }
@@ -41,15 +43,19 @@ function groupByBatch(images: PlaygroundImageMeta[]): HistoryBatch[] {
   const map = new Map<string, HistoryBatch>()
   for (const img of images) {
     if (img.source.type !== 'generated') continue
-    const { batchId, resolution, aspectRatio } = img.source
+    const { batchId, resolution, aspectRatio, modelId } = img.source
     let batch = map.get(batchId)
     if (!batch) {
-      batch = { batchId, resolution, aspectRatio, images: [], timestamp: img.timestamp }
+      batch = { batchId, resolution, aspectRatio, modelId, images: [], timestamp: img.timestamp }
       map.set(batchId, batch)
     }
     batch.images.push(img)
   }
   return Array.from(map.values()).sort((a, b) => b.timestamp - a.timestamp)
+}
+
+function modelNameOf(modelId: string): string {
+  return MODEL_CONFIGS.find((m) => m.id === modelId)?.name ?? modelId
 }
 
 function SkeletonCard({ aspectRatio, resolution, label }: { aspectRatio: string; resolution: string; label?: string }) {
@@ -334,6 +340,10 @@ export const OutputPanel = memo(function OutputPanel({
             <div key={batch.batchId}>
               <div className="flex items-center gap-2 mb-2">
                 <span className="mono text-[11.5px] text-(--color-text-3)">{formatTime(batch.timestamp)}</span>
+                <span className="text-(--color-text-4)">·</span>
+                <span className="text-[11.5px] font-medium text-(--color-text-2)">
+                  {modelNameOf(batch.modelId)}
+                </span>
                 <span className="text-(--color-text-4)">·</span>
                 <span className="mono text-[11.5px] text-(--color-text-3)">
                   {batch.resolution} · {batch.aspectRatio} · {batch.images.length}
