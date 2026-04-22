@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { Provider } from '../config/models'
 import type { ApiKeyStatus } from '../hooks/useApiKey'
@@ -81,9 +81,11 @@ export function ApiKeysDialog({ open, googleKey, openaiKey, onClose }: Props) {
 
 function KeyRow({ provider, hook }: { provider: Provider; hook: KeyHook }) {
   const { label, placeholder, hint } = LABELS[provider]
-  const { apiKey, baseUrl, status, error, submit, reset, setBaseUrl } = hook
+  const { apiKey, baseUrl, status, error, submit, reset } = hook
   const [draft, setDraft] = useState('')
   const [baseUrlDraft, setBaseUrlDraft] = useState(baseUrl)
+  const [justValidated, setJustValidated] = useState(false)
+  const prevStatusRef = useRef(status)
 
   // Keep the local base URL input in sync when the stored value changes
   // (e.g. after a successful submit or reset from elsewhere).
@@ -91,112 +93,168 @@ function KeyRow({ provider, hook }: { provider: Provider; hook: KeyHook }) {
     setBaseUrlDraft(baseUrl)
   }, [baseUrl])
 
+  // Detect the valid transition to briefly flash a "验证成功" state on the primary button.
+  useEffect(() => {
+    const prev = prevStatusRef.current
+    prevStatusRef.current = status
+    if (prev !== 'valid' && status === 'valid') {
+      setDraft('')
+      setJustValidated(true)
+      const t = setTimeout(() => setJustValidated(false), 1000)
+      return () => clearTimeout(t)
+    }
+  }, [status])
+
   const handleSubmit = () => {
     const key = draft.trim()
     if (!key) return
     submit(key, baseUrlDraft.trim())
-    setDraft('')
-  }
-
-  const commitBaseUrl = () => {
-    const next = baseUrlDraft.trim()
-    if (next !== baseUrl) setBaseUrl(next)
   }
 
   const masked = apiKey ? `${apiKey.slice(0, 6)}******${apiKey.slice(-4)}` : ''
   const baseUrlPlaceholder = DEFAULT_BASE_URL[provider]
 
+  const header = (
+    <div className="flex items-baseline justify-between mb-1.5">
+      <label className="text-[12.5px] font-medium text-(--color-text)">{label}</label>
+      <span className="text-[11px] text-(--color-text-4)">{hint}</span>
+    </div>
+  )
+
+  if (status === 'valid') {
+    return (
+      <div>
+        {header}
+        <div className="card px-3 py-2.5 space-y-2">
+          <div className="flex items-center gap-2">
+            <Icon name="check_circle" size={13} className="text-(--color-success)" strokeWidth={1.9} />
+            <span className="mono min-w-0 flex-1 truncate text-[12px] text-(--color-text-2)">{masked}</span>
+          </div>
+
+          <div className="h-px bg-(--color-border)" />
+
+          <div className="flex items-center gap-2">
+            <span className="shrink-0 text-[11px] text-(--color-text-4)">Base URL</span>
+            <span className="mono min-w-0 flex-1 truncate text-[11.5px] text-(--color-text-3)">
+              {baseUrl || baseUrlPlaceholder}
+              {!baseUrl && <span className="ml-1 text-(--color-text-4)">（默认）</span>}
+            </span>
+          </div>
+
+          {justValidated ? (
+            <button
+              type="button"
+              disabled
+              className="w-full rounded-md inline-flex items-center justify-center gap-1.5"
+              style={{
+                height: 32,
+                background: 'var(--color-success)',
+                color: '#fff',
+                border: '1px solid color-mix(in srgb, var(--color-success) 55%, #000 10%)',
+                fontWeight: 600,
+                fontSize: 12.5,
+              }}
+            >
+              <Icon name="check_circle" size={13} strokeWidth={2.1} />
+              <span>验证成功</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={reset}
+              className="w-full rounded-md border border-(--color-border) bg-(--color-surface) text-[12.5px] font-medium text-(--color-text-2) hover:bg-(--color-surface-2) hover:text-(--color-text) transition-colors"
+              style={{ height: 32 }}
+            >
+              修改
+            </button>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  // empty / invalid / validating: full form with a single primary save button
+  const isValidating = status === 'validating'
   return (
     <div>
-      <div className="flex items-baseline justify-between mb-1.5">
-        <label className="text-[12.5px] font-medium text-(--color-text)">{label}</label>
-        <span className="text-[11px] text-(--color-text-4)">{hint}</span>
-      </div>
+      {header}
 
-      {status === 'valid' && (
-        <div className="card flex items-center gap-2 px-3 py-2">
-          <Icon name="check_circle" size={13} className="text-(--color-success)" strokeWidth={1.9} />
-          <span className="mono min-w-0 flex-1 truncate text-[12px] text-(--color-text-2)">{masked}</span>
-          <button
-            type="button"
-            onClick={reset}
-            className="text-[11.5px] text-(--color-text-3) hover:text-(--color-text) transition-colors"
-          >
-            重置
-          </button>
-        </div>
-      )}
-
-      {status === 'validating' && (
-        <div className="card flex items-center gap-2 px-3 py-2">
-          <span className="spinner" />
-          <span className="text-[12px] text-(--color-text-2)">验证中…</span>
-        </div>
-      )}
-
-      {(status === 'empty' || status === 'invalid') && (
-        <>
-          {status === 'invalid' && (
-            <div className="mb-1.5 text-[11.5px] leading-relaxed text-(--color-danger) break-words">
-              {error ?? '密钥无效或已过期，请重新输入。'}
-            </div>
-          )}
-          <div className="flex gap-1.5">
-            <input
-              type="password"
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit() }}
-              placeholder={placeholder}
-              className="flex-1 min-w-0 rounded-[6px] border border-(--color-border) bg-(--color-surface) px-2.5 py-1.5 text-[12.5px]
-                         focus:border-(--color-accent) focus:shadow-[0_0_0_3px_var(--color-accent-wash)]
-                         transition-all
-                         placeholder:text-(--color-text-4)"
-            />
-            {draft.trim() && (
-              <button
-                type="button"
-                onClick={handleSubmit}
-                className="cta shrink-0"
-                style={{ height: 30, padding: '0 12px' }}
-              >
-                设置
-              </button>
-            )}
+      <div className="card px-3 py-3 space-y-2.5">
+        {status === 'invalid' && (
+          <div className="text-[11.5px] leading-relaxed text-(--color-danger) break-words">
+            {error ?? '密钥无效或已过期，请重新输入。'}
           </div>
-        </>
-      )}
+        )}
 
-      <div className="mt-2">
-        <div className="flex items-baseline justify-between mb-1">
-          <label className="text-[11.5px] font-medium text-(--color-text-2)">Base URL</label>
-          <span className="text-[10.5px] text-(--color-text-4)">可选，留空使用默认</span>
-        </div>
         <input
-          type="url"
-          value={baseUrlDraft}
-          onChange={(e) => setBaseUrlDraft(e.target.value)}
-          onBlur={commitBaseUrl}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              commitBaseUrl()
-              ;(e.target as HTMLInputElement).blur()
-            }
-          }}
-          placeholder={baseUrlPlaceholder}
-          spellCheck={false}
-          autoComplete="off"
-          className="mono w-full rounded-[6px] border border-(--color-border) bg-(--color-surface) px-2.5 py-1.5 text-[11.5px]
+          type="password"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit() }}
+          placeholder={placeholder}
+          disabled={isValidating}
+          className="w-full rounded-[6px] border border-(--color-border) bg-(--color-surface) px-2.5 py-1.5 text-[12.5px]
                      focus:border-(--color-accent) focus:shadow-[0_0_0_3px_var(--color-accent-wash)]
                      transition-all
-                     placeholder:text-(--color-text-4)"
+                     placeholder:text-(--color-text-4)
+                     disabled:opacity-60 disabled:cursor-not-allowed"
         />
-        <div className="mt-1 flex items-start gap-1 text-[10.5px] leading-[1.5] text-(--color-text-4)">
-          <span className="shrink-0">实际调用</span>
-          <span className="mono min-w-0 flex-1 break-all text-(--color-text-3)">
-            {previewEndpoint(provider, baseUrlDraft)}
-          </span>
+
+        <div>
+          <div className="flex items-baseline justify-between mb-1">
+            <label className="text-[11.5px] font-medium text-(--color-text-2)">Base URL</label>
+            <span className="text-[10.5px] text-(--color-text-4)">可选，留空使用默认</span>
+          </div>
+          <input
+            type="url"
+            value={baseUrlDraft}
+            onChange={(e) => setBaseUrlDraft(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit() }}
+            placeholder={baseUrlPlaceholder}
+            spellCheck={false}
+            autoComplete="off"
+            disabled={isValidating}
+            className="mono w-full rounded-[6px] border border-(--color-border) bg-(--color-surface) px-2.5 py-1.5 text-[11.5px]
+                       focus:border-(--color-accent) focus:shadow-[0_0_0_3px_var(--color-accent-wash)]
+                       transition-all
+                       placeholder:text-(--color-text-4)
+                       disabled:opacity-60 disabled:cursor-not-allowed"
+          />
+          <div className="mt-1 flex items-start gap-1 text-[10.5px] leading-[1.5] text-(--color-text-4)">
+            <span className="shrink-0">实际调用</span>
+            <span className="mono min-w-0 flex-1 break-all text-(--color-text-3)">
+              {previewEndpoint(provider, baseUrlDraft)}
+            </span>
+          </div>
         </div>
+
+        <button
+          type="button"
+          onClick={handleSubmit}
+          disabled={isValidating || !draft.trim()}
+          className="cta w-full"
+          style={{
+            height: 32,
+            ...(isValidating && {
+              background: 'var(--color-accent)',
+              color: 'var(--color-accent-fg)',
+              borderColor: 'color-mix(in srgb, var(--color-accent) 50%, #000 8%)',
+              opacity: 0.9,
+            }),
+          }}
+        >
+          {isValidating ? (
+            <>
+              <span
+                className="spinner"
+                style={{ borderColor: 'rgba(255,255,255,0.35)', borderTopColor: 'currentColor' }}
+              />
+              <span>验证中…</span>
+            </>
+          ) : (
+            `保存并验证 ${label}`
+          )}
+        </button>
       </div>
     </div>
   )
