@@ -477,7 +477,7 @@ export function InputPanel({
         label="API 密钥"
         right={
           <button type="button" onClick={onOpenApiKeys} className="chip ghost" style={{ height: 22, padding: '0 6px', fontSize: 11.5 }}>
-            管理
+            修改配置
           </button>
         }
       >
