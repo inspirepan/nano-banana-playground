@@ -97,7 +97,7 @@ export const ImageCard = memo(function ImageCard({ image, inlineData, index, onA
     { label: '加为参考', onClick: () => onAddToRef(image) },
     { label: '下载', onClick: handleDownload },
     { label: '复制', onClick: handleCopyImage },
-    ...(meta?.prompt ? [{ label: '重做', onClick: handleRegenerate }] : []),
+    ...(meta?.prompt ? [{ label: '还原', onClick: handleRegenerate }] : []),
     { label: '删除', onClick: handleDelete, danger: true },
   ]
 
@@ -196,6 +196,7 @@ export const ImageCard = memo(function ImageCard({ image, inlineData, index, onA
       {menu && createPortal(
         <div
           style={{ top: menu.y, left: menu.x }}
+          onMouseDown={(e) => e.stopPropagation()}
           className="fixed z-[120] min-w-[140px] rounded-[8px] bg-(--color-surface) p-1 shadow-[0_0_0_1px_var(--ring-edge),0_10px_28px_-12px_rgba(30,27,20,0.18),0_2px_6px_rgba(30,27,20,0.06)]"
         >
           {actionItems.map((item) => (
