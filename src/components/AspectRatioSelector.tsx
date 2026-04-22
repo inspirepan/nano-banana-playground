@@ -36,7 +36,10 @@ function shapeSize(ratio: string): { w: number; h: number } {
 }
 
 export function AspectRatioSelector({ options, value, resolution, onChange }: Props) {
-  const [showAll, setShowAll] = useState(!COMMON_RATIOS.includes(value))
+  // If the model exposes only a small number of ratios, skip the show-all/show-common
+  // split entirely — there's nothing meaningful to collapse.
+  const skipFiltering = options.length <= COMMON_RATIOS.length
+  const [showAll, setShowAll] = useState(skipFiltering || !COMMON_RATIOS.includes(value))
   const [collapsed, setCollapsed] = useState(true)
 
   // collapsed: show common ratios + selected (if non-common), in original order
@@ -97,7 +100,7 @@ export function AspectRatioSelector({ options, value, resolution, onChange }: Pr
                       style={{ width: shape.w, height: shape.h }}
                     />
                   </div>
-                  <div className={`text-sm font-medium leading-none tabular-nums ${selected ? 'text-primary' : 'text-on-surface'}`}>
+                  <div className={`text-xs font-medium leading-none tabular-nums ${selected ? 'text-primary' : 'text-on-surface'}`}>
                     {option}
                   </div>
                 </button>
@@ -112,16 +115,18 @@ export function AspectRatioSelector({ options, value, resolution, onChange }: Pr
             )
           })}
 
-          {/* expand / collapse toggle */}
-          <button
-            type="button"
-            onClick={() => setShowAll((v) => !v)}
-            data-no-ripple
-            className="col-span-2 flex items-center gap-1 px-2 py-1 text-xs font-medium text-on-surface-variant hover:text-on-surface transition-none focus:outline-none"
-          >
-            <span>{showAll ? '收起' : `+${hiddenCount} 更多`}</span>
-            <span className={`material-symbols-rounded text-sm transition-transform ${showAll ? 'rotate-180' : ''}`}>expand_more</span>
-          </button>
+          {/* expand / collapse toggle — hidden when there's nothing to hide */}
+          {!skipFiltering && (
+            <button
+              type="button"
+              onClick={() => setShowAll((v) => !v)}
+              data-no-ripple
+              className="col-span-2 flex items-center gap-1 px-2 py-1 text-xs font-medium text-on-surface-variant hover:text-on-surface transition-none focus:outline-none"
+            >
+              <span>{showAll ? '收起' : `+${hiddenCount} 更多`}</span>
+              <span className={`material-symbols-rounded text-sm transition-transform ${showAll ? 'rotate-180' : ''}`}>expand_more</span>
+            </button>
+          )}
         </div>
         </div>
       </div>

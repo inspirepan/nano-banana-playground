@@ -132,12 +132,13 @@ describe('compressStateBlob / decompressStateBlob round-trip', () => {
 // --- readSimpleUrlParams ---
 
 describe('readSimpleUrlParams', () => {
-  it('parses all four params', () => {
-    mockWindow('?m=flash-pro&r=2048x2048&a=16:9&n=3')
+  it('parses all params', () => {
+    mockWindow('?m=flash-pro&r=2048x2048&a=16:9&q=high&n=3')
     expect(readSimpleUrlParams()).toEqual({
       modelId: 'flash-pro',
       resolution: '2048x2048',
       aspectRatio: '16:9',
+      quality: 'high',
       batchCount: 3,
     })
   })
@@ -148,6 +149,7 @@ describe('readSimpleUrlParams', () => {
       modelId: null,
       resolution: null,
       aspectRatio: null,
+      quality: null,
       batchCount: null,
     })
   })

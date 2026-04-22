@@ -44,8 +44,10 @@ function resolveModel(modelId: string | null): ModelConfig {
 }
 
 export function usePlayground() {
-  const apiKeyHook = useApiKey()
+  const googleKeyHook = useApiKey('google')
+  const openaiKeyHook = useApiKey('openai')
   const [model, setModel] = useState<ModelConfig>(() => resolveModel(_initial.modelId))
+  const apiKeyHook = model.provider === 'google' ? googleKeyHook : openaiKeyHook
   const [resolution, setResolutionRaw] = useState(() => {
     const m = resolveModel(_initial.modelId)
     if (_initial.resolution && m.resolutions.includes(_initial.resolution)) return _initial.resolution
@@ -55,6 +57,12 @@ export function usePlayground() {
     const m = resolveModel(_initial.modelId)
     if (_initial.aspectRatio && m.aspectRatios.includes(_initial.aspectRatio)) return _initial.aspectRatio
     return m.defaultAspectRatio
+  })
+  const [quality, setQualityRaw] = useState(() => {
+    const m = resolveModel(_initial.modelId)
+    if (m.provider !== 'openai') return ''
+    if (_initial.quality && m.qualities.includes(_initial.quality)) return _initial.quality
+    return m.defaultQuality
   })
   const [batchCount, setBatchCountRaw] = useState(() => {
     const m = resolveModel(_initial.modelId)
@@ -84,7 +92,7 @@ export function usePlayground() {
   const currentSchemeIndex = schemes.length === 0 ? 0 : Math.min(currentSchemeIndexRaw, schemes.length - 1)
 
   // Fingerprint of editor state — used to derive showDraft without useEffect
-  const stateFingerprint = `${model.id}\0${resolution}\0${aspectRatio}\0${batchCount}\0${prompt}\0${mode}\0${currentSchemeIndex}\0${originalPrompt}\0${schemes.map(s => s.text).join('\0')}`
+  const stateFingerprint = `${model.id}\0${resolution}\0${aspectRatio}\0${quality}\0${batchCount}\0${prompt}\0${mode}\0${currentSchemeIndex}\0${originalPrompt}\0${schemes.map(s => s.text).join('\0')}`
   const stateFingerprintRef = useRef(stateFingerprint)
   stateFingerprintRef.current = stateFingerprint
 
@@ -142,19 +150,21 @@ export function usePlayground() {
         : null
       updateUrl({
         m: model.id !== DEFAULT_MODEL.id ? model.id : null,
-        r: resolution !== DEFAULT_MODEL.defaultResolution ? resolution : null,
-        a: aspectRatio !== DEFAULT_MODEL.defaultAspectRatio ? aspectRatio : null,
+        r: resolution !== model.defaultResolution ? resolution : null,
+        a: aspectRatio !== model.defaultAspectRatio ? aspectRatio : null,
+        q: model.provider === 'openai' && quality !== model.defaultQuality ? quality : null,
         n: batchCount !== 1 ? String(batchCount) : null,
         s: compressedS,
       })
     }, 300)
     return () => window.clearTimeout(urlDebounceRef.current)
-  }, [model.id, resolution, aspectRatio, batchCount, prompt, mode, schemes, currentSchemeIndex, originalPrompt])
+  }, [model, resolution, aspectRatio, quality, batchCount, prompt, mode, schemes, currentSchemeIndex, originalPrompt])
 
   // --- Setters that update state (URL sync runs via effects above) ---
   const setPrompt = useCallback((v: string) => setPromptRaw(v), [])
   const setResolution = useCallback((v: string) => setResolutionRaw(v), [])
   const setAspectRatio = useCallback((v: string) => setAspectRatioRaw(v), [])
+  const setQuality = useCallback((v: string) => setQualityRaw(v), [])
   const setBatchCount = useCallback((v: number) => setBatchCountRaw(v), [])
   const setMode = useCallback((v: PersistedPromptMode) => setModeRaw(v), [])
   const setSchemes = useCallback((v: PromptScheme[]) => setSchemesRaw(v), [])
@@ -171,6 +181,10 @@ export function usePlayground() {
     setAspectRatioRaw((prev) =>
       config.aspectRatios.includes(prev) ? prev : config.defaultAspectRatio,
     )
+    setQualityRaw((prev) => {
+      if (config.provider !== 'openai') return ''
+      return config.qualities.includes(prev) ? prev : config.defaultQuality
+    })
     setBatchCountRaw((prev) => Math.min(prev, config.maxBatchCount))
   }, [])
 
@@ -271,6 +285,7 @@ export function usePlayground() {
           referenceImages,
           resolution,
           aspectRatio,
+          quality,
           batchId,
         }, signal)
           .then((image) => {
@@ -345,7 +360,7 @@ export function usePlayground() {
       setGenerationSnapshot(null)
       setGenerationPreview([])
     }
-  }, [apiKeyHook, prompt, model, referenceImages, resolution, aspectRatio, batchCount])
+  }, [apiKeyHook, prompt, model, referenceImages, resolution, aspectRatio, quality, batchCount])
 
   const cancelGeneration = useCallback(() => {
     abortRef.current?.abort()
@@ -384,9 +399,13 @@ export function usePlayground() {
     apiKeyStatus: apiKeyHook.status,
     submitApiKey: apiKeyHook.submit,
     resetApiKey: apiKeyHook.reset,
+    // All provider keys (used by the API Keys dialog to configure both at once)
+    googleKey: googleKeyHook,
+    openaiKey: openaiKeyHook,
     model,
     resolution,
     aspectRatio,
+    quality,
     batchCount,
     prompt,
     mode,
@@ -404,6 +423,7 @@ export function usePlayground() {
     switchModel,
     setResolution,
     setAspectRatio,
+    setQuality,
     setBatchCount,
     setPrompt,
     setMode,

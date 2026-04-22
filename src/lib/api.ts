@@ -1,5 +1,6 @@
 import type { ModelConfig } from '../config/models'
 import type { PlaygroundImage, PromptScheme, TokenUsage } from './types'
+import { openAISize } from './openai'
 import AUGMENT_SYSTEM_PROMPT from './augment-system-prompt.md?raw'
 
 export type GenerateParams = {
@@ -9,6 +10,7 @@ export type GenerateParams = {
   referenceImages: PlaygroundImage[]
   resolution: string
   aspectRatio: string
+  quality: string
   batchId: string
 }
 
@@ -42,6 +44,16 @@ const GENERATE_MAX_RETRIES = 2
 const GENERATE_RETRY_DELAYS = [1000, 3000]
 
 export async function generateImage(
+  params: GenerateParams,
+  signal?: AbortSignal,
+): Promise<PlaygroundImage> {
+  if (params.model.provider === 'openai') {
+    return generateImageOpenAI(params, signal)
+  }
+  return generateImageGoogle(params, signal)
+}
+
+async function generateImageGoogle(
   params: GenerateParams,
   signal?: AbortSignal,
 ): Promise<PlaygroundImage> {
@@ -181,6 +193,116 @@ export async function generateImage(
 
   throw lastError
 }
+
+// --- OpenAI (gpt-image-2) ---
+
+function base64ToBlob(b64: string, mimeType: string): Blob {
+  const bin = atob(b64)
+  const arr = new Uint8Array(bin.length)
+  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i)
+  return new Blob([arr], { type: mimeType })
+}
+
+async function generateImageOpenAI(
+  params: GenerateParams,
+  signal?: AbortSignal,
+): Promise<PlaygroundImage> {
+  const { apiKey, model, prompt, referenceImages, resolution, aspectRatio, quality, batchId } = params
+
+  const size = openAISize(resolution, aspectRatio)
+  const qualityParam = quality || 'auto'
+
+  const hasRefs = referenceImages.length > 0
+  const url = hasRefs
+    ? 'https://api.openai.com/v1/images/edits'
+    : 'https://api.openai.com/v1/images/generations'
+
+  const timeoutSignal = AbortSignal.timeout(REQUEST_TIMEOUT_MS)
+  const mergedSignal = signal ? AbortSignal.any([signal, timeoutSignal]) : timeoutSignal
+
+  let body: BodyInit
+  const headers: Record<string, string> = { Authorization: `Bearer ${apiKey}` }
+  if (hasRefs) {
+    const form = new FormData()
+    form.append('model', model.apiModel)
+    form.append('prompt', prompt)
+    form.append('size', size)
+    form.append('quality', qualityParam)
+    form.append('n', '1')
+    for (const img of referenceImages) {
+      const blob = base64ToBlob(img.data, img.mimeType || 'image/png')
+      const ext = (img.mimeType || 'image/png').split('/')[1] || 'png'
+      form.append('image[]', blob, `ref.${ext}`)
+    }
+    body = form
+  } else {
+    headers['Content-Type'] = 'application/json'
+    body = JSON.stringify({
+      model: model.apiModel,
+      prompt,
+      size,
+      quality: qualityParam,
+      n: 1,
+    })
+  }
+
+  const requestInit: RequestInit = { method: 'POST', headers, body, signal: mergedSignal }
+
+  let lastError: unknown
+  for (let attempt = 0; attempt <= GENERATE_MAX_RETRIES; attempt++) {
+    if (attempt > 0) {
+      const delay = GENERATE_RETRY_DELAYS[attempt - 1]
+      await new Promise((r) => setTimeout(r, delay))
+      if (signal?.aborted) throw signal.reason
+    }
+
+    let res: Response
+    try {
+      res = await fetch(url, requestInit)
+    } catch (e) {
+      lastError = e
+      if (isRetryable(e) && attempt < GENERATE_MAX_RETRIES) continue
+      throw e
+    }
+
+    if (isRetryable(null, res.status) && attempt < GENERATE_MAX_RETRIES) {
+      lastError = new Error(`Server error ${res.status}`)
+      continue
+    }
+
+    const data = await res.json() as {
+      data?: Array<{ b64_json?: string }>
+      error?: { message: string }
+    }
+
+    if (!res.ok || data.error) {
+      throw new Error(data.error?.message ?? `HTTP ${res.status}`)
+    }
+
+    const b64 = data.data?.[0]?.b64_json
+    if (!b64) throw new Error('No image in response')
+
+    return {
+      id: crypto.randomUUID(),
+      data: b64,
+      mimeType: 'image/png',
+      source: {
+        type: 'generated',
+        modelId: model.id,
+        prompt,
+        resolution,
+        aspectRatio,
+        quality: qualityParam,
+        referenceImageIds: referenceImages.map((r) => r.id),
+        batchId,
+      },
+      timestamp: Date.now(),
+    }
+  }
+
+  throw lastError
+}
+
 
 const AUGMENT_MODEL = 'gemini-3-flash-preview'
 

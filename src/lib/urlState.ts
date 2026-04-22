@@ -101,12 +101,13 @@ export async function decompressStateBlob(b64url: string): Promise<StateBlob> {
   }
 }
 
-// --- Simple (non-compressed) URL params: model/resolution/ratio/batch ---
+// --- Simple (non-compressed) URL params: model/resolution/ratio/quality/batch ---
 
 export type SimpleUrlParams = {
   modelId: string | null
   resolution: string | null
   aspectRatio: string | null
+  quality: string | null
   batchCount: number | null
 }
 
@@ -118,6 +119,7 @@ export function readSimpleUrlParams(): SimpleUrlParams {
     modelId: params.get('m'),
     resolution: params.get('r'),
     aspectRatio: params.get('a'),
+    quality: params.get('q'),
     batchCount: n !== null && !isNaN(n) ? n : null,
   }
 }

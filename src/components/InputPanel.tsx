@@ -4,10 +4,60 @@ import { MODEL_CONFIGS, type ModelConfig } from '../config/models'
 import type { GenerationState } from '../hooks/usePlayground'
 import type { ApiKeyStatus } from '../hooks/useApiKey'
 import { augmentPromptStream } from '../lib/api'
-import { ApiKeyInput } from './ApiKeyInput'
+import { getPricePerImage } from '../lib/pricing'
 import { ChipGroup } from './ChipGroup'
 import { AspectRatioSelector } from './AspectRatioSelector'
 import { ReferenceImageUpload } from './ReferenceImageUpload'
+import type { Provider } from '../config/models'
+
+function ApiKeysButton({
+  currentProvider,
+  currentStatus,
+  googleStatus,
+  openaiStatus,
+  onOpen,
+}: {
+  currentProvider: Provider
+  currentStatus: ApiKeyStatus
+  googleStatus: ApiKeyStatus
+  openaiStatus: ApiKeyStatus
+  onOpen: () => void
+}) {
+  const needsAttention = currentStatus !== 'valid' && currentStatus !== 'validating'
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors text-left
+        ${needsAttention
+          ? 'bg-primary-dim text-primary hover:bg-primary/15 active:bg-primary/20'
+          : 'bg-surface-container text-on-surface hover:bg-on-surface/8 active:bg-on-surface/12'}`}
+    >
+      <span className="material-symbols-rounded text-xl leading-none">key</span>
+      <span className="text-sm font-medium">API Keys</span>
+      <div className="flex-1" />
+      <div className="flex items-center gap-3">
+        <KeyBadge label="Gemini" status={googleStatus} dim={currentProvider !== 'google'} />
+        <KeyBadge label="OpenAI" status={openaiStatus} dim={currentProvider !== 'openai'} />
+      </div>
+    </button>
+  )
+}
+
+function KeyBadge({ label, status, dim }: { label: string; status: ApiKeyStatus; dim: boolean }) {
+  const isValid = status === 'valid'
+  const isInvalid = status === 'invalid'
+  return (
+    <span className={`inline-flex items-center gap-1 text-xs ${dim ? 'opacity-60' : ''}`}>
+      <span
+        className={`w-1.5 h-1.5 rounded-full ${
+          isValid ? 'bg-success' : isInvalid ? 'bg-error' : 'bg-on-surface-variant/40'
+        }`}
+      />
+      <span className="text-on-surface-variant">{label}</span>
+    </span>
+  )
+}
 
 // Labels for syntax highlighting in text editor, longest-first to avoid prefix conflicts
 const HIGHLIGHT_LABELS = [
@@ -66,6 +116,7 @@ type Props = {
   model: ModelConfig
   resolution: string
   aspectRatio: string
+  quality: string
   batchCount: number
   prompt: string
   mode: PersistedPromptMode
@@ -76,11 +127,13 @@ type Props = {
   generationState: GenerationState
   apiKey: string
   apiKeyStatus: ApiKeyStatus
-  onSubmitApiKey: (key: string) => void
-  onResetApiKey: () => void
+  googleKeyStatus: ApiKeyStatus
+  openaiKeyStatus: ApiKeyStatus
+  onOpenApiKeys: () => void
   onSwitchModel: (id: string) => void
   onResolutionChange: (v: string) => void
   onAspectRatioChange: (v: string) => void
+  onQualityChange: (v: string) => void
   onPromptChange: (v: string) => void
   onBatchCountChange: (v: number) => void
   onModeChange: (v: PersistedPromptMode) => void
@@ -101,6 +154,7 @@ export function InputPanel({
   model,
   resolution,
   aspectRatio,
+  quality,
   batchCount,
   prompt,
   mode,
@@ -111,11 +165,13 @@ export function InputPanel({
   generationState,
   apiKey,
   apiKeyStatus,
-  onSubmitApiKey,
-  onResetApiKey,
+  googleKeyStatus,
+  openaiKeyStatus,
+  onOpenApiKeys,
   onSwitchModel,
   onResolutionChange,
   onAspectRatioChange,
+  onQualityChange,
   onPromptChange,
   onBatchCountChange,
   onModeChange,
@@ -134,7 +190,7 @@ export function InputPanel({
   const isGenerating = generationState === 'generating'
   const maxRef = model.maxReferenceImages + model.maxCharacterImages
 
-  const pricePerImage = model.imagePriceByResolution[resolution]
+  const pricePerImage = getPricePerImage(model, resolution, aspectRatio, quality)
 
   const [isAugmenting, setIsAugmenting] = useState(false)
   const [schemesCollapsed, setSchemesCollapsed] = useState(false)
@@ -423,7 +479,7 @@ export function InputPanel({
   }, [onAddReferenceImages])
 
   // --- Cost estimate ---
-  const estimatedCost = pricePerImage !== undefined ? pricePerImage * batchCount : null
+  const estimatedCost = pricePerImage !== null ? pricePerImage * batchCount : null
 
   return (
     <div ref={panelRef}
@@ -434,30 +490,31 @@ export function InputPanel({
       onPaste={handlePanelPaste}
       className="w-full flex flex-col gap-4 px-2 py-4 md:px-4 relative">
 
-      {/* API Key */}
-      <ApiKeyInput
-        apiKey={apiKey}
-        status={apiKeyStatus}
-        onSubmit={onSubmitApiKey}
-        onReset={onResetApiKey}
+      {/* API Keys trigger */}
+      <ApiKeysButton
+        currentProvider={model.provider}
+        currentStatus={apiKeyStatus}
+        googleStatus={googleKeyStatus}
+        openaiStatus={openaiKeyStatus}
+        onOpen={onOpenApiKeys}
       />
 
       {/* Model */}
       <div>
         <label className="block text-sm font-medium text-on-surface-variant mb-3">模型</label>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {MODEL_CONFIGS.map((m) => (
             <button
               key={m.id}
               type="button"
               onClick={() => onSwitchModel(m.id)}
-              className={`flex-1 px-3 py-3 text-sm rounded-xl transition-colors text-center leading-snug
+              className={`flex-1 min-w-[120px] px-3 py-3 text-xs rounded-xl transition-colors text-center leading-snug
                 ${model.id === m.id
                   ? 'bg-primary-dim text-primary font-medium hover:bg-primary/15 active:bg-primary/20'
                   : 'bg-surface-container text-on-surface font-medium hover:bg-on-surface/8 active:bg-on-surface/12'
                 }`}
             >
-              🍌 {m.name}
+              {m.provider === 'google' ? '🍌 ' : ''}{m.name}
             </button>
           ))}
         </div>
@@ -478,6 +535,16 @@ export function InputPanel({
         resolution={resolution}
         onChange={onAspectRatioChange}
       />
+
+      {/* Quality (OpenAI only) */}
+      {model.provider === 'openai' && (
+        <ChipGroup
+          label="质量"
+          options={model.qualities}
+          value={quality}
+          onChange={onQualityChange}
+        />
+      )}
 
       {/* Reference Images */}
       <ReferenceImageUpload
@@ -665,7 +732,7 @@ export function InputPanel({
                   清空
                 </button>
                 <div className="flex-1" />
-                {mode === 'text' && !isAugmenting && (
+                {mode === 'text' && !isAugmenting && model.provider === 'google' && (
                   <div className="relative group/augment">
                     <button type="button" onClick={() => handleAugment(false)} disabled={!canAugment}
                       className={`text-xs text-tertiary hover:text-tertiary/80 transition-colors disabled:pointer-events-none ${canAugment ? '' : 'invisible'}`}>

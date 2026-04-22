@@ -6,6 +6,7 @@ import type { PlaygroundImageMeta } from './lib/types'
 import { InputPanel } from './components/InputPanel'
 import { OutputPanel } from './components/OutputPanel'
 import { AppTitle } from './components/AppTitle'
+import { ApiKeysDialog } from './components/ApiKeysDialog'
 
 type Theme = 'light' | 'dark' | 'system'
 type ColorThemeId = 'default' | 'blue' | 'green' | 'yellow' | 'pink' | 'orange' | 'purple'
@@ -161,6 +162,7 @@ function App() {
   const [draftLabels, setDraftLabels] = useState<string[] | null>(null)
   const [draftPreviewHover, setDraftPreviewHover] = useState(false)
   const [regenToast, setRegenToast] = useState<string | null>(null)
+  const [apiKeysOpen, setApiKeysOpen] = useState(false)
   const regenToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const titleResetTimerRef = useRef<number | null>(null)
   const prevGenerationStateRef = useRef(pg.generationState)
@@ -292,6 +294,7 @@ function App() {
           model={pg.model}
           resolution={pg.resolution}
           aspectRatio={pg.aspectRatio}
+          quality={pg.quality}
           batchCount={pg.batchCount}
           prompt={pg.prompt}
           mode={pg.mode}
@@ -302,11 +305,13 @@ function App() {
           generationState={pg.generationState}
           apiKey={pg.apiKey}
           apiKeyStatus={pg.apiKeyStatus}
-          onSubmitApiKey={pg.submitApiKey}
-          onResetApiKey={pg.resetApiKey}
+          googleKeyStatus={pg.googleKey.status}
+          openaiKeyStatus={pg.openaiKey.status}
+          onOpenApiKeys={() => setApiKeysOpen(true)}
           onSwitchModel={pg.switchModel}
           onResolutionChange={pg.setResolution}
           onAspectRatioChange={pg.setAspectRatio}
+          onQualityChange={pg.setQuality}
           onPromptChange={pg.setPrompt}
           onBatchCountChange={pg.setBatchCount}
           onModeChange={pg.setMode}
@@ -360,6 +365,7 @@ function App() {
           model={pg.model}
           resolution={pg.resolution}
           aspectRatio={pg.aspectRatio}
+          quality={pg.quality}
           batchCount={pg.batchCount}
           prompt={pg.prompt}
           mode={pg.mode}
@@ -370,11 +376,13 @@ function App() {
           generationState={pg.generationState}
           apiKey={pg.apiKey}
           apiKeyStatus={pg.apiKeyStatus}
-          onSubmitApiKey={pg.submitApiKey}
-          onResetApiKey={pg.resetApiKey}
+          googleKeyStatus={pg.googleKey.status}
+          openaiKeyStatus={pg.openaiKey.status}
+          onOpenApiKeys={() => setApiKeysOpen(true)}
           onSwitchModel={pg.switchModel}
           onResolutionChange={pg.setResolution}
           onAspectRatioChange={pg.setAspectRatio}
+          onQualityChange={pg.setQuality}
           onPromptChange={pg.setPrompt}
           onBatchCountChange={pg.setBatchCount}
           onModeChange={pg.setMode}
@@ -424,6 +432,13 @@ function App() {
         {regenToast}
       </div>
     </div>
+
+    <ApiKeysDialog
+      open={apiKeysOpen}
+      googleKey={pg.googleKey}
+      openaiKey={pg.openaiKey}
+      onClose={() => setApiKeysOpen(false)}
+    />
     </>
   )
 }

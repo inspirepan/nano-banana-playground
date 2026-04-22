@@ -16,6 +16,9 @@ export type GeneratedSource = {
   prompt: string
   resolution: string
   aspectRatio: string
+  // OpenAI (gpt-image-2) rendering quality: 'auto' | 'low' | 'medium' | 'high'.
+  // Optional because Google models and legacy records don't carry it.
+  quality?: string
   referenceImageIds: string[]
   batchId: string
   tokenUsage?: TokenUsage

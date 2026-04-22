@@ -38,7 +38,7 @@ export function ChipGroup({ label, options, value, onChange }: Props) {
                 key={option}
                 type="button"
                 onClick={() => onChange(option)}
-                className={`px-3 py-3 text-sm rounded-xl tabular-nums transition-colors
+                className={`px-3 py-3 text-xs rounded-xl tabular-nums transition-colors
                   ${
                     value === option
                       ? 'bg-primary-dim text-primary font-medium hover:bg-primary/15 active:bg-primary/20'

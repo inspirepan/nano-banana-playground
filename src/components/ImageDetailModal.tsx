@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { PlaygroundImageMeta } from '../lib/types'
 import { MODEL_CONFIGS } from '../config/models'
+import { getPricePerImage } from '../lib/pricing'
 import { ensureBlobLoaded, useImageSrc } from '../hooks/useImageSrc'
 import { loadImageMetas } from '../lib/history'
 
@@ -129,14 +130,19 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
   const estimatedCost = (() => {
     if (!currentMeta || !modelConfig) return null
     const usage = currentMeta.tokenUsage
-    if (usage) {
+    if (usage && modelConfig.provider === 'google') {
       const inputCost = usage.inputTokens * modelConfig.inputPricePerMillion / 1_000_000
       const imageCost = usage.imageOutputTokens * modelConfig.imageOutputPricePerMillion / 1_000_000
       const textCost = usage.textOutputTokens * modelConfig.textOutputPricePerMillion / 1_000_000
       return inputCost + imageCost + textCost
     }
-    // Legacy images without token data: use per-image lookup
-    return modelConfig.imagePriceByResolution[currentMeta.resolution] ?? null
+    // Legacy/OpenAI images: use per-image lookup
+    return getPricePerImage(
+      modelConfig,
+      currentMeta.resolution,
+      currentMeta.aspectRatio,
+      currentMeta.quality ?? '',
+    )
   })()
 
   const showCopiedToast = () => {
@@ -262,6 +268,7 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
           <MetaRow label="模型" value={modelName!} />
           <MetaRow label="分辨率" value={currentMeta.resolution} />
           <MetaRow label="宽高比" value={currentMeta.aspectRatio} />
+          {currentMeta.quality && <MetaRow label="质量" value={currentMeta.quality} />}
           <div>
             <div className="mb-1 text-sm font-medium text-on-surface-variant">提示词</div>
             <div className="max-h-[40vh] overflow-y-auto rounded-xl bg-surface-container px-3 py-2 text-xs leading-relaxed text-on-surface whitespace-pre-wrap">
