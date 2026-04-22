@@ -109,18 +109,24 @@ export type SimpleUrlParams = {
   aspectRatio: string | null
   quality: string | null
   batchCount: number | null
+  selectedStyleIds: string[] | null
 }
 
 export function readSimpleUrlParams(): SimpleUrlParams {
   const params = new URLSearchParams(window.location.search)
   const nRaw = params.get('n')
   const n = nRaw !== null ? parseInt(nRaw, 10) : null
+  const stRaw = params.get('st')
+  const selectedStyleIds = stRaw !== null
+    ? stRaw.split(',').map((s) => s.trim()).filter(Boolean)
+    : null
   return {
     modelId: params.get('m'),
     resolution: params.get('r'),
     aspectRatio: params.get('a'),
     quality: params.get('q'),
     batchCount: n !== null && !isNaN(n) ? n : null,
+    selectedStyleIds,
   }
 }
 

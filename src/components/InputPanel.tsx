@@ -9,7 +9,9 @@ import { getPricePerImage } from '../lib/pricing'
 import { ChipGroup } from './ChipGroup'
 import { AspectRatioSelector } from './AspectRatioSelector'
 import { ReferenceImageUpload } from './ReferenceImageUpload'
+import { StylePresetChips, MAX_SELECTED_STYLES } from './StylePresetChips'
 import { Icon } from './Icon'
+import { getStylePresetById } from '../lib/stylePresets'
 
 // ——— Section helper ———
 function Section({ label, right, hint, children }: { label: string; right?: ReactNode; hint?: ReactNode; children: ReactNode }) {
@@ -151,10 +153,14 @@ type Props = {
   onSchemesChange: (schemes: PromptScheme[]) => void
   onCurrentSchemeIndexChange: (v: number) => void
   onOriginalPromptChange: (p: string | null) => void
+  selectedStyleIds: string[]
+  onSelectedStyleIdsChange: (ids: string[]) => void
+  onOpenStylePresets: () => void
+  stylePresetsRevision: number
   onAddReferenceImages: (files: File[]) => void
   onAddReferenceImage: (image: PlaygroundImage) => void
   onRemoveReferenceImage: (id: string) => void
-  onGenerate: (prompts?: string[]) => void
+  onGenerate: (prompts?: string[], labels?: string[]) => void
   onCancel: () => void
   onDraftBatchOverride: (count: number | null, labels?: string[]) => void
   onDraftPreviewHover: (show: boolean) => void
@@ -189,6 +195,10 @@ export function InputPanel({
   onSchemesChange,
   onCurrentSchemeIndexChange,
   onOriginalPromptChange,
+  selectedStyleIds,
+  onSelectedStyleIdsChange,
+  onOpenStylePresets,
+  stylePresetsRevision,
   onAddReferenceImages,
   onAddReferenceImage,
   onRemoveReferenceImage,
@@ -313,7 +323,22 @@ export function InputPanel({
     const sourcePrompt = useOriginal && originalPrompt !== null ? originalPrompt : prompt
     if (!sourcePrompt.trim() && referenceImages.length === 0) return
 
-    const effectivePrompt = sourcePrompt.trim() || '用户的原始提示词是空的，请你基于图片提供几个创意方案'
+    // Resolve selected style presets at call time — catches localStorage edits.
+    const selectedStyles = selectedStyleIds
+      .slice(0, MAX_SELECTED_STYLES)
+      .map((id) => getStylePresetById(id))
+      .filter((p): p is NonNullable<typeof p> => p !== null)
+
+    const basePrompt = sourcePrompt.trim() || (selectedStyles.length > 0
+      ? '用户的原始提示词是空的，请根据参考图和下方风格约束推断合适的主体。'
+      : '用户的原始提示词是空的，请你基于图片提供几个创意方案')
+
+    const styleInstruction = selectedStyles.length > 0
+      ? `\n\n[风格约束 · 必须严格遵循]\n请严格生成 ${selectedStyles.length} 个方案（数量不得多也不得少），每个方案对应下列一种风格，且 style / colorPalette / lighting / composition 字段必须与对应风格描述一致：\n` +
+        selectedStyles.map((s, i) => `${i + 1}. ${s.label}：${s.promptSnippet}`).join('\n')
+      : ''
+
+    const effectivePrompt = basePrompt + styleInstruction
 
     if (!useOriginal) {
       onOriginalPromptChange(sourcePrompt)
@@ -361,7 +386,7 @@ export function InputPanel({
     } finally {
       setIsAugmenting(false)
     }
-  }, [model.provider, apiKey, apiBaseUrl, prompt, originalPrompt, referenceImages, canAugment, onPromptChange, onModeChange, onSchemesChange, onCurrentSchemeIndexChange, onOriginalPromptChange, pushHistory])
+  }, [model.provider, apiKey, apiBaseUrl, prompt, originalPrompt, referenceImages, canAugment, selectedStyleIds, onPromptChange, onModeChange, onSchemesChange, onCurrentSchemeIndexChange, onOriginalPromptChange, pushHistory])
 
   const handleCancelAugment = useCallback(() => {
     abortRef.current?.abort()
@@ -378,7 +403,8 @@ export function InputPanel({
 
   const handleGenerateAll = useCallback(() => {
     const prompts = schemes.map((s) => s.text)
-    onGenerate(prompts)
+    const labels = schemes.map((s) => s.title)
+    onGenerate(prompts, labels)
   }, [schemes, onGenerate])
 
   const handleDiscardAugment = useCallback(() => {
@@ -708,21 +734,76 @@ export function InputPanel({
             <div className="flex items-center gap-2 px-2.5 py-1.5 border-t border-(--color-border) text-[11.5px] text-(--color-text-3)">
               <span className="mono text-[11px] text-(--color-text-4)">{prompt.length} 字</span>
               <div className="flex-1" />
-              {mode === 'text' && !isAugmenting && canAugment && (
+              {prompt.length > 0 && !isAugmenting && (
                 <button
                   type="button"
-                  onClick={() => handleAugment(false)}
-                  className="bg-transparent border-0 p-0 inline-flex items-center gap-1 text-[11.5px] font-medium hover:brightness-110 transition-all"
-                  style={{ color: 'var(--color-accent)' }}
-                  title={`使用 ${augmentModelLabel} 增强提示词`}
+                  onClick={() => { onPromptChange(''); pushHistory(''); textareaRef.current?.focus() }}
+                  title="清空提示词"
+                  aria-label="清空提示词"
+                  className="inline-flex items-center gap-1 bg-transparent border-0 p-0 text-[11px] text-(--color-text-4) hover:text-(--color-text-2) transition-colors"
                 >
-                  <SparklesFilled size={12} /> 增强
+                  <Icon name="close" size={11} />
+                  清空
                 </button>
               )}
             </div>
           </div>
 
-          {augmentError && <div className="text-[11.5px] text-(--color-danger)">{augmentError}</div>}
+          {/* Augment card — chips + CTA bundled, so it's visually clear styles feed into 增强 */}
+          {mode === 'text' && !isAugmenting && schemes.length === 0 && (
+            <div
+              className="fade-in rounded-[8px] px-3 py-2.5 flex flex-col gap-2.5"
+              style={{ background: 'var(--color-accent-soft)', boxShadow: 'inset 0 0 0 1px var(--ring-edge)' }}
+            >
+              <div className="flex items-center gap-1.5">
+                <span style={{ color: 'var(--color-accent)', display: 'inline-flex' }}><SparklesFilled size={12} /></span>
+                <span className="text-[12px] font-medium" style={{ color: 'var(--color-accent)' }}>AI 增强</span>
+                <span className="text-[11px] text-(--color-text-4)">· {augmentModelLabel} 结构化改写</span>
+              </div>
+
+              <StylePresetChips
+                selectedIds={selectedStyleIds}
+                onChange={onSelectedStyleIdsChange}
+                onOpenManage={onOpenStylePresets}
+                revision={stylePresetsRevision}
+              />
+
+              <div className="group relative w-full">
+                <button
+                  type="button"
+                  onClick={() => handleAugment(false)}
+                  disabled={!canAugment}
+                  className="chip accent-active justify-center disabled:opacity-50 disabled:cursor-not-allowed disabled:saturate-0"
+                  style={{ height: 32, fontSize: 12.5, padding: '0 10px', width: '100%' }}
+                >
+                  <SparklesFilled size={12} />
+                  {selectedStyleIds.length > 0
+                    ? <span>按 {selectedStyleIds.length} 种风格增强 → {selectedStyleIds.length} 个方案</span>
+                    : <span>自由发挥增强 → 2-4 个方案</span>}
+                </button>
+                <div
+                  className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-1.5 z-20 px-2 py-1 rounded-[5px] text-[11px] whitespace-nowrap opacity-0 translate-y-0.5 transition-[opacity,translate] duration-150 delay-100 group-hover:opacity-100 group-hover:translate-y-0"
+                  style={{
+                    background: 'var(--color-text)',
+                    color: 'var(--color-bg)',
+                    boxShadow: '0 6px 16px -6px rgba(15,17,21,0.24), 0 2px 4px rgba(15,17,21,0.08)',
+                  }}
+                >
+                  {canAugment
+                    ? `使用 ${augmentModelLabel} 增强提示词`
+                    : apiKey.trim() === ''
+                      ? '请先配置 API Key'
+                      : '请先填写提示词或添加参考图'}
+                </div>
+              </div>
+
+              {augmentError && <div className="text-[11.5px] text-(--color-danger)">{augmentError}</div>}
+            </div>
+          )}
+
+          {augmentError && (mode !== 'text' || isAugmenting || schemes.length > 0) && (
+            <div className="text-[11.5px] text-(--color-danger)">{augmentError}</div>
+          )}
         </div>
       </Section>
 

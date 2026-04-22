@@ -23,6 +23,7 @@ export type GenerationSnapshot = {
   batchCount: number
   resolution: string
   aspectRatio: string
+  labels?: string[]
 }
 
 export type GenerationPreviewSlot =
@@ -69,6 +70,9 @@ export function usePlayground() {
     if (_initial.batchCount !== null) return Math.min(Math.max(1, _initial.batchCount), m.maxBatchCount)
     return 1
   })
+  const [selectedStyleIds, setSelectedStyleIdsRaw] = useState<string[]>(
+    () => _initial.selectedStyleIds ?? [],
+  )
   const [prompt, setPromptRaw] = useState('')
 
   // Lifted from InputPanel — persisted in URL
@@ -154,11 +158,12 @@ export function usePlayground() {
         a: aspectRatio !== model.defaultAspectRatio ? aspectRatio : null,
         q: model.provider === 'openai' && quality !== model.defaultQuality ? quality : null,
         n: batchCount !== 1 ? String(batchCount) : null,
+        st: selectedStyleIds.length > 0 ? selectedStyleIds.join(',') : null,
         s: compressedS,
       })
     }, 300)
     return () => window.clearTimeout(urlDebounceRef.current)
-  }, [model, resolution, aspectRatio, quality, batchCount, prompt, mode, schemes, currentSchemeIndex, originalPrompt])
+  }, [model, resolution, aspectRatio, quality, batchCount, prompt, mode, schemes, currentSchemeIndex, originalPrompt, selectedStyleIds])
 
   // --- Setters that update state (URL sync runs via effects above) ---
   // Clearing the prompt also discards augment schemes so the UI drops back
@@ -180,6 +185,7 @@ export function usePlayground() {
   const setSchemes = useCallback((v: PromptScheme[]) => setSchemesRaw(v), [])
   const setCurrentSchemeIndex = useCallback((v: number) => setCurrentSchemeIndexRaw(v), [])
   const setOriginalPrompt = useCallback((v: string | null) => setOriginalPromptRaw(v), [])
+  const setSelectedStyleIds = useCallback((v: string[]) => setSelectedStyleIdsRaw(v), [])
 
   const switchModel = useCallback((modelId: string) => {
     const config = MODEL_CONFIGS.find((m) => m.id === modelId)
@@ -257,7 +263,7 @@ export function usePlayground() {
     return result
   }, [])
 
-  const generate = useCallback(async (prompts?: string[]) => {
+  const generate = useCallback(async (prompts?: string[], labels?: string[]) => {
     if (!apiKeyHook.apiKey) return
     const promptList = prompts ?? (prompt.trim() ? Array.from({ length: batchCount }, () => prompt.trim()) : [])
     if (promptList.length === 0) return
@@ -265,7 +271,7 @@ export function usePlayground() {
     const batchId = crypto.randomUUID()
 
     setGenerationState('generating')
-    setGenerationSnapshot({ batchId, batchCount: promptList.length, resolution, aspectRatio })
+    setGenerationSnapshot({ batchId, batchCount: promptList.length, resolution, aspectRatio, labels })
     setGenerationPreview(Array.from({ length: promptList.length }, (): GenerationPreviewSlot => ({ status: 'pending' })))
     setError(null)
 
@@ -424,6 +430,7 @@ export function usePlayground() {
     schemes,
     currentSchemeIndex,
     originalPrompt,
+    selectedStyleIds,
     referenceImages,
     history,
     historyHasMore,
@@ -442,6 +449,7 @@ export function usePlayground() {
     setSchemes,
     setCurrentSchemeIndex,
     setOriginalPrompt,
+    setSelectedStyleIds,
     addReferenceImages,
     removeReferenceImage,
     restoreSession,

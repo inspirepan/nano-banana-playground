@@ -71,11 +71,12 @@ function SkeletonCard({ aspectRatio, resolution, label }: { aspectRatio: string;
   )
 }
 
-function LoadingCard({ index }: { index: number }) {
+function LoadingCard({ index, label }: { index: number; label?: string }) {
   return (
     <div className="img-card w-full h-full">
       <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-(--color-text-3)">
         <span className="spinner" />
+        {label && <div className="px-2 text-center text-[12px] font-medium text-(--color-text-2)">{label}</div>}
         <div className="mono text-[11px] text-(--color-text-4)">生成中 #{index + 1}</div>
       </div>
     </div>
@@ -134,7 +135,7 @@ export const OutputPanel = memo(function OutputPanel({
   const [confirmClear, setConfirmClear] = useState(false)
   const isGenerating = generationState === 'generating'
 
-  const lastGenRef = useRef<{ preview: GenerationPreviewSlot[]; ratio: string; res: string; count: number; batchId: string } | null>(null)
+  const lastGenRef = useRef<{ preview: GenerationPreviewSlot[]; ratio: string; res: string; count: number; batchId: string; labels?: string[] } | null>(null)
   if (isGenerating && generationPreview.length > 0 && generationSnapshot) {
     lastGenRef.current = {
       preview: generationPreview,
@@ -142,6 +143,7 @@ export const OutputPanel = memo(function OutputPanel({
       res: generationSnapshot.resolution,
       count: generationSnapshot.batchCount,
       batchId: generationSnapshot.batchId,
+      labels: generationSnapshot.labels,
     }
   }
 
@@ -201,6 +203,9 @@ export const OutputPanel = memo(function OutputPanel({
   const previewSlots = settledData ? settledData.preview
     : isGenerating && generationPreview.length > 0 ? generationPreview
     : Array.from({ length: draftCount }, (): GenerationPreviewSlot => ({ status: 'pending' }))
+  const activeLabels = settledData?.labels
+    ?? (isGenerating && generationSnapshot?.labels)
+    ?? (!isGenerating ? draftLabels ?? undefined : undefined)
   const completedCount = previewSlots.filter((slot) => slot.status === 'fulfilled').length
 
   const settledBatchId = settledData?.batchId ?? null
@@ -275,7 +280,7 @@ export const OutputPanel = memo(function OutputPanel({
         className={`grid transition-[grid-template-rows,opacity] duration-200 ease-[cubic-bezier(0.2,0,0,1)]
           ${previewVisible ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0 pointer-events-none'}`}
       >
-        <div className="overflow-hidden min-h-0">
+        <div className="overflow-y-clip min-h-0">
           <div className="mb-6">
             <div
               className="flex items-center gap-2.5 mb-2.5 px-3 py-1.5 rounded-[6px]"
@@ -322,9 +327,9 @@ export const OutputPanel = memo(function OutputPanel({
                   ) : slot.status === 'rejected' ? (
                     <FailedCard index={i} />
                   ) : isGenerating ? (
-                    <LoadingCard index={i} />
+                    <LoadingCard index={i} label={activeLabels?.[i]} />
                   ) : (
-                    <SkeletonCard aspectRatio={draftRatio} resolution={draftRes} label={draftLabels?.[i]} />
+                    <SkeletonCard aspectRatio={draftRatio} resolution={draftRes} label={activeLabels?.[i]} />
                   )}
                 </GridCell>
               ))}

@@ -6,6 +6,7 @@ import type { PlaygroundImageMeta } from './lib/types'
 import { InputPanel } from './components/InputPanel'
 import { OutputPanel } from './components/OutputPanel'
 import { ApiKeysDialog } from './components/ApiKeysDialog'
+import { StylePresetsDialog } from './components/StylePresetsDialog'
 import { Icon, type IconName } from './components/Icon'
 
 type Theme = 'light' | 'dark' | 'system'
@@ -158,6 +159,8 @@ function App() {
   const [draftPreviewHover, setDraftPreviewHover] = useState(false)
   const [regenToast, setRegenToast] = useState<string | null>(null)
   const [apiKeysOpen, setApiKeysOpen] = useState(false)
+  const [stylePresetsOpen, setStylePresetsOpen] = useState(false)
+  const [stylePresetsRevision, setStylePresetsRevision] = useState(0)
   const regenToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const titleResetTimerRef = useRef<number | null>(null)
   const prevGenerationStateRef = useRef(pg.generationState)
@@ -262,8 +265,8 @@ function App() {
     }
   }, [])
 
-  const handleGenerate = (prompts?: string[]) => {
-    pg.generate(prompts)
+  const handleGenerate = (prompts?: string[], labels?: string[]) => {
+    pg.generate(prompts, labels)
     if (window.innerWidth < 768) {
       setTimeout(() => {
         mobileOutputAreaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -332,6 +335,10 @@ function App() {
           onSchemesChange={pg.setSchemes}
           onCurrentSchemeIndexChange={pg.setCurrentSchemeIndex}
           onOriginalPromptChange={pg.setOriginalPrompt}
+          selectedStyleIds={pg.selectedStyleIds}
+          onSelectedStyleIdsChange={pg.setSelectedStyleIds}
+          onOpenStylePresets={() => setStylePresetsOpen(true)}
+          stylePresetsRevision={stylePresetsRevision}
           onAddReferenceImages={pg.addReferenceImages}
           onAddReferenceImage={pg.addToReferences}
           onRemoveReferenceImage={pg.removeReferenceImage}
@@ -341,7 +348,7 @@ function App() {
           onDraftPreviewHover={setDraftPreviewHover}
           onDraftLabelsOverride={setDraftLabels}
         />
-        <div ref={mobileOutputAreaRef} className="border-t border-(--color-border)">
+        <div ref={mobileOutputAreaRef} className="border-t border-(--color-border) pt-5">
           <OutputPanel
             history={pg.history}
             historyHasMore={pg.historyHasMore}
@@ -400,6 +407,10 @@ function App() {
             onSchemesChange={pg.setSchemes}
             onCurrentSchemeIndexChange={pg.setCurrentSchemeIndex}
             onOriginalPromptChange={pg.setOriginalPrompt}
+            selectedStyleIds={pg.selectedStyleIds}
+            onSelectedStyleIdsChange={pg.setSelectedStyleIds}
+            onOpenStylePresets={() => setStylePresetsOpen(true)}
+            stylePresetsRevision={stylePresetsRevision}
             onAddReferenceImages={pg.addReferenceImages}
             onAddReferenceImage={pg.addToReferences}
             onRemoveReferenceImage={pg.removeReferenceImage}
@@ -450,6 +461,12 @@ function App() {
       googleKey={pg.googleKey}
       openaiKey={pg.openaiKey}
       onClose={() => setApiKeysOpen(false)}
+    />
+
+    <StylePresetsDialog
+      open={stylePresetsOpen}
+      onClose={() => setStylePresetsOpen(false)}
+      onChanged={() => setStylePresetsRevision((r) => r + 1)}
     />
     </>
   )
