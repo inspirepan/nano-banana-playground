@@ -22,12 +22,12 @@ const LABELS: Record<Provider, { label: string; placeholder: string; hint: strin
   google: {
     label: 'Gemini API Key',
     placeholder: '粘贴你的 Gemini API Key',
-    hint: '用于 Nano Banana 系列模型',
+    hint: '用于 Nano Banana 系列',
   },
   openai: {
     label: 'OpenAI API Key',
     placeholder: '粘贴你的 OpenAI API Key',
-    hint: '用于 GPT Image 系列模型',
+    hint: '用于 GPT Image 系列',
   },
 }
 
@@ -43,30 +43,30 @@ export function ApiKeysDialog({ open, googleKey, openaiKey, onClose }: Props) {
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="absolute inset-0 bg-white/72 backdrop-blur-[2px] dark:bg-black/60" />
+      <div className="absolute inset-0 bg-black/20 dark:bg-black/60 backdrop-blur-[2px]" />
       <div
         role="dialog"
         aria-modal="true"
         aria-label="API Keys"
-        className="relative w-full max-w-md rounded-[28px] border border-outline-variant bg-surface shadow-2xl"
+        className="relative w-full max-w-md rounded-[10px] border border-(--color-border) bg-(--color-surface) shadow-[0_10px_28px_-12px_rgba(30,27,20,0.18),0_2px_6px_rgba(30,27,20,0.06)]"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-6 pt-5 pb-3">
-          <h2 className="text-base font-medium text-on-surface">API Keys</h2>
+        <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-(--color-border)">
+          <h2 className="text-[13.5px] font-semibold tracking-[-0.01em]">API Keys</h2>
           <button
             type="button"
             onClick={onClose}
-            className="flex items-center justify-center w-8 h-8 rounded-full text-on-surface-variant hover:bg-on-surface/8 active:bg-on-surface/12 transition-colors"
+            className="icon-btn"
             aria-label="关闭"
           >
-            <Icon name="close" className="h-5 w-5" />
+            <Icon name="close" size={13} />
           </button>
         </div>
-        <div className="px-6 pb-6 space-y-5">
+        <div className="px-5 py-4 space-y-4">
           <KeyRow provider="google" hook={googleKey} />
           <KeyRow provider="openai" hook={openaiKey} />
-          <p className="text-sm leading-relaxed text-on-surface-variant/70">
-            密钥仅保存在当前浏览器的 localStorage 中，不会上传到任何服务器。
+          <p className="text-[11.5px] leading-relaxed text-(--color-text-3)">
+            密钥仅保存在当前浏览器的 localStorage，不会上传任何服务器。
           </p>
         </div>
       </div>
@@ -87,23 +87,23 @@ function KeyRow({ provider, hook }: { provider: Provider; hook: KeyHook }) {
     setDraft('')
   }
 
-  const masked = apiKey ? `${apiKey.slice(0, 6)}••••${apiKey.slice(-4)}` : ''
+  const masked = apiKey ? `${apiKey.slice(0, 6)}******${apiKey.slice(-4)}` : ''
 
   return (
     <div>
-      <div className="flex items-baseline justify-between mb-2">
-        <label className="text-base font-medium text-on-surface">{label}</label>
-        <span className="text-sm text-on-surface-variant/60">{hint}</span>
+      <div className="flex items-baseline justify-between mb-1.5">
+        <label className="text-[12.5px] font-medium text-(--color-text)">{label}</label>
+        <span className="text-[11px] text-(--color-text-4)">{hint}</span>
       </div>
 
       {status === 'valid' && (
-        <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-surface-container">
-          <Icon name="check_circle" className="h-4 w-4 text-success" />
-          <span className="min-w-0 flex-1 truncate font-mono text-sm text-on-surface-variant">{masked}</span>
+        <div className="card flex items-center gap-2 px-3 py-2">
+          <Icon name="check_circle" size={13} className="text-(--color-success)" strokeWidth={1.9} />
+          <span className="mono min-w-0 flex-1 truncate text-[12px] text-(--color-text-2)">{masked}</span>
           <button
             type="button"
             onClick={reset}
-            className="text-sm text-on-surface-variant/70 transition-colors hover:text-on-surface"
+            className="text-[11.5px] text-(--color-text-3) hover:text-(--color-text) transition-colors"
           >
             重置
           </button>
@@ -111,35 +111,35 @@ function KeyRow({ provider, hook }: { provider: Provider; hook: KeyHook }) {
       )}
 
       {status === 'validating' && (
-        <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-surface-container">
-          <div className="w-3.5 h-3.5 border-2 border-primary/30 border-t-primary rounded-full animate-spin shrink-0" />
-          <span className="text-sm text-on-surface-variant">验证中...</span>
+        <div className="card flex items-center gap-2 px-3 py-2">
+          <span className="spinner" />
+          <span className="text-[12px] text-(--color-text-2)">验证中…</span>
         </div>
       )}
 
       {(status === 'empty' || status === 'invalid') && (
         <>
           {status === 'invalid' && (
-            <div className="mb-2 text-sm text-error">密钥无效或已过期，请重新输入。</div>
+            <div className="mb-1.5 text-[11.5px] text-(--color-danger)">密钥无效或已过期，请重新输入。</div>
           )}
-          <div className="flex gap-2">
+          <div className="flex gap-1.5">
             <input
               type="password"
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit() }}
               placeholder={placeholder}
-              className="flex-1 min-w-0 rounded-xl bg-surface-container px-3 py-2.5 text-base
-                         border border-transparent focus:border-primary focus:outline-none
+              className="flex-1 min-w-0 rounded-[6px] border border-(--color-border) bg-(--color-surface) px-2.5 py-1.5 text-[12.5px]
+                         focus:border-(--color-accent) focus:shadow-[0_0_0_3px_var(--color-accent-wash)]
                          transition-all
-                         placeholder:text-base placeholder:text-on-surface-variant/40"
+                         placeholder:text-(--color-text-4)"
             />
             {draft.trim() && (
               <button
                 type="button"
                 onClick={handleSubmit}
-                className="rounded-xl bg-primary px-3 py-2 text-base font-medium text-on-primary
-                           hover:bg-primary-hover active:bg-primary/80 transition-colors shrink-0"
+                className="cta shrink-0"
+                style={{ height: 30, padding: '0 12px' }}
               >
                 设置
               </button>

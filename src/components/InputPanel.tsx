@@ -10,62 +10,54 @@ import { ChipGroup } from './ChipGroup'
 import { AspectRatioSelector } from './AspectRatioSelector'
 import { ReferenceImageUpload } from './ReferenceImageUpload'
 import { Icon } from './Icon'
-import type { Provider } from '../config/models'
 
-function ApiKeysButton({
-  currentProvider,
-  currentStatus,
-  googleStatus,
-  openaiStatus,
-  onOpen,
-}: {
-  currentProvider: Provider
-  currentStatus: ApiKeyStatus
-  googleStatus: ApiKeyStatus
-  openaiStatus: ApiKeyStatus
-  onOpen: () => void
-}) {
-  const needsAttention = currentStatus !== 'valid' && currentStatus !== 'validating'
+// ——— Section helper ———
+function Section({ label, right, hint, children }: { label: string; right?: ReactNode; hint?: ReactNode; children: ReactNode }) {
   return (
-    <button
-      type="button"
-      onClick={onOpen}
-      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors text-left
-        ${needsAttention
-          ? 'bg-primary-dim text-primary hover:bg-primary/15 active:bg-primary/20'
-          : 'bg-surface-container text-on-surface hover:bg-on-surface/8 active:bg-on-surface/12'}`}
-    >
-      <Icon name="key" className="h-4 w-4" />
-      <span className="text-base font-medium">API Keys</span>
-      <div className="flex-1" />
-      <div className="flex items-center gap-3">
-        <KeyBadge label="Gemini" status={googleStatus} dim={currentProvider !== 'google'} />
-        <KeyBadge label="OpenAI" status={openaiStatus} dim={currentProvider !== 'openai'} />
+    <div className="mb-[18px]">
+      <div className="flex items-center justify-between mb-1.5 min-h-[20px]">
+        <div className="flex items-center gap-2">
+          <span className="label">{label}</span>
+          {hint && <span className="text-[11px] text-(--color-text-4)">{hint}</span>}
+        </div>
+        {right}
       </div>
-    </button>
+      {children}
+    </div>
   )
 }
 
-function getModelButtonLabel(model: ModelConfig) {
-  if (model.provider === 'google') {
-    return model.name.replace(/^Nano\s+/, '')
-  }
-
-  return model.name
+// Filled sparkles — used on the 增强 affordance for extra weight
+function SparklesFilled({ size = 12 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      stroke="currentColor"
+      strokeWidth={1.6}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={{ flexShrink: 0 }}
+    >
+      {/* main star: filled */}
+      <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" />
+      {/* accent cross marks: keep as strokes (fill=none so they render as lines) */}
+      <path d="M20 3v4" fill="none" />
+      <path d="M22 5h-4" fill="none" />
+      <path d="M4 17v2" fill="none" />
+      <path d="M5 18H3" fill="none" />
+    </svg>
+  )
 }
 
-function KeyBadge({ label, status, dim }: { label: string; status: ApiKeyStatus; dim: boolean }) {
-  const isValid = status === 'valid'
-  const isInvalid = status === 'invalid'
+// OpenAI logo SVG used in the model segmented control
+function OpenAILogo({ size = 11 }: { size?: number }) {
   return (
-    <span className={`inline-flex items-center gap-1 text-sm ${dim ? 'opacity-60' : ''}`}>
-      <span
-        className={`w-1.5 h-1.5 rounded-full ${
-          isValid ? 'bg-success' : isInvalid ? 'bg-error' : 'bg-on-surface-variant/40'
-        }`}
-      />
-      <span className="text-on-surface-variant">{label}</span>
-    </span>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" style={{ flexShrink: 0 }}>
+      <path d="M22.28 9.82a5.95 5.95 0 0 0-.51-4.91 6.04 6.04 0 0 0-6.5-2.9A6.06 6.06 0 0 0 4.98 4.18a5.99 5.99 0 0 0-4 2.9 6.05 6.05 0 0 0 .74 7.1 5.98 5.98 0 0 0 .51 4.9 6.05 6.05 0 0 0 6.51 2.9A5.98 5.98 0 0 0 13.26 24a6.06 6.06 0 0 0 5.77-4.2 5.99 5.99 0 0 0 4-2.9 6.06 6.06 0 0 0-.75-7.08Zm-9.02 12.63a4.48 4.48 0 0 1-2.88-1.04l.14-.08 4.78-2.76a.78.78 0 0 0 .39-.68v-6.74L17.7 12.3a.07.07 0 0 1 .04.05v5.58a4.5 4.5 0 0 1-4.48 4.51Zm-9.64-4.12a4.48 4.48 0 0 1-.54-3.03l.14.09 4.78 2.76a.78.78 0 0 0 .78 0l5.84-3.37v2.33a.08.08 0 0 1-.03.06L9.78 20a4.51 4.51 0 0 1-6.16-1.65Zm-1.19-9.9a4.5 4.5 0 0 1 2.35-1.98v5.68a.78.78 0 0 0 .39.67l5.8 3.35-2.2 1.27a.08.08 0 0 1-.08 0l-4.83-2.79a4.51 4.51 0 0 1-1.43-6.2Zm16.6 3.86L13.24 9 15.43 7.73a.07.07 0 0 1 .08 0l4.83 2.79a4.5 4.5 0 0 1-.68 8.12v-5.69a.78.78 0 0 0-.4-.67Zm2.18-3.27-.14-.09-4.77-2.77a.79.79 0 0 0-.79 0L9.57 9.54V7.2a.07.07 0 0 1 .03-.06l4.83-2.79a4.5 4.5 0 0 1 6.68 4.67Zm-12.64 4.5-2.19-1.26a.07.07 0 0 1-.04-.06V6.63a4.5 4.5 0 0 1 7.38-3.47l-.14.08L8.8 6a.78.78 0 0 0-.39.68ZM9.76 11l2.6-1.5 2.6 1.5v3l-2.6 1.5-2.6-1.5Z" />
+    </svg>
   )
 }
 
@@ -87,7 +79,10 @@ function renderHighlighted(text: string): ReactNode[] {
       if (line.startsWith(needle)) {
         const rest = line.slice(needle.length).replace(/^ /, '')
         parts.push(
-          <span key={i}><span className="text-tertiary bg-tertiary-dim rounded px-0.5">{label}</span>：{rest}</span>
+          <span key={i}>
+            <span className="rounded-[3px] px-[3px] font-medium" style={{ background: 'var(--color-accent-wash)', color: 'var(--color-accent)' }}>{label}</span>
+            ：{rest}
+          </span>
         )
         found = true
         break
@@ -122,6 +117,11 @@ function autoResizeTextarea(el: HTMLTextAreaElement) {
   if (scrollContainer && prevScroll !== undefined) scrollContainer.scrollTop = prevScroll
 }
 
+function getModelShortLabel(model: ModelConfig) {
+  if (model.provider === 'openai') return model.name
+  return model.name.replace(/^Nano\s+/, '')
+}
+
 type Props = {
   model: ModelConfig
   resolution: string
@@ -136,7 +136,7 @@ type Props = {
   referenceImages: PlaygroundImage[]
   generationState: GenerationState
   apiKey: string
-  apiKeyStatus: ApiKeyStatus
+  apiKeyStatus?: ApiKeyStatus
   googleKeyStatus: ApiKeyStatus
   openaiKeyStatus: ApiKeyStatus
   onOpenApiKeys: () => void
@@ -174,7 +174,6 @@ export function InputPanel({
   referenceImages,
   generationState,
   apiKey,
-  apiKeyStatus,
   googleKeyStatus,
   openaiKeyStatus,
   onOpenApiKeys,
@@ -195,16 +194,13 @@ export function InputPanel({
   onCancel,
   onDraftBatchOverride,
   onDraftPreviewHover,
-  onDraftLabelsOverride,
 }: Props) {
   const isGenerating = generationState === 'generating'
   const maxRef = model.maxReferenceImages + model.maxCharacterImages
-
   const pricePerImage = getPricePerImage(model, resolution, aspectRatio, quality)
   const augmentModelLabel = model.provider === 'openai' ? 'GPT-5.4 mini' : 'Gemini 3 Flash'
 
   const [isAugmenting, setIsAugmenting] = useState(false)
-  const [schemesCollapsed, setSchemesCollapsed] = useState(false)
   const hasPrompt = prompt.trim() !== ''
 
   const canGenerate = apiKey.trim() !== '' && hasPrompt && !isGenerating && !isAugmenting
@@ -218,9 +214,6 @@ export function InputPanel({
   const [revealedLength, setRevealedLength] = useState<number | null>(null)
   const typewriterRef = useRef({ target: '', raf: 0, current: 0 })
 
-  // Undo toast state
-  const [undoToast, setUndoToast] = useState<{ text: string; timer: number } | null>(null)
-
   // --- Undo/redo history ---
   const historyRef = useRef({ entries: [prompt], index: 0 })
   const debounceRef = useRef<number>(0)
@@ -229,7 +222,6 @@ export function InputPanel({
   const canUndo = historyRef.current.index > 0
   const canRedo = historyRef.current.index < historyRef.current.entries.length - 1
 
-  // Debounced push to undo history — called from prompt-changing entry points
   const pushHistory = useCallback((value: string) => {
     window.clearTimeout(debounceRef.current)
     debounceRef.current = window.setTimeout(() => {
@@ -266,12 +258,10 @@ export function InputPanel({
 
   const canAugment = apiKey.trim() !== '' && (hasPrompt || referenceImages.length > 0)
 
-  // Resize before paint so height is always correct when content changes (including after augment)
   useLayoutEffect(() => {
     if ((!isAugmenting || schemes.length > 0) && textareaRef.current) autoResizeTextarea(textareaRef.current)
   }, [prompt, isAugmenting, schemes.length, revealedLength])
 
-  // Typewriter: animate text reveal during augmentation
   useEffect(() => {
     if (!isAugmenting) {
       cancelAnimationFrame(typewriterRef.current.raf)
@@ -299,18 +289,18 @@ export function InputPanel({
 
   useEffect(() => () => { cancelAnimationFrame(typewriterRef.current.raf); window.clearTimeout(debounceRef.current) }, [])
 
-  // Cmd+Enter shortcut for generate
+  // Cmd+Enter shortcut
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.metaKey && e.key === 'Enter') {
         e.preventDefault()
-        if (isGenerating) { onCancel() }
-        else if (canGenerate) { if (schemes.length > 0) setSchemesCollapsed(true); onGenerate() }
+        if (isGenerating) onCancel()
+        else if (canGenerate) onGenerate()
       }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [isGenerating, canGenerate, schemes.length, onCancel, onGenerate])
+  }, [isGenerating, canGenerate, onCancel, onGenerate])
 
   const displayPrompt = revealedLength !== null ? prompt.slice(0, revealedLength) : prompt
   const isTyping = revealedLength !== null && isAugmenting
@@ -321,7 +311,6 @@ export function InputPanel({
     const sourcePrompt = useOriginal && originalPrompt !== null ? originalPrompt : prompt
     if (!sourcePrompt.trim() && referenceImages.length === 0) return
 
-    // When prompt is empty but images are present, hint the model to work from images
     const effectivePrompt = sourcePrompt.trim() || '用户的原始提示词是空的，请你基于图片提供几个创意方案'
 
     if (!useOriginal) {
@@ -330,37 +319,32 @@ export function InputPanel({
 
     setIsAugmenting(true)
     setAugmentError(null)
-    setSchemesCollapsed(false)
     onSchemesChange([])
     onCurrentSchemeIndexChange(0)
 
-    // Seed typewriter target so the effect won't trigger on the existing prompt
     cancelAnimationFrame(typewriterRef.current.raf)
     typewriterRef.current = { target: prompt, raf: 0, current: 0 }
 
     const controller = new AbortController()
     abortRef.current = controller
-    // 5min timeout — thinking + streaming can take a while
     const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(REQUEST_TIMEOUT_MS)])
 
     let gotSchemes = false
     let firstScheme = true
     try {
-      await augmentPromptStream(model.provider, apiKey, effectivePrompt, referenceImages, (schemes, done) => {
-        if (schemes.length > 0) {
+      await augmentPromptStream(model.provider, apiKey, effectivePrompt, referenceImages, (newSchemes, done) => {
+        if (newSchemes.length > 0) {
           gotSchemes = true
-          onSchemesChange(schemes)
+          onSchemesChange(newSchemes)
           if (firstScheme) {
             firstScheme = false
             onCurrentSchemeIndexChange(0)
             setRevealedLength(0)
-            onPromptChange(schemes[0].text)
-            pushHistory(schemes[0].text)
+            onPromptChange(newSchemes[0].text)
+            pushHistory(newSchemes[0].text)
           }
         }
-        if (done) {
-          onModeChange('structured')
-        }
+        if (done) onModeChange('structured')
       }, signal)
     } catch (e) {
       if ((e as Error).name !== 'AbortError') {
@@ -370,7 +354,6 @@ export function InputPanel({
         setAugmentError(msg)
         onModeChange(gotSchemes ? 'structured' : (useOriginal ? 'structured' : 'text'))
       } else if (gotSchemes) {
-        // User cancelled but we have partial results — keep them
         onModeChange('structured')
       }
     } finally {
@@ -383,7 +366,6 @@ export function InputPanel({
     setIsAugmenting(false)
   }, [])
 
-  // --- Scheme management ---
   const handleSelectScheme = useCallback((index: number) => {
     onCurrentSchemeIndexChange(index)
     if (schemes[index]) {
@@ -401,33 +383,9 @@ export function InputPanel({
     onOriginalPromptChange(null)
     onSchemesChange([])
     onModeChange('text')
-    setSchemesCollapsed(false)
   }, [onModeChange, onSchemesChange, onOriginalPromptChange])
 
-  // --- Clear / Undo toast ---
-  const handleClear = useCallback(() => {
-    const saved = prompt
-    onPromptChange('')
-    const timer = window.setTimeout(() => setUndoToast(null), 5000)
-    setUndoToast((prev) => {
-      if (prev) window.clearTimeout(prev.timer)
-      return { text: saved, timer }
-    })
-  }, [prompt, onPromptChange])
-
-  const handleUndo = useCallback(() => {
-    if (!undoToast) return
-    onPromptChange(undoToast.text)
-    window.clearTimeout(undoToast.timer)
-    setUndoToast(null)
-  }, [undoToast, onPromptChange])
-
-  const handleDismissToast = useCallback(() => {
-    if (undoToast) window.clearTimeout(undoToast.timer)
-    setUndoToast(null)
-  }, [undoToast])
-
-  // --- Drag-and-drop for reference images (panel-wide) ---
+  // --- Drag-and-drop ---
   const [dragOver, setDragOver] = useState(false)
   const dragCountRef = useRef(0)
 
@@ -451,19 +409,16 @@ export function InputPanel({
     dragCountRef.current = 0
     setDragOver(false)
 
-    // Check for playground image data (dragged from history)
     const imageJson = e.dataTransfer.getData('application/x-playground-image')
     if (imageJson) {
       try {
         const img: PlaygroundImage = JSON.parse(imageJson)
         onAddReferenceImage(img)
         return
-      } catch { /* fall through to file handling */ }
+      } catch { /* fall through */ }
     }
 
-    const files = Array.from(e.dataTransfer.files).filter((f) =>
-      f.type.startsWith('image/'),
-    )
+    const files = Array.from(e.dataTransfer.files).filter((f) => f.type.startsWith('image/'))
     if (files.length > 0) onAddReferenceImages(files)
   }, [onAddReferenceImages, onAddReferenceImage])
 
@@ -474,7 +429,6 @@ export function InputPanel({
         const file = item.getAsFile()
         if (!file) return null
         if (file.name) return file
-
         const ext = file.type.split('/')[1] || 'png'
         return new File([file], `pasted-image-${Date.now()}-${index + 1}.${ext}`, {
           type: file.type,
@@ -484,64 +438,106 @@ export function InputPanel({
       .filter((file): file is File => file !== null)
 
     if (imageFiles.length === 0) return
-
     e.preventDefault()
     onAddReferenceImages(imageFiles)
   }, [onAddReferenceImages])
 
-  // --- Cost estimate ---
   const estimatedCost = pricePerImage !== null ? pricePerImage * batchCount : null
 
+  const currentKeyStatus = model.provider === 'google' ? googleKeyStatus : openaiKeyStatus
+  const keyDisplay: Record<string, { color: string; bg: string; border: string; text: string }> = {
+    valid:      { color: 'var(--color-success)', bg: 'color-mix(in srgb, var(--color-success) 10%, transparent)', border: 'color-mix(in srgb, var(--color-success) 30%, var(--color-border))', text: '已验证' },
+    validating: { color: 'var(--color-text-3)', bg: 'var(--color-surface-2)', border: 'var(--color-border)', text: '验证中' },
+    invalid:    { color: 'var(--color-danger)', bg: 'color-mix(in srgb, var(--color-danger) 10%, transparent)', border: 'color-mix(in srgb, var(--color-danger) 30%, var(--color-border))', text: '无效' },
+    empty:      { color: 'var(--color-text-3)', bg: 'var(--color-surface-2)', border: 'var(--color-border)', text: '未配置' },
+  }
+  const keyInfo = keyDisplay[currentKeyStatus] ?? keyDisplay.empty
+  const maskedKey = apiKey ? `${apiKey.slice(0, 4)}******${apiKey.slice(-3)}` : ''
+
   return (
-    <div ref={panelRef}
+    <div
+      ref={panelRef}
       onDragEnter={handlePanelDragEnter}
       onDragLeave={handlePanelDragLeave}
       onDragOver={handlePanelDragOver}
       onDrop={handlePanelDrop}
       onPaste={handlePanelPaste}
-      className="w-full flex flex-col gap-4 px-2 py-4 md:px-4 relative">
+      className="relative px-[18px] py-[18px] pb-[120px]"
+    >
+      {/* Title + meta */}
+      <div className="mb-[18px]">
+        <div className="text-[15px] font-semibold tracking-[-0.01em] mb-0.5">新生成任务</div>
+        <div className="text-[12px] text-(--color-text-3)">配置参数，撰写提示词，最多生成 {model.maxBatchCount} 张。</div>
+      </div>
 
-      {/* API Keys trigger */}
-      <ApiKeysButton
-        currentProvider={model.provider}
-        currentStatus={apiKeyStatus}
-        googleStatus={googleKeyStatus}
-        openaiStatus={openaiKeyStatus}
-        onOpen={onOpenApiKeys}
-      />
+      {/* API key card */}
+      <Section
+        label="API 密钥"
+        right={
+          <button type="button" onClick={onOpenApiKeys} className="chip ghost" style={{ height: 22, padding: '0 6px', fontSize: 11.5 }}>
+            管理
+          </button>
+        }
+      >
+        <div className="card flex items-center gap-2.5 px-3 py-2">
+          <Icon name="key" size={13} />
+          <span className="text-[12.5px] font-medium">{model.provider === 'google' ? 'Gemini' : 'OpenAI'}</span>
+          {maskedKey && <span className="mono text-[11px] text-(--color-text-3)">{maskedKey}</span>}
+          <div className="flex-1" />
+          <span
+            className="tag"
+            style={{ color: keyInfo.color, background: keyInfo.bg, borderColor: keyInfo.border }}
+          >
+            {currentKeyStatus === 'valid' && <Icon name="check" size={10} strokeWidth={2} />}
+            {currentKeyStatus === 'validating' && <span className="spinner" style={{ width: 9, height: 9, borderWidth: 1.2 }} />}
+            {keyInfo.text}
+          </span>
+        </div>
+      </Section>
 
-      {/* Model */}
-      <div>
-        <label className="mb-3 block text-base font-medium text-on-surface-variant">模型</label>
-        <div className="grid grid-cols-3 gap-2">
+      {/* MODEL segmented */}
+      <Section
+        label="模型"
+        right={<span className="mono text-[11px] text-(--color-text-4)">{model.apiModel}</span>}
+      >
+        <div
+          className="segmented"
+          style={{
+            ['--seg-count' as string]: MODEL_CONFIGS.length,
+            ['--seg-index' as string]: Math.max(0, MODEL_CONFIGS.findIndex((m) => m.id === model.id)),
+          }}
+        >
           {MODEL_CONFIGS.map((m) => (
             <button
               key={m.id}
               type="button"
+              data-active={model.id === m.id}
               onClick={() => onSwitchModel(m.id)}
               title={m.name}
-              className={`flex min-w-0 items-center justify-center gap-1.5 rounded-2xl px-2.5 py-3 text-sm font-medium transition-colors
-                ${model.id === m.id
-                  ? 'bg-primary-dim text-primary ring-1 ring-primary/18 hover:bg-primary/15 active:bg-primary/20'
-                  : 'bg-surface-container text-on-surface hover:bg-on-surface/8 active:bg-on-surface/12'
-                }`}
             >
-              {m.provider === 'google' && <span className="shrink-0">🍌</span>}
-              <span className="min-w-0 truncate whitespace-nowrap">{getModelButtonLabel(m)}</span>
+              {m.provider === 'google' ? (
+                <span className="text-[11px]">🍌</span>
+              ) : (
+                <OpenAILogo />
+              )}
+              <span>{getModelShortLabel(m)}</span>
             </button>
           ))}
         </div>
-      </div>
+      </Section>
 
-      {/* Resolution */}
-      <ChipGroup
-        label="分辨率"
-        options={model.resolutions}
-        value={resolution}
-        onChange={onResolutionChange}
-      />
+      {/* Resolution chips */}
+      <Section label="分辨率">
+        <ChipGroup
+          options={model.resolutions}
+          value={resolution}
+          onChange={onResolutionChange}
+          mono={false}
+          columns={model.resolutions.length}
+        />
+      </Section>
 
-      {/* Aspect Ratio */}
+      {/* Aspect ratio grid */}
       <AspectRatioSelector
         options={model.aspectRatios}
         value={aspectRatio}
@@ -552,302 +548,237 @@ export function InputPanel({
           : undefined}
       />
 
+      <div className="h-[18px]" />
+
       {/* Quality (OpenAI only) */}
       {model.provider === 'openai' && (
-        <ChipGroup
-          label="质量"
-          options={model.qualities}
-          value={quality}
-          onChange={onQualityChange}
-        />
+        <Section label="质量">
+          <ChipGroup
+            options={model.qualities}
+            value={quality}
+            onChange={onQualityChange}
+            mono={false}
+            columns={model.qualities.length}
+          />
+        </Section>
       )}
 
-      {/* Reference Images */}
-      <ReferenceImageUpload
-        images={referenceImages}
-        maxTotal={maxRef}
-        dragOver={dragOver}
-        onAdd={onAddReferenceImages}
-        onRemove={onRemoveReferenceImage}
-      />
+      {/* Reference images */}
+      <div className="mb-[18px]">
+        <ReferenceImageUpload
+          images={referenceImages}
+          maxTotal={maxRef}
+          dragOver={dragOver}
+          onAdd={onAddReferenceImages}
+          onRemove={onRemoveReferenceImage}
+        />
+      </div>
 
-      {/* Prompt section */}
-      <div className="flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-3 min-h-[32px] shrink-0">
-          <label className="text-base font-medium text-on-surface-variant">提示词</label>
-        </div>
-
-        {/* Prompt content */}
-        <div className="flex flex-col">
-
-        {isAugmenting && schemes.length === 0 && (
-          <div className="flex flex-col items-center justify-center gap-3 py-8 bg-surface-container rounded-xl">
-            <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-            <p className="text-sm text-on-surface-variant">正在使用 <span className="text-primary">{augmentModelLabel}</span> 增强提示词...</p>
-            <button type="button" onClick={handleCancelAugment}
-              className="text-sm text-on-surface-variant hover:text-on-surface transition-colors">取消</button>
+      {/* Prompt */}
+      <Section
+        label="提示词"
+        right={
+          <div className="flex gap-0.5">
+            <button type="button" onClick={handleHistoryUndo} disabled={!canUndo} title="撤销" className="icon-btn">
+              <Icon name="undo" size={13} />
+            </button>
+            <button type="button" onClick={handleHistoryRedo} disabled={!canRedo} title="重做" className="icon-btn">
+              <Icon name="redo" size={13} />
+            </button>
           </div>
-        )}
-
-        {(!isAugmenting || schemes.length > 0) && (
-          <>
-            {/* Augment result card */}
-            {schemes.length > 0 && (mode === 'structured' || isAugmenting) && (
-              <div className="mb-4 rounded-2xl border border-outline-variant/40 bg-surface-container/50 px-4 py-3 flex flex-col">
-                {/* Header row — always visible, content swaps instantly */}
-                <div className="flex items-center gap-2 min-h-[28px]">
-                  {schemesCollapsed && !isAugmenting ? (
-                    <>
-                      <span className="rounded-lg bg-tertiary-dim px-3 py-1.5 text-base font-medium text-tertiary">
-                        {schemes[currentSchemeIndex]?.title}
-                      </span>
-                      <button type="button" onClick={() => setSchemesCollapsed(false)}
-                        className="text-sm text-on-surface-variant/70 hover:text-on-surface transition-colors">
-                        切换方案
-                      </button>
-                      <div className="flex-1" />
-                      <div className="relative group/close">
-                        <button type="button" onClick={handleDiscardAugment}
-                          className="flex items-center justify-center w-4 h-4 translate-y-px rounded-full text-on-surface-variant/50 hover:text-on-surface transition-colors">
-                          <Icon name="close" className="h-3.5 w-3.5" />
-                        </button>
-                        <div className="absolute bottom-full right-0 mb-2 pointer-events-none whitespace-nowrap rounded bg-on-surface px-2 py-1 text-sm text-surface opacity-0 transition-opacity delay-500 duration-150 group-hover/close:opacity-100 z-50">
-                          退出增强模式
-                        </div>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="flex items-center gap-3 w-full">
-                      {isAugmenting ? (
-                        <>
-                          <div className="w-3.5 h-3.5 border-2 border-tertiary border-t-transparent rounded-full animate-spin shrink-0" />
-                        <p className="text-base text-on-surface-variant">已生成 {schemes.length} 个方案...</p>
-                        </>
-                      ) : (
-                        <p className="text-base text-on-surface-variant">
-                          {schemes.length > 1 ? `${schemes.length} 个增强方案` : 'AI 已增强提示词'}
-                        </p>
-                      )}
-                      <div className="flex-1" />
-                      {isAugmenting ? (
-                        <button type="button" onClick={handleCancelAugment}
-                          className="text-sm text-on-surface-variant/70 hover:text-on-surface transition-colors">
-                          取消
-                        </button>
-                      ) : (
-                        <>
-                          <div className="relative group/reaugment">
-                            <button type="button" onClick={() => handleAugment(true)} disabled={originalPrompt === null}
-                              className="text-sm text-on-surface-variant/70 hover:text-on-surface transition-colors disabled:opacity-40 disabled:pointer-events-none">
-                              重新增强
-                            </button>
-                            <div className="absolute bottom-full right-0 mb-2 pointer-events-none whitespace-nowrap rounded bg-on-surface px-2 py-1 text-sm text-surface opacity-0 transition-opacity delay-500 duration-150 group-hover/reaugment:opacity-100 group-hover/reaugment:delay-500 z-50">
-                              基于原始提示词重新增强
-                            </div>
-                          </div>
-                          {schemes.length > 1 && (
-                            <div className="relative group/gen-all">
-                              <button type="button" disabled={isGenerating}
-                                onClick={() => { onDraftBatchOverride(null); handleGenerateAll() }}
-                                onMouseEnter={() => { if (!isGenerating) { onDraftBatchOverride(schemes.length, schemes.map((s) => s.title)); onDraftPreviewHover(true) } }}
-                                onMouseLeave={() => { onDraftBatchOverride(null); onDraftPreviewHover(false) }}
-                                className="text-sm text-on-surface-variant/70 hover:text-on-surface transition-colors disabled:opacity-40 disabled:pointer-events-none">
-                                各生成一张
-                              </button>
-                              <div className="absolute bottom-full right-0 mb-2 pointer-events-none whitespace-nowrap
-                                              bg-on-surface text-surface text-sm px-2 py-1 rounded
-                                              opacity-0 group-hover/gen-all:opacity-100 transition-opacity duration-150 delay-500 z-50">
-                                每个方案各生成 1 张，共 {schemes.length} 张
-                              </div>
-                            </div>
-                          )}
-                          <div className="relative group/discard">
-                            <button type="button" onClick={handleDiscardAugment}
-                              className="flex items-center justify-center w-4 h-4 translate-y-px rounded-full text-on-surface-variant/50 hover:text-on-surface transition-colors">
-                              <Icon name="close" className="h-3.5 w-3.5" />
-                            </button>
-                            <div className="absolute bottom-full right-0 mb-1 pointer-events-none whitespace-nowrap rounded bg-on-surface px-2 py-1 text-sm text-surface opacity-0 transition-opacity delay-500 duration-150 group-hover/discard:opacity-100 group-hover/discard:delay-500 z-50">
-                              退出增强模式
-                            </div>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {/* Animated body: chips + description */}
-                <div className={`grid transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.2,0,0,1)] ${schemesCollapsed && !isAugmenting ? 'grid-rows-[0fr]' : 'grid-rows-[1fr]'}`}>
-                  <div className="overflow-hidden">
-                    <div className="flex flex-col gap-3 pt-3">
-                      {/* Scheme chips */}
-                      {schemes.length >= 1 && (
-                        <div className="flex flex-wrap items-center gap-2">
-                          {schemes.map((scheme, i) => {
-                            const isSelected = i === currentSchemeIndex
-                            return (
-                              <button key={i} type="button" onClick={() => handleSelectScheme(i)}
-                                disabled={isAugmenting}
-                                className={`rounded-xl px-3 py-2.5 text-sm font-medium transition-colors
-                                  ${isSelected
-                                    ? 'bg-tertiary-dim text-tertiary hover:bg-tertiary/15 active:bg-tertiary/20'
-                                    : 'bg-surface text-on-surface hover:bg-on-surface/8 active:bg-on-surface/12'
-                                  } ${isAugmenting ? 'pointer-events-none' : ''}`}>
-                                {scheme.title}
-                              </button>
-                            )
-                          })}
-                          {isAugmenting && (
-                            <div className="w-3 h-3 border-[1.5px] border-on-surface-variant/30 border-t-on-surface-variant/70 rounded-full animate-spin" />
-                          )}
-                        </div>
-                      )}
-                      {/* Selected scheme description */}
-                      {!isAugmenting && schemes[currentSchemeIndex]?.description && (
-                        <p className="px-3 text-base leading-relaxed text-on-surface-variant">
-                          {schemes[currentSchemeIndex].description}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Text editor with label highlighting */}
-            <div className="relative">
-              <div className="relative rounded-2xl bg-surface-container hover:bg-surface-container-high focus-within:bg-surface-container-high transition-colors min-h-[120px]">
-                <div
-                  aria-hidden="true"
-                  className="absolute inset-0 overflow-hidden rounded-2xl px-4 py-4 pb-12 text-base whitespace-pre-wrap break-words text-on-surface pointer-events-none"
-                >
-                  {prompt
-                    ? <>{renderHighlighted(displayPrompt)}{isTyping && <span className="text-tertiary/70">|</span>}</>
-                    : <span className="text-on-surface-variant/50">描述你想生成的图片...</span>
-                  }
-                </div>
-                <textarea ref={textareaRef} value={displayPrompt}
-                  onChange={(e) => { onPromptChange(e.target.value); pushHistory(e.target.value); autoResizeTextarea(e.target) }}
-                  readOnly={isAugmenting}
-                  rows={1}
-                  style={{ caretColor: 'var(--color-on-surface)' }}
-                  className="relative box-border w-full overflow-hidden bg-transparent px-4 py-4 pb-12 text-base text-transparent resize-none focus:outline-none" />
-              </div>
-              <div className="absolute left-4 right-4 bottom-3 flex items-center gap-3">
-                <button type="button" onClick={handleHistoryUndo} disabled={!canUndo} title="撤销"
-                  className="text-sm text-on-surface-variant/70 hover:text-on-surface transition-colors disabled:opacity-30 disabled:pointer-events-none">
-                  撤销
-                </button>
-                <button type="button" onClick={handleHistoryRedo} disabled={!canRedo} title="重做"
-                  className="text-sm text-on-surface-variant/70 hover:text-on-surface transition-colors disabled:opacity-30 disabled:pointer-events-none">
-                  重做
-                </button>
-                <button type="button" onClick={handleClear} disabled={!hasPrompt}
-                  className={`text-sm text-on-surface-variant/70 hover:text-on-surface transition-colors disabled:pointer-events-none ${hasPrompt ? '' : 'invisible'}`}>
-                  清空
-                </button>
+        }
+      >
+        <div className="flex flex-col gap-2">
+          {/* Augment card */}
+          {schemes.length > 0 && (mode === 'structured' || isAugmenting) && (
+            <div
+              className="fade-in rounded-[8px] px-3 py-2.5"
+              style={{ border: '1px solid var(--color-border)', background: 'var(--color-accent-soft)' }}
+            >
+              <div className="flex items-center gap-1.5 mb-2 min-w-0">
+                <span style={{ color: 'var(--color-accent)', display: 'inline-flex' }}><SparklesFilled size={12} /></span>
+                <span className="text-[12px] font-medium whitespace-nowrap" style={{ color: 'var(--color-accent)' }}>
+                  {isAugmenting ? `已生成 ${schemes.length} 个方案…` : `${schemes.length} 个方案`}
+                </span>
+                <span className="text-[11px] text-(--color-text-4) whitespace-nowrap overflow-hidden text-ellipsis min-w-0">
+                  · {augmentModelLabel}
+                </span>
                 <div className="flex-1" />
-                {mode === 'text' && !isAugmenting && (
-                  <div className="relative group/augment">
-                    <button type="button" onClick={() => handleAugment(false)} disabled={!canAugment}
-                      className={`text-sm text-tertiary hover:text-tertiary/80 transition-colors disabled:pointer-events-none ${canAugment ? '' : 'invisible'}`}>
-                      增强
+                {isAugmenting ? (
+                  <button type="button" onClick={handleCancelAugment} className="bg-transparent border-0 text-(--color-text-3) p-0 whitespace-nowrap text-[11.5px] shrink-0 hover:text-(--color-text) transition-colors">
+                    取消
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => handleAugment(true)}
+                      disabled={originalPrompt === null}
+                      className="bg-transparent border-0 text-(--color-text-3) p-0 whitespace-nowrap text-[11.5px] shrink-0 hover:text-(--color-text) transition-colors disabled:opacity-40 disabled:pointer-events-none"
+                    >
+                      重新增强
                     </button>
-                    <div className={`absolute bottom-full right-0 mb-2 pointer-events-none whitespace-nowrap rounded bg-on-surface px-2 py-1 text-sm text-surface transition-opacity delay-500 duration-150 group-hover/augment:delay-500 z-50 ${canAugment ? 'opacity-0 group-hover/augment:opacity-100' : 'opacity-0'}`}>
-                      使用 {augmentModelLabel} 增强提示词
-                    </div>
-                  </div>
+                    {schemes.length > 1 && (
+                      <button
+                        type="button"
+                        disabled={isGenerating}
+                        onClick={() => { onDraftBatchOverride(null); handleGenerateAll() }}
+                        onMouseEnter={() => { if (!isGenerating) { onDraftBatchOverride(schemes.length, schemes.map((s) => s.title)); onDraftPreviewHover(true) } }}
+                        onMouseLeave={() => { onDraftBatchOverride(null); onDraftPreviewHover(false) }}
+                        className="bg-transparent border-0 text-(--color-text-3) p-0 whitespace-nowrap text-[11.5px] shrink-0 hover:text-(--color-text) transition-colors disabled:opacity-40 disabled:pointer-events-none"
+                      >
+                        各生成一张
+                      </button>
+                    )}
+                    <button type="button" onClick={handleDiscardAugment} className="bg-transparent border-0 text-(--color-text-4) p-0 shrink-0 hover:text-(--color-text) transition-colors" aria-label="退出增强">
+                      <Icon name="close" size={11} />
+                    </button>
+                  </>
                 )}
               </div>
-            </div>
-          </>
-        )}
 
-        {augmentError && <p className="mt-2 text-sm text-error">{augmentError}</p>}
-        </div>{/* end prompt content */}
-      </div>{/* end prompt section */}
+              {/* Scheme chips */}
+              {schemes.length >= 1 && (
+                <div className="flex flex-wrap gap-1 mb-1.5">
+                  {schemes.map((scheme, i) => {
+                    const isSelected = i === currentSchemeIndex
+                    return (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => handleSelectScheme(i)}
+                        disabled={isAugmenting}
+                        className={`chip ${isSelected ? 'accent-active' : ''}`}
+                        style={{ height: 24, fontSize: 11.5, padding: '0 8px' }}
+                        data-active={isSelected}
+                      >
+                        {scheme.title}
+                      </button>
+                    )
+                  })}
+                  {isAugmenting && <span className="spinner" style={{ marginLeft: 4 }} />}
+                </div>
+              )}
 
-      {/* Batch count + generate button + cost */}
-      <div className="flex flex-col gap-4">
-        {/* Batch count */}
-        <div>
-          <label className="mb-3 block text-base font-medium text-on-surface-variant">数量</label>
-          <div className="flex flex-wrap gap-2">
-            {Array.from({ length: model.maxBatchCount }, (_, i) => i + 1).map((n) => (
-              <button key={n} type="button" onClick={() => onBatchCountChange(n)}
-                className={`rounded-xl px-3 py-2.5 text-sm font-medium tabular-nums transition-colors
-                  ${batchCount === n ? 'bg-primary-dim text-primary font-medium hover:bg-primary/15 active:bg-primary/20' : 'bg-surface-container text-on-surface font-medium hover:bg-on-surface/8 active:bg-on-surface/12'}`}>
-                x{n}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Generate Button */}
-        <div
-          className="relative group/btn"
-          onMouseEnter={() => {
-            if (!canGenerate) return
-            onDraftPreviewHover(true)
-            if (mode === 'structured' && schemes[currentSchemeIndex]) {
-              const title = schemes[currentSchemeIndex].title
-              onDraftLabelsOverride(Array.from({ length: batchCount }, () => title))
-            } else if (mode === 'text' && prompt.trim()) {
-              const firstLine = prompt.trimStart().split('\n')[0]
-              const short = firstLine.length > 10 ? firstLine.slice(0, 10) + '…' : firstLine
-              onDraftLabelsOverride(Array.from({ length: batchCount }, () => short))
-            }
-          }}
-          onMouseLeave={() => { onDraftPreviewHover(false); onDraftLabelsOverride(null) }}
-        >
-          <button type="button"
-            onClick={isGenerating ? onCancel : () => { if (schemes.length > 0) setSchemesCollapsed(true); onGenerate() }}
-            disabled={!isGenerating && !canGenerate}
-            className={`w-full py-3 text-base font-medium rounded-full transition-colors
-              ${isGenerating ? 'bg-error text-on-primary hover:bg-error/90 active:bg-error/80'
-                : canGenerate ? 'bg-primary text-on-primary hover:bg-primary-hover active:bg-primary/80'
-                : 'bg-surface-container-high text-on-surface-variant/50 cursor-not-allowed'}`}>
-            {isGenerating ? '取消' : <>
-              <span>生成</span>
-              <span className={`inline-flex items-center ml-2 ${canGenerate ? 'text-on-primary/50' : 'text-on-surface-variant/30'}`} aria-hidden="true">
-                <span className="inline-flex whitespace-pre text-sm leading-none">
-                  <kbd className="inline-flex font-sans"><span className="min-w-[1em] text-center">⌘</span></kbd> <kbd className="inline-flex font-sans"><span className="min-w-[1em] text-center">⏎</span></kbd>
-                </span>
-              </span>
-            </>}
-          </button>
-          {!isGenerating && !apiKey.trim() && (
-            <div className="absolute bottom-full left-1/2 mb-2 -translate-x-1/2 whitespace-nowrap rounded bg-on-surface px-3 py-2 text-sm text-surface pointer-events-none opacity-0 transition-opacity group-hover/btn:opacity-100">
-              请先配置 API Key
+              {!isAugmenting && schemes[currentSchemeIndex]?.description && (
+                <div className="text-[12px] leading-[1.55] text-(--color-text-2)">
+                  {schemes[currentSchemeIndex].description}
+                </div>
+              )}
             </div>
           )}
-        </div>
 
-        {/* Cost estimate */}
-        {estimatedCost !== null && (
-          <p className="-mt-2 text-center text-sm text-on-surface-variant/60">
-            预估费用约 ${estimatedCost.toFixed(3)}
-            <span className="ml-1 opacity-70">({batchCount} 张 x ${pricePerImage!.toFixed(3)})</span>
-          </p>
+          {isAugmenting && schemes.length === 0 && (
+            <div className="card p-4 flex flex-col items-center gap-2">
+              <span className="spinner" />
+              <div className="text-[12px] text-(--color-text-2)">
+                <span className="font-medium" style={{ color: 'var(--color-accent)' }}>{augmentModelLabel}</span> 正在增强提示词
+              </div>
+              <button type="button" onClick={handleCancelAugment} className="bg-transparent border-0 text-[11.5px] text-(--color-text-3) hover:text-(--color-text) transition-colors">
+                取消
+              </button>
+            </div>
+          )}
+
+          {/* Textarea */}
+          <div className="prompt-wrap">
+            <div className="relative">
+              <div
+                aria-hidden="true"
+                className="absolute inset-0 px-3 py-2.5 text-[13.5px] leading-[1.55] whitespace-pre-wrap break-words pointer-events-none"
+                style={{ color: 'var(--color-text)', fontFamily: 'inherit' }}
+              >
+                {prompt
+                  ? <>{renderHighlighted(displayPrompt)}{isTyping && <span style={{ color: 'var(--color-accent)', opacity: 0.7 }}>|</span>}</>
+                  : <span className="text-(--color-text-4)">描述你想生成的图片…  例：一只在霓虹雨夜里啃香蕉的机械猫</span>
+                }
+              </div>
+              <textarea
+                ref={textareaRef}
+                value={displayPrompt}
+                onChange={(e) => { onPromptChange(e.target.value); pushHistory(e.target.value); autoResizeTextarea(e.target) }}
+                readOnly={isAugmenting}
+                rows={1}
+                style={{ caretColor: 'var(--color-text)', color: 'transparent' }}
+                className="relative box-border w-full bg-transparent px-3 py-2.5 text-[13.5px] leading-[1.55] resize-none focus:outline-none block"
+              />
+            </div>
+            <div className="flex items-center gap-2 px-2.5 py-1.5 border-t border-(--color-border) text-[11.5px] text-(--color-text-3)">
+              <span className="mono text-[11px] text-(--color-text-4)">{prompt.length} 字</span>
+              <div className="flex-1" />
+              {mode === 'text' && !isAugmenting && canAugment && (
+                <button
+                  type="button"
+                  onClick={() => handleAugment(false)}
+                  className="bg-transparent border-0 p-0 inline-flex items-center gap-1 text-[11.5px] font-medium hover:brightness-110 transition-all"
+                  style={{ color: 'var(--color-accent)' }}
+                  title={`使用 ${augmentModelLabel} 增强提示词`}
+                >
+                  <SparklesFilled size={12} /> 增强
+                </button>
+              )}
+            </div>
+          </div>
+
+          {augmentError && <div className="text-[11.5px] text-(--color-danger)">{augmentError}</div>}
+        </div>
+      </Section>
+
+      {/* Batch count */}
+      <Section
+        label="数量"
+        right={
+          estimatedCost !== null && (
+            <span className="mono text-[11px] text-(--color-text-3)">
+              ≈ ${estimatedCost.toFixed(3)}
+            </span>
+          )
+        }
+      >
+        <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${model.maxBatchCount}, 1fr)` }}>
+          {Array.from({ length: model.maxBatchCount }, (_, i) => i + 1).map((n) => (
+            <button
+              key={n}
+              type="button"
+              className="chip justify-center"
+              data-active={batchCount === n}
+              onClick={() => onBatchCountChange(n)}
+            >
+              <span className="mono">×{n}</span>
+            </button>
+          ))}
+        </div>
+      </Section>
+
+      {/* CTA */}
+      <div className="relative">
+        <button
+          type="button"
+          onClick={isGenerating ? onCancel : () => onGenerate()}
+          disabled={!isGenerating && !canGenerate}
+          className={`cta w-full ${isGenerating ? 'danger' : ''}`}
+        >
+          {isGenerating ? (
+            '取消生成'
+          ) : (
+            <>
+              <Icon name="wand" size={13} strokeWidth={1.8} />
+              <span>生成 {batchCount} 张</span>
+              <span className="flex-1" />
+              <span className="flex gap-0.5"><kbd>⌘</kbd><kbd>⏎</kbd></span>
+            </>
+          )}
+        </button>
+        {!isGenerating && !apiKey.trim() && (
+          <div className="mt-1.5 text-[11px] text-(--color-text-4) text-center">
+            请先配置 API Key
+          </div>
         )}
       </div>
 
-      {/* Drag overlay */}
       {dragOver && (
-        <div className="absolute inset-0 z-40 rounded-2xl border-2 border-dashed border-primary/50 bg-primary/5 pointer-events-none" />
-      )}
-
-      {/* Undo snackbar */}
-      {undoToast && (
-        <div className="fixed bottom-6 inset-x-0 z-50 mx-auto flex w-fit items-center gap-2 rounded bg-on-surface pl-4 pr-2 py-3 text-base text-surface shadow-lg animate-[slideUp_200ms_ease-out]">
-          <span>提示词已清空</span>
-          <button type="button" onClick={handleUndo}
-            className="rounded-full px-3 py-1 text-base font-medium text-inverse-primary transition-colors hover:bg-surface/10 active:bg-surface/15">撤销</button>
-          <button type="button" onClick={handleDismissToast} className="flex items-center justify-center p-1 rounded-full hover:bg-surface/10 transition-colors">
-            <Icon name="close" className="h-4 w-4" />
-          </button>
-        </div>
+        <div className="absolute inset-0 z-40 rounded-[8px] border-2 border-dashed pointer-events-none"
+             style={{ borderColor: 'var(--color-accent)', background: 'var(--color-accent-wash)' }} />
       )}
     </div>
   )

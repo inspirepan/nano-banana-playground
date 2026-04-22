@@ -11,7 +11,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@fontsource-variable/work-sans": "^5.2.8",
+    "@fontsource-variable/geist-mono": "^5.2.7",
+    "@fontsource-variable/inter": "^5.2.8",
+    "@fontsource-variable/inter-tight": "^5.2.7",
     "agentation": "^2.3.2",
     "brotli-wasm": "^3.0.1",
     "jszip": "^3.10.1",

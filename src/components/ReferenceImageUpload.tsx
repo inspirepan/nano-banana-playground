@@ -29,66 +29,46 @@ export function ReferenceImageUpload({ images, maxTotal, dragOver, onAdd, onRemo
 
   return (
     <div>
-      <div className="flex items-baseline justify-between mb-3">
-        <label className="text-base font-medium text-on-surface-variant">参考图片</label>
-        {images.length > 0 && (
-          <span className="text-sm text-on-surface-variant/60">
-            {images.length}/{maxTotal}
-          </span>
+      <div className="flex items-center justify-between mb-1.5">
+        <span className="label">参考图</span>
+        <span className="mono text-[11px] text-(--color-text-4)">{images.length}/{maxTotal}</span>
+      </div>
+      <div className="grid grid-cols-5 gap-1.5">
+        {images.map((img) => (
+          <div
+            key={img.id}
+            className="relative group aspect-square rounded-[6px] border border-(--color-border) overflow-hidden bg-(--color-surface-2)"
+          >
+            <img
+              src={`data:${img.mimeType};base64,${img.data}`}
+              alt={getLabel(img)}
+              className="absolute inset-0 w-full h-full object-cover"
+              draggable={false}
+            />
+            <button
+              type="button"
+              onClick={() => onRemove(img.id)}
+              aria-label="移除参考图"
+              className="absolute top-[3px] right-[3px] w-4 h-4 rounded-full bg-black/55 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              <Icon name="close" size={9} strokeWidth={2.4} />
+            </button>
+          </div>
+        ))}
+        {images.length < maxTotal && (
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            className={`dropzone aspect-square flex flex-col items-center justify-center gap-1 text-[11px] font-medium text-(--color-text-3) ${dragOver ? 'border-(--color-accent) bg-(--color-accent-wash)' : ''}`}
+          >
+            <Icon name="plus" size={14} />
+            上传
+          </button>
         )}
       </div>
-      {images.length > 0 ? (
-        <div
-          className={`rounded-2xl transition-colors p-4 flex flex-col justify-center
-            ${dragOver ? 'bg-primary-dim' : 'bg-surface-container hover:bg-surface-container-high'}`}
-        >
-          <div className="flex flex-wrap gap-2 w-full">
-            {images.map((img) => (
-              <div key={img.id} className="relative group w-16 h-16">
-                <img
-                  src={`data:${img.mimeType};base64,${img.data}`}
-                  alt={getLabel(img)}
-                  className="w-full h-full object-cover rounded-xl"
-                />
-                <button
-                  type="button"
-                  onClick={() => onRemove(img.id)}
-                  aria-label="移除参考图"
-                  className="absolute -top-1.5 -right-1.5 w-5 h-5
-                             bg-on-surface/60 text-surface
-                             hover:bg-on-surface/80
-                             rounded-full flex items-center justify-center
-                             opacity-0 group-hover:opacity-100
-                             transition-opacity duration-150"
-                >
-                  <Icon name="close" className="h-3 w-3" />
-                </button>
-              </div>
-            ))}
-            {images.length < maxTotal && (
-              <button
-                type="button"
-                onClick={() => inputRef.current?.click()}
-                className="w-16 h-16 rounded-xl bg-surface-container-high
-                           hover:bg-outline-variant flex items-center justify-center
-                           text-on-surface-variant text-xl transition-colors"
-              >
-                +
-              </button>
-            )}
-          </div>
-        </div>
-      ) : (
-        <button
-          type="button"
-          onClick={() => inputRef.current?.click()}
-          className={`flex items-center gap-2 px-4 py-3 rounded-2xl w-full transition-colors
-            ${dragOver ? 'bg-primary-dim' : 'bg-surface-container hover:bg-surface-container-high'}`}
-        >
-          <Icon name="add_photo_alternate" className="h-[18px] w-[18px] text-on-surface-variant/60" />
-          <span className="text-base text-on-surface-variant/60">点击上传、拖入或粘贴图片</span>
-        </button>
-      )}
+      <div className="text-[11px] text-(--color-text-4) mt-1.5">
+        拖拽文件、粘贴图片，或从历史中拖入
+      </div>
       <input
         ref={inputRef}
         type="file"

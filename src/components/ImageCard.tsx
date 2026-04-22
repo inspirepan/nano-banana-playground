@@ -2,6 +2,7 @@ import { memo, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { PlaygroundImageMeta } from '../lib/types'
 import { ensureBlobLoaded, useImageSrc, getBlobFromCache } from '../hooks/useImageSrc'
+import { Icon } from './Icon'
 
 type Props = {
   image: PlaygroundImageMeta
@@ -15,7 +16,7 @@ type Props = {
 
 export const ImageCard = memo(function ImageCard({ image, inlineData, index, onAddToRef, onRegenerate, onRemove, onOpen }: Props) {
   const CONTEXT_MENU_WIDTH = 160
-  const CONTEXT_MENU_ITEM_HEIGHT = 36
+  const CONTEXT_MENU_ITEM_HEIGHT = 32
   const CONTEXT_MENU_PADDING = 8
   const { ref, src } = useImageSrc(image.id, image.mimeType, inlineData, { variant: 'preview' })
   const meta = image.source.type === 'generated' ? image.source : null
@@ -28,10 +29,7 @@ export const ImageCard = memo(function ImageCard({ image, inlineData, index, onA
   }
 
   const resolveFullSrc = async () => {
-    if (inlineData) {
-      return `data:${image.mimeType};base64,${inlineData}`
-    }
-
+    if (inlineData) return `data:${image.mimeType};base64,${inlineData}`
     return ensureBlobLoaded(image.id, image.mimeType)
   }
 
@@ -60,9 +58,7 @@ export const ImageCard = memo(function ImageCard({ image, inlineData, index, onA
       if (!context) return
       context.drawImage(bitmap, 0, 0)
       bitmap.close()
-      const pngBlob = await new Promise<Blob | null>((resolve) => {
-        canvas.toBlob(resolve, 'image/png')
-      })
+      const pngBlob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'))
       if (!pngBlob) return
       clipboardBlob = pngBlob
     }
@@ -71,13 +67,8 @@ export const ImageCard = memo(function ImageCard({ image, inlineData, index, onA
     showCopiedToast()
   }
 
-  const handleRegenerate = () => {
-    onRegenerate(image)
-  }
-
-  const handleDelete = () => {
-    onRemove(image.id)
-  }
+  const handleRegenerate = () => onRegenerate(image)
+  const handleDelete = () => onRemove(image.id)
 
   const handleDragStart = (event: React.DragEvent) => {
     const data = getBlobFromCache(image.id)
@@ -89,9 +80,7 @@ export const ImageCard = memo(function ImageCard({ image, inlineData, index, onA
   useEffect(() => {
     if (!menu) return
     const handleClose = () => setMenu(null)
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setMenu(null)
-    }
+    const handleEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') setMenu(null) }
     window.addEventListener('mousedown', handleClose)
     window.addEventListener('scroll', handleClose, true)
     window.addEventListener('resize', handleClose)
@@ -105,7 +94,7 @@ export const ImageCard = memo(function ImageCard({ image, inlineData, index, onA
   }, [menu])
 
   const actionItems: Array<{ label: string; onClick: () => void; danger?: boolean }> = [
-    { label: '+参考', onClick: () => onAddToRef(image) },
+    { label: '加为参考', onClick: () => onAddToRef(image) },
     { label: '下载', onClick: handleDownload },
     { label: '复制', onClick: handleCopyImage },
     ...(meta?.prompt ? [{ label: '重做', onClick: handleRegenerate }] : []),
@@ -133,7 +122,7 @@ export const ImageCard = memo(function ImageCard({ image, inlineData, index, onA
           onOpen(image)
         }
       }}
-      className="@container group relative h-full w-full cursor-pointer overflow-hidden rounded-xl border border-outline-variant bg-surface-container"
+      className="img-card group relative h-full w-full cursor-zoom-in"
     >
       {src ? (
         <img
@@ -141,57 +130,73 @@ export const ImageCard = memo(function ImageCard({ image, inlineData, index, onA
           alt={meta?.prompt ?? ''}
           loading="lazy"
           decoding="async"
-          className="block h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+          className="block h-full w-full object-cover"
         />
       ) : (
-        <div className="h-full w-full animate-pulse bg-surface-container-high" />
+        <div className="h-full w-full skeleton-animated" />
       )}
 
-      {/* Gradient scrim */}
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
-
-      {/* MD3 state layer on hover */}
-      <div className="pointer-events-none absolute inset-0 bg-black/0 transition-colors duration-200 group-hover:bg-black/10" />
+      {/* Top meta chip */}
+      <div
+        className="pointer-events-none absolute top-2 left-2 right-2 flex justify-between items-center"
+        style={{ color: '#fff', textShadow: '0 1px 2px rgba(0,0,0,0.4)' }}
+      >
+        {index !== undefined ? (
+          <span
+            className="rounded-[4px] px-1.5 py-0.5 text-[10.5px] font-medium"
+            style={{ background: 'rgba(0,0,0,0.42)', backdropFilter: 'blur(6px)' }}
+          >
+            #{index + 1}
+          </span>
+        ) : <span />}
+        {meta && (
+          <span className="mono text-[10px]" style={{ opacity: 0.85 }}>
+            {meta.resolution} · {meta.aspectRatio}
+          </span>
+        )}
+      </div>
 
       {/* Copied toast */}
       <div
         className={`pointer-events-none absolute inset-x-0 top-1/2 z-10 flex -translate-y-1/2 justify-center transition-all duration-300 ${toast ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}`}
       >
-        <div className="rounded-full bg-black/70 px-4 py-2 text-sm font-medium text-white backdrop-blur-sm">
+        <div className="rounded-[6px] px-3 py-1.5 text-[11px] font-medium" style={{ background: 'rgba(0,0,0,0.7)', color: '#fff', backdropFilter: 'blur(8px)' }}>
           已复制
         </div>
       </div>
 
-      {/* Meta chip — top right, pill */}
-      {meta && (
-        <div className="pointer-events-none absolute top-2 right-2 rounded-full bg-black/40 px-2 py-1 text-sm font-medium tabular-nums text-white/90 backdrop-blur-md">
-          {meta.resolution} · {meta.aspectRatio}
-        </div>
-      )}
-
-      {/* Bottom content */}
-      <div className="absolute inset-x-0 bottom-0 p-3">
-        <div className="mb-2 min-w-0">
-          <div className="line-clamp-2 max-h-[2.2rem] overflow-hidden text-sm font-medium leading-[1.45] text-white/90">
-            {index !== undefined && (
-              <span className="mr-1 text-white/50">#{index + 1}</span>
-            )}
-            {meta?.prompt || '上传图片'}
-          </div>
-        </div>
-
-        {/* Action buttons — pill shape, slide up on hover */}
-        <div className="hidden md:grid grid-cols-2 @[200px]:grid-cols-5 gap-1 opacity-0 translate-y-2 transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100">
-          {actionItems.map((item) => (
-            <ActionButton key={item.label} label={item.label} onClick={item.onClick} danger={item.danger} />
-          ))}
+      {/* Hover overlay — action row */}
+      <div className="overlay">
+        <div className="flex gap-1.5 items-center">
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); handleDownload() }}
+            className="inline-flex items-center gap-1 rounded-[5px] px-2.5 py-1.5 text-[11px] font-medium whitespace-nowrap"
+            style={{ background: 'rgba(255,255,255,0.95)', color: '#111', border: 0 }}
+          >
+            <Icon name="download" size={12} strokeWidth={1.6} /> PNG
+          </button>
+          <OverlayButton icon="plus" onClick={(e) => { e.stopPropagation(); onAddToRef(image) }}>参考</OverlayButton>
+          <span className="flex-1" />
+          <OverlayButton
+            icon="more"
+            onClick={(e) => {
+              e.stopPropagation()
+              const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+              // Open above-left of the button so it doesn't clip the card
+              const menuHeight = actionItems.length * CONTEXT_MENU_ITEM_HEIGHT + CONTEXT_MENU_PADDING
+              const x = Math.max(8, Math.min(rect.right - CONTEXT_MENU_WIDTH, window.innerWidth - CONTEXT_MENU_WIDTH - 8))
+              const y = Math.max(8, rect.top - menuHeight - 4)
+              setMenu({ x, y })
+            }}
+          />
         </div>
       </div>
 
       {menu && createPortal(
         <div
           style={{ top: menu.y, left: menu.x }}
-          className="fixed z-[120] min-w-28 rounded-xl border border-outline-variant bg-surface-container p-1 shadow-xl"
+          className="fixed z-[120] min-w-[140px] rounded-[8px] border border-(--color-border) bg-(--color-surface) p-1 shadow-[0_10px_28px_-12px_rgba(30,27,20,0.18),0_2px_6px_rgba(30,27,20,0.06)]"
         >
           {actionItems.map((item) => (
             <button
@@ -202,10 +207,8 @@ export const ImageCard = memo(function ImageCard({ image, inlineData, index, onA
                 setMenu(null)
                 item.onClick()
               }}
-              className={`flex w-full items-center rounded-lg px-3 py-2 text-left text-sm transition-colors
-                ${item.danger
-                  ? 'text-error hover:bg-error/12 active:bg-error/20'
-                  : 'text-on-surface hover:bg-on-surface/8 active:bg-on-surface/12'}`}
+              className={`flex w-full items-center rounded-[5px] px-2.5 py-1.5 text-left text-[12px] transition-colors
+                ${item.danger ? 'text-(--color-danger) hover:bg-(--color-danger-soft)' : 'text-(--color-text) hover:bg-(--color-surface-2)'}`}
             >
               {item.label}
             </button>
@@ -217,20 +220,27 @@ export const ImageCard = memo(function ImageCard({ image, inlineData, index, onA
   )
 })
 
-function ActionButton({ label, onClick, danger = false }: { label: string; onClick: () => void; danger?: boolean }) {
+function OverlayButton({ icon, onClick, children, danger }: {
+  icon: 'plus' | 'refresh' | 'copy' | 'trash' | 'more'
+  onClick: (e: React.MouseEvent) => void
+  children?: React.ReactNode
+  danger?: boolean
+}) {
+  const hasText = Boolean(children)
   return (
     <button
       type="button"
-      onClick={(event) => {
-        event.stopPropagation()
-        onClick()
+      onClick={onClick}
+      className={`inline-flex items-center gap-1 rounded-[5px] ${hasText ? 'px-2.5 py-1.5' : 'px-1.5 py-1.5'} text-[11px] font-medium whitespace-nowrap transition-colors`}
+      style={{
+        background: danger ? 'rgba(225,86,86,0.28)' : 'rgba(255,255,255,0.15)',
+        color: '#fff',
+        border: '1px solid rgba(255,255,255,0.25)',
+        backdropFilter: 'blur(8px)',
       }}
-      className={`w-full rounded-lg px-1.5 py-1 text-sm font-normal leading-none whitespace-nowrap backdrop-blur-sm transition-colors
-        ${danger
-          ? 'bg-error/30 text-white hover:bg-error/40 active:bg-error/50'
-          : 'bg-white/20 text-white hover:bg-white/30 active:bg-white/40'}`}
     >
-      {label}
+      <Icon name={icon} size={12} strokeWidth={1.6} />
+      {children}
     </button>
   )
 }

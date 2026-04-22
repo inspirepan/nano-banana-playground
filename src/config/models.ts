@@ -91,7 +91,7 @@ export const MODEL_CONFIGS: ModelConfig[] = [
     defaultAspectRatio: '1:1',
     qualities: ['auto', 'low', 'medium', 'high'],
     defaultQuality: 'auto',
-    maxReferenceImages: 10,
+    maxReferenceImages: 16,
     maxCharacterImages: 0,
     maxBatchCount: 4,
   },
