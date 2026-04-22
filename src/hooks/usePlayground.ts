@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { MODEL_CONFIGS, DEFAULT_MODEL, type ModelConfig } from '../config/models'
-import { generateImage } from '../lib/api'
+import { generateImage, REQUEST_TIMEOUT_MS } from '../lib/api'
 import type { PersistedPromptMode, PlaygroundImage, PlaygroundImageMeta, PromptScheme } from '../lib/types'
 import { isKeyError } from '../lib/validateKey'
 import { saveToHistory, loadHistoryPage, deleteFromHistory, clearHistory, loadImageBlobs } from '../lib/history'
@@ -261,12 +261,12 @@ export function usePlayground() {
 
     const controller = new AbortController()
     abortRef.current = controller
-    // 2min timeout — handles cases where API is unreachable (e.g. no proxy)
-    const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(120_000)])
+    // 5min timeout — handles cases where API is unreachable or the upstream is slow
+    const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(REQUEST_TIMEOUT_MS)])
 
     const toDisplayError = (e: unknown): string => {
       const err = e instanceof Error ? e : new Error(String(e))
-      if (err.name === 'TimeoutError') return '请求超时（2min），请检查网络连接或代理配置后重试'
+      if (err.name === 'TimeoutError') return '请求超时（5min），请检查网络连接或代理配置后重试'
       return err.message
     }
 

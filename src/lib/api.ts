@@ -38,7 +38,7 @@ type ApiResponse = {
   }
 }
 
-const REQUEST_TIMEOUT_MS = 5 * 60 * 1000 // 5 minutes
+export const REQUEST_TIMEOUT_MS = 5 * 60 * 1000 // 5 minutes
 
 const GENERATE_MAX_RETRIES = 2
 const GENERATE_RETRY_DELAYS = [1000, 3000]

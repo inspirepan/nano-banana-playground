@@ -3,7 +3,7 @@ import type { PersistedPromptMode, PlaygroundImage, PromptScheme } from '../lib/
 import { MODEL_CONFIGS, type ModelConfig } from '../config/models'
 import type { GenerationState } from '../hooks/usePlayground'
 import type { ApiKeyStatus } from '../hooks/useApiKey'
-import { augmentPromptStream } from '../lib/api'
+import { augmentPromptStream, REQUEST_TIMEOUT_MS } from '../lib/api'
 import { openAISize } from '../lib/openai'
 import { getPricePerImage } from '../lib/pricing'
 import { ChipGroup } from './ChipGroup'
@@ -339,8 +339,8 @@ export function InputPanel({
 
     const controller = new AbortController()
     abortRef.current = controller
-    // 120s timeout — thinking + streaming can take a while
-    const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(120_000)])
+    // 5min timeout — thinking + streaming can take a while
+    const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(REQUEST_TIMEOUT_MS)])
 
     let gotSchemes = false
     let firstScheme = true
@@ -364,7 +364,7 @@ export function InputPanel({
     } catch (e) {
       if ((e as Error).name !== 'AbortError') {
         const msg = (e as Error).name === 'TimeoutError'
-          ? '请求超时，请检查网络连接或代理配置后重试'
+          ? '请求超时（5min），请检查网络连接或代理配置后重试'
           : (e as Error).message
         setAugmentError(msg)
         onModeChange(gotSchemes ? 'structured' : (useOriginal ? 'structured' : 'text'))
