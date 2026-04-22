@@ -7,6 +7,7 @@ import { InputPanel } from './components/InputPanel'
 import { OutputPanel } from './components/OutputPanel'
 import { AppTitle } from './components/AppTitle'
 import { ApiKeysDialog } from './components/ApiKeysDialog'
+import { Icon, type IconName } from './components/Icon'
 
 type Theme = 'light' | 'dark' | 'system'
 type ColorThemeId = 'default' | 'blue' | 'green' | 'yellow' | 'pink' | 'orange' | 'purple'
@@ -69,7 +70,7 @@ function ThemeSettings({ theme, colorTheme, onThemeChange, onColorThemeChange }:
     return () => document.removeEventListener('mousedown', handler)
   }, [open])
 
-  const BRIGHTNESS: { value: Theme; icon: string; label: string }[] = [
+  const BRIGHTNESS: { value: Theme; icon: IconName; label: string }[] = [
     { value: 'light',  icon: 'light_mode', label: '浅色' },
     { value: 'dark',   icon: 'dark_mode',  label: '深色' },
     { value: 'system', icon: 'contrast',   label: '跟随系统' },
@@ -87,7 +88,7 @@ function ThemeSettings({ theme, colorTheme, onThemeChange, onColorThemeChange }:
         className={`w-8 h-8 flex items-center justify-center rounded-full transition-colors
           ${open ? 'bg-on-surface/12 text-on-surface' : 'hover:bg-on-surface/8 active:bg-on-surface/12 text-on-surface-variant'}`}
       >
-        <span className="material-symbols-rounded text-[18px]">{currentIcon}</span>
+        <Icon name={currentIcon} className="h-[18px] w-[18px]" />
       </button>
 
       {/* Popover — portaled to body to escape backdrop-filter containing block */}
@@ -110,7 +111,7 @@ function ThemeSettings({ theme, colorTheme, onThemeChange, onColorThemeChange }:
                     ? 'bg-primary-dim text-primary'
                     : 'text-on-surface-variant hover:bg-on-surface/8 active:bg-on-surface/12'}`}
               >
-                <span className="material-symbols-rounded text-[12px]">{icon}</span>
+                <Icon name={icon} className="h-[12px] w-[12px]" />
               </button>
             ))}
           </div>
@@ -133,7 +134,7 @@ function ThemeSettings({ theme, colorTheme, onThemeChange, onColorThemeChange }:
               <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: ct.color }} />
               {ct.name}
               {colorTheme === ct.id && (
-                <span className="material-symbols-rounded text-sm ml-auto">check</span>
+                <Icon name="check" className="ml-auto h-3.5 w-3.5" />
               )}
             </button>
           ))}

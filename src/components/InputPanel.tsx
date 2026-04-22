@@ -9,6 +9,7 @@ import { getPricePerImage } from '../lib/pricing'
 import { ChipGroup } from './ChipGroup'
 import { AspectRatioSelector } from './AspectRatioSelector'
 import { ReferenceImageUpload } from './ReferenceImageUpload'
+import { Icon } from './Icon'
 import type { Provider } from '../config/models'
 
 function ApiKeysButton({
@@ -34,8 +35,8 @@ function ApiKeysButton({
           ? 'bg-primary-dim text-primary hover:bg-primary/15 active:bg-primary/20'
           : 'bg-surface-container text-on-surface hover:bg-on-surface/8 active:bg-on-surface/12'}`}
     >
-      <span className="material-symbols-rounded text-xl leading-none">key</span>
-      <span className="text-sm font-medium">API Keys</span>
+      <Icon name="key" className="h-4 w-4" />
+      <span className="text-base font-medium">API Keys</span>
       <div className="flex-1" />
       <div className="flex items-center gap-3">
         <KeyBadge label="Gemini" status={googleStatus} dim={currentProvider !== 'google'} />
@@ -609,7 +610,7 @@ export function InputPanel({
                       <div className="relative group/close">
                         <button type="button" onClick={handleDiscardAugment}
                           className="flex items-center justify-center w-4 h-4 translate-y-px rounded-full text-on-surface-variant/50 hover:text-on-surface transition-colors">
-                          <span className="material-symbols-rounded text-sm leading-none">close</span>
+                          <Icon name="close" className="h-3.5 w-3.5" />
                         </button>
                         <div className="absolute bottom-full right-0 mb-2 pointer-events-none whitespace-nowrap rounded bg-on-surface px-2 py-1 text-sm text-surface opacity-0 transition-opacity delay-500 duration-150 group-hover/close:opacity-100 z-50">
                           退出增强模式
@@ -664,7 +665,7 @@ export function InputPanel({
                           <div className="relative group/discard">
                             <button type="button" onClick={handleDiscardAugment}
                               className="flex items-center justify-center w-4 h-4 translate-y-px rounded-full text-on-surface-variant/50 hover:text-on-surface transition-colors">
-                              <span className="material-symbols-rounded text-sm leading-none">close</span>
+                              <Icon name="close" className="h-3.5 w-3.5" />
                             </button>
                             <div className="absolute bottom-full right-0 mb-1 pointer-events-none whitespace-nowrap rounded bg-on-surface px-2 py-1 text-sm text-surface opacity-0 transition-opacity delay-500 duration-150 group-hover/discard:opacity-100 group-hover/discard:delay-500 z-50">
                               退出增强模式
@@ -844,7 +845,7 @@ export function InputPanel({
           <button type="button" onClick={handleUndo}
             className="rounded-full px-3 py-1 text-base font-medium text-inverse-primary transition-colors hover:bg-surface/10 active:bg-surface/15">撤销</button>
           <button type="button" onClick={handleDismissToast} className="flex items-center justify-center p-1 rounded-full hover:bg-surface/10 transition-colors">
-            <span className="material-symbols-rounded text-base">close</span>
+            <Icon name="close" className="h-4 w-4" />
           </button>
         </div>
       )}

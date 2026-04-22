@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Icon } from './Icon'
 
 type Props = {
   label: string
@@ -25,9 +26,7 @@ export function ChipGroup({ label, options, value, onChange }: Props) {
               {value}
             </span>
           )}
-          <span className={`material-symbols-rounded text-base text-on-surface-variant/70 group-hover/header:text-on-surface transition-[transform,color] duration-300 ease-[cubic-bezier(0.2,0,0,1)] ${collapsed ? '' : 'rotate-180'}`}>
-            expand_more
-          </span>
+          <Icon name="expand_more" className={`h-4 w-4 text-on-surface-variant/70 group-hover/header:text-on-surface transition-[transform,color] duration-300 ease-[cubic-bezier(0.2,0,0,1)] ${collapsed ? '' : 'rotate-180'}`} />
         </div>
       </button>
       <div className={`grid transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.2,0,0,1)] ${collapsed ? 'grid-rows-[0fr]' : 'grid-rows-[1fr]'}`}>

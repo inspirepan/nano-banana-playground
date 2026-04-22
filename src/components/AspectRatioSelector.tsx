@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Icon } from './Icon'
 
 type Props = {
   options: string[]
@@ -76,9 +77,7 @@ export function AspectRatioSelector({ options, value, resolution, onChange, pixe
               <span className="text-sm font-medium tabular-nums text-primary">{value}</span>
             </div>
           )}
-          <span className={`material-symbols-rounded text-base text-on-surface-variant/70 group-hover/header:text-on-surface transition-[transform,color] duration-300 ease-[cubic-bezier(0.2,0,0,1)] ${collapsed ? '' : 'rotate-180'}`}>
-            expand_more
-          </span>
+          <Icon name="expand_more" className={`h-4 w-4 text-on-surface-variant/70 group-hover/header:text-on-surface transition-[transform,color] duration-300 ease-[cubic-bezier(0.2,0,0,1)] ${collapsed ? '' : 'rotate-180'}`} />
         </div>
       </button>
       <div className={`grid transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.2,0,0,1)] ${collapsed ? 'grid-rows-[0fr]' : 'grid-rows-[1fr]'}`}>
@@ -127,7 +126,7 @@ export function AspectRatioSelector({ options, value, resolution, onChange, pixe
               className="col-span-2 flex items-center gap-1 px-2 py-1 text-sm font-medium text-on-surface-variant transition-none hover:text-on-surface focus:outline-none"
             >
               <span>{showAll ? '收起' : `+${hiddenCount} 更多`}</span>
-              <span className={`material-symbols-rounded text-sm transition-transform ${showAll ? 'rotate-180' : ''}`}>expand_more</span>
+              <Icon name="expand_more" className={`h-3.5 w-3.5 transition-transform ${showAll ? 'rotate-180' : ''}`} />
             </button>
           )}
         </div>

@@ -6,28 +6,13 @@
   font-display: swap;
 }
 
-@font-face {
-  font-family: 'Google Sans Code';
-  src: url('/fonts/GoogleSansCode-VariableFont_wght.ttf') format('truetype');
-  font-weight: 300 800;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Google Sans Code';
-  src: url('/fonts/GoogleSansCode-Italic-VariableFont_wght.ttf') format('truetype');
-  font-weight: 300 800;
-  font-style: italic;
-  font-display: swap;
-}
 @import "tailwindcss";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --font-sans: 'Google Sans Flex', system-ui, sans-serif;
-  --font-mono: 'Google Sans Code', ui-monospace, monospace;
+  --font-sans: 'Work Sans Variable', system-ui, sans-serif;
+  --font-mono: ui-monospace, 'SFMono-Regular', 'SF Mono', monospace;
 
   /* App typography scale: 14px / 12px */
   --text-base: 0.875rem;
@@ -71,16 +56,6 @@
   --color-title: var(--color-on-surface);
 }
 
-/* Material Symbols Rounded icon font */
-.material-symbols-rounded {
-  font-family: 'Material Symbols Rounded';
-  font-variation-settings: 'FILL' 1, 'wght' 300, 'GRAD' 0, 'opsz' 20;
-  line-height: 1;
-  display: inline-block;
-  user-select: none;
-  font-style: normal;
-}
-
 @layer base {
   body {
     margin: 0;
@@ -88,7 +63,7 @@
     -moz-osx-font-smoothing: grayscale;
     background: var(--color-surface-dim);
     color: var(--color-on-surface);
-    font-variation-settings: 'opsz' 13;
+    font-feature-settings: 'liga' 1, 'calt' 1;
   }
 
   @keyframes shimmer {
@@ -380,6 +355,7 @@
 
   /* App title — condensed/bold default; JS animates per-char on mousemove */
   .app-title {
+    font-family: 'Google Sans Flex', system-ui, sans-serif;
     font-variation-settings: 'wght' 650, 'wdth' 65, 'opsz' 24, 'GRAD' 0;
   }
   .dark .app-title {

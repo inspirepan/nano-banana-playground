@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { Provider } from '../config/models'
 import type { ApiKeyStatus } from '../hooks/useApiKey'
+import { Icon } from './Icon'
 
 type KeyHook = {
   apiKey: string
@@ -58,7 +59,7 @@ export function ApiKeysDialog({ open, googleKey, openaiKey, onClose }: Props) {
             className="flex items-center justify-center w-8 h-8 rounded-full text-on-surface-variant hover:bg-on-surface/8 active:bg-on-surface/12 transition-colors"
             aria-label="关闭"
           >
-            <span className="material-symbols-rounded text-xl leading-none">close</span>
+            <Icon name="close" className="h-5 w-5" />
           </button>
         </div>
         <div className="px-6 pb-6 space-y-5">
@@ -97,7 +98,7 @@ function KeyRow({ provider, hook }: { provider: Provider; hook: KeyHook }) {
 
       {status === 'valid' && (
         <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-surface-container">
-          <span className="material-symbols-rounded text-base text-success leading-none">check_circle</span>
+          <Icon name="check_circle" className="h-4 w-4 text-success" />
           <span className="min-w-0 flex-1 truncate font-mono text-sm text-on-surface-variant">{masked}</span>
           <button
             type="button"

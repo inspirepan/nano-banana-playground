@@ -1,5 +1,6 @@
 import { useCallback, useRef } from 'react'
 import type { PlaygroundImage } from '../lib/types'
+import { Icon } from './Icon'
 
 type Props = {
   images: PlaygroundImage[]
@@ -60,7 +61,7 @@ export function ReferenceImageUpload({ images, maxTotal, dragOver, onAdd, onRemo
                              opacity-0 group-hover:opacity-100
                              transition-opacity duration-150"
                 >
-                  <span className="material-symbols-rounded leading-none" style={{ fontSize: 12, fontVariationSettings: "'wght' 500" }}>close</span>
+                  <Icon name="close" className="h-3 w-3" />
                 </button>
               </div>
             ))}
@@ -84,7 +85,7 @@ export function ReferenceImageUpload({ images, maxTotal, dragOver, onAdd, onRemo
           className={`flex items-center gap-2 px-4 py-3 rounded-2xl w-full transition-colors
             ${dragOver ? 'bg-primary-dim' : 'bg-surface-container hover:bg-surface-container-high'}`}
         >
-          <span className="material-symbols-rounded text-lg leading-none text-on-surface-variant/60">add_photo_alternate</span>
+          <Icon name="add_photo_alternate" className="h-[18px] w-[18px] text-on-surface-variant/60" />
           <span className="text-base text-on-surface-variant/60">点击上传、拖入或粘贴图片</span>
         </button>
       )}

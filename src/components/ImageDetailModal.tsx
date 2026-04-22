@@ -4,6 +4,7 @@ import { MODEL_CONFIGS } from '../config/models'
 import { getPricePerImage } from '../lib/pricing'
 import { ensureBlobLoaded, useImageSrc } from '../hooks/useImageSrc'
 import { loadImageMetas } from '../lib/history'
+import { Icon } from './Icon'
 
 const MIN_SCALE = 0.5
 const MAX_SCALE = 6
@@ -398,7 +399,7 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
                              shadow-sm backdrop-blur-sm transition-colors hover:bg-surface active:bg-surface-dim"
                   aria-label="关闭对比"
                 >
-                  <span className="material-symbols-rounded text-sm shrink-0">close</span>
+                  <Icon name="close" className="h-3.5 w-3.5 shrink-0" />
                   关闭对比
                 </button>
               </div>
@@ -426,7 +427,7 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
                      active:bg-black/60 transition-colors"
           aria-label="关闭"
         >
-          <span className="material-symbols-rounded text-lg">close</span>
+          <Icon name="close" className="h-[18px] w-[18px]" />
         </button>
 
         {/* Nav arrows */}
@@ -440,7 +441,7 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
                        active:bg-black/60 transition-colors"
             aria-label="上一张"
           >
-            <span className="material-symbols-rounded text-base">chevron_left</span>
+            <Icon name="chevron_left" className="h-4 w-4" />
           </button>
         )}
         {!refDetailId && hasNext && (
@@ -453,7 +454,7 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
                        active:bg-black/60 transition-colors"
             aria-label="下一张"
           >
-            <span className="material-symbols-rounded text-base">chevron_right</span>
+            <Icon name="chevron_right" className="h-4 w-4" />
           </button>
         )}
 
@@ -501,11 +502,7 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
                 ) : (
                   <span>{new Date(currentImage.timestamp).toLocaleString()}</span>
                 )}
-                <span
-                  className={`material-symbols-rounded text-sm ml-auto mr-0 transition-transform duration-300 ${sheetExpanded ? 'rotate-180' : ''}`}
-                >
-                  keyboard_arrow_up
-                </span>
+                <Icon name="keyboard_arrow_up" className={`ml-auto mr-0 h-3.5 w-3.5 transition-transform duration-300 ${sheetExpanded ? 'rotate-180' : ''}`} />
               </div>
             </button>
 
@@ -548,7 +545,7 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
                                backdrop-blur-sm transition-colors hover:bg-black/55 active:bg-black/60"
                     aria-label="关闭对比"
                   >
-                    <span className="material-symbols-rounded text-sm shrink-0">close</span>
+                    <Icon name="close" className="h-3.5 w-3.5 shrink-0" />
                     关闭对比
                   </button>
                 </div>
@@ -577,7 +574,7 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
                            transition-colors hover:bg-black/55 active:bg-black/60"
                 aria-label="上一张"
               >
-                <span className="material-symbols-rounded text-base">chevron_left</span>
+                <Icon name="chevron_left" className="h-4 w-4" />
               </button>
             )}
             {!refDetailId && hasNext && (
@@ -590,7 +587,7 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
                            transition-colors hover:bg-black/55 active:bg-black/60"
                 aria-label="下一张"
               >
-                <span className="material-symbols-rounded text-base">chevron_right</span>
+                <Icon name="chevron_right" className="h-4 w-4" />
               </button>
             )}
 
@@ -616,7 +613,7 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
                            active:bg-on-surface/12 transition-colors"
                 aria-label="关闭"
               >
-                <span className="material-symbols-rounded text-base">close</span>
+                <Icon name="close" className="h-4 w-4" />
               </button>
             </div>
 
@@ -943,7 +940,7 @@ function ZoomableImageView({ src, alt, label, onSwipeLeft, onSwipeRight }: {
                      backdrop-blur-sm transition-colors hover:bg-black/55 active:bg-black/60"
           aria-label="放大"
         >
-          <span className="material-symbols-rounded text-sm shrink-0">zoom_in</span>
+          <Icon name="zoom_in" className="h-3.5 w-3.5 shrink-0" />
           放大
         </button>
         <button
@@ -954,7 +951,7 @@ function ZoomableImageView({ src, alt, label, onSwipeLeft, onSwipeRight }: {
                      backdrop-blur-sm transition-colors hover:bg-black/55 active:bg-black/60"
           aria-label="重置"
         >
-          <span className="material-symbols-rounded text-sm shrink-0">zoom_out_map</span>
+          <Icon name="zoom_out_map" className="h-3.5 w-3.5 shrink-0" />
           重置
         </button>
       </div>
