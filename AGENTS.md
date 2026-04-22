@@ -47,7 +47,7 @@
 | 框架 | React 19 + TypeScript 5.9 + Vite 8 |
 | 样式 | Tailwind CSS 4 + `src/index.css` 自定义 token / utility layer |
 | 存储 | IndexedDB（图片/历史）+ localStorage（API Key / 外观）+ URL params（编辑态） |
-| 字体 | Inter Variable + Inter Tight + Geist Mono |
+| 字体 | Roboto（正文 / 标题）+ Roboto Mono（等宽） |
 | 图标 | `lucide-react`，统一经由 `src/components/Icon.tsx` |
 
 禁止引入：CSS-in-JS、zustand/redux 等状态库、MUI/shadcn 等 UI 组件库。
@@ -104,8 +104,8 @@ src/
 
 - **整体气质**：克制、紧凑、偏工具感，不做 Material、大圆角卡片、重阴影、彩色渐变、发光描边。
 - **色彩系统**：基础盘是 warm-stone 中性色，强调色默认 indigo，可通过 `.theme-*` 类切到 blue / green / yellow / pink / orange / purple。优先复用 `--color-bg`、`--color-surface*`、`--color-border*`、`--color-text*`、`--color-accent*`，不要到处写裸十六进制。
-- **排版**：正文 `Inter Variable`，紧凑 UI chrome 用 `Inter Tight`，数字/分辨率/元数据/快捷键用 `.mono`（Geist Mono）。全局基线是 **13px**，不是 14/16px 默认网页节奏。
-- **中文字体回退**：保持 `PingFang SC -> Hiragino Sans GB -> Microsoft YaHei -> Source Han Sans / Noto Sans CJK` 的顺序，不要重新加回会影响 CJK 字形的 Inter feature tags。
+- **排版**：正文 `Roboto Variable`（`--font-sans`），标题（品牌名 / 弹窗标题 / 面板 header）挂 `.font-display` 使用 `--font-display`（当前别名到 `--font-sans`，保留入口便于未来单独切换 display 字体），数字/分辨率/元数据/快捷键用 `.mono`（Roboto Mono，`--font-mono`）。全局基线是 **13px**，不是 14/16px 默认网页节奏。
+- **中文字体回退**：保持 `PingFang SC -> Hiragino Sans GB -> Microsoft YaHei -> Source Han Sans / Noto Sans CJK` 的顺序，`font-feature-settings` 只保留 `tnum`，不要加回会切换 CJK 字形的 Latin 变体 tag。
 - **边框与圆角**：以 **1px hairline border** 为主，常用圆角为 `6 / 8 / 10px`，大多数控件是 flat surface，不靠阴影塑形。
 - **滚动条**：沿用 `src/index.css` 里的近乎不可见 Linear 风格滚动条，不要改成系统粗滚动条。
 - **图标**：只用 Lucide，经 `Icon.tsx` 映射；不要再使用 Material Symbols。

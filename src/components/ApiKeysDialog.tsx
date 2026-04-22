@@ -56,7 +56,7 @@ export function ApiKeysDialog({ open, googleKey, openaiKey, onClose }: Props) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-(--color-border)">
-          <h2 className="text-[13.5px] font-semibold tracking-[-0.01em]">API Keys</h2>
+          <h2 className="font-display text-[13.5px] font-semibold tracking-[-0.01em]">API Keys</h2>
           <button
             type="button"
             onClick={onClose}

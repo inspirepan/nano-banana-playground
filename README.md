@@ -7,7 +7,7 @@ A pure frontend playground for Gemini and GPT Image generation. No backend — y
 ## Features
 
 ### Design
-Restrained **Linear / Notion-style** chrome: warm-stone neutral palette with a single subtle accent (indigo by default, 7 presets), 1px hairline borders, 6–10px radii, and dense 13px type. Typography pairs **Inter Variable** with **Geist Mono** for numeric/metadata runs. Lucide icon set, no component library.
+Restrained **Linear / Notion-style** chrome: warm-stone neutral palette with a single subtle accent (indigo by default, 7 presets), 1px hairline borders, 6–10px radii, and dense 13px type. Typography pairs **Roboto** (body and headings) with **Roboto Mono** for numeric/metadata runs. Lucide icon set, no component library.
 
 ### Models & Output
 - **Nano Banana 2** (`gemini-3.1-flash-image-preview`), **Nano Banana Pro** (`gemini-3-pro-image-preview`), and **GPT Image 2** (`gpt-image-2`) — switched via a segmented control, with per-model defaults for resolution, aspect ratio, and reference-image limits

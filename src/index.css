@@ -3,8 +3,9 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --font-sans: 'Inter Variable', 'Inter', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei UI', 'Microsoft YaHei', 'Source Han Sans SC', 'Noto Sans CJK SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-  --font-mono: 'Geist Mono Variable', 'Geist Mono', ui-monospace, SFMono-Regular, 'SF Mono', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', monospace;
+  --font-sans: 'Roboto Variable', 'Roboto', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei UI', 'Microsoft YaHei', 'Source Han Sans SC', 'Noto Sans CJK SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'Roboto Mono Variable', 'Roboto Mono', ui-monospace, SFMono-Regular, 'SF Mono', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', monospace;
+  --font-display: var(--font-sans);
 
   /* 13px base — Linear-style dense rhythm */
   --text-xs: 0.6875rem;     /* 11px */
@@ -228,9 +229,8 @@
     background: var(--color-bg);
     color: var(--color-text);
     font-family: var(--font-sans);
-    /* Only tnum — other feature tags (ss01/ss03/cv02/cv10/cv11) are Inter Latin variants
-       but PingFang SC reuses ss01/ss03 as CJK glyph-variant switches, rendering simplified
-       text as archaic/traditional forms. Keep only safe, well-defined tags. */
+    /* Only tnum — enable tabular figures without touching glyph-variant tags that
+       can trigger alternate CJK forms in PingFang SC / Noto Sans CJK. */
     font-feature-settings: 'tnum' 1;
     font-variant-numeric: tabular-nums;
     /* Disable synthetic bold/italic — forces the browser to use real glyphs from PingFang SC
@@ -277,11 +277,17 @@
 }
 
 @layer components {
-  /* Mono — sized down ~6% so x-height matches Inter at the same pt */
+  /* Mono — slightly downsized so Roboto Mono's x-height lines up with Roboto at the same pt */
   .mono {
     font-family: var(--font-mono);
     font-feature-settings: 'zero' 1;
     font-size: 0.94em;
+  }
+
+  /* Display — used for brand mark and section headings; currently maps to --font-sans */
+  .font-display {
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
   }
 
   /* kbd */
@@ -487,8 +493,7 @@
     border: 0;
     background: transparent;
     color: var(--color-text-2);
-    /* Inter Tight — narrower letterforms for compact UI chrome */
-    font-family: 'Inter Tight Variable', 'Inter Tight', var(--font-sans);
+    font-family: var(--font-sans);
     font-size: 12.5px;
     font-weight: 500;
     display: inline-flex;

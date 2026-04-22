@@ -268,7 +268,7 @@ function App() {
     >
       <div className="flex items-center gap-2 min-w-0">
         <div className="w-[22px] h-[22px] flex items-center justify-center text-[16px]">🍌</div>
-        <div className="font-semibold text-[13.5px] tracking-[-0.01em]">Nano Banana</div>
+        <div className="font-display font-semibold text-[13.5px] tracking-[-0.01em]">Nano Banana</div>
         <span className="text-(--color-text-4) text-[12px] ml-0.5">/</span>
         <span className="text-(--color-text-3) text-[12.5px] font-medium">Playground</span>
       </div>

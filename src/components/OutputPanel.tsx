@@ -230,7 +230,7 @@ export const OutputPanel = memo(function OutputPanel({
       {/* Header */}
       <div className="flex items-center gap-2.5 mb-5">
         <div>
-          <div className="text-[15px] font-semibold tracking-[-0.01em]">结果</div>
+          <div className="font-display text-[15px] font-semibold tracking-[-0.01em]">结果</div>
           <div className="text-[11.5px] text-(--color-text-3) mt-0.5">
             {history.length} 张，存储于本地浏览器
           </div>
