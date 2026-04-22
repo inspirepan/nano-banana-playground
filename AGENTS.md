@@ -2,196 +2,145 @@
 
 ## 架构概览
 
-纯前端 SPA。无后端。用户提供自己的 Gemini API 密钥，存储在 localStorage 中。
+纯前端 SPA。无后端。浏览器直接调用 Gemini 和 OpenAI 图像接口；用户自己的 API Key 分 provider 保存在 localStorage。生成历史和图片数据保存在 IndexedDB，本地 blob/object URL 缓存由 `useImageSrc` 管理。
 
 ```
 浏览器
   |
   +-- React SPA (Vite)
-  |     |-- ControlPanel (模型/分辨率/比例/数量选择)
-  |     |-- InputPanel (参考图 + 提示词 + 生成按钮)
-  |     +-- OutputPanel (统一时间线：草稿骨架图 + 历史记录网格)
+  |     |-- App.tsx
+  |     |    |-- 内联 Topbar + ThemeSettings + ApiKeysDialog
+  |     |    |-- InputPanel (mobile)
+  |     |    |-- OutputPanel (mobile)
+  |     |    |-- InputPanel (desktop)
+  |     |    +-- OutputPanel (desktop)
+  |     |
+  |     +-- usePlayground (中央状态)
+  |           |-- model / resolution / aspectRatio / quality / batchCount
+  |           |-- prompt / mode / schemes / currentSchemeIndex / originalPrompt
+  |           |-- referenceImages / generationPreview / history / error
+  |           +-- URL sync + IndexedDB history + blob cache
   |
-  +-- Gemini REST API (直接从浏览器调用)
+  +-- Gemini REST API
   |     POST /v1beta/models/{model}:generateContent
   |
+  +-- OpenAI Images API
+  |     POST /v1/images/generations
+  |
   +-- IndexedDB ("nano-banana-playground")
-        将生成的图片存储为 PlaygroundImage 对象
+  |     图片元数据 + base64/blob
+  |
+  +-- localStorage
+        Google/OpenAI API Key + theme + color theme
 ```
 
 核心设计决策：
-- **配置驱动的控件**：添加新模型 = 在 `src/config/models.ts` 中添加一个条目，UI 自动适配。
-- **统一的图片类型**：上传图与生成图共用 `PlaygroundImage`，通过 `source` 字段区分来源。
-- **响应式布局**：桌面端 3 栏并排，移动端垂直堆叠（`md:hidden` / `hidden md:flex`）。
+- **配置驱动的模型能力**：新模型、分辨率、比例、quality、价格、上限统一在 `src/config/models.ts` 配置。
+- **共享编辑器状态**：`App.tsx` 同时渲染移动端和桌面端两套 `InputPanel`，共享状态必须放在 `usePlayground`，不要做面板内持久化分叉。
+- **统一图片模型**：上传图、历史图、生成图都走 `PlaygroundImage` / `PlaygroundImageMeta`，通过 `source.type` 区分来源。
+- **URL 可恢复编辑态**：提示词、结构化 schemes、当前 scheme、mode、originalPrompt 通过 `src/lib/urlState.ts` 压缩写回 URL。
+- **本地优先历史**：图片和历史只存本地浏览器，不依赖账号体系或服务端。
 
 ## 技术栈
 
-| 层级   | 选择                                        |
-|--------|---------------------------------------------|
-| 框架   | React 19 + TypeScript 5.9，Vite 8           |
-| 样式   | Tailwind CSS 4，无 CSS-in-JS                |
-| 存储   | IndexedDB（图片）+ localStorage（轻量配置） |
-| 字体   | Google Sans Flex + Google Sans Code（本地） |
+| 层级 | 选择 |
+|------|------|
+| 框架 | React 19 + TypeScript 5.9 + Vite 8 |
+| 样式 | Tailwind CSS 4 + `src/index.css` 自定义 token / utility layer |
+| 存储 | IndexedDB（图片/历史）+ localStorage（API Key / 外观）+ URL params（编辑态） |
+| 字体 | Inter Variable + Inter Tight + Geist Mono |
+| 图标 | `lucide-react`，统一经由 `src/components/Icon.tsx` |
 
-禁止引入：CSS-in-JS 库、状态管理库（zustand/redux 等）、UI 组件库（MUI/shadcn 等）。
+禁止引入：CSS-in-JS、zustand/redux 等状态库、MUI/shadcn 等 UI 组件库。
 
 ## 项目结构
 
 ```
 src/
-  config/models.ts          # 模型配置（分辨率、比例、上限）
-  lib/                      # 工具层：types / api / history / validateKey
-  hooks/                    # useApiKey + usePlayground（中央状态）
-  components/               # UI 组件（见下方映射）
-  App.tsx                   # 根布局
-  index.css                 # 主题色令牌 + 暗色模式 + 全局样式
-public/fonts/               # 本地字体文件
-docs/refs/                  # API 和提示词参考文档
+  config/models.ts             # 模型/provider/分辨率/比例/quality/价格/上限
+  hooks/
+    usePlayground.ts           # 中央状态、URL 同步、生成流程、历史分页
+    useApiKey.ts               # provider 维度的 API Key 校验与存储
+    useImageSrc.ts             # blob cache / object URL
+  lib/
+    api.ts                     # Gemini/OpenAI 请求层 + augment 流式生成
+    history.ts                 # IndexedDB 持久化
+    urlState.ts                # 压缩 URL 状态
+    openai.ts                  # GPT Image 2 尺寸映射
+    pricing.ts                 # 预估价格 / 实际费用计算
+    templates.ts               # 结构化提示词模板
+    types.ts                   # PlaygroundImage / PromptScheme / token usage
+    validateKey.ts             # API Key 校验
+  components/
+    InputPanel.tsx             # 编辑器、模型切换、增强、参考图、生成 CTA
+    OutputPanel.tsx            # 草稿预览、历史批次、导出 ZIP
+    ImageDetailModal.tsx       # 全屏查看、缩放平移、元数据、参考图对比
+    ApiKeysDialog.tsx          # Google/OpenAI Key 管理弹窗
+    AspectRatioSelector.tsx    # 比例 glyph tile + 像素 tooltip
+    ChipGroup.tsx              # 扁平 chip 选择器
+    ReferenceImageUpload.tsx   # 参考图上传/拖拽/粘贴入口
+    ImageGrid.tsx / ImageCard.tsx / Icon.tsx
+  App.tsx                      # 顶栏、主题、移动/桌面双布局
+  index.css                    # 设计 token、组件 utility、动画
 ```
 
 ## 页面元素 → 组件映射
 
-| 页面区域           | 组件                      |
-|--------------------|---------------------------|
-| API 密钥输入框     | `ApiKeyInput`             |
-| 模型 / 分辨率 / 批次选择 | `ControlPanel` → `ChipGroup` |
-| 比例选择器         | `AspectRatioSelector`     |
-| 参考图上传区       | `ReferenceImageUpload`    |
-| 提示词输入 + 生成按钮 | `InputPanel`            |
-| 历史图片网格       | `OutputPanel` → `ImageGrid` → `ImageCard` |
-| 全屏查看 / 缩放 / 对比 | `ImageDetailModal`    |
-| 主题切换           | `App.tsx`（内联，非独立组件） |
+| 页面区域 | 组件 |
+|----------|------|
+| 顶栏 / 外观 / 主色 | `App.tsx` 内联 topbar + `ThemeSettings` |
+| API Key 管理 | `ApiKeysDialog` |
+| 模型切换 | `InputPanel` 内 segmented control |
+| 分辨率 / Quality / 批次数量 | `InputPanel` + `ChipGroup` |
+| 宽高比选择 | `AspectRatioSelector` |
+| 参考图上传区 | `ReferenceImageUpload` |
+| 文本提示词 / 结构化提示词 / AI 增强 | `InputPanel` |
+| 草稿骨架 / 生成进度 / 历史批次 | `OutputPanel` + `ImageGrid` + `ImageCard` |
+| 全屏查看 / 缩放 / 对比 / 元数据 | `ImageDetailModal` |
 
-> `TopBar.tsx` 和 `HistoryDrawer.tsx` 存在于代码库中但未挂载，勿重复引入。
+> `AppTitle.tsx`、`HistoryDrawer.tsx`、`TopBar.tsx`、`src/lib/ripple.ts` 已删除。不要按旧文档把它们重新引回。
 
 ## 设计规范
 
-严格遵循 **Google Material Design 3（MD3）**规范：
+当前不是 MD3。严格对齐现有的 **Linear / Notion 风格** 自定义设计系统。
 
-- **色彩系统**：使用 MD3 动态色彩角色（`primary`、`on-primary`、`surface`、`surface-variant`、`outline` 等），通过 CSS 变量映射到 `index.css` 主题令牌，亮/暗色方案各自定义完整角色。
-- **排版**：遵循 MD3 字阶（Display / Headline / Title / Body / Label），对应 `size`、`line-height`、`weight` 三元组，不随意自定义字号。
-- **组件形态**：按钮、输入框、卡片、芯片等控件的圆角、高程、状态层（hover 8%、pressed 12%、focus 12% `on-surface`）均照 MD3 规格实现。
-- **间距**：使用 MD3 4pt 基础网格（`4 / 8 / 12 / 16 / 24 / 32 / 48px`）。
-- **图标**：使用 Material Symbols（Rounded 风格）。
-- **禁止**：不引入 Material Web 或 MUI 等组件库，所有 MD3 控件手写实现。
+- **整体气质**：克制、紧凑、偏工具感，不做 Material、大圆角卡片、重阴影、彩色渐变、发光描边。
+- **色彩系统**：基础盘是 warm-stone 中性色，强调色默认 indigo，可通过 `.theme-*` 类切到 blue / green / yellow / pink / orange / purple。优先复用 `--color-bg`、`--color-surface*`、`--color-border*`、`--color-text*`、`--color-accent*`，不要到处写裸十六进制。
+- **排版**：正文 `Inter Variable`，紧凑 UI chrome 用 `Inter Tight`，数字/分辨率/元数据/快捷键用 `.mono`（Geist Mono）。全局基线是 **13px**，不是 14/16px 默认网页节奏。
+- **中文字体回退**：保持 `PingFang SC -> Hiragino Sans GB -> Microsoft YaHei -> Source Han Sans / Noto Sans CJK` 的顺序，不要重新加回会影响 CJK 字形的 Inter feature tags。
+- **边框与圆角**：以 **1px hairline border** 为主，常用圆角为 `6 / 8 / 10px`，大多数控件是 flat surface，不靠阴影塑形。
+- **滚动条**：沿用 `src/index.css` 里的近乎不可见 Linear 风格滚动条，不要改成系统粗滚动条。
+- **图标**：只用 Lucide，经 `Icon.tsx` 映射；不要再使用 Material Symbols。
+- **暗色模式**：由 `<html>` 上的 `.dark` 控制；主色主题由 `<html>` 上的 `.theme-*` 控制。
+- **复用现成 utility class**：优先使用 `.chip`、`.segmented`、`.aspect-tile`、`.card`、`.cta`、`.dropzone`、`.img-card`、`.icon-btn`、`.label`、`.mono`，不要在组件里重复造一套视觉规则。
+- **动效**：过渡保持短促（约 120ms 到 260ms），优先 CSS `transition` / `@keyframes`，避免夸张弹簧、长位移、悬浮漂移动画。
 
 ## 开发规范
 
-- **类型**：禁止 `any`，用正确类型或带类型缩小的 `unknown`。
-- **内联样式**：禁止用于布局，仅允许 JS 计算的动态网格值（`ImageGrid` 行高）。
-- **禁止直接使用 `useEffect`**：详见下方「useEffect 禁令」章节。
-- **Prop drilling**：不超过 2 层，否则重构。
-- **存储**：base64 只存 IndexedDB，localStorage 仅存 API 密钥 / 提示词草稿 / 主题。
-- **暗色模式**：基于 `<html>` 的 `.dark` 类名，不用 `prefers-color-scheme`。
-- **UI 文字**：全部中文；代码注释保持英文。
-
-## useEffect 禁令
-
-**核心规则：禁止在组件或自定义 Hook 中直接调用 `useEffect`。** 对于必须在挂载时与外部系统同步的场景，使用 `useMountEffect()`：
-
-```typescript
-function useMountEffect(effect: () => void | (() => void)) {
-  useEffect(effect, []);
-}
-```
-
-大多数 `useEffect` 的使用场景都有更好的替代方案。以下五条规则覆盖了绝大多数情况：
-
-### 规则 1：派生状态，不要同步状态
-
-从其他 state/props 计算得出的值，直接在渲染时计算或用 `useMemo`，不要用 effect 设 state。
-
-```typescript
-// BAD: 多一次渲染，且有循环风险
-useEffect(() => {
-  setFilteredProducts(products.filter(p => p.inStock));
-}, [products]);
-
-// GOOD: 直接计算
-const filteredProducts = products.filter(p => p.inStock);
-```
-
-**嗅探测试**：你正在写 `useEffect(() => setX(deriveFromY(y)), [y])` —— 停下来，直接算。
-
-### 规则 2：事件处理器，不是 effect
-
-用户操作（点击、提交、切换）触发的逻辑，放在事件处理器中，不要用 state flag + effect 中继。
-
-```typescript
-// BAD: state 当 flag，effect 做事
-useEffect(() => {
-  if (liked) { postLike(); setLiked(false); }
-}, [liked]);
-
-// GOOD: 直接在 handler 里做
-<button onClick={() => postLike()}>Like</button>
-```
-
-**嗅探测试**：你正在构建"设置 flag -> effect 执行 -> 重置 flag"的链路。
-
-### 规则 3：用 key 重置，不要用依赖数组编排
-
-需要"当 ID 变化时重新开始"时，用 React 的 `key` 重挂载语义，不要在 effect 里手动重置状态。
-
-```typescript
-// BAD: effect 手动重置
-useEffect(() => {
-  resetLocalState();
-  loadEntity(entityId);
-}, [entityId]);
-
-// GOOD: key 驱动重挂载
-<EntityView key={entityId} entityId={entityId} />
-```
-
-**嗅探测试**：effect 的唯一作用是在某个 ID/prop 变化时重置本地状态。
-
-### 规则 4：useMountEffect 用于一次性外部同步
-
-仅限以下场景使用 `useMountEffect`：
-- DOM 集成（focus、scroll、第三方组件生命周期）
-- 浏览器 API 订阅（ResizeObserver、IntersectionObserver、事件监听）
-- 一次性初始化（加载历史记录、恢复 URL 状态）
-
-条件挂载优于条件 effect：
-
-```typescript
-// BAD: effect 里守卫条件
-useEffect(() => {
-  if (!isLoading) playVideo();
-}, [isLoading]);
-
-// GOOD: 条件满足后才挂载
-{!isLoading && <VideoPlayer />}
-// VideoPlayer 内部 useMountEffect(() => playVideo())
-```
-
-### 规则 5：动画用纯 CSS 或专用 Hook
-
-循环动画（shimmer、扫光）优先用 CSS `@keyframes`。命令式动画（打字机、手势缩放）封装到专用 Hook 中，内部可使用 `useEffect` + RAF，但组件层不直接调用 `useEffect`。
-
-### 合法的 useEffect 使用场景
-
-以下场景允许使用 `useEffect`（含带依赖数组的形式），因为它们本质上是与外部系统同步，不是派生状态也不是事件中继：
-
-- **DOM / 浏览器 API 同步**：`document.title`、`<html>` class、`localStorage`、`matchMedia` 监听
-- **观察者模式**：`IntersectionObserver`、`ResizeObserver`、`MutationObserver`
-- **原生事件监听**：`window.addEventListener('keydown', ...)`、非 passive `wheel` 事件
-- **异步数据加载**：从 IndexedDB 加载 blob、初始化时恢复 URL 状态
-- **命令式动画**：typewriter RAF、AppTitle 扫光（封装到 hook 或组件内部）
-- **挂载/卸载清理**：取消 RAF、清理定时器、重置 `document.title`
-
-新代码中使用上述场景的 `useEffect` 无需额外审批，但应优先考虑是否能用 `useMountEffect`（空依赖）或 `key` 重挂载替代。
+- **类型**：禁止 `any`，优先正确建模或用可缩小的 `unknown`。
+- **状态归属**：会影响 URL 恢复、移动/桌面同步、生成参数或历史的状态，一律放在 `usePlayground`。`InputPanel` 只保留局部瞬时 UI 状态，比如增强进行态、局部 undo/redo、drag over、textarea 测量态。
+- **响应式布局**：`App.tsx` 会同时渲染两套 `InputPanel`。任何编辑器功能改动，都要确认移动端和桌面端共用同一份 state/handler。
+- **持久化边界**：API Key 和外观设置走 localStorage；提示词编辑态走 URL；图片二进制只存 IndexedDB/blob cache。不要把大对象或 base64 塞进 localStorage。
+- **样式写法**：优先 Tailwind utility + `index.css` 里的复用类。仅在动态几何值、portal 定位、色块预览、计算型 grid size 等少数场景使用 inline style。
+- **`useEffect` 使用原则**：允许用于外部系统同步（localStorage、URL、matchMedia、事件监听、observer、IndexedDB/blob 加载、命令式 DOM）。不要用 effect 镜像派生状态，也不要写“设 flag -> effect 执行 -> 再清 flag”的链路。
+- **文本域自动高度**：`InputPanel` 的 textarea 自适应高度必须保留最近的可滚动祖先滚动位置，不能假设滚动容器就是面板根节点。
+- **文案**：界面文字全部中文；代码注释保持英文且简短。
 
 ## 提交前检查
 
-每次 commit 前必须依次执行：
+每次提交前至少执行：
 
 ```bash
-npm run build   # TypeScript 类型检查 + Vite 构建
+npm run build
 ```
 
-构建失败则不得提交。
+如果改了 `src/lib/urlState.ts` 或 URL 恢复逻辑，再执行：
+
+```bash
+npm test
+```
+
+构建失败不得提交。
 
 ## 评测
 
