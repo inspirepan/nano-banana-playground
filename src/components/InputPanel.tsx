@@ -1,17 +1,14 @@
 import { useState, useRef, useCallback, useEffect, useLayoutEffect, type ReactNode } from 'react'
-import type { PersistedPromptMode, PlaygroundImage, PromptScheme } from '../lib/types'
+import type { PlaygroundImage } from '../lib/types'
 import { MODEL_CONFIGS, type ModelConfig } from '../config/models'
 import type { GenerationState } from '../hooks/usePlayground'
 import type { ApiKeyStatus } from '../hooks/useApiKey'
-import { augmentPromptStream, REQUEST_TIMEOUT_MS } from '../lib/api'
 import { openAISize } from '../lib/openai'
 import { getPricePerImage } from '../lib/pricing'
 import { ChipGroup } from './ChipGroup'
 import { AspectRatioSelector } from './AspectRatioSelector'
 import { ReferenceImageUpload } from './ReferenceImageUpload'
-import { StylePresetChips, MAX_SELECTED_STYLES } from './StylePresetChips'
 import { Icon } from './Icon'
-import { getStylePresetById } from '../lib/stylePresets'
 
 // ——— Section helper ———
 function Section({ label, right, hint, children }: { label: string; right?: ReactNode; hint?: ReactNode; children: ReactNode }) {
@@ -29,31 +26,6 @@ function Section({ label, right, hint, children }: { label: string; right?: Reac
   )
 }
 
-// Filled sparkles — used on the 增强 affordance for extra weight
-function SparklesFilled({ size = 12 }: { size?: number }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      stroke="currentColor"
-      strokeWidth={1.6}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      style={{ flexShrink: 0 }}
-    >
-      {/* main star: filled */}
-      <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" />
-      {/* accent cross marks: keep as strokes (fill=none so they render as lines) */}
-      <path d="M20 3v4" fill="none" />
-      <path d="M22 5h-4" fill="none" />
-      <path d="M4 17v2" fill="none" />
-      <path d="M5 18H3" fill="none" />
-    </svg>
-  )
-}
-
 // OpenAI logo SVG used in the model segmented control
 function OpenAILogo({ size = 11 }: { size?: number }) {
   return (
@@ -61,38 +33,6 @@ function OpenAILogo({ size = 11 }: { size?: number }) {
       <path d="M22.28 9.82a5.95 5.95 0 0 0-.51-4.91 6.04 6.04 0 0 0-6.5-2.9A6.06 6.06 0 0 0 4.98 4.18a5.99 5.99 0 0 0-4 2.9 6.05 6.05 0 0 0 .74 7.1 5.98 5.98 0 0 0 .51 4.9 6.05 6.05 0 0 0 6.51 2.9A5.98 5.98 0 0 0 13.26 24a6.06 6.06 0 0 0 5.77-4.2 5.99 5.99 0 0 0 4-2.9 6.06 6.06 0 0 0-.75-7.08Zm-9.02 12.63a4.48 4.48 0 0 1-2.88-1.04l.14-.08 4.78-2.76a.78.78 0 0 0 .39-.68v-6.74L17.7 12.3a.07.07 0 0 1 .04.05v5.58a4.5 4.5 0 0 1-4.48 4.51Zm-9.64-4.12a4.48 4.48 0 0 1-.54-3.03l.14.09 4.78 2.76a.78.78 0 0 0 .78 0l5.84-3.37v2.33a.08.08 0 0 1-.03.06L9.78 20a4.51 4.51 0 0 1-6.16-1.65Zm-1.19-9.9a4.5 4.5 0 0 1 2.35-1.98v5.68a.78.78 0 0 0 .39.67l5.8 3.35-2.2 1.27a.08.08 0 0 1-.08 0l-4.83-2.79a4.51 4.51 0 0 1-1.43-6.2Zm16.6 3.86L13.24 9 15.43 7.73a.07.07 0 0 1 .08 0l4.83 2.79a4.5 4.5 0 0 1-.68 8.12v-5.69a.78.78 0 0 0-.4-.67Zm2.18-3.27-.14-.09-4.77-2.77a.79.79 0 0 0-.79 0L9.57 9.54V7.2a.07.07 0 0 1 .03-.06l4.83-2.79a4.5 4.5 0 0 1 6.68 4.67Zm-12.64 4.5-2.19-1.26a.07.07 0 0 1-.04-.06V6.63a4.5 4.5 0 0 1 7.38-3.47l-.14.08L8.8 6a.78.78 0 0 0-.39.68ZM9.76 11l2.6-1.5 2.6 1.5v3l-2.6 1.5-2.6-1.5Z" />
     </svg>
   )
-}
-
-// Labels for syntax highlighting in text editor, longest-first to avoid prefix conflicts
-const HIGHLIGHT_LABELS = [
-  '参考图说明', '画面中的文字', '画中文字', '编辑类型', '编辑请求',
-  '目标场景', '目标风格', '保持不变', '构图', '风格', '光影', '色彩', '约束', '避免',
-]
-
-function renderHighlighted(text: string): ReactNode[] {
-  const parts: ReactNode[] = []
-  const lines = text.split('\n')
-  for (let i = 0; i < lines.length; i++) {
-    if (i > 0) parts.push('\n')
-    const line = lines[i]
-    let found = false
-    for (const label of HIGHLIGHT_LABELS) {
-      const needle = `${label}：`
-      if (line.startsWith(needle)) {
-        const rest = line.slice(needle.length).replace(/^ /, '')
-        parts.push(
-          <span key={i}>
-            <span className="rounded-[3px] px-[3px] font-medium" style={{ background: 'var(--color-accent-wash)', color: 'var(--color-accent)' }}>{label}</span>
-            ：{rest}
-          </span>
-        )
-        found = true
-        break
-      }
-    }
-    if (!found) parts.push(<span key={i}>{line}</span>)
-  }
-  return parts
 }
 
 // --- Auto-resize textarea ---
@@ -131,14 +71,9 @@ type Props = {
   quality: string
   batchCount: number
   prompt: string
-  mode: PersistedPromptMode
-  schemes: PromptScheme[]
-  currentSchemeIndex: number
-  originalPrompt: string | null
   referenceImages: PlaygroundImage[]
   generationState: GenerationState
   apiKey: string
-  apiBaseUrl: string
   apiKeyStatus?: ApiKeyStatus
   googleKeyStatus: ApiKeyStatus
   openaiKeyStatus: ApiKeyStatus
@@ -149,22 +84,11 @@ type Props = {
   onQualityChange: (v: string) => void
   onPromptChange: (v: string) => void
   onBatchCountChange: (v: number) => void
-  onModeChange: (v: PersistedPromptMode) => void
-  onSchemesChange: (schemes: PromptScheme[]) => void
-  onCurrentSchemeIndexChange: (v: number) => void
-  onOriginalPromptChange: (p: string | null) => void
-  selectedStyleIds: string[]
-  onSelectedStyleIdsChange: (ids: string[]) => void
-  onOpenStylePresets: () => void
-  stylePresetsRevision: number
   onAddReferenceImages: (files: File[]) => void
   onAddReferenceImage: (image: PlaygroundImage) => void
   onRemoveReferenceImage: (id: string) => void
-  onGenerate: (prompts?: string[], labels?: string[]) => void
+  onGenerate: () => void
   onCancel: () => void
-  onDraftBatchOverride: (count: number | null, labels?: string[]) => void
-  onDraftPreviewHover: (show: boolean) => void
-  onDraftLabelsOverride: (labels: string[] | null) => void
 }
 
 export function InputPanel({
@@ -174,14 +98,9 @@ export function InputPanel({
   quality,
   batchCount,
   prompt,
-  mode,
-  schemes,
-  currentSchemeIndex,
-  originalPrompt,
   referenceImages,
   generationState,
   apiKey,
-  apiBaseUrl,
   googleKeyStatus,
   openaiKeyStatus,
   onOpenApiKeys,
@@ -191,48 +110,34 @@ export function InputPanel({
   onQualityChange,
   onPromptChange,
   onBatchCountChange,
-  onModeChange,
-  onSchemesChange,
-  onCurrentSchemeIndexChange,
-  onOriginalPromptChange,
-  selectedStyleIds,
-  onSelectedStyleIdsChange,
-  onOpenStylePresets,
-  stylePresetsRevision,
   onAddReferenceImages,
   onAddReferenceImage,
   onRemoveReferenceImage,
   onGenerate,
   onCancel,
-  onDraftBatchOverride,
-  onDraftPreviewHover,
 }: Props) {
   const isGenerating = generationState === 'generating'
   const maxRef = model.maxReferenceImages + model.maxCharacterImages
   const pricePerImage = getPricePerImage(model, resolution, aspectRatio, quality)
-  const augmentModelLabel = model.provider === 'openai' ? 'GPT-5.4 mini' : 'Gemini 3 Flash'
 
-  const [isAugmenting, setIsAugmenting] = useState(false)
   const hasPrompt = prompt.trim() !== ''
+  const canGenerate = apiKey.trim() !== '' && hasPrompt && !isGenerating
 
-  const canGenerate = apiKey.trim() !== '' && hasPrompt && !isGenerating && !isAugmenting
-
-  const [augmentError, setAugmentError] = useState<string | null>(null)
-  const abortRef = useRef<AbortController | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
-
-  // Typewriter animation state
-  const [revealedLength, setRevealedLength] = useState<number | null>(null)
-  const typewriterRef = useRef({ target: '', raf: 0, current: 0 })
 
   // --- Undo/redo history ---
   const historyRef = useRef({ entries: [prompt], index: 0 })
   const debounceRef = useRef<number>(0)
-  const [, setHistoryTick] = useState(0)
+  const [historyState, setHistoryState] = useState({ canUndo: false, canRedo: false })
 
-  const canUndo = historyRef.current.index > 0
-  const canRedo = historyRef.current.index < historyRef.current.entries.length - 1
+  const syncHistoryState = useCallback(() => {
+    const h = historyRef.current
+    setHistoryState({
+      canUndo: h.index > 0,
+      canRedo: h.index < h.entries.length - 1,
+    })
+  }, [])
 
   const pushHistory = useCallback((value: string) => {
     window.clearTimeout(debounceRef.current)
@@ -242,9 +147,9 @@ export function InputPanel({
       h.entries = h.entries.slice(0, h.index + 1)
       h.entries.push(value)
       h.index = h.entries.length - 1
-      setHistoryTick((t) => t + 1)
+      syncHistoryState()
     }, 500)
-  }, [])
+  }, [syncHistoryState])
 
   const handleHistoryUndo = useCallback(() => {
     const h = historyRef.current
@@ -257,49 +162,22 @@ export function InputPanel({
     }
     h.index--
     onPromptChange(h.entries[h.index])
-    setHistoryTick((t) => t + 1)
-  }, [prompt, onPromptChange])
+    syncHistoryState()
+  }, [prompt, onPromptChange, syncHistoryState])
 
   const handleHistoryRedo = useCallback(() => {
     const h = historyRef.current
     if (h.index >= h.entries.length - 1) return
     h.index++
     onPromptChange(h.entries[h.index])
-    setHistoryTick((t) => t + 1)
-  }, [onPromptChange])
-
-  const canAugment = apiKey.trim() !== '' && (hasPrompt || referenceImages.length > 0)
+    syncHistoryState()
+  }, [onPromptChange, syncHistoryState])
 
   useLayoutEffect(() => {
-    if ((!isAugmenting || schemes.length > 0) && textareaRef.current) autoResizeTextarea(textareaRef.current)
-  }, [prompt, isAugmenting, schemes.length, revealedLength])
+    if (textareaRef.current) autoResizeTextarea(textareaRef.current)
+  }, [prompt])
 
-  useEffect(() => {
-    if (!isAugmenting) {
-      cancelAnimationFrame(typewriterRef.current.raf)
-      typewriterRef.current = { target: '', raf: 0, current: 0 }
-      setRevealedLength(null)
-      return
-    }
-    if (typewriterRef.current.target === prompt) return
-    cancelAnimationFrame(typewriterRef.current.raf)
-    const tw = { target: prompt, raf: 0, current: 0 }
-    typewriterRef.current = tw
-    const charsPerFrame = Math.max(3, Math.ceil(prompt.length / 100))
-    const tick = () => {
-      tw.current = Math.min(tw.current + charsPerFrame, tw.target.length)
-      if (tw.current >= tw.target.length) {
-        setRevealedLength(null)
-      } else {
-        setRevealedLength(tw.current)
-        tw.raf = requestAnimationFrame(tick)
-      }
-    }
-    setRevealedLength(0)
-    tw.raf = requestAnimationFrame(tick)
-  }, [isAugmenting, prompt])
-
-  useEffect(() => () => { cancelAnimationFrame(typewriterRef.current.raf); window.clearTimeout(debounceRef.current) }, [])
+  useEffect(() => () => { window.clearTimeout(debounceRef.current) }, [])
 
   // Cmd+Enter shortcut
   useEffect(() => {
@@ -313,105 +191,6 @@ export function InputPanel({
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
   }, [isGenerating, canGenerate, onCancel, onGenerate])
-
-  const displayPrompt = revealedLength !== null ? prompt.slice(0, revealedLength) : prompt
-  const isTyping = revealedLength !== null && isAugmenting
-
-  // --- Augment (streaming) ---
-  const handleAugment = useCallback(async (useOriginal = false) => {
-    if (!canAugment && !useOriginal) return
-    const sourcePrompt = useOriginal && originalPrompt !== null ? originalPrompt : prompt
-    if (!sourcePrompt.trim() && referenceImages.length === 0) return
-
-    // Resolve selected style presets at call time — catches localStorage edits.
-    const selectedStyles = selectedStyleIds
-      .slice(0, MAX_SELECTED_STYLES)
-      .map((id) => getStylePresetById(id))
-      .filter((p): p is NonNullable<typeof p> => p !== null)
-
-    const basePrompt = sourcePrompt.trim() || (selectedStyles.length > 0
-      ? '用户的原始提示词是空的，请根据参考图和下方风格约束推断合适的主体。'
-      : '用户的原始提示词是空的，请你基于图片提供几个创意方案')
-
-    const styleInstruction = selectedStyles.length > 0
-      ? `\n\n[风格约束 · 必须严格遵循]\n请严格生成 ${selectedStyles.length} 个方案（数量不得多也不得少），每个方案对应下列一种风格，且 style / colorPalette / lighting / composition 字段必须与对应风格描述一致：\n` +
-        selectedStyles.map((s, i) => `${i + 1}. ${s.label}：${s.promptSnippet}`).join('\n')
-      : ''
-
-    const effectivePrompt = basePrompt + styleInstruction
-
-    if (!useOriginal) {
-      onOriginalPromptChange(sourcePrompt)
-    }
-
-    setIsAugmenting(true)
-    setAugmentError(null)
-    onSchemesChange([])
-    onCurrentSchemeIndexChange(0)
-
-    cancelAnimationFrame(typewriterRef.current.raf)
-    typewriterRef.current = { target: prompt, raf: 0, current: 0 }
-
-    const controller = new AbortController()
-    abortRef.current = controller
-    const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(REQUEST_TIMEOUT_MS)])
-
-    let gotSchemes = false
-    let firstScheme = true
-    try {
-      await augmentPromptStream(model.provider, apiKey, effectivePrompt, referenceImages, (newSchemes, done) => {
-        if (newSchemes.length > 0) {
-          gotSchemes = true
-          onSchemesChange(newSchemes)
-          if (firstScheme) {
-            firstScheme = false
-            onCurrentSchemeIndexChange(0)
-            setRevealedLength(0)
-            onPromptChange(newSchemes[0].text)
-            pushHistory(newSchemes[0].text)
-          }
-        }
-        if (done) onModeChange('structured')
-      }, signal, apiBaseUrl)
-    } catch (e) {
-      if ((e as Error).name !== 'AbortError') {
-        const msg = (e as Error).name === 'TimeoutError'
-          ? '请求超时（5min），请检查网络连接或代理配置后重试'
-          : (e as Error).message
-        setAugmentError(msg)
-        onModeChange(gotSchemes ? 'structured' : (useOriginal ? 'structured' : 'text'))
-      } else if (gotSchemes) {
-        onModeChange('structured')
-      }
-    } finally {
-      setIsAugmenting(false)
-    }
-  }, [model.provider, apiKey, apiBaseUrl, prompt, originalPrompt, referenceImages, canAugment, selectedStyleIds, onPromptChange, onModeChange, onSchemesChange, onCurrentSchemeIndexChange, onOriginalPromptChange, pushHistory])
-
-  const handleCancelAugment = useCallback(() => {
-    abortRef.current?.abort()
-    setIsAugmenting(false)
-  }, [])
-
-  const handleSelectScheme = useCallback((index: number) => {
-    onCurrentSchemeIndexChange(index)
-    if (schemes[index]) {
-      onPromptChange(schemes[index].text)
-      pushHistory(schemes[index].text)
-    }
-  }, [schemes, onPromptChange, onCurrentSchemeIndexChange, pushHistory])
-
-  const handleGenerateAll = useCallback(() => {
-    const prompts = schemes.map((s) => s.text)
-    const labels = schemes.map((s) => s.title)
-    onGenerate(prompts, labels)
-  }, [schemes, onGenerate])
-
-  const handleDiscardAugment = useCallback(() => {
-    onOriginalPromptChange(null)
-    onSchemesChange([])
-    onModeChange('text')
-  }, [onModeChange, onSchemesChange, onOriginalPromptChange])
 
   // --- Drag-and-drop ---
   const [dragOver, setDragOver] = useState(false)
@@ -576,7 +355,7 @@ export function InputPanel({
           : undefined}
       />
 
-      <div className="h-[18px]" />
+      <div className="h-[18px] " />
 
       {/* Quality (OpenAI only) */}
       {model.provider === 'openai' && (
@@ -607,203 +386,40 @@ export function InputPanel({
         label="提示词"
         right={
           <div className="flex gap-0.5">
-            <button type="button" onClick={handleHistoryUndo} disabled={!canUndo} title="撤销" className="icon-btn">
+            <button type="button" onClick={handleHistoryUndo} disabled={!historyState.canUndo} title="撤销" className="icon-btn">
               <Icon name="undo" size={13} />
             </button>
-            <button type="button" onClick={handleHistoryRedo} disabled={!canRedo} title="重做" className="icon-btn">
+            <button type="button" onClick={handleHistoryRedo} disabled={!historyState.canRedo} title="重做" className="icon-btn">
               <Icon name="redo" size={13} />
             </button>
           </div>
         }
       >
-        <div className="flex flex-col gap-2">
-          {/* Augment card */}
-          {schemes.length > 0 && (mode === 'structured' || isAugmenting) && (
-            <div
-              className="fade-in rounded-[8px] px-3 py-2.5"
-              style={{ background: 'var(--color-accent-soft)', boxShadow: 'inset 0 0 0 1px var(--ring-edge)' }}
-            >
-              <div className="flex items-center gap-1.5 mb-2 min-w-0">
-                <span style={{ color: 'var(--color-accent)', display: 'inline-flex' }}><SparklesFilled size={12} /></span>
-                <span className="text-[12px] font-medium whitespace-nowrap" style={{ color: 'var(--color-accent)' }}>
-                  {isAugmenting ? `已生成 ${schemes.length} 个方案…` : `${schemes.length} 个方案`}
-                </span>
-                <span className="text-[11px] text-(--color-text-4) whitespace-nowrap overflow-hidden text-ellipsis min-w-0">
-                  · {augmentModelLabel}
-                </span>
-                <div className="flex-1" />
-                {isAugmenting ? (
-                  <button type="button" onClick={handleCancelAugment} className="bg-transparent border-0 text-(--color-text-3) p-0 whitespace-nowrap text-[11.5px] shrink-0 hover:text-(--color-text) transition-colors">
-                    取消
-                  </button>
-                ) : (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => handleAugment(true)}
-                      disabled={originalPrompt === null}
-                      className="bg-transparent border-0 text-(--color-text-3) p-0 whitespace-nowrap text-[11.5px] shrink-0 hover:text-(--color-text) transition-colors disabled:opacity-40 disabled:pointer-events-none"
-                    >
-                      重新增强
-                    </button>
-                    {schemes.length > 1 && (
-                      <button
-                        type="button"
-                        disabled={isGenerating}
-                        onClick={() => { onDraftBatchOverride(null); handleGenerateAll() }}
-                        onMouseEnter={() => { if (!isGenerating) { onDraftBatchOverride(schemes.length, schemes.map((s) => s.title)); onDraftPreviewHover(true) } }}
-                        onMouseLeave={() => { onDraftBatchOverride(null); onDraftPreviewHover(false) }}
-                        className="bg-transparent border-0 text-(--color-text-3) p-0 whitespace-nowrap text-[11.5px] shrink-0 hover:text-(--color-text) transition-colors disabled:opacity-40 disabled:pointer-events-none"
-                      >
-                        各生成一张
-                      </button>
-                    )}
-                    <button type="button" onClick={handleDiscardAugment} className="bg-transparent border-0 text-(--color-text-4) p-0 shrink-0 hover:text-(--color-text) transition-colors" aria-label="退出增强">
-                      <Icon name="close" size={11} />
-                    </button>
-                  </>
-                )}
-              </div>
-
-              {/* Scheme chips */}
-              {schemes.length >= 1 && (
-                <div className="flex flex-wrap items-center gap-1 mb-1.5">
-                  {schemes.map((scheme, i) => {
-                    const isSelected = i === currentSchemeIndex
-                    return (
-                      <button
-                        key={i}
-                        type="button"
-                        onClick={() => handleSelectScheme(i)}
-                        disabled={isAugmenting}
-                        className={`chip ${isSelected ? 'accent-active' : ''}`}
-                        style={{ height: 24, fontSize: 11.5, padding: '0 8px' }}
-                        data-active={isSelected}
-                      >
-                        {scheme.title}
-                      </button>
-                    )
-                  })}
-                  {isAugmenting && <span className="spinner" style={{ marginLeft: 4 }} />}
-                </div>
-              )}
-
-              {!isAugmenting && schemes[currentSchemeIndex]?.description && (
-                <div className="text-[12px] leading-[1.55] text-(--color-text-2)">
-                  {schemes[currentSchemeIndex].description}
-                </div>
-              )}
-            </div>
-          )}
-
-          {isAugmenting && schemes.length === 0 && (
-            <div className="card p-4 flex flex-col items-center gap-2">
-              <span className="spinner" />
-              <div className="text-[12px] text-(--color-text-2)">
-                <span className="font-medium" style={{ color: 'var(--color-accent)' }}>{augmentModelLabel}</span> 正在增强提示词
-              </div>
-              <button type="button" onClick={handleCancelAugment} className="bg-transparent border-0 text-[11.5px] text-(--color-text-3) hover:text-(--color-text) transition-colors">
-                取消
-              </button>
-            </div>
-          )}
-
-          {/* Textarea */}
-          <div className="prompt-wrap">
-            <div className="relative">
-              <div
-                aria-hidden="true"
-                className="absolute inset-0 px-3 py-2.5 text-[13.5px] leading-[1.55] whitespace-pre-wrap break-words pointer-events-none"
-                style={{ color: 'var(--color-text)', fontFamily: 'inherit' }}
+        <div className="prompt-wrap">
+          <textarea
+            ref={textareaRef}
+            value={prompt}
+            onChange={(e) => { onPromptChange(e.target.value); pushHistory(e.target.value); autoResizeTextarea(e.target) }}
+            placeholder="描述你想生成的图片…  例：一只在霓虹雨夜里啃香蕉的机械猫"
+            rows={1}
+            className="block w-full bg-transparent px-3 py-2.5 text-[13.5px] leading-[1.55] resize-none focus:outline-none"
+          />
+          <div className="flex items-center gap-2 px-2.5 py-1.5 border-t border-(--color-border) text-[11.5px] text-(--color-text-3)">
+            <span className="mono text-[11px] text-(--color-text-4)">{prompt.length} 字</span>
+            <div className="flex-1" />
+            {prompt.length > 0 && (
+              <button
+                type="button"
+                onClick={() => { onPromptChange(''); pushHistory(''); textareaRef.current?.focus() }}
+                title="清空提示词"
+                aria-label="清空提示词"
+                className="inline-flex items-center gap-1 bg-transparent border-0 p-0 text-[11px] text-(--color-text-4) hover:text-(--color-text-2) transition-colors"
               >
-                {prompt
-                  ? <>{renderHighlighted(displayPrompt)}{isTyping && <span style={{ color: 'var(--color-accent)', opacity: 0.7 }}>|</span>}</>
-                  : <span className="text-(--color-text-4)">描述你想生成的图片…  例：一只在霓虹雨夜里啃香蕉的机械猫</span>
-                }
-              </div>
-              <textarea
-                ref={textareaRef}
-                value={displayPrompt}
-                onChange={(e) => { onPromptChange(e.target.value); pushHistory(e.target.value); autoResizeTextarea(e.target) }}
-                readOnly={isAugmenting}
-                rows={1}
-                style={{ caretColor: 'var(--color-text)', color: 'transparent' }}
-                className="relative box-border w-full bg-transparent px-3 py-2.5 text-[13.5px] leading-[1.55] resize-none focus:outline-none block"
-              />
-            </div>
-            <div className="flex items-center gap-2 px-2.5 py-1.5 border-t border-(--color-border) text-[11.5px] text-(--color-text-3)">
-              <span className="mono text-[11px] text-(--color-text-4)">{prompt.length} 字</span>
-              <div className="flex-1" />
-              {prompt.length > 0 && !isAugmenting && (
-                <button
-                  type="button"
-                  onClick={() => { onPromptChange(''); pushHistory(''); textareaRef.current?.focus() }}
-                  title="清空提示词"
-                  aria-label="清空提示词"
-                  className="inline-flex items-center gap-1 bg-transparent border-0 p-0 text-[11px] text-(--color-text-4) hover:text-(--color-text-2) transition-colors"
-                >
-                  <Icon name="close" size={11} />
-                  清空
-                </button>
-              )}
-            </div>
+                <Icon name="close" size={11} />
+                清空
+              </button>
+            )}
           </div>
-
-          {/* Augment card — chips + CTA bundled, so it's visually clear styles feed into 增强 */}
-          {mode === 'text' && !isAugmenting && schemes.length === 0 && (
-            <div
-              className="fade-in rounded-[8px] px-3 py-2.5 flex flex-col gap-2.5"
-              style={{ background: 'var(--color-accent-soft)', boxShadow: 'inset 0 0 0 1px var(--ring-edge)' }}
-            >
-              <div className="flex items-center gap-1.5">
-                <span style={{ color: 'var(--color-accent)', display: 'inline-flex' }}><SparklesFilled size={12} /></span>
-                <span className="text-[12px] font-medium" style={{ color: 'var(--color-accent)' }}>AI 增强</span>
-                <span className="text-[11px] text-(--color-text-4)">· {augmentModelLabel} 结构化改写</span>
-              </div>
-
-              <StylePresetChips
-                selectedIds={selectedStyleIds}
-                onChange={onSelectedStyleIdsChange}
-                onOpenManage={onOpenStylePresets}
-                revision={stylePresetsRevision}
-              />
-
-              <div className="group relative w-full">
-                <button
-                  type="button"
-                  onClick={() => handleAugment(false)}
-                  disabled={!canAugment}
-                  className="chip accent-active justify-center disabled:opacity-50 disabled:cursor-not-allowed disabled:saturate-0"
-                  style={{ height: 32, fontSize: 12.5, padding: '0 10px', width: '100%' }}
-                >
-                  <SparklesFilled size={12} />
-                  {selectedStyleIds.length > 0
-                    ? <span>按 {selectedStyleIds.length} 种风格增强 → {selectedStyleIds.length} 个方案</span>
-                    : <span>自由发挥增强 → 2-4 个方案</span>}
-                </button>
-                <div
-                  className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-1.5 z-20 px-2 py-1 rounded-[5px] text-[11px] whitespace-nowrap opacity-0 translate-y-0.5 transition-[opacity,translate] duration-150 delay-100 group-hover:opacity-100 group-hover:translate-y-0"
-                  style={{
-                    background: 'var(--color-text)',
-                    color: 'var(--color-bg)',
-                    boxShadow: '0 6px 16px -6px rgba(15,17,21,0.24), 0 2px 4px rgba(15,17,21,0.08)',
-                  }}
-                >
-                  {canAugment
-                    ? `使用 ${augmentModelLabel} 增强提示词`
-                    : apiKey.trim() === ''
-                      ? '请先配置 API Key'
-                      : '请先填写提示词或添加参考图'}
-                </div>
-              </div>
-
-              {augmentError && <div className="text-[11.5px] text-(--color-danger)">{augmentError}</div>}
-            </div>
-          )}
-
-          {augmentError && (mode !== 'text' || isAugmenting || schemes.length > 0) && (
-            <div className="text-[11.5px] text-(--color-danger)">{augmentError}</div>
-          )}
         </div>
       </Section>
 

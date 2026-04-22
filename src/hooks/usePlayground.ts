@@ -1,17 +1,10 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { MODEL_CONFIGS, DEFAULT_MODEL, type ModelConfig } from '../config/models'
 import { generateImage, REQUEST_TIMEOUT_MS } from '../lib/api'
-import type { PersistedPromptMode, PlaygroundImage, PlaygroundImageMeta, PromptScheme } from '../lib/types'
+import type { PlaygroundImage, PlaygroundImageMeta } from '../lib/types'
 import { isKeyError } from '../lib/validateKey'
 import { saveToHistory, loadHistoryPage, deleteFromHistory, clearHistory, loadImageBlobs } from '../lib/history'
-import {
-  readSimpleUrlParams,
-  readStateBlobParam,
-  decompressStateBlob,
-  compressStateBlob,
-  preloadStateBlobCodec,
-  updateUrl,
-} from '../lib/urlState'
+import { readSimpleUrlParams, updateUrl } from '../lib/urlState'
 import { useApiKey } from './useApiKey'
 import { putBlobInCache, getBlobFromCache, removeBlobFromCache, clearBlobCache } from './useImageSrc'
 
@@ -23,7 +16,6 @@ export type GenerationSnapshot = {
   batchCount: number
   resolution: string
   aspectRatio: string
-  labels?: string[]
 }
 
 export type GenerationPreviewSlot =
@@ -33,7 +25,7 @@ export type GenerationPreviewSlot =
 
 const HISTORY_PAGE_SIZE = 20
 
-// Read simple (non-compressed) URL params once at module load to safely init useState
+// Read simple URL params once at module load to safely init useState
 const _initial = readSimpleUrlParams()
 
 function resolveModel(modelId: string | null): ModelConfig {
@@ -70,16 +62,7 @@ export function usePlayground() {
     if (_initial.batchCount !== null) return Math.min(Math.max(1, _initial.batchCount), m.maxBatchCount)
     return 1
   })
-  const [selectedStyleIds, setSelectedStyleIdsRaw] = useState<string[]>(
-    () => _initial.selectedStyleIds ?? [],
-  )
-  const [prompt, setPromptRaw] = useState('')
-
-  // Lifted from InputPanel — persisted in URL
-  const [modeRaw, setModeRaw] = useState<PersistedPromptMode>('text')
-  const [schemes, setSchemesRaw] = useState<PromptScheme[]>([])
-  const [currentSchemeIndexRaw, setCurrentSchemeIndexRaw] = useState(0)
-  const [originalPrompt, setOriginalPromptRaw] = useState<string | null>(null)
+  const [prompt, setPromptRaw] = useState(_initial.prompt ?? '')
 
   const [referenceImages, setReferenceImages] = useState<PlaygroundImage[]>([])
   const [history, setHistory] = useState<PlaygroundImageMeta[]>([])
@@ -88,38 +71,15 @@ export function usePlayground() {
   const [generationState, setGenerationState] = useState<GenerationState>('idle')
   const [generationSnapshot, setGenerationSnapshot] = useState<GenerationSnapshot | null>(null)
   const [generationPreview, setGenerationPreview] = useState<GenerationPreviewSlot[]>([])
-  const [lastGenFingerprint, setLastGenFingerprint] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const abortRef = useRef<AbortController | null>(null)
 
-  const mode = modeRaw === 'structured' && schemes.length === 0 ? 'text' : modeRaw
-  const currentSchemeIndex = schemes.length === 0 ? 0 : Math.min(currentSchemeIndexRaw, schemes.length - 1)
-
-  // Fingerprint of editor state — used to derive showDraft without useEffect
-  const stateFingerprint = `${model.id}\0${resolution}\0${aspectRatio}\0${quality}\0${batchCount}\0${prompt}\0${mode}\0${currentSchemeIndex}\0${originalPrompt}\0${schemes.map(s => s.text).join('\0')}`
-  const stateFingerprintRef = useRef(stateFingerprint)
-  stateFingerprintRef.current = stateFingerprint
-
-  // Load first page and decompress URL state blob on mount
+  // Load first page of history on mount
   useEffect(() => {
     loadHistoryPage(0, HISTORY_PAGE_SIZE).then(({ items, hasMore }) => {
       setHistory(items)
       setHistoryHasMore(hasMore)
     })
-
-    const sParam = readStateBlobParam()
-    if (sParam) {
-      preloadStateBlobCodec()
-      decompressStateBlob(sParam)
-        .then((data) => {
-          setPromptRaw(data.prompt)
-          setModeRaw(data.mode)
-          setSchemesRaw(data.schemes)
-          setCurrentSchemeIndexRaw(data.currentSchemeIndex)
-          setOriginalPromptRaw(data.originalPrompt)
-        })
-        .catch(() => {})
-    }
   }, [])
 
   // Load more history pages (infinite scroll)
@@ -135,57 +95,29 @@ export function usePlayground() {
     }
   }, [history.length, historyHasMore])
 
-  useEffect(() => {
-    if (prompt || schemes.length > 0 || originalPrompt !== null || mode === 'structured') {
-      preloadStateBlobCodec()
-    }
-  }, [prompt, schemes.length, originalPrompt, mode])
-
   // --- Debounced URL sync ---
   const urlDebounceRef = useRef<number>(0)
 
-  // Sync all state to URL as a single compressed blob (s) + plain config params
   useEffect(() => {
     window.clearTimeout(urlDebounceRef.current)
-    urlDebounceRef.current = window.setTimeout(async () => {
-      const hasState = prompt || schemes.length > 0 || originalPrompt !== null
-      const compressedS = hasState
-        ? await compressStateBlob({ prompt, mode, schemes, currentSchemeIndex, originalPrompt })
-        : null
+    urlDebounceRef.current = window.setTimeout(() => {
       updateUrl({
         m: model.id !== DEFAULT_MODEL.id ? model.id : null,
         r: resolution !== model.defaultResolution ? resolution : null,
         a: aspectRatio !== model.defaultAspectRatio ? aspectRatio : null,
         q: model.provider === 'openai' && quality !== model.defaultQuality ? quality : null,
         n: batchCount !== 1 ? String(batchCount) : null,
-        st: selectedStyleIds.length > 0 ? selectedStyleIds.join(',') : null,
-        s: compressedS,
+        p: prompt || null,
       })
     }, 300)
     return () => window.clearTimeout(urlDebounceRef.current)
-  }, [model, resolution, aspectRatio, quality, batchCount, prompt, mode, schemes, currentSchemeIndex, originalPrompt, selectedStyleIds])
+  }, [model, resolution, aspectRatio, quality, batchCount, prompt])
 
-  // --- Setters that update state (URL sync runs via effects above) ---
-  // Clearing the prompt also discards augment schemes so the UI drops back
-  // to plain text mode instead of showing stale scheme chips.
-  const setPrompt = useCallback((v: string) => {
-    setPromptRaw(v)
-    if (v.trim() === '') {
-      setSchemesRaw([])
-      setOriginalPromptRaw(null)
-      setCurrentSchemeIndexRaw(0)
-      setModeRaw('text')
-    }
-  }, [])
+  const setPrompt = useCallback((v: string) => setPromptRaw(v), [])
   const setResolution = useCallback((v: string) => setResolutionRaw(v), [])
   const setAspectRatio = useCallback((v: string) => setAspectRatioRaw(v), [])
   const setQuality = useCallback((v: string) => setQualityRaw(v), [])
   const setBatchCount = useCallback((v: number) => setBatchCountRaw(v), [])
-  const setMode = useCallback((v: PersistedPromptMode) => setModeRaw(v), [])
-  const setSchemes = useCallback((v: PromptScheme[]) => setSchemesRaw(v), [])
-  const setCurrentSchemeIndex = useCallback((v: number) => setCurrentSchemeIndexRaw(v), [])
-  const setOriginalPrompt = useCallback((v: string | null) => setOriginalPromptRaw(v), [])
-  const setSelectedStyleIds = useCallback((v: string[]) => setSelectedStyleIdsRaw(v), [])
 
   const switchModel = useCallback((modelId: string) => {
     const config = MODEL_CONFIGS.find((m) => m.id === modelId)
@@ -263,16 +195,16 @@ export function usePlayground() {
     return result
   }, [])
 
-  const generate = useCallback(async (prompts?: string[], labels?: string[]) => {
+  const generate = useCallback(async () => {
     if (!apiKeyHook.apiKey) return
-    const promptList = prompts ?? (prompt.trim() ? Array.from({ length: batchCount }, () => prompt.trim()) : [])
-    if (promptList.length === 0) return
+    const trimmed = prompt.trim()
+    if (!trimmed) return
 
     const batchId = crypto.randomUUID()
 
     setGenerationState('generating')
-    setGenerationSnapshot({ batchId, batchCount: promptList.length, resolution, aspectRatio, labels })
-    setGenerationPreview(Array.from({ length: promptList.length }, (): GenerationPreviewSlot => ({ status: 'pending' })))
+    setGenerationSnapshot({ batchId, batchCount, resolution, aspectRatio })
+    setGenerationPreview(Array.from({ length: batchCount }, (): GenerationPreviewSlot => ({ status: 'pending' })))
     setError(null)
 
     const controller = new AbortController()
@@ -293,12 +225,12 @@ export function usePlayground() {
         putBlobInCache(refImg.id, refImg.data)
       }
 
-      const promises = promptList.map((p, index) =>
+      const promises = Array.from({ length: batchCount }, (_, index) =>
         generateImage({
           apiKey: apiKeyHook.apiKey,
           baseUrl: apiKeyHook.baseUrl,
           model,
-          prompt: p,
+          prompt: trimmed,
           referenceImages,
           resolution,
           aspectRatio,
@@ -359,7 +291,6 @@ export function usePlayground() {
         }
       } else {
         setGenerationState('idle')
-        setLastGenFingerprint(stateFingerprintRef.current)
         if (errors.length > 0) {
           setError(`${images.length} succeeded, ${errors.length} failed: ${errors[0]}`)
         }
@@ -426,18 +357,12 @@ export function usePlayground() {
     quality,
     batchCount,
     prompt,
-    mode,
-    schemes,
-    currentSchemeIndex,
-    originalPrompt,
-    selectedStyleIds,
     referenceImages,
     history,
     historyHasMore,
     generationState,
     generationSnapshot,
     generationPreview,
-    showDraft: prompt.trim() !== '' && lastGenFingerprint !== stateFingerprint,
     error,
     switchModel,
     setResolution,
@@ -445,11 +370,6 @@ export function usePlayground() {
     setQuality,
     setBatchCount,
     setPrompt,
-    setMode,
-    setSchemes,
-    setCurrentSchemeIndex,
-    setOriginalPrompt,
-    setSelectedStyleIds,
     addReferenceImages,
     removeReferenceImage,
     restoreSession,

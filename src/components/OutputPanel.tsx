@@ -16,11 +16,8 @@ type Props = {
   generationState: GenerationState
   generationSnapshot: GenerationSnapshot | null
   generationPreview: GenerationPreviewSlot[]
-  showDraft: boolean
   error: string | null
   batchCount: number
-  draftBatchOverride: number | null
-  draftLabels: string[] | null
   aspectRatio: string
   resolution: string
   onAddToRef: (image: PlaygroundImageMeta) => void
@@ -58,12 +55,11 @@ function modelNameOf(modelId: string): string {
   return MODEL_CONFIGS.find((m) => m.id === modelId)?.name ?? modelId
 }
 
-function SkeletonCard({ aspectRatio, resolution, label }: { aspectRatio: string; resolution: string; label?: string }) {
+function SkeletonCard({ aspectRatio, resolution }: { aspectRatio: string; resolution: string }) {
   return (
     <div className="img-card w-full h-full">
       <div className="absolute inset-0 skeleton-animated" />
       <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 text-(--color-text-3)">
-        {label && <div className="px-2 text-center text-[12px] font-medium text-(--color-text-2)">{label}</div>}
         <div className="mono text-[11px] text-(--color-text-4)">{resolution} · {aspectRatio}</div>
         <div className="text-[11px] text-(--color-text-4)">按「生成」开始</div>
       </div>
@@ -71,12 +67,11 @@ function SkeletonCard({ aspectRatio, resolution, label }: { aspectRatio: string;
   )
 }
 
-function LoadingCard({ index, label }: { index: number; label?: string }) {
+function LoadingCard({ index }: { index: number }) {
   return (
     <div className="img-card w-full h-full">
       <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-(--color-text-3)">
         <span className="spinner" />
-        {label && <div className="px-2 text-center text-[12px] font-medium text-(--color-text-2)">{label}</div>}
         <div className="mono text-[11px] text-(--color-text-4)">生成中 #{index + 1}</div>
       </div>
     </div>
@@ -117,11 +112,8 @@ export const OutputPanel = memo(function OutputPanel({
   generationState,
   generationSnapshot,
   generationPreview,
-  showDraft,
   error,
   batchCount,
-  draftBatchOverride,
-  draftLabels,
   aspectRatio,
   resolution,
   onAddToRef,
@@ -135,7 +127,7 @@ export const OutputPanel = memo(function OutputPanel({
   const [confirmClear, setConfirmClear] = useState(false)
   const isGenerating = generationState === 'generating'
 
-  const lastGenRef = useRef<{ preview: GenerationPreviewSlot[]; ratio: string; res: string; count: number; batchId: string; labels?: string[] } | null>(null)
+  const lastGenRef = useRef<{ preview: GenerationPreviewSlot[]; ratio: string; res: string; count: number; batchId: string } | null>(null)
   if (isGenerating && generationPreview.length > 0 && generationSnapshot) {
     lastGenRef.current = {
       preview: generationPreview,
@@ -143,7 +135,6 @@ export const OutputPanel = memo(function OutputPanel({
       res: generationSnapshot.resolution,
       count: generationSnapshot.batchCount,
       batchId: generationSnapshot.batchId,
-      labels: generationSnapshot.labels,
     }
   }
 
@@ -159,8 +150,6 @@ export const OutputPanel = memo(function OutputPanel({
       lastGenRef.current = null
     }
     prevGeneratingRef.current = isGenerating
-  } else if (settled && (showDraft || isGenerating)) {
-    setSettled(false)
   }
 
   const handleExportAll = async () => {
@@ -194,18 +183,15 @@ export const OutputPanel = memo(function OutputPanel({
   }
   const batches = useMemo(() => groupByBatch(history), [history])
 
-  const settledData = settled && !showDraft && !isGenerating ? lastGenRef.current : null
-  const previewVisible = showDraft || isGenerating || !!settledData
+  const settledData = settled && !isGenerating ? lastGenRef.current : null
+  const previewVisible = isGenerating || !!settledData
 
   const draftRatio = settledData ? settledData.ratio : isGenerating && generationSnapshot ? generationSnapshot.aspectRatio : aspectRatio
   const draftRes = settledData ? settledData.res : isGenerating && generationSnapshot ? generationSnapshot.resolution : resolution
-  const draftCount = settledData ? settledData.count : isGenerating && generationSnapshot ? generationSnapshot.batchCount : (draftBatchOverride ?? batchCount)
+  const draftCount = settledData ? settledData.count : isGenerating && generationSnapshot ? generationSnapshot.batchCount : batchCount
   const previewSlots = settledData ? settledData.preview
     : isGenerating && generationPreview.length > 0 ? generationPreview
     : Array.from({ length: draftCount }, (): GenerationPreviewSlot => ({ status: 'pending' }))
-  const activeLabels = settledData?.labels
-    ?? (isGenerating && generationSnapshot?.labels)
-    ?? (!isGenerating ? draftLabels ?? undefined : undefined)
   const completedCount = previewSlots.filter((slot) => slot.status === 'fulfilled').length
 
   const settledBatchId = settledData?.batchId ?? null
@@ -216,10 +202,10 @@ export const OutputPanel = memo(function OutputPanel({
   const scrollRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    if (showDraft || isGenerating) {
+    if (isGenerating) {
       scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
     }
-  }, [showDraft, isGenerating])
+  }, [isGenerating])
 
   const sentinelRef = useRef<HTMLDivElement>(null)
   const onLoadMoreStable = useCallback(() => { onLoadMore() }, [onLoadMore])
@@ -327,9 +313,9 @@ export const OutputPanel = memo(function OutputPanel({
                   ) : slot.status === 'rejected' ? (
                     <FailedCard index={i} />
                   ) : isGenerating ? (
-                    <LoadingCard index={i} label={activeLabels?.[i]} />
+                    <LoadingCard index={i} />
                   ) : (
-                    <SkeletonCard aspectRatio={draftRatio} resolution={draftRes} label={activeLabels?.[i]} />
+                    <SkeletonCard aspectRatio={draftRatio} resolution={draftRes} />
                   )}
                 </GridCell>
               ))}

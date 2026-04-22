@@ -6,7 +6,6 @@ import type { PlaygroundImageMeta } from './lib/types'
 import { InputPanel } from './components/InputPanel'
 import { OutputPanel } from './components/OutputPanel'
 import { ApiKeysDialog } from './components/ApiKeysDialog'
-import { StylePresetsDialog } from './components/StylePresetsDialog'
 import { Icon, type IconName } from './components/Icon'
 
 type Theme = 'light' | 'dark' | 'system'
@@ -147,29 +146,19 @@ function App() {
     history: pgHistory,
     restoreSession,
     resolveFullImages,
-    setMode,
     switchModel,
     setResolution,
     setAspectRatio,
   } = pg
   const [theme, setTheme] = useState<Theme>(getInitialTheme)
   const [colorTheme, setColorTheme] = useState<ColorThemeId>(getInitialColorTheme)
-  const [draftBatchOverride, setDraftBatchOverride] = useState<number | null>(null)
-  const [draftLabels, setDraftLabels] = useState<string[] | null>(null)
-  const [draftPreviewHover, setDraftPreviewHover] = useState(false)
   const [regenToast, setRegenToast] = useState<string | null>(null)
   const [apiKeysOpen, setApiKeysOpen] = useState(false)
-  const [stylePresetsOpen, setStylePresetsOpen] = useState(false)
-  const [stylePresetsRevision, setStylePresetsRevision] = useState(0)
   const regenToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const titleResetTimerRef = useRef<number | null>(null)
   const prevGenerationStateRef = useRef(pg.generationState)
   const lastGenerationProgressRef = useRef({ done: 0, total: 0 })
 
-  const handleDraftBatchOverride = useCallback((count: number | null, labels?: string[]) => {
-    setDraftBatchOverride(count)
-    setDraftLabels(count !== null && labels ? labels : null)
-  }, [])
   const mobileOutputAreaRef = useRef<HTMLDivElement>(null)
 
   const handleAddToRef = useCallback((image: PlaygroundImageMeta) => {
@@ -185,14 +174,13 @@ function App() {
     const refMetas = pgHistory.filter((h) => meta.referenceImageIds.includes(h.id))
     const refs = await resolveFullImages(refMetas)
     restoreSession(meta.prompt, refs)
-    setMode('text')
     const message = refs.length > 0
       ? `已还原提示词和 ${refs.length} 张参考图`
       : '已还原提示词'
     if (regenToastTimer.current) clearTimeout(regenToastTimer.current)
     setRegenToast(message)
     regenToastTimer.current = setTimeout(() => setRegenToast(null), 2500)
-  }, [pgHistory, resolveFullImages, restoreSession, setAspectRatio, setMode, setResolution, switchModel])
+  }, [pgHistory, resolveFullImages, restoreSession, setAspectRatio, setResolution, switchModel])
 
   useLayoutEffect(() => {
     const root = document.documentElement
@@ -265,8 +253,8 @@ function App() {
     }
   }, [])
 
-  const handleGenerate = (prompts?: string[], labels?: string[]) => {
-    pg.generate(prompts, labels)
+  const handleGenerate = () => {
+    pg.generate()
     if (window.innerWidth < 768) {
       setTimeout(() => {
         mobileOutputAreaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -313,14 +301,9 @@ function App() {
           quality={pg.quality}
           batchCount={pg.batchCount}
           prompt={pg.prompt}
-          mode={pg.mode}
-          schemes={pg.schemes}
-          currentSchemeIndex={pg.currentSchemeIndex}
-          originalPrompt={pg.originalPrompt}
           referenceImages={pg.referenceImages}
           generationState={pg.generationState}
           apiKey={pg.apiKey}
-          apiBaseUrl={pg.apiBaseUrl}
           apiKeyStatus={pg.apiKeyStatus}
           googleKeyStatus={pg.googleKey.status}
           openaiKeyStatus={pg.openaiKey.status}
@@ -331,22 +314,11 @@ function App() {
           onQualityChange={pg.setQuality}
           onPromptChange={pg.setPrompt}
           onBatchCountChange={pg.setBatchCount}
-          onModeChange={pg.setMode}
-          onSchemesChange={pg.setSchemes}
-          onCurrentSchemeIndexChange={pg.setCurrentSchemeIndex}
-          onOriginalPromptChange={pg.setOriginalPrompt}
-          selectedStyleIds={pg.selectedStyleIds}
-          onSelectedStyleIdsChange={pg.setSelectedStyleIds}
-          onOpenStylePresets={() => setStylePresetsOpen(true)}
-          stylePresetsRevision={stylePresetsRevision}
           onAddReferenceImages={pg.addReferenceImages}
           onAddReferenceImage={pg.addToReferences}
           onRemoveReferenceImage={pg.removeReferenceImage}
           onGenerate={handleGenerate}
           onCancel={pg.cancelGeneration}
-          onDraftBatchOverride={handleDraftBatchOverride}
-          onDraftPreviewHover={setDraftPreviewHover}
-          onDraftLabelsOverride={setDraftLabels}
         />
         <div ref={mobileOutputAreaRef} className="border-t border-(--color-border) pt-5">
           <OutputPanel
@@ -355,11 +327,8 @@ function App() {
             generationState={pg.generationState}
             generationSnapshot={pg.generationSnapshot}
             generationPreview={pg.generationPreview}
-            showDraft={draftPreviewHover}
             error={pg.error}
             batchCount={pg.batchCount}
-            draftBatchOverride={draftBatchOverride}
-            draftLabels={draftLabels}
             aspectRatio={pg.aspectRatio}
             resolution={pg.resolution}
             onAddToRef={handleAddToRef}
@@ -385,14 +354,9 @@ function App() {
             quality={pg.quality}
             batchCount={pg.batchCount}
             prompt={pg.prompt}
-            mode={pg.mode}
-            schemes={pg.schemes}
-            currentSchemeIndex={pg.currentSchemeIndex}
-            originalPrompt={pg.originalPrompt}
             referenceImages={pg.referenceImages}
             generationState={pg.generationState}
             apiKey={pg.apiKey}
-            apiBaseUrl={pg.apiBaseUrl}
             apiKeyStatus={pg.apiKeyStatus}
             googleKeyStatus={pg.googleKey.status}
             openaiKeyStatus={pg.openaiKey.status}
@@ -403,22 +367,11 @@ function App() {
             onQualityChange={pg.setQuality}
             onPromptChange={pg.setPrompt}
             onBatchCountChange={pg.setBatchCount}
-            onModeChange={pg.setMode}
-            onSchemesChange={pg.setSchemes}
-            onCurrentSchemeIndexChange={pg.setCurrentSchemeIndex}
-            onOriginalPromptChange={pg.setOriginalPrompt}
-            selectedStyleIds={pg.selectedStyleIds}
-            onSelectedStyleIdsChange={pg.setSelectedStyleIds}
-            onOpenStylePresets={() => setStylePresetsOpen(true)}
-            stylePresetsRevision={stylePresetsRevision}
             onAddReferenceImages={pg.addReferenceImages}
             onAddReferenceImage={pg.addToReferences}
             onRemoveReferenceImage={pg.removeReferenceImage}
             onGenerate={handleGenerate}
             onCancel={pg.cancelGeneration}
-            onDraftBatchOverride={handleDraftBatchOverride}
-            onDraftPreviewHover={setDraftPreviewHover}
-            onDraftLabelsOverride={setDraftLabels}
           />
         </div>
 
@@ -429,11 +382,8 @@ function App() {
           generationState={pg.generationState}
           generationSnapshot={pg.generationSnapshot}
           generationPreview={pg.generationPreview}
-          showDraft={draftPreviewHover}
           error={pg.error}
           batchCount={pg.batchCount}
-          draftBatchOverride={draftBatchOverride}
-          draftLabels={draftLabels}
           aspectRatio={pg.aspectRatio}
           resolution={pg.resolution}
           onAddToRef={handleAddToRef}
@@ -461,12 +411,6 @@ function App() {
       googleKey={pg.googleKey}
       openaiKey={pg.openaiKey}
       onClose={() => setApiKeysOpen(false)}
-    />
-
-    <StylePresetsDialog
-      open={stylePresetsOpen}
-      onClose={() => setStylePresetsOpen(false)}
-      onChanged={() => setStylePresetsRevision((r) => r + 1)}
     />
     </>
   )

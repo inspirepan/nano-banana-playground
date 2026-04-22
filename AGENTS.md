@@ -17,8 +17,7 @@
   |     |
   |     +-- usePlayground (中央状态)
   |           |-- model / resolution / aspectRatio / quality / batchCount
-  |           |-- prompt / mode / schemes / currentSchemeIndex / originalPrompt
-  |           |-- referenceImages / generationPreview / history / error
+  |           |-- prompt / referenceImages / generationPreview / history / error
   |           +-- URL sync + IndexedDB history + blob cache
   |
   +-- Gemini REST API
@@ -38,7 +37,7 @@
 - **配置驱动的模型能力**：新模型、分辨率、比例、quality、价格、上限统一在 `src/config/models.ts` 配置。
 - **共享编辑器状态**：`App.tsx` 同时渲染移动端和桌面端两套 `InputPanel`，共享状态必须放在 `usePlayground`，不要做面板内持久化分叉。
 - **统一图片模型**：上传图、历史图、生成图都走 `PlaygroundImage` / `PlaygroundImageMeta`，通过 `source.type` 区分来源。
-- **URL 可恢复编辑态**：提示词、结构化 schemes、当前 scheme、mode、originalPrompt 通过 `src/lib/urlState.ts` 压缩写回 URL。
+- **URL 可恢复编辑态**：模型参数与提示词通过 `src/lib/urlState.ts` 以裸 query 参数写回 URL。
 - **本地优先历史**：图片和历史只存本地浏览器，不依赖账号体系或服务端。
 
 ## 技术栈
@@ -63,16 +62,15 @@ src/
     useApiKey.ts               # provider 维度的 API Key 校验与存储
     useImageSrc.ts             # blob cache / object URL
   lib/
-    api.ts                     # Gemini/OpenAI 请求层 + augment 流式生成
+    api.ts                     # Gemini/OpenAI 请求层
     history.ts                 # IndexedDB 持久化
-    urlState.ts                # 压缩 URL 状态
+    urlState.ts                # URL 参数读写
     openai.ts                  # GPT Image 2 尺寸映射
     pricing.ts                 # 预估价格 / 实际费用计算
-    templates.ts               # 结构化提示词模板
-    types.ts                   # PlaygroundImage / PromptScheme / token usage
+    types.ts                   # PlaygroundImage / token usage
     validateKey.ts             # API Key 校验
   components/
-    InputPanel.tsx             # 编辑器、模型切换、增强、参考图、生成 CTA
+    InputPanel.tsx             # 编辑器、模型切换、参考图、生成 CTA
     OutputPanel.tsx            # 草稿预览、历史批次、导出 ZIP
     ImageDetailModal.tsx       # 全屏查看、缩放平移、元数据、参考图对比
     ApiKeysDialog.tsx          # Google/OpenAI Key 管理弹窗
@@ -94,7 +92,7 @@ src/
 | 分辨率 / Quality / 批次数量 | `InputPanel` + `ChipGroup` |
 | 宽高比选择 | `AspectRatioSelector` |
 | 参考图上传区 | `ReferenceImageUpload` |
-| 文本提示词 / 结构化提示词 / AI 增强 | `InputPanel` |
+| 文本提示词 | `InputPanel` |
 | 草稿骨架 / 生成进度 / 历史批次 | `OutputPanel` + `ImageGrid` + `ImageCard` |
 | 全屏查看 / 缩放 / 对比 / 元数据 | `ImageDetailModal` |
 
@@ -118,7 +116,7 @@ src/
 ## 开发规范
 
 - **类型**：禁止 `any`，优先正确建模或用可缩小的 `unknown`。
-- **状态归属**：会影响 URL 恢复、移动/桌面同步、生成参数或历史的状态，一律放在 `usePlayground`。`InputPanel` 只保留局部瞬时 UI 状态，比如增强进行态、局部 undo/redo、drag over、textarea 测量态。
+- **状态归属**：会影响 URL 恢复、移动/桌面同步、生成参数或历史的状态，一律放在 `usePlayground`。`InputPanel` 只保留局部瞬时 UI 状态，比如局部 undo/redo、drag over、textarea 测量态。
 - **响应式布局**：`App.tsx` 会同时渲染两套 `InputPanel`。任何编辑器功能改动，都要确认移动端和桌面端共用同一份 state/handler。
 - **持久化边界**：API Key 和外观设置走 localStorage；提示词编辑态走 URL；图片二进制只存 IndexedDB/blob cache。不要把大对象或 base64 塞进 localStorage。
 - **样式写法**：优先 Tailwind utility + `index.css` 里的复用类。仅在动态几何值、portal 定位、色块预览、计算型 grid size 等少数场景使用 inline style。
@@ -141,10 +139,6 @@ npm test
 ```
 
 构建失败不得提交。
-
-## 评测
-
-提示词增强（`src/lib/augment-system-prompt.md`）有 LLM-as-Judge 回归测试：`eval/cases.json` 定义用例与断言，`eval/run.py`（`uv run eval/run.py -j 6`）调用增强模型后用 judge 模型逐条判定 + 打分。修改增强提示词后必须跑通。
 
 ## 精选知识源
 
