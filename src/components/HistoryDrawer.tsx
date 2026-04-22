@@ -27,8 +27,8 @@ export function HistoryDrawer({ history, onAddToRef, onRegenerate, onRemove, onC
           className="w-full px-5 py-2.5 flex items-center justify-between hover:bg-surface-container transition-colors"
         >
           <div className="flex items-center gap-2">
-            <span className="text-xs font-medium text-on-surface-variant">历史记录</span>
-            <span className="px-1.5 py-0.5 bg-surface-container-high text-on-surface-variant text-[11px] font-mono rounded">
+            <span className="text-base font-medium text-on-surface-variant">历史记录</span>
+            <span className="rounded bg-surface-container-high px-1.5 py-0.5 font-mono text-sm text-on-surface-variant">
               {history.length}
             </span>
           </div>
@@ -39,7 +39,7 @@ export function HistoryDrawer({ history, onAddToRef, onRegenerate, onRemove, onC
                   e.stopPropagation()
                   onClearAll()
                 }}
-                className="text-xs text-error hover:text-error/80 cursor-pointer"
+                className="cursor-pointer text-sm text-error hover:text-error/80"
               >
                 清除全部
               </span>
@@ -122,7 +122,7 @@ function HistoryThumbnail({
         <div className="h-20 w-20 rounded-lg bg-surface-container-high border border-outline-variant animate-pulse cursor-pointer" onClick={onClick} />
       )}
       {meta && (
-        <div className="absolute top-1 right-1 px-1 bg-black/50 text-white text-[8px] font-mono rounded">
+        <div className="absolute top-1 right-1 rounded bg-black/50 px-1 text-sm font-mono text-white">
           {meta.resolution}
         </div>
       )}

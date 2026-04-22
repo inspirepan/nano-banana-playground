@@ -29,7 +29,7 @@ export function ReferenceImageUpload({ images, maxTotal, dragOver, onAdd, onRemo
   return (
     <div>
       <div className="flex items-baseline justify-between mb-3">
-        <label className="text-sm font-medium text-on-surface-variant">参考图片</label>
+        <label className="text-base font-medium text-on-surface-variant">参考图片</label>
         {images.length > 0 && (
           <span className="text-sm text-on-surface-variant/60">
             {images.length}/{maxTotal}
@@ -85,7 +85,7 @@ export function ReferenceImageUpload({ images, maxTotal, dragOver, onAdd, onRemo
             ${dragOver ? 'bg-primary-dim' : 'bg-surface-container hover:bg-surface-container-high'}`}
         >
           <span className="material-symbols-rounded text-lg leading-none text-on-surface-variant/60">add_photo_alternate</span>
-          <span className="text-sm text-on-surface-variant/60">点击上传、拖入或粘贴图片</span>
+          <span className="text-base text-on-surface-variant/60">点击上传、拖入或粘贴图片</span>
         </button>
       )}
       <input

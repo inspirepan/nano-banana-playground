@@ -157,14 +157,14 @@ export const ImageCard = memo(function ImageCard({ image, inlineData, index, onA
       <div
         className={`pointer-events-none absolute inset-x-0 top-1/2 z-10 flex -translate-y-1/2 justify-center transition-all duration-300 ${toast ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}`}
       >
-        <div className="rounded-full bg-black/70 px-4 py-2 text-xs font-medium text-white backdrop-blur-sm">
+        <div className="rounded-full bg-black/70 px-4 py-2 text-sm font-medium text-white backdrop-blur-sm">
           已复制
         </div>
       </div>
 
       {/* Meta chip — top right, pill */}
       {meta && (
-        <div className="pointer-events-none absolute top-2 right-2 rounded-full bg-black/40 px-2 py-1 text-2xs font-medium tabular-nums text-white/90 backdrop-blur-md">
+        <div className="pointer-events-none absolute top-2 right-2 rounded-full bg-black/40 px-2 py-1 text-sm font-medium tabular-nums text-white/90 backdrop-blur-md">
           {meta.resolution} · {meta.aspectRatio}
         </div>
       )}
@@ -172,7 +172,7 @@ export const ImageCard = memo(function ImageCard({ image, inlineData, index, onA
       {/* Bottom content */}
       <div className="absolute inset-x-0 bottom-0 p-3">
         <div className="mb-2 min-w-0">
-          <div className="line-clamp-2 max-h-[2.2rem] overflow-hidden text-xs font-medium leading-[1.45] text-white/90">
+          <div className="line-clamp-2 max-h-[2.2rem] overflow-hidden text-sm font-medium leading-[1.45] text-white/90">
             {index !== undefined && (
               <span className="mr-1 text-white/50">#{index + 1}</span>
             )}
@@ -225,7 +225,7 @@ function ActionButton({ label, onClick, danger = false }: { label: string; onCli
         event.stopPropagation()
         onClick()
       }}
-      className={`w-full rounded-xl px-2 py-1.5 text-xs font-medium whitespace-nowrap backdrop-blur-sm transition-colors
+      className={`w-full rounded-xl px-2 py-1.5 text-sm font-medium whitespace-nowrap backdrop-blur-sm transition-colors
         ${danger
           ? 'bg-error/30 text-white hover:bg-error/40 active:bg-error/50'
           : 'bg-white/20 text-white hover:bg-white/30 active:bg-white/40'}`}

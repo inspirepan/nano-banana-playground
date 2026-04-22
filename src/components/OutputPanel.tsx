@@ -55,8 +55,8 @@ function SkeletonCard({ aspectRatio, resolution, label }: { aspectRatio: string;
   return (
     <div className="w-full h-full rounded-xl bg-surface-container overflow-hidden relative">
       <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
-        {label && <div className="text-sm font-medium text-on-surface-variant/40 px-2 text-center">{label}</div>}
-        <div className="text-xs tabular-nums text-on-surface-variant/30">{resolution} {aspectRatio}</div>
+        {label && <div className="px-2 text-center text-base font-medium text-on-surface-variant/40">{label}</div>}
+        <div className="text-sm tabular-nums text-on-surface-variant/30">{resolution} {aspectRatio}</div>
         <div className="text-sm text-on-surface-variant/25">按「生成」键确认</div>
       </div>
       <div className="absolute skeleton-shimmer" />
@@ -70,7 +70,7 @@ function LoadingCard({ index }: { index: number }) {
       <div className="absolute inset-0 flex items-center justify-center">
         <div className="text-center space-y-2">
           <div className="w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin mx-auto" />
-          <div className="text-2xs tabular-nums text-on-surface-variant/50">{`生成中 #${index + 1}...`}</div>
+          <div className="text-sm tabular-nums text-on-surface-variant/50">{`生成中 #${index + 1}...`}</div>
         </div>
       </div>
     </div>
@@ -82,8 +82,8 @@ function FailedCard({ index }: { index: number }) {
     <div className="w-full h-full rounded-xl border border-error/20 bg-error-dim/40 overflow-hidden relative">
       <div className="absolute inset-0 flex items-center justify-center">
         <div className="text-center space-y-2">
-          <div className="mx-auto flex h-5 w-5 items-center justify-center rounded-full bg-error/12 text-error text-xs font-bold">&times;</div>
-          <div className="text-2xs tabular-nums text-error/80">{`失败 #${index + 1}`}</div>
+          <div className="mx-auto flex h-5 w-5 items-center justify-center rounded-full bg-error/12 text-error text-sm font-bold">&times;</div>
+          <div className="text-sm tabular-nums text-error/80">{`失败 #${index + 1}`}</div>
         </div>
       </div>
     </div>
@@ -233,7 +233,7 @@ export const OutputPanel = memo(function OutputPanel({
     <div ref={scrollRef} className="flex-1 md:flex-[2_1_0%] overflow-visible md:overflow-y-auto [scrollbar-gutter:stable] md:pl-6 md:pr-8">
       <div className="h-4" />
       {error && (
-        <div className="mb-4 px-4 py-3 bg-error-dim text-error text-sm rounded-xl border border-error/20">
+        <div className="mb-4 rounded-xl border border-error/20 bg-error-dim px-4 py-3 text-base text-error">
           {error}
         </div>
       )}
@@ -248,16 +248,16 @@ export const OutputPanel = memo(function OutputPanel({
             <div className="mb-2 flex items-center justify-between gap-3">
               {settledData ? (
                 <>
-                  <div className="text-xs font-mono text-on-surface-variant/50">刚刚</div>
-                  <div className="text-xs font-mono text-on-surface-variant/50 truncate">
+                  <div className="text-sm font-mono text-on-surface-variant/50">刚刚</div>
+                  <div className="truncate text-sm font-mono text-on-surface-variant/50">
                     {settledData.res} · {settledData.ratio} · {settledData.count}张
                   </div>
                 </>
               ) : (
                 <>
-                  <div className="text-sm font-medium text-on-surface-variant">预览</div>
+                  <div className="text-base font-medium text-on-surface-variant">预览</div>
                   {isGenerating && (
-                    <div className="text-2xs font-mono text-on-surface-variant/50">
+                    <div className="text-sm font-mono text-on-surface-variant/50">
                       {completedCount} / {draftCount}
                     </div>
                   )}
@@ -295,12 +295,12 @@ export const OutputPanel = memo(function OutputPanel({
       {displayBatches.length > 0 && (
         <div className="space-y-6">
           <div className="flex items-center justify-between">
-            <div className="text-sm font-medium text-on-surface-variant">历史记录 (本地浏览器存储)</div>
+            <div className="text-base font-medium text-on-surface-variant">历史记录 (本地浏览器存储)</div>
             <button
               type="button"
               onClick={handleExportAll}
               disabled={exporting}
-              className="text-sm text-primary hover:text-primary/80 transition-colors disabled:text-on-surface-variant/30"
+              className="text-base text-primary transition-colors hover:text-primary/80 disabled:text-on-surface-variant/30"
             >
               {exporting ? '导出中...' : '导出全部'}
             </button>
@@ -308,7 +308,7 @@ export const OutputPanel = memo(function OutputPanel({
           {displayBatches.map((batch) => {
             return (
               <div key={batch.batchId}>
-                <div className="mb-2 flex items-center justify-between gap-3 text-xs font-mono text-on-surface-variant/50">
+                <div className="mb-2 flex items-center justify-between gap-3 text-sm font-mono text-on-surface-variant/50">
                   <div>{formatTime(batch.timestamp)}</div>
                   <div className="truncate">
                     {batch.resolution} · {batch.aspectRatio} · {batch.images.length}张
@@ -335,25 +335,25 @@ export const OutputPanel = memo(function OutputPanel({
           {/* Infinite scroll sentinel */}
           {historyHasMore && (
             <div ref={sentinelRef} className="flex justify-center py-4">
-              <div className="text-2xs text-on-surface-variant/40">加载更多...</div>
+              <div className="text-sm text-on-surface-variant/40">加载更多...</div>
             </div>
           )}
 
           <div className="flex justify-center py-2">
             {confirmClear ? (
               <div className="flex items-center gap-3">
-                <span className="text-sm text-on-surface-variant/60">确认清除全部历史？</span>
+                <span className="text-base text-on-surface-variant/60">确认清除全部历史？</span>
                 <button
                   type="button"
                   onClick={() => { setConfirmClear(false); onClearAll() }}
-                  className="text-sm text-error hover:text-error/80 transition-colors"
+                  className="text-base text-error transition-colors hover:text-error/80"
                 >
                   确认
                 </button>
                 <button
                   type="button"
                   onClick={() => setConfirmClear(false)}
-                  className="text-sm text-on-surface-variant/50 hover:text-on-surface-variant transition-colors"
+                  className="text-base text-on-surface-variant/50 transition-colors hover:text-on-surface-variant"
                 >
                   取消
                 </button>
@@ -362,7 +362,7 @@ export const OutputPanel = memo(function OutputPanel({
               <button
                 type="button"
                 onClick={() => setConfirmClear(true)}
-                className="text-sm text-error hover:text-error/80 transition-colors"
+                className="text-base text-error transition-colors hover:text-error/80"
               >
                 清除全部
               </button>
@@ -373,7 +373,7 @@ export const OutputPanel = memo(function OutputPanel({
       )}
 
       {displayBatches.length === 0 && !isGenerating && !settledData && (
-        <div className="mt-4 text-center text-on-surface-variant/40 text-sm">
+        <div className="mt-4 text-center text-base text-on-surface-variant/40">
           设置选项并输入提示词来生成图片
         </div>
       )}

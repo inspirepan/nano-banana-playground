@@ -195,14 +195,14 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
   // Shared cost block reused in both layouts
   const costBlock = currentMeta && (estimatedCost !== null || currentMeta.tokenUsage) && (
     <div>
-      <div className="mb-1 text-sm font-medium text-on-surface-variant">消耗</div>
+      <div className="mb-1 text-base font-medium text-on-surface-variant">消耗</div>
       <div className="rounded-xl border border-outline-variant bg-surface-container px-3 py-2.5 space-y-2">
         {estimatedCost !== null && (
           <div className="flex items-baseline justify-between">
-            <span className="text-xs text-on-surface-variant">费用</span>
-            <span className="text-sm font-medium text-on-surface font-mono">
+            <span className="text-sm text-on-surface-variant">费用</span>
+            <span className="text-base font-medium text-on-surface font-mono">
               ${estimatedCost.toFixed(4)}
-              {!currentMeta.tokenUsage && <span className="ml-1 text-xs font-normal text-on-surface-variant">估算</span>}
+              {!currentMeta.tokenUsage && <span className="ml-1 text-sm font-normal text-on-surface-variant">估算</span>}
             </span>
           </div>
         )}
@@ -210,21 +210,21 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
           <>
             {estimatedCost !== null && <div className="border-t border-outline-variant" />}
             <div className="flex items-baseline justify-between">
-              <span className="text-xs text-on-surface-variant">输入 Token</span>
-              <span className="text-xs font-mono text-on-surface">
+              <span className="text-sm text-on-surface-variant">输入 Token</span>
+              <span className="text-sm font-mono text-on-surface">
                 {currentMeta.tokenUsage.inputTokens.toLocaleString()}
               </span>
             </div>
             <div className="flex items-baseline justify-between">
-              <span className="text-xs text-on-surface-variant">图片输出 Token</span>
-              <span className="text-xs font-mono text-on-surface">
+              <span className="text-sm text-on-surface-variant">图片输出 Token</span>
+              <span className="text-sm font-mono text-on-surface">
                 {currentMeta.tokenUsage.imageOutputTokens.toLocaleString()}
               </span>
             </div>
             {currentMeta.tokenUsage.textOutputTokens > 0 && (
               <div className="flex items-baseline justify-between">
-                <span className="text-xs text-on-surface-variant">思考 Token</span>
-                <span className="text-xs font-mono text-on-surface">
+                <span className="text-sm text-on-surface-variant">思考 Token</span>
+                <span className="text-sm font-mono text-on-surface">
                   {currentMeta.tokenUsage.textOutputTokens.toLocaleString()}
                 </span>
               </div>
@@ -238,14 +238,14 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
   // Shared ref images block reused in both layouts
   const refImagesBlock = currentMeta && currentMeta.referenceImageIds.length > 0 && (
     <div>
-      <div className="mb-1 text-sm font-medium text-on-surface-variant">
+      <div className="mb-1 text-base font-medium text-on-surface-variant">
         参考图片 ({currentMeta.referenceImageIds.length})
       </div>
       <div className="flex flex-wrap gap-2">
         {currentMeta.referenceImageIds.map((refId) => {
           const refImg = findRefImage(refId)
           if (!refImg) return (
-            <div key={refId} className="h-12 w-12 rounded-md bg-surface-container border border-outline-variant flex items-center justify-center text-2xs text-on-surface-variant/40">?</div>
+            <div key={refId} className="flex h-12 w-12 items-center justify-center rounded-md border border-outline-variant bg-surface-container text-sm text-on-surface-variant/40">?</div>
           )
           return (
             <RefThumbnail
@@ -270,8 +270,8 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
           <MetaRow label="宽高比" value={currentMeta.aspectRatio} />
           {currentMeta.quality && <MetaRow label="质量" value={currentMeta.quality} />}
           <div>
-            <div className="mb-1 text-sm font-medium text-on-surface-variant">提示词</div>
-            <div className="max-h-[40vh] overflow-y-auto rounded-xl bg-surface-container px-3 py-2 text-xs leading-relaxed text-on-surface whitespace-pre-wrap">
+            <div className="mb-1 text-base font-medium text-on-surface-variant">提示词</div>
+            <div className="max-h-[40vh] overflow-y-auto rounded-xl bg-surface-container px-3 py-2 text-sm leading-relaxed text-on-surface whitespace-pre-wrap">
               {currentMeta.prompt}
             </div>
           </div>
@@ -292,8 +292,8 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
       {currentMeta && (
         <>
           <div>
-            <div className="mb-1 text-sm font-medium text-on-surface-variant">提示词</div>
-            <div className="max-h-[40vh] overflow-y-auto rounded-xl bg-surface-container px-3 py-2 text-xs leading-relaxed text-on-surface whitespace-pre-wrap">
+            <div className="mb-1 text-base font-medium text-on-surface-variant">提示词</div>
+            <div className="max-h-[40vh] overflow-y-auto rounded-xl bg-surface-container px-3 py-2 text-sm leading-relaxed text-on-surface whitespace-pre-wrap">
               {currentMeta.prompt}
             </div>
           </div>
@@ -313,7 +313,7 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
       <div
         className={`pointer-events-none absolute inset-x-0 top-0 flex -translate-y-1/2 justify-center transition-all duration-300 ${toast ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}`}
       >
-        <div className="rounded bg-on-surface/80 px-4 py-2 text-xs font-medium text-surface backdrop-blur-sm">
+        <div className="rounded bg-on-surface/80 px-4 py-2 text-sm font-medium text-surface backdrop-blur-sm">
           已复制
         </div>
       </div>
@@ -327,7 +327,7 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
         <button
           type="button"
           onClick={() => { onRemove(currentImage.id); onClose() }}
-          className="w-full rounded-xl bg-error-dim py-2.5 text-sm font-medium text-error transition-colors hover:bg-error/15 active:bg-error/20"
+          className="w-full rounded-xl bg-error-dim py-2.5 text-base font-medium text-error transition-colors hover:bg-error/15 active:bg-error/20"
         >
           删除
         </button>
@@ -394,7 +394,7 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
                   className="absolute top-4 left-1/2 -translate-x-1/2 z-10
                              flex items-center gap-1 rounded-full
                              border border-outline-variant/70 bg-surface/82
-                             pl-2 pr-3 py-1 text-2xs text-on-surface
+                             pl-2 pr-3 py-1 text-sm text-on-surface
                              shadow-sm backdrop-blur-sm transition-colors hover:bg-surface active:bg-surface-dim"
                   aria-label="关闭对比"
                 >
@@ -461,7 +461,7 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
         {canNavigate && !refDetailId && (
           <div className="pointer-events-none absolute top-4 left-4 z-20
                           rounded-full bg-black/40 px-3 py-1
-                          text-2xs font-mono text-white backdrop-blur-sm">
+                          text-sm font-mono text-white backdrop-blur-sm">
             {currentIdx + 1} / {history.length}
           </div>
         )}
@@ -489,7 +489,7 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
             >
               <div className="w-9 h-1 rounded-full bg-on-surface/20" />
               {/* Compact peek row — model · resolution · ratio */}
-              <div className="mt-2 flex items-center gap-2 text-xs text-on-surface-variant">
+              <div className="mt-2 flex items-center gap-2 text-sm text-on-surface-variant">
                 {currentMeta ? (
                   <>
                     <span className="font-medium text-on-surface">{modelName}</span>
@@ -544,7 +544,7 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
                     onClick={() => { setRefDetailId(null); scrollRefDetailToTop() }}
                     className="absolute top-4 left-1/2 -translate-x-1/2 z-10
                                flex items-center gap-1 rounded-full
-                               bg-black/40 pl-2 pr-3 py-1 text-2xs text-white
+                               bg-black/40 pl-2 pr-3 py-1 text-sm text-white
                                backdrop-blur-sm transition-colors hover:bg-black/55 active:bg-black/60"
                     aria-label="关闭对比"
                   >
@@ -598,7 +598,7 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
             {canNavigate && !refDetailId && (
               <div className="pointer-events-none absolute bottom-4 left-1/2 -translate-x-1/2 z-10
                               rounded-full bg-black/40 px-3 py-1
-                              text-2xs font-mono text-white backdrop-blur-sm">
+                              text-sm font-mono text-white backdrop-blur-sm">
                 {currentIdx + 1} / {history.length}
               </div>
             )}
@@ -606,7 +606,7 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
 
           <div className="flex w-[320px] shrink-0 flex-col overflow-y-auto border-l border-outline-variant p-6">
             <div className="mb-4 flex items-center justify-between">
-              <span className="text-sm font-medium text-on-surface">详情</span>
+              <span className="text-base font-medium text-on-surface">详情</span>
               <button
                 type="button"
                 onClick={onClose}
@@ -925,11 +925,11 @@ function ZoomableImageView({ src, alt, label, onSwipeLeft, onSwipeRight }: {
 
       <div className="pointer-events-none absolute left-4 top-4 hidden md:flex items-center gap-2">
         {label && (
-          <div className="rounded-full bg-black/40 px-3 py-1 text-2xs text-white backdrop-blur-sm">
+          <div className="rounded-full bg-black/40 px-3 py-1 text-sm text-white backdrop-blur-sm">
             {label}
           </div>
         )}
-        <div className="rounded-full bg-black/40 px-3 py-1 text-2xs font-mono text-white backdrop-blur-sm">
+        <div className="rounded-full bg-black/40 px-3 py-1 text-sm font-mono text-white backdrop-blur-sm">
           {Math.round(scale * 100)}%
         </div>
       </div>
@@ -939,7 +939,7 @@ function ZoomableImageView({ src, alt, label, onSwipeLeft, onSwipeRight }: {
           type="button"
           onClick={() => zoomAtPoint(scaleRef.current * 1.25, { x: 0, y: 0 })}
           className="flex items-center gap-1 rounded-full
-                     bg-black/40 pl-2 pr-3 py-1 text-2xs text-white
+                     bg-black/40 pl-2 pr-3 py-1 text-sm text-white
                      backdrop-blur-sm transition-colors hover:bg-black/55 active:bg-black/60"
           aria-label="放大"
         >
@@ -950,7 +950,7 @@ function ZoomableImageView({ src, alt, label, onSwipeLeft, onSwipeRight }: {
           type="button"
           onClick={resetView}
           className="flex items-center gap-1 rounded-full
-                     bg-black/40 pl-2 pr-3 py-1 text-2xs text-white
+                     bg-black/40 pl-2 pr-3 py-1 text-sm text-white
                      backdrop-blur-sm transition-colors hover:bg-black/55 active:bg-black/60"
           aria-label="重置"
         >
@@ -968,7 +968,7 @@ function MetaRow({ label, value }: { label: string; value: string }) {
   return (
     <div>
       <div className="mb-1 text-sm font-medium text-on-surface-variant">{label}</div>
-      <div className="text-sm text-on-surface">{value}</div>
+      <div className="text-base text-on-surface">{value}</div>
     </div>
   )
 }
@@ -978,7 +978,7 @@ function ModalAction({ label, onClick }: { label: string; onClick: () => void | 
     <button
       type="button"
       onClick={onClick}
-      className="flex-1 rounded-xl bg-surface-container py-2.5 text-sm font-medium text-on-surface transition-colors hover:bg-on-surface/8 active:bg-on-surface/12"
+      className="flex-1 rounded-xl bg-surface-container py-2.5 text-base font-medium text-on-surface transition-colors hover:bg-on-surface/8 active:bg-on-surface/12"
     >
       {label}
     </button>

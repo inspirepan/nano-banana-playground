@@ -51,7 +51,7 @@ export function ApiKeysDialog({ open, googleKey, openaiKey, onClose }: Props) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-6 pt-5 pb-3">
-          <h2 className="text-lg font-medium text-on-surface">API Keys</h2>
+          <h2 className="text-base font-medium text-on-surface">API Keys</h2>
           <button
             type="button"
             onClick={onClose}
@@ -64,7 +64,7 @@ export function ApiKeysDialog({ open, googleKey, openaiKey, onClose }: Props) {
         <div className="px-6 pb-6 space-y-5">
           <KeyRow provider="google" hook={googleKey} />
           <KeyRow provider="openai" hook={openaiKey} />
-          <p className="text-xs text-on-surface-variant/70 leading-relaxed">
+          <p className="text-sm leading-relaxed text-on-surface-variant/70">
             密钥仅保存在当前浏览器的 localStorage 中，不会上传到任何服务器。
           </p>
         </div>
@@ -91,18 +91,18 @@ function KeyRow({ provider, hook }: { provider: Provider; hook: KeyHook }) {
   return (
     <div>
       <div className="flex items-baseline justify-between mb-2">
-        <label className="text-sm font-medium text-on-surface">{label}</label>
-        <span className="text-xs text-on-surface-variant/60">{hint}</span>
+        <label className="text-base font-medium text-on-surface">{label}</label>
+        <span className="text-sm text-on-surface-variant/60">{hint}</span>
       </div>
 
       {status === 'valid' && (
         <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-surface-container">
           <span className="material-symbols-rounded text-base text-success leading-none">check_circle</span>
-          <span className="font-mono text-xs text-on-surface-variant flex-1 min-w-0 truncate">{masked}</span>
+          <span className="min-w-0 flex-1 truncate font-mono text-sm text-on-surface-variant">{masked}</span>
           <button
             type="button"
             onClick={reset}
-            className="text-xs text-on-surface-variant/70 hover:text-on-surface transition-colors"
+            className="text-sm text-on-surface-variant/70 transition-colors hover:text-on-surface"
           >
             重置
           </button>
@@ -112,14 +112,14 @@ function KeyRow({ provider, hook }: { provider: Provider; hook: KeyHook }) {
       {status === 'validating' && (
         <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-surface-container">
           <div className="w-3.5 h-3.5 border-2 border-primary/30 border-t-primary rounded-full animate-spin shrink-0" />
-          <span className="text-xs text-on-surface-variant">验证中...</span>
+          <span className="text-sm text-on-surface-variant">验证中...</span>
         </div>
       )}
 
       {(status === 'empty' || status === 'invalid') && (
         <>
           {status === 'invalid' && (
-            <div className="text-xs text-error mb-2">密钥无效或已过期，请重新输入。</div>
+            <div className="mb-2 text-sm text-error">密钥无效或已过期，请重新输入。</div>
           )}
           <div className="flex gap-2">
             <input
@@ -128,16 +128,16 @@ function KeyRow({ provider, hook }: { provider: Provider; hook: KeyHook }) {
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit() }}
               placeholder={placeholder}
-              className="flex-1 min-w-0 px-3 py-2.5 text-sm bg-surface-container rounded-xl
+              className="flex-1 min-w-0 rounded-xl bg-surface-container px-3 py-2.5 text-base
                          border border-transparent focus:border-primary focus:outline-none
                          transition-all
-                         placeholder:text-sm placeholder:text-on-surface-variant/40"
+                         placeholder:text-base placeholder:text-on-surface-variant/40"
             />
             {draft.trim() && (
               <button
                 type="button"
                 onClick={handleSubmit}
-                className="px-3 py-2 text-sm font-medium rounded-xl bg-primary text-on-primary
+                className="rounded-xl bg-primary px-3 py-2 text-base font-medium text-on-primary
                            hover:bg-primary-hover active:bg-primary/80 transition-colors shrink-0"
               >
                 设置

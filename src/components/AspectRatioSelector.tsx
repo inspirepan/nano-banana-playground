@@ -60,14 +60,14 @@ export function AspectRatioSelector({ options, value, resolution, onChange }: Pr
         data-no-ripple
         className="flex items-center gap-2 group/header"
       >
-        <span className="text-sm font-medium text-on-surface-variant">宽高比</span>
+        <span className="text-base font-medium text-on-surface-variant">宽高比</span>
         <div className="flex items-center gap-2">
           {collapsed && (
             <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-primary-dim">
               <div className="flex items-center justify-center shrink-0" style={{ width: 13, height: 13 }}>
                 <div className="rounded-sm bg-primary" style={{ width: badgeW, height: badgeH }} />
               </div>
-              <span className="text-xs font-medium text-primary tabular-nums">{value}</span>
+              <span className="text-sm font-medium tabular-nums text-primary">{value}</span>
             </div>
           )}
           <span className={`material-symbols-rounded text-base text-on-surface-variant/70 group-hover/header:text-on-surface transition-[transform,color] duration-300 ease-[cubic-bezier(0.2,0,0,1)] ${collapsed ? '' : 'rotate-180'}`}>
@@ -100,13 +100,13 @@ export function AspectRatioSelector({ options, value, resolution, onChange }: Pr
                       style={{ width: shape.w, height: shape.h }}
                     />
                   </div>
-                  <div className={`text-xs font-medium leading-none tabular-nums ${selected ? 'text-primary' : 'text-on-surface'}`}>
+                  <div className={`text-base font-medium leading-none tabular-nums ${selected ? 'text-primary' : 'text-on-surface'}`}>
                     {option}
                   </div>
                 </button>
                 {/* Pixel tooltip */}
                 <div className="pointer-events-none absolute top-full left-1/2 -translate-x-1/2 mt-2
-                                px-2 py-1 rounded-lg text-2xs font-mono leading-none whitespace-nowrap
+                                px-2 py-1 rounded-lg text-sm font-mono leading-none whitespace-nowrap
                                 bg-on-surface text-surface
                                 opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-10">
                   {px}×{py}
@@ -121,7 +121,7 @@ export function AspectRatioSelector({ options, value, resolution, onChange }: Pr
               type="button"
               onClick={() => setShowAll((v) => !v)}
               data-no-ripple
-              className="col-span-2 flex items-center gap-1 px-2 py-1 text-xs font-medium text-on-surface-variant hover:text-on-surface transition-none focus:outline-none"
+              className="col-span-2 flex items-center gap-1 px-2 py-1 text-sm font-medium text-on-surface-variant transition-none hover:text-on-surface focus:outline-none"
             >
               <span>{showAll ? '收起' : `+${hiddenCount} 更多`}</span>
               <span className={`material-symbols-rounded text-sm transition-transform ${showAll ? 'rotate-180' : ''}`}>expand_more</span>

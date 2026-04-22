@@ -48,7 +48,7 @@ function KeyBadge({ label, status, dim }: { label: string; status: ApiKeyStatus;
   const isValid = status === 'valid'
   const isInvalid = status === 'invalid'
   return (
-    <span className={`inline-flex items-center gap-1 text-xs ${dim ? 'opacity-60' : ''}`}>
+    <span className={`inline-flex items-center gap-1 text-sm ${dim ? 'opacity-60' : ''}`}>
       <span
         className={`w-1.5 h-1.5 rounded-full ${
           isValid ? 'bg-success' : isInvalid ? 'bg-error' : 'bg-on-surface-variant/40'
@@ -502,14 +502,14 @@ export function InputPanel({
 
       {/* Model */}
       <div>
-        <label className="block text-sm font-medium text-on-surface-variant mb-3">模型</label>
+        <label className="mb-3 block text-base font-medium text-on-surface-variant">模型</label>
         <div className="flex flex-wrap gap-2">
           {MODEL_CONFIGS.map((m) => (
             <button
               key={m.id}
               type="button"
               onClick={() => onSwitchModel(m.id)}
-              className={`flex-1 min-w-[120px] px-3 py-3 text-xs rounded-xl transition-colors text-center leading-snug
+              className={`flex-1 min-w-[120px] px-3 py-3 text-base rounded-xl transition-colors text-center leading-snug
                 ${model.id === m.id
                   ? 'bg-primary-dim text-primary font-medium hover:bg-primary/15 active:bg-primary/20'
                   : 'bg-surface-container text-on-surface font-medium hover:bg-on-surface/8 active:bg-on-surface/12'
@@ -560,7 +560,7 @@ export function InputPanel({
       <div className="flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between mb-3 min-h-[32px] shrink-0">
-          <label className="text-sm font-medium text-on-surface-variant">提示词</label>
+          <label className="text-base font-medium text-on-surface-variant">提示词</label>
         </div>
 
         {/* Prompt content */}
@@ -569,9 +569,9 @@ export function InputPanel({
         {isAugmenting && schemes.length === 0 && (
           <div className="flex flex-col items-center justify-center gap-3 py-8 bg-surface-container rounded-xl">
             <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-            <p className="text-xs text-on-surface-variant">正在使用 <span className="text-primary">{augmentModelLabel}</span> 增强提示词...</p>
+            <p className="text-sm text-on-surface-variant">正在使用 <span className="text-primary">{augmentModelLabel}</span> 增强提示词...</p>
             <button type="button" onClick={handleCancelAugment}
-              className="text-xs text-on-surface-variant hover:text-on-surface transition-colors">取消</button>
+              className="text-sm text-on-surface-variant hover:text-on-surface transition-colors">取消</button>
           </div>
         )}
 
@@ -584,11 +584,11 @@ export function InputPanel({
                 <div className="flex items-center gap-2 min-h-[28px]">
                   {schemesCollapsed && !isAugmenting ? (
                     <>
-                      <span className="px-3 py-1.5 text-sm font-medium rounded-lg bg-tertiary-dim text-tertiary">
+                      <span className="rounded-lg bg-tertiary-dim px-3 py-1.5 text-base font-medium text-tertiary">
                         {schemes[currentSchemeIndex]?.title}
                       </span>
                       <button type="button" onClick={() => setSchemesCollapsed(false)}
-                        className="text-xs text-on-surface-variant/70 hover:text-on-surface transition-colors">
+                        className="text-sm text-on-surface-variant/70 hover:text-on-surface transition-colors">
                         切换方案
                       </button>
                       <div className="flex-1" />
@@ -597,7 +597,7 @@ export function InputPanel({
                           className="flex items-center justify-center w-4 h-4 translate-y-px rounded-full text-on-surface-variant/50 hover:text-on-surface transition-colors">
                           <span className="material-symbols-rounded text-sm leading-none">close</span>
                         </button>
-                        <div className="absolute bottom-full right-0 mb-2 pointer-events-none whitespace-nowrap bg-on-surface text-surface text-xs px-2 py-1 rounded opacity-0 group-hover/close:opacity-100 transition-opacity duration-150 delay-500 z-50">
+                        <div className="absolute bottom-full right-0 mb-2 pointer-events-none whitespace-nowrap rounded bg-on-surface px-2 py-1 text-sm text-surface opacity-0 transition-opacity delay-500 duration-150 group-hover/close:opacity-100 z-50">
                           退出增强模式
                         </div>
                       </div>
@@ -607,27 +607,27 @@ export function InputPanel({
                       {isAugmenting ? (
                         <>
                           <div className="w-3.5 h-3.5 border-2 border-tertiary border-t-transparent rounded-full animate-spin shrink-0" />
-                          <p className="text-sm text-on-surface-variant">已生成 {schemes.length} 个方案...</p>
+                        <p className="text-base text-on-surface-variant">已生成 {schemes.length} 个方案...</p>
                         </>
                       ) : (
-                        <p className="text-sm text-on-surface-variant">
+                        <p className="text-base text-on-surface-variant">
                           {schemes.length > 1 ? `${schemes.length} 个增强方案` : 'AI 已增强提示词'}
                         </p>
                       )}
                       <div className="flex-1" />
                       {isAugmenting ? (
                         <button type="button" onClick={handleCancelAugment}
-                          className="text-xs text-on-surface-variant/70 hover:text-on-surface transition-colors">
+                          className="text-sm text-on-surface-variant/70 hover:text-on-surface transition-colors">
                           取消
                         </button>
                       ) : (
                         <>
                           <div className="relative group/reaugment">
                             <button type="button" onClick={() => handleAugment(true)} disabled={originalPrompt === null}
-                              className="text-xs text-on-surface-variant/70 hover:text-on-surface transition-colors disabled:opacity-40 disabled:pointer-events-none">
+                              className="text-sm text-on-surface-variant/70 hover:text-on-surface transition-colors disabled:opacity-40 disabled:pointer-events-none">
                               重新增强
                             </button>
-                            <div className="absolute bottom-full right-0 mb-2 pointer-events-none whitespace-nowrap bg-on-surface text-surface text-xs px-2 py-1 rounded opacity-0 group-hover/reaugment:opacity-100 transition-opacity duration-150 delay-500 group-hover/reaugment:delay-500 z-50">
+                            <div className="absolute bottom-full right-0 mb-2 pointer-events-none whitespace-nowrap rounded bg-on-surface px-2 py-1 text-sm text-surface opacity-0 transition-opacity delay-500 duration-150 group-hover/reaugment:opacity-100 group-hover/reaugment:delay-500 z-50">
                               基于原始提示词重新增强
                             </div>
                           </div>
@@ -637,11 +637,11 @@ export function InputPanel({
                                 onClick={() => { onDraftBatchOverride(null); handleGenerateAll() }}
                                 onMouseEnter={() => { if (!isGenerating) { onDraftBatchOverride(schemes.length, schemes.map((s) => s.title)); onDraftPreviewHover(true) } }}
                                 onMouseLeave={() => { onDraftBatchOverride(null); onDraftPreviewHover(false) }}
-                                className="text-xs text-on-surface-variant/70 hover:text-on-surface transition-colors disabled:opacity-40 disabled:pointer-events-none">
+                                className="text-sm text-on-surface-variant/70 hover:text-on-surface transition-colors disabled:opacity-40 disabled:pointer-events-none">
                                 各生成一张
                               </button>
                               <div className="absolute bottom-full right-0 mb-2 pointer-events-none whitespace-nowrap
-                                              bg-on-surface text-surface text-xs px-2 py-1 rounded
+                                              bg-on-surface text-surface text-sm px-2 py-1 rounded
                                               opacity-0 group-hover/gen-all:opacity-100 transition-opacity duration-150 delay-500 z-50">
                                 每个方案各生成 1 张，共 {schemes.length} 张
                               </div>
@@ -652,7 +652,7 @@ export function InputPanel({
                               className="flex items-center justify-center w-4 h-4 translate-y-px rounded-full text-on-surface-variant/50 hover:text-on-surface transition-colors">
                               <span className="material-symbols-rounded text-sm leading-none">close</span>
                             </button>
-                            <div className="absolute bottom-full right-0 mb-1 pointer-events-none whitespace-nowrap bg-on-surface text-surface text-xs px-2 py-1 rounded opacity-0 group-hover/discard:opacity-100 transition-opacity duration-150 delay-500 group-hover/discard:delay-500 z-50">
+                            <div className="absolute bottom-full right-0 mb-1 pointer-events-none whitespace-nowrap rounded bg-on-surface px-2 py-1 text-sm text-surface opacity-0 transition-opacity delay-500 duration-150 group-hover/discard:opacity-100 group-hover/discard:delay-500 z-50">
                               退出增强模式
                             </div>
                           </div>
@@ -674,7 +674,7 @@ export function InputPanel({
                             return (
                               <button key={i} type="button" onClick={() => handleSelectScheme(i)}
                                 disabled={isAugmenting}
-                                className={`px-3 py-3 text-sm font-medium rounded-xl transition-colors
+                                className={`px-3 py-3 text-base font-medium rounded-xl transition-colors
                                   ${isSelected
                                     ? 'bg-tertiary-dim text-tertiary hover:bg-tertiary/15 active:bg-tertiary/20'
                                     : 'bg-surface text-on-surface hover:bg-on-surface/8 active:bg-on-surface/12'
@@ -690,7 +690,7 @@ export function InputPanel({
                       )}
                       {/* Selected scheme description */}
                       {!isAugmenting && schemes[currentSchemeIndex]?.description && (
-                        <p className="text-sm text-on-surface-variant leading-relaxed px-3">
+                        <p className="px-3 text-base leading-relaxed text-on-surface-variant">
                           {schemes[currentSchemeIndex].description}
                         </p>
                       )}
@@ -705,7 +705,7 @@ export function InputPanel({
               <div className="relative rounded-2xl bg-surface-container hover:bg-surface-container-high focus-within:bg-surface-container-high transition-colors min-h-[120px]">
                 <div
                   aria-hidden="true"
-                  className="absolute inset-0 px-4 py-4 pb-12 text-sm text-on-surface whitespace-pre-wrap break-words pointer-events-none overflow-hidden rounded-2xl"
+                  className="absolute inset-0 overflow-hidden rounded-2xl px-4 py-4 pb-12 text-base whitespace-pre-wrap break-words text-on-surface pointer-events-none"
                 >
                   {prompt
                     ? <>{renderHighlighted(displayPrompt)}{isTyping && <span className="text-tertiary/70">|</span>}</>
@@ -717,29 +717,29 @@ export function InputPanel({
                   readOnly={isAugmenting}
                   rows={1}
                   style={{ caretColor: 'var(--color-on-surface)' }}
-                  className="relative box-border w-full px-4 py-4 pb-12 text-sm text-transparent bg-transparent focus:outline-none resize-none overflow-hidden" />
+                  className="relative box-border w-full overflow-hidden bg-transparent px-4 py-4 pb-12 text-base text-transparent resize-none focus:outline-none" />
               </div>
               <div className="absolute left-4 right-4 bottom-3 flex items-center gap-3">
                 <button type="button" onClick={handleHistoryUndo} disabled={!canUndo} title="撤销"
-                  className="text-xs text-on-surface-variant/70 hover:text-on-surface transition-colors disabled:opacity-30 disabled:pointer-events-none">
+                  className="text-sm text-on-surface-variant/70 hover:text-on-surface transition-colors disabled:opacity-30 disabled:pointer-events-none">
                   撤销
                 </button>
                 <button type="button" onClick={handleHistoryRedo} disabled={!canRedo} title="重做"
-                  className="text-xs text-on-surface-variant/70 hover:text-on-surface transition-colors disabled:opacity-30 disabled:pointer-events-none">
+                  className="text-sm text-on-surface-variant/70 hover:text-on-surface transition-colors disabled:opacity-30 disabled:pointer-events-none">
                   重做
                 </button>
                 <button type="button" onClick={handleClear} disabled={!hasPrompt}
-                  className={`text-xs text-on-surface-variant/70 hover:text-on-surface transition-colors disabled:pointer-events-none ${hasPrompt ? '' : 'invisible'}`}>
+                  className={`text-sm text-on-surface-variant/70 hover:text-on-surface transition-colors disabled:pointer-events-none ${hasPrompt ? '' : 'invisible'}`}>
                   清空
                 </button>
                 <div className="flex-1" />
                 {mode === 'text' && !isAugmenting && (
                   <div className="relative group/augment">
                     <button type="button" onClick={() => handleAugment(false)} disabled={!canAugment}
-                      className={`text-xs text-tertiary hover:text-tertiary/80 transition-colors disabled:pointer-events-none ${canAugment ? '' : 'invisible'}`}>
+                      className={`text-sm text-tertiary hover:text-tertiary/80 transition-colors disabled:pointer-events-none ${canAugment ? '' : 'invisible'}`}>
                       增强
                     </button>
-                    <div className={`absolute bottom-full right-0 mb-2 pointer-events-none whitespace-nowrap bg-on-surface text-surface text-xs px-2 py-1 rounded transition-opacity duration-150 delay-500 group-hover/augment:delay-500 z-50 ${canAugment ? 'opacity-0 group-hover/augment:opacity-100' : 'opacity-0'}`}>
+                    <div className={`absolute bottom-full right-0 mb-2 pointer-events-none whitespace-nowrap rounded bg-on-surface px-2 py-1 text-sm text-surface transition-opacity delay-500 duration-150 group-hover/augment:delay-500 z-50 ${canAugment ? 'opacity-0 group-hover/augment:opacity-100' : 'opacity-0'}`}>
                       使用 {augmentModelLabel} 增强提示词
                     </div>
                   </div>
@@ -749,7 +749,7 @@ export function InputPanel({
           </>
         )}
 
-        {augmentError && <p className="mt-2 text-xs text-error">{augmentError}</p>}
+        {augmentError && <p className="mt-2 text-sm text-error">{augmentError}</p>}
         </div>{/* end prompt content */}
       </div>{/* end prompt section */}
 
@@ -757,11 +757,11 @@ export function InputPanel({
       <div className="flex flex-col gap-4">
         {/* Batch count */}
         <div>
-          <label className="block text-sm font-medium text-on-surface-variant mb-3">数量</label>
+          <label className="mb-3 block text-base font-medium text-on-surface-variant">数量</label>
           <div className="flex flex-wrap gap-2">
             {Array.from({ length: model.maxBatchCount }, (_, i) => i + 1).map((n) => (
               <button key={n} type="button" onClick={() => onBatchCountChange(n)}
-                className={`px-3 py-3 text-sm rounded-xl tabular-nums transition-colors
+                className={`px-3 py-3 text-base rounded-xl tabular-nums transition-colors
                   ${batchCount === n ? 'bg-primary-dim text-primary font-medium hover:bg-primary/15 active:bg-primary/20' : 'bg-surface-container text-on-surface font-medium hover:bg-on-surface/8 active:bg-on-surface/12'}`}>
                 x{n}
               </button>
@@ -789,21 +789,21 @@ export function InputPanel({
           <button type="button"
             onClick={isGenerating ? onCancel : () => { if (schemes.length > 0) setSchemesCollapsed(true); onGenerate() }}
             disabled={!isGenerating && !canGenerate}
-            className={`w-full py-3 text-sm font-medium rounded-full transition-colors
+            className={`w-full py-3 text-base font-medium rounded-full transition-colors
               ${isGenerating ? 'bg-error text-on-primary hover:bg-error/90 active:bg-error/80'
                 : canGenerate ? 'bg-primary text-on-primary hover:bg-primary-hover active:bg-primary/80'
                 : 'bg-surface-container-high text-on-surface-variant/50 cursor-not-allowed'}`}>
             {isGenerating ? '取消' : <>
               <span>生成</span>
               <span className={`inline-flex items-center ml-2 ${canGenerate ? 'text-on-primary/50' : 'text-on-surface-variant/30'}`} aria-hidden="true">
-                <span className="inline-flex whitespace-pre text-xs leading-none">
+                <span className="inline-flex whitespace-pre text-sm leading-none">
                   <kbd className="inline-flex font-sans"><span className="min-w-[1em] text-center">⌘</span></kbd> <kbd className="inline-flex font-sans"><span className="min-w-[1em] text-center">⏎</span></kbd>
                 </span>
               </span>
             </>}
           </button>
           {!isGenerating && !apiKey.trim() && (
-            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-on-surface text-surface text-xs rounded whitespace-nowrap pointer-events-none opacity-0 group-hover/btn:opacity-100 transition-opacity">
+            <div className="absolute bottom-full left-1/2 mb-2 -translate-x-1/2 whitespace-nowrap rounded bg-on-surface px-3 py-2 text-sm text-surface pointer-events-none opacity-0 transition-opacity group-hover/btn:opacity-100">
               请先配置 API Key
             </div>
           )}
@@ -811,7 +811,7 @@ export function InputPanel({
 
         {/* Cost estimate */}
         {estimatedCost !== null && (
-          <p className="text-center text-xs text-on-surface-variant/60 -mt-2">
+          <p className="-mt-2 text-center text-sm text-on-surface-variant/60">
             预估费用约 ${estimatedCost.toFixed(3)}
             <span className="ml-1 opacity-70">({batchCount} 张 x ${pricePerImage!.toFixed(3)})</span>
           </p>
@@ -825,10 +825,10 @@ export function InputPanel({
 
       {/* Undo snackbar */}
       {undoToast && (
-        <div className="fixed bottom-6 inset-x-0 mx-auto w-fit z-50 flex items-center gap-2 pl-4 pr-2 py-3 bg-on-surface text-surface text-sm rounded shadow-lg animate-[slideUp_200ms_ease-out]">
+        <div className="fixed bottom-6 inset-x-0 z-50 mx-auto flex w-fit items-center gap-2 rounded bg-on-surface pl-4 pr-2 py-3 text-base text-surface shadow-lg animate-[slideUp_200ms_ease-out]">
           <span>提示词已清空</span>
           <button type="button" onClick={handleUndo}
-            className="px-3 py-1 text-sm font-medium rounded-full text-inverse-primary hover:bg-surface/10 active:bg-surface/15 transition-colors">撤销</button>
+            className="rounded-full px-3 py-1 text-base font-medium text-inverse-primary transition-colors hover:bg-surface/10 active:bg-surface/15">撤销</button>
           <button type="button" onClick={handleDismissToast} className="flex items-center justify-center p-1 rounded-full hover:bg-surface/10 transition-colors">
             <span className="material-symbols-rounded text-base">close</span>
           </button>

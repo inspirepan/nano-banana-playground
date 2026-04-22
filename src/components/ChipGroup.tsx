@@ -18,10 +18,10 @@ export function ChipGroup({ label, options, value, onChange }: Props) {
         data-no-ripple
         className="flex items-center gap-2 group/header"
       >
-        <span className="text-sm font-medium text-on-surface-variant">{label}</span>
+        <span className="text-base font-medium text-on-surface-variant">{label}</span>
         <div className="flex items-center gap-2">
           {collapsed && (
-            <span className="px-2 py-0.5 text-xs font-medium rounded-md bg-primary-dim text-primary tabular-nums">
+            <span className="rounded-md bg-primary-dim px-2 py-0.5 text-sm font-medium tabular-nums text-primary">
               {value}
             </span>
           )}
@@ -38,7 +38,7 @@ export function ChipGroup({ label, options, value, onChange }: Props) {
                 key={option}
                 type="button"
                 onClick={() => onChange(option)}
-                className={`px-3 py-3 text-xs rounded-xl tabular-nums transition-colors
+                className={`px-3 py-3 text-base rounded-xl tabular-nums transition-colors
                   ${
                     value === option
                       ? 'bg-primary-dim text-primary font-medium hover:bg-primary/15 active:bg-primary/20'

@@ -29,8 +29,11 @@
   --font-sans: 'Google Sans Flex', system-ui, sans-serif;
   --font-mono: 'Google Sans Code', ui-monospace, monospace;
 
-  /* MD3 label-small: 11px */
-  --text-2xs: 0.6875rem;
+  /* App typography scale: 14px / 12px */
+  --text-base: 0.875rem;
+  --text-base--line-height: 1.25rem;
+  --text-sm: 0.75rem;
+  --text-sm--line-height: 1rem;
 
   /* Light palette (default) */
   --color-primary: #1a73e8;

@@ -97,7 +97,7 @@ function ThemeSettings({ theme, colorTheme, onThemeChange, onColorThemeChange }:
           style={{ top: pos.top, right: pos.right }}
           className="fixed z-50 w-44 rounded-2xl bg-surface/40 backdrop-blur-xl shadow-lg border border-outline/10 py-2">
           {/* Brightness */}
-          <p className="px-4 pt-1 pb-2 text-xs font-medium text-on-surface-variant">外观</p>
+          <p className="px-4 pt-1 pb-2 text-sm font-medium text-on-surface-variant">外观</p>
           <div className="flex gap-1 px-3 pb-3">
             {BRIGHTNESS.map(({ value, icon, label }) => (
               <button
@@ -105,7 +105,7 @@ function ThemeSettings({ theme, colorTheme, onThemeChange, onColorThemeChange }:
                 type="button"
                 title={label}
                 onClick={() => onThemeChange(value)}
-                className={`flex-1 flex flex-col items-center gap-1 py-2 rounded-xl text-xs transition-colors
+                className={`flex-1 flex flex-col items-center gap-1 py-2 rounded-xl text-sm transition-colors
                   ${theme === value
                     ? 'bg-primary-dim text-primary'
                     : 'text-on-surface-variant hover:bg-on-surface/8 active:bg-on-surface/12'}`}
@@ -119,13 +119,13 @@ function ThemeSettings({ theme, colorTheme, onThemeChange, onColorThemeChange }:
           <div className="h-px bg-outline/10 mx-2 mb-1" />
 
           {/* Color */}
-          <p className="px-4 pt-2 pb-1 text-xs font-medium text-on-surface-variant">颜色</p>
+          <p className="px-4 pt-2 pb-1 text-sm font-medium text-on-surface-variant">颜色</p>
           {COLOR_THEMES.map((ct) => (
             <button
               key={ct.id}
               type="button"
               onClick={() => { onColorThemeChange(ct.id); setOpen(false) }}
-              className={`w-full flex items-center gap-3 px-4 py-2 text-sm transition-colors
+              className={`w-full flex items-center gap-3 px-4 py-2 text-base transition-colors
                 ${colorTheme === ct.id
                   ? 'bg-primary-dim text-primary font-medium'
                   : 'text-on-surface hover:bg-on-surface/8 active:bg-on-surface/12'}`}
@@ -428,7 +428,7 @@ function App() {
       className={`pointer-events-none fixed bottom-8 left-1/2 z-[100] -translate-x-1/2 transition-all duration-300
         ${regenToast ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}
     >
-      <div className="rounded-full bg-on-surface/85 px-5 py-2.5 text-sm font-medium text-surface shadow-lg backdrop-blur-sm whitespace-nowrap">
+      <div className="rounded-full bg-on-surface/85 px-5 py-2.5 text-base font-medium text-surface shadow-lg backdrop-blur-sm whitespace-nowrap">
         {regenToast}
       </div>
     </div>
