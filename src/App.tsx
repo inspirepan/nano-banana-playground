@@ -313,6 +313,7 @@ function App() {
           referenceImages={pg.referenceImages}
           generationState={pg.generationState}
           apiKey={pg.apiKey}
+          apiBaseUrl={pg.apiBaseUrl}
           apiKeyStatus={pg.apiKeyStatus}
           googleKeyStatus={pg.googleKey.status}
           openaiKeyStatus={pg.openaiKey.status}
@@ -380,6 +381,7 @@ function App() {
             referenceImages={pg.referenceImages}
             generationState={pg.generationState}
             apiKey={pg.apiKey}
+            apiBaseUrl={pg.apiBaseUrl}
             apiKeyStatus={pg.apiKeyStatus}
             googleKeyStatus={pg.googleKey.status}
             openaiKeyStatus={pg.openaiKey.status}

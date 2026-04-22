@@ -1,10 +1,12 @@
 import type { ModelConfig } from '../config/models'
 import type { PlaygroundImage, PromptScheme, TokenUsage } from './types'
 import { openAISize } from './openai'
+import { resolveBaseUrl } from './validateKey'
 import AUGMENT_SYSTEM_PROMPT from './augment-system-prompt.md?raw'
 
 export type GenerateParams = {
   apiKey: string
+  baseUrl?: string
   model: ModelConfig
   prompt: string
   referenceImages: PlaygroundImage[]
@@ -57,7 +59,7 @@ async function generateImageGoogle(
   params: GenerateParams,
   signal?: AbortSignal,
 ): Promise<PlaygroundImage> {
-  const { apiKey, model, prompt, referenceImages, resolution, aspectRatio, batchId } = params
+  const { apiKey, baseUrl, model, prompt, referenceImages, resolution, aspectRatio, batchId } = params
 
   const parts: ApiPart[] = [{ text: prompt }]
   for (const img of referenceImages) {
@@ -83,7 +85,7 @@ async function generateImageGoogle(
     },
   }
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model.apiModel}:generateContent`
+  const url = `${resolveBaseUrl('google', baseUrl)}/v1beta/models/${model.apiModel}:generateContent`
 
   const timeoutSignal = AbortSignal.timeout(REQUEST_TIMEOUT_MS)
   const requestInit: RequestInit = {
@@ -207,15 +209,16 @@ async function generateImageOpenAI(
   params: GenerateParams,
   signal?: AbortSignal,
 ): Promise<PlaygroundImage> {
-  const { apiKey, model, prompt, referenceImages, resolution, aspectRatio, quality, batchId } = params
+  const { apiKey, baseUrl, model, prompt, referenceImages, resolution, aspectRatio, quality, batchId } = params
 
   const size = openAISize(resolution, aspectRatio)
   const qualityParam = quality || 'auto'
 
+  const base = resolveBaseUrl('openai', baseUrl)
   const hasRefs = referenceImages.length > 0
   const url = hasRefs
-    ? 'https://api.openai.com/v1/images/edits'
-    : 'https://api.openai.com/v1/images/generations'
+    ? `${base}/images/edits`
+    : `${base}/images/generations`
 
   const timeoutSignal = AbortSignal.timeout(REQUEST_TIMEOUT_MS)
   const mergedSignal = signal ? AbortSignal.any([signal, timeoutSignal]) : timeoutSignal
@@ -463,11 +466,12 @@ export async function augmentPromptStream(
   referenceImages: PlaygroundImage[],
   onUpdate: AugmentStreamCallback,
   signal?: AbortSignal,
+  baseUrl?: string,
 ): Promise<PromptScheme[]> {
   if (provider === 'openai') {
-    return augmentPromptStreamOpenAI(apiKey, rawPrompt, referenceImages, onUpdate, signal)
+    return augmentPromptStreamOpenAI(apiKey, rawPrompt, referenceImages, onUpdate, signal, baseUrl)
   }
-  return augmentPromptStreamGoogle(apiKey, rawPrompt, referenceImages, onUpdate, signal)
+  return augmentPromptStreamGoogle(apiKey, rawPrompt, referenceImages, onUpdate, signal, baseUrl)
 }
 
 // Drive the SSE retry/read/emit loop shared by both providers. `extractDelta`
@@ -572,9 +576,10 @@ async function augmentPromptStreamGoogle(
   referenceImages: PlaygroundImage[],
   onUpdate: AugmentStreamCallback,
   signal?: AbortSignal,
+  baseUrl?: string,
 ): Promise<PromptScheme[]> {
   // Use v1alpha for mediaResolution support; streaming via SSE
-  const url = `https://generativelanguage.googleapis.com/v1alpha/models/${AUGMENT_MODEL_GOOGLE}:streamGenerateContent?alt=sse`
+  const url = `${resolveBaseUrl('google', baseUrl)}/v1alpha/models/${AUGMENT_MODEL_GOOGLE}:streamGenerateContent?alt=sse`
 
   const parts: Array<Record<string, unknown>> = [{ text: rawPrompt }]
   for (const img of referenceImages) {
@@ -636,8 +641,9 @@ async function augmentPromptStreamOpenAI(
   referenceImages: PlaygroundImage[],
   onUpdate: AugmentStreamCallback,
   signal?: AbortSignal,
+  baseUrl?: string,
 ): Promise<PromptScheme[]> {
-  const url = 'https://api.openai.com/v1/responses'
+  const url = `${resolveBaseUrl('openai', baseUrl)}/responses`
 
   const content: Array<Record<string, unknown>> = [{ type: 'input_text', text: rawPrompt }]
   for (const img of referenceImages) {

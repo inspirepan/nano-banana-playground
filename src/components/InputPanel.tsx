@@ -136,6 +136,7 @@ type Props = {
   referenceImages: PlaygroundImage[]
   generationState: GenerationState
   apiKey: string
+  apiBaseUrl: string
   apiKeyStatus?: ApiKeyStatus
   googleKeyStatus: ApiKeyStatus
   openaiKeyStatus: ApiKeyStatus
@@ -174,6 +175,7 @@ export function InputPanel({
   referenceImages,
   generationState,
   apiKey,
+  apiBaseUrl,
   googleKeyStatus,
   openaiKeyStatus,
   onOpenApiKeys,
@@ -345,7 +347,7 @@ export function InputPanel({
           }
         }
         if (done) onModeChange('structured')
-      }, signal)
+      }, signal, apiBaseUrl)
     } catch (e) {
       if ((e as Error).name !== 'AbortError') {
         const msg = (e as Error).name === 'TimeoutError'
@@ -359,7 +361,7 @@ export function InputPanel({
     } finally {
       setIsAugmenting(false)
     }
-  }, [model.provider, apiKey, prompt, originalPrompt, referenceImages, canAugment, onPromptChange, onModeChange, onSchemesChange, onCurrentSchemeIndexChange, onOriginalPromptChange, pushHistory])
+  }, [model.provider, apiKey, apiBaseUrl, prompt, originalPrompt, referenceImages, canAugment, onPromptChange, onModeChange, onSchemesChange, onCurrentSchemeIndexChange, onOriginalPromptChange, pushHistory])
 
   const handleCancelAugment = useCallback(() => {
     abortRef.current?.abort()

@@ -75,7 +75,8 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
   const [toast, setToast] = useState<string | null>(null)
   const [copiedPrompt, setCopiedPrompt] = useState(false)
   const [refDetailId, setRefDetailId] = useState<string | null>(null)
-  const [refDetailSrc, setRefDetailSrc] = useState<string | null>(null)
+  const [refSrcMap, setRefSrcMap] = useState<Map<string, string>>(new Map())
+  const refDetailSrc = refDetailId ? refSrcMap.get(refDetailId) ?? null : null
 
   // Resolve missing refs from IndexedDB
   const [dbRefMetas, setDbRefMetas] = useState<Map<string, PlaygroundImageMeta>>(new Map())
@@ -94,13 +95,20 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
   }, [history, dbRefMetas])
 
   useEffect(() => {
-    if (!refDetailId) { setRefDetailSrc(null); return }
+    if (!refDetailId) return
+    if (refSrcMap.has(refDetailId)) return
     const refImg = findRefImage(refDetailId)
     if (!refImg) return
     ensureBlobLoaded(refImg.id, refImg.mimeType).then((src) => {
-      if (src) setRefDetailSrc(src)
+      if (!src) return
+      setRefSrcMap((prev) => {
+        if (prev.has(refDetailId)) return prev
+        const next = new Map(prev)
+        next.set(refDetailId, src)
+        return next
+      })
     })
-  }, [refDetailId, findRefImage])
+  }, [refDetailId, refSrcMap, findRefImage])
 
   const goToPrev = useCallback(() => {
     setCurrentIdx(i => Math.max(0, i - 1))

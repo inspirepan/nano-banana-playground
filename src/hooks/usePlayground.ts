@@ -280,6 +280,7 @@ export function usePlayground() {
       const promises = promptList.map((p, index) =>
         generateImage({
           apiKey: apiKeyHook.apiKey,
+          baseUrl: apiKeyHook.baseUrl,
           model,
           prompt: p,
           referenceImages,
@@ -396,6 +397,7 @@ export function usePlayground() {
 
   return {
     apiKey: apiKeyHook.apiKey,
+    apiBaseUrl: apiKeyHook.baseUrl,
     apiKeyStatus: apiKeyHook.status,
     submitApiKey: apiKeyHook.submit,
     resetApiKey: apiKeyHook.reset,

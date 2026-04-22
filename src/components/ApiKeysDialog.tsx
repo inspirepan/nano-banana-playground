@@ -2,13 +2,17 @@ import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { Provider } from '../config/models'
 import type { ApiKeyStatus } from '../hooks/useApiKey'
+import { DEFAULT_BASE_URL, previewEndpoint } from '../lib/validateKey'
 import { Icon } from './Icon'
 
 type KeyHook = {
   apiKey: string
+  baseUrl: string
   status: ApiKeyStatus
-  submit: (key: string) => void
+  error: string | null
+  submit: (key: string, baseUrl?: string) => void
   reset: () => void
+  setBaseUrl: (baseUrl: string) => void
 }
 
 type Props = {
@@ -66,7 +70,7 @@ export function ApiKeysDialog({ open, googleKey, openaiKey, onClose }: Props) {
           <KeyRow provider="google" hook={googleKey} />
           <KeyRow provider="openai" hook={openaiKey} />
           <p className="text-[11.5px] leading-relaxed text-(--color-text-3)">
-            密钥仅保存在当前浏览器的 localStorage，不会上传任何服务器。
+            密钥与 Base URL 仅保存在当前浏览器的 localStorage，不会上传任何服务器。
           </p>
         </div>
       </div>
@@ -77,17 +81,30 @@ export function ApiKeysDialog({ open, googleKey, openaiKey, onClose }: Props) {
 
 function KeyRow({ provider, hook }: { provider: Provider; hook: KeyHook }) {
   const { label, placeholder, hint } = LABELS[provider]
-  const { apiKey, status, submit, reset } = hook
+  const { apiKey, baseUrl, status, error, submit, reset, setBaseUrl } = hook
   const [draft, setDraft] = useState('')
+  const [baseUrlDraft, setBaseUrlDraft] = useState(baseUrl)
+
+  // Keep the local base URL input in sync when the stored value changes
+  // (e.g. after a successful submit or reset from elsewhere).
+  useEffect(() => {
+    setBaseUrlDraft(baseUrl)
+  }, [baseUrl])
 
   const handleSubmit = () => {
     const key = draft.trim()
     if (!key) return
-    submit(key)
+    submit(key, baseUrlDraft.trim())
     setDraft('')
   }
 
+  const commitBaseUrl = () => {
+    const next = baseUrlDraft.trim()
+    if (next !== baseUrl) setBaseUrl(next)
+  }
+
   const masked = apiKey ? `${apiKey.slice(0, 6)}******${apiKey.slice(-4)}` : ''
+  const baseUrlPlaceholder = DEFAULT_BASE_URL[provider]
 
   return (
     <div>
@@ -120,7 +137,9 @@ function KeyRow({ provider, hook }: { provider: Provider; hook: KeyHook }) {
       {(status === 'empty' || status === 'invalid') && (
         <>
           {status === 'invalid' && (
-            <div className="mb-1.5 text-[11.5px] text-(--color-danger)">密钥无效或已过期，请重新输入。</div>
+            <div className="mb-1.5 text-[11.5px] leading-relaxed text-(--color-danger) break-words">
+              {error ?? '密钥无效或已过期，请重新输入。'}
+            </div>
           )}
           <div className="flex gap-1.5">
             <input
@@ -147,6 +166,38 @@ function KeyRow({ provider, hook }: { provider: Provider; hook: KeyHook }) {
           </div>
         </>
       )}
+
+      <div className="mt-2">
+        <div className="flex items-baseline justify-between mb-1">
+          <label className="text-[11.5px] font-medium text-(--color-text-2)">Base URL</label>
+          <span className="text-[10.5px] text-(--color-text-4)">可选，留空使用默认</span>
+        </div>
+        <input
+          type="url"
+          value={baseUrlDraft}
+          onChange={(e) => setBaseUrlDraft(e.target.value)}
+          onBlur={commitBaseUrl}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              commitBaseUrl()
+              ;(e.target as HTMLInputElement).blur()
+            }
+          }}
+          placeholder={baseUrlPlaceholder}
+          spellCheck={false}
+          autoComplete="off"
+          className="mono w-full rounded-[6px] border border-(--color-border) bg-(--color-surface) px-2.5 py-1.5 text-[11.5px]
+                     focus:border-(--color-accent) focus:shadow-[0_0_0_3px_var(--color-accent-wash)]
+                     transition-all
+                     placeholder:text-(--color-text-4)"
+        />
+        <div className="mt-1 flex items-start gap-1 text-[10.5px] leading-[1.5] text-(--color-text-4)">
+          <span className="shrink-0">实际调用</span>
+          <span className="mono min-w-0 flex-1 break-all text-(--color-text-3)">
+            {previewEndpoint(provider, baseUrlDraft)}
+          </span>
+        </div>
+      </div>
     </div>
   )
 }
