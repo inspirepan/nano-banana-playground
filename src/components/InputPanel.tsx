@@ -4,6 +4,7 @@ import { MODEL_CONFIGS, type ModelConfig } from '../config/models'
 import type { GenerationState } from '../hooks/usePlayground'
 import type { ApiKeyStatus } from '../hooks/useApiKey'
 import { augmentPromptStream } from '../lib/api'
+import { openAISize } from '../lib/openai'
 import { getPricePerImage } from '../lib/pricing'
 import { ChipGroup } from './ChipGroup'
 import { AspectRatioSelector } from './AspectRatioSelector'
@@ -42,6 +43,14 @@ function ApiKeysButton({
       </div>
     </button>
   )
+}
+
+function getModelButtonLabel(model: ModelConfig) {
+  if (model.provider === 'google') {
+    return model.name.replace(/^Nano\s+/, '')
+  }
+
+  return model.name
 }
 
 function KeyBadge({ label, status, dim }: { label: string; status: ApiKeyStatus; dim: boolean }) {
@@ -503,19 +512,21 @@ export function InputPanel({
       {/* Model */}
       <div>
         <label className="mb-3 block text-base font-medium text-on-surface-variant">模型</label>
-        <div className="flex flex-wrap gap-2">
+        <div className="grid grid-cols-3 gap-2">
           {MODEL_CONFIGS.map((m) => (
             <button
               key={m.id}
               type="button"
               onClick={() => onSwitchModel(m.id)}
-              className={`flex-1 min-w-[120px] px-3 py-3 text-base rounded-xl transition-colors text-center leading-snug
+              title={m.name}
+              className={`flex min-w-0 items-center justify-center gap-1.5 rounded-2xl px-2.5 py-3 text-sm font-medium transition-colors
                 ${model.id === m.id
-                  ? 'bg-primary-dim text-primary font-medium hover:bg-primary/15 active:bg-primary/20'
-                  : 'bg-surface-container text-on-surface font-medium hover:bg-on-surface/8 active:bg-on-surface/12'
+                  ? 'bg-primary-dim text-primary ring-1 ring-primary/18 hover:bg-primary/15 active:bg-primary/20'
+                  : 'bg-surface-container text-on-surface hover:bg-on-surface/8 active:bg-on-surface/12'
                 }`}
             >
-              {m.provider === 'google' ? '🍌 ' : ''}{m.name}
+              {m.provider === 'google' && <span className="shrink-0">🍌</span>}
+              <span className="min-w-0 truncate whitespace-nowrap">{getModelButtonLabel(m)}</span>
             </button>
           ))}
         </div>
@@ -535,6 +546,9 @@ export function InputPanel({
         value={aspectRatio}
         resolution={resolution}
         onChange={onAspectRatioChange}
+        pixelLabel={model.provider === 'openai'
+          ? (ratio, res) => openAISize(res, ratio).replace('x', '×')
+          : undefined}
       />
 
       {/* Quality (OpenAI only) */}
@@ -674,7 +688,7 @@ export function InputPanel({
                             return (
                               <button key={i} type="button" onClick={() => handleSelectScheme(i)}
                                 disabled={isAugmenting}
-                                className={`px-3 py-3 text-base font-medium rounded-xl transition-colors
+                                className={`rounded-xl px-3 py-2.5 text-sm font-medium transition-colors
                                   ${isSelected
                                     ? 'bg-tertiary-dim text-tertiary hover:bg-tertiary/15 active:bg-tertiary/20'
                                     : 'bg-surface text-on-surface hover:bg-on-surface/8 active:bg-on-surface/12'
@@ -761,7 +775,7 @@ export function InputPanel({
           <div className="flex flex-wrap gap-2">
             {Array.from({ length: model.maxBatchCount }, (_, i) => i + 1).map((n) => (
               <button key={n} type="button" onClick={() => onBatchCountChange(n)}
-                className={`px-3 py-3 text-base rounded-xl tabular-nums transition-colors
+                className={`rounded-xl px-3 py-2.5 text-sm font-medium tabular-nums transition-colors
                   ${batchCount === n ? 'bg-primary-dim text-primary font-medium hover:bg-primary/15 active:bg-primary/20' : 'bg-surface-container text-on-surface font-medium hover:bg-on-surface/8 active:bg-on-surface/12'}`}>
                 x{n}
               </button>

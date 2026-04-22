@@ -5,6 +5,7 @@ type Props = {
   value: string
   resolution: string
   onChange: (value: string) => void
+  pixelLabel?: (ratio: string, resolution: string) => string
 }
 
 const RESOLUTION_PX: Record<string, number> = {
@@ -25,6 +26,11 @@ function computePixels(ratio: string, resolution: string): [number, number] {
   return [Math.round(longerSide * w / h), longerSide]
 }
 
+function defaultPixelLabel(ratio: string, resolution: string): string {
+  const [px, py] = computePixels(ratio, resolution)
+  return `${px}×${py}`
+}
+
 const SHAPE_MAX = 20
 
 function shapeSize(ratio: string): { w: number; h: number } {
@@ -35,7 +41,7 @@ function shapeSize(ratio: string): { w: number; h: number } {
   return { w: Math.max(3, Math.round(SHAPE_MAX * rw / rh)), h: SHAPE_MAX }
 }
 
-export function AspectRatioSelector({ options, value, resolution, onChange }: Props) {
+export function AspectRatioSelector({ options, value, resolution, onChange, pixelLabel = defaultPixelLabel }: Props) {
   // If the model exposes only a small number of ratios, skip the show-all/show-common
   // split entirely — there's nothing meaningful to collapse.
   const skipFiltering = options.length <= COMMON_RATIOS.length
@@ -78,20 +84,20 @@ export function AspectRatioSelector({ options, value, resolution, onChange }: Pr
       <div className={`grid transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.2,0,0,1)] ${collapsed ? 'grid-rows-[0fr]' : 'grid-rows-[1fr]'}`}>
         <div className="overflow-hidden">
         <div className="grid grid-cols-2 gap-1 mt-3">
-          {visibleOptions.map((option) => {
+          {visibleOptions.map((option, index) => {
             const selected = value === option
-            const [px, py] = computePixels(option, resolution)
             const shape = shapeSize(option)
+            const isBottomRow = Math.floor(index / 2) === Math.floor((visibleOptions.length - 1) / 2)
             return (
               <div key={option} className="relative group">
                 <button
                   type="button"
                   onClick={() => onChange(option)}
-                  className={`flex items-center gap-2 px-3 py-3 rounded-xl transition-colors text-left w-full
+                  className={`flex w-full items-center gap-2 rounded-xl border px-3 py-2.5 text-left transition-colors
                     ${
                       selected
-                        ? 'bg-primary-dim hover:bg-primary/15 active:bg-primary/20'
-                        : 'bg-surface-container hover:bg-on-surface/8 active:bg-on-surface/12'
+                        ? 'border-primary/20 bg-primary-dim hover:bg-primary/15 active:bg-primary/20'
+                        : 'border-transparent bg-surface-container hover:bg-on-surface/8 active:bg-on-surface/12'
                     }`}
                 >
                   <div className="flex items-center justify-center w-5 h-5 shrink-0">
@@ -100,16 +106,13 @@ export function AspectRatioSelector({ options, value, resolution, onChange }: Pr
                       style={{ width: shape.w, height: shape.h }}
                     />
                   </div>
-                  <div className={`text-base font-medium leading-none tabular-nums ${selected ? 'text-primary' : 'text-on-surface'}`}>
+                  <div className={`text-sm font-medium leading-none tabular-nums ${selected ? 'text-primary' : 'text-on-surface'}`}>
                     {option}
                   </div>
                 </button>
                 {/* Pixel tooltip */}
-                <div className="pointer-events-none absolute top-full left-1/2 -translate-x-1/2 mt-2
-                                px-2 py-1 rounded-lg text-sm font-mono leading-none whitespace-nowrap
-                                bg-on-surface text-surface
-                                opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-10">
-                  {px}×{py}
+                <div className={`pointer-events-none absolute left-1/2 -translate-x-1/2 px-2 py-1 rounded-lg text-sm font-mono leading-none whitespace-nowrap bg-on-surface text-surface opacity-0 transition-opacity duration-150 z-10 group-hover:opacity-100 ${isBottomRow ? 'bottom-full mb-2' : 'top-full mt-2'}`}>
+                  {pixelLabel(option, resolution)}
                 </div>
               </div>
             )

@@ -107,7 +107,7 @@ export const ImageCard = memo(function ImageCard({ image, inlineData, index, onA
   const actionItems: Array<{ label: string; onClick: () => void; danger?: boolean }> = [
     { label: '+参考', onClick: () => onAddToRef(image) },
     { label: '下载', onClick: handleDownload },
-    { label: '复制图', onClick: handleCopyImage },
+    { label: '复制', onClick: handleCopyImage },
     ...(meta?.prompt ? [{ label: '重做', onClick: handleRegenerate }] : []),
     { label: '删除', onClick: handleDelete, danger: true },
   ]
@@ -225,7 +225,7 @@ function ActionButton({ label, onClick, danger = false }: { label: string; onCli
         event.stopPropagation()
         onClick()
       }}
-      className={`w-full rounded-xl px-2 py-1.5 text-sm font-medium whitespace-nowrap backdrop-blur-sm transition-colors
+      className={`w-full rounded-lg px-1.5 py-1 text-sm font-normal leading-none whitespace-nowrap backdrop-blur-sm transition-colors
         ${danger
           ? 'bg-error/30 text-white hover:bg-error/40 active:bg-error/50'
           : 'bg-white/20 text-white hover:bg-white/30 active:bg-white/40'}`}

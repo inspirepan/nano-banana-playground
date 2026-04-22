@@ -32,17 +32,17 @@ export function ChipGroup({ label, options, value, onChange }: Props) {
       </button>
       <div className={`grid transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.2,0,0,1)] ${collapsed ? 'grid-rows-[0fr]' : 'grid-rows-[1fr]'}`}>
         <div className="overflow-hidden">
-          <div className="flex flex-wrap gap-2 mt-3">
+          <div className="mt-3 flex flex-wrap gap-2">
             {options.map((option) => (
               <button
                 key={option}
                 type="button"
                 onClick={() => onChange(option)}
-                className={`px-3 py-3 text-base rounded-xl tabular-nums transition-colors
+                className={`min-w-16 rounded-xl border px-3 py-2.5 text-sm font-medium tabular-nums transition-colors
                   ${
                     value === option
-                      ? 'bg-primary-dim text-primary font-medium hover:bg-primary/15 active:bg-primary/20'
-                      : 'bg-surface-container text-on-surface font-medium hover:bg-on-surface/8 active:bg-on-surface/12'
+                      ? 'border-primary/20 bg-primary-dim text-primary hover:bg-primary/15 active:bg-primary/20'
+                      : 'border-transparent bg-surface-container text-on-surface hover:bg-on-surface/8 active:bg-on-surface/12'
                   }`}
               >
                 {option}
