@@ -578,8 +578,7 @@ async function augmentPromptStreamGoogle(
   signal?: AbortSignal,
   baseUrl?: string,
 ): Promise<PromptScheme[]> {
-  // Use v1alpha for mediaResolution support; streaming via SSE
-  const url = `${resolveBaseUrl('google', baseUrl)}/v1alpha/models/${AUGMENT_MODEL_GOOGLE}:streamGenerateContent?alt=sse`
+  const url = `${resolveBaseUrl('google', baseUrl)}/v1beta/models/${AUGMENT_MODEL_GOOGLE}:streamGenerateContent?alt=sse`
 
   const parts: Array<Record<string, unknown>> = [{ text: rawPrompt }]
   for (const img of referenceImages) {
