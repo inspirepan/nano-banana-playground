@@ -161,7 +161,17 @@ export function usePlayground() {
   }, [model, resolution, aspectRatio, quality, batchCount, prompt, mode, schemes, currentSchemeIndex, originalPrompt])
 
   // --- Setters that update state (URL sync runs via effects above) ---
-  const setPrompt = useCallback((v: string) => setPromptRaw(v), [])
+  // Clearing the prompt also discards augment schemes so the UI drops back
+  // to plain text mode instead of showing stale scheme chips.
+  const setPrompt = useCallback((v: string) => {
+    setPromptRaw(v)
+    if (v.trim() === '') {
+      setSchemesRaw([])
+      setOriginalPromptRaw(null)
+      setCurrentSchemeIndexRaw(0)
+      setModeRaw('text')
+    }
+  }, [])
   const setResolution = useCallback((v: string) => setResolutionRaw(v), [])
   const setAspectRatio = useCallback((v: string) => setAspectRatioRaw(v), [])
   const setQuality = useCallback((v: string) => setQualityRaw(v), [])

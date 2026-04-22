@@ -641,7 +641,7 @@ export function InputPanel({
 
               {/* Scheme chips */}
               {schemes.length >= 1 && (
-                <div className="flex flex-wrap gap-1 mb-1.5">
+                <div className="flex flex-wrap items-center gap-1 mb-1.5">
                   {schemes.map((scheme, i) => {
                     const isSelected = i === currentSchemeIndex
                     return (
