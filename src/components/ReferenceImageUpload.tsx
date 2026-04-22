@@ -37,7 +37,7 @@ export function ReferenceImageUpload({ images, maxTotal, dragOver, onAdd, onRemo
         {images.map((img) => (
           <div
             key={img.id}
-            className="relative group aspect-square rounded-[6px] border border-(--color-border) overflow-hidden bg-(--color-surface-2)"
+            className="relative group aspect-square rounded-[6px] overflow-hidden bg-(--color-surface-2) shadow-[inset_0_0_0_1px_var(--ring-edge)]"
           >
             <img
               src={`data:${img.mimeType};base64,${img.data}`}

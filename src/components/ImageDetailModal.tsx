@@ -239,7 +239,7 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
         {canNavigate && (
           <div
             className="flex items-center gap-0.5 mr-1 rounded-[6px]"
-            style={{ background: 'var(--color-surface-2)', border: '1px solid var(--color-border)', padding: 2 }}
+            style={{ background: 'var(--color-surface-2)', boxShadow: 'inset 0 0 0 1px var(--ring-edge)', padding: 2 }}
           >
             <button
               className="icon-btn"
@@ -325,10 +325,9 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
               className="absolute left-4 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full flex items-center justify-center transition-colors"
               style={{
                 background: 'color-mix(in srgb, var(--color-surface) 90%, transparent)',
-                border: '1px solid var(--color-border)',
                 color: 'var(--color-text-2)',
                 backdropFilter: 'blur(8px)',
-                boxShadow: '0 1px 0 rgba(0,0,0,0.02), 0 1px 2px rgba(0,0,0,0.04)',
+                boxShadow: '0 0 0 1px var(--ring-edge), 0 1px 2px rgba(0,0,0,0.04)',
               }}
             >
               <Icon name="chevron_left" size={14} strokeWidth={1.8} />
@@ -341,10 +340,9 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
               className="absolute right-4 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full flex items-center justify-center transition-colors"
               style={{
                 background: 'color-mix(in srgb, var(--color-surface) 90%, transparent)',
-                border: '1px solid var(--color-border)',
                 color: 'var(--color-text-2)',
                 backdropFilter: 'blur(8px)',
-                boxShadow: '0 1px 0 rgba(0,0,0,0.02), 0 1px 2px rgba(0,0,0,0.04)',
+                boxShadow: '0 0 0 1px var(--ring-edge), 0 1px 2px rgba(0,0,0,0.04)',
               }}
             >
               <Icon name="chevron_right" size={14} strokeWidth={1.8} />
@@ -393,7 +391,7 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
                 className="p-3 rounded-[8px] text-[12.5px] leading-[1.6] text-(--color-text-2)"
                 style={{
                   background: 'var(--color-surface)',
-                  border: '1px solid var(--color-border)',
+                  boxShadow: 'inset 0 0 0 1px var(--ring-edge)',
                   maxHeight: 220,
                   overflowY: 'auto',
                 }}
@@ -416,7 +414,7 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
                 {currentMeta.referenceImageIds.map((refId) => {
                   const refImg = findRefImage(refId)
                   if (!refImg) return (
-                    <div key={refId} className="aspect-square rounded-[6px] flex items-center justify-center text-(--color-text-4)" style={{ border: '1px solid var(--color-border)', background: 'var(--color-surface-2)' }}>
+                    <div key={refId} className="aspect-square rounded-[6px] flex items-center justify-center text-(--color-text-4)" style={{ boxShadow: 'inset 0 0 0 1px var(--ring-edge)', background: 'var(--color-surface-2)' }}>
                       ?
                     </div>
                   )
@@ -497,17 +495,17 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
               style={{
                 height: 30,
                 borderRadius: 6,
-                border: '1px solid var(--color-border)',
+                boxShadow: 'inset 0 0 0 1px var(--ring-edge)',
                 background: 'var(--color-surface)',
                 color: 'var(--color-danger)',
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = 'color-mix(in srgb, var(--color-danger) 8%, var(--color-surface))'
-                e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-danger) 35%, var(--color-border))'
+                e.currentTarget.style.boxShadow = 'inset 0 0 0 1px color-mix(in srgb, var(--color-danger) 30%, transparent)'
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = 'var(--color-surface)'
-                e.currentTarget.style.borderColor = 'var(--color-border)'
+                e.currentTarget.style.boxShadow = 'inset 0 0 0 1px var(--ring-edge)'
               }}
               onClick={() => { onRemove(currentImage.id); onClose() }}
             >
@@ -546,11 +544,11 @@ function RefThumbnail({ image, isActive, onClick }: { image: PlaygroundImageMeta
       onClick={onClick}
       className="aspect-square rounded-[6px] overflow-hidden cursor-pointer transition-colors"
       style={{
-        border: isActive ? '1px solid var(--color-accent)' : '1px solid var(--color-border)',
+        boxShadow: isActive ? 'inset 0 0 0 1px var(--color-accent)' : 'inset 0 0 0 1px var(--ring-edge)',
         background: 'var(--color-surface-2)',
       }}
-      onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.borderColor = 'var(--color-border-strong)' }}
-      onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.borderColor = 'var(--color-border)' }}
+      onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.boxShadow = 'inset 0 0 0 1px var(--ring-edge-strong)' }}
+      onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.boxShadow = 'inset 0 0 0 1px var(--ring-edge)' }}
     >
       {src ? (
         <img src={src} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
@@ -798,8 +796,7 @@ function ZoomableImageView({ src, alt, label, onSwipeLeft, onSwipeRight }: {
               transform: `translate3d(${offset.x}px, ${offset.y}px, 0) scale(${scale})`,
               transformOrigin: 'center center',
               borderRadius: 8,
-              border: '1px solid var(--color-border-strong)',
-              boxShadow: '0 30px 60px -24px rgba(0,0,0,0.3), 0 4px 10px rgba(0,0,0,0.06)',
+              boxShadow: '0 0 0 1px var(--ring-edge-strong), 0 30px 60px -24px rgba(0,0,0,0.3), 0 4px 10px rgba(0,0,0,0.06)',
               opacity: fitSize.width ? 1 : 0,
               transition: isDragging || isInteracting ? 'none' : fitSize.width ? 'transform 160ms ease-out, opacity 120ms ease-out' : 'none',
             }}
@@ -825,10 +822,9 @@ function ZoomableImageView({ src, alt, label, onSwipeLeft, onSwipeRight }: {
         className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-0.5"
         style={{
           background: 'color-mix(in srgb, var(--color-surface) 92%, transparent)',
-          border: '1px solid var(--color-border)',
           borderRadius: 8,
           padding: 3,
-          boxShadow: '0 1px 0 rgba(0,0,0,0.02), 0 1px 2px rgba(0,0,0,0.04)',
+          boxShadow: '0 0 0 1px var(--ring-edge), 0 1px 2px rgba(0,0,0,0.04)',
           backdropFilter: 'blur(10px)',
         }}
       >

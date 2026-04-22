@@ -52,7 +52,7 @@ export function ApiKeysDialog({ open, googleKey, openaiKey, onClose }: Props) {
         role="dialog"
         aria-modal="true"
         aria-label="API Keys"
-        className="relative w-full max-w-md rounded-[10px] border border-(--color-border) bg-(--color-surface) shadow-[0_10px_28px_-12px_rgba(30,27,20,0.18),0_2px_6px_rgba(30,27,20,0.06)]"
+        className="relative w-full max-w-md rounded-[10px] bg-(--color-surface) shadow-[0_0_0_1px_var(--ring-edge),0_10px_28px_-12px_rgba(30,27,20,0.18),0_2px_6px_rgba(30,27,20,0.06)]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-(--color-border)">
@@ -150,7 +150,7 @@ function KeyRow({ provider, hook }: { provider: Provider; hook: KeyHook }) {
                 height: 32,
                 background: 'var(--color-success)',
                 color: '#fff',
-                border: '1px solid color-mix(in srgb, var(--color-success) 55%, #000 10%)',
+                boxShadow: '0 0 0 1px color-mix(in srgb, var(--color-success) 55%, #000 10%)',
                 fontWeight: 600,
                 fontSize: 12.5,
               }}
@@ -162,7 +162,7 @@ function KeyRow({ provider, hook }: { provider: Provider; hook: KeyHook }) {
             <button
               type="button"
               onClick={reset}
-              className="w-full rounded-md border border-(--color-border) bg-(--color-surface) text-[12.5px] font-medium text-(--color-text-2) hover:bg-(--color-surface-2) hover:text-(--color-text) transition-colors"
+              className="w-full rounded-md bg-(--color-surface) text-[12.5px] font-medium text-(--color-text-2) shadow-[inset_0_0_0_1px_var(--ring-edge)] hover:bg-(--color-surface-2) hover:text-(--color-text) hover:shadow-[inset_0_0_0_1px_var(--ring-edge-strong)] transition-colors"
               style={{ height: 32 }}
             >
               修改
@@ -193,9 +193,10 @@ function KeyRow({ provider, hook }: { provider: Provider; hook: KeyHook }) {
           onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit() }}
           placeholder={placeholder}
           disabled={isValidating}
-          className="w-full rounded-[6px] border border-(--color-border) bg-(--color-surface) px-2.5 py-1.5 text-[12.5px]
-                     focus:border-(--color-accent) focus:shadow-[0_0_0_3px_var(--color-accent-wash)]
-                     transition-all
+          className="w-full rounded-[6px] bg-(--color-surface) px-2.5 py-1.5 text-[12.5px]
+                     shadow-[inset_0_0_0_1px_var(--ring-edge)]
+                     focus:shadow-[inset_0_0_0_1px_var(--color-accent),0_0_0_3px_var(--color-accent-wash)]
+                     transition-[box-shadow,background]
                      placeholder:text-(--color-text-4)
                      disabled:opacity-60 disabled:cursor-not-allowed"
         />
@@ -214,9 +215,10 @@ function KeyRow({ provider, hook }: { provider: Provider; hook: KeyHook }) {
             spellCheck={false}
             autoComplete="off"
             disabled={isValidating}
-            className="mono w-full rounded-[6px] border border-(--color-border) bg-(--color-surface) px-2.5 py-1.5 text-[11.5px]
-                       focus:border-(--color-accent) focus:shadow-[0_0_0_3px_var(--color-accent-wash)]
-                       transition-all
+            className="mono w-full rounded-[6px] bg-(--color-surface) px-2.5 py-1.5 text-[11.5px]
+                       shadow-[inset_0_0_0_1px_var(--ring-edge)]
+                       focus:shadow-[inset_0_0_0_1px_var(--color-accent),0_0_0_3px_var(--color-accent-wash)]
+                       transition-[box-shadow,background]
                        placeholder:text-(--color-text-4)
                        disabled:opacity-60 disabled:cursor-not-allowed"
           />
@@ -238,7 +240,6 @@ function KeyRow({ provider, hook }: { provider: Provider; hook: KeyHook }) {
             ...(isValidating && {
               background: 'var(--color-accent)',
               color: 'var(--color-accent-fg)',
-              borderColor: 'color-mix(in srgb, var(--color-accent) 50%, #000 8%)',
               opacity: 0.9,
             }),
           }}

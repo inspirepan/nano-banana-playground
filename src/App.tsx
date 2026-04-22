@@ -9,19 +9,19 @@ import { ApiKeysDialog } from './components/ApiKeysDialog'
 import { Icon, type IconName } from './components/Icon'
 
 type Theme = 'light' | 'dark' | 'system'
-type ColorThemeId = 'default' | 'blue' | 'green' | 'yellow' | 'pink' | 'orange' | 'purple'
+type ColorThemeId = 'default' | 'green' | 'yellow' | 'pink' | 'orange' | 'purple' | 'mono'
 
 const BASE_TITLE = 'Nano Banana Playground'
 const TITLE_RESET_DELAY_MS = 8000
 
 const COLOR_THEMES: { id: ColorThemeId; name: string; color: string }[] = [
   { id: 'default', name: 'Indigo',  color: '#5e6ad2' },
-  { id: 'blue',    name: 'Blue',    color: '#5874d4' },
   { id: 'green',   name: 'Emerald', color: '#2f9e6a' },
   { id: 'yellow',  name: 'Amber',   color: '#b87503' },
   { id: 'pink',    name: 'Rose',    color: '#c4436d' },
   { id: 'orange',  name: 'Orange',  color: '#c0582a' },
   { id: 'purple',  name: 'Violet',  color: '#7c56d4' },
+  { id: 'mono',    name: 'Mono',    color: '#1f1d1a' },
 ]
 const COLOR_THEME_IDS = COLOR_THEMES.map((t) => t.id)
 
@@ -92,7 +92,7 @@ function ThemeSettings({ theme, colorTheme, onThemeChange, onColorThemeChange }:
         <div
           ref={popoverRef}
           style={{ top: pos.top, right: pos.right }}
-          className="fixed z-50 w-56 rounded-lg border border-(--color-border) bg-(--color-surface) shadow-[0_10px_28px_-12px_rgba(30,27,20,0.18),0_2px_6px_rgba(30,27,20,0.06)] p-2"
+          className="fixed z-50 w-56 rounded-lg bg-(--color-surface) shadow-[0_0_0_1px_var(--ring-edge),0_10px_28px_-12px_rgba(30,27,20,0.18),0_2px_6px_rgba(30,27,20,0.06)] p-2"
         >
           <div className="label px-1.5 pb-1.5">外观</div>
           <div className="flex gap-1 mb-2">
@@ -112,21 +112,25 @@ function ThemeSettings({ theme, colorTheme, onThemeChange, onColorThemeChange }:
 
           <div className="label px-1.5 pb-1.5">主色</div>
           <div className="grid grid-cols-7 gap-1.5">
-            {COLOR_THEMES.map((ct) => (
-              <button
-                key={ct.id}
-                type="button"
-                title={ct.name}
-                onClick={() => onColorThemeChange(ct.id)}
-                className="aspect-square rounded-[6px] transition-all"
-                style={{
-                  background: ct.color,
-                  boxShadow: colorTheme === ct.id
-                    ? `inset 0 0 0 2px var(--color-surface), 0 0 0 2px ${ct.color}`
-                    : 'inset 0 0 0 1px rgba(0,0,0,0.08)',
-                }}
-              />
-            ))}
+            {COLOR_THEMES.map((ct) => {
+              const isDark = theme === 'dark' || (theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+              const swatch = ct.id === 'mono' ? (isDark ? '#f2f1ef' : '#1f1d1a') : ct.color
+              return (
+                <button
+                  key={ct.id}
+                  type="button"
+                  title={ct.name}
+                  onClick={() => onColorThemeChange(ct.id)}
+                  className="aspect-square rounded-[6px] transition-all"
+                  style={{
+                    background: swatch,
+                    boxShadow: colorTheme === ct.id
+                      ? `inset 0 0 0 2px var(--color-surface), 0 0 0 2px ${swatch}`
+                      : 'inset 0 0 0 1px rgba(0,0,0,0.08)',
+                  }}
+                />
+              )
+            })}
           </div>
         </div>,
         document.body
@@ -436,7 +440,7 @@ function App() {
       className={`pointer-events-none fixed bottom-8 left-1/2 z-[100] -translate-x-1/2 transition-all duration-300
         ${regenToast ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}
     >
-      <div className="rounded-md border border-(--color-border) bg-(--color-surface) px-4 py-2 text-[12.5px] font-medium text-(--color-text) shadow-[0_10px_28px_-12px_rgba(30,27,20,0.18),0_2px_6px_rgba(30,27,20,0.06)] whitespace-nowrap">
+      <div className="rounded-md bg-(--color-surface) px-4 py-2 text-[12.5px] font-medium text-(--color-text) shadow-[0_0_0_1px_var(--ring-edge),0_10px_28px_-12px_rgba(30,27,20,0.18),0_2px_6px_rgba(30,27,20,0.06)] whitespace-nowrap">
         {regenToast}
       </div>
     </div>

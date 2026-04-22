@@ -71,6 +71,11 @@
 
   --color-title: var(--color-text);
 
+  /* Edge rings — replace 1px solid borders on elevated/tinted containers so
+     shadows stay clean (Schoger). Flip to a light ring in dark mode below. */
+  --ring-edge: rgba(0, 0, 0, 0.08);
+  --ring-edge-strong: rgba(0, 0, 0, 0.14);
+
   --radius-xs: 4px;
   --radius-sm: 6px;
   --radius-md: 8px;
@@ -80,17 +85,17 @@
 
 /* Dark theme */
 .dark {
-  --color-bg: #0f0f10;
-  --color-bg-sunken: #0a0a0b;
-  --color-surface: #18181a;
-  --color-surface-2: #1d1d1f;
-  --color-surface-3: #232327;
-  --color-border: #26262a;
-  --color-border-strong: #32323a;
-  --color-text: #ededed;
-  --color-text-2: #a8a6a1;
-  --color-text-3: #706d66;
-  --color-text-4: #4a4843;
+  --color-bg: #1a1a1d;
+  --color-bg-sunken: #141416;
+  --color-surface: #222226;
+  --color-surface-2: #27272b;
+  --color-surface-3: #2e2e33;
+  --color-border: #32323a;
+  --color-border-strong: #3f3f48;
+  --color-text: #f2f1ef;
+  --color-text-2: #d6d4ce;
+  --color-text-3: #b8b6ae;
+  --color-text-4: #97958c;
 
   --color-accent: #8088e0;
   --color-accent-hover: #959ce6;
@@ -103,6 +108,9 @@
   --color-danger-soft: color-mix(in srgb, #e07676 14%, transparent);
   --color-success: #52c08a;
 
+  --ring-edge: rgba(255, 255, 255, 0.06);
+  --ring-edge-strong: rgba(255, 255, 255, 0.11);
+
   color-scheme: dark;
 }
 
@@ -110,22 +118,6 @@
    Accent themes — override ONLY the --color-accent family.
    Mapped to existing theme-* class names used by the app.
    ============================================================ */
-.theme-blue {
-  --color-accent: #5874d4;
-  --color-accent-hover: #4a66c8;
-  --color-accent-soft: #eff2fb;
-  --color-accent-wash: color-mix(in srgb, #5874d4 10%, transparent);
-  --color-accent-wash-2: color-mix(in srgb, #5874d4 16%, transparent);
-  --color-title: var(--color-accent);
-}
-.dark.theme-blue {
-  --color-accent: #8ea2ea;
-  --color-accent-hover: #a1b4ef;
-  --color-accent-soft: #1c2235;
-  --color-accent-wash: color-mix(in srgb, #8ea2ea 18%, transparent);
-  --color-accent-wash-2: color-mix(in srgb, #8ea2ea 28%, transparent);
-}
-
 .theme-green {
   --color-accent: #2f9e6a;
   --color-accent-hover: #288c5d;
@@ -204,6 +196,24 @@
   --color-accent-soft: #221c33;
   --color-accent-wash: color-mix(in srgb, #a585f0 18%, transparent);
   --color-accent-wash-2: color-mix(in srgb, #a585f0 28%, transparent);
+}
+
+.theme-mono {
+  --color-accent: #1f1d1a;
+  --color-accent-hover: #000000;
+  --color-accent-fg: #ffffff;
+  --color-accent-soft: #efeeec;
+  --color-accent-wash: color-mix(in srgb, #1f1d1a 8%, transparent);
+  --color-accent-wash-2: color-mix(in srgb, #1f1d1a 14%, transparent);
+  --color-title: var(--color-accent);
+}
+.dark.theme-mono {
+  --color-accent: #f2f1ef;
+  --color-accent-hover: #ffffff;
+  --color-accent-fg: #0f0f10;
+  --color-accent-soft: #2e2e33;
+  --color-accent-wash: color-mix(in srgb, #f2f1ef 14%, transparent);
+  --color-accent-wash-2: color-mix(in srgb, #f2f1ef 22%, transparent);
 }
 
 @layer base {
@@ -293,12 +303,12 @@
     line-height: 1;
   }
 
-  /* chip — pill-ish but flat, 1px border */
+  /* chip — pill-ish but flat, edge defined by an inset ring (not a solid border) */
   .chip {
     height: 28px;
     padding: 0 10px;
     border-radius: var(--radius-sm);
-    border: 1px solid var(--color-border);
+    border: 0;
     background: var(--color-surface);
     color: var(--color-text-2);
     font-weight: 500;
@@ -306,41 +316,40 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    transition: background 120ms, border-color 120ms, color 120ms;
+    box-shadow: inset 0 0 0 1px var(--ring-edge);
+    transition: background 120ms, box-shadow 120ms, color 120ms;
     white-space: nowrap;
   }
   .chip:hover:not(:disabled) {
     background: var(--color-surface-2);
     color: var(--color-text);
-    border-color: var(--color-border-strong);
+    box-shadow: inset 0 0 0 1px var(--ring-edge-strong);
   }
   .chip[data-active="true"] {
     background: var(--color-accent-wash);
     color: var(--color-accent);
-    border-color: var(--color-accent-wash-2);
-    box-shadow: none;
+    box-shadow: inset 0 0 0 1px var(--color-accent-wash-2);
   }
   .chip[data-active="true"]:hover:not(:disabled) {
     background: var(--color-accent-wash-2);
-    border-color: var(--color-accent-wash-2);
     color: var(--color-accent);
+    box-shadow: inset 0 0 0 1px var(--color-accent-wash-2);
   }
   .chip.ghost {
-    border-color: transparent;
     background: transparent;
+    box-shadow: none;
   }
-  .chip.ghost:hover:not(:disabled) { background: var(--color-surface-2); }
+  .chip.ghost:hover:not(:disabled) { background: var(--color-surface-2); box-shadow: none; }
 
   .chip.accent-active {
     background: var(--color-accent);
     color: var(--color-accent-fg);
-    border-color: var(--color-accent);
-    box-shadow: none;
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-accent) 55%, #000 10%);
   }
   .chip.accent-active:hover:not(:disabled) {
     background: var(--color-accent-hover);
-    border-color: var(--color-accent-hover);
     color: var(--color-accent-fg);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-accent-hover) 55%, #000 10%);
   }
 
   /* Section label */
@@ -354,8 +363,9 @@
 
   .card {
     background: var(--color-surface);
-    border: 1px solid var(--color-border);
+    border: 0;
     border-radius: var(--radius-md);
+    box-shadow: inset 0 0 0 1px var(--ring-edge);
   }
 
   .icon-btn {
@@ -377,14 +387,14 @@
   }
   .icon-btn:disabled { opacity: 0.4; }
 
-  /* Primary CTA */
+  /* Primary CTA — outer ring instead of solid border keeps the drop shadow clean */
   .cta {
     height: 34px;
     padding: 0 14px;
     border-radius: var(--radius-md);
     background: var(--color-accent);
     color: var(--color-accent-fg);
-    border: 1px solid color-mix(in srgb, var(--color-accent) 50%, #000 8%);
+    border: 0;
     font-weight: 600;
     font-size: 13px;
     display: inline-flex;
@@ -392,15 +402,17 @@
     justify-content: center;
     gap: 10px;
     transition: filter 120ms, transform 60ms, background 120ms;
-    box-shadow: 0 1px 0 rgba(255,255,255,0.15) inset, 0 1px 2px rgba(0,0,0,0.12);
+    box-shadow:
+      0 0 0 1px color-mix(in srgb, var(--color-accent) 50%, #000 8%),
+      inset 0 1px 0 rgba(255,255,255,0.15),
+      0 1px 2px rgba(0,0,0,0.12);
   }
   .cta:hover:not(:disabled) { filter: brightness(1.06); }
   .cta:active:not(:disabled) { transform: translateY(0.5px); }
   .cta:disabled {
     background: var(--color-surface-3);
     color: var(--color-text-4);
-    border-color: var(--color-border);
-    box-shadow: none;
+    box-shadow: inset 0 0 0 1px var(--ring-edge);
   }
   .cta kbd {
     background: rgba(255,255,255,0.15);
@@ -414,17 +426,23 @@
   }
   .cta.danger {
     background: var(--color-danger);
-    border-color: color-mix(in srgb, var(--color-danger) 50%, #000 10%);
     color: #fff;
+    box-shadow:
+      0 0 0 1px color-mix(in srgb, var(--color-danger) 50%, #000 10%),
+      inset 0 1px 0 rgba(255,255,255,0.15),
+      0 1px 2px rgba(0,0,0,0.12);
   }
 
-  /* Segmented control — sliding thumb driven by --seg-index / --seg-count */
+  /* Segmented control — sliding thumb driven by --seg-index / --seg-count.
+     Outer container: tinted track defined by inset ring. Thumb: outer ring + shadow.
+     Concentric radii: outer 8 (radius-md) - 2 padding = 6 inner. */
   .segmented {
     display: inline-flex;
     padding: 2px;
     background: var(--color-surface-2);
-    border: 1px solid var(--color-border);
+    border: 0;
     border-radius: var(--radius-md);
+    box-shadow: inset 0 0 0 1px var(--ring-edge);
     gap: 2px;
     width: 100%;
     position: relative;
@@ -439,16 +457,24 @@
     width: calc((100% - 2px * (var(--seg-count, 1) + 1)) / var(--seg-count, 1));
     transform: translateX(calc(var(--seg-index, 0) * (100% + 2px)));
     background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: 5px;
-    box-shadow: 0 1px 0 rgba(0,0,0,0.02), 0 1px 2px rgba(0,0,0,0.04);
+    border: 0;
+    border-radius: 6px;
+    box-shadow:
+      0 0 0 1px rgba(0, 0, 0, 0.08),
+      0 1px 2px rgba(0, 0, 0, 0.05);
     transition: transform 260ms cubic-bezier(0.4, 0, 0.2, 1),
                 width 260ms cubic-bezier(0.4, 0, 0.2, 1);
     pointer-events: none;
     z-index: 0;
   }
+  .dark .segmented {
+    background: var(--color-bg-sunken);
+  }
   .dark .segmented::before {
-    box-shadow: 0 1px 0 rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.4);
+    background: var(--color-surface-3);
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.06),
+      0 1px 2px rgba(0, 0, 0, 0.4);
   }
   .segmented button {
     position: relative;
@@ -457,7 +483,7 @@
     min-width: 0;
     height: 26px;
     padding: 0 8px;
-    border-radius: 5px;
+    border-radius: 6px;
     border: 0;
     background: transparent;
     color: var(--color-text-2);
@@ -486,31 +512,31 @@
     justify-content: center;
     height: 36px;
     border-radius: var(--radius-sm);
-    border: 1px solid var(--color-border);
+    border: 0;
     background: var(--color-surface);
     color: var(--color-text-3);
     font-size: 11.5px;
     font-weight: 500;
     font-variant-numeric: tabular-nums;
-    transition: background 120ms, border-color 120ms, color 120ms;
+    box-shadow: inset 0 0 0 1px var(--ring-edge);
+    transition: background 120ms, box-shadow 120ms, color 120ms;
     position: relative;
     padding: 0 6px;
     gap: 6px;
   }
   .aspect-tile:hover {
-    border-color: var(--color-border-strong);
     color: var(--color-text-2);
+    box-shadow: inset 0 0 0 1px var(--ring-edge-strong);
   }
   .aspect-tile[data-active="true"] {
     background: var(--color-accent-wash);
-    border-color: var(--color-accent-wash-2);
-    box-shadow: none;
     color: var(--color-accent);
+    box-shadow: inset 0 0 0 1px var(--color-accent-wash-2);
   }
   .aspect-tile[data-active="true"]:hover {
     background: var(--color-accent-wash-2);
-    border-color: var(--color-accent-wash-2);
     color: var(--color-accent);
+    box-shadow: inset 0 0 0 1px var(--color-accent-wash-2);
   }
   .aspect-tile .glyph {
     display: inline-block;
@@ -519,18 +545,22 @@
     flex-shrink: 0;
   }
   .aspect-tile[data-active="true"] .glyph { background: var(--color-accent); }
+  .dark .aspect-tile .glyph { background: #48484f; }
+  .dark .aspect-tile[data-active="true"] .glyph { background: var(--color-accent); }
 
   /* Prompt textarea wrapper */
   .prompt-wrap {
-    border: 1px solid var(--color-border);
+    border: 0;
     border-radius: var(--radius-md);
     background: var(--color-surface);
-    transition: border-color 120ms, box-shadow 120ms;
+    box-shadow: inset 0 0 0 1px var(--ring-edge);
+    transition: box-shadow 120ms;
     position: relative;
   }
   .prompt-wrap:focus-within {
-    border-color: var(--color-accent);
-    box-shadow: 0 0 0 3px var(--color-accent-wash);
+    box-shadow:
+      inset 0 0 0 1px var(--color-accent),
+      0 0 0 3px var(--color-accent-wash);
   }
 
   .dropzone {
@@ -544,23 +574,23 @@
     background: var(--color-surface-2);
   }
 
-  /* Tag / pill badge */
+  /* Tag / pill badge — just a tinted fill, no ring */
   .tag {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 2px 8px;
-    height: 20px;
-    font-size: 11px;
+    gap: 3px;
+    padding: 0 5px;
+    height: 17px;
+    font-size: 10.5px;
+    line-height: 1;
     font-weight: 500;
     border-radius: var(--radius-xs);
     background: var(--color-surface-2);
-    border: 1px solid var(--color-border);
+    border: 0;
     color: var(--color-text-2);
   }
   .tag.accent {
     background: var(--color-accent-wash);
-    border-color: var(--color-accent-wash-2);
     color: var(--color-accent);
   }
 
@@ -569,11 +599,12 @@
     position: relative;
     border-radius: var(--radius-md);
     overflow: hidden;
-    border: 1px solid var(--color-border);
+    border: 0;
     background: var(--color-surface-2);
-    transition: border-color 120ms;
+    box-shadow: inset 0 0 0 1px var(--ring-edge);
+    transition: box-shadow 120ms;
   }
-  .img-card:hover { border-color: var(--color-border-strong); }
+  .img-card:hover { box-shadow: inset 0 0 0 1px var(--ring-edge-strong); }
   .img-card .overlay {
     position: absolute; inset: 0;
     background: linear-gradient(to top, rgba(0,0,0,0.6), transparent 40%);
@@ -674,7 +705,7 @@
   .spinner {
     width: 12px;
     height: 12px;
-    border: 1.5px solid var(--color-text-4);
+    border: 1.5px solid color-mix(in srgb, var(--color-accent) 22%, transparent);
     border-top-color: var(--color-accent);
     border-radius: 50%;
     animation: spin 0.7s linear infinite;

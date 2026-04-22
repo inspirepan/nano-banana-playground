@@ -447,11 +447,11 @@ export function InputPanel({
   const estimatedCost = pricePerImage !== null ? pricePerImage * batchCount : null
 
   const currentKeyStatus = model.provider === 'google' ? googleKeyStatus : openaiKeyStatus
-  const keyDisplay: Record<string, { color: string; bg: string; border: string; text: string }> = {
-    valid:      { color: 'var(--color-success)', bg: 'color-mix(in srgb, var(--color-success) 10%, transparent)', border: 'color-mix(in srgb, var(--color-success) 30%, var(--color-border))', text: '已验证' },
-    validating: { color: 'var(--color-text-3)', bg: 'var(--color-surface-2)', border: 'var(--color-border)', text: '验证中' },
-    invalid:    { color: 'var(--color-danger)', bg: 'color-mix(in srgb, var(--color-danger) 10%, transparent)', border: 'color-mix(in srgb, var(--color-danger) 30%, var(--color-border))', text: '无效' },
-    empty:      { color: 'var(--color-text-3)', bg: 'var(--color-surface-2)', border: 'var(--color-border)', text: '未配置' },
+  const keyDisplay: Record<string, { color: string; bg: string; text: string }> = {
+    valid:      { color: 'var(--color-success)', bg: 'color-mix(in srgb, var(--color-success) 10%, transparent)', text: '已验证' },
+    validating: { color: 'var(--color-text-3)', bg: 'var(--color-surface-2)', text: '验证中' },
+    invalid:    { color: 'var(--color-danger)', bg: 'color-mix(in srgb, var(--color-danger) 10%, transparent)', text: '无效' },
+    empty:      { color: 'var(--color-text-3)', bg: 'var(--color-surface-2)', text: '未配置' },
   }
   const keyInfo = keyDisplay[currentKeyStatus] ?? keyDisplay.empty
   const maskedKey = apiKey ? `${apiKey.slice(0, 4)}******${apiKey.slice(-3)}` : ''
@@ -488,7 +488,7 @@ export function InputPanel({
           <div className="flex-1" />
           <span
             className="tag"
-            style={{ color: keyInfo.color, background: keyInfo.bg, borderColor: keyInfo.border }}
+            style={{ color: keyInfo.color, background: keyInfo.bg }}
           >
             {currentKeyStatus === 'valid' && <Icon name="check" size={10} strokeWidth={2} />}
             {currentKeyStatus === 'validating' && <span className="spinner" style={{ width: 9, height: 9, borderWidth: 1.2 }} />}
@@ -595,7 +595,7 @@ export function InputPanel({
           {schemes.length > 0 && (mode === 'structured' || isAugmenting) && (
             <div
               className="fade-in rounded-[8px] px-3 py-2.5"
-              style={{ border: '1px solid var(--color-border)', background: 'var(--color-accent-soft)' }}
+              style={{ background: 'var(--color-accent-soft)', boxShadow: 'inset 0 0 0 1px var(--ring-edge)' }}
             >
               <div className="flex items-center gap-1.5 mb-2 min-w-0">
                 <span style={{ color: 'var(--color-accent)', display: 'inline-flex' }}><SparklesFilled size={12} /></span>

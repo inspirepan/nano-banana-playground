@@ -86,7 +86,7 @@ function FailedCard({ index }: { index: number }) {
   return (
     <div
       className="w-full h-full rounded-[8px] overflow-hidden relative"
-      style={{ border: '1px solid color-mix(in srgb, var(--color-danger) 24%, transparent)', background: 'color-mix(in srgb, var(--color-danger) 6%, transparent)' }}
+      style={{ boxShadow: 'inset 0 0 0 1px color-mix(in srgb, var(--color-danger) 24%, transparent)', background: 'color-mix(in srgb, var(--color-danger) 6%, transparent)' }}
     >
       <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5">
         <div
@@ -261,7 +261,7 @@ export const OutputPanel = memo(function OutputPanel({
         <div
           className="mb-4 rounded-[6px] px-3 py-2 text-[12px]"
           style={{
-            border: '1px solid color-mix(in srgb, var(--color-danger) 24%, transparent)',
+            boxShadow: 'inset 0 0 0 1px color-mix(in srgb, var(--color-danger) 24%, transparent)',
             background: 'color-mix(in srgb, var(--color-danger) 6%, transparent)',
             color: 'var(--color-danger)',
           }}
@@ -281,7 +281,7 @@ export const OutputPanel = memo(function OutputPanel({
               className="flex items-center gap-2.5 mb-2.5 px-3 py-1.5 rounded-[6px]"
               style={{
                 background: isGenerating ? 'var(--color-accent-soft)' : 'transparent',
-                border: isGenerating ? '1px solid var(--color-accent-wash-2)' : '1px solid transparent',
+                boxShadow: isGenerating ? 'inset 0 0 0 1px var(--color-accent-wash-2)' : 'none',
               }}
             >
               {isGenerating ? (

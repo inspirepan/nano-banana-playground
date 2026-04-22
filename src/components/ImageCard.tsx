@@ -196,7 +196,7 @@ export const ImageCard = memo(function ImageCard({ image, inlineData, index, onA
       {menu && createPortal(
         <div
           style={{ top: menu.y, left: menu.x }}
-          className="fixed z-[120] min-w-[140px] rounded-[8px] border border-(--color-border) bg-(--color-surface) p-1 shadow-[0_10px_28px_-12px_rgba(30,27,20,0.18),0_2px_6px_rgba(30,27,20,0.06)]"
+          className="fixed z-[120] min-w-[140px] rounded-[8px] bg-(--color-surface) p-1 shadow-[0_0_0_1px_var(--ring-edge),0_10px_28px_-12px_rgba(30,27,20,0.18),0_2px_6px_rgba(30,27,20,0.06)]"
         >
           {actionItems.map((item) => (
             <button
@@ -235,7 +235,7 @@ function OverlayButton({ icon, onClick, children, danger }: {
       style={{
         background: danger ? 'rgba(225,86,86,0.28)' : 'rgba(255,255,255,0.15)',
         color: '#fff',
-        border: '1px solid rgba(255,255,255,0.25)',
+        boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.22)',
         backdropFilter: 'blur(8px)',
       }}
     >
