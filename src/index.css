@@ -342,8 +342,21 @@
   --color-title: var(--color-primary);
 }
 
-/* Header frosted-glass fade: blur+background fade from opaque at top to transparent at bottom */
+/* Header frosted-glass fade: background+blur fade from opaque at top to transparent at bottom.
+   The mask is applied to a ::before backing layer so that foreground text (title, controls)
+   is not clipped by the gradient. */
 .header-fade {
+  position: relative;
+  isolation: isolate;
+}
+.header-fade::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-color: color-mix(in oklab, var(--color-surface) 20%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   -webkit-mask-image: linear-gradient(to bottom, black 40%, transparent 100%);
   mask-image: linear-gradient(to bottom, black 40%, transparent 100%);
 }
