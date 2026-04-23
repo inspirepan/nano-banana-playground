@@ -25,7 +25,6 @@ type Props = {
   error: string | null
   batchCount: number
   aspectRatio: string
-  resolution: string
   onAddToRef: (image: PlaygroundImageMeta) => void
   onRegenerate: (image: PlaygroundImageMeta) => void
   onRemove: (id: string) => void
@@ -59,18 +58,6 @@ function groupByBatch(images: PlaygroundImageMeta[]): HistoryBatch[] {
 
 function modelNameOf(modelId: string): string {
   return MODEL_CONFIGS.find((m) => m.id === modelId)?.name ?? modelId
-}
-
-function SkeletonCard({ aspectRatio, resolution }: { aspectRatio: string; resolution: string }) {
-  return (
-    <div className="img-card w-full h-full">
-      <div className="absolute inset-0 skeleton-animated" />
-      <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 text-(--color-text-3)">
-        <div className="mono text-[11px] text-(--color-text-4)">{resolution} · {aspectRatio}</div>
-        <div className="text-[11px] text-(--color-text-4)">按「生成」开始</div>
-      </div>
-    </div>
-  )
 }
 
 function LoadingCard({ index }: { index: number }) {
@@ -172,7 +159,6 @@ export const OutputPanel = memo(function OutputPanel({
   error,
   batchCount,
   aspectRatio,
-  resolution,
   onAddToRef,
   onRegenerate,
   onRemove,
@@ -244,7 +230,6 @@ export const OutputPanel = memo(function OutputPanel({
   const previewVisible = isGenerating || !!settledData
 
   const draftRatio = settledData ? settledData.ratio : isGenerating && generationSnapshot ? generationSnapshot.aspectRatio : aspectRatio
-  const draftRes = settledData ? settledData.res : isGenerating && generationSnapshot ? generationSnapshot.resolution : resolution
   const draftCount = settledData ? settledData.count : isGenerating && generationSnapshot ? generationSnapshot.batchCount : batchCount
   const previewSlots = settledData ? settledData.preview
     : isGenerating && generationPreview.length > 0 ? generationPreview
@@ -377,10 +362,8 @@ export const OutputPanel = memo(function OutputPanel({
                     />
                   ) : slot.status === 'rejected' ? (
                     <FailedCard index={i} error={slot.error} />
-                  ) : isGenerating ? (
-                    <LoadingCard index={i} />
                   ) : (
-                    <SkeletonCard aspectRatio={draftRatio} resolution={draftRes} />
+                    <LoadingCard index={i} />
                   )}
                 </GridCell>
               ))}

@@ -335,7 +335,6 @@ function App() {
             error={pg.error}
             batchCount={pg.batchCount}
             aspectRatio={pg.aspectRatio}
-            resolution={pg.resolution}
             onAddToRef={handleAddToRef}
             onRegenerate={handleRegenerate}
             onRemove={pg.removeFromHistory}
@@ -391,7 +390,6 @@ function App() {
           error={pg.error}
           batchCount={pg.batchCount}
           aspectRatio={pg.aspectRatio}
-          resolution={pg.resolution}
           onAddToRef={handleAddToRef}
           onRegenerate={handleRegenerate}
           onRemove={pg.removeFromHistory}
