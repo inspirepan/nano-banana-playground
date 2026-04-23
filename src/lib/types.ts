@@ -10,18 +10,41 @@ export type TokenUsage = {
   totalTokens: number
 }
 
+// Google grounding metadata (google_search tool). Attribution must be surfaced
+// to the user when image_search is enabled; see nano-banana-api-guide.md.
+export type GroundingChunk = {
+  web?: { uri?: string; title?: string }
+  image?: { imageUri?: string; uri?: string; title?: string }
+}
+
+export type GroundingMetadata = {
+  searchEntryPoint?: { renderedContent?: string }
+  groundingChunks?: GroundingChunk[]
+  webSearchQueries?: string[]
+  imageSearchQueries?: string[]
+}
+
 export type GeneratedSource = {
   type: 'generated'
   modelId: string
   prompt: string
   resolution: string
   aspectRatio: string
-  // OpenAI (gpt-image-2) rendering quality: 'auto' | 'low' | 'medium' | 'high'.
-  // Optional because Google models and legacy records don't carry it.
-  quality?: string
   referenceImageIds: string[]
   batchId: string
   tokenUsage?: TokenUsage
+  // Provider/model-specific generation options (keyed by option id; values typed
+  // by the option descriptor). Introduced after the options-descriptor refactor.
+  options?: Record<string, unknown>
+  // Google-only: grounding sources returned when google_search tool was used.
+  groundingMetadata?: GroundingMetadata
+  // Legacy fields retained for reading pre-refactor history records. New records
+  // write to `options` instead. Readers should prefer `options[...]` first.
+  quality?: string
+  searchTools?: {
+    web?: boolean
+    image?: boolean
+  }
 }
 
 export type ImageSource = UploadSource | GeneratedSource

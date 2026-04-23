@@ -302,8 +302,8 @@ function App() {
           model={pg.model}
           resolution={pg.resolution}
           aspectRatio={pg.aspectRatio}
-          quality={pg.quality}
           batchCount={pg.batchCount}
+          options={pg.options}
           prompt={pg.prompt}
           referenceImages={pg.referenceImages}
           generationState={pg.generationState}
@@ -315,9 +315,9 @@ function App() {
           onSwitchModel={pg.switchModel}
           onResolutionChange={pg.setResolution}
           onAspectRatioChange={pg.setAspectRatio}
-          onQualityChange={pg.setQuality}
           onPromptChange={pg.setPrompt}
           onBatchCountChange={pg.setBatchCount}
+          onOptionChange={pg.setOption}
           onAddReferenceImages={pg.addReferenceImages}
           onAddReferenceImage={pg.addToReferences}
           onRemoveReferenceImage={pg.removeReferenceImage}
@@ -355,8 +355,8 @@ function App() {
             model={pg.model}
             resolution={pg.resolution}
             aspectRatio={pg.aspectRatio}
-            quality={pg.quality}
             batchCount={pg.batchCount}
+            options={pg.options}
             prompt={pg.prompt}
             referenceImages={pg.referenceImages}
             generationState={pg.generationState}
@@ -368,9 +368,9 @@ function App() {
             onSwitchModel={pg.switchModel}
             onResolutionChange={pg.setResolution}
             onAspectRatioChange={pg.setAspectRatio}
-            onQualityChange={pg.setQuality}
             onPromptChange={pg.setPrompt}
             onBatchCountChange={pg.setBatchCount}
+            onOptionChange={pg.setOption}
             onAddReferenceImages={pg.addReferenceImages}
             onAddReferenceImage={pg.addToReferences}
             onRemoveReferenceImage={pg.removeReferenceImage}

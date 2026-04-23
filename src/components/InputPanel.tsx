@@ -1,6 +1,11 @@
 import { useState, useRef, useCallback, useEffect, useLayoutEffect, type ReactNode } from 'react'
 import type { PlaygroundImage } from '../lib/types'
-import { MODEL_CONFIGS, type ModelConfig } from '../config/models'
+import {
+  MODEL_CONFIGS,
+  type ModelConfig,
+  type ModelOption,
+  type ModelToggleOption,
+} from '../config/models'
 import type { GenerationState } from '../hooks/usePlayground'
 import type { ApiKeyStatus } from '../hooks/useApiKey'
 import { openAISize } from '../lib/openai'
@@ -64,12 +69,132 @@ function getModelShortLabel(model: ModelConfig) {
   return model.name.replace(/^Nano\s+/, '')
 }
 
+// Group model options so adjacent toggle options sharing a `group` render
+// inside one Section; select options and ungrouped toggles render alone.
+type OptionsBlock =
+  | { kind: 'single'; option: ModelOption }
+  | { kind: 'toggles'; label: string; hint?: string; options: ModelToggleOption[] }
+
+function buildOptionBlocks(opts: ModelOption[]): OptionsBlock[] {
+  const blocks: OptionsBlock[] = []
+  let i = 0
+  while (i < opts.length) {
+    const head = opts[i]
+    if (head.type === 'toggle' && head.group) {
+      const group: ModelToggleOption[] = [head]
+      let j = i + 1
+      while (j < opts.length) {
+        const next = opts[j]
+        if (next.type !== 'toggle' || next.group !== head.group) break
+        group.push(next)
+        j++
+      }
+      blocks.push({
+        kind: 'toggles',
+        label: head.groupLabel ?? head.label,
+        hint: head.hint,
+        options: group,
+      })
+      i = j
+    } else {
+      blocks.push({ kind: 'single', option: head })
+      i++
+    }
+  }
+  return blocks
+}
+
+function OptionSection({
+  option,
+  value,
+  onChange,
+}: {
+  option: ModelOption
+  value: unknown
+  onChange: (v: unknown) => void
+}) {
+  if (option.type === 'select') {
+    const current = typeof value === 'string' ? value : option.default
+    const values = option.choices.map((c) => c.value)
+    const labelFor = (v: string) => option.choices.find((c) => c.value === v)?.label ?? v
+    return (
+      <Section label={option.label} hint={option.hint}>
+        <ChipGroup
+          options={values}
+          value={current}
+          onChange={onChange}
+          mono={false}
+          columns={values.length}
+          renderOption={(v) => <span>{labelFor(v)}</span>}
+        />
+      </Section>
+    )
+  }
+  // Single ungrouped toggle: render as a one-chip row.
+  const active = value === true
+  return (
+    <Section label={option.label} hint={option.hint}>
+      <button
+        type="button"
+        className="chip justify-center w-full"
+        data-active={active}
+        onClick={() => onChange(!active)}
+      >
+        <span>{active ? '已启用' : '未启用'}</span>
+      </button>
+    </Section>
+  )
+}
+
+function ToggleGroupSection({
+  label,
+  hint,
+  options,
+  values,
+  onChange,
+}: {
+  label: string
+  hint?: string
+  options: ModelToggleOption[]
+  values: Record<string, unknown>
+  onChange: (id: string, v: unknown) => void
+}) {
+  return (
+    <Section label={label} hint={hint}>
+      <div
+        className="grid gap-1.5"
+        style={{ gridTemplateColumns: `repeat(${options.length}, 1fr)` }}
+      >
+        {options.map((opt) => {
+          const active = values[opt.id] === true
+          return (
+            <button
+              key={opt.id}
+              type="button"
+              className="chip justify-center"
+              data-active={active}
+              onClick={() => onChange(opt.id, !active)}
+              title={opt.label}
+            >
+              <Icon
+                name={opt.id === 'imageSearch' ? 'image' : 'search'}
+                size={12}
+              />
+              <span>{opt.label}</span>
+            </button>
+          )
+        })}
+      </div>
+    </Section>
+  )
+}
+
 type Props = {
   model: ModelConfig
   resolution: string
   aspectRatio: string
-  quality: string
   batchCount: number
+  options: Record<string, unknown>
   prompt: string
   referenceImages: PlaygroundImage[]
   generationState: GenerationState
@@ -81,9 +206,9 @@ type Props = {
   onSwitchModel: (id: string) => void
   onResolutionChange: (v: string) => void
   onAspectRatioChange: (v: string) => void
-  onQualityChange: (v: string) => void
   onPromptChange: (v: string) => void
   onBatchCountChange: (v: number) => void
+  onOptionChange: (id: string, value: unknown) => void
   onAddReferenceImages: (files: File[]) => void
   onAddReferenceImage: (image: PlaygroundImage) => void
   onRemoveReferenceImage: (id: string) => void
@@ -95,8 +220,8 @@ export function InputPanel({
   model,
   resolution,
   aspectRatio,
-  quality,
   batchCount,
+  options,
   prompt,
   referenceImages,
   generationState,
@@ -107,9 +232,9 @@ export function InputPanel({
   onSwitchModel,
   onResolutionChange,
   onAspectRatioChange,
-  onQualityChange,
   onPromptChange,
   onBatchCountChange,
+  onOptionChange,
   onAddReferenceImages,
   onAddReferenceImage,
   onRemoveReferenceImage,
@@ -118,7 +243,8 @@ export function InputPanel({
 }: Props) {
   const isGenerating = generationState === 'generating'
   const maxRef = model.maxReferenceImages + model.maxCharacterImages
-  const pricePerImage = getPricePerImage(model, resolution, aspectRatio, quality)
+  const pricePerImage = getPricePerImage(model, resolution, aspectRatio, options)
+  const optionBlocks = buildOptionBlocks(model.options ?? [])
 
   const hasPrompt = prompt.trim() !== ''
   const canGenerate = apiKey.trim() !== '' && hasPrompt && !isGenerating
@@ -357,18 +483,29 @@ export function InputPanel({
 
       <div className="h-[18px] " />
 
-      {/* Quality (OpenAI only) */}
-      {model.provider === 'openai' && (
-        <Section label="质量">
-          <ChipGroup
-            options={model.qualities}
-            value={quality}
-            onChange={onQualityChange}
-            mono={false}
-            columns={model.qualities.length}
+      {/* Model-declared options (quality, search tools, thinking level, ...) */}
+      {optionBlocks.map((block, idx) => {
+        if (block.kind === 'single') {
+          return (
+            <OptionSection
+              key={block.option.id}
+              option={block.option}
+              value={options[block.option.id]}
+              onChange={(v) => onOptionChange(block.option.id, v)}
+            />
+          )
+        }
+        return (
+          <ToggleGroupSection
+            key={`group-${idx}`}
+            label={block.label}
+            hint={block.hint}
+            options={block.options}
+            values={options}
+            onChange={onOptionChange}
           />
-        </Section>
-      )}
+        )
+      })}
 
       {/* Reference images */}
       <div className="mb-[18px]">

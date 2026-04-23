@@ -14,27 +14,36 @@ function mockWindow(search = '') {
 afterEach(() => vi.unstubAllGlobals())
 
 describe('readSimpleUrlParams', () => {
-  it('parses all params', () => {
-    mockWindow('?m=flash-pro&r=2048x2048&a=16:9&q=high&n=3&p=hello')
+  it('parses core params and preserves raw param map for option lookup', () => {
+    mockWindow('?m=flash-pro&r=2048x2048&a=16:9&q=high&n=3&p=hello&ws=1&is=1')
     expect(readSimpleUrlParams()).toEqual({
       modelId: 'flash-pro',
       resolution: '2048x2048',
       aspectRatio: '16:9',
-      quality: 'high',
       batchCount: 3,
       prompt: 'hello',
+      rawParams: {
+        m: 'flash-pro',
+        r: '2048x2048',
+        a: '16:9',
+        q: 'high',
+        n: '3',
+        p: 'hello',
+        ws: '1',
+        is: '1',
+      },
     })
   })
 
-  it('returns nulls when params are absent', () => {
+  it('returns nulls for core params and empty rawParams when absent', () => {
     mockWindow('')
     expect(readSimpleUrlParams()).toEqual({
       modelId: null,
       resolution: null,
       aspectRatio: null,
-      quality: null,
       batchCount: null,
       prompt: null,
+      rawParams: {},
     })
   })
 

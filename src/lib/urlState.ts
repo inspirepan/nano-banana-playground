@@ -1,25 +1,31 @@
-// --- Simple URL params: model/resolution/ratio/quality/batch/prompt ---
+// URL state: core playground params (model/resolution/ratio/batch/prompt) are
+// typed; model-specific option values live in `rawParams` keyed by their
+// `urlKey`, so `usePlayground` can coerce them against the active model's
+// option descriptors without the URL layer knowing each option's shape.
 
 export type SimpleUrlParams = {
   modelId: string | null
   resolution: string | null
   aspectRatio: string | null
-  quality: string | null
   batchCount: number | null
   prompt: string | null
+  // Every query param as a raw string, used by callers to look up by option.urlKey.
+  rawParams: Record<string, string>
 }
 
 export function readSimpleUrlParams(): SimpleUrlParams {
   const params = new URLSearchParams(window.location.search)
   const nRaw = params.get('n')
   const n = nRaw !== null ? parseInt(nRaw, 10) : null
+  const rawParams: Record<string, string> = {}
+  for (const [k, v] of params.entries()) rawParams[k] = v
   return {
     modelId: params.get('m'),
     resolution: params.get('r'),
     aspectRatio: params.get('a'),
-    quality: params.get('q'),
     batchCount: n !== null && !isNaN(n) ? n : null,
     prompt: params.get('p'),
+    rawParams,
   }
 }
 

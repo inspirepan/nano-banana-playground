@@ -7,11 +7,12 @@ export function getPricePerImage(
   model: ModelConfig,
   resolution: string,
   aspectRatio: string,
-  quality: string,
+  options: Record<string, unknown>,
 ): number | null {
   if (model.provider === 'google') {
     return model.imagePriceByResolution[resolution] ?? null
   }
   const size = openAISize(resolution, aspectRatio)
+  const quality = typeof options.quality === 'string' ? options.quality : 'auto'
   return gptImage2PricePerImage(size, quality)
 }

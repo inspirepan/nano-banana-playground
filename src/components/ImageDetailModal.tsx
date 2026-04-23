@@ -1,11 +1,53 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import type { PlaygroundImageMeta } from '../lib/types'
-import { MODEL_CONFIGS } from '../config/models'
+import type { GeneratedSource, GroundingMetadata, PlaygroundImageMeta } from '../lib/types'
+import { MODEL_CONFIGS, type ModelConfig } from '../config/models'
 import { getPricePerImage } from '../lib/pricing'
 import { ensureBlobLoaded, useImageSrc } from '../hooks/useImageSrc'
 import { loadImageMetas } from '../lib/history'
 import { Icon } from './Icon'
+
+// Normalize generated-source metadata into a single `options` bag, folding in
+// legacy top-level fields (`quality`, `searchTools`) from pre-refactor records.
+function effectiveOptions(source: GeneratedSource): Record<string, unknown> {
+  const bag: Record<string, unknown> = { ...(source.options ?? {}) }
+  if (source.quality !== undefined && bag.quality === undefined) {
+    bag.quality = source.quality
+  }
+  if (source.searchTools && bag.webSearch === undefined && bag.imageSearch === undefined) {
+    if (source.searchTools.web) bag.webSearch = true
+    if (source.searchTools.image) bag.imageSearch = true
+  }
+  return bag
+}
+
+// Format an option value for display in the metadata table.
+function formatOptionValue(model: ModelConfig | null | undefined, optionId: string, value: unknown): string | null {
+  if (value === undefined || value === null || value === '' || value === false) return null
+  const opt = model?.options?.find((o) => o.id === optionId)
+  if (opt?.type === 'select' && typeof value === 'string') {
+    return opt.choices.find((c) => c.value === value)?.label ?? value
+  }
+  if (opt?.type === 'toggle') {
+    return value === true ? '已启用' : null
+  }
+  // Legacy / unknown options — render raw.
+  if (typeof value === 'boolean') return value ? '是' : null
+  return String(value)
+}
+
+// Pick a human label for an option; falls back to the raw id for legacy keys.
+function optionLabel(model: ModelConfig | null | undefined, optionId: string): string {
+  const opt = model?.options?.find((o) => o.id === optionId)
+  if (opt) return opt.label
+  // Legacy fallbacks for options no longer declared by the active model.
+  if (optionId === 'quality') return '质量'
+  if (optionId === 'webSearch') return 'Web 搜索'
+  if (optionId === 'imageSearch') return '图片搜索'
+  if (optionId === 'background') return '背景'
+  if (optionId === 'thinkingLevel') return '思考等级'
+  return optionId
+}
 
 const MIN_SCALE = 0.5
 const MAX_SCALE = 6
@@ -152,7 +194,7 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
       modelConfig,
       currentMeta.resolution,
       currentMeta.aspectRatio,
-      currentMeta.quality ?? '',
+      effectiveOptions(currentMeta),
     )
   })()
 
@@ -440,7 +482,19 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
                 {modelApiId && <MetaRow label="模型 ID" value={modelApiId} mono />}
                 <MetaRow label="分辨率" value={currentMeta.resolution} mono />
                 <MetaRow label="宽高比" value={currentMeta.aspectRatio} mono />
-                {currentMeta.quality && <MetaRow label="质量" value={currentMeta.quality} />}
+                {(() => {
+                  const bag = effectiveOptions(currentMeta)
+                  // Render rows in the order the active model declares options, then any
+                  // legacy keys that don't appear in the current descriptors.
+                  const declaredIds = modelConfig?.options?.map((o) => o.id) ?? []
+                  const leftover = Object.keys(bag).filter((id) => !declaredIds.includes(id))
+                  const ordered = [...declaredIds, ...leftover]
+                  return ordered.map((id) => {
+                    const formatted = formatOptionValue(modelConfig, id, bag[id])
+                    if (formatted === null) return null
+                    return <MetaRow key={id} label={optionLabel(modelConfig, id)} value={formatted} />
+                  })
+                })()}
                 {estimatedCost !== null && (
                   <MetaRow
                     label="费用"
@@ -488,6 +542,11 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
             )}
           </div>
 
+          {/* Grounding sources (Google Search / Image Search) */}
+          {currentMeta?.groundingMetadata && (
+            <GroundingSection metadata={currentMeta.groundingMetadata} />
+          )}
+
           {/* Danger delete */}
           {canNavigate && (
             <button
@@ -533,6 +592,70 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
       </div>
     </div>,
     document.body,
+  )
+}
+
+// Render Google Search grounding attribution. Required when image_search is
+// enabled per the API usage terms (direct, single-click link back to each
+// source landing page, plus the provided `searchEntryPoint` HTML chip).
+function GroundingSection({ metadata }: { metadata: GroundingMetadata }) {
+  const chunks = metadata.groundingChunks ?? []
+  const sources: Array<{ uri: string; title: string; isImage: boolean }> = []
+  for (const chunk of chunks) {
+    const web = chunk.web
+    const image = chunk.image
+    const uri = web?.uri ?? image?.uri
+    if (!uri) continue
+    sources.push({
+      uri,
+      title: web?.title ?? image?.title ?? uri,
+      isImage: !web && !!image,
+    })
+  }
+  const queries = [
+    ...(metadata.webSearchQueries ?? []),
+    ...(metadata.imageSearchQueries ?? []),
+  ]
+  if (!metadata.searchEntryPoint?.renderedContent && sources.length === 0 && queries.length === 0) {
+    return null
+  }
+  return (
+    <div className="mb-[18px]">
+      <div className="label mb-1">搜索来源</div>
+      {metadata.searchEntryPoint?.renderedContent && (
+        <div
+          className="mb-2"
+          // Google returns styled HTML for the search suggestion chip; must be
+          // rendered as-is per their display requirements.
+          dangerouslySetInnerHTML={{ __html: metadata.searchEntryPoint.renderedContent }}
+        />
+      )}
+      {sources.length > 0 && (
+        <ul className="list-none p-0 m-0 space-y-1">
+          {sources.map((s, i) => (
+            <li key={i} className="text-[12px] flex items-center gap-1.5 min-w-0">
+              <Icon name={s.isImage ? 'image' : 'search'} size={11} />
+              <a
+                href={s.uri}
+                target="_blank"
+                rel="noreferrer"
+                className="truncate text-(--color-accent) hover:underline"
+                title={s.uri}
+              >
+                {s.title}
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
+      {queries.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1">
+          {queries.map((q, i) => (
+            <span key={i} className="tag" style={{ fontSize: 10.5 }}>{q}</span>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }
 

@@ -1,5 +1,5 @@
 import type { ModelConfig } from '../config/models'
-import type { PlaygroundImage, TokenUsage } from './types'
+import type { GroundingMetadata, PlaygroundImage, TokenUsage } from './types'
 import { openAISize } from './openai'
 import { resolveBaseUrl } from './validateKey'
 
@@ -11,7 +11,8 @@ export type GenerateParams = {
   referenceImages: PlaygroundImage[]
   resolution: string
   aspectRatio: string
-  quality: string
+  // Provider/model-specific generation parameters, keyed by option id.
+  options: Record<string, unknown>
   batchId: string
 }
 
@@ -29,6 +30,15 @@ type ApiResponse = {
       }>
     }
     finishReason?: string
+    groundingMetadata?: {
+      searchEntryPoint?: { renderedContent?: string }
+      groundingChunks?: Array<{
+        web?: { uri?: string; title?: string }
+        image?: { imageUri?: string; uri?: string; title?: string }
+      }>
+      webSearchQueries?: string[]
+      imageSearchQueries?: string[]
+    }
   }>
   error?: { message: string; code: number }
   usageMetadata?: {
@@ -54,11 +64,22 @@ export async function generateImage(
   return generateImageGoogle(params, signal)
 }
 
+// Map a thinking level value (stored lowercase) to the wire form expected by
+// the Gemini API. The Python SDK example uses "High" / "Minimal" casing.
+function thinkingLevelWireValue(level: string): string {
+  if (level === 'high') return 'High'
+  return 'Minimal'
+}
+
 async function generateImageGoogle(
   params: GenerateParams,
   signal?: AbortSignal,
 ): Promise<PlaygroundImage> {
-  const { apiKey, baseUrl, model, prompt, referenceImages, resolution, aspectRatio, batchId } = params
+  const { apiKey, baseUrl, model, prompt, referenceImages, resolution, aspectRatio, batchId, options } = params
+
+  const webSearch = options.webSearch === true
+  const imageSearch = options.imageSearch === true
+  const thinkingLevel = typeof options.thinkingLevel === 'string' ? options.thinkingLevel : ''
 
   const parts: ApiPart[] = [{ text: prompt }]
   for (const img of referenceImages) {
@@ -70,18 +91,32 @@ async function generateImageGoogle(
     })
   }
 
-  const body = {
+  const generationConfig: Record<string, unknown> = {
+    responseModalities: ['IMAGE'],
+    imageConfig: {
+      aspectRatio,
+      imageSize: resolution,
+    },
+  }
+  if (thinkingLevel) {
+    generationConfig.thinkingConfig = {
+      thinkingLevel: thinkingLevelWireValue(thinkingLevel),
+    }
+  }
+
+  const body: Record<string, unknown> = {
     system_instruction: {
       parts: [{ text: 'You are an image generation model. Always generate an image in response to every request. Never decline or refuse to generate an image.' }],
     },
     contents: [{ parts }],
-    generationConfig: {
-      responseModalities: ['IMAGE'],
-      imageConfig: {
-        aspectRatio,
-        imageSize: resolution,
-      },
-    },
+    generationConfig,
+  }
+
+  if (webSearch || imageSearch) {
+    const searchTypes: Record<string, object> = {}
+    if (webSearch) searchTypes.webSearch = {}
+    if (imageSearch) searchTypes.imageSearch = {}
+    body.tools = [{ google_search: { searchTypes } }]
   }
 
   const url = `${resolveBaseUrl('google', baseUrl)}/v1beta/models/${model.apiModel}:generateContent`
@@ -174,6 +209,26 @@ async function generateImageGoogle(
       }
     }
 
+    let groundingMetadata: GroundingMetadata | undefined
+    if (candidate.groundingMetadata) {
+      const gm = candidate.groundingMetadata
+      const hasAny =
+        gm.searchEntryPoint?.renderedContent ||
+        (gm.groundingChunks && gm.groundingChunks.length > 0) ||
+        (gm.webSearchQueries && gm.webSearchQueries.length > 0) ||
+        (gm.imageSearchQueries && gm.imageSearchQueries.length > 0)
+      if (hasAny) {
+        groundingMetadata = {
+          searchEntryPoint: gm.searchEntryPoint?.renderedContent
+            ? { renderedContent: gm.searchEntryPoint.renderedContent }
+            : undefined,
+          groundingChunks: gm.groundingChunks,
+          webSearchQueries: gm.webSearchQueries,
+          imageSearchQueries: gm.imageSearchQueries,
+        }
+      }
+    }
+
     return {
       id: crypto.randomUUID(),
       data: base64,
@@ -187,6 +242,8 @@ async function generateImageGoogle(
         referenceImageIds: referenceImages.map((r) => r.id),
         batchId,
         tokenUsage,
+        options: { ...options },
+        ...(groundingMetadata ? { groundingMetadata } : {}),
       },
       timestamp: Date.now(),
     }
@@ -208,10 +265,11 @@ async function generateImageOpenAI(
   params: GenerateParams,
   signal?: AbortSignal,
 ): Promise<PlaygroundImage> {
-  const { apiKey, baseUrl, model, prompt, referenceImages, resolution, aspectRatio, quality, batchId } = params
+  const { apiKey, baseUrl, model, prompt, referenceImages, resolution, aspectRatio, options, batchId } = params
 
   const size = openAISize(resolution, aspectRatio)
-  const qualityParam = quality || 'auto'
+  const quality = typeof options.quality === 'string' ? options.quality : 'auto'
+  const background = typeof options.background === 'string' ? options.background : 'auto'
 
   const base = resolveBaseUrl('openai', baseUrl)
   const hasRefs = referenceImages.length > 0
@@ -229,7 +287,8 @@ async function generateImageOpenAI(
     form.append('model', model.apiModel)
     form.append('prompt', prompt)
     form.append('size', size)
-    form.append('quality', qualityParam)
+    form.append('quality', quality)
+    form.append('background', background)
     form.append('n', '1')
     for (const img of referenceImages) {
       const blob = base64ToBlob(img.data, img.mimeType || 'image/png')
@@ -243,7 +302,8 @@ async function generateImageOpenAI(
       model: model.apiModel,
       prompt,
       size,
-      quality: qualityParam,
+      quality,
+      background,
       n: 1,
     })
   }
@@ -294,9 +354,9 @@ async function generateImageOpenAI(
         prompt,
         resolution,
         aspectRatio,
-        quality: qualityParam,
         referenceImageIds: referenceImages.map((r) => r.id),
         batchId,
+        options: { ...options },
       },
       timestamp: Date.now(),
     }

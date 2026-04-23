@@ -1,5 +1,12 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { MODEL_CONFIGS, DEFAULT_MODEL, type ModelConfig } from '../config/models'
+import {
+  MODEL_CONFIGS,
+  DEFAULT_MODEL,
+  coerceOptionValue,
+  defaultOptionsFor,
+  serializeOptionValue,
+  type ModelConfig,
+} from '../config/models'
 import { generateImage, REQUEST_TIMEOUT_MS } from '../lib/api'
 import type { PlaygroundImage, PlaygroundImageMeta } from '../lib/types'
 import { isKeyError } from '../lib/validateKey'
@@ -36,6 +43,15 @@ function resolveModel(modelId: string | null): ModelConfig {
   return DEFAULT_MODEL
 }
 
+// Build the initial options bag from defaults + URL rawParams for the given model.
+function initialOptionsFor(model: ModelConfig, rawParams: Record<string, string>): Record<string, unknown> {
+  const bag: Record<string, unknown> = {}
+  for (const opt of model.options ?? []) {
+    bag[opt.id] = coerceOptionValue(opt, rawParams[opt.urlKey])
+  }
+  return bag
+}
+
 export function usePlayground() {
   const googleKeyHook = useApiKey('google')
   const openaiKeyHook = useApiKey('openai')
@@ -51,17 +67,14 @@ export function usePlayground() {
     if (_initial.aspectRatio && m.aspectRatios.includes(_initial.aspectRatio)) return _initial.aspectRatio
     return m.defaultAspectRatio
   })
-  const [quality, setQualityRaw] = useState(() => {
-    const m = resolveModel(_initial.modelId)
-    if (m.provider !== 'openai') return ''
-    if (_initial.quality && m.qualities.includes(_initial.quality)) return _initial.quality
-    return m.defaultQuality
-  })
   const [batchCount, setBatchCountRaw] = useState(() => {
     const m = resolveModel(_initial.modelId)
     if (_initial.batchCount !== null) return Math.min(Math.max(1, _initial.batchCount), m.maxBatchCount)
     return 1
   })
+  const [options, setOptionsState] = useState<Record<string, unknown>>(() =>
+    initialOptionsFor(resolveModel(_initial.modelId), _initial.rawParams),
+  )
   const [prompt, setPromptRaw] = useState(_initial.prompt ?? '')
 
   const [referenceImages, setReferenceImages] = useState<PlaygroundImage[]>([])
@@ -101,23 +114,35 @@ export function usePlayground() {
   useEffect(() => {
     window.clearTimeout(urlDebounceRef.current)
     urlDebounceRef.current = window.setTimeout(() => {
+      // Clear every option urlKey declared by any model first, so switching
+      // models doesn't leave stale params (e.g. ?ws=1 lingering on GPT Image 2).
+      const optionUpdates: Record<string, string | null> = {}
+      for (const m of MODEL_CONFIGS) {
+        for (const opt of m.options ?? []) optionUpdates[opt.urlKey] = null
+      }
+      // Overlay the active model's serialized option values.
+      for (const opt of model.options ?? []) {
+        optionUpdates[opt.urlKey] = serializeOptionValue(opt, options[opt.id])
+      }
       updateUrl({
         m: model.id !== DEFAULT_MODEL.id ? model.id : null,
         r: resolution !== model.defaultResolution ? resolution : null,
         a: aspectRatio !== model.defaultAspectRatio ? aspectRatio : null,
-        q: model.provider === 'openai' && quality !== model.defaultQuality ? quality : null,
         n: batchCount !== 1 ? String(batchCount) : null,
         p: prompt || null,
+        ...optionUpdates,
       })
     }, 300)
     return () => window.clearTimeout(urlDebounceRef.current)
-  }, [model, resolution, aspectRatio, quality, batchCount, prompt])
+  }, [model, resolution, aspectRatio, batchCount, prompt, options])
 
   const setPrompt = useCallback((v: string) => setPromptRaw(v), [])
   const setResolution = useCallback((v: string) => setResolutionRaw(v), [])
   const setAspectRatio = useCallback((v: string) => setAspectRatioRaw(v), [])
-  const setQuality = useCallback((v: string) => setQualityRaw(v), [])
   const setBatchCount = useCallback((v: number) => setBatchCountRaw(v), [])
+  const setOption = useCallback((id: string, value: unknown) => {
+    setOptionsState((prev) => ({ ...prev, [id]: value }))
+  }, [])
 
   const switchModel = useCallback((modelId: string) => {
     const config = MODEL_CONFIGS.find((m) => m.id === modelId)
@@ -129,11 +154,16 @@ export function usePlayground() {
     setAspectRatioRaw((prev) =>
       config.aspectRatios.includes(prev) ? prev : config.defaultAspectRatio,
     )
-    setQualityRaw((prev) => {
-      if (config.provider !== 'openai') return ''
-      return config.qualities.includes(prev) ? prev : config.defaultQuality
-    })
     setBatchCountRaw((prev) => Math.min(prev, config.maxBatchCount))
+    setOptionsState((prev) => {
+      // Keep values for options the new model also declares; fall back to the
+      // new model's defaults for unknown option ids.
+      const next = defaultOptionsFor(config)
+      for (const opt of config.options ?? []) {
+        if (opt.id in prev) next[opt.id] = prev[opt.id]
+      }
+      return next
+    })
   }, [])
 
   const addReferenceImages = useCallback(
@@ -225,6 +255,10 @@ export function usePlayground() {
         putBlobInCache(refImg.id, refImg.data)
       }
 
+      // Only pass options belonging to the current model (filter stale keys).
+      const activeOptions: Record<string, unknown> = {}
+      for (const opt of model.options ?? []) activeOptions[opt.id] = options[opt.id]
+
       const promises = Array.from({ length: batchCount }, (_, index) =>
         generateImage({
           apiKey: apiKeyHook.apiKey,
@@ -234,7 +268,7 @@ export function usePlayground() {
           referenceImages,
           resolution,
           aspectRatio,
-          quality,
+          options: activeOptions,
           batchId,
         }, signal)
           .then((image) => {
@@ -308,7 +342,7 @@ export function usePlayground() {
       setGenerationSnapshot(null)
       setGenerationPreview([])
     }
-  }, [apiKeyHook, prompt, model, referenceImages, resolution, aspectRatio, quality, batchCount])
+  }, [apiKeyHook, prompt, model, referenceImages, resolution, aspectRatio, options, batchCount])
 
   const cancelGeneration = useCallback(() => {
     abortRef.current?.abort()
@@ -354,8 +388,8 @@ export function usePlayground() {
     model,
     resolution,
     aspectRatio,
-    quality,
     batchCount,
+    options,
     prompt,
     referenceImages,
     history,
@@ -367,8 +401,8 @@ export function usePlayground() {
     switchModel,
     setResolution,
     setAspectRatio,
-    setQuality,
     setBatchCount,
+    setOption,
     setPrompt,
     addReferenceImages,
     removeReferenceImage,
