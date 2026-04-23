@@ -331,6 +331,7 @@ function App() {
             generationState={pg.generationState}
             generationSnapshot={pg.generationSnapshot}
             generationPreview={pg.generationPreview}
+            generationRetryNotices={pg.generationRetryNotices}
             error={pg.error}
             batchCount={pg.batchCount}
             aspectRatio={pg.aspectRatio}
@@ -386,6 +387,7 @@ function App() {
           generationState={pg.generationState}
           generationSnapshot={pg.generationSnapshot}
           generationPreview={pg.generationPreview}
+          generationRetryNotices={pg.generationRetryNotices}
           error={pg.error}
           batchCount={pg.batchCount}
           aspectRatio={pg.aspectRatio}

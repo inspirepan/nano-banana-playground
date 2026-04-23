@@ -1,7 +1,12 @@
 import { memo, useMemo, useRef, useState, useEffect, useCallback } from 'react'
 import JSZip from 'jszip'
 import type { PlaygroundImageMeta } from '../lib/types'
-import type { GenerationPreviewSlot, GenerationState, GenerationSnapshot } from '../hooks/usePlayground'
+import type {
+  GenerationPreviewSlot,
+  GenerationRetryNotice,
+  GenerationState,
+  GenerationSnapshot,
+} from '../hooks/usePlayground'
 import { MODEL_CONFIGS } from '../config/models'
 import { loadImageBlobs } from '../lib/history'
 import { getBlobFromCache, putBlobInCache } from '../hooks/useImageSrc'
@@ -16,6 +21,7 @@ type Props = {
   generationState: GenerationState
   generationSnapshot: GenerationSnapshot | null
   generationPreview: GenerationPreviewSlot[]
+  generationRetryNotices: GenerationRetryNotice[]
   error: string | null
   batchCount: number
   aspectRatio: string
@@ -78,20 +84,64 @@ function LoadingCard({ index }: { index: number }) {
   )
 }
 
-function FailedCard({ index }: { index: number }) {
+function FailedCard({ index, error }: { index: number; error: string }) {
   return (
     <div
       className="w-full h-full rounded-[8px] overflow-hidden relative"
-      style={{ boxShadow: 'inset 0 0 0 1px color-mix(in srgb, var(--color-danger) 24%, transparent)', background: 'color-mix(in srgb, var(--color-danger) 6%, transparent)' }}
+      style={{
+        boxShadow: 'inset 0 0 0 1px color-mix(in srgb, var(--color-danger) 24%, transparent)',
+        background: 'color-mix(in srgb, var(--color-danger) 6%, transparent)',
+      }}
     >
-      <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5">
-        <div
-          className="w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-semibold"
-          style={{ background: 'color-mix(in srgb, var(--color-danger) 14%, transparent)', color: 'var(--color-danger)' }}
-        >
-          ×
+      <div className="absolute inset-0 flex flex-col gap-2 px-3 py-2.5 text-left">
+        <div className="flex items-center gap-1.5 shrink-0">
+          <div
+            className="w-4 h-4 rounded-full flex shrink-0 items-center justify-center text-[10px] font-semibold leading-none"
+            style={{ background: 'color-mix(in srgb, var(--color-danger) 14%, transparent)', color: 'var(--color-danger)' }}
+          >
+            ×
+          </div>
+          <div className="mono text-[10.5px]" style={{ color: 'var(--color-danger)' }}>
+            失败 #{index + 1}
+          </div>
         </div>
-        <div className="mono text-[11px]" style={{ color: 'var(--color-danger)' }}>失败 #{index + 1}</div>
+        <div
+          className="flex-1 min-h-0 overflow-y-auto mono text-[11px] leading-[1.55] break-words text-(--color-text-2) whitespace-pre-wrap"
+        >
+          {error}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function RetryNoticeCard({ notice }: { notice: GenerationRetryNotice }) {
+  return (
+    <div
+      className="rounded-[6px] px-3 py-2.5"
+      style={{
+        boxShadow: 'inset 0 0 0 1px color-mix(in srgb, var(--color-warning) 24%, transparent)',
+        background: 'color-mix(in srgb, var(--color-warning) 8%, transparent)',
+      }}
+    >
+      <div className="flex items-start gap-2.5">
+        <div
+          className="mt-[1px] flex h-5 w-5 shrink-0 items-center justify-center rounded-full"
+          style={{
+            background: 'color-mix(in srgb, var(--color-warning) 14%, transparent)',
+            color: 'var(--color-warning)',
+          }}
+        >
+          <Icon name="refresh" size={11} strokeWidth={1.9} />
+        </div>
+        <div className="min-w-0">
+          <div className="text-[12px] font-medium leading-[1.45]" style={{ color: 'var(--color-warning)' }}>
+            任务 #{notice.slotIndex + 1} 第 {notice.attempt} 次尝试失败，正在进行第 {notice.nextAttempt} 次尝试
+          </div>
+          <div className="mt-1 break-words text-[11.5px] leading-[1.5] text-(--color-text-2)">
+            原因：{notice.error}
+          </div>
+        </div>
       </div>
     </div>
   )
@@ -112,6 +162,7 @@ export const OutputPanel = memo(function OutputPanel({
   generationState,
   generationSnapshot,
   generationPreview,
+  generationRetryNotices,
   error,
   batchCount,
   aspectRatio,
@@ -248,6 +299,14 @@ export const OutputPanel = memo(function OutputPanel({
         )}
       </div>
 
+      {generationRetryNotices.length > 0 && (
+        <div className="mb-4 space-y-2">
+          {generationRetryNotices.map((notice) => (
+            <RetryNoticeCard key={notice.id} notice={notice} />
+          ))}
+        </div>
+      )}
+
       {error && (
         <div
           className="mb-4 rounded-[6px] px-3 py-2 text-[12px]"
@@ -311,7 +370,7 @@ export const OutputPanel = memo(function OutputPanel({
                       onOpen={setDetailImage}
                     />
                   ) : slot.status === 'rejected' ? (
-                    <FailedCard index={i} />
+                    <FailedCard index={i} error={slot.error} />
                   ) : isGenerating ? (
                     <LoadingCard index={i} />
                   ) : (

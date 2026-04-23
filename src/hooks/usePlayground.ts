@@ -7,7 +7,7 @@ import {
   serializeOptionValue,
   type ModelConfig,
 } from '../config/models'
-import { generateImage, REQUEST_TIMEOUT_MS } from '../lib/api'
+import { generateImage, REQUEST_TIMEOUT_MS, type GenerateRetryEvent } from '../lib/api'
 import type { PlaygroundImage, PlaygroundImageMeta } from '../lib/types'
 import { isKeyError } from '../lib/validateKey'
 import { saveToHistory, loadHistoryPage, deleteFromHistory, clearHistory, loadImageBlobs } from '../lib/history'
@@ -29,6 +29,13 @@ export type GenerationPreviewSlot =
   | { status: 'pending' }
   | { status: 'fulfilled'; image: PlaygroundImage }
   | { status: 'rejected'; error: string }
+
+export type GenerationRetryNotice = GenerateRetryEvent & {
+  id: string
+  batchId: string
+  slotIndex: number
+  createdAt: number
+}
 
 const HISTORY_PAGE_SIZE = 20
 
@@ -84,6 +91,7 @@ export function usePlayground() {
   const [generationState, setGenerationState] = useState<GenerationState>('idle')
   const [generationSnapshot, setGenerationSnapshot] = useState<GenerationSnapshot | null>(null)
   const [generationPreview, setGenerationPreview] = useState<GenerationPreviewSlot[]>([])
+  const [generationRetryNotices, setGenerationRetryNotices] = useState<GenerationRetryNotice[]>([])
   const [error, setError] = useState<string | null>(null)
   const abortRef = useRef<AbortController | null>(null)
 
@@ -235,6 +243,7 @@ export function usePlayground() {
     setGenerationState('generating')
     setGenerationSnapshot({ batchId, batchCount, resolution, aspectRatio })
     setGenerationPreview(Array.from({ length: batchCount }, (): GenerationPreviewSlot => ({ status: 'pending' })))
+    setGenerationRetryNotices([])
     setError(null)
 
     const controller = new AbortController()
@@ -270,7 +279,20 @@ export function usePlayground() {
           aspectRatio,
           options: activeOptions,
           batchId,
-        }, signal)
+        }, signal, {
+          onRetry: (event) => {
+            setGenerationRetryNotices((prev) => [
+              {
+                id: `${batchId}:${index}:${event.attempt}`,
+                batchId,
+                slotIndex: index,
+                createdAt: Date.now(),
+                ...event,
+              },
+              ...prev,
+            ])
+          },
+        })
           .then((image) => {
             setGenerationPreview((prev) => {
               if (prev[index]?.status === 'fulfilled') return prev
@@ -326,7 +348,7 @@ export function usePlayground() {
       } else {
         setGenerationState('idle')
         if (errors.length > 0) {
-          setError(`${images.length} succeeded, ${errors.length} failed: ${errors[0]}`)
+          setError(`本批次 ${images.length} 张成功，${errors.length} 张失败（详见失败卡片）`)
         }
       }
     } catch (e) {
@@ -349,6 +371,7 @@ export function usePlayground() {
     setGenerationState('idle')
     setGenerationSnapshot(null)
     setGenerationPreview([])
+    setGenerationRetryNotices([])
   }, [])
 
   const addToReferences = useCallback(
@@ -397,6 +420,7 @@ export function usePlayground() {
     generationState,
     generationSnapshot,
     generationPreview,
+    generationRetryNotices,
     error,
     switchModel,
     setResolution,

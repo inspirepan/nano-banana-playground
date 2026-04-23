@@ -16,6 +16,17 @@ export type GenerateParams = {
   batchId: string
 }
 
+export type GenerateRetryEvent = {
+  attempt: number
+  nextAttempt: number
+  delayMs: number
+  error: string
+}
+
+type GenerateCallbacks = {
+  onRetry?: (event: GenerateRetryEvent) => void
+}
+
 type ApiPart =
   | { text: string }
   | { inline_data: { mime_type: string; data: string } }
@@ -54,14 +65,20 @@ export const REQUEST_TIMEOUT_MS = 5 * 60 * 1000 // 5 minutes
 const GENERATE_MAX_RETRIES = 2
 const GENERATE_RETRY_DELAYS = [1000, 3000]
 
+function retryMessage(error: unknown): string {
+  if (error instanceof Error) return error.message
+  return String(error)
+}
+
 export async function generateImage(
   params: GenerateParams,
   signal?: AbortSignal,
+  callbacks?: GenerateCallbacks,
 ): Promise<PlaygroundImage> {
   if (params.model.provider === 'openai') {
-    return generateImageOpenAI(params, signal)
+    return generateImageOpenAI(params, signal, callbacks)
   }
-  return generateImageGoogle(params, signal)
+  return generateImageGoogle(params, signal, callbacks)
 }
 
 // Map a thinking level value (stored lowercase) to the wire form expected by
@@ -74,6 +91,7 @@ function thinkingLevelWireValue(level: string): string {
 async function generateImageGoogle(
   params: GenerateParams,
   signal?: AbortSignal,
+  callbacks?: GenerateCallbacks,
 ): Promise<PlaygroundImage> {
   const { apiKey, baseUrl, model, prompt, referenceImages, resolution, aspectRatio, batchId, options } = params
 
@@ -145,12 +163,26 @@ async function generateImageGoogle(
       res = await fetch(url, requestInit)
     } catch (e) {
       lastError = e
-      if (isRetryable(e) && attempt < GENERATE_MAX_RETRIES) continue
+      if (isRetryable(e) && attempt < GENERATE_MAX_RETRIES) {
+        callbacks?.onRetry?.({
+          attempt: attempt + 1,
+          nextAttempt: attempt + 2,
+          delayMs: GENERATE_RETRY_DELAYS[attempt],
+          error: retryMessage(e),
+        })
+        continue
+      }
       throw e
     }
 
     if (isRetryable(null, res.status) && attempt < GENERATE_MAX_RETRIES) {
       lastError = new Error(`Server error ${res.status}`)
+      callbacks?.onRetry?.({
+        attempt: attempt + 1,
+        nextAttempt: attempt + 2,
+        delayMs: GENERATE_RETRY_DELAYS[attempt],
+        error: retryMessage(lastError),
+      })
       continue
     }
 
@@ -169,7 +201,15 @@ async function generateImageGoogle(
     // NO_IMAGE means model refused or failed to produce an image — retry
     if (candidate.finishReason === 'NO_IMAGE') {
       lastError = new Error('Model did not generate an image (NO_IMAGE)')
-      if (attempt < GENERATE_MAX_RETRIES) continue
+      if (attempt < GENERATE_MAX_RETRIES) {
+        callbacks?.onRetry?.({
+          attempt: attempt + 1,
+          nextAttempt: attempt + 2,
+          delayMs: GENERATE_RETRY_DELAYS[attempt],
+          error: retryMessage(lastError),
+        })
+        continue
+      }
       throw lastError
     }
 
@@ -179,7 +219,15 @@ async function generateImageGoogle(
     if (!imagePart) {
       const textPart = parts_.find((p) => p.text)
       lastError = new Error(textPart?.text || 'No image in response')
-      if (attempt < GENERATE_MAX_RETRIES) continue
+      if (attempt < GENERATE_MAX_RETRIES) {
+        callbacks?.onRetry?.({
+          attempt: attempt + 1,
+          nextAttempt: attempt + 2,
+          delayMs: GENERATE_RETRY_DELAYS[attempt],
+          error: retryMessage(lastError),
+        })
+        continue
+      }
       throw lastError
     }
 
@@ -264,6 +312,7 @@ function base64ToBlob(b64: string, mimeType: string): Blob {
 async function generateImageOpenAI(
   params: GenerateParams,
   signal?: AbortSignal,
+  callbacks?: GenerateCallbacks,
 ): Promise<PlaygroundImage> {
   const { apiKey, baseUrl, model, prompt, referenceImages, resolution, aspectRatio, options, batchId } = params
 
@@ -320,12 +369,26 @@ async function generateImageOpenAI(
       res = await fetch(url, requestInit)
     } catch (e) {
       lastError = e
-      if (isRetryable(e) && attempt < GENERATE_MAX_RETRIES) continue
+      if (isRetryable(e) && attempt < GENERATE_MAX_RETRIES) {
+        callbacks?.onRetry?.({
+          attempt: attempt + 1,
+          nextAttempt: attempt + 2,
+          delayMs: GENERATE_RETRY_DELAYS[attempt],
+          error: retryMessage(e),
+        })
+        continue
+      }
       throw e
     }
 
     if (isRetryable(null, res.status) && attempt < GENERATE_MAX_RETRIES) {
       lastError = new Error(`Server error ${res.status}`)
+      callbacks?.onRetry?.({
+        attempt: attempt + 1,
+        nextAttempt: attempt + 2,
+        delayMs: GENERATE_RETRY_DELAYS[attempt],
+        error: retryMessage(lastError),
+      })
       continue
     }
 

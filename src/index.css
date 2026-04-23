@@ -40,6 +40,8 @@
   --color-accent-wash: color-mix(in srgb, #5e6ad2 10%, transparent);
   --color-accent-wash-2: color-mix(in srgb, #5e6ad2 16%, transparent);
 
+  --color-warning: #a56b08;
+  --color-warning-soft: #faf2e4;
   --color-danger: #c14545;
   --color-danger-soft: #fbefef;
   --color-success: #3a9e5d;
@@ -105,6 +107,8 @@
   --color-accent-wash: color-mix(in srgb, #8088e0 18%, transparent);
   --color-accent-wash-2: color-mix(in srgb, #8088e0 28%, transparent);
 
+  --color-warning: #e0a340;
+  --color-warning-soft: color-mix(in srgb, #e0a340 14%, transparent);
   --color-danger: #e07676;
   --color-danger-soft: color-mix(in srgb, #e07676 14%, transparent);
   --color-success: #52c08a;
