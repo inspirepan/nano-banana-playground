@@ -254,25 +254,25 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
 
       {/* ——— Header ——— */}
       <div
-        className="flex items-center gap-2 px-3.5 shrink-0"
+        className="flex items-center gap-2 px-3.5 shrink-0 flex-nowrap"
         style={{
           height: 48,
           borderBottom: '1px solid var(--color-border)',
           background: 'color-mix(in srgb, var(--color-surface) 80%, transparent)',
         }}
       >
-        <button className="icon-btn" onClick={onClose} title="关闭 (Esc)">
+        <button className="icon-btn shrink-0" onClick={onClose} title="关闭 (Esc)">
           <Icon name="close" size={13} strokeWidth={1.8} />
         </button>
-        <div className="w-px h-[18px] bg-(--color-border)" />
+        <div className="w-px h-[18px] bg-(--color-border) shrink-0" />
 
         {currentMeta ? (
-          <>
-            <span className="text-[12.5px] font-medium text-(--color-text)">{modelName}</span>
-            <span className="mono text-[12.5px] text-(--color-text-4)">{pxDim}</span>
-          </>
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-[12.5px] font-medium text-(--color-text) truncate">{modelName}</span>
+            <span className="mono text-[12.5px] text-(--color-text-4) hidden md:inline whitespace-nowrap">{pxDim}</span>
+          </div>
         ) : (
-          <span className="text-[12.5px] font-medium text-(--color-text)">上传图片</span>
+          <span className="text-[12.5px] font-medium text-(--color-text) truncate">上传图片</span>
         )}
 
         <div className="flex-1" />
@@ -280,7 +280,7 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
         {/* Pager */}
         {canNavigate && (
           <div
-            className="flex items-center gap-0.5 mr-1 rounded-[6px]"
+            className="flex items-center gap-0.5 mr-1 rounded-[6px] shrink-0"
             style={{ background: 'var(--color-surface-2)', boxShadow: 'inset 0 0 0 1px var(--ring-edge)', padding: 2 }}
           >
             <button
@@ -307,24 +307,24 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
           </div>
         )}
 
-        <button className="chip" onClick={handleAddRef}>
-          <Icon name="plus" size={12} strokeWidth={1.8} /> 参考
+        <button className="chip shrink-0" onClick={handleAddRef} title="加为参考">
+          <Icon name="plus" size={12} strokeWidth={1.8} /> <span className="hidden md:inline">参考</span>
         </button>
         {currentMeta?.prompt && (
-          <button className="chip" onClick={handleRegenerateAction}>
-            <Icon name="refresh" size={12} strokeWidth={1.8} /> 还原
+          <button className="chip shrink-0" onClick={handleRegenerateAction} title="还原参数">
+            <Icon name="refresh" size={12} strokeWidth={1.8} /> <span className="hidden md:inline">还原</span>
           </button>
         )}
-        <button className="chip" onClick={handleDownload}>
-          <Icon name="download" size={12} strokeWidth={1.8} /> PNG
+        <button className="chip shrink-0" onClick={handleDownload} title="下载 PNG">
+          <Icon name="download" size={12} strokeWidth={1.8} /> <span className="hidden md:inline">PNG</span>
         </button>
       </div>
 
       {/* ——— Body ——— */}
-      <div className="flex-1 flex min-h-0 overflow-hidden">
+      <div className="flex-1 flex flex-col md:flex-row min-h-0 md:overflow-hidden overflow-y-auto">
         {/* Canvas with grid background */}
         <div
-          className="flex-1 min-w-0 relative"
+          className="md:flex-1 min-w-0 relative h-[55vh] md:h-auto shrink-0"
           style={{
             backgroundImage: `linear-gradient(var(--color-border) 1px, transparent 1px), linear-gradient(90deg, var(--color-border) 1px, transparent 1px)`,
             backgroundSize: '28px 28px, 28px 28px',
@@ -411,8 +411,8 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
 
         {/* Right metadata panel */}
         <div
-          className="w-[340px] shrink-0 overflow-y-auto px-[18px] py-4 pb-10"
-          style={{ borderLeft: '1px solid var(--color-border)', background: 'var(--color-bg)' }}
+          className="w-full md:w-[340px] shrink-0 md:overflow-y-auto px-[18px] py-4 pb-10 border-t md:border-t-0 md:border-l border-(--color-border)"
+          style={{ background: 'var(--color-bg)' }}
         >
           {/* Prompt */}
           {currentMeta?.prompt && (
@@ -576,7 +576,7 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
 
       {/* ——— Footer shortcuts ——— */}
       <div
-        className="flex items-center gap-3.5 px-3.5 shrink-0 text-[11px] text-(--color-text-4)"
+        className="hidden md:flex items-center gap-3.5 px-3.5 shrink-0 text-[11px] text-(--color-text-4)"
         style={{
           height: 30,
           borderTop: '1px solid var(--color-border)',

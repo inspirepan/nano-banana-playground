@@ -456,24 +456,42 @@ export function InputPanel({
         label="API 密钥"
         right={
           <button type="button" onClick={onOpenApiKeys} className="chip ghost" style={{ height: 22, padding: '0 6px', fontSize: 11.5 }}>
-            修改配置
+            {currentKeyStatus === 'empty' ? '添加配置' : '修改配置'}
           </button>
         }
       >
-        <div className="card flex items-center gap-2.5 px-3 py-2">
-          <Icon name="key" size={13} />
-          <span className="text-[12.5px] font-medium">{model.provider === 'google' ? 'Gemini' : 'OpenAI'}</span>
-          {maskedKey && <span className="mono text-[11px] text-(--color-text-3)">{maskedKey}</span>}
-          <div className="flex-1" />
-          <span
-            className="tag"
-            style={{ color: keyInfo.color, background: keyInfo.bg }}
+        {currentKeyStatus === 'empty' ? (
+          <button
+            type="button"
+            onClick={onOpenApiKeys}
+            className="card flex items-center gap-2.5 px-3 py-2 w-full text-left cursor-pointer hover:bg-(--color-surface-2) transition-colors"
           >
-            {currentKeyStatus === 'valid' && <Icon name="check" size={10} strokeWidth={2} />}
-            {currentKeyStatus === 'validating' && <span className="spinner" style={{ width: 9, height: 9, borderWidth: 1.2 }} />}
-            {keyInfo.text}
-          </span>
-        </div>
+            <Icon name="key" size={13} />
+            <span className="text-[12.5px] font-medium">{model.provider === 'google' ? 'Gemini' : 'OpenAI'}</span>
+            <div className="flex-1" />
+            <span
+              className="tag"
+              style={{ color: keyInfo.color, background: keyInfo.bg }}
+            >
+              {keyInfo.text}
+            </span>
+          </button>
+        ) : (
+          <div className="card flex items-center gap-2.5 px-3 py-2">
+            <Icon name="key" size={13} />
+            <span className="text-[12.5px] font-medium">{model.provider === 'google' ? 'Gemini' : 'OpenAI'}</span>
+            {maskedKey && <span className="mono text-[11px] text-(--color-text-3)">{maskedKey}</span>}
+            <div className="flex-1" />
+            <span
+              className="tag"
+              style={{ color: keyInfo.color, background: keyInfo.bg }}
+            >
+              {currentKeyStatus === 'valid' && <Icon name="check" size={10} strokeWidth={2} />}
+              {currentKeyStatus === 'validating' && <span className="spinner" style={{ width: 9, height: 9, borderWidth: 1.2 }} />}
+              {keyInfo.text}
+            </span>
+          </div>
+        )}
       </Section>
 
       {/* MODEL segmented */}
@@ -587,7 +605,7 @@ export function InputPanel({
             onChange={(e) => { onPromptChange(e.target.value); pushHistory(e.target.value); autoResizeTextarea(e.target) }}
             placeholder="描述你想生成的图片…  例：一只在霓虹雨夜里啃香蕉的机械猫"
             rows={1}
-            className="block w-full bg-transparent px-3 py-2.5 text-[13.5px] leading-[1.55] resize-none focus:outline-none"
+            className="block w-full bg-transparent px-3 py-2.5 text-[16px] md:text-[13.5px] leading-[1.55] resize-none focus:outline-none"
           />
           <div className="flex items-center gap-2 px-2.5 py-1.5 border-t border-(--color-border) text-[11.5px] text-(--color-text-3)">
             <span className="mono text-[11px] text-(--color-text-4)">{prompt.length} 字</span>
@@ -595,7 +613,18 @@ export function InputPanel({
             {prompt.length > 0 && (
               <button
                 type="button"
-                onClick={() => { onPromptChange(''); pushHistory(''); textareaRef.current?.focus() }}
+                onClick={() => {
+                  onPromptChange('')
+                  pushHistory('')
+                  // Defer until after the textarea has shrunk so the scroll
+                  // target reflects the final layout, not the pre-clear size.
+                  requestAnimationFrame(() => {
+                    const el = textareaRef.current
+                    if (!el) return
+                    el.focus({ preventScroll: true })
+                    el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                  })
+                }}
                 title="清空提示词"
                 aria-label="清空提示词"
                 className="inline-flex items-center gap-1 bg-transparent border-0 p-0 text-[11px] text-(--color-text-4) hover:text-(--color-text-2) transition-colors"
@@ -639,7 +668,7 @@ export function InputPanel({
         {!isGenerating && (
           <div className="mb-2.5 pt-2.5 border-t border-dashed border-(--color-border)">
             <div className="flex items-baseline justify-between mb-2">
-              <span className="label">生成概览</span>
+              <span className="label">参数概览</span>
               {estimatedCost !== null && (
                 <span className="mono text-[11.5px] text-(--color-text-2)">
                   ≈ ${estimatedCost.toFixed(3)}
