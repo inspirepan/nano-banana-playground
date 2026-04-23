@@ -13,6 +13,7 @@ import { getPricePerImage } from '../lib/pricing'
 import { ChipGroup } from './ChipGroup'
 import { AspectRatioSelector } from './AspectRatioSelector'
 import { ReferenceImageUpload } from './ReferenceImageUpload'
+import { Tooltip } from './Tooltip'
 import { Icon } from './Icon'
 
 // ——— Section helper ———
@@ -117,6 +118,7 @@ function OptionSection({
     const current = typeof value === 'string' ? value : option.default
     const values = option.choices.map((c) => c.value)
     const labelFor = (v: string) => option.choices.find((c) => c.value === v)?.label ?? v
+    const tooltipFor = (v: string) => option.choices.find((c) => c.value === v)?.tooltip
     return (
       <Section label={option.label} hint={option.hint}>
         <ChipGroup
@@ -126,22 +128,26 @@ function OptionSection({
           mono={false}
           columns={values.length}
           renderOption={(v) => <span>{labelFor(v)}</span>}
+          tooltipFor={tooltipFor}
         />
       </Section>
     )
   }
   // Single ungrouped toggle: render as a one-chip row.
   const active = value === true
+  const button = (
+    <button
+      type="button"
+      className="chip justify-center w-full"
+      data-active={active}
+      onClick={() => onChange(!active)}
+    >
+      <span>{active ? '已启用' : '未启用'}</span>
+    </button>
+  )
   return (
     <Section label={option.label} hint={option.hint}>
-      <button
-        type="button"
-        className="chip justify-center w-full"
-        data-active={active}
-        onClick={() => onChange(!active)}
-      >
-        <span>{active ? '已启用' : '未启用'}</span>
-      </button>
+      {option.tooltip ? <Tooltip text={option.tooltip}>{button}</Tooltip> : button}
     </Section>
   )
 }
@@ -167,14 +173,12 @@ function ToggleGroupSection({
       >
         {options.map((opt) => {
           const active = values[opt.id] === true
-          return (
+          const button = (
             <button
-              key={opt.id}
               type="button"
-              className="chip justify-center"
+              className="chip justify-center w-full"
               data-active={active}
               onClick={() => onChange(opt.id, !active)}
-              title={opt.label}
             >
               <Icon
                 name={opt.id === 'imageSearch' ? 'image' : 'search'}
@@ -182,6 +186,11 @@ function ToggleGroupSection({
               />
               <span>{opt.label}</span>
             </button>
+          )
+          return opt.tooltip ? (
+            <Tooltip key={opt.id} text={opt.tooltip}>{button}</Tooltip>
+          ) : (
+            <div key={opt.id}>{button}</div>
           )
         })}
       </div>

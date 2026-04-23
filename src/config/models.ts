@@ -9,6 +9,8 @@ export type Provider = 'google' | 'openai'
 export type ModelOptionChoice = {
   value: string
   label: string
+  // Detailed description shown in a hover tooltip.
+  tooltip?: string
 }
 
 export type ModelToggleOption = {
@@ -18,6 +20,8 @@ export type ModelToggleOption = {
   default: boolean
   urlKey: string
   hint?: string
+  // Detailed description shown in a hover tooltip on the toggle chip.
+  tooltip?: string
   // Adjacent options sharing the same `group` render inside one Section using
   // `groupLabel` (first occurrence wins). Used for e.g. the "搜索增强" pair.
   group?: string
@@ -79,6 +83,7 @@ const SEARCH_WEB_OPTION: ModelToggleOption = {
   urlKey: 'ws',
   group: 'searchTools',
   groupLabel: '搜索增强',
+  tooltip: '启用 Google 搜索接地，让模型基于实时网页信息生成图片，如当前天气、股市、近期事件等。响应会附带来源链接。',
 }
 
 const SEARCH_IMAGE_OPTION: ModelToggleOption = {
@@ -89,6 +94,7 @@ const SEARCH_IMAGE_OPTION: ModelToggleOption = {
   urlKey: 'is',
   group: 'searchTools',
   groupLabel: '搜索增强',
+  tooltip: '启用 Google 图片搜索接地，模型会使用检索到的网络图片作为视觉上下文。可单独使用或与 Web 搜索叠加，生成结果需展示来源网页链接（仅 Nano Banana 2 支持）。',
 }
 
 const THINKING_LEVEL_OPTION: ModelSelectOption = {
@@ -97,8 +103,16 @@ const THINKING_LEVEL_OPTION: ModelSelectOption = {
   label: '思考等级',
   default: 'minimal',
   choices: [
-    { value: 'minimal', label: 'Minimal' },
-    { value: 'high', label: 'High' },
+    {
+      value: 'minimal',
+      label: 'Minimal',
+      tooltip: '默认等级。模型仍会进行推理，但大幅精简思考步骤以换取更低的响应延迟。',
+    },
+    {
+      value: 'high',
+      label: 'High',
+      tooltip: '启用完整推理流程，适合复杂提示和高保真输出。延迟显著增加，思考 token 会被计费（无论是否返回思考内容）。',
+    },
   ],
   urlKey: 'tl',
   hint: '平衡生成质量与延迟',
@@ -110,10 +124,10 @@ const QUALITY_OPTION: ModelSelectOption = {
   label: '质量',
   default: 'auto',
   choices: [
-    { value: 'auto', label: 'Auto' },
-    { value: 'low', label: 'Low' },
-    { value: 'medium', label: 'Medium' },
-    { value: 'high', label: 'High' },
+    { value: 'auto', label: 'Auto', tooltip: '由模型根据提示自动选择质量等级。' },
+    { value: 'low', label: 'Low', tooltip: '最低渲染质量。成本最低，延迟最短。' },
+    { value: 'medium', label: 'Medium', tooltip: '中等渲染质量。成本与细节的折中点。' },
+    { value: 'high', label: 'High', tooltip: '最高渲染质量。细节最丰富，单张成本也最高。' },
   ],
   urlKey: 'q',
 }
@@ -124,9 +138,13 @@ const BACKGROUND_OPTION: ModelSelectOption = {
   label: '背景',
   default: 'auto',
   choices: [
-    { value: 'auto', label: 'Auto' },
-    { value: 'transparent', label: '透明' },
-    { value: 'opaque', label: '不透明' },
+    { value: 'auto', label: 'Auto', tooltip: '由模型自动决定最合适的背景。' },
+    {
+      value: 'transparent',
+      label: '透明',
+      tooltip: '强制输出透明背景。仅在输出格式为 PNG 或 WebP 时生效。',
+    },
+    { value: 'opaque', label: '不透明', tooltip: '强制输出实心（不透明）背景。' },
   ],
   urlKey: 'bg',
   hint: 'Transparent 需要 PNG / WebP 输出',
