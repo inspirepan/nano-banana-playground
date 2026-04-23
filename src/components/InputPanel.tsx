@@ -608,7 +608,7 @@ export function InputPanel({
           ) : (
             <>
               <Icon name="wand" size={13} strokeWidth={1.8} />
-              <span>生成 {batchCount} 张</span>
+              <span>使用 {model.name} 生成 {batchCount} 张</span>
               <span className="flex-1" />
               <span className="flex gap-0.5"><kbd>⌘</kbd><kbd>⏎</kbd></span>
             </>
