@@ -638,16 +638,7 @@ export function InputPanel({
       </Section>
 
       {/* Batch count */}
-      <Section
-        label="数量"
-        right={
-          estimatedCost !== null && (
-            <span className="mono text-[11px] text-(--color-text-3)">
-              ≈ ${estimatedCost.toFixed(3)}
-            </span>
-          )
-        }
-      >
+      <Section label="数量">
         <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${model.maxBatchCount}, 1fr)` }}>
           {Array.from({ length: model.maxBatchCount }, (_, i) => i + 1).map((n) => (
             <button

@@ -331,6 +331,19 @@ async function generateImageOpenAI(
 
     const data = await res.json() as {
       data?: Array<{ b64_json?: string }>
+      usage?: {
+        input_tokens?: number
+        output_tokens?: number
+        total_tokens?: number
+        input_tokens_details?: {
+          text_tokens?: number
+          image_tokens?: number
+        }
+        output_tokens_details?: {
+          text_tokens?: number
+          image_tokens?: number
+        }
+      }
       error?: { message: string }
     }
 
@@ -340,6 +353,18 @@ async function generateImageOpenAI(
 
     const b64 = data.data?.[0]?.b64_json
     if (!b64) throw new Error('No image in response')
+
+    const outputImageTokens = data.usage?.output_tokens_details?.image_tokens ?? data.usage?.output_tokens ?? 0
+    const outputTextTokens = data.usage?.output_tokens_details?.text_tokens
+      ?? Math.max((data.usage?.output_tokens ?? 0) - outputImageTokens, 0)
+    const tokenUsage: TokenUsage | undefined = data.usage ? {
+      inputTokens: data.usage.input_tokens ?? 0,
+      inputTextTokens: data.usage.input_tokens_details?.text_tokens ?? 0,
+      inputImageTokens: data.usage.input_tokens_details?.image_tokens ?? 0,
+      imageOutputTokens: outputImageTokens,
+      textOutputTokens: outputTextTokens,
+      totalTokens: data.usage.total_tokens ?? 0,
+    } : undefined
 
     return {
       id: crypto.randomUUID(),
@@ -353,6 +378,7 @@ async function generateImageOpenAI(
         aspectRatio,
         referenceImageIds: referenceImages.map((r) => r.id),
         batchId,
+        tokenUsage,
         options: { ...options },
       },
       timestamp: Date.now(),

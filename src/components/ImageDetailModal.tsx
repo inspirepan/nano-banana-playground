@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { createPortal } from 'react-dom'
 import type { GeneratedSource, GroundingMetadata, PlaygroundImageMeta } from '../lib/types'
 import { MODEL_CONFIGS, type ModelConfig } from '../config/models'
-import { getPricePerImage } from '../lib/pricing'
+import { getActualCost } from '../lib/pricing'
 import { ensureBlobLoaded, useImageSrc } from '../hooks/useImageSrc'
 import { loadImageMetas } from '../lib/history'
 import { Icon } from './Icon'
@@ -70,6 +70,22 @@ const HIGHLIGHT_LABELS = [
   '参考图说明', '画面中的文字', '画中文字', '编辑类型', '编辑请求',
   '目标场景', '目标风格', '保持不变', '构图', '风格', '光影', '色彩', '约束', '避免',
 ]
+
+const MOBILE_SHEET_INITIAL_VH = 34
+const MOBILE_SHEET_EXPANDED_VH = 45
+const MOBILE_SHEET_PEEK_PX = 56
+
+function getMobileSheetHeights(viewportHeight: number) {
+  const expandedHeight = Math.max(
+    MOBILE_SHEET_PEEK_PX,
+    Math.round(viewportHeight * MOBILE_SHEET_EXPANDED_VH / 100),
+  )
+  const initialHeight = Math.max(
+    MOBILE_SHEET_PEEK_PX,
+    Math.min(expandedHeight, Math.round(viewportHeight * MOBILE_SHEET_INITIAL_VH / 100)),
+  )
+  return { initialHeight, expandedHeight }
+}
 
 function renderPromptLines(text: string): ReactNode[] {
   return text.split('\n').map((line, i) => {
@@ -177,25 +193,80 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
     return () => window.removeEventListener('keydown', handleKey)
   }, [canNavigate, goToNext, goToPrev, onClose])
 
+  // —— Mobile bottom-sheet: start lower to prioritize the image, but keep a
+  // larger expanded stop for metadata-heavy batches.
+  const [isMobileSheet, setIsMobileSheet] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return window.matchMedia('(max-width: 767px)').matches
+  })
+  // null = use the initial lower resting height; a number overrides with an
+  // explicit snapped pixel height after the first drag.
+  const [sheetHeightPx, setSheetHeightPx] = useState<number | null>(null)
+  const [sheetDragging, setSheetDragging] = useState(false)
+  const sheetDragRef = useRef<{
+    startY: number
+    startHeight: number
+    initialHeight: number
+    expandedHeight: number
+    pointerId: number
+  } | null>(null)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const mql = window.matchMedia('(max-width: 767px)')
+    const handler = (e: MediaQueryListEvent) => setIsMobileSheet(e.matches)
+    mql.addEventListener('change', handler)
+    return () => mql.removeEventListener('change', handler)
+  }, [])
+
+  useEffect(() => {
+    if (!isMobileSheet) setSheetHeightPx(null)
+  }, [isMobileSheet])
+
+  const handleSheetPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isMobileSheet) return
+    if (e.pointerType === 'mouse' && e.button !== 0) return
+    const { initialHeight, expandedHeight } = getMobileSheetHeights(window.innerHeight)
+    sheetDragRef.current = {
+      startY: e.clientY,
+      startHeight: sheetHeightPx ?? initialHeight,
+      initialHeight,
+      expandedHeight,
+      pointerId: e.pointerId,
+    }
+    setSheetDragging(true)
+    e.currentTarget.setPointerCapture(e.pointerId)
+  }
+
+  const handleSheetPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const drag = sheetDragRef.current
+    if (!drag || drag.pointerId !== e.pointerId) return
+    const delta = e.clientY - drag.startY // +down, -up
+    const next = Math.max(MOBILE_SHEET_PEEK_PX, Math.min(drag.expandedHeight, drag.startHeight - delta))
+    setSheetHeightPx(next)
+  }
+
+  const handleSheetPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    const drag = sheetDragRef.current
+    if (!drag || drag.pointerId !== e.pointerId) return
+    sheetDragRef.current = null
+    setSheetDragging(false)
+    const delta = e.clientY - drag.startY
+    const current = Math.max(MOBILE_SHEET_PEEK_PX, Math.min(drag.expandedHeight, drag.startHeight - delta))
+    const snapPoints = [MOBILE_SHEET_PEEK_PX, drag.initialHeight, drag.expandedHeight]
+    const nextHeight = snapPoints.reduce((closest, candidate) => {
+      return Math.abs(candidate - current) < Math.abs(closest - current) ? candidate : closest
+    })
+    setSheetHeightPx(nextHeight)
+  }
+
   const modelConfig = currentMeta ? MODEL_CONFIGS.find((m) => m.id === currentMeta.modelId) : null
   const modelName = modelConfig?.name ?? currentMeta?.modelId ?? null
   const modelApiId = modelConfig?.apiModel ?? null
 
-  const estimatedCost = (() => {
+  const actualCost = (() => {
     if (!currentMeta || !modelConfig) return null
-    const usage = currentMeta.tokenUsage
-    if (usage && modelConfig.provider === 'google') {
-      const inputCost = usage.inputTokens * modelConfig.inputPricePerMillion / 1_000_000
-      const imageCost = usage.imageOutputTokens * modelConfig.imageOutputPricePerMillion / 1_000_000
-      const textCost = usage.textOutputTokens * modelConfig.textOutputPricePerMillion / 1_000_000
-      return inputCost + imageCost + textCost
-    }
-    return getPricePerImage(
-      modelConfig,
-      currentMeta.resolution,
-      currentMeta.aspectRatio,
-      effectiveOptions(currentMeta),
-    )
+    return getActualCost(modelConfig, currentMeta.tokenUsage)
   })()
 
   const flash = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 1500) }
@@ -321,10 +392,10 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
       </div>
 
       {/* ——— Body ——— */}
-      <div className="flex-1 flex flex-col md:flex-row min-h-0 md:overflow-hidden overflow-y-auto">
+      <div className="flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden">
         {/* Canvas with grid background */}
         <div
-          className="md:flex-1 min-w-0 relative h-[55vh] md:h-auto shrink-0"
+          className="flex-1 min-w-0 relative"
           style={{
             backgroundImage: `linear-gradient(var(--color-border) 1px, transparent 1px), linear-gradient(90deg, var(--color-border) 1px, transparent 1px)`,
             backgroundSize: '28px 28px, 28px 28px',
@@ -409,11 +480,30 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
           )}
         </div>
 
-        {/* Right metadata panel */}
+        {/* Right metadata panel (mobile: draggable bottom sheet) */}
         <div
-          className="w-full md:w-[340px] shrink-0 md:overflow-y-auto px-[18px] py-4 pb-10 border-t md:border-t-0 md:border-l border-(--color-border)"
-          style={{ background: 'var(--color-bg)' }}
+          className="w-full md:w-[340px] shrink-0 overflow-y-auto border-t md:border-t-0 md:border-l border-(--color-border) md:h-auto"
+          style={{
+            background: 'var(--color-bg)',
+            ...(isMobileSheet && {
+              height: sheetHeightPx !== null ? `${sheetHeightPx}px` : `${MOBILE_SHEET_INITIAL_VH}vh`,
+              transition: sheetDragging ? 'none' : 'height 260ms cubic-bezier(0.22, 0.8, 0.4, 1)',
+            }),
+          }}
         >
+          {/* Mobile drag handle */}
+          <div
+            className="md:hidden sticky top-0 z-10 flex justify-center items-center h-7 cursor-grab active:cursor-grabbing select-none"
+            style={{ background: 'var(--color-bg)', touchAction: 'none' }}
+            onPointerDown={handleSheetPointerDown}
+            onPointerMove={handleSheetPointerMove}
+            onPointerUp={handleSheetPointerUp}
+            onPointerCancel={handleSheetPointerUp}
+          >
+            <div className="w-9 h-1 rounded-full" style={{ background: 'var(--color-border)' }} />
+          </div>
+
+          <div className="px-[18px] pt-1 md:pt-4 pb-10">
           {/* Prompt */}
           {currentMeta?.prompt && (
             <div className="mb-[18px]">
@@ -495,19 +585,30 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
                     return <MetaRow key={id} label={optionLabel(modelConfig, id)} value={formatted} />
                   })
                 })()}
-                {estimatedCost !== null && (
+                {actualCost !== null && (
                   <MetaRow
                     label="费用"
                     value={
                       <span>
-                        ${estimatedCost.toFixed(4)}
-                        {!currentMeta.tokenUsage && <span className="text-(--color-text-4) ml-1">估算</span>}
+                        ${actualCost.toFixed(4)}
                       </span>
                     }
                     mono
                   />
                 )}
-                {currentMeta.tokenUsage && (
+                {currentMeta.tokenUsage && modelConfig?.provider === 'openai' && (
+                  <>
+                    <MetaRow label="文本输入 Token" value={currentMeta.tokenUsage.inputTextTokens?.toLocaleString() ?? currentMeta.tokenUsage.inputTokens.toLocaleString()} mono />
+                    {(currentMeta.tokenUsage.inputImageTokens ?? 0) > 0 && (
+                      <MetaRow label="图片输入 Token" value={(currentMeta.tokenUsage.inputImageTokens ?? 0).toLocaleString()} mono />
+                    )}
+                    <MetaRow label="图片输出 Token" value={currentMeta.tokenUsage.imageOutputTokens.toLocaleString()} mono />
+                    {currentMeta.tokenUsage.textOutputTokens > 0 && (
+                      <MetaRow label="文本输出 Token" value={currentMeta.tokenUsage.textOutputTokens.toLocaleString()} mono />
+                    )}
+                  </>
+                )}
+                {currentMeta.tokenUsage && modelConfig?.provider === 'google' && (
                   <>
                     <MetaRow label="输入 Token" value={currentMeta.tokenUsage.inputTokens.toLocaleString()} mono />
                     <MetaRow label="图片 Token" value={currentMeta.tokenUsage.imageOutputTokens.toLocaleString()} mono />
@@ -571,6 +672,7 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
               <Icon name="trash" size={12} strokeWidth={1.8} /> 从历史中删除
             </button>
           )}
+          </div>
         </div>
       </div>
 
@@ -694,6 +796,7 @@ function ZoomableImageView({ src, alt, label, onSwipeLeft, onSwipeRight }: {
   onSwipeRight?: () => void
 }) {
   const containerRef = useRef<HTMLDivElement>(null)
+  const pictureRef = useRef<HTMLImageElement>(null)
   const activePointersRef = useRef(new Map<number, Point>())
   const pointerStartsRef = useRef(new Map<number, Point>())
   const dragStartRef = useRef<{ point: Point; offset: Point } | null>(null)
@@ -718,6 +821,13 @@ function ZoomableImageView({ src, alt, label, onSwipeLeft, onSwipeRight }: {
 
     scaleRef.current = clampedScale
     offsetRef.current = clampedOffset
+    // Paint transform straight to the DOM so pinch/pan follows the finger
+    // without waiting for React's render + reconcile cycle. State updates
+    // below keep downstream UI (cursor, etc.) consistent on the next render.
+    const picture = pictureRef.current
+    if (picture) {
+      picture.style.transform = `translate3d(${clampedOffset.x}px, ${clampedOffset.y}px, 0) scale(${clampedScale})`
+    }
     setScale(clampedScale)
     setOffset(clampedOffset)
   }, [])
@@ -766,7 +876,11 @@ function ZoomableImageView({ src, alt, label, onSwipeLeft, onSwipeRight }: {
     const handleWheel = (event: WheelEvent) => {
       event.preventDefault()
       const point = getRelativePoint(containerRef.current, event.clientX, event.clientY)
-      const delta = Math.exp(-event.deltaY * 0.0015)
+      // Chrome reports trackpad pinch gestures as wheel events with ctrlKey
+      // set. Their deltaY is small, so a larger coefficient is needed to
+      // match the feel of a mouse scroll-wheel zoom.
+      const factor = event.ctrlKey ? 0.02 : 0.0015
+      const delta = Math.exp(-event.deltaY * factor)
       zoomAtPoint(scaleRef.current * delta, point)
     }
     element.addEventListener('wheel', handleWheel, { passive: false })
@@ -798,6 +912,9 @@ function ZoomableImageView({ src, alt, label, onSwipeLeft, onSwipeRight }: {
           event.currentTarget.setPointerCapture(event.pointerId)
           activePointersRef.current.set(event.pointerId, point)
           pointerStartsRef.current.set(event.pointerId, point)
+          // Kill the idle 160ms transform transition immediately — otherwise the
+          // first pinch/drag frame animates into place and feels laggy.
+          if (pictureRef.current) pictureRef.current.style.transition = 'none'
           setIsInteracting(true)
           if (activePointersRef.current.size === 1) {
             dragStartRef.current = { point, offset: offsetRef.current }
@@ -901,6 +1018,7 @@ function ZoomableImageView({ src, alt, label, onSwipeLeft, onSwipeRight }: {
       >
         {src ? (
           <img
+            ref={pictureRef}
             src={src}
             alt={alt}
             draggable={false}

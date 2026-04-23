@@ -1,4 +1,4 @@
-// OpenAI (gpt-image-2) specific helpers: size lookup + per-image pricing.
+// OpenAI (gpt-image-2) specific helpers: size lookup + token/cost estimate.
 
 // (aspectRatio, resolution) -> WxH string accepted by the API.
 // All values satisfy gpt-image-2 constraints: both edges divisible by 16,
@@ -23,18 +23,71 @@ export function openAISize(resolution: string, aspectRatio: string): string {
   return OPENAI_SIZE_TABLE[aspectRatio]?.[resolution] ?? '1024x1024'
 }
 
-// Official per-image prices (USD) for gpt-image-2 at the sizes OpenAI publishes.
-// Larger sizes (2K/4K tier) are not in the official price table; we return
-// null for those and the UI hides the estimate.
-// Source: https://platform.openai.com/docs/guides/image-generation
-const GPT_IMAGE_2_PRICE: Record<string, Record<string, number>> = {
-  '1024x1024': { low: 0.006, medium: 0.053, high: 0.211 },
-  '1024x1536': { low: 0.005, medium: 0.041, high: 0.165 },
-  '1536x1024': { low: 0.005, medium: 0.041, high: 0.165 },
+const GPT_IMAGE_2_OUTPUT_TOKENS_BASE: Record<'low' | 'medium' | 'high', number> = {
+  low: 16,
+  medium: 48,
+  high: 96,
+}
+
+const OPENAI_MAX_EDGE = 3840
+const OPENAI_MIN_PIXELS = 655_360
+const OPENAI_MAX_PIXELS = 8_294_400
+const OPENAI_MAX_ASPECT_RATIO = 3
+const OPENAI_IMAGE_OUTPUT_PRICE_PER_MILLION = 30
+
+function parseSize(size: string): { width: number; height: number } | null {
+  const match = /^(\d+)x(\d+)$/.exec(size)
+  if (!match) return null
+
+  const width = Number(match[1])
+  const height = Number(match[2])
+  if (!Number.isInteger(width) || !Number.isInteger(height) || width <= 0 || height <= 0) {
+    return null
+  }
+
+  return { width, height }
+}
+
+function isValidOpenAIImageSize(width: number, height: number): boolean {
+  if (width % 16 !== 0 || height % 16 !== 0) return false
+
+  const pixels = width * height
+  if (pixels < OPENAI_MIN_PIXELS || pixels > OPENAI_MAX_PIXELS) return false
+
+  const longEdge = Math.max(width, height)
+  const shortEdge = Math.min(width, height)
+  if (longEdge > OPENAI_MAX_EDGE) return false
+  if (longEdge / shortEdge > OPENAI_MAX_ASPECT_RATIO) return false
+
+  return true
+}
+
+// OpenAI's gpt-image-2 docs expose a calculator that estimates output tokens
+// directly from size + quality. We mirror that formula here so the UI can
+// estimate pre-generation cost for any valid size, not just a small lookup set.
+export function gptImage2OutputTokens(size: string, quality: string): number | null {
+  const parsed = parseSize(size)
+  if (!parsed) return null
+
+  const { width, height } = parsed
+  if (!isValidOpenAIImageSize(width, height)) return null
+
+  const resolvedQuality = quality === 'auto' ? 'medium' : quality
+  if (!(resolvedQuality in GPT_IMAGE_2_OUTPUT_TOKENS_BASE)) return null
+
+  const longestEdge = Math.max(width, height)
+  const shortestEdge = Math.min(width, height)
+  const primary = GPT_IMAGE_2_OUTPUT_TOKENS_BASE[resolvedQuality as keyof typeof GPT_IMAGE_2_OUTPUT_TOKENS_BASE]
+  const secondary = Math.round(primary * shortestEdge / longestEdge)
+  const widthFactor = width >= height ? primary : secondary
+  const heightFactor = width >= height ? secondary : primary
+  const tileCount = widthFactor * heightFactor
+
+  return Math.ceil(tileCount * (2_000_000 + width * height) / 4_000_000)
 }
 
 export function gptImage2PricePerImage(size: string, quality: string): number | null {
-  // "auto" -> estimate using medium as a proxy (what the model commonly picks).
-  const q = quality === 'auto' ? 'medium' : quality
-  return GPT_IMAGE_2_PRICE[size]?.[q] ?? null
+  const outputTokens = gptImage2OutputTokens(size, quality)
+  if (outputTokens === null) return null
+  return outputTokens * OPENAI_IMAGE_OUTPUT_PRICE_PER_MILLION / 1_000_000
 }
