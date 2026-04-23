@@ -105,6 +105,27 @@ function buildOptionBlocks(opts: ModelOption[]): OptionsBlock[] {
   return blocks
 }
 
+function getOptionSummaryLabels(model: ModelConfig, values: Record<string, unknown>) {
+  const labels: string[] = []
+
+  for (const option of model.options ?? []) {
+    const value = values[option.id]
+    if (value === option.default) continue
+
+    if (option.type === 'toggle') {
+      if (value === true) labels.push(option.label)
+      continue
+    }
+
+    if (typeof value !== 'string') continue
+    const choice = option.choices.find((item) => item.value === value)
+    if (!choice || choice.value === option.default) continue
+    labels.push(`${option.label} ${choice.label}`)
+  }
+
+  return labels
+}
+
 function OptionSection({
   option,
   value,
@@ -176,14 +197,31 @@ function ToggleGroupSection({
           const button = (
             <button
               type="button"
+              role="checkbox"
+              aria-checked={active}
               className="chip justify-center w-full"
               data-active={active}
               onClick={() => onChange(opt.id, !active)}
             >
-              <Icon
-                name={opt.id === 'imageSearch' ? 'image' : 'search'}
-                size={12}
-              />
+              <span
+                aria-hidden
+                className="inline-flex items-center justify-center w-[13px] h-[13px] rounded-[3px] transition-colors"
+                style={{
+                  background: active ? 'var(--color-accent)' : 'var(--color-surface)',
+                  boxShadow: active
+                    ? 'inset 0 0 0 1px var(--color-accent)'
+                    : 'inset 0 0 0 1px var(--color-border-strong)',
+                }}
+              >
+                {active && (
+                  <Icon
+                    name="check"
+                    size={9}
+                    strokeWidth={3}
+                    style={{ color: 'var(--color-accent-fg)' }}
+                  />
+                )}
+              </span>
               <span>{opt.label}</span>
             </button>
           )
@@ -385,6 +423,7 @@ export function InputPanel({
   }, [onAddReferenceImages])
 
   const estimatedCost = pricePerImage !== null ? pricePerImage * batchCount : null
+  const optionSummaryLabels = getOptionSummaryLabels(model, options)
 
   const currentKeyStatus = model.provider === 'google' ? googleKeyStatus : openaiKeyStatus
   const keyDisplay: Record<string, { color: string; bg: string; text: string }> = {
@@ -597,6 +636,44 @@ export function InputPanel({
 
       {/* CTA */}
       <div className="relative">
+        {!isGenerating && (
+          <div className="mb-2.5 pt-2.5 border-t border-dashed border-(--color-border)">
+            <div className="flex items-baseline justify-between mb-2">
+              <span className="label">生成概览</span>
+              {estimatedCost !== null && (
+                <span className="mono text-[11.5px] text-(--color-text-2)">
+                  ≈ ${estimatedCost.toFixed(3)}
+                </span>
+              )}
+            </div>
+            <dl className="grid grid-cols-[52px_1fr] gap-x-3 gap-y-[5px] text-[11.5px] leading-[1.5]">
+              <dt className="text-(--color-text-4)">模型</dt>
+              <dd className="text-(--color-text-2)">{model.name}</dd>
+              <dt className="text-(--color-text-4)">尺寸</dt>
+              <dd className="text-(--color-text-2)">
+                <span className="mono">{resolution}</span>
+                <span className="mx-1.5 text-(--color-text-4)">/</span>
+                <span className="mono">{aspectRatio}</span>
+              </dd>
+              <dt className="text-(--color-text-4)">数量</dt>
+              <dd className="text-(--color-text-2)"><span className="mono">×{batchCount}</span></dd>
+              {referenceImages.length > 0 && (
+                <>
+                  <dt className="text-(--color-text-4)">参考图</dt>
+                  <dd className="text-(--color-text-2)">
+                    <span className="mono">{referenceImages.length}</span> 张
+                  </dd>
+                </>
+              )}
+              {optionSummaryLabels.length > 0 && (
+                <>
+                  <dt className="text-(--color-text-4)">选项</dt>
+                  <dd className="text-(--color-text-2)">{optionSummaryLabels.join('、')}</dd>
+                </>
+              )}
+            </dl>
+          </div>
+        )}
         <button
           type="button"
           onClick={isGenerating ? onCancel : () => onGenerate()}
