@@ -182,6 +182,25 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
     ensureBlobLoaded(currentImage.id, currentImage.mimeType)
   }, [currentImage.id, currentImage.mimeType])
 
+  // Prefetch neighbor blobs and prime the browser image decode cache so left/
+  // right pager switches swap frames without a blank flash.
+  useEffect(() => {
+    if (!canNavigate) return
+    const neighbors: PlaygroundImageMeta[] = []
+    if (currentIdx > 0) neighbors.push(history[currentIdx - 1])
+    if (currentIdx < history.length - 1) neighbors.push(history[currentIdx + 1])
+    let cancelled = false
+    for (const n of neighbors) {
+      ensureBlobLoaded(n.id, n.mimeType).then((dataUrl) => {
+        if (cancelled || !dataUrl) return
+        const pre = new Image()
+        pre.decoding = 'async'
+        pre.src = dataUrl
+      })
+    }
+    return () => { cancelled = true }
+  }, [canNavigate, currentIdx, history])
+
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') { onClose(); return }
@@ -222,6 +241,20 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
   useEffect(() => {
     if (!isMobileSheet) setSheetHeightPx(null)
   }, [isMobileSheet])
+
+  // Desktop-only: collapse the right metadata sidebar to give the canvas more room.
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return localStorage.getItem('nano-banana-detail-sidebar-collapsed') === '1'
+  })
+
+  const toggleSidebar = useCallback(() => {
+    setSidebarCollapsed((prev) => {
+      const next = !prev
+      try { localStorage.setItem('nano-banana-detail-sidebar-collapsed', next ? '1' : '0') } catch { /* ignore */ }
+      return next
+    })
+  }, [])
 
   const handleSheetPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!isMobileSheet) return
@@ -389,6 +422,15 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
         <button className="chip shrink-0" onClick={handleDownload} title="下载 PNG">
           <Icon name="download" size={12} strokeWidth={1.8} /> <span className="hidden md:inline">PNG</span>
         </button>
+        <button
+          className="chip shrink-0 hidden md:inline-flex"
+          onClick={toggleSidebar}
+          title={sidebarCollapsed ? '展开详情面板' : '收起详情面板'}
+          aria-pressed={!sidebarCollapsed}
+        >
+          <Icon name={sidebarCollapsed ? 'chevron_left' : 'chevron_right'} size={12} strokeWidth={1.8} />
+          {sidebarCollapsed ? '展开详情' : '收起详情'}
+        </button>
       </div>
 
       {/* ——— Body ——— */}
@@ -405,7 +447,7 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
           {refDetailId && refDetailSrc ? (
             <div className="flex flex-row h-full gap-px">
               <div className="h-full flex-1 min-w-0 relative">
-                <ZoomableImageView key={`ref-${refDetailId}`} src={refDetailSrc} alt="" label="参考图" />
+                <ZoomableImageView src={refDetailSrc} alt="" label="参考图" />
                 <button
                   type="button"
                   onClick={() => setRefDetailId(null)}
@@ -417,12 +459,11 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
                 </button>
               </div>
               <div className="h-full flex-1 min-w-0 relative">
-                <ZoomableImageView key={`cur-${currentImage.id}`} src={currentSrc ?? ''} alt={currentMeta?.prompt ?? ''} label="生成图" />
+                <ZoomableImageView src={currentSrc ?? ''} alt={currentMeta?.prompt ?? ''} label="生成图" />
               </div>
             </div>
           ) : (
             <ZoomableImageView
-              key={`main-${currentImage.id}`}
               src={currentSrc ?? ''}
               alt={currentMeta?.prompt ?? ''}
               onSwipeLeft={hasNext ? goToNext : undefined}
@@ -482,13 +523,19 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
 
         {/* Right metadata panel (mobile: draggable bottom sheet) */}
         <div
-          className="w-full md:w-[340px] shrink-0 overflow-y-auto border-t md:border-t-0 md:border-l border-(--color-border) md:h-auto"
+          className="w-full shrink-0 overflow-y-auto overflow-x-hidden border-t md:border-t-0 md:border-l border-(--color-border) md:h-auto"
           style={{
             background: 'var(--color-bg)',
-            ...(isMobileSheet && {
-              height: sheetHeightPx !== null ? `${sheetHeightPx}px` : `${MOBILE_SHEET_INITIAL_VH}vh`,
-              transition: sheetDragging ? 'none' : 'height 260ms cubic-bezier(0.22, 0.8, 0.4, 1)',
-            }),
+            ...(isMobileSheet
+              ? {
+                  height: sheetHeightPx !== null ? `${sheetHeightPx}px` : `${MOBILE_SHEET_INITIAL_VH}vh`,
+                  transition: sheetDragging ? 'none' : 'height 260ms cubic-bezier(0.22, 0.8, 0.4, 1)',
+                }
+              : {
+                  width: sidebarCollapsed ? 0 : 340,
+                  minWidth: 0,
+                  transition: 'width 280ms cubic-bezier(0.22, 0.8, 0.4, 1)',
+                }),
           }}
         >
           {/* Mobile drag handle */}
@@ -503,7 +550,7 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
             <div className="w-9 h-1 rounded-full" style={{ background: 'var(--color-border)' }} />
           </div>
 
-          <div className="px-[18px] pt-1 md:pt-4 pb-10">
+          <div className="px-[18px] pt-1 md:pt-4 pb-10 md:w-[340px]">
           {/* Prompt */}
           {currentMeta?.prompt && (
             <div className="mb-[18px]">
@@ -886,6 +933,12 @@ function ZoomableImageView({ src, alt, label, onSwipeLeft, onSwipeRight }: {
     element.addEventListener('wheel', handleWheel, { passive: false })
     return () => element.removeEventListener('wheel', handleWheel)
   }, [zoomAtPoint])
+
+  // When src swaps (pager switch), clear any leftover zoom/pan so the new
+  // image starts from fit. onLoad will re-sync fitSize once it decodes.
+  useEffect(() => {
+    resetView()
+  }, [src, resetView])
 
   // Keyboard 0 = reset
   useEffect(() => {
