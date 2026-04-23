@@ -448,7 +448,7 @@ export function InputPanel({
       {/* Title + meta */}
       <div className="mb-[18px]">
         <div className="font-display text-[15px] font-semibold tracking-[-0.01em] mb-0.5">新生成任务</div>
-        <div className="text-[12px] text-(--color-text-3)">配置参数，撰写提示词，最多生成 {model.maxBatchCount} 张。</div>
+        <div className="text-[12px] text-(--color-text-3)">配置参数，撰写提示词</div>
       </div>
 
       {/* API key card */}
