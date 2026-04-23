@@ -269,7 +269,6 @@ async function generateImageOpenAI(
 
   const size = openAISize(resolution, aspectRatio)
   const quality = typeof options.quality === 'string' ? options.quality : 'auto'
-  const background = typeof options.background === 'string' ? options.background : 'auto'
 
   const base = resolveBaseUrl('openai', baseUrl)
   const hasRefs = referenceImages.length > 0
@@ -288,7 +287,6 @@ async function generateImageOpenAI(
     form.append('prompt', prompt)
     form.append('size', size)
     form.append('quality', quality)
-    form.append('background', background)
     form.append('n', '1')
     for (const img of referenceImages) {
       const blob = base64ToBlob(img.data, img.mimeType || 'image/png')
@@ -303,7 +301,6 @@ async function generateImageOpenAI(
       prompt,
       size,
       quality,
-      background,
       n: 1,
     })
   }

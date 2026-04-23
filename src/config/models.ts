@@ -132,24 +132,6 @@ const QUALITY_OPTION: ModelSelectOption = {
   urlKey: 'q',
 }
 
-const BACKGROUND_OPTION: ModelSelectOption = {
-  id: 'background',
-  type: 'select',
-  label: '背景',
-  default: 'auto',
-  choices: [
-    { value: 'auto', label: 'Auto', tooltip: '由模型自动决定最合适的背景。' },
-    {
-      value: 'transparent',
-      label: '透明',
-      tooltip: '强制输出透明背景。仅在输出格式为 PNG 或 WebP 时生效。',
-    },
-    { value: 'opaque', label: '不透明', tooltip: '强制输出实心（不透明）背景。' },
-  ],
-  urlKey: 'bg',
-  hint: 'Transparent 需要 PNG / WebP 输出',
-}
-
 export const MODEL_CONFIGS: ModelConfig[] = [
   {
     id: 'nano-banana-2',
@@ -219,7 +201,6 @@ export const MODEL_CONFIGS: ModelConfig[] = [
     maxBatchCount: 4,
     options: [
       QUALITY_OPTION,
-      BACKGROUND_OPTION,
     ],
   },
 ]
