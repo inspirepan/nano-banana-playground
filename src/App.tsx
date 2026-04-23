@@ -190,15 +190,20 @@ function App() {
   }, [colorTheme])
 
   useEffect(() => {
+    const root = document.documentElement
+    const applyDark = (isDark: boolean) => {
+      root.classList.toggle('dark', isDark)
+      root.style.colorScheme = isDark ? 'dark' : 'light'
+    }
     if (theme === 'system') {
       const mq = window.matchMedia('(prefers-color-scheme: dark)')
-      const apply = () => document.documentElement.classList.toggle('dark', mq.matches)
+      const apply = () => applyDark(mq.matches)
       apply()
       mq.addEventListener('change', apply)
       localStorage.setItem('nano-banana-theme', 'system')
       return () => mq.removeEventListener('change', apply)
     }
-    document.documentElement.classList.toggle('dark', theme === 'dark')
+    applyDark(theme === 'dark')
     localStorage.setItem('nano-banana-theme', theme)
   }, [theme])
 

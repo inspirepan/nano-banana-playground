@@ -5,6 +5,29 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Nano Banana Playground</title>
+    <script>
+      (function () {
+        try {
+          var root = document.documentElement;
+          var theme = localStorage.getItem('nano-banana-theme');
+          var isDark =
+            theme === 'dark' ||
+            ((theme === 'system' || !theme) &&
+              window.matchMedia('(prefers-color-scheme: dark)').matches);
+          if (isDark) root.classList.add('dark');
+          var colorTheme = localStorage.getItem('nano-banana-color-theme');
+          var allowed = ['green', 'yellow', 'pink', 'orange', 'purple', 'mono'];
+          if (colorTheme && allowed.indexOf(colorTheme) !== -1) {
+            root.classList.add('theme-' + colorTheme);
+          }
+          root.style.colorScheme = isDark ? 'dark' : 'light';
+        } catch (_) {}
+      })();
+    </script>
+    <style>
+      html { background: #fbfbfa; }
+      html.dark { background: #1a1a1d; }
+    </style>
   </head>
   <body>
     <div id="root"></div>
