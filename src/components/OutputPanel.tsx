@@ -75,7 +75,13 @@ function SkeletonCard({ aspectRatio, resolution }: { aspectRatio: string; resolu
 
 function LoadingCard({ index }: { index: number }) {
   return (
-    <div className="img-card w-full h-full">
+    <div
+      className="w-full h-full rounded-[8px] overflow-hidden relative"
+      style={{
+        boxShadow: 'inset 0 0 0 1px var(--ring-edge)',
+        background: 'var(--color-surface-2)',
+      }}
+    >
       <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-(--color-text-3)">
         <span className="spinner" />
         <div className="mono text-[11px] text-(--color-text-4)">生成中 #{index + 1}</div>
