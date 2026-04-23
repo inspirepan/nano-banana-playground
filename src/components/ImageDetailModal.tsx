@@ -416,7 +416,7 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
         </button>
         {currentMeta?.prompt && (
           <button className="chip shrink-0" onClick={handleRegenerateAction} title="还原参数">
-            <Icon name="refresh" size={12} strokeWidth={1.8} /> <span className="hidden md:inline">还原</span>
+            <Icon name="refresh" size={12} strokeWidth={1.8} /> <span className="hidden md:inline">还原参数</span>
           </button>
         )}
         <button className="chip shrink-0" onClick={handleDownload} title="下载 PNG">

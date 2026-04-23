@@ -97,7 +97,7 @@ export const ImageCard = memo(function ImageCard({ image, inlineData, index, onA
     { label: '加为参考', onClick: () => onAddToRef(image) },
     { label: '下载', onClick: handleDownload },
     { label: '复制', onClick: handleCopyImage },
-    ...(meta?.prompt ? [{ label: '还原', onClick: handleRegenerate }] : []),
+    ...(meta?.prompt ? [{ label: '还原参数', onClick: handleRegenerate }] : []),
     { label: '删除', onClick: handleDelete, danger: true },
   ]
 
