@@ -21,6 +21,7 @@ type Props = {
   generationConcurrency: number
   onGenerationConcurrencyChange: (value: number) => void
   onCancelGenerationJob: (jobId: string) => void
+  onDismissGenerationJob: (jobId: string) => void
   onCancelGenerationSlot: (slotId: string) => void
   onAddToRef: (image: PlaygroundImageMeta) => void
   onRegenerate: (image: PlaygroundImageMeta) => void
@@ -33,6 +34,8 @@ type Props = {
     aspectRatio: string
     options: Record<string, unknown>
     batchCount: number
+    annotatedSource?: PlaygroundImage
+    mask?: PlaygroundImage
   }) => Promise<string | null>
   onRemove: (id: string) => void
   onClearAll: () => void
@@ -84,6 +87,7 @@ export const OutputPanel = memo(function OutputPanel({
   generationConcurrency,
   onGenerationConcurrencyChange,
   onCancelGenerationJob,
+  onDismissGenerationJob,
   onCancelGenerationSlot,
   onAddToRef,
   onRegenerate,
@@ -254,6 +258,7 @@ export const OutputPanel = memo(function OutputPanel({
               key={job.id}
               job={job}
               onCancelJob={onCancelGenerationJob}
+              onDismissJob={onDismissGenerationJob}
               onCancelSlot={onCancelGenerationSlot}
               onAddToRef={onAddToRef}
               onRegenerate={onRegenerate}
@@ -356,6 +361,7 @@ export const OutputPanel = memo(function OutputPanel({
           onRegenerate={onRegenerate}
           onEditImage={onEditImage}
           onCancelGenerationJob={onCancelGenerationJob}
+          onDismissGenerationJob={onDismissGenerationJob}
           onCancelGenerationSlot={onCancelGenerationSlot}
           onRemove={onRemove}
         />

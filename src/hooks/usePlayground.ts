@@ -46,6 +46,10 @@ export type GenerationJob = {
     resolution: string
     aspectRatio: string
     options: Record<string, unknown>
+    // OpenAI-only: alpha-channel mask sent to images.edits. We keep it off the
+    // persisted `referenceImageIds` so history metadata doesn't show it as a
+    // user-visible reference, but the blob still lives here for retries.
+    mask?: PlaygroundImage
   }
   slots: GenerationSlot[]
 }
@@ -590,6 +594,13 @@ export function usePlayground() {
     aspectRatio: string
     options: Record<string, unknown>
     batchCount: number
+    // If provided, replaces the source reference with the annotated/baked
+    // image (DrawableLayer output). Used for annotate-mode strokes and for
+    // Gemini mask mode (red overlay baked in).
+    annotatedSource?: PlaygroundImage
+    // OpenAI-only alpha mask. Ignored for non-OpenAI providers — callers
+    // should pass annotatedSource instead.
+    mask?: PlaygroundImage
   }): Promise<string | null> => {
     const keyHook = params.model.provider === 'google' ? googleKeyHook : openaiKeyHook
     if (!keyHook.apiKey) return null
@@ -602,12 +613,18 @@ export function usePlayground() {
     // Filter to options declared by the target model so we don't leak stale keys.
     const activeOptions: Record<string, unknown> = {}
     for (const opt of params.model.options ?? []) {
-      if (opt.id in params.options) activeOptions[opt.id] = params.options[opt.id]
-      else activeOptions[opt.id] = opt.default
+      activeOptions[opt.id] = opt.id in params.options ? params.options[opt.id] : opt.default
     }
 
     const maxTotal = params.model.maxReferenceImages + params.model.maxCharacterImages
-    const refs = [sourceFull, ...params.extraReferences].slice(0, maxTotal)
+    // When the user has annotations (or a Gemini mask overlay baked in), we
+    // send BOTH the annotated composite and the clean source so the model has
+    // the unobscured pixels to work from. Annotated copy goes first since
+    // that's the "primary instruction" version.
+    const refs = params.annotatedSource
+      ? [params.annotatedSource, sourceFull, ...params.extraReferences]
+      : [sourceFull, ...params.extraReferences]
+    if (refs.length > maxTotal) return null
 
     return enqueueGenerationJob({
       apiKey: keyHook.apiKey,
@@ -618,6 +635,7 @@ export function usePlayground() {
       resolution: params.resolution,
       aspectRatio: params.aspectRatio,
       options: activeOptions,
+      mask: params.model.provider === 'openai' ? params.mask : undefined,
     }, params.batchCount)
   }, [googleKeyHook, openaiKeyHook, resolveFullImages, enqueueGenerationJob])
 
@@ -667,6 +685,10 @@ export function usePlayground() {
       }
     }))
     pumpQueueRef.current()
+  }, [setGenerationJobs])
+
+  const dismissGenerationJob = useCallback((jobId: string) => {
+    setGenerationJobs((prev) => prev.filter((job) => job.id !== jobId || isActiveJob(job)))
   }, [setGenerationJobs])
 
   const addToReferences = useCallback(
@@ -734,6 +756,7 @@ export function usePlayground() {
     generate,
     editImage,
     cancelGenerationJob,
+    dismissGenerationJob,
     cancelGenerationSlot,
     addToReferences,
     removeFromHistory,

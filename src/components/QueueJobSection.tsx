@@ -165,6 +165,7 @@ function CanceledCard({ index }: { index: number }) {
 export function QueueJobSection({
   job,
   onCancelJob,
+  onDismissJob,
   onCancelSlot,
   onAddToRef,
   onRegenerate,
@@ -174,6 +175,7 @@ export function QueueJobSection({
 }: {
   job: GenerationJob
   onCancelJob: (jobId: string) => void
+  onDismissJob: (jobId: string) => void
   onCancelSlot: (slotId: string) => void
   onAddToRef: (image: PlaygroundImageMeta) => void
   onRegenerate: (image: PlaygroundImageMeta) => void
@@ -183,6 +185,7 @@ export function QueueJobSection({
 }) {
   const counts = countSlots(job.slots)
   const active = counts.active > 0
+  const dismissible = !active && (counts.failed > 0 || counts.canceled > 0)
   const statusColor = active
     ? 'var(--color-accent)'
     : counts.failed > 0
@@ -209,10 +212,20 @@ export function QueueJobSection({
           <button
             type="button"
             onClick={() => onCancelJob(job.id)}
-            className="chip"
+            className="chip danger"
             style={{ height: 24, padding: '0 8px', fontSize: 11.5 }}
           >
-            取消剩余
+            取消全部
+          </button>
+        )}
+        {dismissible && (
+          <button
+            type="button"
+            onClick={() => onDismissJob(job.id)}
+            className="chip ghost"
+            style={{ height: 24, padding: '0 8px', fontSize: 11.5 }}
+          >
+            关闭
           </button>
         )}
       </div>

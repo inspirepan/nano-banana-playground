@@ -330,6 +330,7 @@ function App() {
             generationConcurrency={pg.generationConcurrency}
             onGenerationConcurrencyChange={pg.setGenerationConcurrency}
             onCancelGenerationJob={pg.cancelGenerationJob}
+            onDismissGenerationJob={pg.dismissGenerationJob}
             onCancelGenerationSlot={pg.cancelGenerationSlot}
             onAddToRef={handleAddToRef}
             onRegenerate={handleRegenerate}
@@ -387,6 +388,7 @@ function App() {
           generationConcurrency={pg.generationConcurrency}
           onGenerationConcurrencyChange={pg.setGenerationConcurrency}
           onCancelGenerationJob={pg.cancelGenerationJob}
+          onDismissGenerationJob={pg.dismissGenerationJob}
           onCancelGenerationSlot={pg.cancelGenerationSlot}
           onAddToRef={handleAddToRef}
           onRegenerate={handleRegenerate}

@@ -14,6 +14,10 @@ export type GenerateParams = {
   // Provider/model-specific generation parameters, keyed by option id.
   options: Record<string, unknown>
   batchId: string
+  // OpenAI images.edits mask: alpha=0 marks the region to rewrite. Ignored on
+  // non-OpenAI providers (Gemini has no native mask support — callers should
+  // bake the mask into the reference image themselves).
+  mask?: PlaygroundImage
 }
 
 export type GenerateRetryEvent = {
@@ -315,7 +319,7 @@ async function generateImageOpenAI(
   signal?: AbortSignal,
   callbacks?: GenerateCallbacks,
 ): Promise<PlaygroundImage> {
-  const { apiKey, baseUrl, model, prompt, referenceImages, resolution, aspectRatio, options, batchId } = params
+  const { apiKey, baseUrl, model, prompt, referenceImages, resolution, aspectRatio, options, batchId, mask } = params
 
   const size = openAISize(resolution, aspectRatio)
   const quality = typeof options.quality === 'string' ? options.quality : 'auto'
@@ -342,6 +346,11 @@ async function generateImageOpenAI(
       const blob = base64ToBlob(img.data, img.mimeType || 'image/png')
       const ext = (img.mimeType || 'image/png').split('/')[1] || 'png'
       form.append('image[]', blob, `ref.${ext}`)
+    }
+    if (mask) {
+      // images.edits requires the mask to match the reference image dimensions.
+      const maskBlob = base64ToBlob(mask.data, mask.mimeType || 'image/png')
+      form.append('mask', maskBlob, 'mask.png')
     }
     body = form
   } else {

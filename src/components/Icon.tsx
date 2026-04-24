@@ -1,4 +1,5 @@
 import {
+  Brush,
   Check,
   ChevronDown,
   ChevronLeft,
@@ -8,11 +9,13 @@ import {
   CircleCheck,
   Copy,
   Download,
+  Eraser,
   GripVertical,
   ImagePlus,
   ImageIcon,
   KeyRound,
   Lock,
+  MapPin,
   MoreHorizontal,
   Monitor,
   Moon,
@@ -22,6 +25,7 @@ import {
   Search,
   Settings,
   Sparkles,
+  Square,
   Sun,
   Trash2,
   Undo2,
@@ -37,6 +41,7 @@ import {
 export type IconName =
   | 'add_photo_alternate'
   | 'alert_circle'
+  | 'brush'
   | 'check'
   | 'check_circle'
   | 'chevron_down'
@@ -48,12 +53,14 @@ export type IconName =
   | 'dark_mode'
   | 'download'
   | 'drag'
+  | 'eraser'
   | 'expand_more'
   | 'image'
   | 'key'
   | 'keyboard_arrow_up'
   | 'light_mode'
   | 'lock'
+  | 'map_pin'
   | 'more'
   | 'plus'
   | 'redo'
@@ -61,6 +68,7 @@ export type IconName =
   | 'search'
   | 'settings'
   | 'sparkles'
+  | 'square'
   | 'trash'
   | 'undo'
   | 'upload'
@@ -75,6 +83,7 @@ type Props = LucideProps & {
 const ICONS = {
   add_photo_alternate: ImagePlus,
   alert_circle: CircleAlert,
+  brush: Brush,
   check: Check,
   check_circle: CircleCheck,
   chevron_down: ChevronDown,
@@ -86,12 +95,14 @@ const ICONS = {
   dark_mode: Moon,
   download: Download,
   drag: GripVertical,
+  eraser: Eraser,
   expand_more: ChevronDown,
   image: ImageIcon,
   key: KeyRound,
   keyboard_arrow_up: ChevronUp,
   light_mode: Sun,
   lock: Lock,
+  map_pin: MapPin,
   more: MoreHorizontal,
   plus: Plus,
   redo: Redo2,
@@ -99,6 +110,7 @@ const ICONS = {
   search: Search,
   settings: Settings,
   sparkles: Sparkles,
+  square: Square,
   trash: Trash2,
   undo: Undo2,
   upload: Upload,

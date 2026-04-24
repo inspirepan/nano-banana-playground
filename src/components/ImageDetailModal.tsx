@@ -6,13 +6,27 @@ import { MODEL_CONFIGS, DEFAULT_MODEL, defaultOptionsFor, type ModelConfig } fro
 import { getActualCost, getPricePerImage } from '../lib/pricing'
 import { ensureBlobLoaded, useImageSrc } from '../hooks/useImageSrc'
 import { loadImageMetas } from '../lib/history'
-import { Icon } from './Icon'
+import { Icon, type IconName } from './Icon'
 import { ChipGroup } from './ChipGroup'
 import { AspectRatioSelector } from './AspectRatioSelector'
 import { ReferenceImageUpload } from './ReferenceImageUpload'
 import { QueueJobSection } from './QueueJobSection'
+import { DrawableLayer, type DrawableLayerHandle, type DrawMode, type DrawTool } from './DrawableLayer'
+import { computeItemCounts, copyEditState, getEditState, setEditPrompt, type ItemCounts } from '../lib/editStateCache'
 import { openAISize } from '../lib/openai'
 import { readFileAsImageData } from '../lib/fileToImage'
+
+type EditMode = 'view' | DrawMode
+
+// Three brush presets (in source-image natural pixels). These map to the
+// [细 · 中 · 粗] chips in the canvas toolbar; they stay mode-agnostic so
+// annotate and mask share one control.
+const BRUSH_PRESETS = [
+  { id: 'S', label: '细', size: 4 },
+  { id: 'M', label: '中', size: 12 },
+  { id: 'L', label: '粗', size: 28 },
+] as const
+type BrushPresetId = typeof BRUSH_PRESETS[number]['id']
 
 // Normalize generated-source metadata into a single `options` bag, folding in
 // legacy top-level fields (`quality`, `searchTools`) from pre-refactor records.
@@ -77,8 +91,11 @@ type Props = {
     aspectRatio: string
     options: Record<string, unknown>
     batchCount: number
+    annotatedSource?: PlaygroundImage
+    mask?: PlaygroundImage
   }) => Promise<string | null>
   onCancelGenerationJob: (jobId: string) => void
+  onDismissGenerationJob: (jobId: string) => void
   onCancelGenerationSlot: (slotId: string) => void
   onRemove: (id: string) => void
 }
@@ -163,6 +180,7 @@ export function ImageDetailModal({
   onRegenerate,
   onEditImage,
   onCancelGenerationJob,
+  onDismissGenerationJob,
   onCancelGenerationSlot,
   onRemove,
 }: Props) {
@@ -171,6 +189,26 @@ export function ImageDetailModal({
   // After submit, we watch history for the first new image with this batchId
   // and auto-navigate the pager to it.
   const [activeEditBatchId, setActiveEditBatchId] = useState<string | null>(null)
+  const activeEditSourceIdRef = useRef<string | null>(null)
+  const setActiveEditBatch = useCallback((batchId: string | null, sourceImageId?: string) => {
+    activeEditSourceIdRef.current = batchId ? sourceImageId ?? activeEditSourceIdRef.current : null
+    setActiveEditBatchId(batchId)
+  }, [])
+  // Canvas-edit mode: view (default pan/zoom), annotate (paint colored strokes
+  // baked into the reference), or mask (paint a region for OpenAI's mask
+  // field / Gemini red overlay).
+  const [editMode, setEditMode] = useState<EditMode>('view')
+  const [drawTool, setDrawTool] = useState<DrawTool>('brush')
+  const [brushPreset, setBrushPreset] = useState<BrushPresetId>('M')
+  const brushSize = BRUSH_PRESETS.find((p) => p.id === brushPreset)?.size ?? 24
+  // Per-layer item counts. Seed from the cache so the mode-segment dots
+  // light up on modal open even before the drawable layer mounts; the
+  // layer's onItemsChange keeps us in sync afterward, and a pager effect
+  // reseeds when the user navigates to another image.
+  const [drawableCounts, setDrawableCounts] = useState<ItemCounts>(
+    () => computeItemCounts(getEditState(image.id).items),
+  )
+  const drawableRef = useRef<DrawableLayerHandle | null>(null)
 
   const currentImage = currentIdx >= 0 ? history[currentIdx] : image
   const { ref: imgRef, src: currentSrc } = useImageSrc(currentImage.id, currentImage.mimeType)
@@ -218,6 +256,8 @@ export function ImageDetailModal({
   const goToPrev = useCallback(() => {
     setCurrentIdx(i => Math.max(0, i - 1))
     setRefDetailId(null)
+    // No explicit clear — DrawableLayer remounts under the new image's key
+    // and restores that image's cached items (empty for never-edited ones).
   }, [])
 
   const goToNext = useCallback(() => {
@@ -248,10 +288,47 @@ export function ImageDetailModal({
     return () => { cancelled = true }
   }, [canNavigate, currentIdx, history])
 
+  const exitEdit = useCallback(() => {
+    setEditing(false)
+    setEditMode('view')
+    setDrawTool('brush')
+    // Keep items — they're cached per-image so reopening the modal restores
+    // whatever annotations were in progress. Counts stay for the dots.
+  }, [])
+
+  // Reseed layer counts from cache whenever the pager lands on a new image;
+  // the drawable layer itself remounts under that image's key so it picks
+  // up the cached items directly, but the mode-segment dots sit outside it.
+  useEffect(() => {
+    setDrawableCounts(computeItemCounts(getEditState(currentImage.id).items))
+  }, [currentImage.id])
+
+  // Force a valid tool when swapping to mask mode — rect/step aren't
+  // exposed there and we don't want a hidden pointer-down branch firing.
+  useEffect(() => {
+    if (editMode === 'mask' && (drawTool === 'rect' || drawTool === 'step')) {
+      setDrawTool('brush')
+    }
+  }, [editMode, drawTool])
+
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
+      // Ctrl/Cmd+Z triggers an undo on the drawable layer. Skip when the user
+      // is typing into an input/textarea (e.g. the prompt or text-pin editor)
+      // so undo stays a text-level operation there.
+      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && (e.key === 'z' || e.key === 'Z')) {
+        const target = e.target as HTMLElement | null
+        const tag = target?.tagName
+        const isTextInput = tag === 'INPUT' || tag === 'TEXTAREA' || target?.isContentEditable
+        if (editing && editMode !== 'view' && !isTextInput) {
+          e.preventDefault()
+          drawableRef.current?.undo()
+          return
+        }
+      }
       if (e.key === 'Escape') {
-        if (editing) { setEditing(false); return }
+        if (editMode !== 'view') { setEditMode('view'); return }
+        if (editing) { exitEdit(); return }
         onClose()
         return
       }
@@ -262,7 +339,7 @@ export function ImageDetailModal({
     }
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
-  }, [canNavigate, editing, goToNext, goToPrev, onClose])
+  }, [canNavigate, editing, editMode, exitEdit, goToNext, goToPrev, onClose])
 
   // Auto-nav to newly edited image: jump the pager to the first arrival with
   // the batchId we just submitted. We intentionally keep activeEditBatchId
@@ -277,6 +354,8 @@ export function ImageDetailModal({
     )
     if (idx >= 0) {
       navedBatchIdRef.current = activeEditBatchId
+      const sourceId = activeEditSourceIdRef.current
+      if (sourceId) copyEditState(sourceId, history[idx].id)
       setCurrentIdx(idx)
       setRefDetailId(null)
     }
@@ -477,8 +556,9 @@ export function ImageDetailModal({
 
         <div className="flex-1" />
 
-        {/* Pager */}
-        {canNavigate && (
+        {/* Pager — hidden while editing so the user can't jump between
+            images mid-annotation. */}
+        {canNavigate && !editing && (
           <div
             className="flex items-center gap-0.5 mr-1 rounded-[6px] shrink-0"
             style={{ background: 'var(--color-surface-2)', boxShadow: 'inset 0 0 0 1px var(--ring-edge)', padding: 2 }}
@@ -512,7 +592,7 @@ export function ImageDetailModal({
         </button>
         <button
           className="chip shrink-0"
-          onClick={() => setEditing((v) => !v)}
+          onClick={() => { if (editing) exitEdit(); else setEditing(true) }}
           title={editing ? '退出编辑' : '编辑这张图'}
           data-active={editing}
         >
@@ -558,43 +638,75 @@ export function ImageDetailModal({
             backgroundColor: 'var(--color-bg-sunken)',
           }}
         >
-          {/* Layer placeholder (reserved for future brush/mask layers) */}
-          {editing && !refDetailId && (
-            <div
-              className="absolute left-4 top-4 z-20 inline-flex items-center gap-1.5 rounded-[6px] px-2 py-1 text-[11px] font-medium"
-              style={{
-                background: 'color-mix(in srgb, var(--color-surface) 90%, transparent)',
-                color: 'var(--color-text-3)',
-                boxShadow: 'inset 0 0 0 1px var(--ring-edge)',
-                backdropFilter: 'blur(8px)',
+          {/* Canvas mode toolbar: layer selector + (while drawing) tool
+              picker, brush size, undo/clear. Always visible outside ref-
+              compare so clicking 标注/Mask from view state enters edit mode
+              directly. */}
+          {/* Persistent backdrop — sits under both the ZoomableImageView and
+              the DrawableLayer. When the user toggles view↔annotate, the
+              outgoing component unmounts a frame before the incoming one
+              paints; without this img there's a white flash between them.
+              Both views render on top with opaque content, so the backdrop
+              is only seen during that transitional frame. */}
+          {currentSrc && !refDetailId && (
+            <img
+              src={currentSrc}
+              alt=""
+              aria-hidden
+              draggable={false}
+              className="absolute inset-0 w-full h-full object-contain pointer-events-none"
+              style={{ zIndex: 0 }}
+            />
+          )}
+          {!refDetailId && (
+            <CanvasModeToolbar
+              mode={editMode}
+              tool={drawTool}
+              brushPreset={brushPreset}
+              counts={drawableCounts}
+              showToolRow={editing && editMode !== 'view'}
+              onChangeMode={(next) => {
+                if (next !== 'view' && !editing) setEditing(true)
+                setEditMode(next)
               }}
-              title="未来支持标注层和 Mask 层"
-            >
-              <span
-                className="inline-block h-[6px] w-[6px] rounded-full"
-                style={{ background: 'var(--color-accent)' }}
-              />
-              图层 · 原图
-            </div>
+              onChangeTool={setDrawTool}
+              onChangeBrushPreset={setBrushPreset}
+              onUndo={() => drawableRef.current?.undo()}
+              onClear={() => drawableRef.current?.clear()}
+            />
           )}
           {refDetailId && refDetailSrc ? (
-            <div className="flex flex-row h-full gap-px">
+            <div className="relative flex flex-row h-full gap-px">
               <div className="h-full flex-1 min-w-0 relative">
-                <ZoomableImageView src={refDetailSrc} alt="" label="参考图" />
-                <button
-                  type="button"
-                  onClick={() => setRefDetailId(null)}
-                  className="absolute top-3 left-1/2 -translate-x-1/2 z-10 chip"
-                  style={{ height: 26 }}
-                >
-                  <Icon name="close" size={12} />
-                  关闭对比
-                </button>
+                <ZoomableImageView src={refDetailSrc} alt="" label="左 · 参考图" />
               </div>
               <div className="h-full flex-1 min-w-0 relative">
-                <ZoomableImageView src={currentSrc ?? ''} alt={currentMeta?.prompt ?? ''} label="生成图" />
+                <ZoomableImageView src={currentSrc ?? ''} alt={currentMeta?.prompt ?? ''} label="右 · 生成图" />
               </div>
+              <button
+                type="button"
+                onClick={() => setRefDetailId(null)}
+                className="absolute top-3 right-3 z-30 chip"
+                style={{ height: 26 }}
+                title="退出对比"
+                aria-label="退出对比"
+              >
+                <Icon name="close" size={12} />
+                <span className="hidden sm:inline">退出对比</span>
+                <span className="sm:hidden">退出</span>
+              </button>
             </div>
+          ) : editing && editMode !== 'view' ? (
+            <DrawableLayer
+              ref={drawableRef}
+              key={currentImage.id}
+              imageId={currentImage.id}
+              src={currentSrc ?? ''}
+              mode={editMode}
+              tool={drawTool}
+              brushSize={brushSize}
+              onItemsChange={setDrawableCounts}
+            />
           ) : (
             <ZoomableImageView
               src={currentSrc ?? ''}
@@ -604,8 +716,9 @@ export function ImageDetailModal({
             />
           )}
 
-          {/* Side nav arrows */}
-          {!refDetailId && hasPrev && (
+          {/* Side nav arrows — hidden while editing to avoid accidental
+              navigation (they'd also sit under the canvas toolbar visually). */}
+          {!refDetailId && !editing && hasPrev && (
             <button
               onClick={goToPrev}
               aria-label="上一张"
@@ -620,7 +733,7 @@ export function ImageDetailModal({
               <Icon name="chevron_left" size={14} strokeWidth={1.8} />
             </button>
           )}
-          {!refDetailId && hasNext && (
+          {!refDetailId && !editing && hasNext && (
             <button
               onClick={goToNext}
               aria-label="下一张"
@@ -713,15 +826,22 @@ export function ImageDetailModal({
               generationJobs={generationJobs}
               activeEditBatchId={activeEditBatchId}
               onEditImage={onEditImage}
-              onSetActiveBatchId={setActiveEditBatchId}
+              onSetActiveBatchId={setActiveEditBatch}
               onCancelGenerationJob={onCancelGenerationJob}
+              onDismissGenerationJob={onDismissGenerationJob}
               onCancelGenerationSlot={onCancelGenerationSlot}
               onAddToRef={onAddToRef}
               onRegenerate={onRegenerate}
               onRemove={onRemove}
-              onOpenImage={(img) => { setCurrentIdx(history.findIndex((h) => h.id === img.id)); setRefDetailId(null) }}
+              onOpenImage={(img) => {
+                setCurrentIdx(history.findIndex((h) => h.id === img.id))
+                setRefDetailId(null)
+              }}
               onViewQueue={onClose}
-              onExit={() => setEditing(false)}
+              onExit={exitEdit}
+              editMode={editMode}
+              drawableCounts={drawableCounts}
+              drawableRef={drawableRef}
             />
           ) : (
             <>
@@ -912,9 +1032,16 @@ export function ImageDetailModal({
           background: 'var(--color-bg-sunken)',
         }}
       >
-        <span className="inline-flex items-center gap-1.5"><kbd>←</kbd><kbd>→</kbd> 切换</span>
-        <span className="inline-flex items-center gap-1.5">滚轮 缩放</span>
-        <span className="inline-flex items-center gap-1.5"><kbd>0</kbd> / 双击 重置</span>
+        {!editing && (
+          <>
+            <span className="inline-flex items-center gap-1.5"><kbd>←</kbd><kbd>→</kbd> 切换</span>
+            <span className="inline-flex items-center gap-1.5">滚轮 缩放</span>
+            <span className="inline-flex items-center gap-1.5"><kbd>0</kbd> / 双击 重置</span>
+          </>
+        )}
+        {editing && (
+          <span className="inline-flex items-center gap-1.5"><kbd>⌘</kbd><kbd>Z</kbd> 撤销</span>
+        )}
         <span className="inline-flex items-center gap-1.5"><kbd>Esc</kbd> 关闭</span>
         <div className="flex-1" />
         <span className="mono">#{currentImage.id.slice(0, 8)}</span>
@@ -1002,8 +1129,9 @@ type EditSidebarProps = {
   generationJobs: GenerationJob[]
   activeEditBatchId: string | null
   onEditImage: Props['onEditImage']
-  onSetActiveBatchId: (id: string | null) => void
+  onSetActiveBatchId: (id: string | null, sourceImageId?: string) => void
   onCancelGenerationJob: (jobId: string) => void
+  onDismissGenerationJob: (jobId: string) => void
   onCancelGenerationSlot: (slotId: string) => void
   onAddToRef: (image: PlaygroundImageMeta) => void
   onRegenerate: (image: PlaygroundImageMeta) => void
@@ -1011,6 +1139,9 @@ type EditSidebarProps = {
   onOpenImage: (image: PlaygroundImageMeta) => void
   onViewQueue: () => void
   onExit: () => void
+  editMode: EditMode
+  drawableCounts: ItemCounts
+  drawableRef: React.RefObject<DrawableLayerHandle | null>
 }
 
 function EditSidebar({
@@ -1020,6 +1151,7 @@ function EditSidebar({
   onEditImage,
   onSetActiveBatchId,
   onCancelGenerationJob,
+  onDismissGenerationJob,
   onCancelGenerationSlot,
   onAddToRef,
   onRegenerate,
@@ -1027,6 +1159,9 @@ function EditSidebar({
   onOpenImage,
   onViewQueue,
   onExit,
+  editMode,
+  drawableCounts,
+  drawableRef,
 }: EditSidebarProps) {
   // Resolve the model / resolution / aspect ratio / options that generated the
   // source. For uploads, fall back to the default model's defaults.
@@ -1050,22 +1185,35 @@ function EditSidebar({
     sourceModel.aspectRatios.includes(sourceAspect) ? sourceAspect : sourceModel.defaultAspectRatio,
   )
   const [batchCount, setBatchCount] = useState(1)
-  const [prompt, setPrompt] = useState('')
+  // Prompt text is cached per source image so users who close the modal
+  // mid-edit (or switch between images via the pager) don't lose what they
+  // were writing.
+  const [prompt, setPrompt] = useState(() => getEditState(sourceImage.id).prompt)
   const [extraRefs, setExtraRefs] = useState<PlaygroundImage[]>([])
   const [refsError, setRefsError] = useState<string | null>(null)
+  const [submitError, setSubmitError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   // Editing rarely needs resolution / aspect changes, so collapse by default.
   const [paramsCollapsed, setParamsCollapsed] = useState(true)
 
   // Sync non-prompt params when the source image changes (pager nav or auto-
-  // nav after a successful edit). Prompt and extra refs intentionally persist.
+  // nav after a successful edit). Prompt is also restored from this image's
+  // cache entry so per-image drafts survive pager navigation; extra refs
+  // intentionally do not.
   const sourceIdRef = useRef(sourceImage.id)
   useEffect(() => {
     if (sourceIdRef.current === sourceImage.id) return
     sourceIdRef.current = sourceImage.id
     setResolution(sourceModel.resolutions.includes(sourceRes) ? sourceRes : sourceModel.defaultResolution)
     setAspectRatio(sourceModel.aspectRatios.includes(sourceAspect) ? sourceAspect : sourceModel.defaultAspectRatio)
+    setPrompt(getEditState(sourceImage.id).prompt)
   }, [sourceImage.id, sourceModel, sourceRes, sourceAspect])
+
+  // Write-through the prompt back to the cache so it survives remounts of
+  // this sidebar (closing the modal or switching to another image and back).
+  useEffect(() => {
+    setEditPrompt(sourceImage.id, prompt)
+  }, [sourceImage.id, prompt])
 
   // Pick a stable placeholder example per source image.
   const placeholder = useMemo(() => {
@@ -1073,7 +1221,17 @@ function EditSidebar({
     return `例：${EDIT_PROMPT_EXAMPLES[Math.abs(hash) % EDIT_PROMPT_EXAMPLES.length]}`
   }, [sourceImage.id])
 
-  const maxExtraRefs = Math.max(0, sourceModel.maxReferenceImages + sourceModel.maxCharacterImages - 1)
+  const hasAnnotationStrokes = editMode === 'annotate' && drawableCounts.annotate > 0
+  const hasMaskStrokes = editMode === 'mask' && drawableCounts.mask > 0
+  const isOpenAI = sourceModel.provider === 'openai'
+  const hasOpenAIMask = hasMaskStrokes && isOpenAI
+  const hasAnnotatedSource = hasAnnotationStrokes || (hasMaskStrokes && !isOpenAI)
+  const maxReferenceImages = sourceModel.maxReferenceImages + sourceModel.maxCharacterImages
+  const maxExtraRefs = Math.max(0, maxReferenceImages - 1 - (hasAnnotatedSource ? 1 : 0))
+  const referenceLimitExceeded = extraRefs.length > maxExtraRefs
+  const effectiveRefsError = referenceLimitExceeded
+    ? '当前标注会占用一个参考图名额，请移除一张参考图后再提交'
+    : refsError
 
   const handleAddFiles = useCallback(async (files: File[]) => {
     if (files.length === 0) return
@@ -1151,12 +1309,74 @@ function EditSidebar({
   // Allow submitting a new edit even while a previous batch is still running.
   // The new batchId overrides activeEditBatchId, replacing what the embedded
   // QueueJobSection tracks; the previous job keeps running in OutputPanel.
-  const canSubmit = prompt.trim() !== '' && !submitting
+  const canSubmit = prompt.trim() !== '' && !submitting && !referenceLimitExceeded
 
   const handleGenerate = useCallback(async () => {
     if (!canSubmit) return
     setSubmitting(true)
+    setSubmitError(null)
     try {
+      // Bake annotation strokes into the reference image, and either hand the
+      // mask to OpenAI's native field or bake a red overlay for Gemini. The
+      // DrawableLayer export is driven by the current editMode; strokes drawn
+      // in another mode (e.g. annotate strokes present while submitting from
+      // mask mode) are intentionally ignored by the mode-scoped exporters.
+      let annotatedSource: PlaygroundImage | undefined
+      let mask: PlaygroundImage | undefined
+      const drawable = drawableRef.current
+      const needsDrawableExport = hasAnnotationStrokes || hasMaskStrokes
+      if (needsDrawableExport && (!drawable || !drawable.isReady())) {
+        setSubmitError('图片仍在加载，请稍后再提交')
+        return
+      }
+      // Dispatch on the current layer: annotate items bake into the
+      // reference; mask items either become the OpenAI mask or a red
+      // overlay on the source for Gemini.
+      if (drawable && editMode === 'annotate' && drawableCounts.annotate > 0) {
+        const out = await drawable.exportAnnotated()
+        if (!out) {
+          setSubmitError('标注导出失败，请稍后再试')
+          return
+        }
+        annotatedSource = {
+          id: crypto.randomUUID(),
+          data: out.base64,
+          mimeType: out.mimeType,
+          source: { type: 'upload', fileName: 'annotated.png' },
+          timestamp: Date.now(),
+        }
+      } else if (drawable && editMode === 'mask' && drawableCounts.mask > 0) {
+        if (sourceModel.provider === 'openai') {
+          const out = await drawable.exportMaskAlpha()
+          if (!out) {
+            setSubmitError('Mask 导出失败，请稍后再试')
+            return
+          }
+          mask = {
+            id: crypto.randomUUID(),
+            data: out.base64,
+            mimeType: out.mimeType,
+            source: { type: 'upload', fileName: 'mask.png' },
+            timestamp: Date.now(),
+          }
+        } else {
+          // Gemini: no native mask channel, so visually hint the region by
+          // baking a translucent red overlay onto the source.
+          const out = await drawable.exportMaskRedOverlay()
+          if (!out) {
+            setSubmitError('Mask 导出失败，请稍后再试')
+            return
+          }
+          annotatedSource = {
+            id: crypto.randomUUID(),
+            data: out.base64,
+            mimeType: out.mimeType,
+            source: { type: 'upload', fileName: 'mask-overlay.png' },
+            timestamp: Date.now(),
+          }
+        }
+      }
+
       const batchId = await onEditImage({
         sourceImage,
         model: sourceModel,
@@ -1166,10 +1386,14 @@ function EditSidebar({
         aspectRatio,
         options: inheritedOptions,
         batchCount,
+        annotatedSource,
+        mask,
       })
       if (batchId) {
-        onSetActiveBatchId(batchId)
+        onSetActiveBatchId(batchId, sourceImage.id)
         setPrompt('')
+        // Intentionally do NOT clear strokes here — the user usually iterates
+        // on the same annotations across multiple generations.
       }
     } finally {
       setSubmitting(false)
@@ -1177,6 +1401,7 @@ function EditSidebar({
   }, [
     canSubmit, onEditImage, sourceImage, sourceModel, prompt, extraRefs, resolution,
     aspectRatio, inheritedOptions, batchCount, onSetActiveBatchId,
+    drawableRef, drawableCounts, editMode, hasAnnotationStrokes, hasMaskStrokes,
   ])
 
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -1200,7 +1425,16 @@ function EditSidebar({
     return () => window.removeEventListener('keydown', handler)
   }, [canSubmit, handleGenerate])
 
-  const totalImagesToSend = 1 + extraRefs.length
+  // Count what actually ships to the provider. With annotations we send BOTH
+  // the annotated composite and the clean source, so the model has the
+  // unobscured pixels available for regions outside the user's marks.
+  const totalImagesToSend =
+    1 + (hasAnnotatedSource ? 1 : 0) + extraRefs.length + (hasOpenAIMask ? 1 : 0)
+  const summaryParts: string[] = ['原图']
+  if (hasAnnotationStrokes) summaryParts.push('带标注的图')
+  else if (hasMaskStrokes && !isOpenAI) summaryParts.push('带 Mask 叠加的图')
+  if (extraRefs.length > 0) summaryParts.push(`${extraRefs.length} 张参考图`)
+  if (hasOpenAIMask) summaryParts.push('Mask')
 
   return (
     <div>
@@ -1218,6 +1452,7 @@ function EditSidebar({
           <QueueJobSection
             job={activeJob}
             onCancelJob={onCancelGenerationJob}
+            onDismissJob={onDismissGenerationJob}
             onCancelSlot={onCancelGenerationSlot}
             onAddToRef={onAddToRef}
             onRegenerate={onRegenerate}
@@ -1268,7 +1503,7 @@ function EditSidebar({
           images={extraRefs}
           maxTotal={maxExtraRefs}
           dragOver={false}
-          error={refsError}
+          error={effectiveRefsError}
           onAdd={handleAddFiles}
           onRemove={removeExtraRef}
           onClearAll={clearExtraRefs}
@@ -1383,12 +1618,15 @@ function EditSidebar({
         <div className="mb-2 flex items-baseline justify-between text-[11.5px]">
           <span className="text-(--color-text-4)">
             将发送 <span className="mono text-(--color-text-2)">{totalImagesToSend}</span> 张图
-            <span className="text-(--color-text-4)">（原图{extraRefs.length > 0 ? ` + ${extraRefs.length} 张参考图` : ''}）</span>
+            <span className="text-(--color-text-4)">（{summaryParts.join(' · ')}）</span>
           </span>
           {estimatedCost !== null && (
             <span className="mono text-(--color-text-2)">≈ ${estimatedCost.toFixed(3)}</span>
           )}
         </div>
+        {submitError && (
+          <div className="mb-2 text-[11.5px] text-(--color-danger)">{submitError}</div>
+        )}
         <button
           type="button"
           onClick={handleGenerate}
@@ -1461,6 +1699,197 @@ function RefThumbnail({ image, isActive, onClick }: { image: PlaygroundImageMeta
         <img src={src} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
       ) : (
         <div className="w-full h-full skeleton-animated" />
+      )}
+    </div>
+  )
+}
+
+/* ========================================================================
+   CanvasModeToolbar — segmented mode picker + drawing helpers (undo/clear).
+   Appears at the top-left of the canvas area when editing. Drawing modes
+   surface the undo/clear chips lazily so the "view" state stays clean.
+   ======================================================================== */
+
+function ToolbarPill({ children }: { children: ReactNode }) {
+  return (
+    <div
+      className="flex items-center gap-0.5 rounded-[8px] p-0.5"
+      style={{
+        background: 'color-mix(in srgb, var(--color-surface) 92%, transparent)',
+        boxShadow: '0 0 0 1px var(--ring-edge), 0 1px 2px rgba(0,0,0,0.04)',
+        backdropFilter: 'blur(10px)',
+      }}
+    >
+      {children}
+    </div>
+  )
+}
+
+function SegmentButton({
+  active, label, title, onClick, mono = true, dot = false, icon,
+}: {
+  active: boolean
+  label: ReactNode
+  title?: string
+  onClick: () => void
+  mono?: boolean
+  dot?: boolean
+  icon?: IconName
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={title}
+      className={`${mono ? 'mono' : ''} relative inline-flex items-center gap-1 px-2 py-1 text-[11px] font-medium rounded-[6px] transition-colors`}
+      style={{
+        background: active ? 'var(--color-surface)' : 'transparent',
+        color: active ? 'var(--color-text)' : 'var(--color-text-3)',
+        boxShadow: active ? 'inset 0 0 0 1px var(--ring-edge)' : 'none',
+        cursor: 'pointer',
+        border: 0,
+      }}
+    >
+      {icon && <Icon name={icon} size={11} strokeWidth={1.8} />}
+      <span>{label}</span>
+      {dot && (
+        <span
+          aria-hidden
+          style={{
+            position: 'absolute',
+            top: 2,
+            right: 2,
+            width: 6,
+            height: 6,
+            borderRadius: '50%',
+            background: '#ef4444',
+            boxShadow: '0 0 0 1.5px var(--color-surface)',
+          }}
+        />
+      )}
+    </button>
+  )
+}
+
+function CanvasModeToolbar({
+  mode,
+  tool,
+  brushPreset,
+  counts,
+  showToolRow,
+  onChangeMode,
+  onChangeTool,
+  onChangeBrushPreset,
+  onUndo,
+  onClear,
+}: {
+  mode: EditMode
+  tool: DrawTool
+  brushPreset: BrushPresetId
+  counts: ItemCounts
+  // False when we should render only the mode pill (view state on a non-
+  // editing modal, or when the user is in view mode mid-edit).
+  showToolRow: boolean
+  onChangeMode: (mode: EditMode) => void
+  onChangeTool: (tool: DrawTool) => void
+  onChangeBrushPreset: (preset: BrushPresetId) => void
+  onUndo: () => void
+  onClear: () => void
+}) {
+  const modeOptions: Array<{ id: EditMode; label: string; title: string; dot?: boolean }> = [
+    { id: 'view', label: '查看', title: '查看原图（默认缩放/平移）' },
+    { id: 'annotate', label: '标注', title: '在图上画彩色提示，合成到源图发送', dot: counts.annotate > 0 },
+    { id: 'mask', label: 'Mask', title: '画出要编辑的区域（OpenAI 走原生 mask，Gemini 合成红色叠加）', dot: counts.mask > 0 },
+  ]
+  // Mask layer semantics are "subtract this region" — step pins and
+  // rectangles don't map onto that cleanly, so the toolbar only exposes
+  // brush + eraser there.
+  const toolOptions: Array<{ id: DrawTool; label: string; title: string; icon: IconName }> = mode === 'mask'
+    ? [
+      { id: 'brush', label: '笔刷', title: '涂抹要编辑的区域', icon: 'brush' },
+      { id: 'eraser', label: '橡皮', title: '擦除当前层的涂抹', icon: 'eraser' },
+    ]
+    : [
+      { id: 'brush', label: '笔刷', title: '自由笔画', icon: 'brush' },
+      { id: 'rect', label: '框', title: '框选矩形', icon: 'square' },
+      { id: 'step', label: '编号', title: '在图上放一个带序号的 pin（自动取最小缺失数字）', icon: 'map_pin' },
+      { id: 'eraser', label: '橡皮', title: '拖拽擦除当前层标注', icon: 'eraser' },
+    ]
+  const layerHasItems = mode === 'mask' ? counts.mask > 0 : mode === 'annotate' ? counts.annotate > 0 : false
+
+  return (
+    <div className="absolute left-4 top-4 z-20 flex flex-wrap items-center gap-1.5 max-w-[calc(100%-32px)]">
+      <ToolbarPill>
+        {modeOptions.map((item) => (
+          <SegmentButton
+            key={item.id}
+            active={mode === item.id}
+            label={item.label}
+            title={item.title}
+            dot={item.dot}
+            onClick={() => onChangeMode(item.id)}
+          />
+        ))}
+      </ToolbarPill>
+      {showToolRow && (
+        <>
+          <ToolbarPill>
+            {toolOptions.map((item) => (
+              <SegmentButton
+                key={item.id}
+                active={tool === item.id}
+                label={item.label}
+                title={item.title}
+                mono={false}
+                icon={item.icon}
+                onClick={() => onChangeTool(item.id)}
+              />
+            ))}
+          </ToolbarPill>
+          {tool !== 'eraser' && (
+            <ToolbarPill>
+              {BRUSH_PRESETS.map((item) => (
+                <SegmentButton
+                  key={item.id}
+                  active={brushPreset === item.id}
+                  label={item.label}
+                  title={`笔刷粗细：${item.label}（${item.size}px）`}
+                  mono={false}
+                  onClick={() => onChangeBrushPreset(item.id)}
+                />
+              ))}
+            </ToolbarPill>
+          )}
+          <ToolbarPill>
+            <button
+              type="button"
+              onClick={onUndo}
+              disabled={!layerHasItems}
+              title="撤销 (⌘Z)"
+              className="icon-btn"
+              style={{ width: 24, height: 22 }}
+            >
+              <Icon name="undo" size={12} strokeWidth={1.8} />
+            </button>
+            {/* Word label rather than trash icon — trash reads as "delete
+                this image" against the rest of the modal's affordances. */}
+            <button
+              type="button"
+              onClick={onClear}
+              disabled={!layerHasItems}
+              title="清空当前层的所有标注"
+              className="px-2 py-1 text-[11px] font-medium rounded-[6px] transition-colors"
+              style={{
+                background: 'transparent',
+                color: layerHasItems ? 'var(--color-text-3)' : 'var(--color-text-4)',
+                cursor: layerHasItems ? 'pointer' : 'not-allowed',
+                border: 0,
+              }}
+            >
+              清空
+            </button>
+          </ToolbarPill>
+        </>
       )}
     </div>
   )
