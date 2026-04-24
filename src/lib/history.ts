@@ -226,3 +226,80 @@ export async function countHistory(): Promise<number> {
     req.onerror = () => reject(req.error)
   })
 }
+
+// --- Draft reference images persistence ---
+// Survives page refresh via sessionStorage (metadata) + IndexedDB (blobs).
+const DRAFT_REFS_KEY = 'nano-banana-draft-refs'
+
+type DraftRefMeta = { id: string; mimeType: string; source: PlaygroundImage['source']; timestamp: number }
+
+export async function saveDraftRefs(images: PlaygroundImage[]): Promise<void> {
+  if (images.length === 0) {
+    clearDraftRefs()
+    return
+  }
+  const db = await openDB()
+  const metas: DraftRefMeta[] = []
+  const tx = db.transaction(BLOB_STORE, 'readwrite')
+  const blobStore = tx.objectStore(BLOB_STORE)
+  for (const img of images) {
+    blobStore.put({ id: img.id, data: img.data })
+    metas.push({ id: img.id, mimeType: img.mimeType, source: img.source, timestamp: img.timestamp })
+  }
+  return new Promise<void>((resolve, reject) => {
+    tx.oncomplete = () => {
+      try {
+        sessionStorage.setItem(DRAFT_REFS_KEY, JSON.stringify(metas))
+      } catch {
+        // sessionStorage full or unavailable — silently skip
+      }
+      resolve()
+    }
+    tx.onerror = () => reject(tx.error)
+  })
+}
+
+export async function loadDraftRefs(): Promise<PlaygroundImage[]> {
+  try {
+    const raw = sessionStorage.getItem(DRAFT_REFS_KEY)
+    if (!raw) return []
+    const metas: DraftRefMeta[] = JSON.parse(raw)
+    if (!Array.isArray(metas) || metas.length === 0) return []
+
+    const db = await openDB()
+    const images: PlaygroundImage[] = []
+    const tx = db.transaction(BLOB_STORE, 'readonly')
+    const blobStore = tx.objectStore(BLOB_STORE)
+
+    await new Promise<void>((resolve, reject) => {
+      let pending = metas.length
+      for (const meta of metas) {
+        const req = blobStore.get(meta.id)
+        req.onsuccess = () => {
+          if (req.result?.data) {
+            images.push({ ...meta, data: req.result.data })
+          }
+          if (--pending === 0) resolve()
+        }
+        req.onerror = () => {
+          if (--pending === 0) resolve()
+        }
+      }
+      tx.onerror = () => reject(tx.error)
+    })
+
+    // Sort by original order (sessionStorage preserves array order)
+    images.sort((a, b) => {
+      const ai = metas.findIndex((m) => m.id === a.id)
+      const bi = metas.findIndex((m) => m.id === b.id)
+      return ai - bi
+    })
+    return images
+  } catch {
+    return []
+  }
+}
+
+export function clearDraftRefs(): void {
+  try { sessionStorage.removeItem(DRAFT_REFS_KEY) } catch { /* noop */ }
+}

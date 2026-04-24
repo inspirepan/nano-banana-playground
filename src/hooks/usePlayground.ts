@@ -10,7 +10,7 @@ import {
 import { generateImage, REQUEST_TIMEOUT_MS, type GenerateRetryEvent } from '../lib/api'
 import type { PlaygroundImage, PlaygroundImageMeta } from '../lib/types'
 import { isKeyError } from '../lib/validateKey'
-import { saveToHistory, loadHistoryPage, deleteFromHistory, clearHistory, loadImageBlobs } from '../lib/history'
+import { saveToHistory, loadHistoryPage, deleteFromHistory, clearHistory, loadImageBlobs, saveDraftRefs, loadDraftRefs, clearDraftRefs } from '../lib/history'
 import { readSimpleUrlParams, updateUrl } from '../lib/urlState'
 import { useApiKey } from './useApiKey'
 import { putBlobInCache, getBlobFromCache, removeBlobFromCache, clearBlobCache } from './useImageSrc'
@@ -85,6 +85,7 @@ export function usePlayground() {
   const [prompt, setPromptRaw] = useState(_initial.prompt ?? '')
 
   const [referenceImages, setReferenceImages] = useState<PlaygroundImage[]>([])
+  const [referenceImageError, setReferenceImageError] = useState<string | null>(null)
   const [history, setHistory] = useState<PlaygroundImageMeta[]>([])
   const [historyHasMore, setHistoryHasMore] = useState(true)
   const historyLoadingRef = useRef(false)
@@ -100,6 +101,18 @@ export function usePlayground() {
     loadHistoryPage(0, HISTORY_PAGE_SIZE).then(({ items, hasMore }) => {
       setHistory(items)
       setHistoryHasMore(hasMore)
+    })
+  }, [])
+
+  // Load persisted draft reference images on mount
+  const draftRefsLoadedRef = useRef(false)
+  useEffect(() => {
+    loadDraftRefs().then((images) => {
+      if (images.length > 0) {
+        setReferenceImages(images)
+        for (const img of images) putBlobInCache(img.id, img.data)
+      }
+      draftRefsLoadedRef.current = true
     })
   }, [])
 
@@ -144,6 +157,17 @@ export function usePlayground() {
     return () => window.clearTimeout(urlDebounceRef.current)
   }, [model, resolution, aspectRatio, batchCount, prompt, options])
 
+  // Persist draft reference images to IndexedDB + sessionStorage on change
+  const draftRefsDebounceRef = useRef<number>(0)
+  useEffect(() => {
+    if (!draftRefsLoadedRef.current) return // skip initial save before load completes
+    window.clearTimeout(draftRefsDebounceRef.current)
+    draftRefsDebounceRef.current = window.setTimeout(() => {
+      saveDraftRefs(referenceImages)
+    }, 500)
+    return () => window.clearTimeout(draftRefsDebounceRef.current)
+  }, [referenceImages])
+
   const setPrompt = useCallback((v: string) => setPromptRaw(v), [])
   const setResolution = useCallback((v: string) => setResolutionRaw(v), [])
   const setAspectRatio = useCallback((v: string) => setAspectRatioRaw(v), [])
@@ -174,40 +198,107 @@ export function usePlayground() {
     })
   }, [])
 
+  // Convert HEIC/HEIF to PNG via canvas; returns base64 data + mimeType.
+  const readFileAsImageData = useCallback(
+    (file: File): Promise<{ base64: string; mimeType: string; fileName: string } | null> =>
+      new Promise((resolve, reject) => {
+        const isHeic = file.type === 'image/heic' || file.type === 'image/heif'
+        if (!isHeic) {
+          const reader = new FileReader()
+          reader.onload = () => resolve({
+            base64: (reader.result as string).split(',')[1],
+            mimeType: file.type,
+            fileName: file.name,
+          })
+          reader.onerror = () => reject(reader.error)
+          reader.readAsDataURL(file)
+          return
+        }
+        // Convert HEIC to PNG via canvas — GPT Image does not accept HEIC.
+        // Reject if the browser cannot decode HEIC (Chrome, Firefox).
+        createImageBitmap(file)
+          .then((bitmap) => {
+            const canvas = document.createElement('canvas')
+            canvas.width = bitmap.width
+            canvas.height = bitmap.height
+            const ctx = canvas.getContext('2d')!
+            ctx.drawImage(bitmap, 0, 0)
+            bitmap.close()
+            canvas.toBlob((blob) => {
+              if (!blob) {
+                reject(new Error(`无法转换 ${file.name}：canvas toBlob 失败`))
+                return
+              }
+              const reader = new FileReader()
+              reader.onload = () => resolve({
+                base64: (reader.result as string).split(',')[1],
+                mimeType: 'image/png',
+                fileName: file.name.replace(/\.(heic|heif)$/i, '.png'),
+              })
+              reader.onerror = () => reject(reader.error)
+              reader.readAsDataURL(blob)
+            }, 'image/png')
+          })
+          .catch(() => {
+            reject(new Error(`${file.name}：当前浏览器不支持 HEIC 格式。请在 iPhone「设置 > 相机 > 格式」中选择"兼容性最佳"，或使用 Safari 浏览器。`))
+          })
+      }),
+    [],
+  )
+
   const addReferenceImages = useCallback(
     (files: File[]) => {
       const maxTotal = model.maxReferenceImages + model.maxCharacterImages
       const remaining = maxTotal - referenceImages.length
       const toAdd = files.slice(0, remaining)
 
-      Promise.all(
-        toAdd.map(
-          (file) =>
-            new Promise<PlaygroundImage>((resolve) => {
-              const reader = new FileReader()
-              reader.onload = () => {
-                const dataUrl = reader.result as string
-                const base64 = dataUrl.split(',')[1]
-                resolve({
-                  id: crypto.randomUUID(),
-                  data: base64,
-                  mimeType: file.type,
-                  source: { type: 'upload', fileName: file.name },
-                  timestamp: Date.now(),
-                })
-              }
-              reader.readAsDataURL(file)
-            }),
+      Promise.allSettled(
+        toAdd.map((file) =>
+          readFileAsImageData(file).then((result) => {
+            if (!result) return null
+            const { base64, mimeType, fileName } = result
+            return {
+              id: crypto.randomUUID(),
+              data: base64,
+              mimeType,
+              source: { type: 'upload' as const, fileName },
+              timestamp: Date.now(),
+            } as PlaygroundImage
+          }),
         ),
-      ).then((images) => {
-        setReferenceImages((prev) => [...prev, ...images].slice(0, maxTotal))
+      ).then((results) => {
+        const images: PlaygroundImage[] = []
+        const errors: string[] = []
+        for (const r of results) {
+          if (r.status === 'fulfilled' && r.value) {
+            images.push(r.value)
+          } else if (r.status === 'rejected') {
+            errors.push((r.reason as Error).message)
+          }
+        }
+        if (images.length > 0) {
+          setReferenceImages((prev) => [...prev, ...images].slice(0, maxTotal))
+        }
+        if (errors.length > 0) {
+          setReferenceImageError(errors.join('\n'))
+        }
       })
     },
-    [model, referenceImages.length],
+    [model, referenceImages.length, readFileAsImageData],
   )
 
   const removeReferenceImage = useCallback((id: string) => {
     setReferenceImages((prev) => prev.filter((img) => img.id !== id))
+  }, [])
+
+  const clearAllReferences = useCallback(() => {
+    setReferenceImages([])
+    setReferenceImageError(null)
+    clearDraftRefs()
+  }, [])
+
+  const clearReferenceImageError = useCallback(() => {
+    setReferenceImageError(null)
   }, [])
 
   const restoreSession = useCallback((newPrompt: string, newRefs: PlaygroundImage[]) => {
@@ -415,6 +506,7 @@ export function usePlayground() {
     options,
     prompt,
     referenceImages,
+    referenceImageError,
     history,
     historyHasMore,
     generationState,
@@ -430,6 +522,8 @@ export function usePlayground() {
     setPrompt,
     addReferenceImages,
     removeReferenceImage,
+    clearAllReferences,
+    clearReferenceImageError,
     restoreSession,
     resolveFullImages,
     generate,

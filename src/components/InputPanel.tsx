@@ -244,6 +244,7 @@ type Props = {
   options: Record<string, unknown>
   prompt: string
   referenceImages: PlaygroundImage[]
+  referenceImageError: string | null
   generationState: GenerationState
   apiKey: string
   apiKeyStatus?: ApiKeyStatus
@@ -259,6 +260,8 @@ type Props = {
   onAddReferenceImages: (files: File[]) => void
   onAddReferenceImage: (image: PlaygroundImage) => void
   onRemoveReferenceImage: (id: string) => void
+  onClearAllReferences: () => void
+  onClearReferenceImageError: () => void
   onGenerate: () => void
   onCancel: () => void
 }
@@ -271,6 +274,7 @@ export function InputPanel({
   options,
   prompt,
   referenceImages,
+  referenceImageError,
   generationState,
   apiKey,
   googleKeyStatus,
@@ -285,6 +289,8 @@ export function InputPanel({
   onAddReferenceImages,
   onAddReferenceImage,
   onRemoveReferenceImage,
+  onClearAllReferences,
+  onClearReferenceImageError,
   onGenerate,
   onCancel,
 }: Props) {
@@ -579,8 +585,11 @@ export function InputPanel({
           images={referenceImages}
           maxTotal={maxRef}
           dragOver={dragOver}
+          error={referenceImageError}
           onAdd={onAddReferenceImages}
           onRemove={onRemoveReferenceImage}
+          onClearAll={onClearAllReferences}
+          onClearError={onClearReferenceImageError}
         />
       </div>
 

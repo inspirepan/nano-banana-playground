@@ -4,6 +4,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronUp,
+  CircleAlert,
   CircleCheck,
   Copy,
   Download,
@@ -34,6 +35,7 @@ import {
 
 export type IconName =
   | 'add_photo_alternate'
+  | 'alert_circle'
   | 'check'
   | 'check_circle'
   | 'chevron_down'
@@ -70,6 +72,7 @@ type Props = LucideProps & {
 
 const ICONS = {
   add_photo_alternate: ImagePlus,
+  alert_circle: CircleAlert,
   check: Check,
   check_circle: CircleCheck,
   chevron_down: ChevronDown,

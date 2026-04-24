@@ -306,6 +306,7 @@ function App() {
           options={pg.options}
           prompt={pg.prompt}
           referenceImages={pg.referenceImages}
+          referenceImageError={pg.referenceImageError}
           generationState={pg.generationState}
           apiKey={pg.apiKey}
           apiKeyStatus={pg.apiKeyStatus}
@@ -321,6 +322,8 @@ function App() {
           onAddReferenceImages={pg.addReferenceImages}
           onAddReferenceImage={pg.addToReferences}
           onRemoveReferenceImage={pg.removeReferenceImage}
+          onClearAllReferences={pg.clearAllReferences}
+          onClearReferenceImageError={pg.clearReferenceImageError}
           onGenerate={handleGenerate}
           onCancel={pg.cancelGeneration}
         />
@@ -359,6 +362,7 @@ function App() {
             options={pg.options}
             prompt={pg.prompt}
             referenceImages={pg.referenceImages}
+            referenceImageError={pg.referenceImageError}
             generationState={pg.generationState}
             apiKey={pg.apiKey}
             apiKeyStatus={pg.apiKeyStatus}
@@ -374,6 +378,8 @@ function App() {
             onAddReferenceImages={pg.addReferenceImages}
             onAddReferenceImage={pg.addToReferences}
             onRemoveReferenceImage={pg.removeReferenceImage}
+            onClearAllReferences={pg.clearAllReferences}
+            onClearReferenceImageError={pg.clearReferenceImageError}
             onGenerate={handleGenerate}
             onCancel={pg.cancelGeneration}
           />

@@ -583,6 +583,43 @@
     background: var(--color-surface-2);
   }
 
+  /* Reference image thumbnail — replace `relative` so we can scope close btn */
+  .ref-thumb {
+    position: relative;
+  }
+
+  /* Delete button on reference thumbnails. On hover devices it's hidden
+     until hover; on touch devices it's always visible at low opacity so
+     users can tap to remove without needing hover. */
+  .ref-thumb-close {
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    width: 16px;
+    height: 16px;
+    border-radius: 999px;
+    background: rgb(0 0 0 / 0.55);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    padding: 0;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    opacity: 0;
+    transition: opacity 120ms;
+  }
+  .ref-thumb:hover .ref-thumb-close,
+  .ref-thumb-close:focus-visible {
+    opacity: 1;
+  }
+  @media (any-hover: none) {
+    .ref-thumb-close {
+      opacity: 0.55;
+    }
+  }
+
   /* Tag / pill badge — just a tinted fill, no ring */
   .tag {
     display: inline-flex;
