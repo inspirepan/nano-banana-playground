@@ -28,7 +28,7 @@ export function isHeifFile(file: File): boolean {
 function inferMimeType(file: File): string {
   if (file.type) return file.type
   const ext = file.name.split('.').pop()?.toLowerCase()
-  return ext ? MIME_BY_EXT[ext] ?? '' : ''
+  return ext ? (MIME_BY_EXT[ext] ?? '') : ''
 }
 
 function pngFileName(fileName: string): string {

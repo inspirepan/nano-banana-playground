@@ -19,8 +19,8 @@ const RESOLUTION_PX: Record<string, number> = {
 function computePixels(ratio: string, resolution: string): [number, number] {
   const [w, h] = ratio.split(':').map(Number)
   const longerSide = RESOLUTION_PX[resolution] ?? 1024
-  if (w >= h) return [longerSide, Math.round(longerSide * h / w)]
-  return [Math.round(longerSide * w / h), longerSide]
+  if (w >= h) return [longerSide, Math.round((longerSide * h) / w)]
+  return [Math.round((longerSide * w) / h), longerSide]
 }
 
 function defaultPixelLabel(ratio: string, resolution: string): string {
@@ -36,7 +36,14 @@ function glyphSize(ratio: string): { w: number; h: number } {
   return { w: Math.max(3, Math.round(max * r)), h: max }
 }
 
-export function AspectRatioSelector({ options, value, resolution, onChange, pixelLabel = defaultPixelLabel, showLabel = true }: Props) {
+export function AspectRatioSelector({
+  options,
+  value,
+  resolution,
+  onChange,
+  pixelLabel = defaultPixelLabel,
+  showLabel = true,
+}: Props) {
   return (
     <div>
       {showLabel ? (
@@ -69,9 +76,13 @@ export function AspectRatioSelector({ options, value, resolution, onChange, pixe
                 </span>
                 {/* ratio digits — fixed 2ch slots keep every colon column-aligned */}
                 <span className="inline-flex items-center">
-                  <span className="inline-block text-right" style={{ width: '2ch' }}>{left}</span>
+                  <span className="inline-block text-right" style={{ width: '2ch' }}>
+                    {left}
+                  </span>
                   <span>:</span>
-                  <span className="inline-block text-left" style={{ width: '2ch' }}>{right}</span>
+                  <span className="inline-block text-left" style={{ width: '2ch' }}>
+                    {right}
+                  </span>
                 </span>
               </button>
               {/* Notion-style pixel tooltip */}

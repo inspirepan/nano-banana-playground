@@ -301,5 +301,9 @@ export async function loadDraftRefs(): Promise<PlaygroundImage[]> {
 }
 
 export function clearDraftRefs(): void {
-  try { sessionStorage.removeItem(DRAFT_REFS_KEY) } catch { /* noop */ }
+  try {
+    sessionStorage.removeItem(DRAFT_REFS_KEY)
+  } catch {
+    /* noop */
+  }
 }

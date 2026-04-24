@@ -7,8 +7,8 @@ export type TokenUsage = {
   inputTokens: number
   inputTextTokens?: number
   inputImageTokens?: number
-  imageOutputTokens: number  // image modality output tokens (drives most of the cost)
-  textOutputTokens: number   // text + thinking output tokens
+  imageOutputTokens: number // image modality output tokens (drives most of the cost)
+  textOutputTokens: number // text + thinking output tokens
   totalTokens: number
 }
 

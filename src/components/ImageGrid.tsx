@@ -84,9 +84,7 @@ export function ImageGrid({ children, maxRowHeight }: ImageGridProps) {
       const cols = getGridCols(width)
       const colWidth = (width - (cols - 1) * GRID_GAP) / cols
       const baseRowHeight = Math.max(72, Math.round(colWidth))
-      const nextRowHeight = maxRowHeight !== undefined
-        ? Math.min(baseRowHeight, maxRowHeight)
-        : baseRowHeight
+      const nextRowHeight = maxRowHeight !== undefined ? Math.min(baseRowHeight, maxRowHeight) : baseRowHeight
 
       setGridCols((prev) => (prev === cols ? prev : cols))
       setRowHeight((prev) => (prev === nextRowHeight ? prev : nextRowHeight))
@@ -126,9 +124,7 @@ type GridCellProps = {
 
 export function GridCell({ children, aspectRatio, cols, rows }: GridCellProps) {
   const gridCols = useContext(GridColsContext)
-  const baseSpan = aspectRatio
-    ? getGridSpan(aspectRatio)
-    : { cols: cols ?? 1, rows: rows ?? 1 }
+  const baseSpan = aspectRatio ? getGridSpan(aspectRatio) : { cols: cols ?? 1, rows: rows ?? 1 }
   const span = normalizeGridSpan(baseSpan, gridCols)
 
   return (

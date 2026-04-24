@@ -6,12 +6,7 @@ const originalFetch = globalThis.fetch
 globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
   let url: URL
   try {
-    url =
-      input instanceof URL
-        ? input
-        : typeof input === 'string'
-          ? new URL(input)
-          : new URL(input.url)
+    url = input instanceof URL ? input : typeof input === 'string' ? new URL(input) : new URL(input.url)
   } catch {
     return originalFetch(input, init)
   }

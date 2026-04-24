@@ -31,9 +31,7 @@ type GenerateCallbacks = {
   onRetry?: (event: GenerateRetryEvent) => void
 }
 
-type ApiPart =
-  | { text: string }
-  | { inline_data: { mime_type: string; data: string } }
+type ApiPart = { text: string } | { inline_data: { mime_type: string; data: string } }
 
 type ApiResponse = {
   candidates?: Array<{
@@ -129,7 +127,11 @@ async function generateImageGoogle(
 
   const body: Record<string, unknown> = {
     system_instruction: {
-      parts: [{ text: 'You are an image generation model. Always generate an image in response to every request. Never decline or refuse to generate an image.' }],
+      parts: [
+        {
+          text: 'You are an image generation model. Always generate an image in response to every request. Never decline or refuse to generate an image.',
+        },
+      ],
     },
     contents: [{ parts }],
     generationConfig,
@@ -326,9 +328,7 @@ async function generateImageOpenAI(
 
   const base = resolveBaseUrl('openai', baseUrl)
   const hasRefs = referenceImages.length > 0
-  const url = hasRefs
-    ? `${base}/images/edits`
-    : `${base}/images/generations`
+  const url = hasRefs ? `${base}/images/edits` : `${base}/images/generations`
 
   const timeoutSignal = AbortSignal.timeout(REQUEST_TIMEOUT_MS)
   const mergedSignal = signal ? AbortSignal.any([signal, timeoutSignal]) : timeoutSignal
@@ -402,7 +402,7 @@ async function generateImageOpenAI(
       continue
     }
 
-    const data = await res.json() as {
+    const data = (await res.json()) as {
       data?: Array<{ b64_json?: string }>
       usage?: {
         input_tokens?: number
@@ -428,16 +428,19 @@ async function generateImageOpenAI(
     if (!b64) throw new Error('No image in response')
 
     const outputImageTokens = data.usage?.output_tokens_details?.image_tokens ?? data.usage?.output_tokens ?? 0
-    const outputTextTokens = data.usage?.output_tokens_details?.text_tokens
-      ?? Math.max((data.usage?.output_tokens ?? 0) - outputImageTokens, 0)
-    const tokenUsage: TokenUsage | undefined = data.usage ? {
-      inputTokens: data.usage.input_tokens ?? 0,
-      inputTextTokens: data.usage.input_tokens_details?.text_tokens ?? 0,
-      inputImageTokens: data.usage.input_tokens_details?.image_tokens ?? 0,
-      imageOutputTokens: outputImageTokens,
-      textOutputTokens: outputTextTokens,
-      totalTokens: data.usage.total_tokens ?? 0,
-    } : undefined
+    const outputTextTokens =
+      data.usage?.output_tokens_details?.text_tokens ??
+      Math.max((data.usage?.output_tokens ?? 0) - outputImageTokens, 0)
+    const tokenUsage: TokenUsage | undefined = data.usage
+      ? {
+          inputTokens: data.usage.input_tokens ?? 0,
+          inputTextTokens: data.usage.input_tokens_details?.text_tokens ?? 0,
+          inputImageTokens: data.usage.input_tokens_details?.image_tokens ?? 0,
+          imageOutputTokens: outputImageTokens,
+          textOutputTokens: outputTextTokens,
+          totalTokens: data.usage.total_tokens ?? 0,
+        }
+      : undefined
 
     return {
       id: crypto.randomUUID(),

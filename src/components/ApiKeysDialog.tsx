@@ -38,7 +38,9 @@ const LABELS: Record<Provider, { label: string; placeholder: string; hint: strin
 export function ApiKeysDialog({ open, googleKey, openaiKey, onClose }: Props) {
   useEffect(() => {
     if (!open) return
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [open, onClose])
@@ -57,12 +59,7 @@ export function ApiKeysDialog({ open, googleKey, openaiKey, onClose }: Props) {
       >
         <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-(--color-border)">
           <h2 className="font-display text-[13.5px] font-semibold tracking-[-0.01em]">API Keys</h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="icon-btn"
-            aria-label="关闭"
-          >
+          <button type="button" onClick={onClose} className="icon-btn" aria-label="关闭">
             <Icon name="close" size={13} />
           </button>
         </div>
@@ -84,14 +81,13 @@ function KeyRow({ provider, hook }: { provider: Provider; hook: KeyHook }) {
   const { apiKey, baseUrl, status, error, submit, reset } = hook
   const [draft, setDraft] = useState('')
   const [baseUrlDraft, setBaseUrlDraft] = useState(baseUrl)
+  const [baseUrlSyncKey, setBaseUrlSyncKey] = useState(baseUrl)
+  if (baseUrl !== baseUrlSyncKey) {
+    setBaseUrlSyncKey(baseUrl)
+    setBaseUrlDraft(baseUrl)
+  }
   const [justValidated, setJustValidated] = useState(false)
   const prevStatusRef = useRef(status)
-
-  // Keep the local base URL input in sync when the stored value changes
-  // (e.g. after a successful submit or reset from elsewhere).
-  useEffect(() => {
-    setBaseUrlDraft(baseUrl)
-  }, [baseUrl])
 
   // Detect the valid transition to briefly flash a "验证成功" state on the primary button.
   useEffect(() => {
@@ -190,7 +186,9 @@ function KeyRow({ provider, hook }: { provider: Provider; hook: KeyHook }) {
           type="password"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit() }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') handleSubmit()
+          }}
           placeholder={placeholder}
           disabled={isValidating}
           className="w-full rounded-[6px] bg-(--color-surface) px-2.5 py-1.5 text-[12.5px]
@@ -210,7 +208,9 @@ function KeyRow({ provider, hook }: { provider: Provider; hook: KeyHook }) {
             type="url"
             value={baseUrlDraft}
             onChange={(e) => setBaseUrlDraft(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit() }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleSubmit()
+            }}
             placeholder={baseUrlPlaceholder}
             spellCheck={false}
             autoComplete="off"

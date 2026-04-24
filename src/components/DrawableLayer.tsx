@@ -113,7 +113,10 @@ function paintItem(ctx: CanvasRenderingContext2D, item: DrawItem, paintColor: st
   if (item.kind === 'path') {
     ctx.lineWidth = item.size
     const pts = item.points
-    if (pts.length === 0) { ctx.restore(); return }
+    if (pts.length === 0) {
+      ctx.restore()
+      return
+    }
     if (pts.length === 1) {
       ctx.beginPath()
       ctx.arc(pts[0].x, pts[0].y, item.size / 2, 0, Math.PI * 2)
@@ -202,14 +205,19 @@ export const DrawableLayer = forwardRef<DrawableLayerHandle, Props>(function Dra
   // Persist items to cache whenever they change (write-through), and keep
   // the sync ref fresh so pointer handlers see the current list even if
   // multiple setState calls are batched.
-  const pushItems = useCallback((next: DrawItem[]) => {
-    itemsRef.current = next
-    setItems(next)
-    setEditItems(imageId, next)
-    onItemsChange?.(computeItemCounts(next))
-  }, [imageId, onItemsChange])
+  const pushItems = useCallback(
+    (next: DrawItem[]) => {
+      itemsRef.current = next
+      setItems(next)
+      setEditItems(imageId, next)
+      onItemsChange?.(computeItemCounts(next))
+    },
+    [imageId, onItemsChange],
+  )
 
-  useEffect(() => { itemsRef.current = items }, [items])
+  useEffect(() => {
+    itemsRef.current = items
+  }, [items])
 
   // Clear image state when src is removed (e.g. switching images).
   useEffect(() => {
@@ -244,7 +252,9 @@ export const DrawableLayer = forwardRef<DrawableLayerHandle, Props>(function Dra
     setStage({ w: Math.round(nat.w * ratio), h: Math.round(nat.h * ratio) })
   }, [natural])
 
-  useLayoutEffect(() => { recomputeStage() }, [recomputeStage])
+  useLayoutEffect(() => {
+    recomputeStage()
+  }, [recomputeStage])
 
   useEffect(() => {
     const el = containerRef.current
@@ -277,27 +287,35 @@ export const DrawableLayer = forwardRef<DrawableLayerHandle, Props>(function Dra
     }
   }, [natural, items, draft, mode])
 
-  useLayoutEffect(() => { redraw() }, [redraw])
+  useLayoutEffect(() => {
+    redraw()
+  }, [redraw])
 
-  const toNatural = useCallback((clientX: number, clientY: number): Point | null => {
-    const canvas = canvasRef.current
-    const nat = natural
-    if (!canvas || !nat || stage.w === 0 || stage.h === 0) return null
-    const rect = canvas.getBoundingClientRect()
-    const sx = (clientX - rect.left) / rect.width
-    const sy = (clientY - rect.top) / rect.height
-    if (sx < 0 || sx > 1 || sy < 0 || sy > 1) return null
-    return { x: sx * nat.w, y: sy * nat.h }
-  }, [natural, stage])
+  const toNatural = useCallback(
+    (clientX: number, clientY: number): Point | null => {
+      const canvas = canvasRef.current
+      const nat = natural
+      if (!canvas || !nat || stage.w === 0 || stage.h === 0) return null
+      const rect = canvas.getBoundingClientRect()
+      const sx = (clientX - rect.left) / rect.width
+      const sy = (clientY - rect.top) / rect.height
+      if (sx < 0 || sx > 1 || sy < 0 || sy > 1) return null
+      return { x: sx * nat.w, y: sy * nat.h }
+    },
+    [natural, stage],
+  )
 
   // Eraser hit-test deletes any item in the active layer that the drag
   // passes through. We deliberately skip items from the other layer — user
   // expects "standing on the mask layer" to never touch annotate strokes.
-  const eraseAt = useCallback((pt: Point) => {
-    const prev = itemsRef.current
-    const kept = prev.filter((item) => item.mode !== mode || !hitTestItem(item, pt))
-    if (kept.length !== prev.length) pushItems(kept)
-  }, [pushItems, mode])
+  const eraseAt = useCallback(
+    (pt: Point) => {
+      const prev = itemsRef.current
+      const kept = prev.filter((item) => item.mode !== mode || !hitTestItem(item, pt))
+      if (kept.length !== prev.length) pushItems(kept)
+    },
+    [pushItems, mode],
+  )
 
   const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
     if (e.pointerType === 'mouse' && e.button !== 0) return
@@ -309,15 +327,18 @@ export const DrawableLayer = forwardRef<DrawableLayerHandle, Props>(function Dra
       // brush presets don't produce oversized pins.
       const size = Math.min(22, Math.max(12, brushSize * 1.1))
       const n = nextStepNumber(itemsRef.current)
-      pushItems([...itemsRef.current, {
-        id: crypto.randomUUID(),
-        kind: 'step',
-        mode,
-        color: annotateColor,
-        size,
-        anchor: pt,
-        n,
-      }])
+      pushItems([
+        ...itemsRef.current,
+        {
+          id: crypto.randomUUID(),
+          kind: 'step',
+          mode,
+          color: annotateColor,
+          size,
+          anchor: pt,
+          n,
+        },
+      ])
       return
     }
 
@@ -403,77 +424,81 @@ export const DrawableLayer = forwardRef<DrawableLayerHandle, Props>(function Dra
   // behind. Reading the ref guarantees "always latest". undo/clear scope
   // to the current mode so the user never touches the hidden other layer.
   const ready = natural !== null && stage.w > 0
-  useImperativeHandle(ref, () => ({
-    isReady: () => ready,
-    hasItems: () => itemsRef.current.some((it) => it.mode === mode),
-    clear: () => {
-      const cur = itemsRef.current
-      const kept = cur.filter((it) => it.mode !== mode)
-      if (kept.length !== cur.length) pushItems(kept)
-    },
-    undo: () => {
-      const cur = itemsRef.current
-      for (let i = cur.length - 1; i >= 0; i--) {
-        if (cur[i].mode === mode) {
-          pushItems([...cur.slice(0, i), ...cur.slice(i + 1)])
-          return
+  useImperativeHandle(
+    ref,
+    () => ({
+      isReady: () => ready,
+      hasItems: () => itemsRef.current.some((it) => it.mode === mode),
+      clear: () => {
+        const cur = itemsRef.current
+        const kept = cur.filter((it) => it.mode !== mode)
+        if (kept.length !== cur.length) pushItems(kept)
+      },
+      undo: () => {
+        const cur = itemsRef.current
+        for (let i = cur.length - 1; i >= 0; i--) {
+          if (cur[i].mode === mode) {
+            pushItems([...cur.slice(0, i), ...cur.slice(i + 1)])
+            return
+          }
         }
-      }
-    },
-    exportAnnotated: async () => {
-      const img = imageRef.current
-      const nat = natural
-      if (!img || !nat) return null
-      const canvas = document.createElement('canvas')
-      canvas.width = nat.w
-      canvas.height = nat.h
-      const ctx = canvas.getContext('2d')
-      if (!ctx) return null
-      ctx.drawImage(img, 0, 0, nat.w, nat.h)
-      for (const item of itemsRef.current) {
-        if (item.mode !== 'annotate') continue
-        paintItem(ctx, item, item.color)
-      }
-      return { base64: dataUrlToBase64(canvas.toDataURL('image/png')), mimeType: 'image/png' as const }
-    },
-    exportMaskAlpha: async () => {
-      const nat = natural
-      if (!nat) return null
-      const canvas = document.createElement('canvas')
-      canvas.width = nat.w
-      canvas.height = nat.h
-      const ctx = canvas.getContext('2d')
-      if (!ctx) return null
-      // White-opaque background; alpha=0 strokes mark the edit region per the
-      // OpenAI images.edits spec. Text items are intentionally skipped — a
-      // label's bounding box rarely matches what the user wants masked.
-      ctx.fillStyle = '#ffffff'
-      ctx.fillRect(0, 0, nat.w, nat.h)
-      ctx.globalCompositeOperation = 'destination-out'
-      for (const item of itemsRef.current) {
-        if (item.mode !== 'mask') continue
-        paintItem(ctx, item, '#ffffff')
-      }
-      ctx.globalCompositeOperation = 'source-over'
-      return { base64: dataUrlToBase64(canvas.toDataURL('image/png')), mimeType: 'image/png' as const }
-    },
-    exportMaskRedOverlay: async () => {
-      const img = imageRef.current
-      const nat = natural
-      if (!img || !nat) return null
-      const canvas = document.createElement('canvas')
-      canvas.width = nat.w
-      canvas.height = nat.h
-      const ctx = canvas.getContext('2d')
-      if (!ctx) return null
-      ctx.drawImage(img, 0, 0, nat.w, nat.h)
-      for (const item of itemsRef.current) {
-        if (item.mode !== 'mask') continue
-        paintItem(ctx, item, MASK_OVERLAY_COLOR)
-      }
-      return { base64: dataUrlToBase64(canvas.toDataURL('image/png')), mimeType: 'image/png' as const }
-    },
-  }), [natural, pushItems, mode, ready])
+      },
+      exportAnnotated: async () => {
+        const img = imageRef.current
+        const nat = natural
+        if (!img || !nat) return null
+        const canvas = document.createElement('canvas')
+        canvas.width = nat.w
+        canvas.height = nat.h
+        const ctx = canvas.getContext('2d')
+        if (!ctx) return null
+        ctx.drawImage(img, 0, 0, nat.w, nat.h)
+        for (const item of itemsRef.current) {
+          if (item.mode !== 'annotate') continue
+          paintItem(ctx, item, item.color)
+        }
+        return { base64: dataUrlToBase64(canvas.toDataURL('image/png')), mimeType: 'image/png' as const }
+      },
+      exportMaskAlpha: async () => {
+        const nat = natural
+        if (!nat) return null
+        const canvas = document.createElement('canvas')
+        canvas.width = nat.w
+        canvas.height = nat.h
+        const ctx = canvas.getContext('2d')
+        if (!ctx) return null
+        // White-opaque background; alpha=0 strokes mark the edit region per the
+        // OpenAI images.edits spec. Text items are intentionally skipped — a
+        // label's bounding box rarely matches what the user wants masked.
+        ctx.fillStyle = '#ffffff'
+        ctx.fillRect(0, 0, nat.w, nat.h)
+        ctx.globalCompositeOperation = 'destination-out'
+        for (const item of itemsRef.current) {
+          if (item.mode !== 'mask') continue
+          paintItem(ctx, item, '#ffffff')
+        }
+        ctx.globalCompositeOperation = 'source-over'
+        return { base64: dataUrlToBase64(canvas.toDataURL('image/png')), mimeType: 'image/png' as const }
+      },
+      exportMaskRedOverlay: async () => {
+        const img = imageRef.current
+        const nat = natural
+        if (!img || !nat) return null
+        const canvas = document.createElement('canvas')
+        canvas.width = nat.w
+        canvas.height = nat.h
+        const ctx = canvas.getContext('2d')
+        if (!ctx) return null
+        ctx.drawImage(img, 0, 0, nat.w, nat.h)
+        for (const item of itemsRef.current) {
+          if (item.mode !== 'mask') continue
+          paintItem(ctx, item, MASK_OVERLAY_COLOR)
+        }
+        return { base64: dataUrlToBase64(canvas.toDataURL('image/png')), mimeType: 'image/png' as const }
+      },
+    }),
+    [natural, pushItems, mode, ready],
+  )
 
   const cursor = tool === 'eraser' ? 'cell' : 'crosshair'
 
@@ -492,7 +517,9 @@ export const DrawableLayer = forwardRef<DrawableLayerHandle, Props>(function Dra
           maxHeight: '100%',
           borderRadius: 8,
           overflow: 'hidden',
-          boxShadow: ready ? '0 0 0 1px var(--ring-edge-strong), 0 30px 60px -24px rgba(0,0,0,0.3), 0 4px 10px rgba(0,0,0,0.06)' : 'none',
+          boxShadow: ready
+            ? '0 0 0 1px var(--ring-edge-strong), 0 30px 60px -24px rgba(0,0,0,0.3), 0 4px 10px rgba(0,0,0,0.06)'
+            : 'none',
         }}
       >
         <img

@@ -76,7 +76,7 @@ async function ensurePreviewLoaded(id: string, mimeType: string, inlineData?: st
     return storedPreview
   }
 
-  const original = inlineData ?? blobCache.get(id) ?? await loadImageBlob(id)
+  const original = inlineData ?? blobCache.get(id) ?? (await loadImageBlob(id))
   if (!original) return null
 
   blobCache.set(id, original)
@@ -107,9 +107,7 @@ export function useImageSrc(
   }
 
   const [src, setSrc] = useState<string | null>(() => {
-    const cached = variant === 'preview'
-      ? previewCache.get(id)
-      : (inlineData ?? blobCache.get(id))
+    const cached = variant === 'preview' ? previewCache.get(id) : (inlineData ?? blobCache.get(id))
     return cached ? toDataUrl(mimeType, cached) : null
   })
 
@@ -117,12 +115,15 @@ export function useImageSrc(
 
   // Sync src from cache when inputs change (render-time state adjustment)
   const [prevInputs, setPrevInputs] = useState({ id, variant, mimeType, inlineData })
-  if (prevInputs.id !== id || prevInputs.variant !== variant || prevInputs.mimeType !== mimeType || prevInputs.inlineData !== inlineData) {
+  if (
+    prevInputs.id !== id ||
+    prevInputs.variant !== variant ||
+    prevInputs.mimeType !== mimeType ||
+    prevInputs.inlineData !== inlineData
+  ) {
     setPrevInputs({ id, variant, mimeType, inlineData })
 
-    const cached = variant === 'preview'
-      ? previewCache.get(id)
-      : (inlineData ?? blobCache.get(id))
+    const cached = variant === 'preview' ? previewCache.get(id) : (inlineData ?? blobCache.get(id))
     if (cached) {
       const nextSrc = toDataUrl(mimeType, cached)
       if (src !== nextSrc) setSrc(nextSrc)
@@ -133,9 +134,7 @@ export function useImageSrc(
 
   useEffect(() => {
     // Skip if cache already has it (sync path handled it)
-    const cached = variant === 'preview'
-      ? previewCache.get(id)
-      : (inlineData ?? blobCache.get(id))
+    const cached = variant === 'preview' ? previewCache.get(id) : (inlineData ?? blobCache.get(id))
     if (cached) return
 
     const element = ref.current
@@ -144,9 +143,10 @@ export function useImageSrc(
     let cancelled = false
 
     const load = async () => {
-      const data = variant === 'preview'
-        ? await ensurePreviewLoaded(id, mimeType, inlineData)
-        : inlineData ?? blobCache.get(id) ?? await loadImageBlob(id)
+      const data =
+        variant === 'preview'
+          ? await ensurePreviewLoaded(id, mimeType, inlineData)
+          : (inlineData ?? blobCache.get(id) ?? (await loadImageBlob(id)))
 
       if (!data || cancelled) return
 

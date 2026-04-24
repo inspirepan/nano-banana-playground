@@ -1,22 +1,26 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --font-sans: 'Roboto Variable', 'Roboto', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei UI', 'Microsoft YaHei', 'Source Han Sans SC', 'Noto Sans CJK SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-  --font-mono: 'Roboto Mono Variable', 'Roboto Mono', ui-monospace, SFMono-Regular, 'SF Mono', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', monospace;
+  --font-sans:
+    'Roboto Variable', 'Roboto', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei UI', 'Microsoft YaHei',
+    'Source Han Sans SC', 'Noto Sans CJK SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --font-mono:
+    'Roboto Mono Variable', 'Roboto Mono', ui-monospace, SFMono-Regular, 'SF Mono', 'PingFang SC', 'Hiragino Sans GB',
+    'Microsoft YaHei', monospace;
   --font-display: var(--font-sans);
 
   /* 13px base — Linear-style dense rhythm */
-  --text-xs: 0.6875rem;     /* 11px */
+  --text-xs: 0.6875rem; /* 11px */
   --text-xs--line-height: 1rem;
-  --text-sm: 0.75rem;       /* 12px */
+  --text-sm: 0.75rem; /* 12px */
   --text-sm--line-height: 1.1rem;
-  --text-base: 0.8125rem;   /* 13px */
+  --text-base: 0.8125rem; /* 13px */
   --text-base--line-height: 1.45;
-  --text-md: 0.875rem;      /* 14px */
+  --text-md: 0.875rem; /* 14px */
   --text-md--line-height: 1.35;
-  --text-lg: 0.9375rem;     /* 15px */
+  --text-lg: 0.9375rem; /* 15px */
   --text-lg--line-height: 1.35;
 
   /* Neutrals — warm stone à la Linear */
@@ -222,7 +226,9 @@
 }
 
 @layer base {
-  html, body, #root {
+  html,
+  body,
+  #root {
     margin: 0;
     height: 100%;
   }
@@ -245,27 +251,41 @@
     letter-spacing: -0.005em;
   }
 
-  *:focus { outline: none; }
+  *:focus {
+    outline: none;
+  }
   *:focus-visible {
     outline: 1.5px solid var(--color-accent);
     outline-offset: 1px;
     border-radius: 4px;
   }
 
-  input, textarea, select, button {
+  input,
+  textarea,
+  select,
+  button {
     font: inherit;
     color: inherit;
   }
-  textarea { resize: none; }
-  button { cursor: pointer; -webkit-tap-highlight-color: transparent; }
-  button:disabled { cursor: not-allowed; }
+  textarea {
+    resize: none;
+  }
+  button {
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  button:disabled {
+    cursor: not-allowed;
+  }
 
   /* Scrollbars: near-invisible, Linear-style */
   ::-webkit-scrollbar {
     width: 10px;
     height: 10px;
   }
-  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
   ::-webkit-scrollbar-thumb {
     background: transparent;
     border: 3px solid transparent;
@@ -332,7 +352,10 @@
     align-items: center;
     gap: 6px;
     box-shadow: inset 0 0 0 1px var(--ring-edge);
-    transition: background 120ms, box-shadow 120ms, color 120ms;
+    transition:
+      background 120ms,
+      box-shadow 120ms,
+      color 120ms;
     white-space: nowrap;
   }
   .chip:hover:not(:disabled) {
@@ -340,12 +363,12 @@
     color: var(--color-text);
     box-shadow: inset 0 0 0 1px var(--ring-edge-strong);
   }
-  .chip[data-active="true"] {
+  .chip[data-active='true'] {
     background: var(--color-accent-wash);
     color: var(--color-accent);
     box-shadow: inset 0 0 0 1px var(--color-accent-wash-2);
   }
-  .chip[data-active="true"]:hover:not(:disabled) {
+  .chip[data-active='true']:hover:not(:disabled) {
     background: var(--color-accent-wash-2);
     color: var(--color-accent);
     box-shadow: inset 0 0 0 1px var(--color-accent-wash-2);
@@ -354,7 +377,10 @@
     background: transparent;
     box-shadow: none;
   }
-  .chip.ghost:hover:not(:disabled) { background: var(--color-surface-2); box-shadow: none; }
+  .chip.ghost:hover:not(:disabled) {
+    background: var(--color-surface-2);
+    box-shadow: none;
+  }
 
   .chip.accent-active {
     background: var(--color-accent);
@@ -404,14 +430,18 @@
     color: var(--color-text-3);
     background: transparent;
     border: 0;
-    transition: background 120ms, color 120ms;
+    transition:
+      background 120ms,
+      color 120ms;
     flex-shrink: 0;
   }
   .icon-btn:hover:not(:disabled) {
     background: var(--color-surface-2);
     color: var(--color-text);
   }
-  .icon-btn:disabled { opacity: 0.4; }
+  .icon-btn:disabled {
+    opacity: 0.4;
+  }
 
   /* Primary CTA — outer ring instead of solid border keeps the drop shadow clean */
   .cta {
@@ -427,22 +457,29 @@
     align-items: center;
     justify-content: center;
     gap: 10px;
-    transition: filter 120ms, transform 60ms, background 120ms;
+    transition:
+      filter 120ms,
+      transform 60ms,
+      background 120ms;
     box-shadow:
       0 0 0 1px color-mix(in srgb, var(--color-accent) 50%, #000 8%),
-      inset 0 1px 0 rgba(255,255,255,0.15),
-      0 1px 2px rgba(0,0,0,0.12);
+      inset 0 1px 0 rgba(255, 255, 255, 0.15),
+      0 1px 2px rgba(0, 0, 0, 0.12);
   }
-  .cta:hover:not(:disabled) { filter: brightness(1.06); }
-  .cta:active:not(:disabled) { transform: translateY(0.5px); }
+  .cta:hover:not(:disabled) {
+    filter: brightness(1.06);
+  }
+  .cta:active:not(:disabled) {
+    transform: translateY(0.5px);
+  }
   .cta:disabled {
     background: var(--color-surface-3);
     color: var(--color-text-4);
     box-shadow: inset 0 0 0 1px var(--ring-edge);
   }
   .cta kbd {
-    background: rgba(255,255,255,0.15);
-    border-color: rgba(255,255,255,0.2);
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.2);
     color: color-mix(in srgb, var(--color-accent-fg) 75%, transparent);
   }
   .cta:disabled kbd {
@@ -455,8 +492,8 @@
     color: #fff;
     box-shadow:
       0 0 0 1px color-mix(in srgb, var(--color-danger) 50%, #000 10%),
-      inset 0 1px 0 rgba(255,255,255,0.15),
-      0 1px 2px rgba(0,0,0,0.12);
+      inset 0 1px 0 rgba(255, 255, 255, 0.15),
+      0 1px 2px rgba(0, 0, 0, 0.12);
   }
 
   /* Segmented control — sliding thumb driven by --seg-index / --seg-count.
@@ -488,8 +525,9 @@
     box-shadow:
       0 0 0 1px rgba(0, 0, 0, 0.08),
       0 1px 2px rgba(0, 0, 0, 0.05);
-    transition: transform 260ms cubic-bezier(0.4, 0, 0.2, 1),
-                width 260ms cubic-bezier(0.4, 0, 0.2, 1);
+    transition:
+      transform 260ms cubic-bezier(0.4, 0, 0.2, 1),
+      width 260ms cubic-bezier(0.4, 0, 0.2, 1);
     pointer-events: none;
     z-index: 0;
   }
@@ -523,10 +561,10 @@
     white-space: nowrap;
     transition: color 160ms ease;
   }
-  .segmented button[data-active="true"] {
+  .segmented button[data-active='true'] {
     color: var(--color-text);
   }
-  .segmented button:hover:not([data-active="true"]):not(:disabled) {
+  .segmented button:hover:not([data-active='true']):not(:disabled) {
     color: var(--color-text);
   }
 
@@ -544,7 +582,10 @@
     font-weight: 500;
     font-variant-numeric: tabular-nums;
     box-shadow: inset 0 0 0 1px var(--ring-edge);
-    transition: background 120ms, box-shadow 120ms, color 120ms;
+    transition:
+      background 120ms,
+      box-shadow 120ms,
+      color 120ms;
     position: relative;
     padding: 0 6px;
     gap: 6px;
@@ -553,12 +594,12 @@
     color: var(--color-text-2);
     box-shadow: inset 0 0 0 1px var(--ring-edge-strong);
   }
-  .aspect-tile[data-active="true"] {
+  .aspect-tile[data-active='true'] {
     background: var(--color-accent-wash);
     color: var(--color-accent);
     box-shadow: inset 0 0 0 1px var(--color-accent-wash-2);
   }
-  .aspect-tile[data-active="true"]:hover {
+  .aspect-tile[data-active='true']:hover {
     background: var(--color-accent-wash-2);
     color: var(--color-accent);
     box-shadow: inset 0 0 0 1px var(--color-accent-wash-2);
@@ -569,9 +610,15 @@
     border-radius: 2px;
     flex-shrink: 0;
   }
-  .aspect-tile[data-active="true"] .glyph { background: var(--color-accent); }
-  .dark .aspect-tile .glyph { background: #48484f; }
-  .dark .aspect-tile[data-active="true"] .glyph { background: var(--color-accent); }
+  .aspect-tile[data-active='true'] .glyph {
+    background: var(--color-accent);
+  }
+  .dark .aspect-tile .glyph {
+    background: #48484f;
+  }
+  .dark .aspect-tile[data-active='true'] .glyph {
+    background: var(--color-accent);
+  }
 
   /* Prompt textarea wrapper */
   .prompt-wrap {
@@ -592,7 +639,9 @@
     border: 1px dashed var(--color-border-strong);
     background: var(--color-surface);
     border-radius: var(--radius-md);
-    transition: border-color 120ms, background 120ms;
+    transition:
+      border-color 120ms,
+      background 120ms;
   }
   .dropzone:hover {
     border-color: var(--color-text-3);
@@ -667,8 +716,10 @@
       inset 0 0 0 1px var(--ring-edge),
       0 0 0 1px var(--ring-edge),
       0 1px 2px rgba(0, 0, 0, 0.04),
-      0 8px 20px -10px rgba(0, 0, 0, 0.10);
-    transition: box-shadow 160ms ease, transform 160ms ease;
+      0 8px 20px -10px rgba(0, 0, 0, 0.1);
+    transition:
+      box-shadow 160ms ease,
+      transform 160ms ease;
   }
   .img-card:hover {
     box-shadow:
@@ -678,8 +729,9 @@
       0 16px 32px -12px rgba(0, 0, 0, 0.14);
   }
   .img-card .overlay {
-    position: absolute; inset: 0;
-    background: linear-gradient(to top, rgba(0,0,0,0.6), transparent 40%);
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.6), transparent 40%);
     opacity: 0;
     transition: opacity 160ms;
     display: flex;
@@ -723,57 +775,75 @@
 
   /* Animations */
   @keyframes shimmer {
-    0% { background-position: -400px 0; }
-    100% { background-position: 400px 0; }
+    0% {
+      background-position: -400px 0;
+    }
+    100% {
+      background-position: 400px 0;
+    }
   }
   .skeleton-animated {
-    background: linear-gradient(90deg,
+    background: linear-gradient(
+      90deg,
       var(--color-surface-2) 0%,
       var(--color-surface-3) 50%,
-      var(--color-surface-2) 100%);
+      var(--color-surface-2) 100%
+    );
     background-size: 800px 100%;
     animation: shimmer 1.8s linear infinite;
   }
 
   /* Legacy shimmer class for old inline skeletons */
   @keyframes legacy-shimmer {
-    0% { transform: rotate(45deg) translateX(-60%); }
-    100% { transform: rotate(45deg) translateX(60%); }
+    0% {
+      transform: rotate(45deg) translateX(-60%);
+    }
+    100% {
+      transform: rotate(45deg) translateX(60%);
+    }
   }
   .skeleton-shimmer {
     top: -100%;
     left: -100%;
     width: 300%;
     height: 300%;
-    background: linear-gradient(
-      to right,
-      transparent 35%,
-      rgba(0, 0, 0, 0.05) 50%,
-      transparent 65%
-    );
+    background: linear-gradient(to right, transparent 35%, rgba(0, 0, 0, 0.05) 50%, transparent 65%);
     animation: legacy-shimmer 2s ease-in-out infinite;
   }
   .dark .skeleton-shimmer {
-    background: linear-gradient(
-      to right,
-      transparent 35%,
-      rgba(255, 255, 255, 0.08) 50%,
-      transparent 65%
-    );
+    background: linear-gradient(to right, transparent 35%, rgba(255, 255, 255, 0.08) 50%, transparent 65%);
   }
 
   @keyframes fadeSlide {
-    from { opacity: 0; transform: translateY(4px); }
-    to   { opacity: 1; transform: translateY(0); }
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
-  .fade-in { animation: fadeSlide 200ms ease-out; }
+  .fade-in {
+    animation: fadeSlide 200ms ease-out;
+  }
 
   @keyframes slideUp {
-    from { opacity: 0; translate: 0 12px; }
-    to { opacity: 1; translate: 0 0; }
+    from {
+      opacity: 0;
+      translate: 0 12px;
+    }
+    to {
+      opacity: 1;
+      translate: 0 0;
+    }
   }
 
-  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
   .spinner {
     width: 12px;
     height: 12px;

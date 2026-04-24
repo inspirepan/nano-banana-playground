@@ -16,7 +16,17 @@ type Props = {
   onOpen: (image: PlaygroundImageMeta) => void
 }
 
-export const ImageCard = memo(function ImageCard({ image, inlineData, index, actionMode = 'full', onAddToRef, onEdit, onRegenerate, onRemove, onOpen }: Props) {
+export const ImageCard = memo(function ImageCard({
+  image,
+  inlineData,
+  index,
+  actionMode = 'full',
+  onAddToRef,
+  onEdit,
+  onRegenerate,
+  onRemove,
+  onOpen,
+}: Props) {
   const CONTEXT_MENU_WIDTH = 160
   const CONTEXT_MENU_ITEM_HEIGHT = 32
   const CONTEXT_MENU_PADDING = 8
@@ -83,7 +93,9 @@ export const ImageCard = memo(function ImageCard({ image, inlineData, index, act
   useEffect(() => {
     if (!menu) return
     const handleClose = () => setMenu(null)
-    const handleEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') setMenu(null) }
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMenu(null)
+    }
     window.addEventListener('mousedown', handleClose)
     window.addEventListener('scroll', handleClose, true)
     window.addEventListener('resize', handleClose)
@@ -155,7 +167,9 @@ export const ImageCard = memo(function ImageCard({ image, inlineData, index, act
           >
             #{index + 1}
           </span>
-        ) : <span />}
+        ) : (
+          <span />
+        )}
         {meta && (
           <span className="mono text-[10px]" style={{ opacity: 0.85 }}>
             {meta.resolution} · {meta.aspectRatio}
@@ -167,7 +181,10 @@ export const ImageCard = memo(function ImageCard({ image, inlineData, index, act
       <div
         className={`pointer-events-none absolute inset-x-0 top-1/2 z-10 flex -translate-y-1/2 justify-center transition-all duration-300 ${toast ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}`}
       >
-        <div className="rounded-[6px] px-3 py-1.5 text-[11px] font-medium" style={{ background: 'rgba(0,0,0,0.7)', color: '#fff', backdropFilter: 'blur(8px)' }}>
+        <div
+          className="rounded-[6px] px-3 py-1.5 text-[11px] font-medium"
+          style={{ background: 'rgba(0,0,0,0.7)', color: '#fff', backdropFilter: 'blur(8px)' }}
+        >
           已复制
         </div>
       </div>
@@ -177,7 +194,10 @@ export const ImageCard = memo(function ImageCard({ image, inlineData, index, act
         <div className="flex gap-1.5 items-center">
           <button
             type="button"
-            onClick={(e) => { e.stopPropagation(); handleDownload() }}
+            onClick={(e) => {
+              e.stopPropagation()
+              handleDownload()
+            }}
             className="inline-flex items-center gap-1 rounded-[5px] px-2.5 py-1.5 text-[11px] font-medium whitespace-nowrap"
             style={{ background: 'rgba(255,255,255,0.95)', color: '#111', border: 0 }}
           >
@@ -186,7 +206,15 @@ export const ImageCard = memo(function ImageCard({ image, inlineData, index, act
           {!downloadOnly && (
             <>
               {onEdit && (
-                <OverlayButton icon="wand" onClick={(e) => { e.stopPropagation(); onEdit(image) }}>编辑</OverlayButton>
+                <OverlayButton
+                  icon="wand"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onEdit(image)
+                  }}
+                >
+                  编辑
+                </OverlayButton>
               )}
               <span className="flex-1" />
               <OverlayButton
@@ -196,7 +224,10 @@ export const ImageCard = memo(function ImageCard({ image, inlineData, index, act
                   const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
                   // Open above-left of the button so it doesn't clip the card
                   const menuHeight = actionItems.length * CONTEXT_MENU_ITEM_HEIGHT + CONTEXT_MENU_PADDING
-                  const x = Math.max(8, Math.min(rect.right - CONTEXT_MENU_WIDTH, window.innerWidth - CONTEXT_MENU_WIDTH - 8))
+                  const x = Math.max(
+                    8,
+                    Math.min(rect.right - CONTEXT_MENU_WIDTH, window.innerWidth - CONTEXT_MENU_WIDTH - 8),
+                  )
                   const y = Math.max(8, rect.top - menuHeight - 4)
                   setMenu({ x, y })
                 }}
@@ -206,35 +237,42 @@ export const ImageCard = memo(function ImageCard({ image, inlineData, index, act
         </div>
       </div>
 
-      {!downloadOnly && menu && createPortal(
-        <div
-          style={{ top: menu.y, left: menu.x }}
-          onMouseDown={(e) => e.stopPropagation()}
-          className="fixed z-[120] min-w-[140px] rounded-[8px] bg-(--color-surface) p-1 shadow-[0_0_0_1px_var(--ring-edge),0_10px_28px_-12px_rgba(30,27,20,0.18),0_2px_6px_rgba(30,27,20,0.06)]"
-        >
-          {actionItems.map((item) => (
-            <button
-              key={item.label}
-              type="button"
-              onClick={(event) => {
-                event.stopPropagation()
-                setMenu(null)
-                item.onClick()
-              }}
-              className={`flex w-full items-center rounded-[5px] px-2.5 py-1.5 text-left text-[12px] transition-colors
+      {!downloadOnly &&
+        menu &&
+        createPortal(
+          <div
+            style={{ top: menu.y, left: menu.x }}
+            onMouseDown={(e) => e.stopPropagation()}
+            className="fixed z-[120] min-w-[140px] rounded-[8px] bg-(--color-surface) p-1 shadow-[0_0_0_1px_var(--ring-edge),0_10px_28px_-12px_rgba(30,27,20,0.18),0_2px_6px_rgba(30,27,20,0.06)]"
+          >
+            {actionItems.map((item) => (
+              <button
+                key={item.label}
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation()
+                  setMenu(null)
+                  item.onClick()
+                }}
+                className={`flex w-full items-center rounded-[5px] px-2.5 py-1.5 text-left text-[12px] transition-colors
                 ${item.danger ? 'text-(--color-danger) hover:bg-(--color-danger-soft)' : 'text-(--color-text) hover:bg-(--color-surface-2)'}`}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>,
-        document.body,
-      )}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>,
+          document.body,
+        )}
     </div>
   )
 })
 
-function OverlayButton({ icon, onClick, children, danger }: {
+function OverlayButton({
+  icon,
+  onClick,
+  children,
+  danger,
+}: {
   icon: 'plus' | 'refresh' | 'copy' | 'trash' | 'more' | 'wand'
   onClick: (e: React.MouseEvent) => void
   children?: React.ReactNode

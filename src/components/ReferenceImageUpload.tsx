@@ -13,7 +13,16 @@ type Props = {
   onClearError: () => void
 }
 
-export function ReferenceImageUpload({ images, maxTotal, dragOver, error, onAdd, onRemove, onClearAll, onClearError }: Props) {
+export function ReferenceImageUpload({
+  images,
+  maxTotal,
+  dragOver,
+  error,
+  onAdd,
+  onRemove,
+  onClearAll,
+  onClearError,
+}: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
 
   const handleFileSelect = useCallback(
@@ -44,7 +53,9 @@ export function ReferenceImageUpload({ images, maxTotal, dragOver, error, onAdd,
               清空
             </button>
           )}
-          <span className="mono text-[11px] text-(--color-text-4)">{images.length}/{maxTotal}</span>
+          <span className="mono text-[11px] text-(--color-text-4)">
+            {images.length}/{maxTotal}
+          </span>
         </div>
       </div>
       <div className="grid grid-cols-5 gap-1.5">
@@ -59,12 +70,7 @@ export function ReferenceImageUpload({ images, maxTotal, dragOver, error, onAdd,
               className="absolute inset-0 w-full h-full object-cover"
               draggable={false}
             />
-            <button
-              type="button"
-              onClick={() => onRemove(img.id)}
-              aria-label="移除参考图"
-              className="ref-thumb-close"
-            >
+            <button type="button" onClick={() => onRemove(img.id)} aria-label="移除参考图" className="ref-thumb-close">
               <Icon name="close" size={9} strokeWidth={2.4} />
             </button>
           </div>
@@ -81,8 +87,10 @@ export function ReferenceImageUpload({ images, maxTotal, dragOver, error, onAdd,
         )}
       </div>
       {error && (
-        <div className="mt-1.5 flex items-start gap-1.5 text-[11px] leading-[1.45] rounded-[6px] px-2 py-1.5"
-             style={{ color: 'var(--color-danger)', background: 'var(--color-danger-soft)' }}>
+        <div
+          className="mt-1.5 flex items-start gap-1.5 text-[11px] leading-[1.45] rounded-[6px] px-2 py-1.5"
+          style={{ color: 'var(--color-danger)', background: 'var(--color-danger-soft)' }}
+        >
           <Icon name="alert_circle" size={12} style={{ marginTop: 1, flexShrink: 0 }} />
           <span className="flex-1 whitespace-pre-wrap">{error}</span>
           <button
@@ -96,9 +104,7 @@ export function ReferenceImageUpload({ images, maxTotal, dragOver, error, onAdd,
           </button>
         </div>
       )}
-      <div className="text-[11px] text-(--color-text-4) mt-1.5">
-        拖拽文件、粘贴图片，或从历史中拖入
-      </div>
+      <div className="text-[11px] text-(--color-text-4) mt-1.5">拖拽文件、粘贴图片，或从历史中拖入</div>
       <input
         ref={inputRef}
         type="file"

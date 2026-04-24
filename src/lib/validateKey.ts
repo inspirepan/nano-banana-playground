@@ -43,20 +43,17 @@ export async function validateApiKey(
   const base = resolveBaseUrl(provider, baseUrl)
   try {
     if (provider === 'google') {
-      const res = await fetch(
-        `${base}/v1beta/models/gemini-3.1-flash-lite-preview:generateContent`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-goog-api-key': apiKey,
-          },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: 'Hi' }] }],
-            generationConfig: { maxOutputTokens: 1 },
-          }),
+      const res = await fetch(`${base}/v1beta/models/gemini-3.1-flash-lite-preview:generateContent`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': apiKey,
         },
-      )
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: 'Hi' }] }],
+          generationConfig: { maxOutputTokens: 1 },
+        }),
+      })
       const data = await res.json()
       if (!res.ok) return { valid: false, error: data.error?.message || `HTTP ${res.status}` }
       return { valid: true }

@@ -74,32 +74,28 @@ export function Tooltip({ text, children, placement = 'bottom', maxWidth = 240 }
   useEffect(() => () => window.clearTimeout(showTimerRef.current), [])
 
   return (
-    <div
-      ref={wrapperRef}
-      className="relative"
-      onMouseEnter={handleEnter}
-      onMouseLeave={handleLeave}
-    >
+    <div ref={wrapperRef} className="relative" onMouseEnter={handleEnter} onMouseLeave={handleLeave}>
       {children}
-      {visible && createPortal(
-        <div
-          ref={tooltipRef}
-          role="tooltip"
-          className="pointer-events-none fixed z-[9999] px-2.5 py-1.5 rounded-[6px] text-[11.5px] leading-[1.45] fade-in"
-          style={{
-            top: pos.top,
-            left: pos.left,
-            maxWidth,
-            width: 'max-content',
-            background: 'var(--color-text)',
-            color: 'var(--color-bg)',
-            boxShadow: '0 6px 16px -6px rgba(15,17,21,0.24), 0 2px 4px rgba(15,17,21,0.08)',
-          }}
-        >
-          {text}
-        </div>,
-        document.body,
-      )}
+      {visible &&
+        createPortal(
+          <div
+            ref={tooltipRef}
+            role="tooltip"
+            className="pointer-events-none fixed z-[9999] px-2.5 py-1.5 rounded-[6px] text-[11.5px] leading-[1.45] fade-in"
+            style={{
+              top: pos.top,
+              left: pos.left,
+              maxWidth,
+              width: 'max-content',
+              background: 'var(--color-text)',
+              color: 'var(--color-bg)',
+              boxShadow: '0 6px 16px -6px rgba(15,17,21,0.24), 0 2px 4px rgba(15,17,21,0.08)',
+            }}
+          >
+            {text}
+          </div>,
+          document.body,
+        )}
     </div>
   )
 }

@@ -34,6 +34,7 @@
 ```
 
 核心设计决策：
+
 - **配置驱动的模型能力**：新模型、分辨率、比例、quality、价格、上限统一在 `src/config/models.ts` 配置。
 - **共享编辑器状态**：`App.tsx` 同时渲染移动端和桌面端两套 `InputPanel`，共享状态必须放在 `usePlayground`，不要做面板内持久化分叉。
 - **统一图片模型**：上传图、历史图、生成图都走 `PlaygroundImage` / `PlaygroundImageMeta`，通过 `source.type` 区分来源。
@@ -42,13 +43,13 @@
 
 ## 技术栈
 
-| 层级 | 选择 |
-|------|------|
-| 框架 | React 19 + TypeScript 5.9 + Vite 8 |
-| 样式 | Tailwind CSS 4 + `src/index.css` 自定义 token / utility layer |
+| 层级 | 选择                                                                         |
+| ---- | ---------------------------------------------------------------------------- |
+| 框架 | React 19 + TypeScript 5.9 + Vite 8                                           |
+| 样式 | Tailwind CSS 4 + `src/index.css` 自定义 token / utility layer                |
 | 存储 | IndexedDB（图片/历史）+ localStorage（API Key / 外观）+ URL params（编辑态） |
-| 字体 | Roboto（正文 / 标题）+ Roboto Mono（等宽） |
-| 图标 | `lucide-react`，统一经由 `src/components/Icon.tsx` |
+| 字体 | Roboto（正文 / 标题）+ Roboto Mono（等宽）                                   |
+| 图标 | `lucide-react`，统一经由 `src/components/Icon.tsx`                           |
 
 禁止引入：CSS-in-JS、zustand/redux 等状态库、MUI/shadcn 等 UI 组件库。
 
@@ -84,17 +85,17 @@ src/
 
 ## 页面元素 → 组件映射
 
-| 页面区域 | 组件 |
-|----------|------|
-| 顶栏 / 外观 / 主色 | `App.tsx` 内联 topbar + `ThemeSettings` |
-| API Key 管理 | `ApiKeysDialog` |
-| 模型切换 | `InputPanel` 内 segmented control |
-| 分辨率 / Quality / 批次数量 | `InputPanel` + `ChipGroup` |
-| 宽高比选择 | `AspectRatioSelector` |
-| 参考图上传区 | `ReferenceImageUpload` |
-| 文本提示词 | `InputPanel` |
-| 草稿骨架 / 生成进度 / 历史批次 | `OutputPanel` + `ImageGrid` + `ImageCard` |
-| 全屏查看 / 缩放 / 对比 / 元数据 | `ImageDetailModal` |
+| 页面区域                        | 组件                                      |
+| ------------------------------- | ----------------------------------------- |
+| 顶栏 / 外观 / 主色              | `App.tsx` 内联 topbar + `ThemeSettings`   |
+| API Key 管理                    | `ApiKeysDialog`                           |
+| 模型切换                        | `InputPanel` 内 segmented control         |
+| 分辨率 / Quality / 批次数量     | `InputPanel` + `ChipGroup`                |
+| 宽高比选择                      | `AspectRatioSelector`                     |
+| 参考图上传区                    | `ReferenceImageUpload`                    |
+| 文本提示词                      | `InputPanel`                              |
+| 草稿骨架 / 生成进度 / 历史批次  | `OutputPanel` + `ImageGrid` + `ImageCard` |
+| 全屏查看 / 缩放 / 对比 / 元数据 | `ImageDetailModal`                        |
 
 > `AppTitle.tsx`、`HistoryDrawer.tsx`、`TopBar.tsx`、`src/lib/ripple.ts` 已删除。不要按旧文档把它们重新引回。
 

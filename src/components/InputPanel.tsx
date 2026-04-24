@@ -1,11 +1,6 @@
 import { useState, useRef, useCallback, useEffect, useLayoutEffect, type ReactNode } from 'react'
 import type { PlaygroundImage } from '../lib/types'
-import {
-  MODEL_CONFIGS,
-  type ModelConfig,
-  type ModelOption,
-  type ModelToggleOption,
-} from '../config/models'
+import { MODEL_CONFIGS, type ModelConfig, type ModelOption, type ModelToggleOption } from '../config/models'
 import type { GenerationQueueSummary } from '../hooks/usePlayground'
 import type { ApiKeyStatus } from '../hooks/useApiKey'
 import { openAISize } from '../lib/openai'
@@ -18,7 +13,17 @@ import { Tooltip } from './Tooltip'
 import { Icon } from './Icon'
 
 // ——— Section helper ———
-function Section({ label, right, hint, children }: { label: string; right?: ReactNode; hint?: ReactNode; children: ReactNode }) {
+function Section({
+  label,
+  right,
+  hint,
+  children,
+}: {
+  label: string
+  right?: ReactNode
+  hint?: ReactNode
+  children: ReactNode
+}) {
   return (
     <div className="mb-[18px]">
       <div className="flex items-center justify-between mb-1.5 min-h-[20px]">
@@ -158,12 +163,7 @@ function OptionSection({
   // Single ungrouped toggle: render as a one-chip row.
   const active = value === true
   const button = (
-    <button
-      type="button"
-      className="chip justify-center w-full"
-      data-active={active}
-      onClick={() => onChange(!active)}
-    >
+    <button type="button" className="chip justify-center w-full" data-active={active} onClick={() => onChange(!active)}>
       <span>{active ? '已启用' : '未启用'}</span>
     </button>
   )
@@ -189,10 +189,7 @@ function ToggleGroupSection({
 }) {
   return (
     <Section label={label} hint={hint}>
-      <div
-        className="grid gap-1.5"
-        style={{ gridTemplateColumns: `repeat(${options.length}, 1fr)` }}
-      >
+      <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${options.length}, 1fr)` }}>
         {options.map((opt) => {
           const active = values[opt.id] === true
           const button = (
@@ -214,20 +211,15 @@ function ToggleGroupSection({
                     : 'inset 0 0 0 1px var(--color-border-strong)',
                 }}
               >
-                {active && (
-                  <Icon
-                    name="check"
-                    size={9}
-                    strokeWidth={3}
-                    style={{ color: 'var(--color-accent-fg)' }}
-                  />
-                )}
+                {active && <Icon name="check" size={9} strokeWidth={3} style={{ color: 'var(--color-accent-fg)' }} />}
               </span>
               <span>{opt.label}</span>
             </button>
           )
           return opt.tooltip ? (
-            <Tooltip key={opt.id} text={opt.tooltip}>{button}</Tooltip>
+            <Tooltip key={opt.id} text={opt.tooltip}>
+              {button}
+            </Tooltip>
           ) : (
             <div key={opt.id}>{button}</div>
           )
@@ -299,7 +291,8 @@ export function InputPanel({
 
   const hasPrompt = prompt.trim() !== ''
   const canGenerate = apiKey.trim() !== '' && hasPrompt
-  const activeQueueCount = generationQueueSummary.queued + generationQueueSummary.running + generationQueueSummary.retrying
+  const activeQueueCount =
+    generationQueueSummary.queued + generationQueueSummary.running + generationQueueSummary.retrying
 
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
@@ -317,17 +310,20 @@ export function InputPanel({
     })
   }, [])
 
-  const pushHistory = useCallback((value: string) => {
-    window.clearTimeout(debounceRef.current)
-    debounceRef.current = window.setTimeout(() => {
-      const h = historyRef.current
-      if (h.entries[h.index] === value) return
-      h.entries = h.entries.slice(0, h.index + 1)
-      h.entries.push(value)
-      h.index = h.entries.length - 1
-      syncHistoryState()
-    }, 500)
-  }, [syncHistoryState])
+  const pushHistory = useCallback(
+    (value: string) => {
+      window.clearTimeout(debounceRef.current)
+      debounceRef.current = window.setTimeout(() => {
+        const h = historyRef.current
+        if (h.entries[h.index] === value) return
+        h.entries = h.entries.slice(0, h.index + 1)
+        h.entries.push(value)
+        h.index = h.entries.length - 1
+        syncHistoryState()
+      }, 500)
+    },
+    [syncHistoryState],
+  )
 
   const handleHistoryUndo = useCallback(() => {
     const h = historyRef.current
@@ -355,7 +351,12 @@ export function InputPanel({
     if (textareaRef.current) autoResizeTextarea(textareaRef.current)
   }, [prompt])
 
-  useEffect(() => () => { window.clearTimeout(debounceRef.current) }, [])
+  useEffect(
+    () => () => {
+      window.clearTimeout(debounceRef.current)
+    },
+    [],
+  )
 
   // Cmd+Enter shortcut
   useEffect(() => {
@@ -388,53 +389,69 @@ export function InputPanel({
     e.preventDefault()
   }, [])
 
-  const handlePanelDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    dragCountRef.current = 0
-    setDragOver(false)
+  const handlePanelDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault()
+      dragCountRef.current = 0
+      setDragOver(false)
 
-    const imageJson = e.dataTransfer.getData('application/x-playground-image')
-    if (imageJson) {
-      try {
-        const img: PlaygroundImage = JSON.parse(imageJson)
-        onAddReferenceImage(img)
-        return
-      } catch { /* fall through */ }
-    }
+      const imageJson = e.dataTransfer.getData('application/x-playground-image')
+      if (imageJson) {
+        try {
+          const img: PlaygroundImage = JSON.parse(imageJson)
+          onAddReferenceImage(img)
+          return
+        } catch {
+          /* fall through */
+        }
+      }
 
-    const files = Array.from(e.dataTransfer.files).filter((f) => f.type.startsWith('image/') || isHeifFile(f))
-    if (files.length > 0) onAddReferenceImages(files)
-  }, [onAddReferenceImages, onAddReferenceImage])
+      const files = Array.from(e.dataTransfer.files).filter((f) => f.type.startsWith('image/') || isHeifFile(f))
+      if (files.length > 0) onAddReferenceImages(files)
+    },
+    [onAddReferenceImages, onAddReferenceImage],
+  )
 
-  const handlePanelPaste = useCallback((e: React.ClipboardEvent<HTMLDivElement>) => {
-    const imageFiles = Array.from(e.clipboardData.items)
-      .filter((item) => item.type.startsWith('image/'))
-      .map((item, index) => {
-        const file = item.getAsFile()
-        if (!file) return null
-        if (file.name) return file
-        const ext = file.type.split('/')[1] || 'png'
-        return new File([file], `pasted-image-${Date.now()}-${index + 1}.${ext}`, {
-          type: file.type,
-          lastModified: Date.now(),
+  const handlePanelPaste = useCallback(
+    (e: React.ClipboardEvent<HTMLDivElement>) => {
+      const imageFiles = Array.from(e.clipboardData.items)
+        .filter((item) => item.type.startsWith('image/'))
+        .map((item, index) => {
+          const file = item.getAsFile()
+          if (!file) return null
+          if (file.name) return file
+          const ext = file.type.split('/')[1] || 'png'
+          return new File([file], `pasted-image-${Date.now()}-${index + 1}.${ext}`, {
+            type: file.type,
+            lastModified: Date.now(),
+          })
         })
-      })
-      .filter((file): file is File => file !== null)
+        .filter((file): file is File => file !== null)
 
-    if (imageFiles.length === 0) return
-    e.preventDefault()
-    onAddReferenceImages(imageFiles)
-  }, [onAddReferenceImages])
+      if (imageFiles.length === 0) return
+      e.preventDefault()
+      onAddReferenceImages(imageFiles)
+    },
+    [onAddReferenceImages],
+  )
 
   const estimatedCost = pricePerImage !== null ? pricePerImage * batchCount : null
   const optionSummaryLabels = getOptionSummaryLabels(model, options)
 
   const currentKeyStatus = model.provider === 'google' ? googleKeyStatus : openaiKeyStatus
   const keyDisplay: Record<string, { color: string; bg: string; text: string }> = {
-    valid:      { color: 'var(--color-success)', bg: 'color-mix(in srgb, var(--color-success) 10%, transparent)', text: '已验证' },
+    valid: {
+      color: 'var(--color-success)',
+      bg: 'color-mix(in srgb, var(--color-success) 10%, transparent)',
+      text: '已验证',
+    },
     validating: { color: 'var(--color-text-3)', bg: 'var(--color-surface-2)', text: '验证中' },
-    invalid:    { color: 'var(--color-danger)', bg: 'color-mix(in srgb, var(--color-danger) 10%, transparent)', text: '无效' },
-    empty:      { color: 'var(--color-text-3)', bg: 'var(--color-surface-2)', text: '未配置' },
+    invalid: {
+      color: 'var(--color-danger)',
+      bg: 'color-mix(in srgb, var(--color-danger) 10%, transparent)',
+      text: '无效',
+    },
+    empty: { color: 'var(--color-text-3)', bg: 'var(--color-surface-2)', text: '未配置' },
   }
   const keyInfo = keyDisplay[currentKeyStatus] ?? keyDisplay.empty
   const maskedKey = apiKey ? `${apiKey.slice(0, 4)}******${apiKey.slice(-3)}` : ''
@@ -459,7 +476,12 @@ export function InputPanel({
       <Section
         label="API 密钥"
         right={
-          <button type="button" onClick={onOpenApiKeys} className="chip ghost" style={{ height: 22, padding: '0 6px', fontSize: 11.5 }}>
+          <button
+            type="button"
+            onClick={onOpenApiKeys}
+            className="chip ghost"
+            style={{ height: 22, padding: '0 6px', fontSize: 11.5 }}
+          >
             {currentKeyStatus === 'empty' ? '添加配置' : '修改配置'}
           </button>
         }
@@ -473,10 +495,7 @@ export function InputPanel({
             <Icon name="key" size={13} />
             <span className="text-[12.5px] font-medium">{model.provider === 'google' ? 'Gemini' : 'OpenAI'}</span>
             <div className="flex-1" />
-            <span
-              className="tag"
-              style={{ color: keyInfo.color, background: keyInfo.bg }}
-            >
+            <span className="tag" style={{ color: keyInfo.color, background: keyInfo.bg }}>
               {keyInfo.text}
             </span>
           </button>
@@ -486,12 +505,11 @@ export function InputPanel({
             <span className="text-[12.5px] font-medium">{model.provider === 'google' ? 'Gemini' : 'OpenAI'}</span>
             {maskedKey && <span className="mono text-[11px] text-(--color-text-3)">{maskedKey}</span>}
             <div className="flex-1" />
-            <span
-              className="tag"
-              style={{ color: keyInfo.color, background: keyInfo.bg }}
-            >
+            <span className="tag" style={{ color: keyInfo.color, background: keyInfo.bg }}>
               {currentKeyStatus === 'valid' && <Icon name="check" size={10} strokeWidth={2} />}
-              {currentKeyStatus === 'validating' && <span className="spinner" style={{ width: 9, height: 9, borderWidth: 1.2 }} />}
+              {currentKeyStatus === 'validating' && (
+                <span className="spinner" style={{ width: 9, height: 9, borderWidth: 1.2 }} />
+              )}
               {keyInfo.text}
             </span>
           </div>
@@ -499,15 +517,15 @@ export function InputPanel({
       </Section>
 
       {/* MODEL segmented */}
-      <Section
-        label="模型"
-        right={<span className="mono text-[11px] text-(--color-text-4)">{model.apiModel}</span>}
-      >
+      <Section label="模型" right={<span className="mono text-[11px] text-(--color-text-4)">{model.apiModel}</span>}>
         <div
           className="segmented"
           style={{
             ['--seg-count' as string]: MODEL_CONFIGS.length,
-            ['--seg-index' as string]: Math.max(0, MODEL_CONFIGS.findIndex((m) => m.id === model.id)),
+            ['--seg-index' as string]: Math.max(
+              0,
+              MODEL_CONFIGS.findIndex((m) => m.id === model.id),
+            ),
           }}
         >
           {MODEL_CONFIGS.map((m) => (
@@ -518,11 +536,7 @@ export function InputPanel({
               onClick={() => onSwitchModel(m.id)}
               title={m.name}
             >
-              {m.provider === 'google' ? (
-                <span className="text-[11px]">🍌</span>
-              ) : (
-                <OpenAILogo />
-              )}
+              {m.provider === 'google' ? <span className="text-[11px]">🍌</span> : <OpenAILogo />}
               <span>{getModelShortLabel(m)}</span>
             </button>
           ))}
@@ -546,9 +560,7 @@ export function InputPanel({
         value={aspectRatio}
         resolution={resolution}
         onChange={onAspectRatioChange}
-        pixelLabel={model.provider === 'openai'
-          ? (ratio, res) => openAISize(res, ratio).replace('x', '×')
-          : undefined}
+        pixelLabel={model.provider === 'openai' ? (ratio, res) => openAISize(res, ratio).replace('x', '×') : undefined}
       />
 
       <div className="h-[18px] " />
@@ -596,10 +608,22 @@ export function InputPanel({
         label="提示词"
         right={
           <div className="flex gap-0.5">
-            <button type="button" onClick={handleHistoryUndo} disabled={!historyState.canUndo} title="撤销" className="icon-btn">
+            <button
+              type="button"
+              onClick={handleHistoryUndo}
+              disabled={!historyState.canUndo}
+              title="撤销"
+              className="icon-btn"
+            >
               <Icon name="undo" size={13} />
             </button>
-            <button type="button" onClick={handleHistoryRedo} disabled={!historyState.canRedo} title="重做" className="icon-btn">
+            <button
+              type="button"
+              onClick={handleHistoryRedo}
+              disabled={!historyState.canRedo}
+              title="重做"
+              className="icon-btn"
+            >
               <Icon name="redo" size={13} />
             </button>
           </div>
@@ -609,7 +633,11 @@ export function InputPanel({
           <textarea
             ref={textareaRef}
             value={prompt}
-            onChange={(e) => { onPromptChange(e.target.value); pushHistory(e.target.value); autoResizeTextarea(e.target) }}
+            onChange={(e) => {
+              onPromptChange(e.target.value)
+              pushHistory(e.target.value)
+              autoResizeTextarea(e.target)
+            }}
             placeholder="描述你想生成的图片…  例：一只在霓虹雨夜里啃香蕉的机械猫"
             rows={1}
             className="block w-full bg-transparent px-3 py-2.5 text-[16px] md:text-[13.5px] leading-[1.55] resize-none focus:outline-none"
@@ -667,9 +695,7 @@ export function InputPanel({
           <div className="flex items-baseline justify-between mb-2">
             <span className="label">参数概览</span>
             {estimatedCost !== null && (
-              <span className="mono text-[11.5px] text-(--color-text-2)">
-                ≈ ${estimatedCost.toFixed(3)}
-              </span>
+              <span className="mono text-[11.5px] text-(--color-text-2)">≈ ${estimatedCost.toFixed(3)}</span>
             )}
           </div>
           <dl className="grid grid-cols-[52px_1fr] gap-x-3 gap-y-[5px] text-[11.5px] leading-[1.5]">
@@ -682,7 +708,9 @@ export function InputPanel({
               <span className="mono">{aspectRatio}</span>
             </dd>
             <dt className="text-(--color-text-4)">数量</dt>
-            <dd className="text-(--color-text-2)"><span className="mono">×{batchCount}</span></dd>
+            <dd className="text-(--color-text-2)">
+              <span className="mono">×{batchCount}</span>
+            </dd>
             {referenceImages.length > 0 && (
               <>
                 <dt className="text-(--color-text-4)">参考图</dt>
@@ -707,27 +735,25 @@ export function InputPanel({
             )}
           </dl>
         </div>
-        <button
-          type="button"
-          onClick={() => onGenerate()}
-          disabled={!canGenerate}
-          className="cta w-full"
-        >
+        <button type="button" onClick={() => onGenerate()} disabled={!canGenerate} className="cta w-full">
           <Icon name="wand" size={13} strokeWidth={1.8} />
-          <span>{activeQueueCount > 0 ? '加入队列' : `使用 ${model.name} 生成`} {batchCount} 张</span>
+          <span>
+            {activeQueueCount > 0 ? '加入队列' : `使用 ${model.name} 生成`} {batchCount} 张
+          </span>
           <span className="flex-1" />
-          <span className="flex gap-0.5"><kbd>⌘</kbd><kbd>⏎</kbd></span>
+          <span className="flex gap-0.5">
+            <kbd>⌘</kbd>
+            <kbd>⏎</kbd>
+          </span>
         </button>
-        {!apiKey.trim() && (
-          <div className="mt-1.5 text-[11px] text-(--color-text-4) text-center">
-            请先配置 API Key
-          </div>
-        )}
+        {!apiKey.trim() && <div className="mt-1.5 text-[11px] text-(--color-text-4) text-center">请先配置 API Key</div>}
       </div>
 
       {dragOver && (
-        <div className="absolute inset-0 z-40 rounded-[8px] border-2 border-dashed pointer-events-none"
-             style={{ borderColor: 'var(--color-accent)', background: 'var(--color-accent-wash)' }} />
+        <div
+          className="absolute inset-0 z-40 rounded-[8px] border-2 border-dashed pointer-events-none"
+          style={{ borderColor: 'var(--color-accent)', background: 'var(--color-accent-wash)' }}
+        />
       )}
     </div>
   )

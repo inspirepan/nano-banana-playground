@@ -15,13 +15,13 @@ const BASE_TITLE = 'Nano Banana Playground'
 const TITLE_RESET_DELAY_MS = 8000
 
 const COLOR_THEMES: { id: ColorThemeId; name: string; color: string }[] = [
-  { id: 'default', name: 'Indigo',  color: '#5e6ad2' },
-  { id: 'green',   name: 'Emerald', color: '#2f9e6a' },
-  { id: 'yellow',  name: 'Amber',   color: '#b87503' },
-  { id: 'pink',    name: 'Rose',    color: '#c4436d' },
-  { id: 'orange',  name: 'Orange',  color: '#c0582a' },
-  { id: 'purple',  name: 'Violet',  color: '#7c56d4' },
-  { id: 'mono',    name: 'Mono',    color: '#1f1d1a' },
+  { id: 'default', name: 'Indigo', color: '#5e6ad2' },
+  { id: 'green', name: 'Emerald', color: '#2f9e6a' },
+  { id: 'yellow', name: 'Amber', color: '#b87503' },
+  { id: 'pink', name: 'Rose', color: '#c4436d' },
+  { id: 'orange', name: 'Orange', color: '#c0582a' },
+  { id: 'purple', name: 'Violet', color: '#7c56d4' },
+  { id: 'mono', name: 'Mono', color: '#1f1d1a' },
 ]
 const COLOR_THEME_IDS = COLOR_THEMES.map((t) => t.id)
 
@@ -38,7 +38,12 @@ function getInitialColorTheme(): ColorThemeId {
   return id
 }
 
-function ThemeSettings({ theme, colorTheme, onThemeChange, onColorThemeChange }: {
+function ThemeSettings({
+  theme,
+  colorTheme,
+  onThemeChange,
+  onColorThemeChange,
+}: {
   theme: Theme
   colorTheme: ColorThemeId
   onThemeChange: (t: Theme) => void
@@ -69,72 +74,73 @@ function ThemeSettings({ theme, colorTheme, onThemeChange, onColorThemeChange }:
   }, [open])
 
   const BRIGHTNESS: { value: Theme; icon: IconName; label: string }[] = [
-    { value: 'light',  icon: 'light_mode', label: '浅色' },
-    { value: 'dark',   icon: 'dark_mode',  label: '深色' },
-    { value: 'system', icon: 'contrast',   label: '系统' },
+    { value: 'light', icon: 'light_mode', label: '浅色' },
+    { value: 'dark', icon: 'dark_mode', label: '深色' },
+    { value: 'system', icon: 'contrast', label: '系统' },
   ]
 
   const currentIcon = BRIGHTNESS.find((b) => b.value === theme)?.icon ?? 'contrast'
 
   return (
     <div ref={containerRef} className="relative inline-flex">
-      <button
-        ref={buttonRef}
-        type="button"
-        onClick={handleToggle}
-        title="外观"
-        className="icon-btn"
-      >
+      <button ref={buttonRef} type="button" onClick={handleToggle} title="外观" className="icon-btn">
         <Icon name={currentIcon} size={14} />
       </button>
 
-      {open && pos && createPortal(
-        <div
-          ref={popoverRef}
-          style={{ top: pos.top, right: pos.right }}
-          className="fixed z-50 w-56 rounded-lg bg-(--color-surface) shadow-[0_0_0_1px_var(--ring-edge),0_10px_28px_-12px_rgba(30,27,20,0.18),0_2px_6px_rgba(30,27,20,0.06)] p-2"
-        >
-          <div className="label px-1.5 pb-1.5">外观</div>
-          <div className="flex gap-1 mb-2">
-            {BRIGHTNESS.map(({ value, icon, label }) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() => onThemeChange(value)}
-                className="chip flex-1 justify-center"
-                data-active={theme === value}
-              >
-                <Icon name={icon} size={12} />
-                <span>{label}</span>
-              </button>
-            ))}
-          </div>
-
-          <div className="label px-1.5 pb-1.5">主色</div>
-          <div className="grid grid-cols-7 gap-1.5">
-            {COLOR_THEMES.map((ct) => {
-              const isDark = theme === 'dark' || (theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches)
-              const swatch = ct.id === 'mono' ? (isDark ? '#f2f1ef' : '#1f1d1a') : ct.color
-              return (
+      {open &&
+        pos &&
+        createPortal(
+          <div
+            ref={popoverRef}
+            style={{ top: pos.top, right: pos.right }}
+            className="fixed z-50 w-56 rounded-lg bg-(--color-surface) shadow-[0_0_0_1px_var(--ring-edge),0_10px_28px_-12px_rgba(30,27,20,0.18),0_2px_6px_rgba(30,27,20,0.06)] p-2"
+          >
+            <div className="label px-1.5 pb-1.5">外观</div>
+            <div className="flex gap-1 mb-2">
+              {BRIGHTNESS.map(({ value, icon, label }) => (
                 <button
-                  key={ct.id}
+                  key={value}
                   type="button"
-                  title={ct.name}
-                  onClick={() => onColorThemeChange(ct.id)}
-                  className="aspect-square rounded-[6px] transition-all"
-                  style={{
-                    background: swatch,
-                    boxShadow: colorTheme === ct.id
-                      ? `inset 0 0 0 2px var(--color-surface), 0 0 0 2px ${swatch}`
-                      : 'inset 0 0 0 1px rgba(0,0,0,0.08)',
-                  }}
-                />
-              )
-            })}
-          </div>
-        </div>,
-        document.body
-      )}
+                  onClick={() => onThemeChange(value)}
+                  className="chip flex-1 justify-center"
+                  data-active={theme === value}
+                >
+                  <Icon name={icon} size={12} />
+                  <span>{label}</span>
+                </button>
+              ))}
+            </div>
+
+            <div className="label px-1.5 pb-1.5">主色</div>
+            <div className="grid grid-cols-7 gap-1.5">
+              {COLOR_THEMES.map((ct) => {
+                const isDark =
+                  theme === 'dark' ||
+                  (theme === 'system' &&
+                    typeof window !== 'undefined' &&
+                    window.matchMedia('(prefers-color-scheme: dark)').matches)
+                const swatch = ct.id === 'mono' ? (isDark ? '#f2f1ef' : '#1f1d1a') : ct.color
+                return (
+                  <button
+                    key={ct.id}
+                    type="button"
+                    title={ct.name}
+                    onClick={() => onColorThemeChange(ct.id)}
+                    className="aspect-square rounded-[6px] transition-all"
+                    style={{
+                      background: swatch,
+                      boxShadow:
+                        colorTheme === ct.id
+                          ? `inset 0 0 0 2px var(--color-surface), 0 0 0 2px ${swatch}`
+                          : 'inset 0 0 0 1px rgba(0,0,0,0.08)',
+                    }}
+                  />
+                )
+              })}
+            </div>
+          </div>,
+          document.body,
+        )}
     </div>
   )
 }
@@ -163,26 +169,30 @@ function App() {
 
   const mobileOutputAreaRef = useRef<HTMLDivElement>(null)
 
-  const handleAddToRef = useCallback((image: PlaygroundImageMeta) => {
-    addToReferences(image)
-  }, [addToReferences])
+  const handleAddToRef = useCallback(
+    (image: PlaygroundImageMeta) => {
+      addToReferences(image)
+    },
+    [addToReferences],
+  )
 
-  const handleRegenerate = useCallback(async (image: PlaygroundImageMeta) => {
-    if (image.source.type !== 'generated') return
-    const meta = image.source
-    switchModel(meta.modelId)
-    setResolution(meta.resolution)
-    setAspectRatio(meta.aspectRatio)
-    const refMetas = pgHistory.filter((h) => meta.referenceImageIds.includes(h.id))
-    const refs = await resolveFullImages(refMetas)
-    restoreSession(meta.prompt, refs)
-    const message = refs.length > 0
-      ? `已还原提示词和 ${refs.length} 张参考图`
-      : '已还原提示词'
-    if (regenToastTimer.current) clearTimeout(regenToastTimer.current)
-    setRegenToast(message)
-    regenToastTimer.current = setTimeout(() => setRegenToast(null), 2500)
-  }, [pgHistory, resolveFullImages, restoreSession, setAspectRatio, setResolution, switchModel])
+  const handleRegenerate = useCallback(
+    async (image: PlaygroundImageMeta) => {
+      if (image.source.type !== 'generated') return
+      const meta = image.source
+      switchModel(meta.modelId)
+      setResolution(meta.resolution)
+      setAspectRatio(meta.aspectRatio)
+      const refMetas = pgHistory.filter((h) => meta.referenceImageIds.includes(h.id))
+      const refs = await resolveFullImages(refMetas)
+      restoreSession(meta.prompt, refs)
+      const message = refs.length > 0 ? `已还原提示词和 ${refs.length} 张参考图` : '已还原提示词'
+      if (regenToastTimer.current) clearTimeout(regenToastTimer.current)
+      setRegenToast(message)
+      regenToastTimer.current = setTimeout(() => setRegenToast(null), 2500)
+    },
+    [pgHistory, resolveFullImages, restoreSession, setAspectRatio, setResolution, switchModel],
+  )
 
   useLayoutEffect(() => {
     const root = document.documentElement
@@ -218,9 +228,10 @@ function App() {
 
     if (queueActive > 0) {
       clearTitleResetTimer()
-      document.title = queueSummary.total > 0
-        ? `〔${queueDone}/${queueSummary.total}〕生成中 · ${BASE_TITLE}`
-        : `生成中 · ${BASE_TITLE}`
+      document.title =
+        queueSummary.total > 0
+          ? `〔${queueDone}/${queueSummary.total}〕生成中 · ${BASE_TITLE}`
+          : `生成中 · ${BASE_TITLE}`
     } else if (prevActiveQueueRef.current > 0) {
       clearTitleResetTimer()
       if (queueSummary.failed > 0 && queueSummary.succeeded === 0) {
@@ -263,9 +274,7 @@ function App() {
   }
 
   const topbar = (
-    <div
-      className="topbar flex items-center gap-2.5 px-4 shrink-0 sticky top-0 z-30"
-    >
+    <div className="topbar flex items-center gap-2.5 px-4 shrink-0 sticky top-0 z-30">
       <div className="flex items-center gap-2 min-w-0">
         <div className="font-display font-semibold text-[13.5px] tracking-[-0.01em]">Image Generation</div>
         <span className="text-(--color-text-4) text-[12px] ml-0.5">/</span>
@@ -274,81 +283,25 @@ function App() {
 
       <div className="flex-1" />
 
-      <button
-        type="button"
-        onClick={() => setApiKeysOpen(true)}
-        className="icon-btn"
-        title="API Keys"
-      >
+      <button type="button" onClick={() => setApiKeysOpen(true)} className="icon-btn" title="API Keys">
         <Icon name="key" size={14} />
       </button>
 
-      <ThemeSettings theme={theme} colorTheme={colorTheme} onThemeChange={setTheme} onColorThemeChange={setColorTheme} />
+      <ThemeSettings
+        theme={theme}
+        colorTheme={colorTheme}
+        onThemeChange={setTheme}
+        onColorThemeChange={setColorTheme}
+      />
     </div>
   )
 
   return (
     <>
-    {/* Mobile layout */}
-    <div className="flex flex-col h-[100dvh] md:hidden overflow-y-auto bg-(--color-bg)">
-      {topbar}
-      <div className="px-3">
-        <InputPanel
-          model={pg.model}
-          resolution={pg.resolution}
-          aspectRatio={pg.aspectRatio}
-          batchCount={pg.batchCount}
-          options={pg.options}
-          prompt={pg.prompt}
-          referenceImages={pg.referenceImages}
-          referenceImageError={pg.referenceImageError}
-          generationQueueSummary={pg.generationQueueSummary}
-          apiKey={pg.apiKey}
-          apiKeyStatus={pg.apiKeyStatus}
-          googleKeyStatus={pg.googleKey.status}
-          openaiKeyStatus={pg.openaiKey.status}
-          onOpenApiKeys={() => setApiKeysOpen(true)}
-          onSwitchModel={pg.switchModel}
-          onResolutionChange={pg.setResolution}
-          onAspectRatioChange={pg.setAspectRatio}
-          onPromptChange={pg.setPrompt}
-          onBatchCountChange={pg.setBatchCount}
-          onOptionChange={pg.setOption}
-          onAddReferenceImages={pg.addReferenceImages}
-          onAddReferenceImage={pg.addToReferences}
-          onRemoveReferenceImage={pg.removeReferenceImage}
-          onClearAllReferences={pg.clearAllReferences}
-          onClearReferenceImageError={pg.clearReferenceImageError}
-          onGenerate={handleGenerate}
-        />
-        <div ref={mobileOutputAreaRef} className="border-t border-(--color-border) pt-5">
-          <OutputPanel
-            history={pg.history}
-            historyHasMore={pg.historyHasMore}
-            generationJobs={pg.generationJobs}
-            generationQueueSummary={pg.generationQueueSummary}
-            generationConcurrency={pg.generationConcurrency}
-            onGenerationConcurrencyChange={pg.setGenerationConcurrency}
-            onCancelGenerationJob={pg.cancelGenerationJob}
-            onDismissGenerationJob={pg.dismissGenerationJob}
-            onCancelGenerationSlot={pg.cancelGenerationSlot}
-            onAddToRef={handleAddToRef}
-            onRegenerate={handleRegenerate}
-            onEditImage={pg.editImage}
-            onRemove={pg.removeFromHistory}
-            onClearAll={pg.clearAllHistory}
-            onLoadMore={pg.loadMoreHistory}
-          />
-        </div>
-      </div>
-    </div>
-
-    {/* Desktop layout */}
-    <div className="hidden md:flex flex-col h-screen overflow-hidden bg-(--color-bg)">
-      {topbar}
-      <div className="flex flex-1 min-h-0 overflow-hidden">
-        {/* Left input panel */}
-        <div className="w-[380px] shrink-0 flex flex-col border-r border-(--color-border) overflow-y-auto [scrollbar-gutter:stable] bg-(--color-bg)">
+      {/* Mobile layout */}
+      <div className="flex flex-col h-[100dvh] md:hidden overflow-y-auto bg-(--color-bg)">
+        {topbar}
+        <div className="px-3">
           <InputPanel
             model={pg.model}
             resolution={pg.resolution}
@@ -377,46 +330,102 @@ function App() {
             onClearReferenceImageError={pg.clearReferenceImageError}
             onGenerate={handleGenerate}
           />
+          <div ref={mobileOutputAreaRef} className="border-t border-(--color-border) pt-5">
+            <OutputPanel
+              history={pg.history}
+              historyHasMore={pg.historyHasMore}
+              generationJobs={pg.generationJobs}
+              generationQueueSummary={pg.generationQueueSummary}
+              generationConcurrency={pg.generationConcurrency}
+              onGenerationConcurrencyChange={pg.setGenerationConcurrency}
+              onCancelGenerationJob={pg.cancelGenerationJob}
+              onDismissGenerationJob={pg.dismissGenerationJob}
+              onCancelGenerationSlot={pg.cancelGenerationSlot}
+              onAddToRef={handleAddToRef}
+              onRegenerate={handleRegenerate}
+              onEditImage={pg.editImage}
+              onRemove={pg.removeFromHistory}
+              onClearAll={pg.clearAllHistory}
+              onLoadMore={pg.loadMoreHistory}
+            />
+          </div>
         </div>
-
-        {/* Right output panel */}
-        <OutputPanel
-          history={pg.history}
-          historyHasMore={pg.historyHasMore}
-          generationJobs={pg.generationJobs}
-          generationQueueSummary={pg.generationQueueSummary}
-          generationConcurrency={pg.generationConcurrency}
-          onGenerationConcurrencyChange={pg.setGenerationConcurrency}
-          onCancelGenerationJob={pg.cancelGenerationJob}
-          onDismissGenerationJob={pg.dismissGenerationJob}
-          onCancelGenerationSlot={pg.cancelGenerationSlot}
-          onAddToRef={handleAddToRef}
-          onRegenerate={handleRegenerate}
-          onEditImage={pg.editImage}
-          onRemove={pg.removeFromHistory}
-          onClearAll={pg.clearAllHistory}
-          onLoadMore={pg.loadMoreHistory}
-        />
-        {import.meta.env.DEV && <Agentation />}
       </div>
-    </div>
 
-    {/* Regen toast — bottom center */}
-    <div
-      className={`pointer-events-none fixed bottom-8 left-1/2 z-[100] -translate-x-1/2 transition-all duration-300
+      {/* Desktop layout */}
+      <div className="hidden md:flex flex-col h-screen overflow-hidden bg-(--color-bg)">
+        {topbar}
+        <div className="flex flex-1 min-h-0 overflow-hidden">
+          {/* Left input panel */}
+          <div className="w-[380px] shrink-0 flex flex-col border-r border-(--color-border) overflow-y-auto [scrollbar-gutter:stable] bg-(--color-bg)">
+            <InputPanel
+              model={pg.model}
+              resolution={pg.resolution}
+              aspectRatio={pg.aspectRatio}
+              batchCount={pg.batchCount}
+              options={pg.options}
+              prompt={pg.prompt}
+              referenceImages={pg.referenceImages}
+              referenceImageError={pg.referenceImageError}
+              generationQueueSummary={pg.generationQueueSummary}
+              apiKey={pg.apiKey}
+              apiKeyStatus={pg.apiKeyStatus}
+              googleKeyStatus={pg.googleKey.status}
+              openaiKeyStatus={pg.openaiKey.status}
+              onOpenApiKeys={() => setApiKeysOpen(true)}
+              onSwitchModel={pg.switchModel}
+              onResolutionChange={pg.setResolution}
+              onAspectRatioChange={pg.setAspectRatio}
+              onPromptChange={pg.setPrompt}
+              onBatchCountChange={pg.setBatchCount}
+              onOptionChange={pg.setOption}
+              onAddReferenceImages={pg.addReferenceImages}
+              onAddReferenceImage={pg.addToReferences}
+              onRemoveReferenceImage={pg.removeReferenceImage}
+              onClearAllReferences={pg.clearAllReferences}
+              onClearReferenceImageError={pg.clearReferenceImageError}
+              onGenerate={handleGenerate}
+            />
+          </div>
+
+          {/* Right output panel */}
+          <OutputPanel
+            history={pg.history}
+            historyHasMore={pg.historyHasMore}
+            generationJobs={pg.generationJobs}
+            generationQueueSummary={pg.generationQueueSummary}
+            generationConcurrency={pg.generationConcurrency}
+            onGenerationConcurrencyChange={pg.setGenerationConcurrency}
+            onCancelGenerationJob={pg.cancelGenerationJob}
+            onDismissGenerationJob={pg.dismissGenerationJob}
+            onCancelGenerationSlot={pg.cancelGenerationSlot}
+            onAddToRef={handleAddToRef}
+            onRegenerate={handleRegenerate}
+            onEditImage={pg.editImage}
+            onRemove={pg.removeFromHistory}
+            onClearAll={pg.clearAllHistory}
+            onLoadMore={pg.loadMoreHistory}
+          />
+          {import.meta.env.DEV && <Agentation />}
+        </div>
+      </div>
+
+      {/* Regen toast — bottom center */}
+      <div
+        className={`pointer-events-none fixed bottom-8 left-1/2 z-[100] -translate-x-1/2 transition-all duration-300
         ${regenToast ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}
-    >
-      <div className="rounded-md bg-(--color-surface) px-4 py-2 text-[12.5px] font-medium text-(--color-text) shadow-[0_0_0_1px_var(--ring-edge),0_10px_28px_-12px_rgba(30,27,20,0.18),0_2px_6px_rgba(30,27,20,0.06)] whitespace-nowrap">
-        {regenToast}
+      >
+        <div className="rounded-md bg-(--color-surface) px-4 py-2 text-[12.5px] font-medium text-(--color-text) shadow-[0_0_0_1px_var(--ring-edge),0_10px_28px_-12px_rgba(30,27,20,0.18),0_2px_6px_rgba(30,27,20,0.06)] whitespace-nowrap">
+          {regenToast}
+        </div>
       </div>
-    </div>
 
-    <ApiKeysDialog
-      open={apiKeysOpen}
-      googleKey={pg.googleKey}
-      openaiKey={pg.openaiKey}
-      onClose={() => setApiKeysOpen(false)}
-    />
+      <ApiKeysDialog
+        open={apiKeysOpen}
+        googleKey={pg.googleKey}
+        openaiKey={pg.openaiKey}
+        onClose={() => setApiKeysOpen(false)}
+      />
     </>
   )
 }

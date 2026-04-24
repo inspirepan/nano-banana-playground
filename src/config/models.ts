@@ -62,9 +62,9 @@ export type GoogleModelConfig = BaseModelConfig & {
   imagePriceByResolution: Record<string, number>
   // token-based pricing per 1M tokens in USD (used for post-generation actual cost)
   // source: https://ai.google.dev/gemini-api/docs/pricing
-  inputPricePerMillion: number       // text + image input tokens
+  inputPricePerMillion: number // text + image input tokens
   imageOutputPricePerMillion: number // image output tokens
-  textOutputPricePerMillion: number  // text + thinking output tokens
+  textOutputPricePerMillion: number // text + thinking output tokens
 }
 
 export type OpenAIModelConfig = BaseModelConfig & {
@@ -94,7 +94,8 @@ const SEARCH_IMAGE_OPTION: ModelToggleOption = {
   urlKey: 'is',
   group: 'searchTools',
   groupLabel: '搜索增强',
-  tooltip: '启用 Google 图片搜索接地，模型会使用检索到的网络图片作为视觉上下文。可单独使用或与 Web 搜索叠加，生成结果需展示来源网页链接（仅 Nano Banana 2 支持）。',
+  tooltip:
+    '启用 Google 图片搜索接地，模型会使用检索到的网络图片作为视觉上下文。可单独使用或与 Web 搜索叠加，生成结果需展示来源网页链接（仅 Nano Banana 2 支持）。',
 }
 
 const THINKING_LEVEL_OPTION: ModelSelectOption = {
@@ -111,7 +112,8 @@ const THINKING_LEVEL_OPTION: ModelSelectOption = {
     {
       value: 'high',
       label: 'High',
-      tooltip: '启用完整推理流程，适合复杂提示和高保真输出。延迟显著增加，思考 token 会被计费（无论是否返回思考内容）。',
+      tooltip:
+        '启用完整推理流程，适合复杂提示和高保真输出。延迟显著增加，思考 token 会被计费（无论是否返回思考内容）。',
     },
   ],
   urlKey: 'tl',
@@ -140,23 +142,16 @@ export const MODEL_CONFIGS: ModelConfig[] = [
     apiModel: 'gemini-3.1-flash-image-preview',
     resolutions: ['512', '1K', '2K', '4K'],
     defaultResolution: '1K',
-    aspectRatios: [
-      '1:1', '2:3', '3:2', '3:4', '4:3', '4:5', '5:4',
-      '9:16', '16:9', '21:9', '1:4', '4:1', '1:8', '8:1',
-    ],
+    aspectRatios: ['1:1', '2:3', '3:2', '3:4', '4:3', '4:5', '5:4', '9:16', '16:9', '21:9', '1:4', '4:1', '1:8', '8:1'],
     defaultAspectRatio: '1:1',
     maxReferenceImages: 10,
     maxCharacterImages: 4,
     maxBatchCount: 4,
     imagePriceByResolution: { '512': 0.045, '1K': 0.067, '2K': 0.101, '4K': 0.151 },
-    inputPricePerMillion: 0.50,
-    imageOutputPricePerMillion: 60.00,
-    textOutputPricePerMillion: 3.00,
-    options: [
-      SEARCH_WEB_OPTION,
-      SEARCH_IMAGE_OPTION,
-      THINKING_LEVEL_OPTION,
-    ],
+    inputPricePerMillion: 0.5,
+    imageOutputPricePerMillion: 60.0,
+    textOutputPricePerMillion: 3.0,
+    options: [SEARCH_WEB_OPTION, SEARCH_IMAGE_OPTION, THINKING_LEVEL_OPTION],
   },
   {
     id: 'nano-banana-pro',
@@ -165,22 +160,17 @@ export const MODEL_CONFIGS: ModelConfig[] = [
     apiModel: 'gemini-3-pro-image-preview',
     resolutions: ['1K', '2K', '4K'],
     defaultResolution: '1K',
-    aspectRatios: [
-      '1:1', '2:3', '3:2', '3:4', '4:3', '4:5', '5:4',
-      '9:16', '16:9', '21:9',
-    ],
+    aspectRatios: ['1:1', '2:3', '3:2', '3:4', '4:3', '4:5', '5:4', '9:16', '16:9', '21:9'],
     defaultAspectRatio: '1:1',
     maxReferenceImages: 6,
     maxCharacterImages: 5,
     maxBatchCount: 4,
     // 1K and 2K share the same token count (1120), hence same price
-    imagePriceByResolution: { '1K': 0.134, '2K': 0.134, '4K': 0.240 },
-    inputPricePerMillion: 2.00,
-    imageOutputPricePerMillion: 120.00,
-    textOutputPricePerMillion: 12.00,
-    options: [
-      SEARCH_WEB_OPTION,
-    ],
+    imagePriceByResolution: { '1K': 0.134, '2K': 0.134, '4K': 0.24 },
+    inputPricePerMillion: 2.0,
+    imageOutputPricePerMillion: 120.0,
+    textOutputPricePerMillion: 12.0,
+    options: [SEARCH_WEB_OPTION],
   },
   {
     id: 'gpt-image-2',
@@ -191,17 +181,12 @@ export const MODEL_CONFIGS: ModelConfig[] = [
     // (see src/lib/openai.ts for the lookup table).
     resolutions: ['1K', '2K', '4K'],
     defaultResolution: '1K',
-    aspectRatios: [
-      '1:1', '2:3', '3:2', '3:4', '4:3', '4:5', '5:4',
-      '9:16', '16:9', '21:9', '1:3', '3:1',
-    ],
+    aspectRatios: ['1:1', '2:3', '3:2', '3:4', '4:3', '4:5', '5:4', '9:16', '16:9', '21:9', '1:3', '3:1'],
     defaultAspectRatio: '1:1',
     maxReferenceImages: 16,
     maxCharacterImages: 0,
     maxBatchCount: 4,
-    options: [
-      QUALITY_OPTION,
-    ],
+    options: [QUALITY_OPTION],
   },
 ]
 

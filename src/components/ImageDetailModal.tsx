@@ -26,7 +26,7 @@ const BRUSH_PRESETS = [
   { id: 'M', label: '中', size: 12 },
   { id: 'L', label: '粗', size: 28 },
 ] as const
-type BrushPresetId = typeof BRUSH_PRESETS[number]['id']
+type BrushPresetId = (typeof BRUSH_PRESETS)[number]['id']
 
 // Normalize generated-source metadata into a single `options` bag, folding in
 // legacy top-level fields (`quality`, `searchTools`) from pre-refactor records.
@@ -105,8 +105,20 @@ type Size = { width: number; height: number }
 
 // Labels for syntax highlighting (same list as InputPanel)
 const HIGHLIGHT_LABELS = [
-  '参考图说明', '画面中的文字', '画中文字', '编辑类型', '编辑请求',
-  '目标场景', '目标风格', '保持不变', '构图', '风格', '光影', '色彩', '约束', '避免',
+  '参考图说明',
+  '画面中的文字',
+  '画中文字',
+  '编辑类型',
+  '编辑请求',
+  '目标场景',
+  '目标风格',
+  '保持不变',
+  '构图',
+  '风格',
+  '光影',
+  '色彩',
+  '约束',
+  '避免',
 ]
 
 const MOBILE_SHEET_INITIAL_VH = 34
@@ -124,13 +136,10 @@ function getVisualViewportHeight(): number {
 function getMobileSheetHeights(viewportHeight: number, editing = false) {
   const expandedVh = editing ? MOBILE_SHEET_EDIT_VH : MOBILE_SHEET_EXPANDED_VH
   const initialVh = editing ? MOBILE_SHEET_EDIT_VH : MOBILE_SHEET_INITIAL_VH
-  const expandedHeight = Math.max(
-    MOBILE_SHEET_PEEK_PX,
-    Math.round(viewportHeight * expandedVh / 100),
-  )
+  const expandedHeight = Math.max(MOBILE_SHEET_PEEK_PX, Math.round((viewportHeight * expandedVh) / 100))
   const initialHeight = Math.max(
     MOBILE_SHEET_PEEK_PX,
-    Math.min(expandedHeight, Math.round(viewportHeight * initialVh / 100)),
+    Math.min(expandedHeight, Math.round((viewportHeight * initialVh) / 100)),
   )
   return { initialHeight, expandedHeight }
 }
@@ -147,7 +156,8 @@ function renderPromptLines(text: string): ReactNode[] {
               style={{ background: 'var(--color-accent-wash)', color: 'var(--color-accent)' }}
             >
               {lbl}
-            </span>：{line.slice(needle.length)}
+            </span>
+            ：{line.slice(needle.length)}
           </div>
         )
       }
@@ -184,14 +194,15 @@ export function ImageDetailModal({
   onCancelGenerationSlot,
   onRemove,
 }: Props) {
-  const [currentIdx, setCurrentIdx] = useState(() => history.findIndex(h => h.id === image.id))
+  const [currentIdx, setCurrentIdx] = useState(() => history.findIndex((h) => h.id === image.id))
+  const currentImage = currentIdx >= 0 ? history[currentIdx] : image
   const [editing, setEditing] = useState(initialEditing)
   // After submit, we watch history for the first new image with this batchId
   // and auto-navigate the pager to it.
   const [activeEditBatchId, setActiveEditBatchId] = useState<string | null>(null)
   const activeEditSourceIdRef = useRef<string | null>(null)
   const setActiveEditBatch = useCallback((batchId: string | null, sourceImageId?: string) => {
-    activeEditSourceIdRef.current = batchId ? sourceImageId ?? activeEditSourceIdRef.current : null
+    activeEditSourceIdRef.current = batchId ? (sourceImageId ?? activeEditSourceIdRef.current) : null
     setActiveEditBatchId(batchId)
   }, [])
   // Canvas-edit mode: view (default pan/zoom), annotate (paint colored strokes
@@ -199,18 +210,25 @@ export function ImageDetailModal({
   // field / Gemini red overlay).
   const [editMode, setEditMode] = useState<EditMode>('view')
   const [drawTool, setDrawTool] = useState<DrawTool>('brush')
+  if (editMode === 'mask' && (drawTool === 'rect' || drawTool === 'step')) {
+    setDrawTool('brush')
+  }
   const [brushPreset, setBrushPreset] = useState<BrushPresetId>('M')
   const brushSize = BRUSH_PRESETS.find((p) => p.id === brushPreset)?.size ?? 24
   // Per-layer item counts. Seed from the cache so the mode-segment dots
   // light up on modal open even before the drawable layer mounts; the
-  // layer's onItemsChange keeps us in sync afterward, and a pager effect
-  // reseeds when the user navigates to another image.
-  const [drawableCounts, setDrawableCounts] = useState<ItemCounts>(
-    () => computeItemCounts(getEditState(image.id).items),
+  // layer's onItemsChange keeps us in sync afterward; pager image changes
+  // reseed counts during render (see drawablePagerImageId below).
+  const [drawableCounts, setDrawableCounts] = useState<ItemCounts>(() =>
+    computeItemCounts(getEditState(currentImage.id).items),
   )
+  const [drawablePagerImageId, setDrawablePagerImageId] = useState(currentImage.id)
+  if (currentImage.id !== drawablePagerImageId) {
+    setDrawablePagerImageId(currentImage.id)
+    setDrawableCounts(computeItemCounts(getEditState(currentImage.id).items))
+  }
   const drawableRef = useRef<DrawableLayerHandle | null>(null)
 
-  const currentImage = currentIdx >= 0 ? history[currentIdx] : image
   const { ref: imgRef, src: currentSrc } = useImageSrc(currentImage.id, currentImage.mimeType)
   const currentMeta = currentImage.source.type === 'generated' ? currentImage.source : null
   const canNavigate = currentIdx >= 0
@@ -219,7 +237,7 @@ export function ImageDetailModal({
   const [copiedPrompt, setCopiedPrompt] = useState(false)
   const [refDetailId, setRefDetailId] = useState<string | null>(null)
   const [refSrcMap, setRefSrcMap] = useState<Map<string, string>>(new Map())
-  const refDetailSrc = refDetailId ? refSrcMap.get(refDetailId) ?? null : null
+  const refDetailSrc = refDetailId ? (refSrcMap.get(refDetailId) ?? null) : null
 
   // Resolve missing refs from IndexedDB
   const [dbRefMetas, setDbRefMetas] = useState<Map<string, PlaygroundImageMeta>>(new Map())
@@ -233,9 +251,12 @@ export function ImageDetailModal({
     loadImageMetas(missingRefIds).then(setDbRefMetas)
   }, [missingRefIds])
 
-  const findRefImage = useCallback((id: string): PlaygroundImageMeta | undefined => {
-    return history.find((h) => h.id === id) ?? dbRefMetas.get(id)
-  }, [history, dbRefMetas])
+  const findRefImage = useCallback(
+    (id: string): PlaygroundImageMeta | undefined => {
+      return history.find((h) => h.id === id) ?? dbRefMetas.get(id)
+    },
+    [history, dbRefMetas],
+  )
 
   useEffect(() => {
     if (!refDetailId) return
@@ -254,14 +275,14 @@ export function ImageDetailModal({
   }, [refDetailId, refSrcMap, findRefImage])
 
   const goToPrev = useCallback(() => {
-    setCurrentIdx(i => Math.max(0, i - 1))
+    setCurrentIdx((i) => Math.max(0, i - 1))
     setRefDetailId(null)
     // No explicit clear — DrawableLayer remounts under the new image's key
     // and restores that image's cached items (empty for never-edited ones).
   }, [])
 
   const goToNext = useCallback(() => {
-    setCurrentIdx(i => Math.min(history.length - 1, i + 1))
+    setCurrentIdx((i) => Math.min(history.length - 1, i + 1))
     setRefDetailId(null)
   }, [history.length])
 
@@ -285,7 +306,9 @@ export function ImageDetailModal({
         pre.src = dataUrl
       })
     }
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [canNavigate, currentIdx, history])
 
   const exitEdit = useCallback(() => {
@@ -295,21 +318,6 @@ export function ImageDetailModal({
     // Keep items — they're cached per-image so reopening the modal restores
     // whatever annotations were in progress. Counts stay for the dots.
   }, [])
-
-  // Reseed layer counts from cache whenever the pager lands on a new image;
-  // the drawable layer itself remounts under that image's key so it picks
-  // up the cached items directly, but the mode-segment dots sit outside it.
-  useEffect(() => {
-    setDrawableCounts(computeItemCounts(getEditState(currentImage.id).items))
-  }, [currentImage.id])
-
-  // Force a valid tool when swapping to mask mode — rect/step aren't
-  // exposed there and we don't want a hidden pointer-down branch firing.
-  useEffect(() => {
-    if (editMode === 'mask' && (drawTool === 'rect' || drawTool === 'step')) {
-      setDrawTool('brush')
-    }
-  }, [editMode, drawTool])
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -327,15 +335,26 @@ export function ImageDetailModal({
         }
       }
       if (e.key === 'Escape') {
-        if (editMode !== 'view') { setEditMode('view'); return }
-        if (editing) { exitEdit(); return }
+        if (editMode !== 'view') {
+          setEditMode('view')
+          return
+        }
+        if (editing) {
+          exitEdit()
+          return
+        }
         onClose()
         return
       }
       if (editing) return
       if (!canNavigate) return
-      if (e.key === 'ArrowLeft') { e.preventDefault(); goToPrev() }
-      else if (e.key === 'ArrowRight') { e.preventDefault(); goToNext() }
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault()
+        goToPrev()
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault()
+        goToNext()
+      }
     }
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
@@ -349,16 +368,16 @@ export function ImageDetailModal({
   useEffect(() => {
     if (!activeEditBatchId) return
     if (navedBatchIdRef.current === activeEditBatchId) return
-    const idx = history.findIndex((h) =>
-      h.source.type === 'generated' && h.source.batchId === activeEditBatchId,
-    )
-    if (idx >= 0) {
+    const idx = history.findIndex((h) => h.source.type === 'generated' && h.source.batchId === activeEditBatchId)
+    if (idx < 0) return
+    const targetId = history[idx].id
+    queueMicrotask(() => {
       navedBatchIdRef.current = activeEditBatchId
       const sourceId = activeEditSourceIdRef.current
-      if (sourceId) copyEditState(sourceId, history[idx].id)
+      if (sourceId) copyEditState(sourceId, targetId)
       setCurrentIdx(idx)
       setRefDetailId(null)
-    }
+    })
   }, [history, activeEditBatchId])
 
   // —— Mobile bottom-sheet: start lower to prioritize the image, but keep a
@@ -371,6 +390,12 @@ export function ImageDetailModal({
   // explicit snapped pixel height after the first drag.
   const [sheetHeightPx, setSheetHeightPx] = useState<number | null>(null)
   const [sheetDragging, setSheetDragging] = useState(false)
+  const sheetLayoutKey = `${isMobileSheet}:${editing}`
+  const [sheetLayoutStamp, setSheetLayoutStamp] = useState(sheetLayoutKey)
+  if (sheetLayoutKey !== sheetLayoutStamp) {
+    setSheetLayoutStamp(sheetLayoutKey)
+    if (sheetHeightPx !== null) setSheetHeightPx(null)
+  }
   const sheetDragRef = useRef<{
     startY: number
     startHeight: number
@@ -386,15 +411,6 @@ export function ImageDetailModal({
     mql.addEventListener('change', handler)
     return () => mql.removeEventListener('change', handler)
   }, [])
-
-  useEffect(() => {
-    if (!isMobileSheet) setSheetHeightPx(null)
-  }, [isMobileSheet])
-
-  // Reset sheet height when switching modes so the new mode's resting height applies.
-  useEffect(() => {
-    if (isMobileSheet) setSheetHeightPx(null)
-  }, [editing, isMobileSheet])
 
   // Clamp the snapped sheet height against the current visual viewport so it
   // doesn't overflow when the iOS keyboard opens.
@@ -422,7 +438,11 @@ export function ImageDetailModal({
   const toggleSidebar = useCallback(() => {
     setSidebarCollapsed((prev) => {
       const next = !prev
-      try { localStorage.setItem('nano-banana-detail-sidebar-collapsed', next ? '1' : '0') } catch { /* ignore */ }
+      try {
+        localStorage.setItem('nano-banana-detail-sidebar-collapsed', next ? '1' : '0')
+      } catch {
+        /* ignore */
+      }
       return next
     })
   }, [])
@@ -473,7 +493,10 @@ export function ImageDetailModal({
     return getActualCost(modelConfig, currentMeta.tokenUsage)
   })()
 
-  const flash = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 1500) }
+  const flash = (msg: string) => {
+    setToast(msg)
+    setTimeout(() => setToast(null), 1500)
+  }
 
   const handleDownload = () => {
     if (!currentSrc) return
@@ -505,15 +528,15 @@ export function ImageDetailModal({
   const hasNext = canNavigate && currentIdx < history.length - 1
 
   // Size helper — show approximate px
-  const pxDim = currentMeta
-    ? `${currentMeta.resolution} · ${currentMeta.aspectRatio}`
-    : ''
+  const pxDim = currentMeta ? `${currentMeta.resolution} · ${currentMeta.aspectRatio}` : ''
 
-  const batchInfo = currentMeta && (() => {
-    const sameBatch = history.filter((h) => h.source.type === 'generated' && h.source.batchId === currentMeta.batchId)
-    const posInBatch = sameBatch.findIndex((h) => h.id === currentImage.id)
-    return { pos: posInBatch + 1, total: sameBatch.length }
-  })()
+  const batchInfo =
+    currentMeta &&
+    (() => {
+      const sameBatch = history.filter((h) => h.source.type === 'generated' && h.source.batchId === currentMeta.batchId)
+      const posInBatch = sameBatch.findIndex((h) => h.id === currentImage.id)
+      return { pos: posInBatch + 1, total: sameBatch.length }
+    })()
 
   return createPortal(
     <div
@@ -573,7 +596,8 @@ export function ImageDetailModal({
               <Icon name="chevron_left" size={12} strokeWidth={1.8} />
             </button>
             <span className="mono text-[11px] text-(--color-text-2) px-1 min-w-[50px] text-center font-medium">
-              {currentIdx + 1}<span className="text-(--color-text-4)"> / {history.length}</span>
+              {currentIdx + 1}
+              <span className="text-(--color-text-4)"> / {history.length}</span>
             </span>
             <button
               className="icon-btn"
@@ -592,7 +616,10 @@ export function ImageDetailModal({
         </button>
         <button
           className="chip shrink-0"
-          onClick={() => { if (editing) exitEdit(); else setEditing(true) }}
+          onClick={() => {
+            if (editing) exitEdit()
+            else setEditing(true)
+          }}
           title={editing ? '退出编辑' : '编辑这张图'}
           data-active={editing}
         >
@@ -630,9 +657,7 @@ export function ImageDetailModal({
             // the sheet can take the rest with flex-1 + overflow-y-auto. This
             // is more robust than giving the sheet an explicit dvh height,
             // which in flex-col can get clipped by the body's overflow-hidden.
-            ...(isMobileSheet && editing
-              ? { height: '26dvh', flexShrink: 0 }
-              : { flex: '1 1 0%' }),
+            ...(isMobileSheet && editing ? { height: '26dvh', flexShrink: 0 } : { flex: '1 1 0%' }),
             backgroundImage: `linear-gradient(var(--color-border) 1px, transparent 1px), linear-gradient(90deg, var(--color-border) 1px, transparent 1px)`,
             backgroundSize: '28px 28px, 28px 28px',
             backgroundColor: 'var(--color-bg-sunken)',
@@ -678,10 +703,15 @@ export function ImageDetailModal({
           {refDetailId && refDetailSrc ? (
             <div className="relative flex flex-row h-full gap-px">
               <div className="h-full flex-1 min-w-0 relative">
-                <ZoomableImageView src={refDetailSrc} alt="" label="左 · 参考图" />
+                <ZoomableImageView key={refDetailId ?? 'ref'} src={refDetailSrc} alt="" label="左 · 参考图" />
               </div>
               <div className="h-full flex-1 min-w-0 relative">
-                <ZoomableImageView src={currentSrc ?? ''} alt={currentMeta?.prompt ?? ''} label="右 · 生成图" />
+                <ZoomableImageView
+                  key={currentImage.id}
+                  src={currentSrc ?? ''}
+                  alt={currentMeta?.prompt ?? ''}
+                  label="右 · 生成图"
+                />
               </div>
               <button
                 type="button"
@@ -709,6 +739,7 @@ export function ImageDetailModal({
             />
           ) : (
             <ZoomableImageView
+              key={currentImage.id}
               src={currentSrc ?? ''}
               alt={currentMeta?.prompt ?? ''}
               onSwipeLeft={hasNext ? goToNext : undefined}
@@ -787,9 +818,7 @@ export function ImageDetailModal({
                     // View mode keeps drag-resizable dvh sheet for the 3-snap
                     // peek/initial/expanded UX.
                     flexShrink: 0,
-                    height: sheetHeightPx !== null
-                      ? `${sheetHeightPx}px`
-                      : `${MOBILE_SHEET_INITIAL_VH}dvh`,
+                    height: sheetHeightPx !== null ? `${sheetHeightPx}px` : `${MOBILE_SHEET_INITIAL_VH}dvh`,
                     transition: sheetDragging ? 'none' : 'height 260ms cubic-bezier(0.22, 0.8, 0.4, 1)',
                   }
               : {
@@ -820,205 +849,239 @@ export function ImageDetailModal({
             className="px-[18px] pt-1 md:pt-4 pb-24 md:pb-10"
             style={{ width: isMobileSheet ? undefined : editing ? 420 : 340 }}
           >
-          {editing ? (
-            <EditSidebar
-              sourceImage={currentImage}
-              generationJobs={generationJobs}
-              activeEditBatchId={activeEditBatchId}
-              onEditImage={onEditImage}
-              onSetActiveBatchId={setActiveEditBatch}
-              onCancelGenerationJob={onCancelGenerationJob}
-              onDismissGenerationJob={onDismissGenerationJob}
-              onCancelGenerationSlot={onCancelGenerationSlot}
-              onAddToRef={onAddToRef}
-              onRegenerate={onRegenerate}
-              onRemove={onRemove}
-              onOpenImage={(img) => {
-                setCurrentIdx(history.findIndex((h) => h.id === img.id))
-                setRefDetailId(null)
-              }}
-              onViewQueue={onClose}
-              onExit={exitEdit}
-              editMode={editMode}
-              drawableCounts={drawableCounts}
-              drawableRef={drawableRef}
-            />
-          ) : (
-            <>
-          {/* Prompt */}
-          {currentMeta?.prompt && (
-            <div className="mb-[18px]">
-              <div className="flex items-center mb-1.5">
-                <span className="label">提示词</span>
-                <div className="flex-1" />
-                <button
-                  className="chip shrink-0"
-                  style={{ height: 26, fontSize: 12 }}
-                  onClick={handleCopyPrompt}
-                >
-                  {/* Safari (WebKit) ignores flex layout on <button> itself;
-                      nesting the flex container in a <span> works around it. */}
-                  <span className="inline-flex items-center gap-1.5">
-                    <Icon name={copiedPrompt ? 'check' : 'copy'} size={12} strokeWidth={copiedPrompt ? 2.2 : 1.8} />
-                    {copiedPrompt ? '已复制' : '复制'}
-                  </span>
-                </button>
-              </div>
-              <div
-                className="p-3 rounded-[8px] text-[12.5px] leading-[1.6] text-(--color-text-2)"
-                style={{
-                  background: 'var(--color-surface)',
-                  boxShadow: 'inset 0 0 0 1px var(--ring-edge)',
-                  maxHeight: 220,
-                  overflowY: 'auto',
+            {editing ? (
+              <EditSidebar
+                sourceImage={currentImage}
+                generationJobs={generationJobs}
+                activeEditBatchId={activeEditBatchId}
+                onEditImage={onEditImage}
+                onSetActiveBatchId={setActiveEditBatch}
+                onCancelGenerationJob={onCancelGenerationJob}
+                onDismissGenerationJob={onDismissGenerationJob}
+                onCancelGenerationSlot={onCancelGenerationSlot}
+                onAddToRef={onAddToRef}
+                onRegenerate={onRegenerate}
+                onRemove={onRemove}
+                onOpenImage={(img) => {
+                  setCurrentIdx(history.findIndex((h) => h.id === img.id))
+                  setRefDetailId(null)
                 }}
-              >
-                {renderPromptLines(currentMeta.prompt)}
-              </div>
-            </div>
-          )}
-
-          {/* Reference images */}
-          {currentMeta && currentMeta.referenceImageIds.length > 0 && (
-            <div className="mb-[18px]">
-              <div className="flex items-center mb-1.5">
-                <span className="label">参考图</span>
-                <span className="text-[11px] text-(--color-text-4) ml-1.5">
-                  {currentMeta.referenceImageIds.length} 张
-                </span>
-              </div>
-              <div className="grid grid-cols-4 gap-1.5">
-                {currentMeta.referenceImageIds.map((refId) => {
-                  const refImg = findRefImage(refId)
-                  if (!refImg) return (
-                    <div key={refId} className="aspect-square rounded-[6px] flex items-center justify-center text-(--color-text-4)" style={{ boxShadow: 'inset 0 0 0 1px var(--ring-edge)', background: 'var(--color-surface-2)' }}>
-                      ?
-                    </div>
-                  )
-                  return (
-                    <RefThumbnail
-                      key={refId}
-                      image={refImg}
-                      isActive={refDetailId === refImg.id}
-                      onClick={() => setRefDetailId((prev) => prev === refImg.id ? null : refImg.id)}
-                    />
-                  )
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Metadata */}
-          <div className="mb-[18px]">
-            <div className="label mb-1">元数据</div>
-            {currentMeta && (
+                onViewQueue={onClose}
+                onExit={exitEdit}
+                editMode={editMode}
+                drawableCounts={drawableCounts}
+                drawableRef={drawableRef}
+              />
+            ) : (
               <>
-                <MetaRow label="模型" value={modelName!} />
-                {modelApiId && <MetaRow label="模型 ID" value={modelApiId} mono />}
-                <MetaRow label="分辨率" value={currentMeta.resolution} mono />
-                <MetaRow label="宽高比" value={currentMeta.aspectRatio} mono />
-                {(() => {
-                  const bag = effectiveOptions(currentMeta)
-                  // Render rows in the order the active model declares options, then any
-                  // legacy keys that don't appear in the current descriptors.
-                  const declaredIds = modelConfig?.options?.map((o) => o.id) ?? []
-                  const leftover = Object.keys(bag).filter((id) => !declaredIds.includes(id))
-                  const ordered = [...declaredIds, ...leftover]
-                  return ordered.map((id) => {
-                    const formatted = formatOptionValue(modelConfig, id, bag[id])
-                    if (formatted === null) return null
-                    return <MetaRow key={id} label={optionLabel(modelConfig, id)} value={formatted} />
-                  })
-                })()}
-                {actualCost !== null && (
-                  <MetaRow
-                    label="费用"
-                    value={
-                      <span>
-                        ${actualCost.toFixed(4)}
+                {/* Prompt */}
+                {currentMeta?.prompt && (
+                  <div className="mb-[18px]">
+                    <div className="flex items-center mb-1.5">
+                      <span className="label">提示词</span>
+                      <div className="flex-1" />
+                      <button className="chip shrink-0" style={{ height: 26, fontSize: 12 }} onClick={handleCopyPrompt}>
+                        {/* Safari (WebKit) ignores flex layout on <button> itself;
+                      nesting the flex container in a <span> works around it. */}
+                        <span className="inline-flex items-center gap-1.5">
+                          <Icon
+                            name={copiedPrompt ? 'check' : 'copy'}
+                            size={12}
+                            strokeWidth={copiedPrompt ? 2.2 : 1.8}
+                          />
+                          {copiedPrompt ? '已复制' : '复制'}
+                        </span>
+                      </button>
+                    </div>
+                    <div
+                      className="p-3 rounded-[8px] text-[12.5px] leading-[1.6] text-(--color-text-2)"
+                      style={{
+                        background: 'var(--color-surface)',
+                        boxShadow: 'inset 0 0 0 1px var(--ring-edge)',
+                        maxHeight: 220,
+                        overflowY: 'auto',
+                      }}
+                    >
+                      {renderPromptLines(currentMeta.prompt)}
+                    </div>
+                  </div>
+                )}
+
+                {/* Reference images */}
+                {currentMeta && currentMeta.referenceImageIds.length > 0 && (
+                  <div className="mb-[18px]">
+                    <div className="flex items-center mb-1.5">
+                      <span className="label">参考图</span>
+                      <span className="text-[11px] text-(--color-text-4) ml-1.5">
+                        {currentMeta.referenceImageIds.length} 张
                       </span>
-                    }
+                    </div>
+                    <div className="grid grid-cols-4 gap-1.5">
+                      {currentMeta.referenceImageIds.map((refId) => {
+                        const refImg = findRefImage(refId)
+                        if (!refImg)
+                          return (
+                            <div
+                              key={refId}
+                              className="aspect-square rounded-[6px] flex items-center justify-center text-(--color-text-4)"
+                              style={{
+                                boxShadow: 'inset 0 0 0 1px var(--ring-edge)',
+                                background: 'var(--color-surface-2)',
+                              }}
+                            >
+                              ?
+                            </div>
+                          )
+                        return (
+                          <RefThumbnail
+                            key={refId}
+                            image={refImg}
+                            isActive={refDetailId === refImg.id}
+                            onClick={() => setRefDetailId((prev) => (prev === refImg.id ? null : refImg.id))}
+                          />
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Metadata */}
+                <div className="mb-[18px]">
+                  <div className="label mb-1">元数据</div>
+                  {currentMeta && (
+                    <>
+                      <MetaRow label="模型" value={modelName!} />
+                      {modelApiId && <MetaRow label="模型 ID" value={modelApiId} mono />}
+                      <MetaRow label="分辨率" value={currentMeta.resolution} mono />
+                      <MetaRow label="宽高比" value={currentMeta.aspectRatio} mono />
+                      {(() => {
+                        const bag = effectiveOptions(currentMeta)
+                        // Render rows in the order the active model declares options, then any
+                        // legacy keys that don't appear in the current descriptors.
+                        const declaredIds = modelConfig?.options?.map((o) => o.id) ?? []
+                        const leftover = Object.keys(bag).filter((id) => !declaredIds.includes(id))
+                        const ordered = [...declaredIds, ...leftover]
+                        return ordered.map((id) => {
+                          const formatted = formatOptionValue(modelConfig, id, bag[id])
+                          if (formatted === null) return null
+                          return <MetaRow key={id} label={optionLabel(modelConfig, id)} value={formatted} />
+                        })
+                      })()}
+                      {actualCost !== null && (
+                        <MetaRow label="费用" value={<span>${actualCost.toFixed(4)}</span>} mono />
+                      )}
+                      {currentMeta.tokenUsage && modelConfig?.provider === 'openai' && (
+                        <>
+                          <MetaRow
+                            label="文本输入 Token"
+                            value={
+                              currentMeta.tokenUsage.inputTextTokens?.toLocaleString() ??
+                              currentMeta.tokenUsage.inputTokens.toLocaleString()
+                            }
+                            mono
+                          />
+                          {(currentMeta.tokenUsage.inputImageTokens ?? 0) > 0 && (
+                            <MetaRow
+                              label="图片输入 Token"
+                              value={(currentMeta.tokenUsage.inputImageTokens ?? 0).toLocaleString()}
+                              mono
+                            />
+                          )}
+                          <MetaRow
+                            label="图片输出 Token"
+                            value={currentMeta.tokenUsage.imageOutputTokens.toLocaleString()}
+                            mono
+                          />
+                          {currentMeta.tokenUsage.textOutputTokens > 0 && (
+                            <MetaRow
+                              label="文本输出 Token"
+                              value={currentMeta.tokenUsage.textOutputTokens.toLocaleString()}
+                              mono
+                            />
+                          )}
+                        </>
+                      )}
+                      {currentMeta.tokenUsage && modelConfig?.provider === 'google' && (
+                        <>
+                          <MetaRow
+                            label="输入 Token"
+                            value={currentMeta.tokenUsage.inputTokens.toLocaleString()}
+                            mono
+                          />
+                          <MetaRow
+                            label="图片 Token"
+                            value={currentMeta.tokenUsage.imageOutputTokens.toLocaleString()}
+                            mono
+                          />
+                          {currentMeta.tokenUsage.textOutputTokens > 0 && (
+                            <MetaRow
+                              label="思考 Token"
+                              value={currentMeta.tokenUsage.textOutputTokens.toLocaleString()}
+                              mono
+                            />
+                          )}
+                        </>
+                      )}
+                    </>
+                  )}
+                  {currentImage.source.type === 'upload' && (
+                    <MetaRow label="来源" value={`上传: ${currentImage.source.fileName}`} />
+                  )}
+                  <MetaRow
+                    label="创建时间"
+                    value={new Date(currentImage.timestamp).toLocaleString('zh-CN', { hour12: false })}
                     mono
                   />
-                )}
-                {currentMeta.tokenUsage && modelConfig?.provider === 'openai' && (
-                  <>
-                    <MetaRow label="文本输入 Token" value={currentMeta.tokenUsage.inputTextTokens?.toLocaleString() ?? currentMeta.tokenUsage.inputTokens.toLocaleString()} mono />
-                    {(currentMeta.tokenUsage.inputImageTokens ?? 0) > 0 && (
-                      <MetaRow label="图片输入 Token" value={(currentMeta.tokenUsage.inputImageTokens ?? 0).toLocaleString()} mono />
-                    )}
-                    <MetaRow label="图片输出 Token" value={currentMeta.tokenUsage.imageOutputTokens.toLocaleString()} mono />
-                    {currentMeta.tokenUsage.textOutputTokens > 0 && (
-                      <MetaRow label="文本输出 Token" value={currentMeta.tokenUsage.textOutputTokens.toLocaleString()} mono />
-                    )}
-                  </>
-                )}
-                {currentMeta.tokenUsage && modelConfig?.provider === 'google' && (
-                  <>
-                    <MetaRow label="输入 Token" value={currentMeta.tokenUsage.inputTokens.toLocaleString()} mono />
-                    <MetaRow label="图片 Token" value={currentMeta.tokenUsage.imageOutputTokens.toLocaleString()} mono />
-                    {currentMeta.tokenUsage.textOutputTokens > 0 && (
-                      <MetaRow label="思考 Token" value={currentMeta.tokenUsage.textOutputTokens.toLocaleString()} mono />
-                    )}
-                  </>
+                  {currentMeta && batchInfo && (
+                    <MetaRow
+                      label="批次"
+                      value={
+                        <span>
+                          <span className="mono">b_{currentMeta.batchId.slice(0, 6)}</span>
+                          <span className="mono text-(--color-text-4) ml-1.5">
+                            #{batchInfo.pos}/{batchInfo.total}
+                          </span>
+                        </span>
+                      }
+                      last
+                    />
+                  )}
+                </div>
+
+                {/* Grounding sources (Google Search / Image Search) */}
+                {currentMeta?.groundingMetadata && <GroundingSection metadata={currentMeta.groundingMetadata} />}
+
+                {/* Danger delete */}
+                {canNavigate && (
+                  <button
+                    className="w-full inline-flex items-center justify-center gap-1.5 text-[12px] font-medium transition-colors"
+                    style={{
+                      height: 30,
+                      borderRadius: 6,
+                      boxShadow: 'inset 0 0 0 1px var(--ring-edge)',
+                      background: 'var(--color-surface)',
+                      color: 'var(--color-danger)',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background =
+                        'color-mix(in srgb, var(--color-danger) 8%, var(--color-surface))'
+                      e.currentTarget.style.boxShadow =
+                        'inset 0 0 0 1px color-mix(in srgb, var(--color-danger) 30%, transparent)'
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'var(--color-surface)'
+                      e.currentTarget.style.boxShadow = 'inset 0 0 0 1px var(--ring-edge)'
+                    }}
+                    onClick={() => {
+                      onRemove(currentImage.id)
+                      onClose()
+                    }}
+                  >
+                    <Icon name="trash" size={12} strokeWidth={1.8} /> 从历史中删除
+                  </button>
                 )}
               </>
             )}
-            {currentImage.source.type === 'upload' && (
-              <MetaRow label="来源" value={`上传: ${currentImage.source.fileName}`} />
-            )}
-            <MetaRow
-              label="创建时间"
-              value={new Date(currentImage.timestamp).toLocaleString('zh-CN', { hour12: false })}
-              mono
-            />
-            {currentMeta && batchInfo && (
-              <MetaRow
-                label="批次"
-                value={
-                  <span>
-                    <span className="mono">b_{currentMeta.batchId.slice(0, 6)}</span>
-                    <span className="mono text-(--color-text-4) ml-1.5">
-                      #{batchInfo.pos}/{batchInfo.total}
-                    </span>
-                  </span>
-                }
-                last
-              />
-            )}
-          </div>
-
-          {/* Grounding sources (Google Search / Image Search) */}
-          {currentMeta?.groundingMetadata && (
-            <GroundingSection metadata={currentMeta.groundingMetadata} />
-          )}
-
-          {/* Danger delete */}
-          {canNavigate && (
-            <button
-              className="w-full inline-flex items-center justify-center gap-1.5 text-[12px] font-medium transition-colors"
-              style={{
-                height: 30,
-                borderRadius: 6,
-                boxShadow: 'inset 0 0 0 1px var(--ring-edge)',
-                background: 'var(--color-surface)',
-                color: 'var(--color-danger)',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'color-mix(in srgb, var(--color-danger) 8%, var(--color-surface))'
-                e.currentTarget.style.boxShadow = 'inset 0 0 0 1px color-mix(in srgb, var(--color-danger) 30%, transparent)'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'var(--color-surface)'
-                e.currentTarget.style.boxShadow = 'inset 0 0 0 1px var(--ring-edge)'
-              }}
-              onClick={() => { onRemove(currentImage.id); onClose() }}
-            >
-              <Icon name="trash" size={12} strokeWidth={1.8} /> 从历史中删除
-            </button>
-          )}
-          </>
-          )}
           </div>
         </div>
       </div>
@@ -1034,15 +1097,25 @@ export function ImageDetailModal({
       >
         {!editing && (
           <>
-            <span className="inline-flex items-center gap-1.5"><kbd>←</kbd><kbd>→</kbd> 切换</span>
+            <span className="inline-flex items-center gap-1.5">
+              <kbd>←</kbd>
+              <kbd>→</kbd> 切换
+            </span>
             <span className="inline-flex items-center gap-1.5">滚轮 缩放</span>
-            <span className="inline-flex items-center gap-1.5"><kbd>0</kbd> / 双击 重置</span>
+            <span className="inline-flex items-center gap-1.5">
+              <kbd>0</kbd> / 双击 重置
+            </span>
           </>
         )}
         {editing && (
-          <span className="inline-flex items-center gap-1.5"><kbd>⌘</kbd><kbd>Z</kbd> 撤销</span>
+          <span className="inline-flex items-center gap-1.5">
+            <kbd>⌘</kbd>
+            <kbd>Z</kbd> 撤销
+          </span>
         )}
-        <span className="inline-flex items-center gap-1.5"><kbd>Esc</kbd> 关闭</span>
+        <span className="inline-flex items-center gap-1.5">
+          <kbd>Esc</kbd> 关闭
+        </span>
         <div className="flex-1" />
         <span className="mono">#{currentImage.id.slice(0, 8)}</span>
       </div>
@@ -1068,10 +1141,7 @@ function GroundingSection({ metadata }: { metadata: GroundingMetadata }) {
       isImage: !web && !!image,
     })
   }
-  const queries = [
-    ...(metadata.webSearchQueries ?? []),
-    ...(metadata.imageSearchQueries ?? []),
-  ]
+  const queries = [...(metadata.webSearchQueries ?? []), ...(metadata.imageSearchQueries ?? [])]
   if (!metadata.searchEntryPoint?.renderedContent && sources.length === 0 && queries.length === 0) {
     return null
   }
@@ -1107,7 +1177,9 @@ function GroundingSection({ metadata }: { metadata: GroundingMetadata }) {
       {queries.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-1">
           {queries.map((q, i) => (
-            <span key={i} className="tag" style={{ fontSize: 10.5 }}>{q}</span>
+            <span key={i} className="tag" style={{ fontSize: 10.5 }}>
+              {q}
+            </span>
           ))}
         </div>
       )}
@@ -1171,12 +1243,10 @@ function EditSidebar({
     return MODEL_CONFIGS.find((m) => m.id === src.modelId) ?? DEFAULT_MODEL
   }, [sourceImage])
 
-  const sourceRes = sourceImage.source.type === 'generated'
-    ? sourceImage.source.resolution
-    : sourceModel.defaultResolution
-  const sourceAspect = sourceImage.source.type === 'generated'
-    ? sourceImage.source.aspectRatio
-    : sourceModel.defaultAspectRatio
+  const sourceRes =
+    sourceImage.source.type === 'generated' ? sourceImage.source.resolution : sourceModel.defaultResolution
+  const sourceAspect =
+    sourceImage.source.type === 'generated' ? sourceImage.source.aspectRatio : sourceModel.defaultAspectRatio
 
   const [resolution, setResolution] = useState(() =>
     sourceModel.resolutions.includes(sourceRes) ? sourceRes : sourceModel.defaultResolution,
@@ -1233,33 +1303,36 @@ function EditSidebar({
     ? '当前标注会占用一个参考图名额，请移除一张参考图后再提交'
     : refsError
 
-  const handleAddFiles = useCallback(async (files: File[]) => {
-    if (files.length === 0) return
-    const remaining = maxExtraRefs - extraRefs.length
-    if (remaining <= 0) return
-    const results = await Promise.allSettled(
-      files.slice(0, remaining).map(async (file) => {
-        const result = await readFileAsImageData(file)
-        if (!result) return null
-        const { base64, mimeType, fileName } = result
-        return {
-          id: crypto.randomUUID(),
-          data: base64,
-          mimeType,
-          source: { type: 'upload' as const, fileName },
-          timestamp: Date.now(),
-        } as PlaygroundImage
-      }),
-    )
-    const added: PlaygroundImage[] = []
-    const errors: string[] = []
-    for (const r of results) {
-      if (r.status === 'fulfilled' && r.value) added.push(r.value)
-      else if (r.status === 'rejected') errors.push((r.reason as Error).message)
-    }
-    if (added.length > 0) setExtraRefs((prev) => [...prev, ...added].slice(0, maxExtraRefs))
-    if (errors.length > 0) setRefsError(errors.join('\n'))
-  }, [extraRefs.length, maxExtraRefs])
+  const handleAddFiles = useCallback(
+    async (files: File[]) => {
+      if (files.length === 0) return
+      const remaining = maxExtraRefs - extraRefs.length
+      if (remaining <= 0) return
+      const results = await Promise.allSettled(
+        files.slice(0, remaining).map(async (file) => {
+          const result = await readFileAsImageData(file)
+          if (!result) return null
+          const { base64, mimeType, fileName } = result
+          return {
+            id: crypto.randomUUID(),
+            data: base64,
+            mimeType,
+            source: { type: 'upload' as const, fileName },
+            timestamp: Date.now(),
+          } as PlaygroundImage
+        }),
+      )
+      const added: PlaygroundImage[] = []
+      const errors: string[] = []
+      for (const r of results) {
+        if (r.status === 'fulfilled' && r.value) added.push(r.value)
+        else if (r.status === 'rejected') errors.push((r.reason as Error).message)
+      }
+      if (added.length > 0) setExtraRefs((prev) => [...prev, ...added].slice(0, maxExtraRefs))
+      if (errors.length > 0) setRefsError(errors.join('\n'))
+    },
+    [extraRefs.length, maxExtraRefs],
+  )
 
   const removeExtraRef = useCallback((id: string) => {
     setExtraRefs((prev) => prev.filter((img) => img.id !== id))
@@ -1283,8 +1356,8 @@ function EditSidebar({
       onSetActiveBatchId(null)
       return
     }
-    const anyActive = activeJob.slots.some((s) =>
-      s.status === 'queued' || s.status === 'running' || s.status === 'retrying',
+    const anyActive = activeJob.slots.some(
+      (s) => s.status === 'queued' || s.status === 'running' || s.status === 'retrying',
     )
     if (!anyActive) onSetActiveBatchId(null)
   }, [activeJob, activeEditBatchId, onSetActiveBatchId])
@@ -1399,9 +1472,22 @@ function EditSidebar({
       setSubmitting(false)
     }
   }, [
-    canSubmit, onEditImage, sourceImage, sourceModel, prompt, extraRefs, resolution,
-    aspectRatio, inheritedOptions, batchCount, onSetActiveBatchId,
-    drawableRef, drawableCounts, editMode, hasAnnotationStrokes, hasMaskStrokes,
+    canSubmit,
+    onEditImage,
+    sourceImage,
+    sourceModel,
+    prompt,
+    extraRefs,
+    resolution,
+    aspectRatio,
+    inheritedOptions,
+    batchCount,
+    onSetActiveBatchId,
+    drawableRef,
+    drawableCounts,
+    editMode,
+    hasAnnotationStrokes,
+    hasMaskStrokes,
   ])
 
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -1428,8 +1514,7 @@ function EditSidebar({
   // Count what actually ships to the provider. With annotations we send BOTH
   // the annotated composite and the clean source, so the model has the
   // unobscured pixels available for regions outside the user's marks.
-  const totalImagesToSend =
-    1 + (hasAnnotatedSource ? 1 : 0) + extraRefs.length + (hasOpenAIMask ? 1 : 0)
+  const totalImagesToSend = 1 + (hasAnnotatedSource ? 1 : 0) + extraRefs.length + (hasOpenAIMask ? 1 : 0)
   const summaryParts: string[] = ['原图']
   if (hasAnnotationStrokes) summaryParts.push('带标注的图')
   else if (hasMaskStrokes && !isOpenAI) summaryParts.push('带 Mask 叠加的图')
@@ -1527,11 +1612,7 @@ function EditSidebar({
           <span className="mono text-[11px] text-(--color-text-3) mr-1.5">
             {resolution} · {aspectRatio}
           </span>
-          <Icon
-            name={paramsCollapsed ? 'chevron_right' : 'chevron_down'}
-            size={12}
-            className="text-(--color-text-4)"
-          />
+          <Icon name={paramsCollapsed ? 'chevron_right' : 'chevron_down'} size={12} className="text-(--color-text-4)" />
         </button>
         <div
           className="grid"
@@ -1557,9 +1638,11 @@ function EditSidebar({
                 resolution={resolution}
                 onChange={setAspectRatio}
                 showLabel={false}
-                pixelLabel={sourceModel.provider === 'openai'
-                  ? (ratio, res) => openAISize(res, ratio).replace('x', '×')
-                  : undefined}
+                pixelLabel={
+                  sourceModel.provider === 'openai'
+                    ? (ratio, res) => openAISize(res, ratio).replace('x', '×')
+                    : undefined
+                }
               />
             </div>
           </div>
@@ -1620,25 +1703,17 @@ function EditSidebar({
             将发送 <span className="mono text-(--color-text-2)">{totalImagesToSend}</span> 张图
             <span className="text-(--color-text-4)">（{summaryParts.join(' · ')}）</span>
           </span>
-          {estimatedCost !== null && (
-            <span className="mono text-(--color-text-2)">≈ ${estimatedCost.toFixed(3)}</span>
-          )}
+          {estimatedCost !== null && <span className="mono text-(--color-text-2)">≈ ${estimatedCost.toFixed(3)}</span>}
         </div>
-        {submitError && (
-          <div className="mb-2 text-[11.5px] text-(--color-danger)">{submitError}</div>
-        )}
-        <button
-          type="button"
-          onClick={handleGenerate}
-          disabled={!canSubmit}
-          className="cta w-full"
-        >
+        {submitError && <div className="mb-2 text-[11.5px] text-(--color-danger)">{submitError}</div>}
+        <button type="button" onClick={handleGenerate} disabled={!canSubmit} className="cta w-full">
           <Icon name="wand" size={13} strokeWidth={1.8} />
-          <span>
-            {submitting ? '提交中…' : `生成编辑 ×${batchCount}`}
-          </span>
+          <span>{submitting ? '提交中…' : `生成编辑 ×${batchCount}`}</span>
           <span className="flex-1" />
-          <span className="flex gap-0.5"><kbd>⌘</kbd><kbd>⏎</kbd></span>
+          <span className="flex gap-0.5">
+            <kbd>⌘</kbd>
+            <kbd>⏎</kbd>
+          </span>
         </button>
       </div>
     </div>
@@ -1647,9 +1722,7 @@ function EditSidebar({
 
 function SourceImageChip({ image }: { image: PlaygroundImageMeta }) {
   const { ref, src } = useImageSrc(image.id, image.mimeType, undefined, { variant: 'preview' })
-  const label = image.source.type === 'upload'
-    ? image.source.fileName
-    : `gen-${image.id.slice(0, 6)}`
+  const label = image.source.type === 'upload' ? image.source.fileName : `gen-${image.id.slice(0, 6)}`
   return (
     <div
       ref={ref}
@@ -1672,16 +1745,22 @@ function SourceImageChip({ image }: { image: PlaygroundImageMeta }) {
       <div className="min-w-0 flex-1">
         <div className="text-[12.5px] font-medium text-(--color-text) truncate">{label}</div>
         <div className="mono text-[11px] text-(--color-text-4) truncate">
-          {image.source.type === 'generated'
-            ? `${image.source.resolution} · ${image.source.aspectRatio}`
-            : '上传图片'}
+          {image.source.type === 'generated' ? `${image.source.resolution} · ${image.source.aspectRatio}` : '上传图片'}
         </div>
       </div>
     </div>
   )
 }
 
-function RefThumbnail({ image, isActive, onClick }: { image: PlaygroundImageMeta; isActive: boolean; onClick: () => void }) {
+function RefThumbnail({
+  image,
+  isActive,
+  onClick,
+}: {
+  image: PlaygroundImageMeta
+  isActive: boolean
+  onClick: () => void
+}) {
   const { ref, src } = useImageSrc(image.id, image.mimeType, undefined, { variant: 'preview' })
   return (
     <div
@@ -1692,8 +1771,12 @@ function RefThumbnail({ image, isActive, onClick }: { image: PlaygroundImageMeta
         boxShadow: isActive ? 'inset 0 0 0 1px var(--color-accent)' : 'inset 0 0 0 1px var(--ring-edge)',
         background: 'var(--color-surface-2)',
       }}
-      onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.boxShadow = 'inset 0 0 0 1px var(--ring-edge-strong)' }}
-      onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.boxShadow = 'inset 0 0 0 1px var(--ring-edge)' }}
+      onMouseEnter={(e) => {
+        if (!isActive) e.currentTarget.style.boxShadow = 'inset 0 0 0 1px var(--ring-edge-strong)'
+      }}
+      onMouseLeave={(e) => {
+        if (!isActive) e.currentTarget.style.boxShadow = 'inset 0 0 0 1px var(--ring-edge)'
+      }}
     >
       {src ? (
         <img src={src} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
@@ -1726,7 +1809,13 @@ function ToolbarPill({ children }: { children: ReactNode }) {
 }
 
 function SegmentButton({
-  active, label, title, onClick, mono = true, dot = false, icon,
+  active,
+  label,
+  title,
+  onClick,
+  mono = true,
+  dot = false,
+  icon,
 }: {
   active: boolean
   label: ReactNode
@@ -1799,22 +1888,28 @@ function CanvasModeToolbar({
   const modeOptions: Array<{ id: EditMode; label: string; title: string; dot?: boolean }> = [
     { id: 'view', label: '查看', title: '查看原图（默认缩放/平移）' },
     { id: 'annotate', label: '标注', title: '在图上画彩色提示，合成到源图发送', dot: counts.annotate > 0 },
-    { id: 'mask', label: 'Mask', title: '画出要编辑的区域（OpenAI 走原生 mask，Gemini 合成红色叠加）', dot: counts.mask > 0 },
+    {
+      id: 'mask',
+      label: 'Mask',
+      title: '画出要编辑的区域（OpenAI 走原生 mask，Gemini 合成红色叠加）',
+      dot: counts.mask > 0,
+    },
   ]
   // Mask layer semantics are "subtract this region" — step pins and
   // rectangles don't map onto that cleanly, so the toolbar only exposes
   // brush + eraser there.
-  const toolOptions: Array<{ id: DrawTool; label: string; title: string; icon: IconName }> = mode === 'mask'
-    ? [
-      { id: 'brush', label: '笔刷', title: '涂抹要编辑的区域', icon: 'brush' },
-      { id: 'eraser', label: '橡皮', title: '擦除当前层的涂抹', icon: 'eraser' },
-    ]
-    : [
-      { id: 'brush', label: '笔刷', title: '自由笔画', icon: 'brush' },
-      { id: 'rect', label: '框', title: '框选矩形', icon: 'square' },
-      { id: 'step', label: '编号', title: '在图上放一个带序号的 pin（自动取最小缺失数字）', icon: 'map_pin' },
-      { id: 'eraser', label: '橡皮', title: '拖拽擦除当前层标注', icon: 'eraser' },
-    ]
+  const toolOptions: Array<{ id: DrawTool; label: string; title: string; icon: IconName }> =
+    mode === 'mask'
+      ? [
+          { id: 'brush', label: '笔刷', title: '涂抹要编辑的区域', icon: 'brush' },
+          { id: 'eraser', label: '橡皮', title: '擦除当前层的涂抹', icon: 'eraser' },
+        ]
+      : [
+          { id: 'brush', label: '笔刷', title: '自由笔画', icon: 'brush' },
+          { id: 'rect', label: '框', title: '框选矩形', icon: 'square' },
+          { id: 'step', label: '编号', title: '在图上放一个带序号的 pin（自动取最小缺失数字）', icon: 'map_pin' },
+          { id: 'eraser', label: '橡皮', title: '拖拽擦除当前层标注', icon: 'eraser' },
+        ]
   const layerHasItems = mode === 'mask' ? counts.mask > 0 : mode === 'annotate' ? counts.annotate > 0 : false
 
   return (
@@ -1899,7 +1994,13 @@ function CanvasModeToolbar({
    ZoomableImageView — wheel/drag/pinch zoom, with Linear-style Zoom HUD
    ======================================================================== */
 
-function ZoomableImageView({ src, alt, label, onSwipeLeft, onSwipeRight }: {
+function ZoomableImageView({
+  src,
+  alt,
+  label,
+  onSwipeLeft,
+  onSwipeRight,
+}: {
   src: string
   alt: string
   label?: string
@@ -1962,16 +2063,19 @@ function ZoomableImageView({ src, alt, label, onSwipeLeft, onSwipeRight }: {
     applyView(FIT_SCALE, { x: 0, y: 0 })
   }, [applyView])
 
-  const zoomAtPoint = useCallback((targetScale: number, anchor: Point) => {
-    const currentScale = scaleRef.current
-    const nextScale = clamp(targetScale, MIN_SCALE, MAX_SCALE)
-    const ratio = nextScale / currentScale
-    const currentOffset = offsetRef.current
-    applyView(nextScale, {
-      x: anchor.x - ratio * (anchor.x - currentOffset.x),
-      y: anchor.y - ratio * (anchor.y - currentOffset.y),
-    })
-  }, [applyView])
+  const zoomAtPoint = useCallback(
+    (targetScale: number, anchor: Point) => {
+      const currentScale = scaleRef.current
+      const nextScale = clamp(targetScale, MIN_SCALE, MAX_SCALE)
+      const ratio = nextScale / currentScale
+      const currentOffset = offsetRef.current
+      applyView(nextScale, {
+        x: anchor.x - ratio * (anchor.x - currentOffset.x),
+        y: anchor.y - ratio * (anchor.y - currentOffset.y),
+      })
+    },
+    [applyView],
+  )
 
   useEffect(() => {
     const element = containerRef.current
@@ -1998,16 +2102,13 @@ function ZoomableImageView({ src, alt, label, onSwipeLeft, onSwipeRight }: {
     return () => element.removeEventListener('wheel', handleWheel)
   }, [zoomAtPoint])
 
-  // When src swaps (pager switch), clear any leftover zoom/pan so the new
-  // image starts from fit. onLoad will re-sync fitSize once it decodes.
-  useEffect(() => {
-    resetView()
-  }, [src, resetView])
-
   // Keyboard 0 = reset
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === '0') { e.preventDefault(); resetView() }
+      if (e.key === '0') {
+        e.preventDefault()
+        resetView()
+      }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
@@ -2020,7 +2121,10 @@ function ZoomableImageView({ src, alt, label, onSwipeLeft, onSwipeRight }: {
         className="relative flex h-full w-full items-center justify-center overflow-hidden touch-none select-none"
         onDoubleClick={(event) => {
           const point = getRelativePoint(containerRef.current, event.clientX, event.clientY)
-          if (scaleRef.current > FIT_SCALE) { resetView(); return }
+          if (scaleRef.current > FIT_SCALE) {
+            resetView()
+            return
+          }
           zoomAtPoint(2.5, point)
         }}
         onPointerDown={(event) => {
@@ -2111,7 +2215,13 @@ function ZoomableImageView({ src, alt, label, onSwipeLeft, onSwipeRight }: {
             }
           }
 
-          if (event.pointerType === 'touch' && !wasPinching && activePointersRef.current.size === 0 && scaleRef.current <= FIT_SCALE && startPoint) {
+          if (
+            event.pointerType === 'touch' &&
+            !wasPinching &&
+            activePointersRef.current.size === 0 &&
+            scaleRef.current <= FIT_SCALE &&
+            startPoint
+          ) {
             const deltaX = endPoint.x - startPoint.x
             const deltaY = endPoint.y - startPoint.y
             if (Math.abs(deltaX) > 50 && Math.abs(deltaX) > Math.abs(deltaY)) {
@@ -2154,9 +2264,15 @@ function ZoomableImageView({ src, alt, label, onSwipeLeft, onSwipeRight }: {
               transform: `translate3d(${offset.x}px, ${offset.y}px, 0) scale(${scale})`,
               transformOrigin: 'center center',
               borderRadius: 8,
-              boxShadow: '0 0 0 1px var(--ring-edge-strong), 0 30px 60px -24px rgba(0,0,0,0.3), 0 4px 10px rgba(0,0,0,0.06)',
+              boxShadow:
+                '0 0 0 1px var(--ring-edge-strong), 0 30px 60px -24px rgba(0,0,0,0.3), 0 4px 10px rgba(0,0,0,0.06)',
               opacity: fitSize.width ? 1 : 0,
-              transition: isDragging || isInteracting ? 'none' : fitSize.width ? 'transform 160ms ease-out, opacity 120ms ease-out' : 'none',
+              transition:
+                isDragging || isInteracting
+                  ? 'none'
+                  : fitSize.width
+                    ? 'transform 160ms ease-out, opacity 120ms ease-out'
+                    : 'none',
             }}
           />
         ) : (
@@ -2167,13 +2283,7 @@ function ZoomableImageView({ src, alt, label, onSwipeLeft, onSwipeRight }: {
       </div>
 
       {/* Label */}
-      {label && (
-        <div
-          className="pointer-events-none absolute left-4 top-4 tag"
-        >
-          {label}
-        </div>
-      )}
+      {label && <div className="pointer-events-none absolute left-4 top-4 tag">{label}</div>}
 
       {/* Zoom HUD */}
       <div
@@ -2199,9 +2309,15 @@ function ZoomableImageView({ src, alt, label, onSwipeLeft, onSwipeRight }: {
           className="mono"
           title="双击画布可重置 · 快捷键 0"
           style={{
-            background: 'none', border: 0, color: 'var(--color-text-2)',
-            fontSize: 11, minWidth: 48, textAlign: 'center', padding: '0 4px',
-            fontWeight: 500, cursor: 'pointer',
+            background: 'none',
+            border: 0,
+            color: 'var(--color-text-2)',
+            fontSize: 11,
+            minWidth: 48,
+            textAlign: 'center',
+            padding: '0 4px',
+            fontWeight: 500,
+            cursor: 'pointer',
           }}
         >
           {Math.round(scale * 100)}%
@@ -2222,8 +2338,12 @@ function ZoomableImageView({ src, alt, label, onSwipeLeft, onSwipeRight }: {
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value))
 }
-function getDistance(a: Point, b: Point): number { return Math.hypot(a.x - b.x, a.y - b.y) }
-function getCenter(a: Point, b: Point): Point { return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 } }
+function getDistance(a: Point, b: Point): number {
+  return Math.hypot(a.x - b.x, a.y - b.y)
+}
+function getCenter(a: Point, b: Point): Point {
+  return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }
+}
 function getViewportSize(element: HTMLDivElement | null): Size {
   if (!element) return { width: 0, height: 0 }
   return { width: element.clientWidth, height: element.clientHeight }
@@ -2234,7 +2354,8 @@ function getContainedSize(viewport: Size, naturalSize: Size): Size {
   return { width: naturalSize.width * ratio, height: naturalSize.height * ratio }
 }
 function clampOffset(offset: Point, scale: number, viewport: Size, fitSize: Size): Point {
-  if (!viewport.width || !viewport.height || !fitSize.width || !fitSize.height || scale <= FIT_SCALE) return { x: 0, y: 0 }
+  if (!viewport.width || !viewport.height || !fitSize.width || !fitSize.height || scale <= FIT_SCALE)
+    return { x: 0, y: 0 }
   const maxX = Math.max(0, (fitSize.width * scale - viewport.width) / 2)
   const maxY = Math.max(0, (fitSize.height * scale - viewport.height) / 2)
   return { x: clamp(offset.x, -maxX, maxX), y: clamp(offset.y, -maxY, maxY) }
