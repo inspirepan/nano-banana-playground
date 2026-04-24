@@ -17,6 +17,9 @@ importers:
       agentation:
         specifier: ^2.3.2
         version: 2.3.3(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
+      heic2any:
+        specifier: ^0.0.4
+        version: 0.0.4
       jszip:
         specifier: ^3.10.1
         version: 3.10.1
@@ -813,6 +816,9 @@ packages:
   has-flag@4.0.0:
     resolution: {integrity: sha512-EykJT/Q1KjTWctppgIAgfSO0tKVuZUjhgMr17kqTumMl6Afv3EISleU7qZUzoXDFTAHTDC4NOoG/ZxU3EvlMPQ==}
     engines: {node: '>=8'}
+
+  heic2any@0.0.4:
+    resolution: {integrity: sha512-3lLnZiDELfabVH87htnRolZ2iehX9zwpRyGNz22GKXIu0fznlblf0/ftppXKNqS26dqFSeqfIBhAmAj/uSp0cA==}
 
   hermes-estree@0.25.1:
     resolution: {integrity: sha512-0wUoCcLp+5Ev5pDW2OriHC2MJCbwLwuRx+gAqMTOkGKJJiBCLjtrvy4PWUGn6MIVefecRpzoOZ/UV6iGdOr+Cw==}
@@ -2044,6 +2050,8 @@ snapshots:
   graceful-fs@4.2.11: {}
 
   has-flag@4.0.0: {}
+
+  heic2any@0.0.4: {}
 
   hermes-estree@0.25.1: {}
 

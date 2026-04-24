@@ -10,6 +10,7 @@ import type { GenerationQueueSummary } from '../hooks/usePlayground'
 import type { ApiKeyStatus } from '../hooks/useApiKey'
 import { openAISize } from '../lib/openai'
 import { getPricePerImage } from '../lib/pricing'
+import { isHeifFile } from '../lib/fileToImage'
 import { ChipGroup } from './ChipGroup'
 import { AspectRatioSelector } from './AspectRatioSelector'
 import { ReferenceImageUpload } from './ReferenceImageUpload'
@@ -401,7 +402,7 @@ export function InputPanel({
       } catch { /* fall through */ }
     }
 
-    const files = Array.from(e.dataTransfer.files).filter((f) => f.type.startsWith('image/'))
+    const files = Array.from(e.dataTransfer.files).filter((f) => f.type.startsWith('image/') || isHeifFile(f))
     if (files.length > 0) onAddReferenceImages(files)
   }, [onAddReferenceImages, onAddReferenceImage])
 

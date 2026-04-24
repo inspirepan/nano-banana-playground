@@ -207,7 +207,7 @@ export const OutputPanel = memo(function OutputPanel({
             maxWidth={260}
           >
             <div className="inline-flex shrink-0 items-center gap-1 text-[11px] font-medium text-(--color-text-4)">
-              <span>同时生成</span>
+              <span>同时最多生成</span>
               <span
                 className="inline-flex h-[13px] w-[13px] items-center justify-center rounded-full mono text-[9px]"
                 style={{ boxShadow: 'inset 0 0 0 1px var(--ring-edge)' }}

@@ -102,7 +102,7 @@ export function ReferenceImageUpload({ images, maxTotal, dragOver, error, onAdd,
       <input
         ref={inputRef}
         type="file"
-        accept="image/*"
+        accept="image/*,.heic,.heif,.heics,.heifs"
         multiple
         onChange={handleFileSelect}
         className="hidden"
