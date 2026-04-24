@@ -156,8 +156,10 @@ function App() {
   const [apiKeysOpen, setApiKeysOpen] = useState(false)
   const regenToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const titleResetTimerRef = useRef<number | null>(null)
-  const prevGenerationStateRef = useRef(pg.generationState)
-  const lastGenerationProgressRef = useRef({ done: 0, total: 0 })
+  const prevActiveQueueRef = useRef(0)
+  const queueSummary = pg.generationQueueSummary
+  const queueActive = queueSummary.queued + queueSummary.running + queueSummary.retrying
+  const queueDone = queueSummary.succeeded + queueSummary.failed + queueSummary.canceled
 
   const mobileOutputAreaRef = useRef<HTMLDivElement>(null)
 
@@ -214,21 +216,21 @@ function App() {
       titleResetTimerRef.current = null
     }
 
-    const prevGenerationState = prevGenerationStateRef.current
-
-    if (pg.generationState === 'generating') {
+    if (queueActive > 0) {
       clearTitleResetTimer()
-      const total = pg.generationPreview.length
-      const done = pg.generationPreview.filter((slot) => slot.status !== 'pending').length
-      lastGenerationProgressRef.current = { done, total }
-      document.title = total > 0
-        ? `〔${done}/${total}〕◐ 生成中 · ${BASE_TITLE}`
-        : `◐ 生成中 · ${BASE_TITLE}`
-    } else if (prevGenerationState === 'generating' && pg.generationState === 'idle') {
+      document.title = queueSummary.total > 0
+        ? `〔${queueDone}/${queueSummary.total}〕生成中 · ${BASE_TITLE}`
+        : `生成中 · ${BASE_TITLE}`
+    } else if (prevActiveQueueRef.current > 0) {
       clearTitleResetTimer()
-      const { done, total } = lastGenerationProgressRef.current
-      if (total > 0 && done === total) {
-        document.title = `✓ 已完成 · ${BASE_TITLE}`
+      if (queueSummary.failed > 0 && queueSummary.succeeded === 0) {
+        document.title = `生成失败 · ${BASE_TITLE}`
+        titleResetTimerRef.current = window.setTimeout(() => {
+          document.title = BASE_TITLE
+          titleResetTimerRef.current = null
+        }, TITLE_RESET_DELAY_MS)
+      } else if (queueSummary.total > 0 && queueDone === queueSummary.total) {
+        document.title = `已完成 · ${BASE_TITLE}`
         titleResetTimerRef.current = window.setTimeout(() => {
           document.title = BASE_TITLE
           titleResetTimerRef.current = null
@@ -236,20 +238,13 @@ function App() {
       } else {
         document.title = BASE_TITLE
       }
-    } else if (pg.generationState === 'error') {
-      clearTitleResetTimer()
-      document.title = `✕ 生成失败 · ${BASE_TITLE}`
-      titleResetTimerRef.current = window.setTimeout(() => {
-        document.title = BASE_TITLE
-        titleResetTimerRef.current = null
-      }, TITLE_RESET_DELAY_MS)
     } else {
       clearTitleResetTimer()
       document.title = BASE_TITLE
     }
 
-    prevGenerationStateRef.current = pg.generationState
-  }, [pg.generationState, pg.generationPreview])
+    prevActiveQueueRef.current = queueActive
+  }, [queueActive, queueDone, queueSummary.failed, queueSummary.succeeded, queueSummary.total])
 
   useEffect(() => {
     return () => {
@@ -307,7 +302,7 @@ function App() {
           prompt={pg.prompt}
           referenceImages={pg.referenceImages}
           referenceImageError={pg.referenceImageError}
-          generationState={pg.generationState}
+          generationQueueSummary={pg.generationQueueSummary}
           apiKey={pg.apiKey}
           apiKeyStatus={pg.apiKeyStatus}
           googleKeyStatus={pg.googleKey.status}
@@ -325,19 +320,17 @@ function App() {
           onClearAllReferences={pg.clearAllReferences}
           onClearReferenceImageError={pg.clearReferenceImageError}
           onGenerate={handleGenerate}
-          onCancel={pg.cancelGeneration}
         />
         <div ref={mobileOutputAreaRef} className="border-t border-(--color-border) pt-5">
           <OutputPanel
             history={pg.history}
             historyHasMore={pg.historyHasMore}
-            generationState={pg.generationState}
-            generationSnapshot={pg.generationSnapshot}
-            generationPreview={pg.generationPreview}
-            generationRetryNotices={pg.generationRetryNotices}
-            error={pg.error}
-            batchCount={pg.batchCount}
-            aspectRatio={pg.aspectRatio}
+            generationJobs={pg.generationJobs}
+            generationQueueSummary={pg.generationQueueSummary}
+            generationConcurrency={pg.generationConcurrency}
+            onGenerationConcurrencyChange={pg.setGenerationConcurrency}
+            onCancelGenerationJob={pg.cancelGenerationJob}
+            onCancelGenerationSlot={pg.cancelGenerationSlot}
             onAddToRef={handleAddToRef}
             onRegenerate={handleRegenerate}
             onRemove={pg.removeFromHistory}
@@ -363,7 +356,7 @@ function App() {
             prompt={pg.prompt}
             referenceImages={pg.referenceImages}
             referenceImageError={pg.referenceImageError}
-            generationState={pg.generationState}
+            generationQueueSummary={pg.generationQueueSummary}
             apiKey={pg.apiKey}
             apiKeyStatus={pg.apiKeyStatus}
             googleKeyStatus={pg.googleKey.status}
@@ -381,7 +374,6 @@ function App() {
             onClearAllReferences={pg.clearAllReferences}
             onClearReferenceImageError={pg.clearReferenceImageError}
             onGenerate={handleGenerate}
-            onCancel={pg.cancelGeneration}
           />
         </div>
 
@@ -389,13 +381,12 @@ function App() {
         <OutputPanel
           history={pg.history}
           historyHasMore={pg.historyHasMore}
-          generationState={pg.generationState}
-          generationSnapshot={pg.generationSnapshot}
-          generationPreview={pg.generationPreview}
-          generationRetryNotices={pg.generationRetryNotices}
-          error={pg.error}
-          batchCount={pg.batchCount}
-          aspectRatio={pg.aspectRatio}
+          generationJobs={pg.generationJobs}
+          generationQueueSummary={pg.generationQueueSummary}
+          generationConcurrency={pg.generationConcurrency}
+          onGenerationConcurrencyChange={pg.setGenerationConcurrency}
+          onCancelGenerationJob={pg.cancelGenerationJob}
+          onCancelGenerationSlot={pg.cancelGenerationSlot}
           onAddToRef={handleAddToRef}
           onRegenerate={handleRegenerate}
           onRemove={pg.removeFromHistory}

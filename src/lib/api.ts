@@ -63,6 +63,7 @@ type ApiResponse = {
 export const REQUEST_TIMEOUT_MS = 5 * 60 * 1000 // 5 minutes
 
 const GENERATE_MAX_RETRIES = 2
+export const GENERATE_MAX_ATTEMPTS = GENERATE_MAX_RETRIES + 1
 const GENERATE_RETRY_DELAYS = [1000, 3000]
 
 function retryMessage(error: unknown): string {

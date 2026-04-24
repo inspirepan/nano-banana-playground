@@ -7,7 +7,7 @@ import {
   serializeOptionValue,
   type ModelConfig,
 } from '../config/models'
-import { generateImage, REQUEST_TIMEOUT_MS, type GenerateRetryEvent } from '../lib/api'
+import { generateImage, GENERATE_MAX_ATTEMPTS } from '../lib/api'
 import type { PlaygroundImage, PlaygroundImageMeta } from '../lib/types'
 import { isKeyError } from '../lib/validateKey'
 import { saveToHistory, loadHistoryPage, deleteFromHistory, clearHistory, loadImageBlobs, saveDraftRefs, loadDraftRefs, clearDraftRefs } from '../lib/history'
@@ -15,29 +15,55 @@ import { readSimpleUrlParams, updateUrl } from '../lib/urlState'
 import { useApiKey } from './useApiKey'
 import { putBlobInCache, getBlobFromCache, removeBlobFromCache, clearBlobCache } from './useImageSrc'
 
-export type GenerationState = 'idle' | 'generating' | 'error'
+export type GenerationSlotStatus = 'queued' | 'running' | 'retrying' | 'succeeded' | 'failed' | 'canceled'
+export type GenerationJobStatus = 'queued' | 'running' | 'completed' | 'partial_failed' | 'failed' | 'canceled'
 
-// Snapshot of settings at generation time
-export type GenerationSnapshot = {
-  batchId: string
-  batchCount: number
-  resolution: string
-  aspectRatio: string
+export type GenerationSlot = {
+  id: string
+  index: number
+  status: GenerationSlotStatus
+  attempt: number
+  maxAttempts: number
+  image?: PlaygroundImage
+  error?: string
+  retryDelayMs?: number
+  retryAt?: number
 }
 
-export type GenerationPreviewSlot =
-  | { status: 'pending' }
-  | { status: 'fulfilled'; image: PlaygroundImage }
-  | { status: 'rejected'; error: string }
-
-export type GenerationRetryNotice = GenerateRetryEvent & {
+export type GenerationJob = {
   id: string
-  batchId: string
-  slotIndex: number
   createdAt: number
+  startedAt?: number
+  finishedAt?: number
+  status: GenerationJobStatus
+  request: {
+    apiKey: string
+    baseUrl?: string
+    model: ModelConfig
+    prompt: string
+    referenceImages: PlaygroundImage[]
+    resolution: string
+    aspectRatio: string
+    options: Record<string, unknown>
+  }
+  slots: GenerationSlot[]
+}
+
+export type GenerationQueueSummary = {
+  total: number
+  queued: number
+  running: number
+  retrying: number
+  succeeded: number
+  failed: number
+  canceled: number
+  activeJobs: number
 }
 
 const HISTORY_PAGE_SIZE = 20
+const GENERATION_CONCURRENCY_KEY = 'nano-banana-generation-concurrency'
+const DEFAULT_GENERATION_CONCURRENCY = 2
+const MAX_GENERATION_CONCURRENCY = 4
 
 // Read simple URL params once at module load to safely init useState
 const _initial = readSimpleUrlParams()
@@ -57,6 +83,67 @@ function initialOptionsFor(model: ModelConfig, rawParams: Record<string, string>
     bag[opt.id] = coerceOptionValue(opt, rawParams[opt.urlKey])
   }
   return bag
+}
+
+function clampGenerationConcurrency(value: number): number {
+  return Math.min(Math.max(1, value), MAX_GENERATION_CONCURRENCY)
+}
+
+function initialGenerationConcurrency(): number {
+  const raw = localStorage.getItem(GENERATION_CONCURRENCY_KEY)
+  const parsed = raw ? Number.parseInt(raw, 10) : DEFAULT_GENERATION_CONCURRENCY
+  return clampGenerationConcurrency(Number.isFinite(parsed) ? parsed : DEFAULT_GENERATION_CONCURRENCY)
+}
+
+function isActiveSlot(slot: GenerationSlot): boolean {
+  return slot.status === 'queued' || slot.status === 'running' || slot.status === 'retrying'
+}
+
+function isActiveJob(job: GenerationJob): boolean {
+  return job.slots.some(isActiveSlot)
+}
+
+function deriveJobStatus(slots: GenerationSlot[]): GenerationJobStatus {
+  if (slots.some((slot) => slot.status === 'running' || slot.status === 'retrying')) return 'running'
+  if (slots.some((slot) => slot.status === 'queued')) return 'queued'
+
+  const succeeded = slots.filter((slot) => slot.status === 'succeeded').length
+  const failed = slots.filter((slot) => slot.status === 'failed').length
+  const canceled = slots.filter((slot) => slot.status === 'canceled').length
+  if (succeeded === slots.length) return 'completed'
+  if (canceled === slots.length) return 'canceled'
+  if (succeeded > 0 && failed + canceled > 0) return 'partial_failed'
+  if (failed > 0) return 'failed'
+  return 'canceled'
+}
+
+function summarizeGenerationQueue(jobs: GenerationJob[]): GenerationQueueSummary {
+  const summary: GenerationQueueSummary = {
+    total: 0,
+    queued: 0,
+    running: 0,
+    retrying: 0,
+    succeeded: 0,
+    failed: 0,
+    canceled: 0,
+    activeJobs: 0,
+  }
+
+  for (const job of jobs) {
+    if (isActiveJob(job)) summary.activeJobs++
+    for (const slot of job.slots) {
+      summary.total++
+      summary[slot.status]++
+    }
+  }
+
+  return summary
+}
+
+function toDisplayError(e: unknown): string {
+  const err = e instanceof Error ? e : new Error(String(e))
+  if (err.name === 'TimeoutError') return '请求超时（5min），请检查网络连接或代理配置后重试'
+  return err.message
 }
 
 export function usePlayground() {
@@ -89,12 +176,28 @@ export function usePlayground() {
   const [history, setHistory] = useState<PlaygroundImageMeta[]>([])
   const [historyHasMore, setHistoryHasMore] = useState(true)
   const historyLoadingRef = useRef(false)
-  const [generationState, setGenerationState] = useState<GenerationState>('idle')
-  const [generationSnapshot, setGenerationSnapshot] = useState<GenerationSnapshot | null>(null)
-  const [generationPreview, setGenerationPreview] = useState<GenerationPreviewSlot[]>([])
-  const [generationRetryNotices, setGenerationRetryNotices] = useState<GenerationRetryNotice[]>([])
-  const [error, setError] = useState<string | null>(null)
-  const abortRef = useRef<AbortController | null>(null)
+  const [generationJobs, setGenerationJobsState] = useState<GenerationJob[]>([])
+  const generationJobsRef = useRef<GenerationJob[]>([])
+  const [generationConcurrency, setGenerationConcurrencyState] = useState(initialGenerationConcurrency)
+  const generationConcurrencyRef = useRef(generationConcurrency)
+  const activeSlotIdsRef = useRef(new Set<string>())
+  const abortControllersRef = useRef(new Map<string, AbortController>())
+  const referencePersistenceRef = useRef(new Map<string, Promise<void>>())
+  const pumpQueueRef = useRef<() => void>(() => {})
+
+  const setGenerationJobs = useCallback((updater: (prev: GenerationJob[]) => GenerationJob[]) => {
+    const next = updater(generationJobsRef.current)
+    generationJobsRef.current = next
+    setGenerationJobsState(next)
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      for (const controller of abortControllersRef.current.values()) controller.abort()
+      abortControllersRef.current.clear()
+      activeSlotIdsRef.current.clear()
+    }
+  }, [])
 
   // Load first page of history on mount
   useEffect(() => {
@@ -324,146 +427,251 @@ export function usePlayground() {
     return result
   }, [])
 
-  const generate = useCallback(async () => {
+  const updateGenerationSlot = useCallback((
+    jobId: string,
+    slotId: string,
+    updateSlot: (slot: GenerationSlot) => GenerationSlot,
+    removeCompleted = false,
+  ) => {
+    setGenerationJobs((prev) => prev.flatMap((job) => {
+      if (job.id !== jobId) return [job]
+      const slots = job.slots.map((slot) => (slot.id === slotId ? updateSlot(slot) : slot))
+      const status = deriveJobStatus(slots)
+      const inactive = !slots.some(isActiveSlot)
+      const nextJob: GenerationJob = {
+        ...job,
+        slots,
+        status,
+        finishedAt: inactive ? (job.finishedAt ?? Date.now()) : undefined,
+      }
+      if (removeCompleted && status === 'completed') return []
+      return [nextJob]
+    }))
+  }, [setGenerationJobs])
+
+  const invalidateGenerationKey = useCallback((provider: ModelConfig['provider']) => {
+    if (provider === 'google') googleKeyHook.invalidate()
+    else openaiKeyHook.invalidate()
+  }, [googleKeyHook, openaiKeyHook])
+
+  const persistJobReferences = useCallback((job: GenerationJob): Promise<void> => {
+    const existing = referencePersistenceRef.current.get(job.id)
+    if (existing) return existing
+
+    const promise = Promise.all(job.request.referenceImages.map(async (refImg) => {
+      await saveToHistory(refImg)
+      putBlobInCache(refImg.id, refImg.data)
+    })).then(() => undefined)
+    referencePersistenceRef.current.set(job.id, promise)
+    return promise
+  }, [])
+
+  const startGenerationSlot = useCallback((jobId: string, slotId: string) => {
+    const job = generationJobsRef.current.find((item) => item.id === jobId)
+    const slot = job?.slots.find((item) => item.id === slotId)
+    if (!job || !slot || slot.status !== 'queued' || activeSlotIdsRef.current.has(slotId)) return
+
+    const controller = new AbortController()
+    activeSlotIdsRef.current.add(slotId)
+    abortControllersRef.current.set(slotId, controller)
+
+    setGenerationJobs((prev) => prev.map((item) => {
+      if (item.id !== jobId) return item
+      const slots = item.slots.map((current) => (
+        current.id === slotId
+          ? { ...current, status: 'running' as const, error: undefined, retryDelayMs: undefined, retryAt: undefined }
+          : current
+      ))
+      return {
+        ...item,
+        startedAt: item.startedAt ?? Date.now(),
+        status: deriveJobStatus(slots),
+        slots,
+      }
+    }))
+
+    void (async () => {
+      try {
+        await persistJobReferences(job)
+        if (controller.signal.aborted) return
+
+        const image = await generateImage({
+          ...job.request,
+          batchId: job.id,
+        }, controller.signal, {
+          onRetry: (event) => {
+            if (controller.signal.aborted) return
+            updateGenerationSlot(job.id, slot.id, (current) => {
+              if (!isActiveSlot(current)) return current
+              return {
+                ...current,
+                status: 'retrying',
+                attempt: event.nextAttempt,
+                error: event.error,
+                retryDelayMs: event.delayMs,
+                retryAt: Date.now() + event.delayMs,
+              }
+            })
+          },
+        })
+
+        if (controller.signal.aborted) return
+
+        await saveToHistory(image)
+        if (controller.signal.aborted) {
+          await deleteFromHistory(image.id).catch(() => {})
+          removeBlobFromCache(image.id)
+          return
+        }
+        putBlobInCache(image.id, image.data)
+        const { data: _, ...meta } = image
+        setHistory((prev) => prev.some((item) => item.id === meta.id) ? prev : [meta, ...prev])
+        updateGenerationSlot(job.id, slot.id, (current) => ({
+          ...current,
+          status: 'succeeded',
+          image,
+          error: undefined,
+          retryDelayMs: undefined,
+          retryAt: undefined,
+        }), true)
+      } catch (e) {
+        const err = e instanceof Error ? e : new Error(String(e))
+        if (controller.signal.aborted || err.name === 'AbortError') {
+          updateGenerationSlot(job.id, slot.id, (current) => ({
+            ...current,
+            status: 'canceled',
+            error: undefined,
+            retryDelayMs: undefined,
+            retryAt: undefined,
+          }))
+          return
+        }
+
+        const msg = toDisplayError(err)
+        updateGenerationSlot(job.id, slot.id, (current) => ({
+          ...current,
+          status: 'failed',
+          error: msg,
+          retryDelayMs: undefined,
+          retryAt: undefined,
+        }))
+        if (isKeyError(msg)) invalidateGenerationKey(job.request.model.provider)
+      } finally {
+        activeSlotIdsRef.current.delete(slotId)
+        abortControllersRef.current.delete(slotId)
+        pumpQueueRef.current()
+      }
+    })()
+  }, [invalidateGenerationKey, persistJobReferences, setGenerationJobs, updateGenerationSlot])
+
+  const pumpGenerationQueue = useCallback(() => {
+    while (activeSlotIdsRef.current.size < generationConcurrencyRef.current) {
+      const next = [...generationJobsRef.current]
+        .reverse()
+        .flatMap((job) => job.slots.map((slot) => ({ job, slot })))
+        .find(({ slot }) => slot.status === 'queued')
+      if (!next) return
+      startGenerationSlot(next.job.id, next.slot.id)
+    }
+  }, [startGenerationSlot])
+
+  pumpQueueRef.current = pumpGenerationQueue
+
+  const setGenerationConcurrency = useCallback((value: number) => {
+    const next = clampGenerationConcurrency(value)
+    generationConcurrencyRef.current = next
+    setGenerationConcurrencyState(next)
+    localStorage.setItem(GENERATION_CONCURRENCY_KEY, String(next))
+    pumpQueueRef.current()
+  }, [])
+
+  const generate = useCallback(() => {
     if (!apiKeyHook.apiKey) return
     const trimmed = prompt.trim()
     if (!trimmed) return
 
+    const activeOptions: Record<string, unknown> = {}
+    for (const opt of model.options ?? []) activeOptions[opt.id] = options[opt.id]
+
     const batchId = crypto.randomUUID()
-
-    setGenerationState('generating')
-    setGenerationSnapshot({ batchId, batchCount, resolution, aspectRatio })
-    setGenerationPreview(Array.from({ length: batchCount }, (): GenerationPreviewSlot => ({ status: 'pending' })))
-    setGenerationRetryNotices([])
-    setError(null)
-
-    const controller = new AbortController()
-    abortRef.current = controller
-    // 5min timeout — handles cases where API is unreachable or the upstream is slow
-    const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(REQUEST_TIMEOUT_MS)])
-
-    const toDisplayError = (e: unknown): string => {
-      const err = e instanceof Error ? e : new Error(String(e))
-      if (err.name === 'TimeoutError') return '请求超时（5min），请检查网络连接或代理配置后重试'
-      return err.message
+    const createdAt = Date.now()
+    const refsSnapshot = [...referenceImages]
+    const job: GenerationJob = {
+      id: batchId,
+      createdAt,
+      status: 'queued',
+      request: {
+        apiKey: apiKeyHook.apiKey,
+        baseUrl: apiKeyHook.baseUrl,
+        model,
+        prompt: trimmed,
+        referenceImages: refsSnapshot,
+        resolution,
+        aspectRatio,
+        options: activeOptions,
+      },
+      slots: Array.from({ length: batchCount }, (_, index) => ({
+        id: crypto.randomUUID(),
+        index,
+        status: 'queued',
+        attempt: 1,
+        maxAttempts: GENERATE_MAX_ATTEMPTS,
+      })),
     }
 
-    try {
-      // Persist reference images to IndexedDB so they can be shown in detail modal later
-      for (const refImg of referenceImages) {
-        await saveToHistory(refImg)
-        putBlobInCache(refImg.id, refImg.data)
-      }
+    setGenerationJobs((prev) => [job, ...prev.filter(isActiveJob)])
+    for (const refImg of refsSnapshot) putBlobInCache(refImg.id, refImg.data)
 
-      // Only pass options belonging to the current model (filter stale keys).
-      const activeOptions: Record<string, unknown> = {}
-      for (const opt of model.options ?? []) activeOptions[opt.id] = options[opt.id]
+    pumpQueueRef.current()
+  }, [apiKeyHook, prompt, model, referenceImages, resolution, aspectRatio, options, batchCount, setGenerationJobs])
 
-      const promises = Array.from({ length: batchCount }, (_, index) =>
-        generateImage({
-          apiKey: apiKeyHook.apiKey,
-          baseUrl: apiKeyHook.baseUrl,
-          model,
-          prompt: trimmed,
-          referenceImages,
-          resolution,
-          aspectRatio,
-          options: activeOptions,
-          batchId,
-        }, signal, {
-          onRetry: (event) => {
-            setGenerationRetryNotices((prev) => [
-              {
-                id: `${batchId}:${index}:${event.attempt}`,
-                batchId,
-                slotIndex: index,
-                createdAt: Date.now(),
-                ...event,
-              },
-              ...prev,
-            ])
-          },
-        })
-          .then((image) => {
-            setGenerationPreview((prev) => {
-              if (prev[index]?.status === 'fulfilled') return prev
-              const next = [...prev]
-              next[index] = { status: 'fulfilled', image }
-              return next
-            })
-            return image
-          })
-          .catch((reason: unknown) => {
-            const error = reason instanceof Error ? reason : new Error('Unknown error')
-            if (error.name !== 'AbortError') {
-              setGenerationPreview((prev) => {
-                if (prev[index]?.status === 'rejected') return prev
-                const next = [...prev]
-                next[index] = { status: 'rejected', error: toDisplayError(error) }
-                return next
-              })
-            }
-            throw error
-          }),
-      )
-      const results = await Promise.allSettled(promises)
+  const cancelGenerationSlot = useCallback((slotId: string) => {
+    abortControllersRef.current.get(slotId)?.abort()
+    activeSlotIdsRef.current.delete(slotId)
+    abortControllersRef.current.delete(slotId)
+    setGenerationJobs((prev) => prev.map((job) => {
+      if (!job.slots.some((slot) => slot.id === slotId)) return job
+      const slots = job.slots.map((slot) => (
+        slot.id === slotId && isActiveSlot(slot)
+          ? { ...slot, status: 'canceled' as const, error: undefined, retryDelayMs: undefined, retryAt: undefined }
+          : slot
+      ))
+      const status = deriveJobStatus(slots)
+      return {
+        ...job,
+        slots,
+        status,
+        finishedAt: slots.some(isActiveSlot) ? undefined : (job.finishedAt ?? Date.now()),
+      }
+    }))
+    pumpQueueRef.current()
+  }, [setGenerationJobs])
 
-      if (controller.signal.aborted) return
-
-      const images: PlaygroundImage[] = []
-      const errors: string[] = []
-      for (const r of results) {
-        if (r.status === 'fulfilled') {
-          images.push(r.value)
-        } else {
-          errors.push(toDisplayError(r.reason))
-        }
-      }
-
-      for (const img of images) {
-        await saveToHistory(img)
-        // Cache the blob so it's instantly available for display
-        putBlobInCache(img.id, img.data)
-      }
-      if (images.length > 0) {
-        const metas: PlaygroundImageMeta[] = images.map(({ data: _, ...meta }) => meta)
-        setHistory((prev) => [...metas, ...prev])
-      }
-
-      if (images.length === 0 && errors.length > 0) {
-        setGenerationState('error')
-        setError(errors[0])
-        if (isKeyError(errors[0])) {
-          apiKeyHook.invalidate()
-        }
-      } else {
-        setGenerationState('idle')
-        if (errors.length > 0) {
-          setError(`本批次 ${images.length} 张成功，${errors.length} 张失败（详见失败卡片）`)
-        }
-      }
-    } catch (e) {
-      if ((e as Error).name !== 'AbortError') {
-        const msg = toDisplayError(e)
-        setGenerationState('error')
-        setError(msg)
-        if (isKeyError(msg)) {
-          apiKeyHook.invalidate()
-        }
-      }
-    } finally {
-      setGenerationSnapshot(null)
-      setGenerationPreview([])
+  const cancelGenerationJob = useCallback((jobId: string) => {
+    const job = generationJobsRef.current.find((item) => item.id === jobId)
+    if (!job) return
+    for (const slot of job.slots) {
+      if (!isActiveSlot(slot)) continue
+      abortControllersRef.current.get(slot.id)?.abort()
+      activeSlotIdsRef.current.delete(slot.id)
+      abortControllersRef.current.delete(slot.id)
     }
-  }, [apiKeyHook, prompt, model, referenceImages, resolution, aspectRatio, options, batchCount])
-
-  const cancelGeneration = useCallback(() => {
-    abortRef.current?.abort()
-    setGenerationState('idle')
-    setGenerationSnapshot(null)
-    setGenerationPreview([])
-    setGenerationRetryNotices([])
-  }, [])
+    setGenerationJobs((prev) => prev.map((item) => {
+      if (item.id !== jobId) return item
+      const slots = item.slots.map((slot) => (
+        isActiveSlot(slot)
+          ? { ...slot, status: 'canceled' as const, error: undefined, retryDelayMs: undefined, retryAt: undefined }
+          : slot
+      ))
+      return {
+        ...item,
+        slots,
+        status: deriveJobStatus(slots),
+        finishedAt: Date.now(),
+      }
+    }))
+    pumpQueueRef.current()
+  }, [setGenerationJobs])
 
   const addToReferences = useCallback(
     async (image: PlaygroundImageMeta) => {
@@ -490,6 +698,8 @@ export function usePlayground() {
     setHistoryHasMore(false)
   }, [])
 
+  const generationQueueSummary = summarizeGenerationQueue(generationJobs)
+
   return {
     apiKey: apiKeyHook.apiKey,
     apiBaseUrl: apiKeyHook.baseUrl,
@@ -509,17 +719,16 @@ export function usePlayground() {
     referenceImageError,
     history,
     historyHasMore,
-    generationState,
-    generationSnapshot,
-    generationPreview,
-    generationRetryNotices,
-    error,
+    generationJobs,
+    generationQueueSummary,
+    generationConcurrency,
     switchModel,
     setResolution,
     setAspectRatio,
     setBatchCount,
     setOption,
     setPrompt,
+    setGenerationConcurrency,
     addReferenceImages,
     removeReferenceImage,
     clearAllReferences,
@@ -527,7 +736,8 @@ export function usePlayground() {
     restoreSession,
     resolveFullImages,
     generate,
-    cancelGeneration,
+    cancelGenerationJob,
+    cancelGenerationSlot,
     addToReferences,
     removeFromHistory,
     clearAllHistory,

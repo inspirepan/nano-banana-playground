@@ -6,7 +6,7 @@ import {
   type ModelOption,
   type ModelToggleOption,
 } from '../config/models'
-import type { GenerationState } from '../hooks/usePlayground'
+import type { GenerationQueueSummary } from '../hooks/usePlayground'
 import type { ApiKeyStatus } from '../hooks/useApiKey'
 import { openAISize } from '../lib/openai'
 import { getPricePerImage } from '../lib/pricing'
@@ -245,7 +245,7 @@ type Props = {
   prompt: string
   referenceImages: PlaygroundImage[]
   referenceImageError: string | null
-  generationState: GenerationState
+  generationQueueSummary: GenerationQueueSummary
   apiKey: string
   apiKeyStatus?: ApiKeyStatus
   googleKeyStatus: ApiKeyStatus
@@ -263,7 +263,6 @@ type Props = {
   onClearAllReferences: () => void
   onClearReferenceImageError: () => void
   onGenerate: () => void
-  onCancel: () => void
 }
 
 export function InputPanel({
@@ -275,7 +274,7 @@ export function InputPanel({
   prompt,
   referenceImages,
   referenceImageError,
-  generationState,
+  generationQueueSummary,
   apiKey,
   googleKeyStatus,
   openaiKeyStatus,
@@ -292,15 +291,14 @@ export function InputPanel({
   onClearAllReferences,
   onClearReferenceImageError,
   onGenerate,
-  onCancel,
 }: Props) {
-  const isGenerating = generationState === 'generating'
   const maxRef = model.maxReferenceImages + model.maxCharacterImages
   const pricePerImage = getPricePerImage(model, resolution, aspectRatio, options)
   const optionBlocks = buildOptionBlocks(model.options ?? [])
 
   const hasPrompt = prompt.trim() !== ''
-  const canGenerate = apiKey.trim() !== '' && hasPrompt && !isGenerating
+  const canGenerate = apiKey.trim() !== '' && hasPrompt
+  const activeQueueCount = generationQueueSummary.queued + generationQueueSummary.running + generationQueueSummary.retrying
 
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
@@ -363,13 +361,12 @@ export function InputPanel({
     const handler = (e: KeyboardEvent) => {
       if (e.metaKey && e.key === 'Enter') {
         e.preventDefault()
-        if (isGenerating) onCancel()
-        else if (canGenerate) onGenerate()
+        if (canGenerate) onGenerate()
       }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [isGenerating, canGenerate, onCancel, onGenerate])
+  }, [canGenerate, onGenerate])
 
   // --- Drag-and-drop ---
   const [dragOver, setDragOver] = useState(false)
@@ -665,62 +662,62 @@ export function InputPanel({
 
       {/* CTA */}
       <div className="relative">
-        {!isGenerating && (
-          <div className="mb-2.5 pt-2.5 border-t border-dashed border-(--color-border)">
-            <div className="flex items-baseline justify-between mb-2">
-              <span className="label">参数概览</span>
-              {estimatedCost !== null && (
-                <span className="mono text-[11.5px] text-(--color-text-2)">
-                  ≈ ${estimatedCost.toFixed(3)}
-                </span>
-              )}
-            </div>
-            <dl className="grid grid-cols-[52px_1fr] gap-x-3 gap-y-[5px] text-[11.5px] leading-[1.5]">
-              <dt className="text-(--color-text-4)">模型</dt>
-              <dd className="text-(--color-text-2)">{model.name}</dd>
-              <dt className="text-(--color-text-4)">尺寸</dt>
-              <dd className="text-(--color-text-2)">
-                <span className="mono">{resolution}</span>
-                <span className="mx-1.5 text-(--color-text-4)">/</span>
-                <span className="mono">{aspectRatio}</span>
-              </dd>
-              <dt className="text-(--color-text-4)">数量</dt>
-              <dd className="text-(--color-text-2)"><span className="mono">×{batchCount}</span></dd>
-              {referenceImages.length > 0 && (
-                <>
-                  <dt className="text-(--color-text-4)">参考图</dt>
-                  <dd className="text-(--color-text-2)">
-                    <span className="mono">{referenceImages.length}</span> 张
-                  </dd>
-                </>
-              )}
-              {optionSummaryLabels.length > 0 && (
-                <>
-                  <dt className="text-(--color-text-4)">选项</dt>
-                  <dd className="text-(--color-text-2)">{optionSummaryLabels.join('、')}</dd>
-                </>
-              )}
-            </dl>
+        <div className="mb-2.5 pt-2.5 border-t border-dashed border-(--color-border)">
+          <div className="flex items-baseline justify-between mb-2">
+            <span className="label">参数概览</span>
+            {estimatedCost !== null && (
+              <span className="mono text-[11.5px] text-(--color-text-2)">
+                ≈ ${estimatedCost.toFixed(3)}
+              </span>
+            )}
           </div>
-        )}
+          <dl className="grid grid-cols-[52px_1fr] gap-x-3 gap-y-[5px] text-[11.5px] leading-[1.5]">
+            <dt className="text-(--color-text-4)">模型</dt>
+            <dd className="text-(--color-text-2)">{model.name}</dd>
+            <dt className="text-(--color-text-4)">尺寸</dt>
+            <dd className="text-(--color-text-2)">
+              <span className="mono">{resolution}</span>
+              <span className="mx-1.5 text-(--color-text-4)">/</span>
+              <span className="mono">{aspectRatio}</span>
+            </dd>
+            <dt className="text-(--color-text-4)">数量</dt>
+            <dd className="text-(--color-text-2)"><span className="mono">×{batchCount}</span></dd>
+            {referenceImages.length > 0 && (
+              <>
+                <dt className="text-(--color-text-4)">参考图</dt>
+                <dd className="text-(--color-text-2)">
+                  <span className="mono">{referenceImages.length}</span> 张
+                </dd>
+              </>
+            )}
+            {optionSummaryLabels.length > 0 && (
+              <>
+                <dt className="text-(--color-text-4)">选项</dt>
+                <dd className="text-(--color-text-2)">{optionSummaryLabels.join('、')}</dd>
+              </>
+            )}
+            {activeQueueCount > 0 && (
+              <>
+                <dt className="text-(--color-text-4)">队列</dt>
+                <dd className="text-(--color-text-2)">
+                  <span className="mono">{activeQueueCount}</span> 张等待/运行中
+                </dd>
+              </>
+            )}
+          </dl>
+        </div>
         <button
           type="button"
-          onClick={isGenerating ? onCancel : () => onGenerate()}
-          disabled={!isGenerating && !canGenerate}
-          className={`cta w-full ${isGenerating ? 'danger' : ''}`}
+          onClick={() => onGenerate()}
+          disabled={!canGenerate}
+          className="cta w-full"
         >
-          {isGenerating ? (
-            '取消生成'
-          ) : (
-            <>
-              <Icon name="wand" size={13} strokeWidth={1.8} />
-              <span>使用 {model.name} 生成 {batchCount} 张</span>
-              <span className="flex-1" />
-              <span className="flex gap-0.5"><kbd>⌘</kbd><kbd>⏎</kbd></span>
-            </>
-          )}
+          <Icon name="wand" size={13} strokeWidth={1.8} />
+          <span>{activeQueueCount > 0 ? '加入队列' : `使用 ${model.name} 生成`} {batchCount} 张</span>
+          <span className="flex-1" />
+          <span className="flex gap-0.5"><kbd>⌘</kbd><kbd>⏎</kbd></span>
         </button>
-        {!isGenerating && !apiKey.trim() && (
+        {!apiKey.trim() && (
           <div className="mt-1.5 text-[11px] text-(--color-text-4) text-center">
             请先配置 API Key
           </div>

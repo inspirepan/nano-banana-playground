@@ -8,13 +8,14 @@ type Props = {
   image: PlaygroundImageMeta
   inlineData?: string
   index?: number
+  actionMode?: 'full' | 'downloadOnly'
   onAddToRef: (image: PlaygroundImageMeta) => void
   onRegenerate: (image: PlaygroundImageMeta) => void
   onRemove: (id: string) => void
   onOpen: (image: PlaygroundImageMeta) => void
 }
 
-export const ImageCard = memo(function ImageCard({ image, inlineData, index, onAddToRef, onRegenerate, onRemove, onOpen }: Props) {
+export const ImageCard = memo(function ImageCard({ image, inlineData, index, actionMode = 'full', onAddToRef, onRegenerate, onRemove, onOpen }: Props) {
   const CONTEXT_MENU_WIDTH = 160
   const CONTEXT_MENU_ITEM_HEIGHT = 32
   const CONTEXT_MENU_PADDING = 8
@@ -22,6 +23,7 @@ export const ImageCard = memo(function ImageCard({ image, inlineData, index, onA
   const meta = image.source.type === 'generated' ? image.source : null
   const [toast, setToast] = useState(false)
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null)
+  const downloadOnly = actionMode === 'downloadOnly'
 
   const showCopiedToast = () => {
     setToast(true)
@@ -93,36 +95,40 @@ export const ImageCard = memo(function ImageCard({ image, inlineData, index, onA
     }
   }, [menu])
 
-  const actionItems: Array<{ label: string; onClick: () => void; danger?: boolean }> = [
-    { label: '加为参考', onClick: () => onAddToRef(image) },
-    { label: '下载', onClick: handleDownload },
-    { label: '复制', onClick: handleCopyImage },
-    ...(meta?.prompt ? [{ label: '还原参数', onClick: handleRegenerate }] : []),
-    { label: '删除', onClick: handleDelete, danger: true },
-  ]
+  const actionItems: Array<{ label: string; onClick: () => void; danger?: boolean }> = downloadOnly
+    ? [{ label: '下载', onClick: handleDownload }]
+    : [
+        { label: '加为参考', onClick: () => onAddToRef(image) },
+        { label: '下载', onClick: handleDownload },
+        { label: '复制', onClick: handleCopyImage },
+        ...(meta?.prompt ? [{ label: '还原参数', onClick: handleRegenerate }] : []),
+        { label: '删除', onClick: handleDelete, danger: true },
+      ]
 
   return (
     <div
       ref={ref}
-      role="button"
-      tabIndex={0}
-      draggable
+      role={downloadOnly ? undefined : 'button'}
+      tabIndex={downloadOnly ? undefined : 0}
+      draggable={!downloadOnly}
       onContextMenu={(event) => {
         event.preventDefault()
+        if (downloadOnly) return
         const menuHeight = actionItems.length * CONTEXT_MENU_ITEM_HEIGHT + CONTEXT_MENU_PADDING
         const x = Math.min(event.clientX, window.innerWidth - CONTEXT_MENU_WIDTH - 8)
         const y = Math.min(event.clientY, window.innerHeight - menuHeight - 8)
         setMenu({ x: Math.max(8, x), y: Math.max(8, y) })
       }}
-      onDragStart={handleDragStart}
-      onClick={() => onOpen(image)}
+      onDragStart={downloadOnly ? undefined : handleDragStart}
+      onClick={downloadOnly ? undefined : () => onOpen(image)}
       onKeyDown={(event) => {
+        if (downloadOnly) return
         if (event.key === 'Enter' || event.key === ' ') {
           event.preventDefault()
           onOpen(image)
         }
       }}
-      className="img-card group relative h-full w-full cursor-zoom-in"
+      className={`img-card group relative h-full w-full ${downloadOnly ? '' : 'cursor-zoom-in'}`}
     >
       {src ? (
         <img
@@ -176,24 +182,28 @@ export const ImageCard = memo(function ImageCard({ image, inlineData, index, onA
           >
             <Icon name="download" size={12} strokeWidth={1.6} /> PNG
           </button>
-          <OverlayButton icon="plus" onClick={(e) => { e.stopPropagation(); onAddToRef(image) }}>参考</OverlayButton>
-          <span className="flex-1" />
-          <OverlayButton
-            icon="more"
-            onClick={(e) => {
-              e.stopPropagation()
-              const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
-              // Open above-left of the button so it doesn't clip the card
-              const menuHeight = actionItems.length * CONTEXT_MENU_ITEM_HEIGHT + CONTEXT_MENU_PADDING
-              const x = Math.max(8, Math.min(rect.right - CONTEXT_MENU_WIDTH, window.innerWidth - CONTEXT_MENU_WIDTH - 8))
-              const y = Math.max(8, rect.top - menuHeight - 4)
-              setMenu({ x, y })
-            }}
-          />
+          {!downloadOnly && (
+            <>
+              <OverlayButton icon="plus" onClick={(e) => { e.stopPropagation(); onAddToRef(image) }}>参考</OverlayButton>
+              <span className="flex-1" />
+              <OverlayButton
+                icon="more"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+                  // Open above-left of the button so it doesn't clip the card
+                  const menuHeight = actionItems.length * CONTEXT_MENU_ITEM_HEIGHT + CONTEXT_MENU_PADDING
+                  const x = Math.max(8, Math.min(rect.right - CONTEXT_MENU_WIDTH, window.innerWidth - CONTEXT_MENU_WIDTH - 8))
+                  const y = Math.max(8, rect.top - menuHeight - 4)
+                  setMenu({ x, y })
+                }}
+              />
+            </>
+          )}
         </div>
       </div>
 
-      {menu && createPortal(
+      {!downloadOnly && menu && createPortal(
         <div
           style={{ top: menu.y, left: menu.x }}
           onMouseDown={(e) => e.stopPropagation()}

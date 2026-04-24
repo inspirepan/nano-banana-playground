@@ -1,12 +1,7 @@
 import { memo, useMemo, useRef, useState, useEffect, useCallback } from 'react'
 import JSZip from 'jszip'
 import type { PlaygroundImageMeta } from '../lib/types'
-import type {
-  GenerationPreviewSlot,
-  GenerationRetryNotice,
-  GenerationState,
-  GenerationSnapshot,
-} from '../hooks/usePlayground'
+import type { GenerationJob, GenerationQueueSummary, GenerationSlot } from '../hooks/usePlayground'
 import { MODEL_CONFIGS } from '../config/models'
 import { loadImageBlobs } from '../lib/history'
 import { getBlobFromCache, putBlobInCache } from '../hooks/useImageSrc'
@@ -14,17 +9,17 @@ import { ImageCard } from './ImageCard'
 import { ImageDetailModal } from './ImageDetailModal'
 import { ImageGrid, GridCell } from './ImageGrid'
 import { Icon } from './Icon'
+import { Tooltip } from './Tooltip'
 
 type Props = {
   history: PlaygroundImageMeta[]
   historyHasMore: boolean
-  generationState: GenerationState
-  generationSnapshot: GenerationSnapshot | null
-  generationPreview: GenerationPreviewSlot[]
-  generationRetryNotices: GenerationRetryNotice[]
-  error: string | null
-  batchCount: number
-  aspectRatio: string
+  generationJobs: GenerationJob[]
+  generationQueueSummary: GenerationQueueSummary
+  generationConcurrency: number
+  onGenerationConcurrencyChange: (value: number) => void
+  onCancelGenerationJob: (jobId: string) => void
+  onCancelGenerationSlot: (slotId: string) => void
   onAddToRef: (image: PlaygroundImageMeta) => void
   onRegenerate: (image: PlaygroundImageMeta) => void
   onRemove: (id: string) => void
@@ -39,6 +34,18 @@ type HistoryBatch = {
   modelId: string
   images: PlaygroundImageMeta[]
   timestamp: number
+}
+
+type SlotCounts = {
+  queued: number
+  running: number
+  retrying: number
+  succeeded: number
+  failed: number
+  canceled: number
+  active: number
+  done: number
+  total: number
 }
 
 function groupByBatch(images: PlaygroundImageMeta[]): HistoryBatch[] {
@@ -60,7 +67,71 @@ function modelNameOf(modelId: string): string {
   return MODEL_CONFIGS.find((m) => m.id === modelId)?.name ?? modelId
 }
 
-function LoadingCard({ index }: { index: number }) {
+function isActiveSlot(slot: GenerationSlot): boolean {
+  return slot.status === 'queued' || slot.status === 'running' || slot.status === 'retrying'
+}
+
+function countSlots(slots: GenerationSlot[]): SlotCounts {
+  const counts: SlotCounts = {
+    queued: 0,
+    running: 0,
+    retrying: 0,
+    succeeded: 0,
+    failed: 0,
+    canceled: 0,
+    active: 0,
+    done: 0,
+    total: slots.length,
+  }
+  for (const slot of slots) {
+    counts[slot.status]++
+    if (isActiveSlot(slot)) counts.active++
+    else counts.done++
+  }
+  return counts
+}
+
+function jobStatusLabel(counts: SlotCounts): string {
+  if (counts.active > 0) {
+    const parts = [`运行 ${counts.done}/${counts.total}`]
+    if (counts.running > 0) parts.push(`生成 ${counts.running}`)
+    if (counts.retrying > 0) parts.push(`重试 ${counts.retrying}`)
+    if (counts.queued > 0) parts.push(`排队 ${counts.queued}`)
+    return parts.join(' · ')
+  }
+  if (counts.succeeded === counts.total) return `完成 ${counts.succeeded}/${counts.total}`
+  if (counts.succeeded > 0) {
+    const parts = [`完成 ${counts.succeeded}/${counts.total}`]
+    if (counts.failed > 0) parts.push(`失败 ${counts.failed}`)
+    if (counts.canceled > 0) parts.push(`取消 ${counts.canceled}`)
+    return parts.join(' · ')
+  }
+  if (counts.failed > 0) return `失败 ${counts.failed}/${counts.total}`
+  return `已取消 ${counts.canceled}/${counts.total}`
+}
+
+function queueSummaryLabel(summary: GenerationQueueSummary): string {
+  const parts = [`队列 ${summary.total}`]
+  const running = summary.running + summary.retrying
+  if (running > 0) parts.push(`运行 ${running}`)
+  if (summary.queued > 0) parts.push(`排队 ${summary.queued}`)
+  if (summary.failed > 0) parts.push(`失败 ${summary.failed}`)
+  return parts.join(' · ')
+}
+
+function StatusCard({ slot, onCancel }: { slot: GenerationSlot; onCancel: (slotId: string) => void }) {
+  if (slot.status === 'failed') return <FailedCard index={slot.index} error={slot.error ?? '生成失败'} />
+  if (slot.status === 'canceled') return <CanceledCard index={slot.index} />
+
+  const retrying = slot.status === 'retrying'
+  const running = slot.status === 'running'
+  const label = retrying ? '重试中' : running ? '生成中' : '排队中'
+  const hint = retrying
+    ? `第 ${slot.attempt}/${slot.maxAttempts} 次尝试`
+    : running
+      ? '正在请求模型'
+      : '前面的图片完成后自动开始'
+
   return (
     <div
       className="w-full h-full rounded-[8px] overflow-hidden relative"
@@ -69,9 +140,34 @@ function LoadingCard({ index }: { index: number }) {
         background: 'var(--color-surface-2)',
       }}
     >
-      <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-(--color-text-3)">
-        <span className="spinner" />
-        <div className="mono text-[11px] text-(--color-text-4)">生成中 #{index + 1}</div>
+      <button
+        type="button"
+        onClick={() => onCancel(slot.id)}
+        className="absolute right-2 top-2 z-10 rounded-[5px] px-2 py-1 text-[11px] font-medium transition-colors"
+        style={{
+          color: 'var(--color-text-2)',
+          background: 'color-mix(in srgb, var(--color-surface) 86%, transparent)',
+          boxShadow: 'inset 0 0 0 1px var(--ring-edge)',
+        }}
+      >
+        取消
+      </button>
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-4 text-center text-(--color-text-3)">
+        {slot.status === 'queued' ? (
+          <div
+            className="h-2 w-2 rounded-full"
+            style={{ background: 'var(--color-text-4)' }}
+          />
+        ) : (
+          <span className="spinner" />
+        )}
+        <div className="mono text-[11px] text-(--color-text-3)">{label} #{slot.index + 1}</div>
+        <div className="text-[11px] text-(--color-text-4)">{hint}</div>
+        {retrying && slot.error && (
+          <div className="max-h-[44px] overflow-y-auto break-words text-[10.5px] leading-[1.45] text-(--color-text-4)">
+            {slot.error}
+          </div>
+        )}
       </div>
     </div>
   )
@@ -98,9 +194,7 @@ function FailedCard({ index, error }: { index: number; error: string }) {
             失败 #{index + 1}
           </div>
         </div>
-        <div
-          className="flex-1 min-h-0 overflow-y-auto mono text-[11px] leading-[1.55] break-words text-(--color-text-2) whitespace-pre-wrap"
-        >
+        <div className="flex-1 min-h-0 overflow-y-auto mono text-[11px] leading-[1.55] break-words text-(--color-text-2) whitespace-pre-wrap">
           {error}
         </div>
       </div>
@@ -108,33 +202,18 @@ function FailedCard({ index, error }: { index: number; error: string }) {
   )
 }
 
-function RetryNoticeCard({ notice }: { notice: GenerationRetryNotice }) {
+function CanceledCard({ index }: { index: number }) {
   return (
     <div
-      className="rounded-[6px] px-3 py-2.5"
+      className="w-full h-full rounded-[8px] overflow-hidden relative"
       style={{
-        boxShadow: 'inset 0 0 0 1px color-mix(in srgb, var(--color-warning) 24%, transparent)',
-        background: 'color-mix(in srgb, var(--color-warning) 8%, transparent)',
+        boxShadow: 'inset 0 0 0 1px var(--ring-edge)',
+        background: 'var(--color-surface-2)',
       }}
     >
-      <div className="flex items-start gap-2.5">
-        <div
-          className="mt-[1px] flex h-5 w-5 shrink-0 items-center justify-center rounded-full"
-          style={{
-            background: 'color-mix(in srgb, var(--color-warning) 14%, transparent)',
-            color: 'var(--color-warning)',
-          }}
-        >
-          <Icon name="refresh" size={11} strokeWidth={1.9} />
-        </div>
-        <div className="min-w-0">
-          <div className="text-[12px] font-medium leading-[1.45]" style={{ color: 'var(--color-warning)' }}>
-            任务 #{notice.slotIndex + 1} 第 {notice.attempt} 次尝试失败，正在进行第 {notice.nextAttempt} 次尝试
-          </div>
-          <div className="mt-1 break-words text-[11.5px] leading-[1.5] text-(--color-text-2)">
-            原因：{notice.error}
-          </div>
-        </div>
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-(--color-text-4)">
+        <Icon name="close" size={14} strokeWidth={1.8} />
+        <div className="mono text-[11px]">已取消 #{index + 1}</div>
       </div>
     </div>
   )
@@ -149,16 +228,91 @@ function formatTime(ts: number): string {
   return new Date(ts).toLocaleDateString()
 }
 
+function QueueJobSection({
+  job,
+  onCancelJob,
+  onCancelSlot,
+  onAddToRef,
+  onRegenerate,
+  onRemove,
+  onOpen,
+}: {
+  job: GenerationJob
+  onCancelJob: (jobId: string) => void
+  onCancelSlot: (slotId: string) => void
+  onAddToRef: (image: PlaygroundImageMeta) => void
+  onRegenerate: (image: PlaygroundImageMeta) => void
+  onRemove: (id: string) => void
+  onOpen: (image: PlaygroundImageMeta) => void
+}) {
+  const counts = countSlots(job.slots)
+  const active = counts.active > 0
+  const statusColor = active
+    ? 'var(--color-accent)'
+    : counts.failed > 0
+      ? 'var(--color-danger)'
+      : 'var(--color-text-3)'
+
+  return (
+    <div>
+      <div className="mb-2 grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+          <span className="mono whitespace-nowrap text-[11.5px] text-(--color-text-3)">{formatTime(job.createdAt)}</span>
+          <span className="text-(--color-text-4)">·</span>
+          <span className="whitespace-nowrap text-[11.5px] font-medium text-(--color-text-2)">{job.request.model.name}</span>
+          <span className="text-(--color-text-4)">·</span>
+          <span className="mono whitespace-nowrap text-[11.5px] text-(--color-text-3)">
+            {job.request.resolution} · {job.request.aspectRatio} · {job.slots.length}
+          </span>
+          <span className="text-(--color-text-4)">·</span>
+          <span className="mono whitespace-nowrap text-[11.5px]" style={{ color: statusColor }}>
+            {jobStatusLabel(counts)}
+          </span>
+        </div>
+        {active && (
+          <button
+            type="button"
+            onClick={() => onCancelJob(job.id)}
+            className="chip"
+            style={{ height: 24, padding: '0 8px', fontSize: 11.5 }}
+          >
+            取消剩余
+          </button>
+        )}
+      </div>
+      <ImageGrid>
+        {job.slots.map((slot) => (
+          <GridCell key={slot.id} aspectRatio={job.request.aspectRatio}>
+            {slot.status === 'succeeded' && slot.image ? (
+              <ImageCard
+                image={slot.image}
+                inlineData={slot.image.data}
+                index={job.slots.length > 1 ? slot.index : undefined}
+                actionMode="downloadOnly"
+                onAddToRef={onAddToRef}
+                onRegenerate={onRegenerate}
+                onRemove={onRemove}
+                onOpen={onOpen}
+              />
+            ) : (
+              <StatusCard slot={slot} onCancel={onCancelSlot} />
+            )}
+          </GridCell>
+        ))}
+      </ImageGrid>
+    </div>
+  )
+}
+
 export const OutputPanel = memo(function OutputPanel({
   history,
   historyHasMore,
-  generationState,
-  generationSnapshot,
-  generationPreview,
-  generationRetryNotices,
-  error,
-  batchCount,
-  aspectRatio,
+  generationJobs,
+  generationQueueSummary,
+  generationConcurrency,
+  onGenerationConcurrencyChange,
+  onCancelGenerationJob,
+  onCancelGenerationSlot,
   onAddToRef,
   onRegenerate,
   onRemove,
@@ -168,45 +322,19 @@ export const OutputPanel = memo(function OutputPanel({
   const [detailImage, setDetailImage] = useState<PlaygroundImageMeta | null>(null)
   const [exporting, setExporting] = useState(false)
   const [confirmClear, setConfirmClear] = useState(false)
-  const isGenerating = generationState === 'generating'
-
-  const lastGenRef = useRef<{ preview: GenerationPreviewSlot[]; ratio: string; res: string; count: number; batchId: string } | null>(null)
-  if (isGenerating && generationPreview.length > 0 && generationSnapshot) {
-    lastGenRef.current = {
-      preview: generationPreview,
-      ratio: generationSnapshot.aspectRatio,
-      res: generationSnapshot.resolution,
-      count: generationSnapshot.batchCount,
-      batchId: generationSnapshot.batchId,
-    }
-  }
-
-  const [settled, setSettled] = useState(false)
-  const prevGeneratingRef = useRef(false)
-
-  if (prevGeneratingRef.current !== isGenerating) {
-    if (prevGeneratingRef.current && !isGenerating && lastGenRef.current) {
-      if (!settled) setSettled(true)
-    }
-    if (!prevGeneratingRef.current && isGenerating) {
-      if (settled) setSettled(false)
-      lastGenRef.current = null
-    }
-    prevGeneratingRef.current = isGenerating
-  }
 
   const handleExportAll = async () => {
-    if (exporting || history.length === 0) return
+    if (exporting || exportableHistory.length === 0) return
     setExporting(true)
     try {
-      const needLoad = history.filter((img) => !getBlobFromCache(img.id)).map((img) => img.id)
+      const needLoad = exportableHistory.filter((img) => !getBlobFromCache(img.id)).map((img) => img.id)
       if (needLoad.length > 0) {
         const blobs = await loadImageBlobs(needLoad)
         for (const [id, data] of blobs) putBlobInCache(id, data)
       }
 
       const zip = new JSZip()
-      for (const img of history) {
+      for (const img of exportableHistory) {
         const data = getBlobFromCache(img.id)
         if (!data) continue
         const ext = img.mimeType === 'image/png' ? 'png' : 'jpg'
@@ -224,30 +352,28 @@ export const OutputPanel = memo(function OutputPanel({
       setExporting(false)
     }
   }
+
   const batches = useMemo(() => groupByBatch(history), [history])
-
-  const settledData = settled && !isGenerating ? lastGenRef.current : null
-  const previewVisible = isGenerating || !!settledData
-
-  const draftRatio = settledData ? settledData.ratio : isGenerating && generationSnapshot ? generationSnapshot.aspectRatio : aspectRatio
-  const draftCount = settledData ? settledData.count : isGenerating && generationSnapshot ? generationSnapshot.batchCount : batchCount
-  const previewSlots = settledData ? settledData.preview
-    : isGenerating && generationPreview.length > 0 ? generationPreview
-    : Array.from({ length: draftCount }, (): GenerationPreviewSlot => ({ status: 'pending' }))
-  const completedCount = previewSlots.filter((slot) => slot.status === 'fulfilled').length
-
-  const settledBatchId = settledData?.batchId ?? null
-  const displayBatches = settledBatchId
-    ? batches.filter((b) => b.batchId !== settledBatchId)
-    : batches
+  const queueBatchIds = useMemo(() => new Set(generationJobs.map((job) => job.id)), [generationJobs])
+  const displayBatches = useMemo(
+    () => batches.filter((batch) => !queueBatchIds.has(batch.batchId)),
+    [batches, queueBatchIds],
+  )
+  const exportableHistory = useMemo(
+    () => history.filter((img) => img.source.type !== 'generated' || !queueBatchIds.has(img.source.batchId)),
+    [history, queueBatchIds],
+  )
 
   const scrollRef = useRef<HTMLDivElement>(null)
+  const topJobIdRef = useRef<string | null>(null)
 
   useEffect(() => {
-    if (isGenerating) {
+    const topJobId = generationJobs[0]?.id ?? null
+    if (topJobId && topJobIdRef.current !== topJobId) {
       scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
     }
-  }, [isGenerating])
+    topJobIdRef.current = topJobId
+  }, [generationJobs])
 
   const sentinelRef = useRef<HTMLDivElement>(null)
   const onLoadMoreStable = useCallback(() => { onLoadMore() }, [onLoadMore])
@@ -269,122 +395,104 @@ export const OutputPanel = memo(function OutputPanel({
       ref={scrollRef}
       className="flex-1 md:flex-[2_1_0%] overflow-visible md:overflow-y-auto [scrollbar-gutter:stable] md:px-[26px] md:py-[22px] md:pb-[80px]"
     >
-      {/* Header */}
-      <div className="flex items-center gap-2.5 mb-5">
-        <div>
+      <div className="mb-5 space-y-3">
+        <div className="flex items-start gap-3">
+        <div className="min-w-0">
           <div className="font-display text-[15px] font-semibold tracking-[-0.01em]">结果</div>
           <div className="text-[11.5px] text-(--color-text-3) mt-0.5">
             {history.length} 张，存储于本地浏览器
           </div>
         </div>
         <div className="flex-1" />
-        {history.length > 0 && (
+        {exportableHistory.length > 0 && (
           <button
             type="button"
             onClick={handleExportAll}
             disabled={exporting}
-            className="chip"
+            className="chip shrink-0"
           >
             <Icon name="download" size={12} /> {exporting ? '导出中…' : '导出 ZIP'}
           </button>
         )}
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <Tooltip
+            text="控制一次最多同时生成几张图。数字越大，排队更少，但也更容易遇到接口限流；不影响每个任务本身要生成的张数。"
+            placement="bottom"
+            maxWidth={260}
+          >
+            <div className="inline-flex shrink-0 items-center gap-1 text-[11px] font-medium text-(--color-text-4)">
+              <span>同时生成</span>
+              <span
+                className="inline-flex h-[13px] w-[13px] items-center justify-center rounded-full mono text-[9px]"
+                style={{ boxShadow: 'inset 0 0 0 1px var(--ring-edge)' }}
+              >
+                ?
+              </span>
+            </div>
+          </Tooltip>
+          <div
+            className="segmented"
+            style={{
+              width: 156,
+              ['--seg-count' as string]: 4,
+              ['--seg-index' as string]: generationConcurrency - 1,
+            }}
+          >
+            {[1, 2, 3, 4].map((value) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => onGenerationConcurrencyChange(value)}
+                data-active={generationConcurrency === value}
+              >
+                <span><span className="mono text-[11px]">{value}</span> 张</span>
+              </button>
+            ))}
+          </div>
+        </div>
+        {generationQueueSummary.total > 0 && (
+          <div
+            className="mono inline-flex h-[30px] shrink-0 items-center whitespace-nowrap rounded-[6px] px-2 text-[11.5px] text-(--color-text-3)"
+            style={{ background: 'var(--color-surface-2)', boxShadow: 'inset 0 0 0 1px var(--ring-edge)' }}
+          >
+            {queueSummaryLabel(generationQueueSummary)}
+          </div>
+        )}
+        </div>
       </div>
 
-      {generationRetryNotices.length > 0 && (
-        <div className="mb-4 space-y-2">
-          {generationRetryNotices.map((notice) => (
-            <RetryNoticeCard key={notice.id} notice={notice} />
+      {generationJobs.length > 0 && (
+        <div className="mb-[26px] space-y-[26px]">
+          {generationJobs.map((job) => (
+            <QueueJobSection
+              key={job.id}
+              job={job}
+              onCancelJob={onCancelGenerationJob}
+              onCancelSlot={onCancelGenerationSlot}
+              onAddToRef={onAddToRef}
+              onRegenerate={onRegenerate}
+              onRemove={onRemove}
+              onOpen={setDetailImage}
+            />
           ))}
         </div>
       )}
 
-      {error && (
-        <div
-          className="mb-4 rounded-[6px] px-3 py-2 text-[12px]"
-          style={{
-            boxShadow: 'inset 0 0 0 1px color-mix(in srgb, var(--color-danger) 24%, transparent)',
-            background: 'color-mix(in srgb, var(--color-danger) 6%, transparent)',
-            color: 'var(--color-danger)',
-          }}
-        >
-          {error}
-        </div>
-      )}
-
-      {/* Unified preview — grid-rows expand animation */}
-      <div
-        className={`grid transition-[grid-template-rows,opacity] duration-200 ease-[cubic-bezier(0.2,0,0,1)]
-          ${previewVisible ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0 pointer-events-none'}`}
-      >
-        <div className="overflow-y-clip min-h-0">
-          <div className="mb-6">
-            <div
-              className="flex items-center gap-2.5 mb-2.5 px-3 py-1.5 rounded-[6px]"
-              style={{
-                background: isGenerating ? 'var(--color-accent-soft)' : 'transparent',
-                boxShadow: isGenerating ? 'inset 0 0 0 1px var(--color-accent-wash-2)' : 'none',
-              }}
-            >
-              {isGenerating ? (
-                <>
-                  <span className="spinner" />
-                  <span className="text-[12.5px] font-medium" style={{ color: 'var(--color-accent)' }}>
-                    生成中
-                  </span>
-                  <span className="mono text-[11.5px] text-(--color-text-3)">
-                    {completedCount} / {draftCount}
-                  </span>
-                </>
-              ) : settledData ? (
-                <>
-                  <span className="mono text-[11.5px] text-(--color-text-3)">刚刚</span>
-                  <span className="text-(--color-text-4)">·</span>
-                  <span className="mono text-[11.5px] text-(--color-text-3)">
-                    {settledData.res} · {settledData.ratio} · {settledData.count}
-                  </span>
-                </>
-              ) : (
-                <span className="label">预览</span>
-              )}
-            </div>
-            <ImageGrid>
-              {previewSlots.map((slot, i) => (
-                <GridCell key={i} aspectRatio={draftRatio}>
-                  {slot.status === 'fulfilled' ? (
-                    <ImageCard
-                      image={slot.image}
-                      inlineData={slot.image.data}
-                      index={draftCount > 1 ? i : undefined}
-                      onAddToRef={onAddToRef}
-                      onRegenerate={onRegenerate}
-                      onRemove={onRemove}
-                      onOpen={setDetailImage}
-                    />
-                  ) : slot.status === 'rejected' ? (
-                    <FailedCard index={i} error={slot.error} />
-                  ) : (
-                    <LoadingCard index={i} />
-                  )}
-                </GridCell>
-              ))}
-            </ImageGrid>
-          </div>
-        </div>
-      </div>
-
-      {/* History batches */}
       {displayBatches.length > 0 && (
         <div className="space-y-[26px]">
           {displayBatches.map((batch) => (
             <div key={batch.batchId}>
-              <div className="flex items-center gap-2 mb-2">
-                <span className="mono text-[11.5px] text-(--color-text-3)">{formatTime(batch.timestamp)}</span>
+              <div className="mb-2 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                <span className="mono whitespace-nowrap text-[11.5px] text-(--color-text-3)">{formatTime(batch.timestamp)}</span>
                 <span className="text-(--color-text-4)">·</span>
-                <span className="text-[11.5px] font-medium text-(--color-text-2)">
+                <span className="whitespace-nowrap text-[11.5px] font-medium text-(--color-text-2)">
                   {modelNameOf(batch.modelId)}
                 </span>
                 <span className="text-(--color-text-4)">·</span>
-                <span className="mono text-[11.5px] text-(--color-text-3)">
+                <span className="mono whitespace-nowrap text-[11.5px] text-(--color-text-3)">
                   {batch.resolution} · {batch.aspectRatio} · {batch.images.length}
                 </span>
               </div>
@@ -446,7 +554,7 @@ export const OutputPanel = memo(function OutputPanel({
         </div>
       )}
 
-      {displayBatches.length === 0 && !isGenerating && !settledData && (
+      {displayBatches.length === 0 && generationJobs.length === 0 && (
         <div className="py-20 text-center text-(--color-text-3)">
           <div className="text-[13px] mb-1.5">尚无生成记录</div>
           <div className="text-[11.5px] text-(--color-text-4)">配置参数并点击「生成」开始</div>
