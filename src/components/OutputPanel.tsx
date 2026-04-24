@@ -5,6 +5,7 @@ import type { ModelConfig } from '../config/models'
 import type { GenerationJob, GenerationQueueSummary } from '../hooks/usePlayground'
 import { MODEL_CONFIGS } from '../config/models'
 import { loadImageBlobs } from '../lib/history'
+import { imageDownloadFileName } from '../lib/downloadFileName'
 import { getBlobFromCache, putBlobInCache } from '../hooks/useImageSrc'
 import { ImageCard } from './ImageCard'
 import { ImageDetailModal } from './ImageDetailModal'
@@ -126,7 +127,7 @@ export const OutputPanel = memo(function OutputPanel({
         const data = getBlobFromCache(img.id)
         if (!data) continue
         const ext = img.mimeType === 'image/png' ? 'png' : 'jpg'
-        const name = `nano-banana-${img.id.slice(0, 8)}.${ext}`
+        const name = imageDownloadFileName(img, ext)
         zip.file(name, data, { base64: true })
       }
       const blob = await zip.generateAsync({ type: 'blob' })

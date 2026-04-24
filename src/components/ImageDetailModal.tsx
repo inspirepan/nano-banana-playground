@@ -15,6 +15,7 @@ import { DrawableLayer, type DrawableLayerHandle, type DrawMode, type DrawTool }
 import { computeItemCounts, copyEditState, getEditState, setEditPrompt, type ItemCounts } from '../lib/editStateCache'
 import { openAISize } from '../lib/openai'
 import { readFileAsImageData } from '../lib/fileToImage'
+import { imageDownloadFileName } from '../lib/downloadFileName'
 
 type EditMode = 'view' | DrawMode
 
@@ -502,7 +503,7 @@ export function ImageDetailModal({
     if (!currentSrc) return
     const anchor = document.createElement('a')
     anchor.href = currentSrc
-    anchor.download = `nano-banana-${currentImage.id.slice(0, 8)}.png`
+    anchor.download = imageDownloadFileName(currentImage, 'png')
     anchor.click()
     flash('开始下载 PNG')
   }

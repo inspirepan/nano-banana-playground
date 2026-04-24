@@ -2,6 +2,7 @@ import { memo, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { PlaygroundImageMeta } from '../lib/types'
 import { ensureBlobLoaded, useImageSrc, getBlobFromCache } from '../hooks/useImageSrc'
+import { imageDownloadFileName } from '../lib/downloadFileName'
 import { Icon } from './Icon'
 
 type Props = {
@@ -52,7 +53,7 @@ export const ImageCard = memo(function ImageCard({
     if (!fullSrc) return
     const anchor = document.createElement('a')
     anchor.href = fullSrc
-    anchor.download = `nano-banana-${image.id.slice(0, 8)}.png`
+    anchor.download = imageDownloadFileName(image, 'png')
     anchor.click()
   }
 
