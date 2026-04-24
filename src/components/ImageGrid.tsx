@@ -65,9 +65,12 @@ const GridColsContext = createContext(DEFAULT_GRID_COLS)
 
 type ImageGridProps = {
   children: ReactNode
+  // Cap the base row height. Useful when the grid is embedded in a narrow
+  // panel and the default square-to-column sizing makes tiles feel oversized.
+  maxRowHeight?: number
 }
 
-export function ImageGrid({ children }: ImageGridProps) {
+export function ImageGrid({ children, maxRowHeight }: ImageGridProps) {
   const ref = useRef<HTMLDivElement>(null)
   const [gridCols, setGridCols] = useState(DEFAULT_GRID_COLS)
   const [rowHeight, setRowHeight] = useState(120)
@@ -80,7 +83,10 @@ export function ImageGrid({ children }: ImageGridProps) {
       const width = element.clientWidth
       const cols = getGridCols(width)
       const colWidth = (width - (cols - 1) * GRID_GAP) / cols
-      const nextRowHeight = Math.max(72, Math.round(colWidth))
+      const baseRowHeight = Math.max(72, Math.round(colWidth))
+      const nextRowHeight = maxRowHeight !== undefined
+        ? Math.min(baseRowHeight, maxRowHeight)
+        : baseRowHeight
 
       setGridCols((prev) => (prev === cols ? prev : cols))
       setRowHeight((prev) => (prev === nextRowHeight ? prev : nextRowHeight))
@@ -92,7 +98,7 @@ export function ImageGrid({ children }: ImageGridProps) {
     observer.observe(element)
 
     return () => observer.disconnect()
-  }, [])
+  }, [maxRowHeight])
 
   return (
     <GridColsContext.Provider value={gridCols}>

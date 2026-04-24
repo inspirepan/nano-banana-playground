@@ -4,6 +4,9 @@ type Props = {
   resolution: string
   onChange: (value: string) => void
   pixelLabel?: (ratio: string, resolution: string) => string
+  // When false, the "宽高比" header row is omitted. Useful when rendered
+  // under an enclosing section that already labels the control.
+  showLabel?: boolean
 }
 
 const RESOLUTION_PX: Record<string, number> = {
@@ -33,13 +36,19 @@ function glyphSize(ratio: string): { w: number; h: number } {
   return { w: Math.max(3, Math.round(max * r)), h: max }
 }
 
-export function AspectRatioSelector({ options, value, resolution, onChange, pixelLabel = defaultPixelLabel }: Props) {
+export function AspectRatioSelector({ options, value, resolution, onChange, pixelLabel = defaultPixelLabel, showLabel = true }: Props) {
   return (
     <div>
-      <div className="flex items-center justify-between mb-1.5">
-        <span className="label">宽高比</span>
-        <span className="mono text-[11px] text-(--color-text-4)">{pixelLabel(value, resolution)}</span>
-      </div>
+      {showLabel ? (
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="label">宽高比</span>
+          <span className="mono text-[11px] text-(--color-text-4)">{pixelLabel(value, resolution)}</span>
+        </div>
+      ) : (
+        <div className="flex justify-end mb-1.5">
+          <span className="mono text-[11px] text-(--color-text-4)">{pixelLabel(value, resolution)}</span>
+        </div>
+      )}
       <div className="grid grid-cols-4 gap-1.5">
         {options.map((option, idx) => {
           const { w, h } = glyphSize(option)

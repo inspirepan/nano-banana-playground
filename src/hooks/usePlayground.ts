@@ -11,6 +11,7 @@ import { generateImage, GENERATE_MAX_ATTEMPTS } from '../lib/api'
 import type { PlaygroundImage, PlaygroundImageMeta } from '../lib/types'
 import { isKeyError } from '../lib/validateKey'
 import { saveToHistory, loadHistoryPage, deleteFromHistory, clearHistory, loadImageBlobs, saveDraftRefs, loadDraftRefs, clearDraftRefs } from '../lib/history'
+import { readFileAsImageData } from '../lib/fileToImage'
 import { readSimpleUrlParams, updateUrl } from '../lib/urlState'
 import { useApiKey } from './useApiKey'
 import { putBlobInCache, getBlobFromCache, removeBlobFromCache, clearBlobCache } from './useImageSrc'
@@ -301,54 +302,6 @@ export function usePlayground() {
     })
   }, [])
 
-  // Convert HEIC/HEIF to PNG via canvas; returns base64 data + mimeType.
-  const readFileAsImageData = useCallback(
-    (file: File): Promise<{ base64: string; mimeType: string; fileName: string } | null> =>
-      new Promise((resolve, reject) => {
-        const isHeic = file.type === 'image/heic' || file.type === 'image/heif'
-        if (!isHeic) {
-          const reader = new FileReader()
-          reader.onload = () => resolve({
-            base64: (reader.result as string).split(',')[1],
-            mimeType: file.type,
-            fileName: file.name,
-          })
-          reader.onerror = () => reject(reader.error)
-          reader.readAsDataURL(file)
-          return
-        }
-        // Convert HEIC to PNG via canvas — GPT Image does not accept HEIC.
-        // Reject if the browser cannot decode HEIC (Chrome, Firefox).
-        createImageBitmap(file)
-          .then((bitmap) => {
-            const canvas = document.createElement('canvas')
-            canvas.width = bitmap.width
-            canvas.height = bitmap.height
-            const ctx = canvas.getContext('2d')!
-            ctx.drawImage(bitmap, 0, 0)
-            bitmap.close()
-            canvas.toBlob((blob) => {
-              if (!blob) {
-                reject(new Error(`无法转换 ${file.name}：canvas toBlob 失败`))
-                return
-              }
-              const reader = new FileReader()
-              reader.onload = () => resolve({
-                base64: (reader.result as string).split(',')[1],
-                mimeType: 'image/png',
-                fileName: file.name.replace(/\.(heic|heif)$/i, '.png'),
-              })
-              reader.onerror = () => reject(reader.error)
-              reader.readAsDataURL(blob)
-            }, 'image/png')
-          })
-          .catch(() => {
-            reject(new Error(`${file.name}：当前浏览器不支持 HEIC 格式。请在 iPhone「设置 > 相机 > 格式」中选择"兼容性最佳"，或使用 Safari 浏览器。`))
-          })
-      }),
-    [],
-  )
-
   const addReferenceImages = useCallback(
     (files: File[]) => {
       const maxTotal = model.maxReferenceImages + model.maxCharacterImages
@@ -387,7 +340,7 @@ export function usePlayground() {
         }
       })
     },
-    [model, referenceImages.length, readFileAsImageData],
+    [model, referenceImages.length],
   )
 
   const removeReferenceImage = useCallback((id: string) => {
@@ -585,31 +538,13 @@ export function usePlayground() {
     pumpQueueRef.current()
   }, [])
 
-  const generate = useCallback(() => {
-    if (!apiKeyHook.apiKey) return
-    const trimmed = prompt.trim()
-    if (!trimmed) return
-
-    const activeOptions: Record<string, unknown> = {}
-    for (const opt of model.options ?? []) activeOptions[opt.id] = options[opt.id]
-
+  const enqueueGenerationJob = useCallback((request: GenerationJob['request'], batchCount: number): string => {
     const batchId = crypto.randomUUID()
-    const createdAt = Date.now()
-    const refsSnapshot = [...referenceImages]
     const job: GenerationJob = {
       id: batchId,
-      createdAt,
+      createdAt: Date.now(),
       status: 'queued',
-      request: {
-        apiKey: apiKeyHook.apiKey,
-        baseUrl: apiKeyHook.baseUrl,
-        model,
-        prompt: trimmed,
-        referenceImages: refsSnapshot,
-        resolution,
-        aspectRatio,
-        options: activeOptions,
-      },
+      request,
       slots: Array.from({ length: batchCount }, (_, index) => ({
         id: crypto.randomUUID(),
         index,
@@ -618,12 +553,73 @@ export function usePlayground() {
         maxAttempts: GENERATE_MAX_ATTEMPTS,
       })),
     }
-
     setGenerationJobs((prev) => [job, ...prev.filter(isActiveJob)])
-    for (const refImg of refsSnapshot) putBlobInCache(refImg.id, refImg.data)
-
+    for (const refImg of request.referenceImages) putBlobInCache(refImg.id, refImg.data)
     pumpQueueRef.current()
-  }, [apiKeyHook, prompt, model, referenceImages, resolution, aspectRatio, options, batchCount, setGenerationJobs])
+    return batchId
+  }, [setGenerationJobs])
+
+  const generate = useCallback(() => {
+    if (!apiKeyHook.apiKey) return
+    const trimmed = prompt.trim()
+    if (!trimmed) return
+
+    const activeOptions: Record<string, unknown> = {}
+    for (const opt of model.options ?? []) activeOptions[opt.id] = options[opt.id]
+
+    enqueueGenerationJob({
+      apiKey: apiKeyHook.apiKey,
+      baseUrl: apiKeyHook.baseUrl,
+      model,
+      prompt: trimmed,
+      referenceImages: [...referenceImages],
+      resolution,
+      aspectRatio,
+      options: activeOptions,
+    }, batchCount)
+  }, [apiKeyHook, prompt, model, referenceImages, resolution, aspectRatio, options, batchCount, enqueueGenerationJob])
+
+  // Edit an existing image: prepends the source as the first reference and
+  // enqueues a generation job independent of InputPanel state.
+  const editImage = useCallback(async (params: {
+    sourceImage: PlaygroundImageMeta
+    model: ModelConfig
+    prompt: string
+    extraReferences: PlaygroundImage[]
+    resolution: string
+    aspectRatio: string
+    options: Record<string, unknown>
+    batchCount: number
+  }): Promise<string | null> => {
+    const keyHook = params.model.provider === 'google' ? googleKeyHook : openaiKeyHook
+    if (!keyHook.apiKey) return null
+    const trimmed = params.prompt.trim()
+    if (!trimmed) return null
+
+    const [sourceFull] = await resolveFullImages([params.sourceImage])
+    if (!sourceFull) return null
+
+    // Filter to options declared by the target model so we don't leak stale keys.
+    const activeOptions: Record<string, unknown> = {}
+    for (const opt of params.model.options ?? []) {
+      if (opt.id in params.options) activeOptions[opt.id] = params.options[opt.id]
+      else activeOptions[opt.id] = opt.default
+    }
+
+    const maxTotal = params.model.maxReferenceImages + params.model.maxCharacterImages
+    const refs = [sourceFull, ...params.extraReferences].slice(0, maxTotal)
+
+    return enqueueGenerationJob({
+      apiKey: keyHook.apiKey,
+      baseUrl: keyHook.baseUrl,
+      model: params.model,
+      prompt: trimmed,
+      referenceImages: refs,
+      resolution: params.resolution,
+      aspectRatio: params.aspectRatio,
+      options: activeOptions,
+    }, params.batchCount)
+  }, [googleKeyHook, openaiKeyHook, resolveFullImages, enqueueGenerationJob])
 
   const cancelGenerationSlot = useCallback((slotId: string) => {
     abortControllersRef.current.get(slotId)?.abort()
@@ -736,6 +732,7 @@ export function usePlayground() {
     restoreSession,
     resolveFullImages,
     generate,
+    editImage,
     cancelGenerationJob,
     cancelGenerationSlot,
     addToReferences,

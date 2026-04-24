@@ -12,6 +12,7 @@ import {
   ImagePlus,
   ImageIcon,
   KeyRound,
+  Lock,
   MoreHorizontal,
   Monitor,
   Moon,
@@ -52,6 +53,7 @@ export type IconName =
   | 'key'
   | 'keyboard_arrow_up'
   | 'light_mode'
+  | 'lock'
   | 'more'
   | 'plus'
   | 'redo'
@@ -89,6 +91,7 @@ const ICONS = {
   key: KeyRound,
   keyboard_arrow_up: ChevronUp,
   light_mode: Sun,
+  lock: Lock,
   more: MoreHorizontal,
   plus: Plus,
   redo: Redo2,

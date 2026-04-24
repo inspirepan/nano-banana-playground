@@ -10,12 +10,13 @@ type Props = {
   index?: number
   actionMode?: 'full' | 'downloadOnly'
   onAddToRef: (image: PlaygroundImageMeta) => void
+  onEdit?: (image: PlaygroundImageMeta) => void
   onRegenerate: (image: PlaygroundImageMeta) => void
   onRemove: (id: string) => void
   onOpen: (image: PlaygroundImageMeta) => void
 }
 
-export const ImageCard = memo(function ImageCard({ image, inlineData, index, actionMode = 'full', onAddToRef, onRegenerate, onRemove, onOpen }: Props) {
+export const ImageCard = memo(function ImageCard({ image, inlineData, index, actionMode = 'full', onAddToRef, onEdit, onRegenerate, onRemove, onOpen }: Props) {
   const CONTEXT_MENU_WIDTH = 160
   const CONTEXT_MENU_ITEM_HEIGHT = 32
   const CONTEXT_MENU_PADDING = 8
@@ -184,7 +185,9 @@ export const ImageCard = memo(function ImageCard({ image, inlineData, index, act
           </button>
           {!downloadOnly && (
             <>
-              <OverlayButton icon="plus" onClick={(e) => { e.stopPropagation(); onAddToRef(image) }}>参考</OverlayButton>
+              {onEdit && (
+                <OverlayButton icon="wand" onClick={(e) => { e.stopPropagation(); onEdit(image) }}>编辑</OverlayButton>
+              )}
               <span className="flex-1" />
               <OverlayButton
                 icon="more"
@@ -232,7 +235,7 @@ export const ImageCard = memo(function ImageCard({ image, inlineData, index, act
 })
 
 function OverlayButton({ icon, onClick, children, danger }: {
-  icon: 'plus' | 'refresh' | 'copy' | 'trash' | 'more'
+  icon: 'plus' | 'refresh' | 'copy' | 'trash' | 'more' | 'wand'
   onClick: (e: React.MouseEvent) => void
   children?: React.ReactNode
   danger?: boolean

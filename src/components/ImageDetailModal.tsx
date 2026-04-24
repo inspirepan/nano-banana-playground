@@ -1,11 +1,18 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import type { GeneratedSource, GroundingMetadata, PlaygroundImageMeta } from '../lib/types'
-import { MODEL_CONFIGS, type ModelConfig } from '../config/models'
-import { getActualCost } from '../lib/pricing'
+import type { GeneratedSource, GroundingMetadata, PlaygroundImage, PlaygroundImageMeta } from '../lib/types'
+import type { GenerationJob } from '../hooks/usePlayground'
+import { MODEL_CONFIGS, DEFAULT_MODEL, defaultOptionsFor, type ModelConfig } from '../config/models'
+import { getActualCost, getPricePerImage } from '../lib/pricing'
 import { ensureBlobLoaded, useImageSrc } from '../hooks/useImageSrc'
 import { loadImageMetas } from '../lib/history'
 import { Icon } from './Icon'
+import { ChipGroup } from './ChipGroup'
+import { AspectRatioSelector } from './AspectRatioSelector'
+import { ReferenceImageUpload } from './ReferenceImageUpload'
+import { QueueJobSection } from './QueueJobSection'
+import { openAISize } from '../lib/openai'
+import { readFileAsImageData } from '../lib/fileToImage'
 
 // Normalize generated-source metadata into a single `options` bag, folding in
 // legacy top-level fields (`quality`, `searchTools`) from pre-refactor records.
@@ -55,10 +62,24 @@ const FIT_SCALE = 1
 
 type Props = {
   image: PlaygroundImageMeta
+  initialEditing?: boolean
   history: PlaygroundImageMeta[]
+  generationJobs: GenerationJob[]
   onClose: () => void
   onAddToRef: (image: PlaygroundImageMeta) => void
   onRegenerate: (image: PlaygroundImageMeta) => void
+  onEditImage: (params: {
+    sourceImage: PlaygroundImageMeta
+    model: ModelConfig
+    prompt: string
+    extraReferences: PlaygroundImage[]
+    resolution: string
+    aspectRatio: string
+    options: Record<string, unknown>
+    batchCount: number
+  }) => Promise<string | null>
+  onCancelGenerationJob: (jobId: string) => void
+  onCancelGenerationSlot: (slotId: string) => void
   onRemove: (id: string) => void
 }
 
@@ -73,16 +94,26 @@ const HIGHLIGHT_LABELS = [
 
 const MOBILE_SHEET_INITIAL_VH = 34
 const MOBILE_SHEET_EXPANDED_VH = 45
+const MOBILE_SHEET_EDIT_VH = 72
 const MOBILE_SHEET_PEEK_PX = 56
 
-function getMobileSheetHeights(viewportHeight: number) {
+// Prefer visualViewport.height so the sheet math follows the dynamic viewport
+// (excluding the iOS soft keyboard area) instead of the layout viewport.
+function getVisualViewportHeight(): number {
+  if (typeof window === 'undefined') return 0
+  return window.visualViewport?.height ?? window.innerHeight
+}
+
+function getMobileSheetHeights(viewportHeight: number, editing = false) {
+  const expandedVh = editing ? MOBILE_SHEET_EDIT_VH : MOBILE_SHEET_EXPANDED_VH
+  const initialVh = editing ? MOBILE_SHEET_EDIT_VH : MOBILE_SHEET_INITIAL_VH
   const expandedHeight = Math.max(
     MOBILE_SHEET_PEEK_PX,
-    Math.round(viewportHeight * MOBILE_SHEET_EXPANDED_VH / 100),
+    Math.round(viewportHeight * expandedVh / 100),
   )
   const initialHeight = Math.max(
     MOBILE_SHEET_PEEK_PX,
-    Math.min(expandedHeight, Math.round(viewportHeight * MOBILE_SHEET_INITIAL_VH / 100)),
+    Math.min(expandedHeight, Math.round(viewportHeight * initialVh / 100)),
   )
   return { initialHeight, expandedHeight }
 }
@@ -122,8 +153,24 @@ function MetaRow({ label, value, mono, last }: { label: string; value: ReactNode
   )
 }
 
-export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegenerate, onRemove }: Props) {
+export function ImageDetailModal({
+  image,
+  initialEditing = false,
+  history,
+  generationJobs,
+  onClose,
+  onAddToRef,
+  onRegenerate,
+  onEditImage,
+  onCancelGenerationJob,
+  onCancelGenerationSlot,
+  onRemove,
+}: Props) {
   const [currentIdx, setCurrentIdx] = useState(() => history.findIndex(h => h.id === image.id))
+  const [editing, setEditing] = useState(initialEditing)
+  // After submit, we watch history for the first new image with this batchId
+  // and auto-navigate the pager to it.
+  const [activeEditBatchId, setActiveEditBatchId] = useState<string | null>(null)
 
   const currentImage = currentIdx >= 0 ? history[currentIdx] : image
   const { ref: imgRef, src: currentSrc } = useImageSrc(currentImage.id, currentImage.mimeType)
@@ -203,14 +250,37 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { onClose(); return }
+      if (e.key === 'Escape') {
+        if (editing) { setEditing(false); return }
+        onClose()
+        return
+      }
+      if (editing) return
       if (!canNavigate) return
       if (e.key === 'ArrowLeft') { e.preventDefault(); goToPrev() }
       else if (e.key === 'ArrowRight') { e.preventDefault(); goToNext() }
     }
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
-  }, [canNavigate, goToNext, goToPrev, onClose])
+  }, [canNavigate, editing, goToNext, goToPrev, onClose])
+
+  // Auto-nav to newly edited image: jump the pager to the first arrival with
+  // the batchId we just submitted. We intentionally keep activeEditBatchId
+  // set — the embedded QueueJobSection keeps showing the rest of the slots;
+  // it's cleared once the whole job reaches a terminal state.
+  const navedBatchIdRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (!activeEditBatchId) return
+    if (navedBatchIdRef.current === activeEditBatchId) return
+    const idx = history.findIndex((h) =>
+      h.source.type === 'generated' && h.source.batchId === activeEditBatchId,
+    )
+    if (idx >= 0) {
+      navedBatchIdRef.current = activeEditBatchId
+      setCurrentIdx(idx)
+      setRefDetailId(null)
+    }
+  }, [history, activeEditBatchId])
 
   // —— Mobile bottom-sheet: start lower to prioritize the image, but keep a
   // larger expanded stop for metadata-heavy batches.
@@ -242,6 +312,28 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
     if (!isMobileSheet) setSheetHeightPx(null)
   }, [isMobileSheet])
 
+  // Reset sheet height when switching modes so the new mode's resting height applies.
+  useEffect(() => {
+    if (isMobileSheet) setSheetHeightPx(null)
+  }, [editing, isMobileSheet])
+
+  // Clamp the snapped sheet height against the current visual viewport so it
+  // doesn't overflow when the iOS keyboard opens.
+  useEffect(() => {
+    if (!isMobileSheet) return
+    const vv = window.visualViewport
+    if (!vv) return
+    const handler = () => {
+      setSheetHeightPx((prev) => {
+        if (prev === null) return prev
+        const { expandedHeight } = getMobileSheetHeights(vv.height, editing)
+        return Math.min(prev, expandedHeight)
+      })
+    }
+    vv.addEventListener('resize', handler)
+    return () => vv.removeEventListener('resize', handler)
+  }, [isMobileSheet, editing])
+
   // Desktop-only: collapse the right metadata sidebar to give the canvas more room.
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     if (typeof window === 'undefined') return false
@@ -259,7 +351,7 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
   const handleSheetPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!isMobileSheet) return
     if (e.pointerType === 'mouse' && e.button !== 0) return
-    const { initialHeight, expandedHeight } = getMobileSheetHeights(window.innerHeight)
+    const { initialHeight, expandedHeight } = getMobileSheetHeights(getVisualViewportHeight(), editing)
     sheetDragRef.current = {
       startY: e.clientY,
       startHeight: sheetHeightPx ?? initialHeight,
@@ -346,8 +438,12 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[100] flex flex-col fade-in"
+      className="fixed top-0 left-0 w-full z-[100] flex flex-col fade-in"
       style={{
+        // Track the dynamic viewport so the modal's bottom rises with the iOS
+        // soft keyboard — otherwise `inset-0` pins the bottom to the layout
+        // viewport and the edit sheet's CTA is hidden behind the keyboard.
+        height: '100dvh',
         background: 'color-mix(in srgb, var(--color-bg) 82%, transparent)',
         backdropFilter: 'blur(14px)',
         WebkitBackdropFilter: 'blur(14px)',
@@ -414,7 +510,16 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
         <button className="chip shrink-0" onClick={handleAddRef} title="加为参考">
           <Icon name="plus" size={12} strokeWidth={1.8} /> <span className="hidden md:inline">参考</span>
         </button>
-        {currentMeta?.prompt && (
+        <button
+          className="chip shrink-0"
+          onClick={() => setEditing((v) => !v)}
+          title={editing ? '退出编辑' : '编辑这张图'}
+          data-active={editing}
+        >
+          <Icon name="wand" size={12} strokeWidth={1.8} />
+          <span className="hidden md:inline">{editing ? '退出编辑' : '编辑'}</span>
+        </button>
+        {currentMeta?.prompt && !editing && (
           <button className="chip shrink-0" onClick={handleRegenerateAction} title="还原参数">
             <Icon name="refresh" size={12} strokeWidth={1.8} /> <span className="hidden md:inline">还原参数</span>
           </button>
@@ -422,28 +527,56 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
         <button className="chip shrink-0" onClick={handleDownload} title="下载 PNG">
           <Icon name="download" size={12} strokeWidth={1.8} /> <span className="hidden md:inline">PNG</span>
         </button>
-        <button
-          className="chip shrink-0 hidden md:inline-flex"
-          onClick={toggleSidebar}
-          title={sidebarCollapsed ? '展开详情面板' : '收起详情面板'}
-          aria-pressed={!sidebarCollapsed}
-        >
-          <Icon name={sidebarCollapsed ? 'chevron_left' : 'chevron_right'} size={12} strokeWidth={1.8} />
-          {sidebarCollapsed ? '展开详情' : '收起详情'}
-        </button>
+        {!editing && (
+          <button
+            className="chip shrink-0 hidden md:inline-flex"
+            onClick={toggleSidebar}
+            title={sidebarCollapsed ? '展开详情面板' : '收起详情面板'}
+            aria-pressed={!sidebarCollapsed}
+          >
+            <Icon name={sidebarCollapsed ? 'chevron_left' : 'chevron_right'} size={12} strokeWidth={1.8} />
+            {sidebarCollapsed ? '展开详情' : '收起详情'}
+          </button>
+        )}
       </div>
 
       {/* ——— Body ——— */}
       <div className="flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden">
         {/* Canvas with grid background */}
         <div
-          className="flex-1 min-w-0 relative"
+          className="min-w-0 relative md:flex-1"
           style={{
+            // On mobile in edit mode, lock canvas to a small fixed portion so
+            // the sheet can take the rest with flex-1 + overflow-y-auto. This
+            // is more robust than giving the sheet an explicit dvh height,
+            // which in flex-col can get clipped by the body's overflow-hidden.
+            ...(isMobileSheet && editing
+              ? { height: '26dvh', flexShrink: 0 }
+              : { flex: '1 1 0%' }),
             backgroundImage: `linear-gradient(var(--color-border) 1px, transparent 1px), linear-gradient(90deg, var(--color-border) 1px, transparent 1px)`,
             backgroundSize: '28px 28px, 28px 28px',
             backgroundColor: 'var(--color-bg-sunken)',
           }}
         >
+          {/* Layer placeholder (reserved for future brush/mask layers) */}
+          {editing && !refDetailId && (
+            <div
+              className="absolute left-4 top-4 z-20 inline-flex items-center gap-1.5 rounded-[6px] px-2 py-1 text-[11px] font-medium"
+              style={{
+                background: 'color-mix(in srgb, var(--color-surface) 90%, transparent)',
+                color: 'var(--color-text-3)',
+                boxShadow: 'inset 0 0 0 1px var(--ring-edge)',
+                backdropFilter: 'blur(8px)',
+              }}
+              title="未来支持标注层和 Mask 层"
+            >
+              <span
+                className="inline-block h-[6px] w-[6px] rounded-full"
+                style={{ background: 'var(--color-accent)' }}
+              />
+              图层 · 原图
+            </div>
+          )}
           {refDetailId && refDetailSrc ? (
             <div className="flex flex-row h-full gap-px">
               <div className="h-full flex-1 min-w-0 relative">
@@ -523,34 +656,75 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
 
         {/* Right metadata panel (mobile: draggable bottom sheet) */}
         <div
-          className="w-full shrink-0 overflow-y-auto overflow-x-hidden border-t md:border-t-0 md:border-l border-(--color-border) md:h-auto"
+          className="w-full overflow-y-auto overflow-x-hidden border-t md:border-t-0 md:border-l border-(--color-border) md:h-auto"
           style={{
             background: 'var(--color-bg)',
+            overscrollBehavior: 'contain',
             ...(isMobileSheet
-              ? {
-                  height: sheetHeightPx !== null ? `${sheetHeightPx}px` : `${MOBILE_SHEET_INITIAL_VH}vh`,
-                  transition: sheetDragging ? 'none' : 'height 260ms cubic-bezier(0.22, 0.8, 0.4, 1)',
-                }
+              ? editing
+                ? {
+                    // Edit mode: sheet fills all remaining space below the
+                    // fixed-height canvas. This lets the internal overflow-y
+                    // scroll reach the CTA even on short viewports (iOS
+                    // keyboard, devtools mobile frame).
+                    flex: '1 1 0%',
+                    minHeight: 0,
+                  }
+                : {
+                    // View mode keeps drag-resizable dvh sheet for the 3-snap
+                    // peek/initial/expanded UX.
+                    flexShrink: 0,
+                    height: sheetHeightPx !== null
+                      ? `${sheetHeightPx}px`
+                      : `${MOBILE_SHEET_INITIAL_VH}dvh`,
+                    transition: sheetDragging ? 'none' : 'height 260ms cubic-bezier(0.22, 0.8, 0.4, 1)',
+                  }
               : {
-                  width: sidebarCollapsed ? 0 : 340,
+                  flexShrink: 0,
+                  // Edit mode widens sidebar; user's "collapsed" pref is ignored while editing.
+                  width: editing ? 420 : sidebarCollapsed ? 0 : 340,
                   minWidth: 0,
                   transition: 'width 280ms cubic-bezier(0.22, 0.8, 0.4, 1)',
                 }),
           }}
         >
-          {/* Mobile drag handle */}
-          <div
-            className="md:hidden sticky top-0 z-10 flex justify-center items-center h-7 cursor-grab active:cursor-grabbing select-none"
-            style={{ background: 'var(--color-bg)', touchAction: 'none' }}
-            onPointerDown={handleSheetPointerDown}
-            onPointerMove={handleSheetPointerMove}
-            onPointerUp={handleSheetPointerUp}
-            onPointerCancel={handleSheetPointerUp}
-          >
-            <div className="w-9 h-1 rounded-full" style={{ background: 'var(--color-border)' }} />
-          </div>
+          {/* Mobile drag handle — only in view mode; edit mode uses flex-1
+              layout, so dragging the handle wouldn't do anything. */}
+          {!editing && (
+            <div
+              className="md:hidden sticky top-0 z-10 flex justify-center items-center h-7 cursor-grab active:cursor-grabbing select-none"
+              style={{ background: 'var(--color-bg)', touchAction: 'none' }}
+              onPointerDown={handleSheetPointerDown}
+              onPointerMove={handleSheetPointerMove}
+              onPointerUp={handleSheetPointerUp}
+              onPointerCancel={handleSheetPointerUp}
+            >
+              <div className="w-9 h-1 rounded-full" style={{ background: 'var(--color-border)' }} />
+            </div>
+          )}
 
-          <div className="px-[18px] pt-1 md:pt-4 pb-10 md:w-[340px]">
+          <div
+            className="px-[18px] pt-1 md:pt-4 pb-24 md:pb-10"
+            style={{ width: isMobileSheet ? undefined : editing ? 420 : 340 }}
+          >
+          {editing ? (
+            <EditSidebar
+              sourceImage={currentImage}
+              generationJobs={generationJobs}
+              activeEditBatchId={activeEditBatchId}
+              onEditImage={onEditImage}
+              onSetActiveBatchId={setActiveEditBatchId}
+              onCancelGenerationJob={onCancelGenerationJob}
+              onCancelGenerationSlot={onCancelGenerationSlot}
+              onAddToRef={onAddToRef}
+              onRegenerate={onRegenerate}
+              onRemove={onRemove}
+              onOpenImage={(img) => { setCurrentIdx(history.findIndex((h) => h.id === img.id)); setRefDetailId(null) }}
+              onViewQueue={onClose}
+              onExit={() => setEditing(false)}
+            />
+          ) : (
+            <>
           {/* Prompt */}
           {currentMeta?.prompt && (
             <div className="mb-[18px]">
@@ -723,6 +897,8 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
               <Icon name="trash" size={12} strokeWidth={1.8} /> 从历史中删除
             </button>
           )}
+          </>
+          )}
           </div>
         </div>
       </div>
@@ -808,6 +984,461 @@ function GroundingSection({ metadata }: { metadata: GroundingMetadata }) {
           ))}
         </div>
       )}
+    </div>
+  )
+}
+
+// Rotating example prompts for the edit textarea.
+const EDIT_PROMPT_EXAMPLES = [
+  '把背景换成日落海边',
+  '将外套改成米色风衣',
+  '去掉桌上的杯子',
+  '整体色调调成复古胶片感',
+  '人物改成侧面视角',
+]
+
+type EditSidebarProps = {
+  sourceImage: PlaygroundImageMeta
+  generationJobs: GenerationJob[]
+  activeEditBatchId: string | null
+  onEditImage: Props['onEditImage']
+  onSetActiveBatchId: (id: string | null) => void
+  onCancelGenerationJob: (jobId: string) => void
+  onCancelGenerationSlot: (slotId: string) => void
+  onAddToRef: (image: PlaygroundImageMeta) => void
+  onRegenerate: (image: PlaygroundImageMeta) => void
+  onRemove: (id: string) => void
+  onOpenImage: (image: PlaygroundImageMeta) => void
+  onViewQueue: () => void
+  onExit: () => void
+}
+
+function EditSidebar({
+  sourceImage,
+  generationJobs,
+  activeEditBatchId,
+  onEditImage,
+  onSetActiveBatchId,
+  onCancelGenerationJob,
+  onCancelGenerationSlot,
+  onAddToRef,
+  onRegenerate,
+  onRemove,
+  onOpenImage,
+  onViewQueue,
+  onExit,
+}: EditSidebarProps) {
+  // Resolve the model / resolution / aspect ratio / options that generated the
+  // source. For uploads, fall back to the default model's defaults.
+  const sourceModel = useMemo(() => {
+    const src = sourceImage.source
+    if (src.type !== 'generated') return DEFAULT_MODEL
+    return MODEL_CONFIGS.find((m) => m.id === src.modelId) ?? DEFAULT_MODEL
+  }, [sourceImage])
+
+  const sourceRes = sourceImage.source.type === 'generated'
+    ? sourceImage.source.resolution
+    : sourceModel.defaultResolution
+  const sourceAspect = sourceImage.source.type === 'generated'
+    ? sourceImage.source.aspectRatio
+    : sourceModel.defaultAspectRatio
+
+  const [resolution, setResolution] = useState(() =>
+    sourceModel.resolutions.includes(sourceRes) ? sourceRes : sourceModel.defaultResolution,
+  )
+  const [aspectRatio, setAspectRatio] = useState(() =>
+    sourceModel.aspectRatios.includes(sourceAspect) ? sourceAspect : sourceModel.defaultAspectRatio,
+  )
+  const [batchCount, setBatchCount] = useState(1)
+  const [prompt, setPrompt] = useState('')
+  const [extraRefs, setExtraRefs] = useState<PlaygroundImage[]>([])
+  const [refsError, setRefsError] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+  // Editing rarely needs resolution / aspect changes, so collapse by default.
+  const [paramsCollapsed, setParamsCollapsed] = useState(true)
+
+  // Sync non-prompt params when the source image changes (pager nav or auto-
+  // nav after a successful edit). Prompt and extra refs intentionally persist.
+  const sourceIdRef = useRef(sourceImage.id)
+  useEffect(() => {
+    if (sourceIdRef.current === sourceImage.id) return
+    sourceIdRef.current = sourceImage.id
+    setResolution(sourceModel.resolutions.includes(sourceRes) ? sourceRes : sourceModel.defaultResolution)
+    setAspectRatio(sourceModel.aspectRatios.includes(sourceAspect) ? sourceAspect : sourceModel.defaultAspectRatio)
+  }, [sourceImage.id, sourceModel, sourceRes, sourceAspect])
+
+  // Pick a stable placeholder example per source image.
+  const placeholder = useMemo(() => {
+    const hash = Array.from(sourceImage.id).reduce((a, c) => (a + c.charCodeAt(0)) | 0, 0)
+    return `例：${EDIT_PROMPT_EXAMPLES[Math.abs(hash) % EDIT_PROMPT_EXAMPLES.length]}`
+  }, [sourceImage.id])
+
+  const maxExtraRefs = Math.max(0, sourceModel.maxReferenceImages + sourceModel.maxCharacterImages - 1)
+
+  const handleAddFiles = useCallback(async (files: File[]) => {
+    if (files.length === 0) return
+    const remaining = maxExtraRefs - extraRefs.length
+    if (remaining <= 0) return
+    const results = await Promise.allSettled(
+      files.slice(0, remaining).map(async (file) => {
+        const result = await readFileAsImageData(file)
+        if (!result) return null
+        const { base64, mimeType, fileName } = result
+        return {
+          id: crypto.randomUUID(),
+          data: base64,
+          mimeType,
+          source: { type: 'upload' as const, fileName },
+          timestamp: Date.now(),
+        } as PlaygroundImage
+      }),
+    )
+    const added: PlaygroundImage[] = []
+    const errors: string[] = []
+    for (const r of results) {
+      if (r.status === 'fulfilled' && r.value) added.push(r.value)
+      else if (r.status === 'rejected') errors.push((r.reason as Error).message)
+    }
+    if (added.length > 0) setExtraRefs((prev) => [...prev, ...added].slice(0, maxExtraRefs))
+    if (errors.length > 0) setRefsError(errors.join('\n'))
+  }, [extraRefs.length, maxExtraRefs])
+
+  const removeExtraRef = useCallback((id: string) => {
+    setExtraRefs((prev) => prev.filter((img) => img.id !== id))
+  }, [])
+
+  const clearExtraRefs = useCallback(() => {
+    setExtraRefs([])
+    setRefsError(null)
+  }, [])
+
+  const activeJob = useMemo(() => {
+    if (!activeEditBatchId) return null
+    return generationJobs.find((j) => j.id === activeEditBatchId) ?? null
+  }, [activeEditBatchId, generationJobs])
+
+  // Clear activeEditBatchId when the job it points to is fully terminal, or
+  // when it has dropped off the active jobs list (e.g. pruned after completion).
+  useEffect(() => {
+    if (!activeEditBatchId) return
+    if (!activeJob) {
+      onSetActiveBatchId(null)
+      return
+    }
+    const anyActive = activeJob.slots.some((s) =>
+      s.status === 'queued' || s.status === 'running' || s.status === 'retrying',
+    )
+    if (!anyActive) onSetActiveBatchId(null)
+  }, [activeJob, activeEditBatchId, onSetActiveBatchId])
+
+  // Inherit the source's declared options into the new job. We intentionally
+  // don't surface them as editable fields in v1 — they stay silent.
+  const inheritedOptions = useMemo(() => {
+    const bag = defaultOptionsFor(sourceModel)
+    if (sourceImage.source.type === 'generated') {
+      const src = sourceImage.source
+      if (src.options) Object.assign(bag, src.options)
+      if (src.quality !== undefined && bag.quality === undefined) bag.quality = src.quality
+      if (src.searchTools?.web && bag.webSearch === undefined) bag.webSearch = true
+      if (src.searchTools?.image && bag.imageSearch === undefined) bag.imageSearch = true
+    }
+    return bag
+  }, [sourceImage, sourceModel])
+
+  const pricePerImage = getPricePerImage(sourceModel, resolution, aspectRatio, inheritedOptions)
+  const estimatedCost = pricePerImage !== null ? pricePerImage * batchCount : null
+
+  // Allow submitting a new edit even while a previous batch is still running.
+  // The new batchId overrides activeEditBatchId, replacing what the embedded
+  // QueueJobSection tracks; the previous job keeps running in OutputPanel.
+  const canSubmit = prompt.trim() !== '' && !submitting
+
+  const handleGenerate = useCallback(async () => {
+    if (!canSubmit) return
+    setSubmitting(true)
+    try {
+      const batchId = await onEditImage({
+        sourceImage,
+        model: sourceModel,
+        prompt,
+        extraReferences: extraRefs,
+        resolution,
+        aspectRatio,
+        options: inheritedOptions,
+        batchCount,
+      })
+      if (batchId) {
+        onSetActiveBatchId(batchId)
+        setPrompt('')
+      }
+    } finally {
+      setSubmitting(false)
+    }
+  }, [
+    canSubmit, onEditImage, sourceImage, sourceModel, prompt, extraRefs, resolution,
+    aspectRatio, inheritedOptions, batchCount, onSetActiveBatchId,
+  ])
+
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  useLayoutEffect(() => {
+    const el = textareaRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${Math.max(el.scrollHeight + 2, 96)}px`
+  }, [prompt])
+
+  // Cmd+Enter to submit when focused inside the edit panel.
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.metaKey && e.key === 'Enter') {
+        e.preventDefault()
+        if (canSubmit) handleGenerate()
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [canSubmit, handleGenerate])
+
+  const totalImagesToSend = 1 + extraRefs.length
+
+  return (
+    <div>
+      {/* Active edit job (embedded copy of the queue card). Sticky at the top
+          so the user can scroll the edit form below while keeping progress,
+          slot thumbnails, and cancel within reach. */}
+      {activeJob && (
+        <div
+          className="sticky top-0 z-20 -mx-[18px] mb-[18px] px-[18px] pt-2 pb-3"
+          style={{
+            background: 'var(--color-bg)',
+            borderBottom: '1px solid var(--color-border)',
+          }}
+        >
+          <QueueJobSection
+            job={activeJob}
+            onCancelJob={onCancelGenerationJob}
+            onCancelSlot={onCancelGenerationSlot}
+            onAddToRef={onAddToRef}
+            onRegenerate={onRegenerate}
+            onRemove={onRemove}
+            onOpen={onOpenImage}
+            maxRowHeight={110}
+          />
+          <button
+            type="button"
+            onClick={onViewQueue}
+            className="chip ghost w-full mt-2 justify-center"
+            style={{ height: 26, fontSize: 11.5 }}
+          >
+            查看全部队列 <Icon name="chevron_right" size={11} />
+          </button>
+        </div>
+      )}
+
+      {/* Header */}
+      <div className="mb-[18px] flex items-center gap-2">
+        <div className="font-display text-[14px] font-semibold tracking-[-0.01em]">编辑这张图</div>
+        <div className="flex-1" />
+        <button
+          type="button"
+          onClick={onExit}
+          className="chip ghost"
+          style={{ height: 24, padding: '0 8px', fontSize: 11.5 }}
+          title="退出编辑 (Esc)"
+        >
+          退出
+        </button>
+      </div>
+
+      {/* Source image chip — locked as the primary reference */}
+      <div className="mb-[18px]">
+        <div className="flex items-center justify-between mb-1.5 min-h-[20px]">
+          <span className="label">源图片</span>
+          <span className="text-[11px] text-(--color-text-4) inline-flex items-center gap-1">
+            <Icon name="lock" size={10} /> 锁定
+          </span>
+        </div>
+        <SourceImageChip image={sourceImage} />
+      </div>
+
+      {/* Extra references */}
+      <div className="mb-[18px]">
+        <ReferenceImageUpload
+          images={extraRefs}
+          maxTotal={maxExtraRefs}
+          dragOver={false}
+          error={refsError}
+          onAdd={handleAddFiles}
+          onRemove={removeExtraRef}
+          onClearAll={clearExtraRefs}
+          onClearError={() => setRefsError(null)}
+        />
+      </div>
+
+      {/* Resolution + aspect ratio (collapsed by default — rarely adjusted
+          while editing). The grid-template-rows 0fr→1fr animation is paint-
+          only: no layout recalc on the inner chips/grid during the
+          transition, so even the AspectRatioSelector grid doesn't re-layout. */}
+      <div className="mb-[18px]">
+        <button
+          type="button"
+          onClick={() => setParamsCollapsed((v) => !v)}
+          aria-expanded={!paramsCollapsed}
+          className="flex items-center w-full bg-transparent border-0 p-0 cursor-pointer min-h-[20px]"
+        >
+          <span className="label">分辨率 · 宽高比</span>
+          <span className="flex-1" />
+          <span className="mono text-[11px] text-(--color-text-3) mr-1.5">
+            {resolution} · {aspectRatio}
+          </span>
+          <Icon
+            name={paramsCollapsed ? 'chevron_right' : 'chevron_down'}
+            size={12}
+            className="text-(--color-text-4)"
+          />
+        </button>
+        <div
+          className="grid"
+          style={{
+            gridTemplateRows: paramsCollapsed ? '0fr' : '1fr',
+            transition: 'grid-template-rows 260ms cubic-bezier(0.22, 0.8, 0.4, 1)',
+          }}
+        >
+          <div className="overflow-hidden min-h-0">
+            <div className="pt-2.5">
+              <div className="mb-[14px]">
+                <ChipGroup
+                  options={sourceModel.resolutions}
+                  value={resolution}
+                  onChange={setResolution}
+                  mono={false}
+                  columns={sourceModel.resolutions.length}
+                />
+              </div>
+              <AspectRatioSelector
+                options={sourceModel.aspectRatios}
+                value={aspectRatio}
+                resolution={resolution}
+                onChange={setAspectRatio}
+                showLabel={false}
+                pixelLabel={sourceModel.provider === 'openai'
+                  ? (ratio, res) => openAISize(res, ratio).replace('x', '×')
+                  : undefined}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Prompt */}
+      <div className="mb-[18px]">
+        <div className="label mb-1.5">编辑指令</div>
+        <div className="prompt-wrap">
+          <textarea
+            ref={textareaRef}
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            placeholder={placeholder}
+            rows={1}
+            className="block w-full bg-transparent px-3 py-2.5 text-[16px] md:text-[13.5px] leading-[1.55] resize-none focus:outline-none"
+            autoFocus
+          />
+          <div className="flex items-center gap-2 px-2.5 py-1.5 border-t border-(--color-border) text-[11.5px] text-(--color-text-3)">
+            <span className="mono text-[11px] text-(--color-text-4)">{prompt.length} 字</span>
+            <div className="flex-1" />
+            {prompt.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setPrompt('')}
+                className="inline-flex items-center gap-1 bg-transparent border-0 p-0 text-[11px] text-(--color-text-4) hover:text-(--color-text-2) transition-colors"
+              >
+                <Icon name="close" size={11} /> 清空
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Batch count */}
+      <div className="mb-[18px]">
+        <div className="label mb-1.5">数量</div>
+        <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${sourceModel.maxBatchCount}, 1fr)` }}>
+          {Array.from({ length: sourceModel.maxBatchCount }, (_, i) => i + 1).map((n) => (
+            <button
+              key={n}
+              type="button"
+              className="chip justify-center"
+              data-active={batchCount === n}
+              onClick={() => setBatchCount(n)}
+            >
+              <span className="mono">×{n}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Summary + CTA */}
+      <div className="pt-2.5 border-t border-dashed border-(--color-border)">
+        <div className="mb-2 flex items-baseline justify-between text-[11.5px]">
+          <span className="text-(--color-text-4)">
+            将发送 <span className="mono text-(--color-text-2)">{totalImagesToSend}</span> 张图
+            <span className="text-(--color-text-4)">（原图{extraRefs.length > 0 ? ` + ${extraRefs.length} 张参考图` : ''}）</span>
+          </span>
+          {estimatedCost !== null && (
+            <span className="mono text-(--color-text-2)">≈ ${estimatedCost.toFixed(3)}</span>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={handleGenerate}
+          disabled={!canSubmit}
+          className="cta w-full"
+        >
+          <Icon name="wand" size={13} strokeWidth={1.8} />
+          <span>
+            {submitting ? '提交中…' : `生成编辑 ×${batchCount}`}
+          </span>
+          <span className="flex-1" />
+          <span className="flex gap-0.5"><kbd>⌘</kbd><kbd>⏎</kbd></span>
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function SourceImageChip({ image }: { image: PlaygroundImageMeta }) {
+  const { ref, src } = useImageSrc(image.id, image.mimeType, undefined, { variant: 'preview' })
+  const label = image.source.type === 'upload'
+    ? image.source.fileName
+    : `gen-${image.id.slice(0, 6)}`
+  return (
+    <div
+      ref={ref}
+      className="flex items-center gap-3 p-2 rounded-[8px]"
+      style={{
+        background: 'var(--color-surface)',
+        boxShadow: 'inset 0 0 0 1px var(--ring-edge)',
+      }}
+    >
+      <div
+        className="w-12 h-12 rounded-[6px] overflow-hidden shrink-0"
+        style={{ background: 'var(--color-surface-2)', boxShadow: 'inset 0 0 0 1px var(--ring-edge)' }}
+      >
+        {src ? (
+          <img src={src} alt="" className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full skeleton-animated" />
+        )}
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="text-[12.5px] font-medium text-(--color-text) truncate">{label}</div>
+        <div className="mono text-[11px] text-(--color-text-4) truncate">
+          {image.source.type === 'generated'
+            ? `${image.source.resolution} · ${image.source.aspectRatio}`
+            : '上传图片'}
+        </div>
+      </div>
     </div>
   )
 }

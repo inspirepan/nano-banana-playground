@@ -333,6 +333,7 @@ function App() {
             onCancelGenerationSlot={pg.cancelGenerationSlot}
             onAddToRef={handleAddToRef}
             onRegenerate={handleRegenerate}
+            onEditImage={pg.editImage}
             onRemove={pg.removeFromHistory}
             onClearAll={pg.clearAllHistory}
             onLoadMore={pg.loadMoreHistory}
@@ -389,6 +390,7 @@ function App() {
           onCancelGenerationSlot={pg.cancelGenerationSlot}
           onAddToRef={handleAddToRef}
           onRegenerate={handleRegenerate}
+          onEditImage={pg.editImage}
           onRemove={pg.removeFromHistory}
           onClearAll={pg.clearAllHistory}
           onLoadMore={pg.loadMoreHistory}
