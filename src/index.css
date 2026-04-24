@@ -323,7 +323,12 @@
     color: var(--color-text-2);
     font-weight: 500;
     font-size: 12.5px;
+    /* Safari ignores inline-flex on <button> unless appearance is reset,
+       which makes icon + text stack vertically. */
+    -webkit-appearance: none;
+    appearance: none;
     display: inline-flex;
+    flex-direction: row;
     align-items: center;
     gap: 6px;
     box-shadow: inset 0 0 0 1px var(--ring-edge);

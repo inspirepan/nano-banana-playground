@@ -558,12 +558,16 @@ export function ImageDetailModal({ image, history, onClose, onAddToRef, onRegene
                 <span className="label">提示词</span>
                 <div className="flex-1" />
                 <button
-                  className="chip ghost"
-                  style={{ height: 22, padding: '0 7px', fontSize: 11 }}
+                  className="chip shrink-0"
+                  style={{ height: 26, fontSize: 12 }}
                   onClick={handleCopyPrompt}
                 >
-                  <Icon name={copiedPrompt ? 'check' : 'copy'} size={11} strokeWidth={copiedPrompt ? 2.2 : 1.8} />
-                  {copiedPrompt ? '已复制' : '复制'}
+                  {/* Safari (WebKit) ignores flex layout on <button> itself;
+                      nesting the flex container in a <span> works around it. */}
+                  <span className="inline-flex items-center gap-1.5">
+                    <Icon name={copiedPrompt ? 'check' : 'copy'} size={12} strokeWidth={copiedPrompt ? 2.2 : 1.8} />
+                    {copiedPrompt ? '已复制' : '复制'}
+                  </span>
                 </button>
               </div>
               <div
