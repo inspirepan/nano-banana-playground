@@ -261,6 +261,7 @@ export const OutputPanel = memo(function OutputPanel({
               onDismissJob={onDismissGenerationJob}
               onCancelSlot={onCancelGenerationSlot}
               onAddToRef={onAddToRef}
+              onEdit={handleOpenForEdit}
               onRegenerate={onRegenerate}
               onRemove={onRemove}
               onOpen={handleOpenForView}

@@ -8,7 +8,7 @@ type Props = {
   image: PlaygroundImageMeta
   inlineData?: string
   index?: number
-  actionMode?: 'full' | 'downloadOnly'
+  actionMode?: 'full' | 'downloadOnly' | 'queue'
   onAddToRef: (image: PlaygroundImageMeta) => void
   onEdit?: (image: PlaygroundImageMeta) => void
   onRegenerate: (image: PlaygroundImageMeta) => void
@@ -35,6 +35,7 @@ export const ImageCard = memo(function ImageCard({
   const [toast, setToast] = useState(false)
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null)
   const downloadOnly = actionMode === 'downloadOnly'
+  const queueMode = actionMode === 'queue'
 
   const showCopiedToast = () => {
     setToast(true)
@@ -115,7 +116,7 @@ export const ImageCard = memo(function ImageCard({
         { label: '下载', onClick: handleDownload },
         { label: '复制', onClick: handleCopyImage },
         ...(meta?.prompt ? [{ label: '还原参数', onClick: handleRegenerate }] : []),
-        { label: '删除', onClick: handleDelete, danger: true },
+        ...(queueMode ? [] : [{ label: '删除', onClick: handleDelete, danger: true }]),
       ]
 
   return (

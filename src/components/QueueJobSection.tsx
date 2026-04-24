@@ -113,6 +113,7 @@ export function QueueJobSection({
   onDismissJob,
   onCancelSlot,
   onAddToRef,
+  onEdit,
   onRegenerate,
   onRemove,
   onOpen,
@@ -123,6 +124,7 @@ export function QueueJobSection({
   onDismissJob: (jobId: string) => void
   onCancelSlot: (slotId: string) => void
   onAddToRef: (image: PlaygroundImageMeta) => void
+  onEdit?: (image: PlaygroundImageMeta) => void
   onRegenerate: (image: PlaygroundImageMeta) => void
   onRemove: (id: string) => void
   onOpen: (image: PlaygroundImageMeta) => void
@@ -182,8 +184,9 @@ export function QueueJobSection({
                 image={slot.image}
                 inlineData={slot.image.data}
                 index={job.slots.length > 1 ? slot.index : undefined}
-                actionMode="downloadOnly"
+                actionMode="queue"
                 onAddToRef={onAddToRef}
+                onEdit={onEdit}
                 onRegenerate={onRegenerate}
                 onRemove={onRemove}
                 onOpen={onOpen}
