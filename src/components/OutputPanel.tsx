@@ -1,19 +1,17 @@
-import { memo, useMemo, useRef, useState, useEffect, useCallback } from 'react'
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import JSZip from 'jszip'
 import type { PlaygroundImage, PlaygroundImageMeta } from '../lib/types'
 import type { ModelConfig } from '../config/models'
 import type { GenerationJob, GenerationQueueSummary } from '../hooks/usePlayground'
-import { MODEL_CONFIGS } from '../config/models'
 import { loadImageBlobs } from '../lib/history'
 import { imageDownloadFileName } from '../lib/downloadFileName'
 import { getBlobFromCache, putBlobInCache } from '../hooks/useImageSrc'
-import { ImageCard } from './ImageCard'
 import { ImageDetailModal } from './ImageDetailModal'
-import { ImageGrid, GridCell } from './ImageGrid'
 import { Icon } from './Icon'
 import { Tooltip } from './Tooltip'
 import { formatTime } from '../lib/queueJobDisplay'
-import { QueueJobSection } from './QueueJobSection'
+import { buildImageStacks, type ImageStack, type StackItem } from '../lib/stacks'
+import { StackItemThumb } from './StackItemThumb'
 
 type Props = {
   history: PlaygroundImageMeta[]
@@ -44,33 +42,7 @@ type Props = {
   onLoadMore: () => void
 }
 
-type HistoryBatch = {
-  batchId: string
-  resolution: string
-  aspectRatio: string
-  modelId: string
-  images: PlaygroundImageMeta[]
-  timestamp: number
-}
-
-function groupByBatch(images: PlaygroundImageMeta[]): HistoryBatch[] {
-  const map = new Map<string, HistoryBatch>()
-  for (const img of images) {
-    if (img.source.type !== 'generated') continue
-    const { batchId, resolution, aspectRatio, modelId } = img.source
-    let batch = map.get(batchId)
-    if (!batch) {
-      batch = { batchId, resolution, aspectRatio, modelId, images: [], timestamp: img.timestamp }
-      map.set(batchId, batch)
-    }
-    batch.images.push(img)
-  }
-  return Array.from(map.values()).sort((a, b) => b.timestamp - a.timestamp)
-}
-
-function modelNameOf(modelId: string): string {
-  return MODEL_CONFIGS.find((m) => m.id === modelId)?.name ?? modelId
-}
+type DetailTarget = { stackId: string; itemId?: string; viewMode?: 'detail' | 'gallery' }
 
 function queueSummaryLabel(summary: GenerationQueueSummary): string {
   const parts = [`队列 ${summary.total}`]
@@ -79,6 +51,92 @@ function queueSummaryLabel(summary: GenerationQueueSummary): string {
   if (summary.queued > 0) parts.push(`排队 ${summary.queued}`)
   if (summary.failed > 0) parts.push(`失败 ${summary.failed}`)
   return parts.join(' · ')
+}
+
+function latestImages(stack: ImageStack): PlaygroundImageMeta[] {
+  return [...stack.images].sort((a, b) => b.timestamp - a.timestamp)
+}
+
+function aspectValue(aspectRatio: string): number | null {
+  const [w, h] = aspectRatio.split(':').map((part) => Number.parseFloat(part))
+  if (!Number.isFinite(w) || !Number.isFinite(h) || h === 0) return null
+  return w / h
+}
+
+function isTallStackItem(item: StackItem): boolean {
+  const aspectRatio = item.type === 'image' && item.image.source.type === 'generated'
+    ? item.image.source.aspectRatio
+    : item.type === 'slot'
+      ? item.job.request.aspectRatio
+      : null
+  const value = aspectRatio ? aspectValue(aspectRatio) : null
+  return value !== null && value < 1
+}
+
+function StackRow({
+  stack,
+  onOpenItem,
+  onOpenGallery,
+}: {
+  stack: ImageStack
+  onOpenItem: (stack: ImageStack, item: StackItem) => void
+  onOpenGallery: (stack: ImageStack) => void
+}) {
+  const totalItems = stack.images.length + stack.activeSlotCount + stack.failedSlotCount
+  const previewItems = [...stack.items].slice(-4).reverse()
+
+  return (
+    <div
+      className="min-w-0 border-b border-dashed border-(--color-border) py-3 last:border-b-0"
+    >
+      <div className="min-w-0 p-3">
+        <div className="mb-2 flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1">
+          <span className="mono shrink-0 text-[11.5px] text-(--color-text-3)">{formatTime(stack.updatedAt)}</span>
+          <span className="mono text-[11.5px] text-(--color-text-3)">{totalItems} 张</span>
+          <button
+            type="button"
+            onClick={() => onOpenGallery(stack)}
+            className="bg-transparent p-0 text-[11.5px] font-medium text-(--color-text-3) transition-colors hover:text-(--color-text-2)"
+          >
+            查看全部
+          </button>
+          {stack.activeSlotCount > 0 && <span className="text-[11.5px] text-(--color-accent)">生成中 {stack.activeSlotCount}</span>}
+          {stack.failedSlotCount > 0 && <span className="text-[11.5px]" style={{ color: 'var(--color-danger)' }}>失败 {stack.failedSlotCount}</span>}
+        </div>
+        <div
+          className="grid min-w-0 overflow-hidden gap-2 p-1.5"
+          style={{
+            gridTemplateColumns: 'repeat(4, clamp(112px, 18vw, 156px))',
+            gridAutoRows: 'clamp(84px, 13.5vw, 112px)',
+          }}
+        >
+          {previewItems.length > 0 ? (
+            previewItems.map((item) => {
+              const tall = isTallStackItem(item)
+              return (
+                <StackItemThumb
+                  key={item.id}
+                  item={item}
+                  outerRing
+                  className={`${tall ? 'row-span-2' : ''} h-full w-full`}
+                  onSelect={(next) => onOpenItem(stack, next)}
+                />
+              )
+            })
+          ) : (
+            <button
+              type="button"
+              onClick={() => onOpenGallery(stack)}
+              className="aspect-[4/3] rounded-[8px] text-[11px] text-(--color-text-4)"
+              style={{ background: 'var(--color-surface-2)', boxShadow: 'inset 0 0 0 1px var(--ring-edge)' }}
+            >
+              暂无图片
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  )
 }
 
 export const OutputPanel = memo(function OutputPanel({
@@ -98,32 +156,35 @@ export const OutputPanel = memo(function OutputPanel({
   onClearAll,
   onLoadMore,
 }: Props) {
-  const [detailImage, setDetailImage] = useState<PlaygroundImageMeta | null>(null)
-  const [detailInitialEditing, setDetailInitialEditing] = useState(false)
+  const [detailTarget, setDetailTarget] = useState<DetailTarget | null>(null)
   const [exporting, setExporting] = useState(false)
   const [confirmClear, setConfirmClear] = useState(false)
+  const stacks = useMemo(() => buildImageStacks(history, generationJobs), [history, generationJobs])
+  const generatedImageCount = useMemo(() => history.filter((img) => img.source.type === 'generated').length, [history])
+  const detailStack = detailTarget ? (stacks.find((stack) => stack.id === detailTarget.stackId) ?? null) : null
 
-  const handleOpenForEdit = useCallback((img: PlaygroundImageMeta) => {
-    setDetailImage(img)
-    setDetailInitialEditing(true)
+  const openStackItem = useCallback((stack: ImageStack, item: StackItem) => {
+    setDetailTarget({ stackId: stack.id, itemId: item.id, viewMode: 'detail' })
   }, [])
-  const handleOpenForView = useCallback((img: PlaygroundImageMeta) => {
-    setDetailImage(img)
-    setDetailInitialEditing(false)
+
+  const openStackGallery = useCallback((stack: ImageStack) => {
+    const newestImage = latestImages(stack)[0]
+    const fallbackItem = stack.items[stack.items.length - 1]
+    setDetailTarget({ stackId: stack.id, itemId: newestImage?.id ?? fallbackItem?.id, viewMode: 'gallery' })
   }, [])
 
   const handleExportAll = async () => {
-    if (exporting || exportableHistory.length === 0) return
+    if (exporting || history.length === 0) return
     setExporting(true)
     try {
-      const needLoad = exportableHistory.filter((img) => !getBlobFromCache(img.id)).map((img) => img.id)
+      const needLoad = history.filter((img) => !getBlobFromCache(img.id)).map((img) => img.id)
       if (needLoad.length > 0) {
         const blobs = await loadImageBlobs(needLoad)
         for (const [id, data] of blobs) putBlobInCache(id, data)
       }
 
       const zip = new JSZip()
-      for (const img of exportableHistory) {
+      for (const img of history) {
         const data = getBlobFromCache(img.id)
         if (!data) continue
         const ext = img.mimeType === 'image/png' ? 'png' : 'jpg'
@@ -142,27 +203,16 @@ export const OutputPanel = memo(function OutputPanel({
     }
   }
 
-  const batches = useMemo(() => groupByBatch(history), [history])
-  const queueBatchIds = useMemo(() => new Set(generationJobs.map((job) => job.id)), [generationJobs])
-  const displayBatches = useMemo(
-    () => batches.filter((batch) => !queueBatchIds.has(batch.batchId)),
-    [batches, queueBatchIds],
-  )
-  const exportableHistory = useMemo(
-    () => history.filter((img) => img.source.type !== 'generated' || !queueBatchIds.has(img.source.batchId)),
-    [history, queueBatchIds],
-  )
-
   const scrollRef = useRef<HTMLDivElement>(null)
-  const topJobIdRef = useRef<string | null>(null)
+  const topStackIdRef = useRef<string | null>(null)
 
   useEffect(() => {
-    const topJobId = generationJobs[0]?.id ?? null
-    if (topJobId && topJobIdRef.current !== topJobId) {
+    const topStackId = stacks[0]?.id ?? null
+    if (topStackId && topStackIdRef.current !== topStackId) {
       scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
     }
-    topJobIdRef.current = topJobId
-  }, [generationJobs])
+    topStackIdRef.current = topStackId
+  }, [stacks])
 
   const sentinelRef = useRef<HTMLDivElement>(null)
   const onLoadMoreStable = useCallback(() => {
@@ -192,10 +242,12 @@ export const OutputPanel = memo(function OutputPanel({
         <div className="flex items-start gap-3">
           <div className="min-w-0">
             <div className="font-display text-[15px] font-semibold tracking-[-0.01em]">结果</div>
-            <div className="text-[11.5px] text-(--color-text-3) mt-0.5">{history.length} 张，存储于本地浏览器</div>
+            <div className="text-[11.5px] text-(--color-text-3) mt-0.5">
+              {stacks.length} 组，{generatedImageCount} 张生成图，存储于本地浏览器
+            </div>
           </div>
           <div className="flex-1" />
-          {exportableHistory.length > 0 && (
+          {history.length > 0 && (
             <button type="button" onClick={handleExportAll} disabled={exporting} className="chip shrink-0">
               <Icon name="download" size={12} /> {exporting ? '导出中…' : '导出 ZIP'}
             </button>
@@ -252,59 +304,13 @@ export const OutputPanel = memo(function OutputPanel({
         </div>
       </div>
 
-      {generationJobs.length > 0 && (
-        <div className="mb-[26px] space-y-[26px]">
-          {generationJobs.map((job) => (
-            <QueueJobSection
-              key={job.id}
-              job={job}
-              onCancelJob={onCancelGenerationJob}
-              onDismissJob={onDismissGenerationJob}
-              onCancelSlot={onCancelGenerationSlot}
-              onAddToRef={onAddToRef}
-              onEdit={handleOpenForEdit}
-              onRegenerate={onRegenerate}
-              onRemove={onRemove}
-              onOpen={handleOpenForView}
-            />
-          ))}
-        </div>
-      )}
-
-      {displayBatches.length > 0 && (
+      {stacks.length > 0 ? (
         <div className="space-y-[26px]">
-          {displayBatches.map((batch) => (
-            <div key={batch.batchId}>
-              <div className="mb-2 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-                <span className="mono whitespace-nowrap text-[11.5px] text-(--color-text-3)">
-                  {formatTime(batch.timestamp)}
-                </span>
-                <span className="text-(--color-text-4)">·</span>
-                <span className="whitespace-nowrap text-[11.5px] font-medium text-(--color-text-2)">
-                  {modelNameOf(batch.modelId)}
-                </span>
-                <span className="text-(--color-text-4)">·</span>
-                <span className="mono whitespace-nowrap text-[11.5px] text-(--color-text-3)">
-                  {batch.resolution} · {batch.aspectRatio} · {batch.images.length}
-                </span>
-              </div>
-              <ImageGrid>
-                {batch.images.map((img, i) => (
-                  <GridCell key={img.id} aspectRatio={img.source.type === 'generated' ? img.source.aspectRatio : '1:1'}>
-                    <ImageCard
-                      image={img}
-                      index={batch.images.length > 1 ? i : undefined}
-                      onAddToRef={onAddToRef}
-                      onEdit={handleOpenForEdit}
-                      onRegenerate={onRegenerate}
-                      onRemove={onRemove}
-                      onOpen={handleOpenForView}
-                    />
-                  </GridCell>
-                ))}
-              </ImageGrid>
-            </div>
-          ))}
+          <div className="space-y-3">
+            {stacks.map((stack) => (
+              <StackRow key={stack.id} stack={stack} onOpenItem={openStackItem} onOpenGallery={openStackGallery} />
+            ))}
+          </div>
 
           {historyHasMore && (
             <div ref={sentinelRef} className="flex justify-center py-4">
@@ -348,22 +354,21 @@ export const OutputPanel = memo(function OutputPanel({
             )}
           </div>
         </div>
-      )}
-
-      {displayBatches.length === 0 && generationJobs.length === 0 && (
+      ) : (
         <div className="py-20 text-center text-(--color-text-3)">
           <div className="text-[13px] mb-1.5">尚无生成记录</div>
           <div className="text-[11.5px] text-(--color-text-4)">配置参数并点击「生成」开始</div>
         </div>
       )}
 
-      {detailImage && (
+      {detailStack && (
         <ImageDetailModal
-          image={detailImage}
-          initialEditing={detailInitialEditing}
+          stack={detailStack}
+          initialItemId={detailTarget?.itemId}
+          initialViewMode={detailTarget?.viewMode}
           history={history}
           generationJobs={generationJobs}
-          onClose={() => setDetailImage(null)}
+          onClose={() => setDetailTarget(null)}
           onAddToRef={onAddToRef}
           onRegenerate={onRegenerate}
           onEditImage={onEditImage}

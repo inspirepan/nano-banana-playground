@@ -16,8 +16,11 @@ import { computeItemCounts, copyEditState, getEditState, setEditPrompt, type Ite
 import { openAISize } from '../lib/openai'
 import { readFileAsImageData } from '../lib/fileToImage'
 import { imageDownloadFileName } from '../lib/downloadFileName'
+import type { ImageStack, StackItem } from '../lib/stacks'
+import { StackItemThumb } from './StackItemThumb'
 
 type EditMode = 'view' | DrawMode
+type ModalViewMode = 'detail' | 'gallery'
 
 // Three brush presets (in source-image natural pixels). These map to the
 // [细 · 中 · 粗] chips in the canvas toolbar; they stay mode-agnostic so
@@ -76,7 +79,9 @@ const MAX_SCALE = 6
 const FIT_SCALE = 1
 
 type Props = {
-  image: PlaygroundImageMeta
+  stack: ImageStack
+  initialItemId?: string
+  initialViewMode?: ModalViewMode
   initialEditing?: boolean
   history: PlaygroundImageMeta[]
   generationJobs: GenerationJob[]
@@ -181,8 +186,110 @@ function MetaRow({ label, value, mono, last }: { label: string; value: ReactNode
   )
 }
 
+function SlotHero({
+  item,
+  onCancelSlot,
+  onCancelJob,
+  onDismissJob,
+}: {
+  item: StackItem | null
+  onCancelSlot: (slotId: string) => void
+  onCancelJob: (jobId: string) => void
+  onDismissJob: (jobId: string) => void
+}) {
+  const slot = item?.type === 'slot' ? item.slot : null
+  const job = item?.type === 'slot' ? item.job : null
+  const label =
+    slot?.status === 'failed'
+      ? '生成失败'
+      : slot?.status === 'canceled'
+        ? '已取消'
+        : slot?.status === 'retrying'
+          ? '重试中'
+          : slot?.status === 'running'
+            ? '生成中'
+            : '排队中'
+  return (
+    <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-8 text-center text-(--color-text-3)">
+      {slot?.status === 'failed' || slot?.status === 'canceled' ? (
+        <Icon name="close" size={16} strokeWidth={1.8} />
+      ) : (
+        <span className="spinner" />
+      )}
+      <div className="mono text-[12px] text-(--color-text-2)">{label}</div>
+      {slot?.error && <div className="max-w-[420px] text-[11.5px] leading-[1.5] text-(--color-text-4)">{slot.error}</div>}
+      {slot && job && (slot.status === 'queued' || slot.status === 'running' || slot.status === 'retrying') && (
+        job.slots.length === 1 ? (
+          <button type="button" className="chip danger mt-2" onClick={() => onCancelSlot(slot.id)}>
+            取消
+          </button>
+        ) : (
+          <div className="mt-2 flex items-center gap-2">
+            <button type="button" className="chip danger" onClick={() => onCancelSlot(slot.id)}>
+              取消当前
+            </button>
+            <button type="button" className="chip ghost" onClick={() => onCancelJob(job.id)}>
+              取消全部
+            </button>
+          </div>
+        )
+      )}
+      {slot && job && (slot.status === 'failed' || slot.status === 'canceled') && (
+        <button type="button" className="chip ghost mt-2" onClick={() => onDismissJob(job.id)}>
+          关闭任务
+        </button>
+      )}
+    </div>
+  )
+}
+
+function StackStrip({ stack, selectedId, onSelect }: { stack: ImageStack; selectedId: string | null; onSelect: (item: StackItem) => void }) {
+  return (
+    <div
+      className="shrink-0 overflow-x-auto border-b border-(--color-border) px-3.5 py-2"
+      style={{ background: 'color-mix(in srgb, var(--color-surface) 74%, transparent)' }}
+    >
+      <div className="flex items-center gap-2">
+        <div className="mr-1 hidden shrink-0 text-[11px] font-medium text-(--color-text-4) sm:block">Stack</div>
+        {stack.items.map((item) => (
+          <StackItemThumb key={item.id} item={item} active={selectedId === item.id} onSelect={onSelect} />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function StackGallery({ stack, selectedId, onSelect }: { stack: ImageStack; selectedId: string | null; onSelect: (item: StackItem) => void }) {
+  return (
+    <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 md:px-6 md:py-5">
+      <div className="mb-4 flex items-end gap-3">
+        <div className="min-w-0">
+          <div className="font-display text-[15px] font-semibold tracking-[-0.01em]">全部图片</div>
+          <div className="mt-0.5 text-[11.5px] text-(--color-text-3)">
+            {stack.images.length} 张图片，{stack.activeSlotCount} 个生成中
+          </div>
+        </div>
+      </div>
+      <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8">
+        {stack.items.map((item) => (
+          <StackItemThumb
+            key={item.id}
+            item={item}
+            active={selectedId === item.id}
+            outerRing
+            className="aspect-square h-auto w-full"
+            onSelect={onSelect}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export function ImageDetailModal({
-  image,
+  stack,
+  initialItemId,
+  initialViewMode = 'detail',
   initialEditing = false,
   history,
   generationJobs,
@@ -195,9 +302,29 @@ export function ImageDetailModal({
   onCancelGenerationSlot,
   onRemove,
 }: Props) {
-  const [currentIdx, setCurrentIdx] = useState(() => history.findIndex((h) => h.id === image.id))
-  const currentImage = currentIdx >= 0 ? history[currentIdx] : image
+  const initialItem = useMemo(
+    () => stack.items.find((item) => item.id === initialItemId) ?? stack.items[stack.items.length - 1] ?? null,
+    [initialItemId, stack.items],
+  )
+  const toSelection = useCallback((item: StackItem | null) => {
+    return item ? { id: item.id, batchId: item.batchId, order: item.order } : null
+  }, [])
+  const [selection, setSelection] = useState<{ id: string; batchId: string; order: number } | null>(() =>
+    toSelection(initialItem),
+  )
+  const selectedItem =
+    (selection && stack.items.find((item) => item.id === selection.id)) ??
+    (selection && stack.items.find((item) => item.batchId === selection.batchId && item.order === selection.order)) ??
+    stack.items[stack.items.length - 1] ??
+    null
+  if (selectedItem && selection?.id !== selectedItem.id) {
+    setSelection(toSelection(selectedItem))
+  }
+  const currentIdx = selectedItem ? stack.items.findIndex((item) => item.id === selectedItem.id) : -1
+  const currentImage = selectedItem?.type === 'image' ? selectedItem.image : null
+  const currentSlot = selectedItem?.type === 'slot' ? selectedItem.slot : null
   const [editing, setEditing] = useState(initialEditing)
+  const [viewMode, setViewMode] = useState<ModalViewMode>(initialViewMode)
   // After submit, we watch history for the first new image with this batchId
   // and auto-navigate the pager to it.
   const [activeEditBatchId, setActiveEditBatchId] = useState<string | null>(null)
@@ -221,18 +348,19 @@ export function ImageDetailModal({
   // layer's onItemsChange keeps us in sync afterward; pager image changes
   // reseed counts during render (see drawablePagerImageId below).
   const [drawableCounts, setDrawableCounts] = useState<ItemCounts>(() =>
-    computeItemCounts(getEditState(currentImage.id).items),
+    computeItemCounts(getEditState(currentImage?.id ?? '').items),
   )
-  const [drawablePagerImageId, setDrawablePagerImageId] = useState(currentImage.id)
-  if (currentImage.id !== drawablePagerImageId) {
-    setDrawablePagerImageId(currentImage.id)
-    setDrawableCounts(computeItemCounts(getEditState(currentImage.id).items))
+  const [drawablePagerImageId, setDrawablePagerImageId] = useState(currentImage?.id ?? '')
+  if ((currentImage?.id ?? '') !== drawablePagerImageId) {
+    const imageId = currentImage?.id ?? ''
+    setDrawablePagerImageId(imageId)
+    setDrawableCounts(computeItemCounts(getEditState(imageId).items))
   }
   const drawableRef = useRef<DrawableLayerHandle | null>(null)
 
-  const { ref: imgRef, src: currentSrc } = useImageSrc(currentImage.id, currentImage.mimeType)
-  const currentMeta = currentImage.source.type === 'generated' ? currentImage.source : null
-  const canNavigate = currentIdx >= 0
+  const { ref: imgRef, src: currentSrc } = useImageSrc(currentImage?.id ?? '', currentImage?.mimeType ?? 'image/png')
+  const currentMeta = currentImage?.source.type === 'generated' ? currentImage.source : null
+  const canNavigate = stack.items.length > 0 && currentIdx >= 0
 
   const [toast, setToast] = useState<string | null>(null)
   const [copiedPrompt, setCopiedPrompt] = useState(false)
@@ -276,28 +404,33 @@ export function ImageDetailModal({
   }, [refDetailId, refSrcMap, findRefImage])
 
   const goToPrev = useCallback(() => {
-    setCurrentIdx((i) => Math.max(0, i - 1))
+    const prev = stack.items[Math.max(0, currentIdx - 1)] ?? null
+    setSelection(toSelection(prev))
     setRefDetailId(null)
     // No explicit clear — DrawableLayer remounts under the new image's key
     // and restores that image's cached items (empty for never-edited ones).
-  }, [])
+  }, [currentIdx, stack.items, toSelection])
 
   const goToNext = useCallback(() => {
-    setCurrentIdx((i) => Math.min(history.length - 1, i + 1))
+    const next = stack.items[Math.min(stack.items.length - 1, currentIdx + 1)] ?? null
+    setSelection(toSelection(next))
     setRefDetailId(null)
-  }, [history.length])
+  }, [currentIdx, stack.items, toSelection])
 
   useEffect(() => {
+    if (!currentImage) return
     ensureBlobLoaded(currentImage.id, currentImage.mimeType)
-  }, [currentImage.id, currentImage.mimeType])
+  }, [currentImage])
 
   // Prefetch neighbor blobs and prime the browser image decode cache so left/
   // right pager switches swap frames without a blank flash.
   useEffect(() => {
     if (!canNavigate) return
     const neighbors: PlaygroundImageMeta[] = []
-    if (currentIdx > 0) neighbors.push(history[currentIdx - 1])
-    if (currentIdx < history.length - 1) neighbors.push(history[currentIdx + 1])
+    const prev = stack.items[currentIdx - 1]
+    const next = stack.items[currentIdx + 1]
+    if (prev?.type === 'image') neighbors.push(prev.image)
+    if (next?.type === 'image') neighbors.push(next.image)
     let cancelled = false
     for (const n of neighbors) {
       ensureBlobLoaded(n.id, n.mimeType).then((dataUrl) => {
@@ -310,7 +443,7 @@ export function ImageDetailModal({
     return () => {
       cancelled = true
     }
-  }, [canNavigate, currentIdx, history])
+  }, [canNavigate, currentIdx, stack.items])
 
   const exitEdit = useCallback(() => {
     setEditing(false)
@@ -361,25 +494,29 @@ export function ImageDetailModal({
     return () => window.removeEventListener('keydown', handleKey)
   }, [canNavigate, editing, editMode, exitEdit, goToNext, goToPrev, onClose])
 
-  // Auto-nav to newly edited image: jump the pager to the first arrival with
-  // the batchId we just submitted. We intentionally keep activeEditBatchId
-  // set — the embedded QueueJobSection keeps showing the rest of the slots;
-  // it's cleared once the whole job reaches a terminal state.
+  // Auto-select the new edit batch inside the stack strip. The selection starts
+  // on the pending slot, then follows the same batch/order when it becomes an image.
   const navedBatchIdRef = useRef<string | null>(null)
+  const copiedEditTargetIdsRef = useRef(new Set<string>())
   useEffect(() => {
     if (!activeEditBatchId) return
-    if (navedBatchIdRef.current === activeEditBatchId) return
-    const idx = history.findIndex((h) => h.source.type === 'generated' && h.source.batchId === activeEditBatchId)
-    if (idx < 0) return
-    const targetId = history[idx].id
-    queueMicrotask(() => {
+    const firstItem = stack.items.find((item) => item.batchId === activeEditBatchId)
+    if (firstItem && navedBatchIdRef.current !== activeEditBatchId) {
       navedBatchIdRef.current = activeEditBatchId
-      const sourceId = activeEditSourceIdRef.current
-      if (sourceId) copyEditState(sourceId, targetId)
-      setCurrentIdx(idx)
+      setSelection(toSelection(firstItem))
       setRefDetailId(null)
-    })
-  }, [history, activeEditBatchId])
+    }
+
+    const sourceId = activeEditSourceIdRef.current
+    if (sourceId) {
+      for (const item of stack.items) {
+        if (item.batchId !== activeEditBatchId || item.type !== 'image') continue
+        if (copiedEditTargetIdsRef.current.has(item.image.id)) continue
+        copyEditState(sourceId, item.image.id)
+        copiedEditTargetIdsRef.current.add(item.image.id)
+      }
+    }
+  }, [activeEditBatchId, stack.items, toSelection])
 
   // —— Mobile bottom-sheet: start lower to prioritize the image, but keep a
   // larger expanded stop for metadata-heavy batches.
@@ -500,7 +637,7 @@ export function ImageDetailModal({
   }
 
   const handleDownload = () => {
-    if (!currentSrc) return
+    if (!currentImage || !currentSrc) return
     const anchor = document.createElement('a')
     anchor.href = currentSrc
     anchor.download = imageDownloadFileName(currentImage, 'png')
@@ -516,27 +653,28 @@ export function ImageDetailModal({
   }
 
   const handleAddRef = () => {
+    if (!currentImage) return
     onAddToRef(currentImage)
     flash('已加为参考图')
   }
 
   const handleRegenerateAction = () => {
+    if (!currentImage) return
     onRegenerate(currentImage)
     onClose()
   }
 
   const hasPrev = canNavigate && currentIdx > 0
-  const hasNext = canNavigate && currentIdx < history.length - 1
+  const hasNext = canNavigate && currentIdx < stack.items.length - 1
 
   // Size helper — show approximate px
   const pxDim = currentMeta ? `${currentMeta.resolution} · ${currentMeta.aspectRatio}` : ''
 
-  const batchInfo =
-    currentMeta &&
+  const stackInfo =
+    currentImage &&
     (() => {
-      const sameBatch = history.filter((h) => h.source.type === 'generated' && h.source.batchId === currentMeta.batchId)
-      const posInBatch = sameBatch.findIndex((h) => h.id === currentImage.id)
-      return { pos: posInBatch + 1, total: sameBatch.length }
+      const posInStack = stack.images.findIndex((img) => img.id === currentImage.id)
+      return { pos: posInStack + 1, total: stack.images.length }
     })()
 
   return createPortal(
@@ -575,14 +713,16 @@ export function ImageDetailModal({
             <span className="mono text-[12.5px] text-(--color-text-4) hidden md:inline whitespace-nowrap">{pxDim}</span>
           </div>
         ) : (
-          <span className="text-[12.5px] font-medium text-(--color-text) truncate">上传图片</span>
+          <span className="text-[12.5px] font-medium text-(--color-text) truncate">
+            {currentSlot ? '生成任务' : '图片组'}
+          </span>
         )}
 
         <div className="flex-1" />
 
         {/* Pager — hidden while editing so the user can't jump between
             images mid-annotation. */}
-        {canNavigate && !editing && (
+        {canNavigate && !editing && viewMode === 'detail' && (
           <div
             className="flex items-center gap-0.5 mr-1 rounded-[6px] shrink-0"
             style={{ background: 'var(--color-surface-2)', boxShadow: 'inset 0 0 0 1px var(--ring-edge)', padding: 2 }}
@@ -598,7 +738,7 @@ export function ImageDetailModal({
             </button>
             <span className="mono text-[11px] text-(--color-text-2) px-1 min-w-[50px] text-center font-medium">
               {currentIdx + 1}
-              <span className="text-(--color-text-4)"> / {history.length}</span>
+              <span className="text-(--color-text-4)"> / {stack.items.length}</span>
             </span>
             <button
               className="icon-btn"
@@ -612,30 +752,45 @@ export function ImageDetailModal({
           </div>
         )}
 
-        <button className="chip shrink-0" onClick={handleAddRef} title="加为参考">
-          <Icon name="plus" size={12} strokeWidth={1.8} /> <span className="hidden md:inline">参考</span>
-        </button>
-        <button
-          className="chip shrink-0"
-          onClick={() => {
-            if (editing) exitEdit()
-            else setEditing(true)
-          }}
-          title={editing ? '退出编辑' : '编辑这张图'}
-          data-active={editing}
-        >
-          <Icon name="wand" size={12} strokeWidth={1.8} />
-          <span className="hidden md:inline">{editing ? '退出编辑' : '编辑'}</span>
-        </button>
-        {currentMeta?.prompt && !editing && (
-          <button className="chip shrink-0" onClick={handleRegenerateAction} title="还原参数">
-            <Icon name="refresh" size={12} strokeWidth={1.8} /> <span className="hidden md:inline">还原参数</span>
+        {!editing && (
+          <button
+            className="chip shrink-0"
+            onClick={() => setViewMode((prev) => (prev === 'gallery' ? 'detail' : 'gallery'))}
+            title={viewMode === 'gallery' ? '回到预览' : '查看全部图片'}
+          >
+            <Icon name={viewMode === 'gallery' ? 'chevron_left' : 'image'} size={12} strokeWidth={1.8} />
+            <span className="hidden md:inline">{viewMode === 'gallery' ? '回到预览' : '全部图片'}</span>
           </button>
         )}
-        <button className="chip shrink-0" onClick={handleDownload} title="下载 PNG">
-          <Icon name="download" size={12} strokeWidth={1.8} /> <span className="hidden md:inline">PNG</span>
-        </button>
-        {!editing && (
+        {viewMode === 'detail' && (
+          <>
+            <button className="chip shrink-0" onClick={handleAddRef} disabled={!currentImage} title="加为参考">
+              <Icon name="plus" size={12} strokeWidth={1.8} /> <span className="hidden md:inline">参考</span>
+            </button>
+            <button
+              className="chip shrink-0"
+              onClick={() => {
+                if (editing) exitEdit()
+                else if (currentImage) setEditing(true)
+              }}
+              title={editing ? '退出编辑' : '编辑这张图'}
+              disabled={!currentImage && !editing}
+              data-active={editing}
+            >
+              <Icon name="wand" size={12} strokeWidth={1.8} />
+              <span className="hidden md:inline">{editing ? '退出编辑' : '编辑'}</span>
+            </button>
+            {currentMeta?.prompt && !editing && (
+              <button className="chip shrink-0" onClick={handleRegenerateAction} title="还原参数">
+                <Icon name="refresh" size={12} strokeWidth={1.8} /> <span className="hidden md:inline">还原参数</span>
+              </button>
+            )}
+            <button className="chip shrink-0" onClick={handleDownload} disabled={!currentImage} title="下载 PNG">
+              <Icon name="download" size={12} strokeWidth={1.8} /> <span className="hidden md:inline">PNG</span>
+            </button>
+          </>
+        )}
+        {!editing && viewMode === 'detail' && (
           <button
             className="chip shrink-0 hidden md:inline-flex"
             onClick={toggleSidebar}
@@ -648,8 +803,22 @@ export function ImageDetailModal({
         )}
       </div>
 
-      {/* ——— Body ——— */}
-      <div className="flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden">
+      {viewMode === 'gallery' ? (
+        <StackGallery
+          stack={stack}
+          selectedId={selectedItem?.id ?? null}
+          onSelect={(item) => {
+            setSelection(toSelection(item))
+            setRefDetailId(null)
+            setViewMode('detail')
+          }}
+        />
+      ) : (
+        <>
+          <StackStrip stack={stack} selectedId={selectedItem?.id ?? null} onSelect={(item) => setSelection(toSelection(item))} />
+
+          {/* ——— Body ——— */}
+          <div className="flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden">
         {/* Canvas with grid background */}
         <div
           className="min-w-0 relative md:flex-1"
@@ -692,7 +861,7 @@ export function ImageDetailModal({
               counts={drawableCounts}
               showToolRow={editing && editMode !== 'view'}
               onChangeMode={(next) => {
-                if (next !== 'view' && !editing) setEditing(true)
+                if (next !== 'view' && !editing && currentImage) setEditing(true)
                 setEditMode(next)
               }}
               onChangeTool={setDrawTool}
@@ -701,7 +870,7 @@ export function ImageDetailModal({
               onClear={() => drawableRef.current?.clear()}
             />
           )}
-          {refDetailId && refDetailSrc ? (
+          {refDetailId && refDetailSrc && currentImage ? (
             <div className="relative flex flex-row h-full gap-px">
               <div className="h-full flex-1 min-w-0 relative">
                 <ZoomableImageView key={refDetailId ?? 'ref'} src={refDetailSrc} alt="" label="左 · 参考图" />
@@ -727,7 +896,7 @@ export function ImageDetailModal({
                 <span className="sm:hidden">退出</span>
               </button>
             </div>
-          ) : editing && editMode !== 'view' ? (
+          ) : editing && editMode !== 'view' && currentImage ? (
             <DrawableLayer
               ref={drawableRef}
               key={currentImage.id}
@@ -738,13 +907,20 @@ export function ImageDetailModal({
               brushSize={brushSize}
               onItemsChange={setDrawableCounts}
             />
-          ) : (
+          ) : currentImage ? (
             <ZoomableImageView
               key={currentImage.id}
               src={currentSrc ?? ''}
               alt={currentMeta?.prompt ?? ''}
               onSwipeLeft={hasNext ? goToNext : undefined}
               onSwipeRight={hasPrev ? goToPrev : undefined}
+            />
+          ) : (
+            <SlotHero
+              item={selectedItem}
+              onCancelSlot={onCancelGenerationSlot}
+              onCancelJob={onCancelGenerationJob}
+              onDismissJob={onDismissGenerationJob}
             />
           )}
 
@@ -850,7 +1026,7 @@ export function ImageDetailModal({
             className="px-[18px] pt-1 md:pt-4 pb-24 md:pb-10"
             style={{ width: isMobileSheet ? undefined : editing ? 420 : 340 }}
           >
-            {editing ? (
+            {editing && currentImage ? (
               <EditSidebar
                 sourceImage={currentImage}
                 generationJobs={generationJobs}
@@ -864,7 +1040,8 @@ export function ImageDetailModal({
                 onRegenerate={onRegenerate}
                 onRemove={onRemove}
                 onOpenImage={(img) => {
-                  setCurrentIdx(history.findIndex((h) => h.id === img.id))
+                  const item = stack.items.find((candidate) => candidate.type === 'image' && candidate.image.id === img.id)
+                  setSelection(toSelection(item ?? null))
                   setRefDetailId(null)
                 }}
                 onViewQueue={onClose}
@@ -1025,22 +1202,26 @@ export function ImageDetailModal({
                       )}
                     </>
                   )}
-                  {currentImage.source.type === 'upload' && (
+                  {currentImage?.source.type === 'upload' && (
                     <MetaRow label="来源" value={`上传: ${currentImage.source.fileName}`} />
                   )}
-                  <MetaRow
-                    label="创建时间"
-                    value={new Date(currentImage.timestamp).toLocaleString('zh-CN', { hour12: false })}
-                    mono
-                  />
-                  {currentMeta && batchInfo && (
+                  {currentImage ? (
                     <MetaRow
-                      label="批次"
+                      label="创建时间"
+                      value={new Date(currentImage.timestamp).toLocaleString('zh-CN', { hour12: false })}
+                      mono
+                    />
+                  ) : (
+                    <MetaRow label="状态" value={currentSlot?.status === 'failed' ? '生成失败' : '等待生成'} />
+                  )}
+                  {currentMeta && stackInfo && (
+                    <MetaRow
+                      label="Stack"
                       value={
                         <span>
-                          <span className="mono">b_{currentMeta.batchId.slice(0, 6)}</span>
+                          <span className="mono">s_{stack.id.slice(0, 6)}</span>
                           <span className="mono text-(--color-text-4) ml-1.5">
-                            #{batchInfo.pos}/{batchInfo.total}
+                            #{stackInfo.pos}/{stackInfo.total}
                           </span>
                         </span>
                       }
@@ -1053,7 +1234,7 @@ export function ImageDetailModal({
                 {currentMeta?.groundingMetadata && <GroundingSection metadata={currentMeta.groundingMetadata} />}
 
                 {/* Danger delete */}
-                {canNavigate && (
+                {currentImage && canNavigate && (
                   <button
                     className="w-full inline-flex items-center justify-center gap-1.5 text-[12px] font-medium transition-colors"
                     style={{
@@ -1118,8 +1299,10 @@ export function ImageDetailModal({
           <kbd>Esc</kbd> 关闭
         </span>
         <div className="flex-1" />
-        <span className="mono">#{currentImage.id.slice(0, 8)}</span>
+        <span className="mono">#{(currentImage?.id ?? selectedItem?.id ?? stack.id).slice(0, 8)}</span>
       </div>
+        </>
+      )}
     </div>,
     document.body,
   )
@@ -1382,7 +1565,7 @@ function EditSidebar({
 
   // Allow submitting a new edit even while a previous batch is still running.
   // The new batchId overrides activeEditBatchId, replacing what the embedded
-  // QueueJobSection tracks; the previous job keeps running in OutputPanel.
+  // QueueJobSection tracks; previous jobs keep running in their stack strip.
   const canSubmit = prompt.trim() !== '' && !submitting && !referenceLimitExceeded
 
   const handleGenerate = useCallback(async () => {

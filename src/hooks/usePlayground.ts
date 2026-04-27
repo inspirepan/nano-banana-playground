@@ -42,6 +42,8 @@ export type GenerationSlot = {
 
 export type GenerationJob = {
   id: string
+  stackId: string
+  parentImageId?: string
   createdAt: number
   startedAt?: number
   finishedAt?: number
@@ -477,6 +479,9 @@ export function usePlayground() {
             {
               ...job.request,
               batchId: job.id,
+              stackId: job.stackId,
+              parentImageId: job.parentImageId,
+              slotIndex: slot.index,
             },
             controller.signal,
             {
@@ -577,10 +582,12 @@ export function usePlayground() {
   }, [])
 
   const enqueueGenerationJob = useCallback(
-    (request: GenerationJob['request'], batchCount: number): string => {
+    (request: GenerationJob['request'], batchCount: number, stackId: string, parentImageId?: string): string => {
       const batchId = crypto.randomUUID()
       const job: GenerationJob = {
         id: batchId,
+        stackId,
+        parentImageId,
         createdAt: Date.now(),
         status: 'queued',
         request,
@@ -608,6 +615,7 @@ export function usePlayground() {
     const activeOptions: Record<string, unknown> = {}
     for (const opt of model.options ?? []) activeOptions[opt.id] = options[opt.id]
 
+    const stackId = crypto.randomUUID()
     enqueueGenerationJob(
       {
         apiKey: apiKeyHook.apiKey,
@@ -620,6 +628,7 @@ export function usePlayground() {
         options: activeOptions,
       },
       batchCount,
+      stackId,
     )
   }, [apiKeyHook, prompt, model, referenceImages, resolution, aspectRatio, options, batchCount, enqueueGenerationJob])
 
@@ -667,6 +676,11 @@ export function usePlayground() {
         : [sourceFull, ...params.extraReferences]
       if (refs.length > maxTotal) return null
 
+      const stackId =
+        params.sourceImage.source.type === 'generated'
+          ? (params.sourceImage.source.stackId ?? params.sourceImage.source.batchId)
+          : crypto.randomUUID()
+
       return enqueueGenerationJob(
         {
           apiKey: keyHook.apiKey,
@@ -680,6 +694,8 @@ export function usePlayground() {
           mask: params.model.provider === 'openai' ? params.mask : undefined,
         },
         params.batchCount,
+        stackId,
+        params.sourceImage.id,
       )
     },
     [googleKeyHook, openaiKeyHook, resolveFullImages, enqueueGenerationJob],

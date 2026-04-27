@@ -34,6 +34,9 @@ export type GeneratedSource = {
   aspectRatio: string
   referenceImageIds: string[]
   batchId: string
+  stackId?: string
+  parentImageId?: string
+  slotIndex?: number
   tokenUsage?: TokenUsage
   // Provider/model-specific generation options (keyed by option id; values typed
   // by the option descriptor). Introduced after the options-descriptor refactor.

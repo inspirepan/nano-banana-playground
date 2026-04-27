@@ -14,6 +14,9 @@ export type GenerateParams = {
   // Provider/model-specific generation parameters, keyed by option id.
   options: Record<string, unknown>
   batchId: string
+  stackId: string
+  parentImageId?: string
+  slotIndex?: number
   // OpenAI images.edits mask: alpha=0 marks the region to rewrite. Ignored on
   // non-OpenAI providers (Gemini has no native mask support — callers should
   // bake the mask into the reference image themselves).
@@ -96,7 +99,20 @@ async function generateImageGoogle(
   signal?: AbortSignal,
   callbacks?: GenerateCallbacks,
 ): Promise<PlaygroundImage> {
-  const { apiKey, baseUrl, model, prompt, referenceImages, resolution, aspectRatio, batchId, options } = params
+  const {
+    apiKey,
+    baseUrl,
+    model,
+    prompt,
+    referenceImages,
+    resolution,
+    aspectRatio,
+    batchId,
+    stackId,
+    parentImageId,
+    slotIndex,
+    options,
+  } = params
 
   const webSearch = options.webSearch === true
   const imageSearch = options.imageSearch === true
@@ -296,6 +312,9 @@ async function generateImageGoogle(
         aspectRatio,
         referenceImageIds: referenceImages.map((r) => r.id),
         batchId,
+        stackId,
+        ...(parentImageId ? { parentImageId } : {}),
+        ...(slotIndex !== undefined ? { slotIndex } : {}),
         tokenUsage,
         options: { ...options },
         ...(groundingMetadata ? { groundingMetadata } : {}),
@@ -321,7 +340,21 @@ async function generateImageOpenAI(
   signal?: AbortSignal,
   callbacks?: GenerateCallbacks,
 ): Promise<PlaygroundImage> {
-  const { apiKey, baseUrl, model, prompt, referenceImages, resolution, aspectRatio, options, batchId, mask } = params
+  const {
+    apiKey,
+    baseUrl,
+    model,
+    prompt,
+    referenceImages,
+    resolution,
+    aspectRatio,
+    options,
+    batchId,
+    stackId,
+    parentImageId,
+    slotIndex,
+    mask,
+  } = params
 
   const size = openAISize(resolution, aspectRatio)
   const quality = typeof options.quality === 'string' ? options.quality : 'auto'
@@ -454,6 +487,9 @@ async function generateImageOpenAI(
         aspectRatio,
         referenceImageIds: referenceImages.map((r) => r.id),
         batchId,
+        stackId,
+        ...(parentImageId ? { parentImageId } : {}),
+        ...(slotIndex !== undefined ? { slotIndex } : {}),
         tokenUsage,
         options: { ...options },
       },
