@@ -45,7 +45,8 @@ type Props = {
 const MASK_OVERLAY_COLOR = 'rgba(239, 68, 68, 0.5)'
 const DEFAULT_ANNOTATE_COLOR = '#ef4444'
 const ERASER_HIT_PADDING = 6 // extra natural-px tolerance around items
-const LOCAL_MIN_SCALE = 1
+const LOCAL_MIN_SCALE = 0.5
+const LOCAL_FIT_SCALE = 1
 const LOCAL_MAX_SCALE = 6
 
 function clamp(value: number, min: number, max: number): number {
@@ -228,7 +229,7 @@ export const DrawableLayer = forwardRef<DrawableLayerHandle, Props>(function Dra
 
   const [natural, setNatural] = useState<{ w: number; h: number } | null>(null)
   const [stage, setStage] = useState<{ w: number; h: number }>({ w: 0, h: 0 })
-  const [localView, setLocalView] = useState<{ scale: number; offset: Point }>({ scale: LOCAL_MIN_SCALE, offset: { x: 0, y: 0 } })
+  const [localView, setLocalView] = useState<{ scale: number; offset: Point }>({ scale: LOCAL_FIT_SCALE, offset: { x: 0, y: 0 } })
   const [isPanning, setIsPanning] = useState(false)
   const localViewRef = useRef(localView)
 
@@ -258,7 +259,7 @@ export const DrawableLayer = forwardRef<DrawableLayerHandle, Props>(function Dra
   }, [src])
 
   useEffect(() => {
-    const next = { scale: LOCAL_MIN_SCALE, offset: { x: 0, y: 0 } }
+    const next = { scale: LOCAL_FIT_SCALE, offset: { x: 0, y: 0 } }
     localViewRef.current = next
     setLocalView(next)
   }, [imageId])

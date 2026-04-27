@@ -663,6 +663,7 @@ export function ImageDetailModal({
         }
         if (editMode !== 'view') {
           setEditMode('view')
+          setDrawRevision((prev) => prev + 1)
           return
         }
         if (editing) {
@@ -889,6 +890,7 @@ export function ImageDetailModal({
   const hasPrev = canNavigate && currentIdx > 0
   const hasNext = canNavigate && currentIdx < stack.items.length - 1
   const hasDrawableMarks = drawableCounts.annotate > 0 || drawableCounts.mask > 0
+  const desktopAnnotationActive = editing && editMode !== 'view' && !isMobileSheet && !mobileDrawOpen
 
   const startAnnotation = () => {
     if (!currentImage) return
@@ -904,6 +906,7 @@ export function ImageDetailModal({
     setMobileDrawOpen(false)
     setEditMode('view')
     setDesktopMoveActive(false)
+    setDrawRevision((prev) => prev + 1)
   }
 
   const clearAnnotations = () => {
@@ -1108,13 +1111,15 @@ export function ImageDetailModal({
             </div>
           ) : currentImage ? (
             <>
-              <ZoomableImageView
-                key="main-viewer"
-                src={displayImage?.src ?? currentSrc ?? ''}
-                alt={displayImage?.alt ?? currentMeta?.prompt ?? ''}
-                onSwipeLeft={hasNext ? goToNext : undefined}
-                onSwipeRight={hasPrev ? goToPrev : undefined}
-              />
+              {!desktopAnnotationActive && (
+                <ZoomableImageView
+                  key="main-viewer"
+                  src={displayImage?.src ?? currentSrc ?? ''}
+                  alt={displayImage?.alt ?? currentMeta?.prompt ?? ''}
+                  onSwipeLeft={hasNext ? goToNext : undefined}
+                  onSwipeRight={hasPrev ? goToPrev : undefined}
+                />
+              )}
               {(editMode !== 'view' || hasDrawableMarks) && !mobileDrawOpen && (
                 <DrawableLayer
                   ref={drawableRef}
@@ -1131,7 +1136,7 @@ export function ImageDetailModal({
                   onItemsChange={setDrawableCounts}
                 />
               )}
-              {editing && editMode !== 'view' && !isMobileSheet && !mobileDrawOpen && (
+              {desktopAnnotationActive && (
                 <DesktopAnnotationToolbar
                   drawTool={drawTool}
                   desktopMoveActive={desktopMoveActive}
