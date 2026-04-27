@@ -36,6 +36,7 @@ type Props = {
   visibleModes?: DrawMode[]
   eraseAllModes?: boolean
   readOnly?: boolean
+  panEnabled?: boolean
   // Fires whenever the items list changes. Breakdown by mode lets the
   // parent drive per-layer indicators without peeking into the cache.
   onItemsChange?: (counts: ItemCounts) => void
@@ -44,6 +45,12 @@ type Props = {
 const MASK_OVERLAY_COLOR = 'rgba(239, 68, 68, 0.5)'
 const DEFAULT_ANNOTATE_COLOR = '#ef4444'
 const ERASER_HIT_PADDING = 6 // extra natural-px tolerance around items
+const LOCAL_MIN_SCALE = 1
+const LOCAL_MAX_SCALE = 6
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value))
+}
 
 function dataUrlToBase64(url: string): string {
   const idx = url.indexOf(',')
@@ -190,6 +197,7 @@ export const DrawableLayer = forwardRef<DrawableLayerHandle, Props>(function Dra
     visibleModes,
     eraseAllModes = false,
     readOnly = false,
+    panEnabled = false,
     onItemsChange,
   },
   ref,
@@ -216,9 +224,13 @@ export const DrawableLayer = forwardRef<DrawableLayerHandle, Props>(function Dra
   }, [])
 
   const pointerStateRef = useRef<{ pointerId: number; kind: 'path' | 'rect' | 'eraser' } | null>(null)
+  const panStateRef = useRef<{ pointerId: number; point: Point; offset: Point } | null>(null)
 
   const [natural, setNatural] = useState<{ w: number; h: number } | null>(null)
   const [stage, setStage] = useState<{ w: number; h: number }>({ w: 0, h: 0 })
+  const [localView, setLocalView] = useState<{ scale: number; offset: Point }>({ scale: LOCAL_MIN_SCALE, offset: { x: 0, y: 0 } })
+  const [isPanning, setIsPanning] = useState(false)
+  const localViewRef = useRef(localView)
 
   // Persist items to cache whenever they change (write-through), and keep
   // the sync ref fresh so pointer handlers see the current list even if
@@ -245,6 +257,12 @@ export const DrawableLayer = forwardRef<DrawableLayerHandle, Props>(function Dra
     }
   }, [src])
 
+  useEffect(() => {
+    const next = { scale: LOCAL_MIN_SCALE, offset: { x: 0, y: 0 } }
+    localViewRef.current = next
+    setLocalView(next)
+  }, [imageId])
+
   // Report current counts to the parent. Runs on mount (so a remount under
   // a new imageId syncs the restored breakdown) and whenever items shift.
   useEffect(() => {
@@ -256,7 +274,9 @@ export const DrawableLayer = forwardRef<DrawableLayerHandle, Props>(function Dra
   useEffect(() => {
     setDraft(null)
     pointerStateRef.current = null
-  }, [mode, tool])
+    panStateRef.current = null
+    setIsPanning(false)
+  }, [mode, tool, panEnabled])
 
   const recomputeStage = useCallback(() => {
     const container = containerRef.current
@@ -281,6 +301,90 @@ export const DrawableLayer = forwardRef<DrawableLayerHandle, Props>(function Dra
     obs.observe(el)
     return () => obs.disconnect()
   }, [recomputeStage])
+
+  const clampLocalOffset = useCallback((offset: Point, scale: number): Point => {
+    const container = containerRef.current
+    if (!container) return { x: 0, y: 0 }
+    const maxX = Math.max(0, (stage.w * scale - container.clientWidth) / 2)
+    const maxY = Math.max(0, (stage.h * scale - container.clientHeight) / 2)
+    return { x: clamp(offset.x, -maxX, maxX), y: clamp(offset.y, -maxY, maxY) }
+  }, [stage])
+
+  const applyLocalView = useCallback(
+    (scale: number, offset: Point) => {
+      const nextScale = clamp(scale, LOCAL_MIN_SCALE, LOCAL_MAX_SCALE)
+      const next = { scale: nextScale, offset: clampLocalOffset(offset, nextScale) }
+      localViewRef.current = next
+      setLocalView(next)
+    },
+    [clampLocalOffset],
+  )
+
+  const handleWheel = useCallback(
+    (event: WheelEvent) => {
+      const container = containerRef.current
+      if (viewTransform || !natural || stage.w === 0 || stage.h === 0 || !container) return
+      event.preventDefault()
+      const rect = container.getBoundingClientRect()
+      const anchor = { x: event.clientX - rect.left - rect.width / 2, y: event.clientY - rect.top - rect.height / 2 }
+      const current = localViewRef.current
+      const factor = event.ctrlKey ? 0.02 : 0.0015
+      const nextScale = clamp(current.scale * Math.exp(-event.deltaY * factor), LOCAL_MIN_SCALE, LOCAL_MAX_SCALE)
+      const ratio = nextScale / current.scale
+      applyLocalView(nextScale, {
+        x: anchor.x - ratio * (anchor.x - current.offset.x),
+        y: anchor.y - ratio * (anchor.y - current.offset.y),
+      })
+    },
+    [applyLocalView, natural, stage, viewTransform],
+  )
+
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+    container.addEventListener('wheel', handleWheel, { passive: false })
+    return () => container.removeEventListener('wheel', handleWheel)
+  }, [handleWheel])
+
+  const handlePanPointerDown = useCallback(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      if (!panEnabled || viewTransform || !natural || stage.w === 0 || stage.h === 0) return
+      if (event.pointerType === 'mouse' && event.button !== 0) return
+      event.preventDefault()
+      const rect = event.currentTarget.getBoundingClientRect()
+      const point = { x: event.clientX - rect.left - rect.width / 2, y: event.clientY - rect.top - rect.height / 2 }
+      event.currentTarget.setPointerCapture(event.pointerId)
+      panStateRef.current = { pointerId: event.pointerId, point, offset: localViewRef.current.offset }
+      setIsPanning(true)
+    },
+    [natural, panEnabled, stage, viewTransform],
+  )
+
+  const handlePanPointerMove = useCallback(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      const pan = panStateRef.current
+      if (!pan || pan.pointerId !== event.pointerId) return
+      const rect = event.currentTarget.getBoundingClientRect()
+      const point = { x: event.clientX - rect.left - rect.width / 2, y: event.clientY - rect.top - rect.height / 2 }
+      applyLocalView(localViewRef.current.scale, {
+        x: pan.offset.x + point.x - pan.point.x,
+        y: pan.offset.y + point.y - pan.point.y,
+      })
+    },
+    [applyLocalView],
+  )
+
+  const handlePanPointerUp = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    const pan = panStateRef.current
+    if (!pan || pan.pointerId !== event.pointerId) return
+    panStateRef.current = null
+    setIsPanning(false)
+  }, [])
+
+  useEffect(() => {
+    if (viewTransform) return
+    applyLocalView(localViewRef.current.scale, localViewRef.current.offset)
+  }, [applyLocalView, viewTransform])
 
   const redraw = useCallback(() => {
     const canvas = canvasRef.current
@@ -546,13 +650,18 @@ export const DrawableLayer = forwardRef<DrawableLayerHandle, Props>(function Dra
     [natural, pushItems, mode, ready],
   )
 
-  const cursor = tool === 'eraser' ? 'cell' : 'crosshair'
+  const cursor = panEnabled ? (isPanning ? 'grabbing' : 'grab') : tool === 'eraser' ? 'cell' : 'crosshair'
+  const transform = viewTransform ?? localView
 
   return (
     <div
       ref={containerRef}
       className="absolute inset-0 flex items-center justify-center select-none"
-      style={{ touchAction: 'none' }}
+      style={{ touchAction: 'none', cursor }}
+      onPointerDown={handlePanPointerDown}
+      onPointerMove={handlePanPointerMove}
+      onPointerUp={handlePanPointerUp}
+      onPointerCancel={handlePanPointerUp}
     >
       <div
         className="relative flex-none"
@@ -566,9 +675,7 @@ export const DrawableLayer = forwardRef<DrawableLayerHandle, Props>(function Dra
           boxShadow: ready
             ? '0 0 0 1px var(--ring-edge-strong), 0 30px 60px -24px rgba(0,0,0,0.3), 0 4px 10px rgba(0,0,0,0.06)'
             : 'none',
-          transform: viewTransform
-            ? `translate3d(${viewTransform.offset.x}px, ${viewTransform.offset.y}px, 0) scale(${viewTransform.scale})`
-            : undefined,
+          transform: `translate3d(${transform.offset.x}px, ${transform.offset.y}px, 0) scale(${transform.scale})`,
           transformOrigin: 'center center',
         }}
       >

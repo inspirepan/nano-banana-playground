@@ -12,6 +12,7 @@ export type LockedReferenceImage = {
 type Props = {
   images: PlaygroundImage[]
   lockedImages?: LockedReferenceImage[]
+  hint?: string
   maxTotal: number
   dragOver: boolean
   error: string | null
@@ -24,6 +25,7 @@ type Props = {
 export function ReferenceImageUpload({
   images,
   lockedImages = [],
+  hint = '可拖入本地图片，或按 ⌘/Ctrl+V 粘贴；也可拖入右侧历史图',
   maxTotal,
   dragOver,
   error,
@@ -116,9 +118,7 @@ export function ReferenceImageUpload({
           </button>
         </div>
       )}
-      <div className="text-[11px] text-(--color-text-4) mt-1.5">
-        可拖入本地图片，或按 ⌘/Ctrl+V 粘贴；也可拖入右侧历史图
-      </div>
+      <div className="text-[11px] text-(--color-text-4) mt-1.5">{hint}</div>
       <input
         ref={inputRef}
         type="file"

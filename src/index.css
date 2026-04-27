@@ -373,6 +373,58 @@
     color: var(--color-accent);
     box-shadow: inset 0 0 0 1px var(--color-accent-wash-2);
   }
+  .annotation-tool-btn,
+  .annotation-dot-btn {
+    height: 28px;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--color-text-2);
+    -webkit-appearance: none;
+    appearance: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 12.5px;
+    font-weight: 500;
+    white-space: nowrap;
+    transition:
+      background 120ms,
+      color 120ms,
+      box-shadow 120ms;
+  }
+  .annotation-tool-btn {
+    padding: 0 10px;
+  }
+  .annotation-dot-btn {
+    width: 32px;
+    padding: 0;
+  }
+  .annotation-tool-btn:hover:not(:disabled),
+  .annotation-dot-btn:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--color-surface) 42%, transparent);
+    color: var(--color-text);
+  }
+  .annotation-tool-btn[data-active='true'],
+  .annotation-dot-btn[data-active='true'] {
+    background: color-mix(in srgb, var(--color-accent) 13%, transparent);
+    color: var(--color-accent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-accent) 26%, transparent);
+  }
+  .annotation-tool-btn[data-active='true']:hover:not(:disabled),
+  .annotation-dot-btn[data-active='true']:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--color-accent) 17%, transparent);
+    color: var(--color-accent);
+  }
+  .annotation-tool-btn:disabled,
+  .annotation-dot-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.42;
+  }
+  .annotation-toolbar-divider {
+    background: color-mix(in srgb, var(--color-text) 22%, transparent);
+  }
   .chip.ghost {
     background: transparent;
     box-shadow: none;

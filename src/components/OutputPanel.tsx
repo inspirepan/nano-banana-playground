@@ -1,11 +1,8 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import JSZip from 'jszip'
 import type { PlaygroundImage, PlaygroundImageMeta } from '../lib/types'
 import type { ModelConfig } from '../config/models'
 import type { GenerationJob, GenerationQueueSummary } from '../hooks/usePlayground'
-import { loadImageBlobs } from '../lib/history'
-import { imageDownloadFileName } from '../lib/downloadFileName'
-import { getBlobFromCache, putBlobInCache } from '../hooks/useImageSrc'
+import { downloadImagePng, downloadImagesZip } from '../lib/exportImages'
 import { ImageDetailModal } from './ImageDetailModal'
 import { Icon } from './Icon'
 import { Tooltip } from './Tooltip'
@@ -42,7 +39,7 @@ type Props = {
   onLoadMore: () => void
 }
 
-type DetailTarget = { stackId: string; itemId?: string; viewMode?: 'detail' | 'gallery' }
+type DetailTarget = { stackId: string; itemId?: string; viewMode?: 'detail' | 'gallery'; initialEditing?: boolean }
 
 function queueSummaryLabel(summary: GenerationQueueSummary): string {
   const parts = [`队列 ${summary.total}`]
@@ -76,11 +73,17 @@ function isTallStackItem(item: StackItem): boolean {
 function StackRow({
   stack,
   onOpenItem,
+  onEditItem,
   onOpenGallery,
+  onDownloadStack,
+  downloading,
 }: {
   stack: ImageStack
   onOpenItem: (stack: ImageStack, item: StackItem) => void
+  onEditItem: (stack: ImageStack, item: StackItem) => void
   onOpenGallery: (stack: ImageStack) => void
+  onDownloadStack: (stack: ImageStack) => void
+  downloading: boolean
 }) {
   const totalItems = stack.images.length + stack.activeSlotCount + stack.failedSlotCount
   const previewItems = [...stack.items].slice(-10).reverse()
@@ -100,6 +103,16 @@ function StackRow({
           >
             查看全部
           </button>
+          {stack.images.length > 1 && (
+            <button
+              type="button"
+              onClick={() => onDownloadStack(stack)}
+              disabled={downloading}
+              className="bg-transparent p-0 text-[11.5px] font-medium text-(--color-text-3) transition-colors hover:text-(--color-text-2) disabled:cursor-not-allowed disabled:opacity-45"
+            >
+              {downloading ? '打包中…' : '下载 ZIP'}
+            </button>
+          )}
           {stack.activeSlotCount > 0 && <span className="text-[11.5px] text-(--color-accent)">生成中 {stack.activeSlotCount}</span>}
           {stack.failedSlotCount > 0 && <span className="text-[11.5px]" style={{ color: 'var(--color-danger)' }}>失败 {stack.failedSlotCount}</span>}
         </div>
@@ -121,6 +134,36 @@ function StackRow({
                     outerRing
                     className={`${tall ? 'row-span-2' : ''} h-full w-full`}
                     onSelect={(next) => onOpenItem(stack, next)}
+                    actions={
+                      item.type === 'image' ? (
+                        <div className="hidden items-center gap-1 opacity-0 transition-opacity md:flex md:group-hover:opacity-100 md:group-focus-within:opacity-100">
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation()
+                              onEditItem(stack, item)
+                            }}
+                            className="inline-flex h-[24px] flex-1 items-center justify-center gap-1 rounded-[5px] px-2 text-[11px] font-medium"
+                            style={{ background: 'rgba(0,0,0,0.28)', color: '#fff', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.18)', backdropFilter: 'blur(8px)' }}
+                          >
+                            <Icon name="wand" size={11} strokeWidth={1.8} />
+                            编辑
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation()
+                              void downloadImagePng(item.image)
+                            }}
+                            className="inline-flex h-[24px] flex-1 items-center justify-center gap-1 rounded-[5px] px-2 text-[11px] font-medium"
+                            style={{ background: 'rgba(0,0,0,0.28)', color: '#fff', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.18)', backdropFilter: 'blur(8px)' }}
+                          >
+                            <Icon name="download" size={11} strokeWidth={1.8} />
+                            PNG
+                          </button>
+                        </div>
+                      ) : undefined
+                    }
                   />
                 )
               })
@@ -160,6 +203,7 @@ export const OutputPanel = memo(function OutputPanel({
 }: Props) {
   const [detailTarget, setDetailTarget] = useState<DetailTarget | null>(null)
   const [exporting, setExporting] = useState(false)
+  const [exportingStackId, setExportingStackId] = useState<string | null>(null)
   const [confirmClear, setConfirmClear] = useState(false)
   const stacks = useMemo(() => buildImageStacks(history, generationJobs), [history, generationJobs])
   const generatedImageCount = useMemo(() => history.filter((img) => img.source.type === 'generated').length, [history])
@@ -167,6 +211,11 @@ export const OutputPanel = memo(function OutputPanel({
 
   const openStackItem = useCallback((stack: ImageStack, item: StackItem) => {
     setDetailTarget({ stackId: stack.id, itemId: item.id, viewMode: 'detail' })
+  }, [])
+
+  const editStackItem = useCallback((stack: ImageStack, item: StackItem) => {
+    if (item.type !== 'image') return
+    setDetailTarget({ stackId: stack.id, itemId: item.id, viewMode: 'detail', initialEditing: true })
   }, [])
 
   const openStackGallery = useCallback((stack: ImageStack) => {
@@ -179,31 +228,21 @@ export const OutputPanel = memo(function OutputPanel({
     if (exporting || history.length === 0) return
     setExporting(true)
     try {
-      const needLoad = history.filter((img) => !getBlobFromCache(img.id)).map((img) => img.id)
-      if (needLoad.length > 0) {
-        const blobs = await loadImageBlobs(needLoad)
-        for (const [id, data] of blobs) putBlobInCache(id, data)
-      }
-
-      const zip = new JSZip()
-      for (const img of history) {
-        const data = getBlobFromCache(img.id)
-        if (!data) continue
-        const ext = img.mimeType === 'image/png' ? 'png' : 'jpg'
-        const name = imageDownloadFileName(img, ext)
-        zip.file(name, data, { base64: true })
-      }
-      const blob = await zip.generateAsync({ type: 'blob' })
-      const url = URL.createObjectURL(blob)
-      const anchor = document.createElement('a')
-      anchor.href = url
-      anchor.download = `nano-banana-export-${new Date().toISOString().slice(0, 10)}.zip`
-      anchor.click()
-      URL.revokeObjectURL(url)
+      await downloadImagesZip(history, `nano-banana-export-${new Date().toISOString().slice(0, 10)}.zip`)
     } finally {
       setExporting(false)
     }
   }
+
+  const handleExportStack = useCallback(async (stack: ImageStack) => {
+    if (exportingStackId || stack.images.length < 2) return
+    setExportingStackId(stack.id)
+    try {
+      await downloadImagesZip(stack.images, `nano-banana-stack-${stack.id.slice(0, 8)}.zip`)
+    } finally {
+      setExportingStackId(null)
+    }
+  }, [exportingStackId])
 
   const scrollRef = useRef<HTMLDivElement>(null)
   const topStackIdRef = useRef<string | null>(null)
@@ -310,7 +349,15 @@ export const OutputPanel = memo(function OutputPanel({
         <div className="space-y-[26px]">
           <div className="space-y-3">
             {stacks.map((stack) => (
-              <StackRow key={stack.id} stack={stack} onOpenItem={openStackItem} onOpenGallery={openStackGallery} />
+              <StackRow
+                key={stack.id}
+                stack={stack}
+                onOpenItem={openStackItem}
+                onEditItem={editStackItem}
+                onOpenGallery={openStackGallery}
+                onDownloadStack={handleExportStack}
+                downloading={exportingStackId === stack.id}
+              />
             ))}
           </div>
 
@@ -368,6 +415,7 @@ export const OutputPanel = memo(function OutputPanel({
           stack={detailStack}
           initialItemId={detailTarget?.itemId}
           initialViewMode={detailTarget?.viewMode}
+          initialEditing={detailTarget?.initialEditing}
           history={history}
           generationJobs={generationJobs}
           onClose={() => setDetailTarget(null)}

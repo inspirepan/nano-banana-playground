@@ -19,6 +19,7 @@ import {
   MoreHorizontal,
   Monitor,
   Moon,
+  MousePointer2,
   Plus,
   Redo2,
   RefreshCw,
@@ -62,6 +63,7 @@ export type IconName =
   | 'lock'
   | 'map_pin'
   | 'more'
+  | 'mouse_pointer'
   | 'plus'
   | 'redo'
   | 'refresh'
@@ -104,6 +106,7 @@ const ICONS = {
   lock: Lock,
   map_pin: MapPin,
   more: MoreHorizontal,
+  mouse_pointer: MousePointer2,
   plus: Plus,
   redo: Redo2,
   refresh: RefreshCw,

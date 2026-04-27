@@ -174,7 +174,7 @@ export const MODEL_CONFIGS: ModelConfig[] = [
   },
   {
     id: 'gpt-image-2',
-    name: 'GPT Image 2',
+    name: 'Image 2',
     provider: 'openai',
     apiModel: 'gpt-image-2',
     // Resolution tiers map to explicit pixel sizes together with the aspect ratio

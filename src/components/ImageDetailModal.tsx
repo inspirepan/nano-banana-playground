@@ -6,6 +6,7 @@ import { MODEL_CONFIGS, DEFAULT_MODEL, defaultOptionsFor, type ModelConfig } fro
 import { getActualCost, getPricePerImage } from '../lib/pricing'
 import { ensureBlobLoaded, useImageSrc } from '../hooks/useImageSrc'
 import { loadImageMetas } from '../lib/history'
+import { downloadImagesZip } from '../lib/exportImages'
 import { Icon, type IconName } from './Icon'
 import { ChipGroup } from './ChipGroup'
 import { AspectRatioSelector } from './AspectRatioSelector'
@@ -21,14 +22,15 @@ import { StackItemThumb } from './StackItemThumb'
 
 type EditMode = 'view' | DrawMode
 type ModalViewMode = 'detail' | 'gallery'
+type GalleryMode = 'view' | 'manage'
 
 // Three brush presets (in source-image natural pixels). These map to the
 // [细 · 中 · 粗] chips in the canvas toolbar; they stay mode-agnostic so
 // annotate and mask share one control.
 const BRUSH_PRESETS = [
-  { id: 'S', label: '细', size: 24 },
-  { id: 'M', label: '中', size: 56 },
-  { id: 'L', label: '粗', size: 96 },
+  { id: 'S', label: '细', size: 24, dot: 6 },
+  { id: 'M', label: '中', size: 56, dot: 9 },
+  { id: 'L', label: '粗', size: 96, dot: 12 },
 ] as const
 type BrushPresetId = (typeof BRUSH_PRESETS)[number]['id']
 
@@ -103,7 +105,7 @@ type Props = {
   onCancelGenerationJob: (jobId: string) => void
   onDismissGenerationJob: (jobId: string) => void
   onCancelGenerationSlot: (slotId: string) => void
-  onRemove: (id: string) => void
+  onRemove: (id: string) => void | Promise<void>
 }
 
 type Point = { x: number; y: number }
@@ -164,6 +166,19 @@ function renderPromptLines(text: string): ReactNode[] {
     }
     return <div key={i}>{line || ' '}</div>
   })
+}
+
+function OpenAILogo({ size = 11 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" style={{ flexShrink: 0 }}>
+      <path d="M22.28 9.82a5.95 5.95 0 0 0-.51-4.91 6.04 6.04 0 0 0-6.5-2.9A6.06 6.06 0 0 0 4.98 4.18a5.99 5.99 0 0 0-4 2.9 6.05 6.05 0 0 0 .74 7.1 5.98 5.98 0 0 0 .51 4.9 6.05 6.05 0 0 0 6.51 2.9A5.98 5.98 0 0 0 13.26 24a6.06 6.06 0 0 0 5.77-4.2 5.99 5.99 0 0 0 4-2.9 6.06 6.06 0 0 0-.75-7.08Zm-9.02 12.63a4.48 4.48 0 0 1-2.88-1.04l.14-.08 4.78-2.76a.78.78 0 0 0 .39-.68v-6.74L17.7 12.3a.07.07 0 0 1 .04.05v5.58a4.5 4.5 0 0 1-4.48 4.51Zm-9.64-4.12a4.48 4.48 0 0 1-.54-3.03l.14.09 4.78 2.76a.78.78 0 0 0 .78 0l5.84-3.37v2.33a.08.08 0 0 1-.03.06L9.78 20a4.51 4.51 0 0 1-6.16-1.65Zm-1.19-9.9a4.5 4.5 0 0 1 2.35-1.98v5.68a.78.78 0 0 0 .39.67l5.8 3.35-2.2 1.27a.08.08 0 0 1-.08 0l-4.83-2.79a4.51 4.51 0 0 1-1.43-6.2Zm16.6 3.86L13.24 9 15.43 7.73a.07.07 0 0 1 .08 0l4.83 2.79a4.5 4.5 0 0 1-.68 8.12v-5.69a.78.78 0 0 0-.4-.67Zm2.18-3.27-.14-.09-4.77-2.77a.79.79 0 0 0-.79 0L9.57 9.54V7.2a.07.07 0 0 1 .03-.06l4.83-2.79a4.5 4.5 0 0 1 6.68 4.67Zm-12.64 4.5-2.19-1.26a.07.07 0 0 1-.04-.06V6.63a4.5 4.5 0 0 1 7.38-3.47l-.14.08L8.8 6a.78.78 0 0 0-.39.68ZM9.76 11l2.6-1.5 2.6 1.5v3l-2.6 1.5-2.6-1.5Z" />
+    </svg>
+  )
+}
+
+function getModelShortLabel(model: ModelConfig) {
+  if (model.provider === 'openai') return model.name
+  return model.name.replace(/^Nano\s+/, '')
 }
 
 function MetaRow({ label, value, mono, last }: { label: string; value: ReactNode; mono?: boolean; last?: boolean }) {
@@ -254,7 +269,13 @@ function StackStrip({
   return (
     <div
       className="shrink-0 overflow-x-auto border-b border-(--color-border) px-3.5 py-2"
-      style={{ background: 'color-mix(in srgb, var(--color-surface) 74%, transparent)' }}
+      style={{
+        backgroundColor: 'var(--color-bg-sunken)',
+        backgroundImage: `linear-gradient(color-mix(in srgb, var(--color-surface) 46%, transparent), color-mix(in srgb, var(--color-surface) 46%, transparent)), linear-gradient(var(--color-border) 1px, transparent 1px), linear-gradient(90deg, var(--color-border) 1px, transparent 1px)`,
+        backgroundSize: 'auto, 28px 28px, 28px 28px',
+        backdropFilter: 'blur(10px)',
+        WebkitBackdropFilter: 'blur(10px)',
+      }}
     >
       <div className="flex items-center gap-2">
         <div className="-m-1 flex min-w-0 flex-1 items-center gap-2 overflow-x-auto p-1">
@@ -272,15 +293,133 @@ function StackStrip({
   )
 }
 
-function StackGallery({ stack, selectedId, onSelect }: { stack: ImageStack; selectedId: string | null; onSelect: (item: StackItem) => void }) {
+function StackGallery({
+  stack,
+  initialMode,
+  selectedId,
+  onSelect,
+  onRemove,
+}: {
+  stack: ImageStack
+  initialMode: GalleryMode
+  selectedId: string | null
+  onSelect: (item: StackItem) => void
+  onRemove: (id: string) => void | Promise<void>
+}) {
+  const [mode, setMode] = useState<GalleryMode>(initialMode)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
+  const [exporting, setExporting] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const selectableImages = stack.images
+  const selectedImages = selectableImages.filter((image) => selectedIds.has(image.id))
+  const selectedCount = selectedImages.length
+  const allSelected = selectableImages.length > 0 && selectedCount === selectableImages.length
+
+  const toggleImage = (item: StackItem) => {
+    if (item.type !== 'image') return
+    setConfirmDelete(false)
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(item.image.id)) next.delete(item.image.id)
+      else next.add(item.image.id)
+      return next
+    })
+  }
+
+  const toggleSelectAll = () => {
+    setConfirmDelete(false)
+    setSelectedIds(allSelected ? new Set() : new Set(selectableImages.map((image) => image.id)))
+  }
+
+  const handleDownloadSelected = async () => {
+    if (exporting || selectedImages.length === 0) return
+    setExporting(true)
+    try {
+      await downloadImagesZip(selectedImages, `nano-banana-stack-${stack.id.slice(0, 8)}.zip`)
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  const handleDeleteSelected = async () => {
+    if (selectedImages.length === 0) return
+    if (!confirmDelete) {
+      setConfirmDelete(true)
+      return
+    }
+    const ids = selectedImages.map((image) => image.id)
+    await Promise.all(ids.map((id) => Promise.resolve(onRemove(id))))
+    setSelectedIds(new Set())
+    setConfirmDelete(false)
+  }
+
+  const enterManageMode = () => {
+    setConfirmDelete(false)
+    setMode('manage')
+  }
+
+  const exitManageMode = () => {
+    setConfirmDelete(false)
+    setSelectedIds(new Set())
+    setMode('view')
+  }
+
   return (
     <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 md:px-6 md:py-5">
-      <div className="mb-4 flex items-end gap-3">
+      <div className="mb-4 flex flex-wrap items-end gap-3">
         <div className="min-w-0">
-          <div className="font-display text-base font-semibold tracking-[-0.01em]">全部图片</div>
+          <div className="font-display text-base font-semibold tracking-[-0.01em]">
+            {mode === 'manage' ? '批量管理' : '全部图片'}
+          </div>
           <div className="mt-0.5 text-xs text-(--color-text-3)">
             {stack.images.length} 张图片，{stack.activeSlotCount} 个生成中
+            {mode === 'manage' && selectedCount > 0 ? `，已选 ${selectedCount} 张` : ''}
           </div>
+        </div>
+        <div className="flex-1" />
+        <div className="flex flex-wrap items-center justify-end gap-1.5">
+          {mode === 'manage' ? (
+            <>
+              <button
+                type="button"
+                onClick={toggleSelectAll}
+                disabled={selectableImages.length === 0}
+                className="chip shrink-0"
+              >
+                {allSelected ? '取消全选' : '全选'}
+              </button>
+              <button
+                type="button"
+                onClick={handleDownloadSelected}
+                disabled={exporting || selectedCount === 0}
+                className="chip shrink-0"
+              >
+                <Icon name="download" size={12} strokeWidth={1.8} />
+                {exporting ? '打包中…' : '下载 ZIP'}
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteSelected}
+                disabled={selectedCount === 0}
+                className="chip danger shrink-0"
+              >
+                <Icon name="trash" size={12} strokeWidth={1.8} />
+                {confirmDelete ? `确认删除 ${selectedCount} 张` : '删除'}
+              </button>
+              <button type="button" onClick={exitManageMode} className="chip ghost shrink-0">
+                完成
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={enterManageMode}
+              disabled={selectableImages.length === 0}
+              className="chip shrink-0"
+            >
+              批量管理
+            </button>
+          )}
         </div>
       </div>
       <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8">
@@ -288,10 +427,12 @@ function StackGallery({ stack, selectedId, onSelect }: { stack: ImageStack; sele
           <StackItemThumb
             key={item.id}
             item={item}
-            active={selectedId === item.id}
+            active={mode === 'view' && selectedId === item.id}
+            selectable={mode === 'manage' && item.type === 'image'}
+            selected={mode === 'manage' && item.type === 'image' && selectedIds.has(item.image.id)}
             outerRing
             className="aspect-square h-auto w-full"
-            onSelect={onSelect}
+            onSelect={mode === 'manage' ? toggleImage : onSelect}
           />
         ))}
       </div>
@@ -340,6 +481,7 @@ export function ImageDetailModal({
   const [mobileDrawOpen, setMobileDrawOpen] = useState(false)
   const [mobilePreviewOpen, setMobilePreviewOpen] = useState(false)
   const [viewMode, setViewMode] = useState<ModalViewMode>(initialViewMode)
+  const [galleryInitialMode, setGalleryInitialMode] = useState<GalleryMode>('view')
   // After submit, we watch history for the first new image with this batchId
   // and auto-navigate the pager to it.
   const [activeEditBatchId, setActiveEditBatchId] = useState<string | null>(null)
@@ -353,6 +495,7 @@ export function ImageDetailModal({
   // field / Gemini red overlay).
   const [editMode, setEditMode] = useState<EditMode>('view')
   const [drawTool, setDrawTool] = useState<DrawTool>('brush')
+  const [desktopMoveActive, setDesktopMoveActive] = useState(false)
   if (drawTool === 'rect') {
     setDrawTool('brush')
   }
@@ -377,6 +520,7 @@ export function ImageDetailModal({
 
   const { ref: imgRef, src: currentSrc } = useImageSrc(currentImage?.id ?? '', currentImage?.mimeType ?? 'image/png')
   const currentMeta = currentImage?.source.type === 'generated' ? currentImage.source : null
+  const [displayImage, setDisplayImage] = useState<{ id: string; src: string; alt: string } | null>(null)
   const canNavigate = stack.items.length > 0 && currentIdx >= 0
 
   const [toast, setToast] = useState<string | null>(null)
@@ -439,6 +583,28 @@ export function ImageDetailModal({
     ensureBlobLoaded(currentImage.id, currentImage.mimeType)
   }, [currentImage])
 
+  useEffect(() => {
+    if (!currentImage) {
+      setDisplayImage(null)
+      return
+    }
+    if (!currentSrc) return
+    let cancelled = false
+    const next = { id: currentImage.id, src: currentSrc, alt: currentMeta?.prompt ?? '' }
+    const img = new Image()
+    img.decoding = 'async'
+    img.onload = () => {
+      if (!cancelled) setDisplayImage(next)
+    }
+    img.onerror = () => {
+      if (!cancelled) setDisplayImage(next)
+    }
+    img.src = currentSrc
+    return () => {
+      cancelled = true
+    }
+  }, [currentImage, currentMeta?.prompt, currentSrc])
+
   // Prefetch neighbor blobs and prime the browser image decode cache so left/
   // right pager switches swap frames without a blank flash.
   useEffect(() => {
@@ -466,6 +632,7 @@ export function ImageDetailModal({
     setEditing(false)
     setEditMode('view')
     setDrawTool('brush')
+    setDesktopMoveActive(false)
     // Keep items — they're cached per-image so reopening the modal restores
     // whatever annotations were in progress. Counts stay for the dots.
   }, [])
@@ -729,12 +896,14 @@ export function ImageDetailModal({
     setRefDetailId(null)
     setEditMode('mask')
     if (drawTool === 'rect') setDrawTool('brush')
+    setDesktopMoveActive(false)
     if (isMobileSheet) setMobileDrawOpen(true)
   }
 
   const finishAnnotation = () => {
     setMobileDrawOpen(false)
     setEditMode('view')
+    setDesktopMoveActive(false)
   }
 
   const clearAnnotations = () => {
@@ -746,6 +915,7 @@ export function ImageDetailModal({
     setMobileDrawOpen(false)
     setEditMode('view')
     setDrawTool('brush')
+    setDesktopMoveActive(false)
   }
 
   // Size helper — show approximate px
@@ -805,11 +975,18 @@ export function ImageDetailModal({
 
         <button
           className="chip hidden shrink-0 md:inline-flex"
-          onClick={() => setViewMode((prev) => (prev === 'gallery' ? 'detail' : 'gallery'))}
-          title={viewMode === 'gallery' ? '回到预览' : '查看全部图片'}
+          onClick={() => {
+            if (viewMode === 'gallery') {
+              setViewMode('detail')
+              return
+            }
+            setGalleryInitialMode('manage')
+            setViewMode('gallery')
+          }}
+          title={viewMode === 'gallery' ? '回到预览' : '打开批量管理'}
         >
-          <Icon name={viewMode === 'gallery' ? 'chevron_left' : 'image'} size={12} strokeWidth={1.8} />
-          <span className="hidden md:inline">{viewMode === 'gallery' ? '回到预览' : '全部图片'}</span>
+          <Icon name={viewMode === 'gallery' ? 'chevron_left' : 'check_circle'} size={12} strokeWidth={1.8} />
+          <span className="hidden md:inline">{viewMode === 'gallery' ? '回到预览' : '批量管理'}</span>
         </button>
         {viewMode === 'detail' && (
           <button
@@ -863,12 +1040,14 @@ export function ImageDetailModal({
       {viewMode === 'gallery' ? (
         <StackGallery
           stack={stack}
+          initialMode={galleryInitialMode}
           selectedId={selectedItem?.id ?? null}
           onSelect={(item) => {
             setSelection(toSelection(item))
             setRefDetailId(null)
             setViewMode('detail')
           }}
+          onRemove={onRemove}
         />
       ) : (
         <>
@@ -927,28 +1106,49 @@ export function ImageDetailModal({
                 <span className="sm:hidden">退出</span>
               </button>
             </div>
-          ) : editing && currentImage && (editMode !== 'view' || hasDrawableMarks) && !mobileDrawOpen ? (
-            <DrawableLayer
-              ref={drawableRef}
-              key={`${currentImage.id}:${drawRevision}:${editMode === 'view' ? 'preview' : 'draw'}`}
-              imageId={currentImage.id}
-              src={currentSrc ?? ''}
-              mode={activeDrawMode}
-              tool={drawTool}
-              brushSize={brushSize}
-              visibleModes={['mask', 'annotate']}
-              eraseAllModes
-              readOnly={editMode === 'view'}
-              onItemsChange={setDrawableCounts}
-            />
           ) : currentImage ? (
-            <ZoomableImageView
-              key={currentImage.id}
-              src={currentSrc ?? ''}
-              alt={currentMeta?.prompt ?? ''}
-              onSwipeLeft={hasNext ? goToNext : undefined}
-              onSwipeRight={hasPrev ? goToPrev : undefined}
-            />
+            <>
+              <ZoomableImageView
+                key="main-viewer"
+                src={displayImage?.src ?? currentSrc ?? ''}
+                alt={displayImage?.alt ?? currentMeta?.prompt ?? ''}
+                onSwipeLeft={hasNext ? goToNext : undefined}
+                onSwipeRight={hasPrev ? goToPrev : undefined}
+              />
+              {(editMode !== 'view' || hasDrawableMarks) && !mobileDrawOpen && (
+                <DrawableLayer
+                  ref={drawableRef}
+                  key={`${currentImage.id}:${drawRevision}`}
+                  imageId={currentImage.id}
+                  src={currentSrc ?? ''}
+                  mode={activeDrawMode}
+                  tool={drawTool}
+                  brushSize={brushSize}
+                  visibleModes={['mask', 'annotate']}
+                  eraseAllModes
+                  readOnly={editMode === 'view' || desktopMoveActive}
+                  panEnabled={desktopMoveActive}
+                  onItemsChange={setDrawableCounts}
+                />
+              )}
+              {editing && editMode !== 'view' && !isMobileSheet && !mobileDrawOpen && (
+                <DesktopAnnotationToolbar
+                  drawTool={drawTool}
+                  desktopMoveActive={desktopMoveActive}
+                  brushPreset={brushPreset}
+                  layerHasItems={hasDrawableMarks}
+                  onChangeDrawTool={(tool) => {
+                    setDesktopMoveActive(false)
+                    setDrawTool(tool)
+                  }}
+                  onChangeDesktopMoveActive={setDesktopMoveActive}
+                  onChangeBrushPreset={setBrushPreset}
+                  onUndo={() => drawableRef.current?.undo()}
+                  onClear={clearAnnotations}
+                  onFinish={finishAnnotation}
+                />
+              )}
+            </>
           ) : (
             <SlotHero
               item={selectedItem}
@@ -1104,14 +1304,20 @@ export function ImageDetailModal({
                 onViewQueue={onClose}
                 annotationActive={editMode !== 'view'}
                 hasAnnotations={hasDrawableMarks}
+                annotationToolsFloating={!isMobileSheet}
                 drawableCounts={drawableCounts}
                 drawableRef={drawableRef}
                 drawTool={drawTool}
+                desktopMoveActive={desktopMoveActive}
                 brushPreset={brushPreset}
                 onStartAnnotation={startAnnotation}
                 onFinishAnnotation={finishAnnotation}
                 onClearAnnotations={clearAnnotations}
-                onChangeDrawTool={setDrawTool}
+                onChangeDrawTool={(tool) => {
+                  setDesktopMoveActive(false)
+                  setDrawTool(tool)
+                }}
+                onChangeDesktopMoveActive={setDesktopMoveActive}
                 onChangeBrushPreset={setBrushPreset}
               />
             ) : (
@@ -1505,14 +1711,17 @@ type EditSidebarProps = {
   onViewQueue: () => void
   annotationActive: boolean
   hasAnnotations: boolean
+  annotationToolsFloating: boolean
   drawableCounts: ItemCounts
   drawableRef: React.RefObject<DrawableLayerHandle | null>
   drawTool: DrawTool
+  desktopMoveActive: boolean
   brushPreset: BrushPresetId
   onStartAnnotation: () => void
   onFinishAnnotation: () => void
   onClearAnnotations: () => void
   onChangeDrawTool: (tool: DrawTool) => void
+  onChangeDesktopMoveActive: (active: boolean) => void
   onChangeBrushPreset: (preset: BrushPresetId) => void
 }
 
@@ -1532,34 +1741,43 @@ function EditSidebar({
   onViewQueue,
   annotationActive,
   hasAnnotations,
+  annotationToolsFloating,
   drawableCounts,
   drawableRef,
   drawTool,
+  desktopMoveActive,
   brushPreset,
   onStartAnnotation,
   onFinishAnnotation,
   onClearAnnotations,
   onChangeDrawTool,
+  onChangeDesktopMoveActive,
   onChangeBrushPreset,
 }: EditSidebarProps) {
   // Resolve the model / resolution / aspect ratio / options that generated the
   // source. For uploads, fall back to the default model's defaults.
-  const sourceModel = useMemo(() => {
+  const sourceDefaultModel = useMemo(() => {
     const src = sourceImage.source
     if (src.type !== 'generated') return DEFAULT_MODEL
     return MODEL_CONFIGS.find((m) => m.id === src.modelId) ?? DEFAULT_MODEL
   }, [sourceImage])
 
   const sourceRes =
-    sourceImage.source.type === 'generated' ? sourceImage.source.resolution : sourceModel.defaultResolution
+    sourceImage.source.type === 'generated' ? sourceImage.source.resolution : sourceDefaultModel.defaultResolution
   const sourceAspect =
-    sourceImage.source.type === 'generated' ? sourceImage.source.aspectRatio : sourceModel.defaultAspectRatio
+    sourceImage.source.type === 'generated' ? sourceImage.source.aspectRatio : sourceDefaultModel.defaultAspectRatio
+
+  const [modelId, setModelId] = useState(sourceDefaultModel.id)
+  const sourceModel = useMemo(
+    () => MODEL_CONFIGS.find((model) => model.id === modelId) ?? sourceDefaultModel,
+    [modelId, sourceDefaultModel],
+  )
 
   const [resolution, setResolution] = useState(() =>
-    sourceModel.resolutions.includes(sourceRes) ? sourceRes : sourceModel.defaultResolution,
+    sourceDefaultModel.resolutions.includes(sourceRes) ? sourceRes : sourceDefaultModel.defaultResolution,
   )
   const [aspectRatio, setAspectRatio] = useState(() =>
-    sourceModel.aspectRatios.includes(sourceAspect) ? sourceAspect : sourceModel.defaultAspectRatio,
+    sourceDefaultModel.aspectRatios.includes(sourceAspect) ? sourceAspect : sourceDefaultModel.defaultAspectRatio,
   )
   const [batchCount, setBatchCount] = useState(1)
   // Prompt text is cached per source image so users who close the modal
@@ -1581,10 +1799,20 @@ function EditSidebar({
   useEffect(() => {
     if (sourceIdRef.current === sourceImage.id) return
     sourceIdRef.current = sourceImage.id
-    setResolution(sourceModel.resolutions.includes(sourceRes) ? sourceRes : sourceModel.defaultResolution)
-    setAspectRatio(sourceModel.aspectRatios.includes(sourceAspect) ? sourceAspect : sourceModel.defaultAspectRatio)
+    setModelId(sourceDefaultModel.id)
+    setResolution(sourceDefaultModel.resolutions.includes(sourceRes) ? sourceRes : sourceDefaultModel.defaultResolution)
+    setAspectRatio(sourceDefaultModel.aspectRatios.includes(sourceAspect) ? sourceAspect : sourceDefaultModel.defaultAspectRatio)
     setPrompt(getEditState(sourceImage.id).prompt)
-  }, [sourceImage.id, sourceModel, sourceRes, sourceAspect])
+  }, [sourceImage.id, sourceDefaultModel, sourceRes, sourceAspect])
+
+  const handleModelChange = useCallback((id: string) => {
+    const nextModel = MODEL_CONFIGS.find((model) => model.id === id)
+    if (!nextModel) return
+    setModelId(id)
+    setResolution((prev) => (nextModel.resolutions.includes(prev) ? prev : nextModel.defaultResolution))
+    setAspectRatio((prev) => (nextModel.aspectRatios.includes(prev) ? prev : nextModel.defaultAspectRatio))
+    setBatchCount((prev) => Math.min(prev, nextModel.maxBatchCount))
+  }, [])
 
   // Write-through the prompt back to the cache so it survives remounts of
   // this sidebar (closing the modal or switching to another image and back).
@@ -1841,10 +2069,7 @@ function EditSidebar({
         </div>
       )}
 
-      {/* Resolution + aspect ratio (collapsed by default — rarely adjusted
-          while editing). The grid-template-rows 0fr→1fr animation is paint-
-          only: no layout recalc on the inner chips/grid during the
-          transition, so even the AspectRatioSelector grid doesn't re-layout. */}
+      {/* Model + size params (collapsed by default — rarely adjusted while editing). */}
       <div className="mb-[18px]">
         <button
           type="button"
@@ -1852,10 +2077,10 @@ function EditSidebar({
           aria-expanded={!paramsCollapsed}
           className="flex items-center w-full bg-transparent border-0 p-0 cursor-pointer min-h-[20px]"
         >
-          <span className="label">分辨率 · 宽高比</span>
+          <span className="label">模型 · 分辨率 · 宽高比</span>
           <span className="flex-1" />
           <span className="mono mr-1.5 text-xs text-(--color-text-3)">
-            {resolution} · {aspectRatio}
+            {getModelShortLabel(sourceModel)} · {resolution} · {aspectRatio}
           </span>
           <Icon name={paramsCollapsed ? 'chevron_right' : 'chevron_down'} size={12} className="text-(--color-text-4)" />
         </button>
@@ -1868,6 +2093,31 @@ function EditSidebar({
         >
           <div className="overflow-hidden min-h-0">
             <div className="pt-2.5">
+              <div className="mb-[14px]">
+                <div
+                  className="segmented"
+                  style={{
+                    ['--seg-count' as string]: MODEL_CONFIGS.length,
+                    ['--seg-index' as string]: Math.max(
+                      0,
+                      MODEL_CONFIGS.findIndex((model) => model.id === sourceModel.id),
+                    ),
+                  }}
+                >
+                  {MODEL_CONFIGS.map((model) => (
+                    <button
+                      key={model.id}
+                      type="button"
+                      data-active={sourceModel.id === model.id}
+                      onClick={() => handleModelChange(model.id)}
+                      title={model.name}
+                    >
+                      {model.provider === 'google' ? <span className="text-[11px]">🍌</span> : <OpenAILogo />}
+                      <span>{getModelShortLabel(model)}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
               <div className="mb-[14px]">
                 <ChipGroup
                   options={sourceModel.resolutions}
@@ -1936,10 +2186,11 @@ function EditSidebar({
             </button>
           )}
         </div>
-        {annotationActive && (
+        {annotationActive && !annotationToolsFloating && (
           <div className="mt-2 space-y-2">
             <div className="flex gap-1.5 overflow-x-auto pb-0.5">
               {[
+                { id: 'move' as const, label: '拖动', icon: 'mouse_pointer' as const },
                 { id: 'brush' as const, label: '涂抹', icon: 'brush' as const },
                 { id: 'step' as const, label: '编号', icon: 'map_pin' as const },
                 { id: 'eraser' as const, label: '橡皮', icon: 'eraser' as const },
@@ -1948,15 +2199,21 @@ function EditSidebar({
                   key={item.id}
                   type="button"
                   className="chip shrink-0"
-                  data-active={drawTool === item.id}
-                  onClick={() => onChangeDrawTool(item.id)}
+                  data-active={item.id === 'move' ? desktopMoveActive : !desktopMoveActive && drawTool === item.id}
+                  onClick={() => {
+                    if (item.id === 'move') {
+                      onChangeDesktopMoveActive(true)
+                    } else {
+                      onChangeDrawTool(item.id)
+                    }
+                  }}
                 >
                   <Icon name={item.icon} size={13} strokeWidth={1.8} />
                   {item.label}
                 </button>
               ))}
             </div>
-            {drawTool !== 'eraser' && (
+            {!desktopMoveActive && drawTool !== 'eraser' && (
               <div className="grid grid-cols-3 gap-1.5">
                 {BRUSH_PRESETS.map((item) => (
                   <button
@@ -1965,8 +2222,10 @@ function EditSidebar({
                     className="chip justify-center"
                     data-active={brushPreset === item.id}
                     onClick={() => onChangeBrushPreset(item.id)}
+                    title={item.label}
+                    aria-label={item.label}
                   >
-                    {item.label}
+                    <BrushPresetDot preset={item} />
                   </button>
                 ))}
               </div>
@@ -1980,6 +2239,7 @@ function EditSidebar({
         <ReferenceImageUpload
           images={extraRefs}
           lockedImages={lockedReferenceImages}
+          hint="可拖入本地图片，或按 ⌘/Ctrl+V 粘贴"
           maxTotal={maxExtraRefs}
           dragOver={false}
           error={effectiveRefsError}
@@ -2061,6 +2321,106 @@ function RefThumbnail({
   )
 }
 
+function BrushPresetDot({ preset }: { preset: (typeof BRUSH_PRESETS)[number] }) {
+  return (
+    <span className="inline-flex h-4 w-4 items-center justify-center" aria-hidden="true">
+      <span className="rounded-full bg-current" style={{ width: preset.dot, height: preset.dot }} />
+    </span>
+  )
+}
+
+function DesktopAnnotationToolbar({
+  drawTool,
+  desktopMoveActive,
+  brushPreset,
+  layerHasItems,
+  onChangeDrawTool,
+  onChangeDesktopMoveActive,
+  onChangeBrushPreset,
+  onUndo,
+  onClear,
+  onFinish,
+}: {
+  drawTool: DrawTool
+  desktopMoveActive: boolean
+  brushPreset: BrushPresetId
+  layerHasItems: boolean
+  onChangeDrawTool: (tool: DrawTool) => void
+  onChangeDesktopMoveActive: (active: boolean) => void
+  onChangeBrushPreset: (preset: BrushPresetId) => void
+  onUndo: () => void
+  onClear: () => void
+  onFinish: () => void
+}) {
+  const toolOptions: Array<{ id: DrawTool | 'move'; label: string; icon: IconName }> = [
+    { id: 'move', label: '拖动', icon: 'mouse_pointer' },
+    { id: 'brush', label: '涂抹', icon: 'brush' },
+    { id: 'step', label: '编号', icon: 'map_pin' },
+    { id: 'eraser', label: '橡皮', icon: 'eraser' },
+  ]
+
+  return (
+    <div className="pointer-events-none absolute bottom-5 left-1/2 z-30 hidden -translate-x-1/2 md:block">
+      <div
+        className="pointer-events-auto flex flex-nowrap items-center justify-start gap-1.5 overflow-x-auto rounded-[10px] px-2 py-1.5"
+        style={{
+          maxWidth: 'min(820px, calc(100vw - 420px))',
+          background: 'var(--color-surface)',
+          boxShadow: '0 0 0 1px var(--ring-edge), 0 14px 30px -22px rgba(0,0,0,0.32)',
+        }}
+      >
+        {toolOptions.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            className="annotation-tool-btn shrink-0"
+            data-active={item.id === 'move' ? desktopMoveActive : !desktopMoveActive && drawTool === item.id}
+            onClick={() => {
+              if (item.id === 'move') onChangeDesktopMoveActive(true)
+              else onChangeDrawTool(item.id)
+            }}
+          >
+            <Icon name={item.icon} size={13} strokeWidth={1.8} />
+            {item.label}
+          </button>
+        ))}
+
+        {!desktopMoveActive && drawTool !== 'eraser' && (
+          <>
+            <div className="annotation-toolbar-divider mx-0.5 h-5 w-px shrink-0" />
+            {BRUSH_PRESETS.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                className="annotation-dot-btn shrink-0"
+                data-active={brushPreset === item.id}
+                onClick={() => onChangeBrushPreset(item.id)}
+                title={item.label}
+                aria-label={item.label}
+              >
+                <BrushPresetDot preset={item} />
+              </button>
+            ))}
+          </>
+        )}
+
+        <div className="annotation-toolbar-divider mx-0.5 h-5 w-px shrink-0" />
+        <button type="button" className="annotation-tool-btn shrink-0" onClick={onUndo} disabled={!layerHasItems}>
+          <Icon name="undo" size={13} strokeWidth={1.8} />
+          撤销
+        </button>
+        <button type="button" className="annotation-tool-btn text-(--color-text-3) shrink-0" onClick={onClear} disabled={!layerHasItems}>
+          清空
+        </button>
+        <button type="button" className="annotation-tool-btn shrink-0" data-active="true" onClick={onFinish}>
+          <Icon name="check" size={13} strokeWidth={1.8} />
+          完成
+        </button>
+      </div>
+    </div>
+  )
+}
+
 function MobileDrawFullscreen({
   imageId,
   src,
@@ -2094,6 +2454,7 @@ function MobileDrawFullscreen({
 }) {
   const viewportRef = useRef<HTMLDivElement>(null)
   const activePointersRef = useRef(new Map<number, Point>())
+  const dragStartRef = useRef<{ point: Point; offset: Point } | null>(null)
   const pinchStartRef = useRef<{ center: Point; distance: number; scale: number; offset: Point } | null>(null)
   const scaleRef = useRef(FIT_SCALE)
   const offsetRef = useRef<Point>({ x: 0, y: 0 })
@@ -2103,9 +2464,12 @@ function MobileDrawFullscreen({
   const [viewportSize, setViewportSize] = useState<Size>({ width: 0, height: 0 })
   const [scale, setScale] = useState(FIT_SCALE)
   const [offset, setOffset] = useState<Point>({ x: 0, y: 0 })
+  const [mobileTool, setMobileTool] = useState<DrawTool | 'move'>(tool)
 
   const layerHasItems = counts.mask > 0 || counts.annotate > 0
-  const toolOptions: Array<{ id: DrawTool; label: string; icon: IconName }> = [
+  const isMoveTool = mobileTool === 'move'
+  const toolOptions: Array<{ id: DrawTool | 'move'; label: string; icon: IconName }> = [
+    { id: 'move', label: '拖动', icon: 'mouse_pointer' },
     { id: 'brush', label: '涂抹', icon: 'brush' },
     { id: 'step', label: '编号', icon: 'map_pin' },
     { id: 'eraser', label: '橡皮', icon: 'eraser' },
@@ -2123,6 +2487,7 @@ function MobileDrawFullscreen({
 
   const resetView = useCallback(() => {
     activePointersRef.current.clear()
+    dragStartRef.current = null
     pinchStartRef.current = null
     applyView(FIT_SCALE, { x: 0, y: 0 })
   }, [applyView])
@@ -2177,11 +2542,22 @@ function MobileDrawFullscreen({
     resetView()
   }, [imageId, resetView])
 
+  useEffect(() => {
+    activePointersRef.current.clear()
+    dragStartRef.current = null
+    pinchStartRef.current = null
+  }, [mobileTool])
+
   const startViewGesture = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!isMoveTool) return
     if (event.pointerType === 'mouse' && event.button !== 0) return
     const point = getRelativePoint(viewportRef.current, event.clientX, event.clientY)
     event.currentTarget.setPointerCapture(event.pointerId)
     activePointersRef.current.set(event.pointerId, point)
+    if (activePointersRef.current.size === 1) {
+      dragStartRef.current = { point, offset: offsetRef.current }
+      pinchStartRef.current = null
+    }
     if (activePointersRef.current.size === 2) {
       const [first, second] = Array.from(activePointersRef.current.values())
       pinchStartRef.current = {
@@ -2190,10 +2566,12 @@ function MobileDrawFullscreen({
         scale: scaleRef.current,
         offset: offsetRef.current,
       }
+      dragStartRef.current = null
     }
   }
 
   const moveViewGesture = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!isMoveTool) return
     if (!activePointersRef.current.has(event.pointerId)) return
     const point = getRelativePoint(viewportRef.current, event.clientX, event.clientY)
     activePointersRef.current.set(event.pointerId, point)
@@ -2209,11 +2587,26 @@ function MobileDrawFullscreen({
       })
       return
     }
+    if (activePointersRef.current.size === 1 && dragStartRef.current && scaleRef.current > FIT_SCALE) {
+      const start = dragStartRef.current
+      applyView(scaleRef.current, {
+        x: start.offset.x + point.x - start.point.x,
+        y: start.offset.y + point.y - start.point.y,
+      })
+    }
   }
 
   const endViewGesture = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!isMoveTool) return
     activePointersRef.current.delete(event.pointerId)
-    if (activePointersRef.current.size < 2) pinchStartRef.current = null
+    if (activePointersRef.current.size === 1) {
+      const [remainingPoint] = Array.from(activePointersRef.current.values())
+      dragStartRef.current = { point: remainingPoint, offset: offsetRef.current }
+      pinchStartRef.current = null
+    } else {
+      dragStartRef.current = null
+      pinchStartRef.current = null
+    }
   }
 
   const zoomCenter = (factor: number) => {
@@ -2228,7 +2621,7 @@ function MobileDrawFullscreen({
         </button>
         <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-semibold text-(--color-text)">标注</div>
-          <div className="text-xs text-(--color-text-4)">涂抹编辑区域，或用编号补充说明</div>
+          <div className="text-xs text-(--color-text-4)">{isMoveTool ? '单指拖动，双指缩放' : '涂抹编辑区域，或用编号补充说明'}</div>
         </div>
         <button type="button" className="chip text-xs" onClick={onClose} style={{ height: 28 }}>
           完成
@@ -2248,6 +2641,7 @@ function MobileDrawFullscreen({
         onPointerUp={endViewGesture}
         onPointerCancel={endViewGesture}
         onDoubleClick={(event) => {
+          if (!isMoveTool) return
           const point = getRelativePoint(viewportRef.current, event.clientX, event.clientY)
           if (scaleRef.current > FIT_SCALE) resetView()
           else zoomAtPoint(2.5, point)
@@ -2264,6 +2658,7 @@ function MobileDrawFullscreen({
           viewTransform={{ scale, offset }}
           visibleModes={['mask', 'annotate']}
           eraseAllModes
+          readOnly={isMoveTool}
           onItemsChange={onItemsChange}
         />
 
@@ -2289,9 +2684,12 @@ function MobileDrawFullscreen({
               <button
                 key={item.id}
                 type="button"
-                onClick={() => onChangeTool(item.id)}
+                onClick={() => {
+                  setMobileTool(item.id)
+                  if (item.id !== 'move') onChangeTool(item.id)
+                }}
                 className="chip shrink-0 text-sm"
-                data-active={tool === item.id}
+                data-active={mobileTool === item.id}
                 style={{ height: 36 }}
               >
                 <Icon name={item.icon} size={14} strokeWidth={1.8} />
@@ -2300,7 +2698,7 @@ function MobileDrawFullscreen({
             ))}
           </div>
           <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5">
-            {tool !== 'eraser' &&
+            {mobileTool !== 'move' && mobileTool !== 'eraser' &&
               BRUSH_PRESETS.map((item) => (
                 <button
                   key={item.id}
@@ -2308,9 +2706,11 @@ function MobileDrawFullscreen({
                   onClick={() => onChangeBrushPreset(item.id)}
                   className="chip shrink-0 text-sm"
                   data-active={brushPreset === item.id}
+                  title={item.label}
+                  aria-label={item.label}
                   style={{ height: 36 }}
                 >
-                  {item.label}
+                  <BrushPresetDot preset={item} />
                 </button>
               ))}
             <div className="flex-1" />
