@@ -2154,7 +2154,7 @@ function EditSidebar({
             onChange={(e) => setPrompt(e.target.value)}
             placeholder={placeholder}
             rows={1}
-            className="block w-full resize-none bg-transparent px-3 py-2.5 text-base leading-[1.55] focus:outline-none md:text-sm"
+            className="block w-full resize-none bg-transparent px-3 py-2.5 text-[16px] leading-[1.55] focus:outline-none md:text-sm"
             autoFocus
           />
           <div className="flex items-center gap-2 border-t border-(--color-border) px-2.5 py-1.5 text-xs text-(--color-text-3)">
