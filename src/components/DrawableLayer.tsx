@@ -17,7 +17,9 @@ export type DrawableLayerHandle = {
   isReady: () => boolean
   hasItems: () => boolean
   clear: () => void
+  clearAll: () => void
   undo: () => void
+  exportMarkedComposite: () => Promise<{ base64: string; mimeType: 'image/png' } | null>
   exportAnnotated: () => Promise<{ base64: string; mimeType: 'image/png' } | null>
   exportMaskAlpha: () => Promise<{ base64: string; mimeType: 'image/png' } | null>
   exportMaskRedOverlay: () => Promise<{ base64: string; mimeType: 'image/png' } | null>
@@ -31,6 +33,9 @@ type Props = {
   brushSize: number
   annotateColor?: string
   viewTransform?: { scale: number; offset: Point }
+  visibleModes?: DrawMode[]
+  eraseAllModes?: boolean
+  readOnly?: boolean
   // Fires whenever the items list changes. Breakdown by mode lets the
   // parent drive per-layer indicators without peeking into the cache.
   onItemsChange?: (counts: ItemCounts) => void
@@ -174,7 +179,19 @@ function paintItem(ctx: CanvasRenderingContext2D, item: DrawItem, paintColor: st
 }
 
 export const DrawableLayer = forwardRef<DrawableLayerHandle, Props>(function DrawableLayer(
-  { imageId, src, mode, tool, brushSize, annotateColor = DEFAULT_ANNOTATE_COLOR, viewTransform, onItemsChange },
+  {
+    imageId,
+    src,
+    mode,
+    tool,
+    brushSize,
+    annotateColor = DEFAULT_ANNOTATE_COLOR,
+    viewTransform,
+    visibleModes,
+    eraseAllModes = false,
+    readOnly = false,
+    onItemsChange,
+  },
   ref,
 ) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -277,16 +294,17 @@ export const DrawableLayer = forwardRef<DrawableLayerHandle, Props>(function Dra
     // Only paint items belonging to the active layer — annotate and mask
     // are conceptually separate, so a mask shouldn't bleed into the
     // annotate view and vice versa.
+    const modes = visibleModes ?? [mode]
     for (const item of items) {
-      if (item.mode !== mode) continue
+      if (!modes.includes(item.mode)) continue
       const color = item.mode === 'mask' ? MASK_OVERLAY_COLOR : item.color
       paintItem(ctx, item, color)
     }
-    if (draft && draft.mode === mode) {
+    if (draft && modes.includes(draft.mode)) {
       const color = draft.mode === 'mask' ? MASK_OVERLAY_COLOR : draft.color
       paintItem(ctx, draft, color)
     }
-  }, [natural, items, draft, mode])
+  }, [natural, items, draft, mode, visibleModes])
 
   useLayoutEffect(() => {
     redraw()
@@ -312,13 +330,17 @@ export const DrawableLayer = forwardRef<DrawableLayerHandle, Props>(function Dra
   const eraseAt = useCallback(
     (pt: Point) => {
       const prev = itemsRef.current
-      const kept = prev.filter((item) => item.mode !== mode || !hitTestItem(item, pt))
+      const kept = prev.filter((item) => {
+        if (!eraseAllModes && item.mode !== mode) return true
+        return !hitTestItem(item, pt)
+      })
       if (kept.length !== prev.length) pushItems(kept)
     },
-    [pushItems, mode],
+    [eraseAllModes, pushItems, mode],
   )
 
   const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (readOnly) return
     if (e.pointerType === 'mouse' && e.button !== 0) return
     const pt = toNatural(e.clientX, e.clientY)
     if (!pt) return
@@ -435,6 +457,9 @@ export const DrawableLayer = forwardRef<DrawableLayerHandle, Props>(function Dra
         const kept = cur.filter((it) => it.mode !== mode)
         if (kept.length !== cur.length) pushItems(kept)
       },
+      clearAll: () => {
+        if (itemsRef.current.length > 0) pushItems([])
+      },
       undo: () => {
         const cur = itemsRef.current
         for (let i = cur.length - 1; i >= 0; i--) {
@@ -443,6 +468,26 @@ export const DrawableLayer = forwardRef<DrawableLayerHandle, Props>(function Dra
             return
           }
         }
+      },
+      exportMarkedComposite: async () => {
+        const img = imageRef.current
+        const nat = natural
+        if (!img || !nat) return null
+        const canvas = document.createElement('canvas')
+        canvas.width = nat.w
+        canvas.height = nat.h
+        const ctx = canvas.getContext('2d')
+        if (!ctx) return null
+        ctx.drawImage(img, 0, 0, nat.w, nat.h)
+        for (const item of itemsRef.current) {
+          if (item.mode !== 'mask') continue
+          paintItem(ctx, item, MASK_OVERLAY_COLOR)
+        }
+        for (const item of itemsRef.current) {
+          if (item.mode !== 'annotate') continue
+          paintItem(ctx, item, item.color)
+        }
+        return { base64: dataUrlToBase64(canvas.toDataURL('image/png')), mimeType: 'image/png' as const }
       },
       exportAnnotated: async () => {
         const img = imageRef.current
@@ -557,7 +602,7 @@ export const DrawableLayer = forwardRef<DrawableLayerHandle, Props>(function Dra
             // Until `natural` is known, canvas coords are meaningless and
             // we don't want to swallow clicks that land "somewhere" — defer
             // pointer events until the stage is sized.
-            pointerEvents: ready ? 'auto' : 'none',
+            pointerEvents: ready && !readOnly ? 'auto' : 'none',
             visibility: ready ? 'visible' : 'hidden',
           }}
         />

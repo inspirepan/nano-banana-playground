@@ -12,7 +12,7 @@ import { AspectRatioSelector } from './AspectRatioSelector'
 import { ReferenceImageUpload, type LockedReferenceImage } from './ReferenceImageUpload'
 import { QueueJobSection } from './QueueJobSection'
 import { DrawableLayer, type DrawableLayerHandle, type DrawMode, type DrawTool } from './DrawableLayer'
-import { computeItemCounts, copyEditState, getEditState, setEditPrompt, type ItemCounts } from '../lib/editStateCache'
+import { computeItemCounts, copyEditState, getEditState, setEditItems, setEditPrompt, type ItemCounts } from '../lib/editStateCache'
 import { openAISize } from '../lib/openai'
 import { readFileAsImageData } from '../lib/fileToImage'
 import { imageDownloadFileName } from '../lib/downloadFileName'
@@ -26,9 +26,9 @@ type ModalViewMode = 'detail' | 'gallery'
 // [细 · 中 · 粗] chips in the canvas toolbar; they stay mode-agnostic so
 // annotate and mask share one control.
 const BRUSH_PRESETS = [
-  { id: 'S', label: '细', size: 4 },
-  { id: 'M', label: '中', size: 12 },
-  { id: 'L', label: '粗', size: 28 },
+  { id: 'S', label: '细', size: 24 },
+  { id: 'M', label: '中', size: 56 },
+  { id: 'L', label: '粗', size: 96 },
 ] as const
 type BrushPresetId = (typeof BRUSH_PRESETS)[number]['id']
 
@@ -127,9 +127,8 @@ const HIGHLIGHT_LABELS = [
   '避免',
 ]
 
-const MOBILE_SHEET_INITIAL_VH = 34
 const MOBILE_SHEET_EXPANDED_VH = 45
-const MOBILE_SHEET_PEEK_PX = 56
+const MOBILE_SHEET_LOW_PX = 88
 
 // Prefer visualViewport.height so the sheet math follows the dynamic viewport
 // (excluding the iOS soft keyboard area) instead of the layout viewport.
@@ -140,12 +139,8 @@ function getVisualViewportHeight(): number {
 
 function getMobileSheetHeights(viewportHeight: number) {
   const expandedVh = MOBILE_SHEET_EXPANDED_VH
-  const initialVh = MOBILE_SHEET_INITIAL_VH
-  const expandedHeight = Math.max(MOBILE_SHEET_PEEK_PX, Math.round((viewportHeight * expandedVh) / 100))
-  const initialHeight = Math.max(
-    MOBILE_SHEET_PEEK_PX,
-    Math.min(expandedHeight, Math.round((viewportHeight * initialVh) / 100)),
-  )
+  const expandedHeight = Math.max(MOBILE_SHEET_LOW_PX, Math.round((viewportHeight * expandedVh) / 100))
+  const initialHeight = Math.min(MOBILE_SHEET_LOW_PX, expandedHeight)
   return { initialHeight, expandedHeight }
 }
 
@@ -343,6 +338,7 @@ export function ImageDetailModal({
   const currentSlot = selectedItem?.type === 'slot' ? selectedItem.slot : null
   const [editing, setEditing] = useState(initialEditing)
   const [mobileDrawOpen, setMobileDrawOpen] = useState(false)
+  const [mobilePreviewOpen, setMobilePreviewOpen] = useState(false)
   const [viewMode, setViewMode] = useState<ModalViewMode>(initialViewMode)
   // After submit, we watch history for the first new image with this batchId
   // and auto-navigate the pager to it.
@@ -357,11 +353,12 @@ export function ImageDetailModal({
   // field / Gemini red overlay).
   const [editMode, setEditMode] = useState<EditMode>('view')
   const [drawTool, setDrawTool] = useState<DrawTool>('brush')
-  if (editMode === 'mask' && (drawTool === 'rect' || drawTool === 'step')) {
+  if (drawTool === 'rect') {
     setDrawTool('brush')
   }
   const [brushPreset, setBrushPreset] = useState<BrushPresetId>('M')
-  const brushSize = BRUSH_PRESETS.find((p) => p.id === brushPreset)?.size ?? 24
+  const brushSize = BRUSH_PRESETS.find((p) => p.id === brushPreset)?.size ?? 56
+  const activeDrawMode: DrawMode = drawTool === 'step' ? 'annotate' : 'mask'
   // Per-layer item counts. Seed from the cache so the mode-segment dots
   // light up on modal open even before the drawable layer mounts; the
   // layer's onItemsChange keeps us in sync afterward; pager image changes
@@ -369,6 +366,7 @@ export function ImageDetailModal({
   const [drawableCounts, setDrawableCounts] = useState<ItemCounts>(() =>
     computeItemCounts(getEditState(currentImage?.id ?? '').items),
   )
+  const [drawRevision, setDrawRevision] = useState(0)
   const [drawablePagerImageId, setDrawablePagerImageId] = useState(currentImage?.id ?? '')
   if ((currentImage?.id ?? '') !== drawablePagerImageId) {
     const imageId = currentImage?.id ?? ''
@@ -488,6 +486,10 @@ export function ImageDetailModal({
         }
       }
       if (e.key === 'Escape') {
+        if (mobilePreviewOpen) {
+          setMobilePreviewOpen(false)
+          return
+        }
         if (mobileDrawOpen) {
           setMobileDrawOpen(false)
           return
@@ -515,7 +517,7 @@ export function ImageDetailModal({
     }
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
-  }, [canNavigate, editing, editMode, exitEdit, goToNext, goToPrev, mobileDrawOpen, onClose])
+  }, [canNavigate, editing, editMode, exitEdit, goToNext, goToPrev, mobileDrawOpen, mobilePreviewOpen, onClose])
 
   // Auto-select the new edit batch inside the stack strip. The selection starts
   // on the pending slot, then follows the same batch/order when it becomes an image.
@@ -577,6 +579,10 @@ export function ImageDetailModal({
     if (!isMobileSheet || !editing) setMobileDrawOpen(false)
   }, [isMobileSheet, editing])
 
+  useEffect(() => {
+    if (!isMobileSheet || !currentImage) setMobilePreviewOpen(false)
+  }, [isMobileSheet, currentImage])
+
   // Clamp the snapped sheet height against the current visual viewport so it
   // doesn't overflow when the iOS keyboard opens.
   useEffect(() => {
@@ -612,6 +618,12 @@ export function ImageDetailModal({
     })
   }, [])
 
+  const expandMobileSheet = useCallback(() => {
+    if (!isMobileSheet) return
+    const { expandedHeight } = getMobileSheetHeights(getVisualViewportHeight())
+    setSheetHeightPx(expandedHeight)
+  }, [isMobileSheet])
+
   const handleSheetPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!isMobileSheet) return
     if (e.pointerType === 'mouse' && e.button !== 0) return
@@ -631,7 +643,7 @@ export function ImageDetailModal({
     const drag = sheetDragRef.current
     if (!drag || drag.pointerId !== e.pointerId) return
     const delta = e.clientY - drag.startY // +down, -up
-    const next = Math.max(MOBILE_SHEET_PEEK_PX, Math.min(drag.expandedHeight, drag.startHeight - delta))
+    const next = Math.max(drag.initialHeight, Math.min(drag.expandedHeight, drag.startHeight - delta))
     setSheetHeightPx(next)
   }
 
@@ -641,11 +653,15 @@ export function ImageDetailModal({
     sheetDragRef.current = null
     setSheetDragging(false)
     const delta = e.clientY - drag.startY
-    const current = Math.max(MOBILE_SHEET_PEEK_PX, Math.min(drag.expandedHeight, drag.startHeight - delta))
-    const snapPoints = [MOBILE_SHEET_PEEK_PX, drag.initialHeight, drag.expandedHeight]
-    const nextHeight = snapPoints.reduce((closest, candidate) => {
-      return Math.abs(candidate - current) < Math.abs(closest - current) ? candidate : closest
-    })
+    const current = Math.max(drag.initialHeight, Math.min(drag.expandedHeight, drag.startHeight - delta))
+    const nextHeight =
+      delta < -8
+        ? drag.expandedHeight
+        : delta > 8
+          ? drag.initialHeight
+          : Math.abs(drag.expandedHeight - current) < Math.abs(current - drag.initialHeight)
+            ? drag.expandedHeight
+            : drag.initialHeight
     setSheetHeightPx(nextHeight)
   }
 
@@ -663,11 +679,23 @@ export function ImageDetailModal({
     setTimeout(() => setToast(null), 1500)
   }
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (!currentImage || !currentSrc) return
+    const fileName = imageDownloadFileName(currentImage, 'png')
+    try {
+      const res = await fetch(currentSrc)
+      const blob = await res.blob()
+      const file = new File([blob], fileName, { type: blob.type || currentImage.mimeType || 'image/png' })
+      if (navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file], title: fileName })
+        return
+      }
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return
+    }
     const anchor = document.createElement('a')
     anchor.href = currentSrc
-    anchor.download = imageDownloadFileName(currentImage, 'png')
+    anchor.download = fileName
     anchor.click()
     flash('开始下载 PNG')
   }
@@ -693,10 +721,31 @@ export function ImageDetailModal({
 
   const hasPrev = canNavigate && currentIdx > 0
   const hasNext = canNavigate && currentIdx < stack.items.length - 1
+  const hasDrawableMarks = drawableCounts.annotate > 0 || drawableCounts.mask > 0
 
-  const handleChangeEditMode = (next: EditMode) => {
-    setEditMode(next)
-    if (isMobileSheet && next !== 'view') setMobileDrawOpen(true)
+  const startAnnotation = () => {
+    if (!currentImage) return
+    setEditing(true)
+    setRefDetailId(null)
+    setEditMode('mask')
+    if (drawTool === 'rect') setDrawTool('brush')
+    if (isMobileSheet) setMobileDrawOpen(true)
+  }
+
+  const finishAnnotation = () => {
+    setMobileDrawOpen(false)
+    setEditMode('view')
+  }
+
+  const clearAnnotations = () => {
+    if (!currentImage) return
+    drawableRef.current?.clearAll()
+    setEditItems(currentImage.id, [])
+    setDrawableCounts({ annotate: 0, mask: 0 })
+    setDrawRevision((prev) => prev + 1)
+    setMobileDrawOpen(false)
+    setEditMode('view')
+    setDrawTool('brush')
   }
 
   // Size helper — show approximate px
@@ -734,56 +783,28 @@ export function ImageDetailModal({
           background: 'color-mix(in srgb, var(--color-surface) 80%, transparent)',
         }}
       >
-        <button className="icon-btn shrink-0" onClick={onClose} title="关闭 (Esc)">
+        <button className="icon-btn shrink-0" onClick={onClose} title="关闭 (Esc)" style={{ width: 32, height: 32 }}>
           <Icon name="close" size={13} strokeWidth={1.8} />
         </button>
-        <div className="w-px h-[18px] bg-(--color-border) shrink-0" />
+        <div className="h-6 w-px shrink-0 bg-(--color-border)" />
 
         {currentMeta ? (
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="truncate text-sm font-medium text-(--color-text)">{modelName}</span>
-            <span className="mono hidden whitespace-nowrap text-sm text-(--color-text-4) md:inline">{pxDim}</span>
+          <div className="flex min-w-0 items-baseline gap-2">
+            <span className="truncate text-base font-semibold leading-none tracking-[-0.01em] text-(--color-text) md:text-sm md:font-medium md:tracking-normal">
+              {modelName}
+            </span>
+            <span className="mono shrink-0 text-sm leading-none text-(--color-text-4)">{pxDim}</span>
           </div>
         ) : (
-          <span className="truncate text-sm font-medium text-(--color-text)">
+          <span className="truncate text-base font-semibold leading-none tracking-[-0.01em] text-(--color-text) md:text-sm md:font-medium md:tracking-normal">
             {currentSlot ? '生成任务' : '图片组'}
           </span>
         )}
 
         <div className="flex-1" />
 
-        {canNavigate && viewMode === 'detail' && (
-          <div
-            className="flex items-center gap-0.5 mr-1 rounded-[6px] shrink-0"
-            style={{ background: 'var(--color-surface-2)', boxShadow: 'inset 0 0 0 1px var(--ring-edge)', padding: 2 }}
-          >
-            <button
-              className="icon-btn"
-              onClick={goToPrev}
-              disabled={!hasPrev}
-              style={{ width: 22, height: 22 }}
-              title="上一张 (←)"
-            >
-              <Icon name="chevron_left" size={12} strokeWidth={1.8} />
-            </button>
-            <span className="mono min-w-[50px] px-1 text-center text-xs font-medium text-(--color-text-2)">
-              {currentIdx + 1}
-              <span className="text-(--color-text-4)"> / {stack.items.length}</span>
-            </span>
-            <button
-              className="icon-btn"
-              onClick={goToNext}
-              disabled={!hasNext}
-              style={{ width: 22, height: 22 }}
-              title="下一张 (→)"
-            >
-              <Icon name="chevron_right" size={12} strokeWidth={1.8} />
-            </button>
-          </div>
-        )}
-
         <button
-          className="chip shrink-0"
+          className="chip hidden shrink-0 md:inline-flex"
           onClick={() => setViewMode((prev) => (prev === 'gallery' ? 'detail' : 'gallery'))}
           title={viewMode === 'gallery' ? '回到预览' : '查看全部图片'}
         >
@@ -791,16 +812,37 @@ export function ImageDetailModal({
           <span className="hidden md:inline">{viewMode === 'gallery' ? '回到预览' : '全部图片'}</span>
         </button>
         {viewMode === 'detail' && (
+          <button
+            className="chip shrink-0 text-sm md:hidden"
+            onClick={() => setMobilePreviewOpen(true)}
+            disabled={!currentImage}
+            title="全屏预览"
+            style={{ height: 36, padding: '0 12px' }}
+          >
+            <Icon name="image" size={14} strokeWidth={1.8} />
+            全屏
+          </button>
+        )}
+        {viewMode === 'detail' && (
           <>
-            <button className="chip shrink-0" onClick={handleAddRef} disabled={!currentImage} title="加为参考">
+            <button className="chip hidden shrink-0 md:inline-flex" onClick={handleAddRef} disabled={!currentImage} title="加为参考">
               <Icon name="plus" size={12} strokeWidth={1.8} /> <span className="hidden md:inline">参考</span>
             </button>
             {currentMeta?.prompt && (
-              <button className="chip shrink-0" onClick={handleRegenerateAction} title="还原参数">
+              <button className="chip hidden shrink-0 md:inline-flex" onClick={handleRegenerateAction} title="还原参数">
                 <Icon name="refresh" size={12} strokeWidth={1.8} /> <span className="hidden md:inline">还原参数</span>
               </button>
             )}
-            <button className="chip shrink-0" onClick={handleDownload} disabled={!currentImage} title="下载 PNG">
+            <button
+              className="chip shrink-0 text-sm md:hidden"
+              onClick={handleDownload}
+              disabled={!currentImage}
+              title="下载 PNG"
+              style={{ height: 36, padding: '0 12px' }}
+            >
+              <Icon name="download" size={14} strokeWidth={1.8} /> 下载
+            </button>
+            <button className="chip hidden shrink-0 md:inline-flex" onClick={handleDownload} disabled={!currentImage} title="下载 PNG">
               <Icon name="download" size={12} strokeWidth={1.8} /> <span className="hidden md:inline">PNG</span>
             </button>
           </>
@@ -850,30 +892,15 @@ export function ImageDetailModal({
           <div className="flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden">
         {/* Canvas with grid background */}
         <div
-          className="min-w-0 relative md:flex-1"
+          className="relative min-h-0 min-w-0 overflow-hidden md:flex-1"
           style={{
             flex: '1 1 0%',
+            minHeight: 0,
             backgroundImage: `linear-gradient(var(--color-border) 1px, transparent 1px), linear-gradient(90deg, var(--color-border) 1px, transparent 1px)`,
             backgroundSize: '28px 28px, 28px 28px',
             backgroundColor: 'var(--color-bg-sunken)',
           }}
         >
-          {/* Canvas mode toolbar: layer selector + (while drawing) tool picker,
-              brush size, undo/clear. */}
-          {!refDetailId && editing && !mobileDrawOpen && (
-            <CanvasModeToolbar
-              mode={editMode}
-              tool={drawTool}
-              brushPreset={brushPreset}
-              counts={drawableCounts}
-              showToolRow={editing && editMode !== 'view'}
-              onChangeMode={handleChangeEditMode}
-              onChangeTool={setDrawTool}
-              onChangeBrushPreset={setBrushPreset}
-              onUndo={() => drawableRef.current?.undo()}
-              onClear={() => drawableRef.current?.clear()}
-            />
-          )}
           {refDetailId && refDetailSrc && currentImage ? (
             <div className="relative flex flex-row h-full gap-px">
               <div className="h-full flex-1 min-w-0 relative">
@@ -900,15 +927,18 @@ export function ImageDetailModal({
                 <span className="sm:hidden">退出</span>
               </button>
             </div>
-          ) : editing && editMode !== 'view' && currentImage && !mobileDrawOpen ? (
+          ) : editing && currentImage && (editMode !== 'view' || hasDrawableMarks) && !mobileDrawOpen ? (
             <DrawableLayer
               ref={drawableRef}
-              key={currentImage.id}
+              key={`${currentImage.id}:${drawRevision}:${editMode === 'view' ? 'preview' : 'draw'}`}
               imageId={currentImage.id}
               src={currentSrc ?? ''}
-              mode={editMode}
+              mode={activeDrawMode}
               tool={drawTool}
               brushSize={brushSize}
+              visibleModes={['mask', 'annotate']}
+              eraseAllModes
+              readOnly={editMode === 'view'}
               onItemsChange={setDrawableCounts}
             />
           ) : currentImage ? (
@@ -984,7 +1014,7 @@ export function ImageDetailModal({
             ...(isMobileSheet
               ? {
                   flexShrink: 0,
-                  height: sheetHeightPx !== null ? `${sheetHeightPx}px` : `${MOBILE_SHEET_INITIAL_VH}dvh`,
+                  height: `${sheetHeightPx ?? getMobileSheetHeights(getVisualViewportHeight()).initialHeight}px`,
                   transition: sheetDragging ? 'none' : 'height 260ms cubic-bezier(0.22, 0.8, 0.4, 1)',
                 }
               : {
@@ -1013,7 +1043,15 @@ export function ImageDetailModal({
             className="px-[18px] pt-1 md:pt-4 pb-24 md:pb-10"
             style={{ width: isMobileSheet ? undefined : 340 }}
           >
-            <div className="mb-[18px]">
+            <div
+              className="mb-[18px]"
+              style={isMobileSheet ? { touchAction: 'none' } : undefined}
+              onClick={expandMobileSheet}
+              onPointerDown={isMobileSheet ? handleSheetPointerDown : undefined}
+              onPointerMove={isMobileSheet ? handleSheetPointerMove : undefined}
+              onPointerUp={isMobileSheet ? handleSheetPointerUp : undefined}
+              onPointerCancel={isMobileSheet ? handleSheetPointerUp : undefined}
+            >
               <div
                 className="segmented"
                 style={{
@@ -1022,12 +1060,20 @@ export function ImageDetailModal({
                   ['--seg-index' as string]: editing ? 1 : 0,
                 }}
               >
-                <button type="button" onClick={exitEdit} data-active={!editing}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    expandMobileSheet()
+                    exitEdit()
+                  }}
+                  data-active={!editing}
+                >
                   <span>详情</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => {
+                    expandMobileSheet()
                     if (currentImage) setEditing(true)
                   }}
                   disabled={!currentImage}
@@ -1056,12 +1102,38 @@ export function ImageDetailModal({
                   setRefDetailId(null)
                 }}
                 onViewQueue={onClose}
-                editMode={editMode}
+                annotationActive={editMode !== 'view'}
+                hasAnnotations={hasDrawableMarks}
                 drawableCounts={drawableCounts}
                 drawableRef={drawableRef}
+                drawTool={drawTool}
+                brushPreset={brushPreset}
+                onStartAnnotation={startAnnotation}
+                onFinishAnnotation={finishAnnotation}
+                onClearAnnotations={clearAnnotations}
+                onChangeDrawTool={setDrawTool}
+                onChangeBrushPreset={setBrushPreset}
               />
             ) : (
               <>
+                {currentImage && (
+                  <div className="mb-[18px] grid grid-cols-2 gap-1.5 md:hidden">
+                    <button type="button" className="chip justify-center" onClick={handleAddRef} disabled={!currentImage}>
+                      <Icon name="plus" size={12} strokeWidth={1.8} />
+                      +参考
+                    </button>
+                    <button
+                      type="button"
+                      className="chip justify-center"
+                      onClick={handleRegenerateAction}
+                      disabled={!currentMeta?.prompt}
+                    >
+                      <Icon name="refresh" size={12} strokeWidth={1.8} />
+                      还原参数
+                    </button>
+                  </div>
+                )}
+
                 {/* Prompt */}
                 {currentMeta?.prompt && (
                   <div className="mb-[18px]">
@@ -1315,19 +1387,27 @@ export function ImageDetailModal({
         <MobileDrawFullscreen
           imageId={currentImage.id}
           src={currentSrc ?? ''}
-          mode={editMode}
+          mode={activeDrawMode}
           tool={drawTool}
           brushPreset={brushPreset}
           brushSize={brushSize}
           counts={drawableCounts}
           drawableRef={drawableRef}
-          onChangeMode={handleChangeEditMode}
           onChangeTool={setDrawTool}
           onChangeBrushPreset={setBrushPreset}
           onItemsChange={setDrawableCounts}
           onUndo={() => drawableRef.current?.undo()}
-          onClear={() => drawableRef.current?.clear()}
-          onClose={() => setMobileDrawOpen(false)}
+          onClear={clearAnnotations}
+          onClose={finishAnnotation}
+        />
+      )}
+      {mobilePreviewOpen && currentImage && (
+        <MobilePreviewFullscreen
+          src={currentSrc ?? ''}
+          alt={currentMeta?.prompt ?? ''}
+          onClose={() => setMobilePreviewOpen(false)}
+          onSwipeLeft={hasNext ? goToNext : undefined}
+          onSwipeRight={hasPrev ? goToPrev : undefined}
         />
       )}
         </>
@@ -1423,9 +1503,17 @@ type EditSidebarProps = {
   onRemove: (id: string) => void
   onOpenImage: (image: PlaygroundImageMeta) => void
   onViewQueue: () => void
-  editMode: EditMode
+  annotationActive: boolean
+  hasAnnotations: boolean
   drawableCounts: ItemCounts
   drawableRef: React.RefObject<DrawableLayerHandle | null>
+  drawTool: DrawTool
+  brushPreset: BrushPresetId
+  onStartAnnotation: () => void
+  onFinishAnnotation: () => void
+  onClearAnnotations: () => void
+  onChangeDrawTool: (tool: DrawTool) => void
+  onChangeBrushPreset: (preset: BrushPresetId) => void
 }
 
 function EditSidebar({
@@ -1442,9 +1530,17 @@ function EditSidebar({
   onRemove,
   onOpenImage,
   onViewQueue,
-  editMode,
+  annotationActive,
+  hasAnnotations,
   drawableCounts,
   drawableRef,
+  drawTool,
+  brushPreset,
+  onStartAnnotation,
+  onFinishAnnotation,
+  onClearAnnotations,
+  onChangeDrawTool,
+  onChangeBrushPreset,
 }: EditSidebarProps) {
   // Resolve the model / resolution / aspect ratio / options that generated the
   // source. For uploads, fall back to the default model's defaults.
@@ -1502,11 +1598,11 @@ function EditSidebar({
     return `例：${EDIT_PROMPT_EXAMPLES[Math.abs(hash) % EDIT_PROMPT_EXAMPLES.length]}`
   }, [sourceImage.id])
 
-  const hasAnnotationStrokes = editMode === 'annotate' && drawableCounts.annotate > 0
-  const hasMaskStrokes = editMode === 'mask' && drawableCounts.mask > 0
+  const hasAnnotationStrokes = drawableCounts.annotate > 0
+  const hasMaskStrokes = drawableCounts.mask > 0
   const isOpenAI = sourceModel.provider === 'openai'
   const hasOpenAIMask = hasMaskStrokes && isOpenAI
-  const hasAnnotatedSource = hasAnnotationStrokes || (hasMaskStrokes && !isOpenAI)
+  const hasAnnotatedSource = hasAnnotationStrokes || hasMaskStrokes
   const maxReferenceImages = sourceModel.maxReferenceImages + sourceModel.maxCharacterImages
   const maxExtraRefs = Math.max(0, maxReferenceImages - 1 - (hasAnnotatedSource ? 1 : 0))
   const referenceLimitExceeded = extraRefs.length > maxExtraRefs
@@ -1600,11 +1696,9 @@ function EditSidebar({
     setSubmitting(true)
     setSubmitError(null)
     try {
-      // Bake annotation strokes into the reference image, and either hand the
-      // mask to OpenAI's native field or bake a red overlay for Gemini. The
-      // DrawableLayer export is driven by the current editMode; strokes drawn
-      // in another mode (e.g. annotate strokes present while submitting from
-      // mask mode) are intentionally ignored by the mode-scoped exporters.
+      // Bake all visible marks into a reference image. If there are mask
+      // strokes and the provider supports native masks, also export the alpha
+      // mask so the API gets both a precise edit region and visual guidance.
       let annotatedSource: PlaygroundImage | undefined
       let mask: PlaygroundImage | undefined
       const drawable = drawableRef.current
@@ -1613,11 +1707,8 @@ function EditSidebar({
         setSubmitError('图片仍在加载，请稍后再提交')
         return
       }
-      // Dispatch on the current layer: annotate items bake into the
-      // reference; mask items either become the OpenAI mask or a red
-      // overlay on the source for Gemini.
-      if (drawable && editMode === 'annotate' && drawableCounts.annotate > 0) {
-        const out = await drawable.exportAnnotated()
+      if (drawable && needsDrawableExport) {
+        const out = await drawable.exportMarkedComposite()
         if (!out) {
           setSubmitError('标注导出失败，请稍后再试')
           return
@@ -1629,7 +1720,8 @@ function EditSidebar({
           source: { type: 'upload', fileName: 'annotated.png' },
           timestamp: Date.now(),
         }
-      } else if (drawable && editMode === 'mask' && drawableCounts.mask > 0) {
+      }
+      if (drawable && hasOpenAIMask) {
         if (sourceModel.provider === 'openai') {
           const out = await drawable.exportMaskAlpha()
           if (!out) {
@@ -1641,21 +1733,6 @@ function EditSidebar({
             data: out.base64,
             mimeType: out.mimeType,
             source: { type: 'upload', fileName: 'mask.png' },
-            timestamp: Date.now(),
-          }
-        } else {
-          // Gemini: no native mask channel, so visually hint the region by
-          // baking a translucent red overlay onto the source.
-          const out = await drawable.exportMaskRedOverlay()
-          if (!out) {
-            setSubmitError('Mask 导出失败，请稍后再试')
-            return
-          }
-          annotatedSource = {
-            id: crypto.randomUUID(),
-            data: out.base64,
-            mimeType: out.mimeType,
-            source: { type: 'upload', fileName: 'mask-overlay.png' },
             timestamp: Date.now(),
           }
         }
@@ -1696,9 +1773,9 @@ function EditSidebar({
     onSetActiveBatchId,
     drawableRef,
     drawableCounts,
-    editMode,
     hasAnnotationStrokes,
     hasMaskStrokes,
+    hasOpenAIMask,
   ])
 
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -1726,8 +1803,7 @@ function EditSidebar({
   // the annotated composite and the clean source, so the model has the
   // unobscured pixels available for regions outside the user's marks.
   const lockedReferenceImages: LockedReferenceImage[] = [{ id: `${sourceImage.id}:source`, image: sourceImage, label: '原图' }]
-  if (hasAnnotationStrokes) lockedReferenceImages.push({ id: `${sourceImage.id}:annotate`, image: sourceImage, label: '标记' })
-  else if (hasMaskStrokes && !isOpenAI) lockedReferenceImages.push({ id: `${sourceImage.id}:mask-overlay`, image: sourceImage, label: 'Mask' })
+  if (hasAnnotatedSource) lockedReferenceImages.push({ id: `${sourceImage.id}:annotate`, image: sourceImage, label: '标注' })
   if (hasOpenAIMask) lockedReferenceImages.push({ id: `${sourceImage.id}:mask`, image: sourceImage, label: 'Mask' })
 
   return (
@@ -1847,6 +1923,58 @@ function EditSidebar({
         </div>
       </div>
 
+      <div className="mb-[18px]">
+        <div className="label mb-1.5">标注</div>
+        <div className="flex items-center gap-2">
+          <button type="button" className="chip flex-1 justify-center" onClick={annotationActive ? onFinishAnnotation : onStartAnnotation}>
+            <Icon name={annotationActive ? 'check' : 'brush'} size={13} strokeWidth={1.8} />
+            {annotationActive ? '完成标注' : '标注'}
+          </button>
+          {hasAnnotations && (
+            <button type="button" className="chip ghost shrink-0" onClick={onClearAnnotations}>
+              清空标注
+            </button>
+          )}
+        </div>
+        {annotationActive && (
+          <div className="mt-2 space-y-2">
+            <div className="flex gap-1.5 overflow-x-auto pb-0.5">
+              {[
+                { id: 'brush' as const, label: '涂抹', icon: 'brush' as const },
+                { id: 'step' as const, label: '编号', icon: 'map_pin' as const },
+                { id: 'eraser' as const, label: '橡皮', icon: 'eraser' as const },
+              ].map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  className="chip shrink-0"
+                  data-active={drawTool === item.id}
+                  onClick={() => onChangeDrawTool(item.id)}
+                >
+                  <Icon name={item.icon} size={13} strokeWidth={1.8} />
+                  {item.label}
+                </button>
+              ))}
+            </div>
+            {drawTool !== 'eraser' && (
+              <div className="grid grid-cols-3 gap-1.5">
+                {BRUSH_PRESETS.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className="chip justify-center"
+                    data-active={brushPreset === item.id}
+                    onClick={() => onChangeBrushPreset(item.id)}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
       {/* Extra references */}
       <div className="mb-[18px]">
         <ReferenceImageUpload
@@ -1933,209 +2061,6 @@ function RefThumbnail({
   )
 }
 
-/* ========================================================================
-   CanvasModeToolbar — segmented mode picker + drawing helpers (undo/clear).
-   Appears at the top-left of the canvas area when editing. Drawing modes
-   surface the undo/clear chips lazily so the "view" state stays clean.
-   ======================================================================== */
-
-function ToolbarPill({ children }: { children: ReactNode }) {
-  return (
-    <div
-      className="flex items-center gap-0.5 rounded-[8px] p-0.5"
-      style={{
-        background: 'color-mix(in srgb, var(--color-surface) 92%, transparent)',
-        boxShadow: '0 0 0 1px var(--ring-edge), 0 1px 2px rgba(0,0,0,0.04)',
-        backdropFilter: 'blur(10px)',
-      }}
-    >
-      {children}
-    </div>
-  )
-}
-
-function SegmentButton({
-  active,
-  label,
-  title,
-  onClick,
-  mono = true,
-  dot = false,
-  icon,
-}: {
-  active: boolean
-  label: ReactNode
-  title?: string
-  onClick: () => void
-  mono?: boolean
-  dot?: boolean
-  icon?: IconName
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      title={title}
-      className={`${mono ? 'mono' : ''} relative inline-flex items-center gap-1 rounded-[6px] px-2 py-1 text-xs font-medium transition-colors`}
-      style={{
-        background: active ? 'var(--color-surface)' : 'transparent',
-        color: active ? 'var(--color-text)' : 'var(--color-text-3)',
-        boxShadow: active ? 'inset 0 0 0 1px var(--ring-edge)' : 'none',
-        cursor: 'pointer',
-        border: 0,
-      }}
-    >
-      {icon && <Icon name={icon} size={11} strokeWidth={1.8} />}
-      <span>{label}</span>
-      {dot && (
-        <span
-          aria-hidden
-          style={{
-            position: 'absolute',
-            top: 2,
-            right: 2,
-            width: 6,
-            height: 6,
-            borderRadius: '50%',
-            background: '#ef4444',
-            boxShadow: '0 0 0 1.5px var(--color-surface)',
-          }}
-        />
-      )}
-    </button>
-  )
-}
-
-function CanvasModeToolbar({
-  mode,
-  tool,
-  brushPreset,
-  counts,
-  showToolRow,
-  onChangeMode,
-  onChangeTool,
-  onChangeBrushPreset,
-  onUndo,
-  onClear,
-}: {
-  mode: EditMode
-  tool: DrawTool
-  brushPreset: BrushPresetId
-  counts: ItemCounts
-  // False when we should render only the mode pill (view state on a non-
-  // editing modal, or when the user is in view mode mid-edit).
-  showToolRow: boolean
-  onChangeMode: (mode: EditMode) => void
-  onChangeTool: (tool: DrawTool) => void
-  onChangeBrushPreset: (preset: BrushPresetId) => void
-  onUndo: () => void
-  onClear: () => void
-}) {
-  const modeOptions: Array<{ id: EditMode; label: string; title: string; dot?: boolean }> = [
-    { id: 'view', label: '查看', title: '查看原图（默认缩放/平移）' },
-    { id: 'annotate', label: '标注', title: '在图上画彩色提示，合成到源图发送', dot: counts.annotate > 0 },
-    {
-      id: 'mask',
-      label: 'Mask',
-      title: '画出要编辑的区域（OpenAI 走原生 mask，Gemini 合成红色叠加）',
-      dot: counts.mask > 0,
-    },
-  ]
-  // Mask layer semantics are "subtract this region" — step pins and
-  // rectangles don't map onto that cleanly, so the toolbar only exposes
-  // brush + eraser there.
-  const toolOptions: Array<{ id: DrawTool; label: string; title: string; icon: IconName }> =
-    mode === 'mask'
-      ? [
-          { id: 'brush', label: '笔刷', title: '涂抹要编辑的区域', icon: 'brush' },
-          { id: 'eraser', label: '橡皮', title: '擦除当前层的涂抹', icon: 'eraser' },
-        ]
-      : [
-          { id: 'brush', label: '笔刷', title: '自由笔画', icon: 'brush' },
-          { id: 'rect', label: '框', title: '框选矩形', icon: 'square' },
-          { id: 'step', label: '编号', title: '在图上放一个带序号的 pin（自动取最小缺失数字）', icon: 'map_pin' },
-          { id: 'eraser', label: '橡皮', title: '拖拽擦除当前层标注', icon: 'eraser' },
-        ]
-  const layerHasItems = mode === 'mask' ? counts.mask > 0 : mode === 'annotate' ? counts.annotate > 0 : false
-
-  return (
-    <div className="absolute left-4 top-4 z-20 flex flex-wrap items-center gap-1.5 max-w-[calc(100%-32px)]">
-      <ToolbarPill>
-        {modeOptions.map((item) => (
-          <SegmentButton
-            key={item.id}
-            active={mode === item.id}
-            label={item.label}
-            title={item.title}
-            dot={item.dot}
-            onClick={() => onChangeMode(item.id)}
-          />
-        ))}
-      </ToolbarPill>
-      {showToolRow && (
-        <>
-          <ToolbarPill>
-            {toolOptions.map((item) => (
-              <SegmentButton
-                key={item.id}
-                active={tool === item.id}
-                label={item.label}
-                title={item.title}
-                mono={false}
-                icon={item.icon}
-                onClick={() => onChangeTool(item.id)}
-              />
-            ))}
-          </ToolbarPill>
-          {tool !== 'eraser' && (
-            <ToolbarPill>
-              {BRUSH_PRESETS.map((item) => (
-                <SegmentButton
-                  key={item.id}
-                  active={brushPreset === item.id}
-                  label={item.label}
-                  title={`笔刷粗细：${item.label}（${item.size}px）`}
-                  mono={false}
-                  onClick={() => onChangeBrushPreset(item.id)}
-                />
-              ))}
-            </ToolbarPill>
-          )}
-          <ToolbarPill>
-            <button
-              type="button"
-              onClick={onUndo}
-              disabled={!layerHasItems}
-              title="撤销 (⌘Z)"
-              className="icon-btn"
-              style={{ width: 24, height: 22 }}
-            >
-              <Icon name="undo" size={12} strokeWidth={1.8} />
-            </button>
-            {/* Word label rather than trash icon — trash reads as "delete
-                this image" against the rest of the modal's affordances. */}
-            <button
-              type="button"
-              onClick={onClear}
-              disabled={!layerHasItems}
-              title="清空当前层的所有标注"
-              className="rounded-[6px] px-2 py-1 text-xs font-medium transition-colors"
-              style={{
-                background: 'transparent',
-                color: layerHasItems ? 'var(--color-text-3)' : 'var(--color-text-4)',
-                cursor: layerHasItems ? 'pointer' : 'not-allowed',
-                border: 0,
-              }}
-            >
-              清空
-            </button>
-          </ToolbarPill>
-        </>
-      )}
-    </div>
-  )
-}
-
 function MobileDrawFullscreen({
   imageId,
   src,
@@ -2145,7 +2070,6 @@ function MobileDrawFullscreen({
   brushSize,
   counts,
   drawableRef,
-  onChangeMode,
   onChangeTool,
   onChangeBrushPreset,
   onItemsChange,
@@ -2155,13 +2079,12 @@ function MobileDrawFullscreen({
 }: {
   imageId: string
   src: string
-  mode: EditMode
+  mode: DrawMode
   tool: DrawTool
   brushPreset: BrushPresetId
   brushSize: number
   counts: ItemCounts
   drawableRef: RefObject<DrawableLayerHandle | null>
-  onChangeMode: (mode: EditMode) => void
   onChangeTool: (tool: DrawTool) => void
   onChangeBrushPreset: (preset: BrushPresetId) => void
   onItemsChange: (counts: ItemCounts) => void
@@ -2171,7 +2094,6 @@ function MobileDrawFullscreen({
 }) {
   const viewportRef = useRef<HTMLDivElement>(null)
   const activePointersRef = useRef(new Map<number, Point>())
-  const dragStartRef = useRef<{ point: Point; offset: Point } | null>(null)
   const pinchStartRef = useRef<{ center: Point; distance: number; scale: number; offset: Point } | null>(null)
   const scaleRef = useRef(FIT_SCALE)
   const offsetRef = useRef<Point>({ x: 0, y: 0 })
@@ -2182,19 +2104,12 @@ function MobileDrawFullscreen({
   const [scale, setScale] = useState(FIT_SCALE)
   const [offset, setOffset] = useState<Point>({ x: 0, y: 0 })
 
-  const layerHasItems = mode === 'mask' ? counts.mask > 0 : mode === 'annotate' ? counts.annotate > 0 : false
-  const toolOptions: Array<{ id: DrawTool; label: string; icon: IconName }> =
-    mode === 'mask'
-      ? [
-          { id: 'brush', label: '笔刷', icon: 'brush' },
-          { id: 'eraser', label: '橡皮', icon: 'eraser' },
-        ]
-      : [
-          { id: 'brush', label: '笔刷', icon: 'brush' },
-          { id: 'rect', label: '框', icon: 'square' },
-          { id: 'step', label: '编号', icon: 'map_pin' },
-          { id: 'eraser', label: '橡皮', icon: 'eraser' },
-        ]
+  const layerHasItems = counts.mask > 0 || counts.annotate > 0
+  const toolOptions: Array<{ id: DrawTool; label: string; icon: IconName }> = [
+    { id: 'brush', label: '涂抹', icon: 'brush' },
+    { id: 'step', label: '编号', icon: 'map_pin' },
+    { id: 'eraser', label: '橡皮', icon: 'eraser' },
+  ]
 
   const applyView = useCallback((nextScale: number, nextOffset: Point) => {
     const clampedScale = clamp(nextScale, FIT_SCALE, MAX_SCALE)
@@ -2208,7 +2123,6 @@ function MobileDrawFullscreen({
 
   const resetView = useCallback(() => {
     activePointersRef.current.clear()
-    dragStartRef.current = null
     pinchStartRef.current = null
     applyView(FIT_SCALE, { x: 0, y: 0 })
   }, [applyView])
@@ -2264,15 +2178,11 @@ function MobileDrawFullscreen({
   }, [imageId, resetView])
 
   const startViewGesture = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (mode !== 'view') return
     if (event.pointerType === 'mouse' && event.button !== 0) return
     const point = getRelativePoint(viewportRef.current, event.clientX, event.clientY)
     event.currentTarget.setPointerCapture(event.pointerId)
     activePointersRef.current.set(event.pointerId, point)
-    if (activePointersRef.current.size === 1) {
-      dragStartRef.current = { point, offset: offsetRef.current }
-      pinchStartRef.current = null
-    } else if (activePointersRef.current.size === 2) {
+    if (activePointersRef.current.size === 2) {
       const [first, second] = Array.from(activePointersRef.current.values())
       pinchStartRef.current = {
         center: getCenter(first, second),
@@ -2280,12 +2190,11 @@ function MobileDrawFullscreen({
         scale: scaleRef.current,
         offset: offsetRef.current,
       }
-      dragStartRef.current = null
     }
   }
 
   const moveViewGesture = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (mode !== 'view' || !activePointersRef.current.has(event.pointerId)) return
+    if (!activePointersRef.current.has(event.pointerId)) return
     const point = getRelativePoint(viewportRef.current, event.clientX, event.clientY)
     activePointersRef.current.set(event.pointerId, point)
     if (activePointersRef.current.size === 2 && pinchStartRef.current) {
@@ -2300,25 +2209,11 @@ function MobileDrawFullscreen({
       })
       return
     }
-    if (activePointersRef.current.size === 1 && dragStartRef.current && scaleRef.current > FIT_SCALE) {
-      const start = dragStartRef.current
-      applyView(scaleRef.current, {
-        x: start.offset.x + point.x - start.point.x,
-        y: start.offset.y + point.y - start.point.y,
-      })
-    }
   }
 
   const endViewGesture = (event: React.PointerEvent<HTMLDivElement>) => {
     activePointersRef.current.delete(event.pointerId)
-    if (activePointersRef.current.size === 1) {
-      const [remainingPoint] = Array.from(activePointersRef.current.values())
-      dragStartRef.current = { point: remainingPoint, offset: offsetRef.current }
-      pinchStartRef.current = null
-    } else {
-      dragStartRef.current = null
-      pinchStartRef.current = null
-    }
+    if (activePointersRef.current.size < 2) pinchStartRef.current = null
   }
 
   const zoomCenter = (factor: number) => {
@@ -2332,8 +2227,8 @@ function MobileDrawFullscreen({
           <Icon name="chevron_left" size={15} strokeWidth={1.8} />
         </button>
         <div className="min-w-0 flex-1">
-          <div className="truncate text-sm font-semibold text-(--color-text)">{mode === 'mask' ? 'Mask' : mode === 'annotate' ? '标注' : '查看图片'}</div>
-          <div className="text-xs text-(--color-text-4)">查看模式可拖动、双指缩放；切回标注后按当前缩放绘制</div>
+          <div className="truncate text-sm font-semibold text-(--color-text)">标注</div>
+          <div className="text-xs text-(--color-text-4)">涂抹编辑区域，或用编号补充说明</div>
         </div>
         <button type="button" className="chip text-xs" onClick={onClose} style={{ height: 28 }}>
           完成
@@ -2353,46 +2248,24 @@ function MobileDrawFullscreen({
         onPointerUp={endViewGesture}
         onPointerCancel={endViewGesture}
         onDoubleClick={(event) => {
-          if (mode !== 'view') return
           const point = getRelativePoint(viewportRef.current, event.clientX, event.clientY)
           if (scaleRef.current > FIT_SCALE) resetView()
           else zoomAtPoint(2.5, point)
         }}
       >
-        {mode === 'view' ? (
-          src && fitSizeRef.current.width ? (
-            <img
-              src={src}
-              alt=""
-              draggable={false}
-              className="absolute left-1/2 top-1/2 shrink-0 object-contain"
-              style={{
-                width: fitSizeRef.current.width,
-                height: fitSizeRef.current.height,
-                transform: `translate3d(calc(-50% + ${offset.x}px), calc(-50% + ${offset.y}px), 0) scale(${scale})`,
-                transformOrigin: 'center center',
-                borderRadius: 8,
-                boxShadow: '0 0 0 1px var(--ring-edge-strong), 0 30px 60px -24px rgba(0,0,0,0.3)',
-              }}
-            />
-          ) : (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="spinner" />
-            </div>
-          )
-        ) : (
-          <DrawableLayer
-            ref={drawableRef}
-            key={`${imageId}:mobile-draw`}
-            imageId={imageId}
-            src={src}
-            mode={mode}
-            tool={tool}
-            brushSize={brushSize}
-            viewTransform={{ scale, offset }}
-            onItemsChange={onItemsChange}
-          />
-        )}
+        <DrawableLayer
+          ref={drawableRef}
+          key={`${imageId}:mobile-draw`}
+          imageId={imageId}
+          src={src}
+          mode={mode}
+          tool={tool}
+          brushSize={brushSize}
+          viewTransform={{ scale, offset }}
+          visibleModes={['mask', 'annotate']}
+          eraseAllModes
+          onItemsChange={onItemsChange}
+        />
 
         <div className="pointer-events-none absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-0.5 rounded-[8px] p-1"
           style={{ background: 'color-mix(in srgb, var(--color-surface) 92%, transparent)', boxShadow: '0 0 0 1px var(--ring-edge), 0 1px 2px rgba(0,0,0,0.04)', backdropFilter: 'blur(10px)' }}
@@ -2410,68 +2283,81 @@ function MobileDrawFullscreen({
       </div>
 
       <div className="shrink-0 border-t border-(--color-border) px-3 py-3" style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}>
-        <div className="mb-2 grid grid-cols-3 gap-1.5 rounded-[10px] p-1" style={{ background: 'var(--color-surface-2)', boxShadow: 'inset 0 0 0 1px var(--ring-edge)' }}>
-          {[
-            { id: 'view' as const, label: '查看' },
-            { id: 'annotate' as const, label: '标注' },
-            { id: 'mask' as const, label: 'Mask' },
-          ].map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => onChangeMode(item.id)}
-              className="rounded-[8px] px-3 py-2 text-sm font-medium transition-colors"
-              style={{
-                border: 0,
-                background: mode === item.id ? 'var(--color-surface)' : 'transparent',
-                color: mode === item.id ? 'var(--color-text)' : 'var(--color-text-3)',
-                boxShadow: mode === item.id ? 'inset 0 0 0 1px var(--ring-edge)' : 'none',
-              }}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
-        {mode !== 'view' && (
-          <div className="space-y-2">
-            <div className="flex gap-1.5 overflow-x-auto pb-0.5">
-              {toolOptions.map((item) => (
+        <div className="space-y-2">
+          <div className="flex gap-1.5 overflow-x-auto pb-0.5">
+            {toolOptions.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => onChangeTool(item.id)}
+                className="chip shrink-0 text-sm"
+                data-active={tool === item.id}
+                style={{ height: 36 }}
+              >
+                <Icon name={item.icon} size={14} strokeWidth={1.8} />
+                {item.label}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5">
+            {tool !== 'eraser' &&
+              BRUSH_PRESETS.map((item) => (
                 <button
                   key={item.id}
                   type="button"
-                  onClick={() => onChangeTool(item.id)}
+                  onClick={() => onChangeBrushPreset(item.id)}
                   className="chip shrink-0 text-sm"
-                  data-active={tool === item.id}
+                  data-active={brushPreset === item.id}
                   style={{ height: 36 }}
                 >
-                  <Icon name={item.icon} size={14} strokeWidth={1.8} />
                   {item.label}
                 </button>
               ))}
-            </div>
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5">
-              {tool !== 'eraser' &&
-                BRUSH_PRESETS.map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => onChangeBrushPreset(item.id)}
-                    className="chip shrink-0 text-sm"
-                    data-active={brushPreset === item.id}
-                    style={{ height: 36 }}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              <div className="flex-1" />
-              <button type="button" className="chip shrink-0 text-sm" onClick={onUndo} disabled={!layerHasItems} style={{ height: 36 }}>
-                <Icon name="undo" size={14} strokeWidth={1.8} />
-                撤销
-              </button>
-              <button type="button" className="chip ghost shrink-0 text-sm" onClick={onClear} disabled={!layerHasItems} style={{ height: 36 }}>
-                清空
-              </button>
-            </div>
+            <div className="flex-1" />
+            <button type="button" className="chip shrink-0 text-sm" onClick={onUndo} disabled={!layerHasItems} style={{ height: 36 }}>
+              <Icon name="undo" size={14} strokeWidth={1.8} />
+              撤销
+            </button>
+            <button type="button" className="chip ghost shrink-0 text-sm" onClick={onClear} disabled={!layerHasItems} style={{ height: 36 }}>
+              清空
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function MobilePreviewFullscreen({
+  src,
+  alt,
+  onClose,
+  onSwipeLeft,
+  onSwipeRight,
+}: {
+  src: string
+  alt: string
+  onClose: () => void
+  onSwipeLeft?: () => void
+  onSwipeRight?: () => void
+}) {
+  return (
+    <div className="fixed inset-0 z-[130] flex flex-col bg-(--color-bg)">
+      <div className="flex h-12 shrink-0 items-center gap-2 border-b border-(--color-border) px-3">
+        <button type="button" className="icon-btn" onClick={onClose} title="退出全屏预览">
+          <Icon name="chevron_left" size={15} strokeWidth={1.8} />
+        </button>
+        <div className="min-w-0 flex-1 truncate text-sm font-semibold text-(--color-text)">全屏预览</div>
+        <button type="button" className="chip text-xs" onClick={onClose} style={{ height: 28 }}>
+          退出
+        </button>
+      </div>
+      <div className="min-h-0 flex-1">
+        {src ? (
+          <ZoomableImageView src={src} alt={alt} onSwipeLeft={onSwipeLeft} onSwipeRight={onSwipeRight} />
+        ) : (
+          <div className="flex h-full items-center justify-center">
+            <span className="spinner" />
           </div>
         )}
       </div>
