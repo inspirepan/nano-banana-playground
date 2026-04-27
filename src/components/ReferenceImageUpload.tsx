@@ -1,9 +1,17 @@
 import { useCallback, useRef } from 'react'
-import type { PlaygroundImage } from '../lib/types'
+import type { PlaygroundImage, PlaygroundImageMeta } from '../lib/types'
+import { useImageSrc } from '../hooks/useImageSrc'
 import { Icon } from './Icon'
+
+export type LockedReferenceImage = {
+  id: string
+  image: PlaygroundImageMeta
+  label?: string
+}
 
 type Props = {
   images: PlaygroundImage[]
+  lockedImages?: LockedReferenceImage[]
   maxTotal: number
   dragOver: boolean
   error: string | null
@@ -15,6 +23,7 @@ type Props = {
 
 export function ReferenceImageUpload({
   images,
+  lockedImages = [],
   maxTotal,
   dragOver,
   error,
@@ -54,11 +63,14 @@ export function ReferenceImageUpload({
             </button>
           )}
           <span className="mono text-[11px] text-(--color-text-4)">
-            {images.length}/{maxTotal}
+            {lockedImages.length + images.length}/{lockedImages.length + maxTotal}
           </span>
         </div>
       </div>
       <div className="grid grid-cols-5 gap-1.5">
+        {lockedImages.map((item) => (
+          <LockedReferenceThumb key={item.id} item={item} />
+        ))}
         {images.map((img) => (
           <div
             key={img.id}
@@ -115,6 +127,30 @@ export function ReferenceImageUpload({
         onChange={handleFileSelect}
         className="hidden"
       />
+    </div>
+  )
+}
+
+function LockedReferenceThumb({ item }: { item: LockedReferenceImage }) {
+  const { ref, src } = useImageSrc(item.image.id, item.image.mimeType, undefined, { variant: 'preview' })
+  return (
+    <div
+      ref={ref}
+      className="ref-thumb group aspect-square rounded-[6px] overflow-hidden bg-(--color-surface-2) shadow-[inset_0_0_0_1px_var(--ring-edge)]"
+    >
+      {src ? (
+        <img src={src} alt={item.label ?? '锁定参考图'} className="absolute inset-0 w-full h-full object-cover" draggable={false} />
+      ) : (
+        <div className="absolute inset-0 skeleton-animated" />
+      )}
+      {item.label && (
+        <span className="absolute bottom-1 left-1 rounded-[4px] bg-black/55 px-1.5 py-0.5 text-[9.5px] font-medium leading-none text-white backdrop-blur-[4px]">
+          {item.label}
+        </span>
+      )}
+      <span className="ref-thumb-close" style={{ opacity: 1, cursor: 'default' }} aria-label="系统锁定参考图">
+        <Icon name="lock" size={9} strokeWidth={2.4} />
+      </span>
     </div>
   )
 }

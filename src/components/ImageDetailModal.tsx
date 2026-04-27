@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react'
 import { createPortal } from 'react-dom'
 import type { GeneratedSource, GroundingMetadata, PlaygroundImage, PlaygroundImageMeta } from '../lib/types'
 import type { GenerationJob } from '../hooks/usePlayground'
@@ -9,7 +9,7 @@ import { loadImageMetas } from '../lib/history'
 import { Icon, type IconName } from './Icon'
 import { ChipGroup } from './ChipGroup'
 import { AspectRatioSelector } from './AspectRatioSelector'
-import { ReferenceImageUpload } from './ReferenceImageUpload'
+import { ReferenceImageUpload, type LockedReferenceImage } from './ReferenceImageUpload'
 import { QueueJobSection } from './QueueJobSection'
 import { DrawableLayer, type DrawableLayerHandle, type DrawMode, type DrawTool } from './DrawableLayer'
 import { computeItemCounts, copyEditState, getEditState, setEditPrompt, type ItemCounts } from '../lib/editStateCache'
@@ -129,7 +129,6 @@ const HIGHLIGHT_LABELS = [
 
 const MOBILE_SHEET_INITIAL_VH = 34
 const MOBILE_SHEET_EXPANDED_VH = 45
-const MOBILE_SHEET_EDIT_VH = 72
 const MOBILE_SHEET_PEEK_PX = 56
 
 // Prefer visualViewport.height so the sheet math follows the dynamic viewport
@@ -139,9 +138,9 @@ function getVisualViewportHeight(): number {
   return window.visualViewport?.height ?? window.innerHeight
 }
 
-function getMobileSheetHeights(viewportHeight: number, editing = false) {
-  const expandedVh = editing ? MOBILE_SHEET_EDIT_VH : MOBILE_SHEET_EXPANDED_VH
-  const initialVh = editing ? MOBILE_SHEET_EDIT_VH : MOBILE_SHEET_INITIAL_VH
+function getMobileSheetHeights(viewportHeight: number) {
+  const expandedVh = MOBILE_SHEET_EXPANDED_VH
+  const initialVh = MOBILE_SHEET_INITIAL_VH
   const expandedHeight = Math.max(MOBILE_SHEET_PEEK_PX, Math.round((viewportHeight * expandedVh) / 100))
   const initialHeight = Math.max(
     MOBILE_SHEET_PEEK_PX,
@@ -178,8 +177,8 @@ function MetaRow({ label, value, mono, last }: { label: string; value: ReactNode
       className="flex items-baseline gap-3 py-1.5"
       style={{ borderBottom: last ? 'none' : '1px solid var(--color-border)' }}
     >
-      <div className="text-[11px] text-(--color-text-3) w-[76px] shrink-0 font-medium">{label}</div>
-      <div className={`${mono ? 'mono' : ''} text-[12px] text-(--color-text) flex-1 break-words text-right`}>
+      <div className="w-[76px] shrink-0 text-xs font-medium text-(--color-text-3)">{label}</div>
+      <div className={`${mono ? 'mono' : ''} flex-1 break-words text-right text-sm text-(--color-text)`}>
         {value}
       </div>
     </div>
@@ -216,8 +215,8 @@ function SlotHero({
       ) : (
         <span className="spinner" />
       )}
-      <div className="mono text-[12px] text-(--color-text-2)">{label}</div>
-      {slot?.error && <div className="max-w-[420px] text-[11.5px] leading-[1.5] text-(--color-text-4)">{slot.error}</div>}
+      <div className="mono text-sm text-(--color-text-2)">{label}</div>
+      {slot?.error && <div className="max-w-[420px] text-xs leading-[1.5] text-(--color-text-4)">{slot.error}</div>}
       {slot && job && (slot.status === 'queued' || slot.status === 'running' || slot.status === 'retrying') && (
         job.slots.length === 1 ? (
           <button type="button" className="chip danger mt-2" onClick={() => onCancelSlot(slot.id)}>
@@ -243,17 +242,36 @@ function SlotHero({
   )
 }
 
-function StackStrip({ stack, selectedId, onSelect }: { stack: ImageStack; selectedId: string | null; onSelect: (item: StackItem) => void }) {
+function StackStrip({
+  stack,
+  selectedId,
+  onSelect,
+  onCancelActiveJobs,
+}: {
+  stack: ImageStack
+  selectedId: string | null
+  onSelect: (item: StackItem) => void
+  onCancelActiveJobs: () => void
+}) {
+  const hasActiveJobs = stack.jobs.some((job) =>
+    job.slots.some((slot) => slot.status === 'queued' || slot.status === 'running' || slot.status === 'retrying'),
+  )
   return (
     <div
       className="shrink-0 overflow-x-auto border-b border-(--color-border) px-3.5 py-2"
       style={{ background: 'color-mix(in srgb, var(--color-surface) 74%, transparent)' }}
     >
       <div className="flex items-center gap-2">
-        <div className="mr-1 hidden shrink-0 text-[11px] font-medium text-(--color-text-4) sm:block">Stack</div>
+        <div className="-m-1 flex min-w-0 flex-1 items-center gap-2 overflow-x-auto p-1">
         {stack.items.map((item) => (
-          <StackItemThumb key={item.id} item={item} active={selectedId === item.id} onSelect={onSelect} />
+          <StackItemThumb key={item.id} item={item} active={selectedId === item.id} outerRing onSelect={onSelect} />
         ))}
+        </div>
+        {hasActiveJobs && (
+          <button type="button" onClick={onCancelActiveJobs} className="chip danger shrink-0 text-xs" style={{ height: 24, padding: '0 8px' }}>
+            取消全部
+          </button>
+        )}
       </div>
     </div>
   )
@@ -264,8 +282,8 @@ function StackGallery({ stack, selectedId, onSelect }: { stack: ImageStack; sele
     <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 md:px-6 md:py-5">
       <div className="mb-4 flex items-end gap-3">
         <div className="min-w-0">
-          <div className="font-display text-[15px] font-semibold tracking-[-0.01em]">全部图片</div>
-          <div className="mt-0.5 text-[11.5px] text-(--color-text-3)">
+          <div className="font-display text-base font-semibold tracking-[-0.01em]">全部图片</div>
+          <div className="mt-0.5 text-xs text-(--color-text-3)">
             {stack.images.length} 张图片，{stack.activeSlotCount} 个生成中
           </div>
         </div>
@@ -324,6 +342,7 @@ export function ImageDetailModal({
   const currentImage = selectedItem?.type === 'image' ? selectedItem.image : null
   const currentSlot = selectedItem?.type === 'slot' ? selectedItem.slot : null
   const [editing, setEditing] = useState(initialEditing)
+  const [mobileDrawOpen, setMobileDrawOpen] = useState(false)
   const [viewMode, setViewMode] = useState<ModalViewMode>(initialViewMode)
   // After submit, we watch history for the first new image with this batchId
   // and auto-navigate the pager to it.
@@ -469,6 +488,10 @@ export function ImageDetailModal({
         }
       }
       if (e.key === 'Escape') {
+        if (mobileDrawOpen) {
+          setMobileDrawOpen(false)
+          return
+        }
         if (editMode !== 'view') {
           setEditMode('view')
           return
@@ -492,7 +515,7 @@ export function ImageDetailModal({
     }
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
-  }, [canNavigate, editing, editMode, exitEdit, goToNext, goToPrev, onClose])
+  }, [canNavigate, editing, editMode, exitEdit, goToNext, goToPrev, mobileDrawOpen, onClose])
 
   // Auto-select the new edit batch inside the stack strip. The selection starts
   // on the pending slot, then follows the same batch/order when it becomes an image.
@@ -528,7 +551,7 @@ export function ImageDetailModal({
   // explicit snapped pixel height after the first drag.
   const [sheetHeightPx, setSheetHeightPx] = useState<number | null>(null)
   const [sheetDragging, setSheetDragging] = useState(false)
-  const sheetLayoutKey = `${isMobileSheet}:${editing}`
+  const sheetLayoutKey = `${isMobileSheet}`
   const [sheetLayoutStamp, setSheetLayoutStamp] = useState(sheetLayoutKey)
   if (sheetLayoutKey !== sheetLayoutStamp) {
     setSheetLayoutStamp(sheetLayoutKey)
@@ -550,6 +573,10 @@ export function ImageDetailModal({
     return () => mql.removeEventListener('change', handler)
   }, [])
 
+  useEffect(() => {
+    if (!isMobileSheet || !editing) setMobileDrawOpen(false)
+  }, [isMobileSheet, editing])
+
   // Clamp the snapped sheet height against the current visual viewport so it
   // doesn't overflow when the iOS keyboard opens.
   useEffect(() => {
@@ -559,13 +586,13 @@ export function ImageDetailModal({
     const handler = () => {
       setSheetHeightPx((prev) => {
         if (prev === null) return prev
-        const { expandedHeight } = getMobileSheetHeights(vv.height, editing)
+        const { expandedHeight } = getMobileSheetHeights(vv.height)
         return Math.min(prev, expandedHeight)
       })
     }
     vv.addEventListener('resize', handler)
     return () => vv.removeEventListener('resize', handler)
-  }, [isMobileSheet, editing])
+  }, [isMobileSheet])
 
   // Desktop-only: collapse the right metadata sidebar to give the canvas more room.
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
@@ -588,7 +615,7 @@ export function ImageDetailModal({
   const handleSheetPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!isMobileSheet) return
     if (e.pointerType === 'mouse' && e.button !== 0) return
-    const { initialHeight, expandedHeight } = getMobileSheetHeights(getVisualViewportHeight(), editing)
+    const { initialHeight, expandedHeight } = getMobileSheetHeights(getVisualViewportHeight())
     sheetDragRef.current = {
       startY: e.clientY,
       startHeight: sheetHeightPx ?? initialHeight,
@@ -667,6 +694,11 @@ export function ImageDetailModal({
   const hasPrev = canNavigate && currentIdx > 0
   const hasNext = canNavigate && currentIdx < stack.items.length - 1
 
+  const handleChangeEditMode = (next: EditMode) => {
+    setEditMode(next)
+    if (isMobileSheet && next !== 'view') setMobileDrawOpen(true)
+  }
+
   // Size helper — show approximate px
   const pxDim = currentMeta ? `${currentMeta.resolution} · ${currentMeta.aspectRatio}` : ''
 
@@ -709,20 +741,18 @@ export function ImageDetailModal({
 
         {currentMeta ? (
           <div className="flex items-center gap-2 min-w-0">
-            <span className="text-[12.5px] font-medium text-(--color-text) truncate">{modelName}</span>
-            <span className="mono text-[12.5px] text-(--color-text-4) hidden md:inline whitespace-nowrap">{pxDim}</span>
+            <span className="truncate text-sm font-medium text-(--color-text)">{modelName}</span>
+            <span className="mono hidden whitespace-nowrap text-sm text-(--color-text-4) md:inline">{pxDim}</span>
           </div>
         ) : (
-          <span className="text-[12.5px] font-medium text-(--color-text) truncate">
+          <span className="truncate text-sm font-medium text-(--color-text)">
             {currentSlot ? '生成任务' : '图片组'}
           </span>
         )}
 
         <div className="flex-1" />
 
-        {/* Pager — hidden while editing so the user can't jump between
-            images mid-annotation. */}
-        {canNavigate && !editing && viewMode === 'detail' && (
+        {canNavigate && viewMode === 'detail' && (
           <div
             className="flex items-center gap-0.5 mr-1 rounded-[6px] shrink-0"
             style={{ background: 'var(--color-surface-2)', boxShadow: 'inset 0 0 0 1px var(--ring-edge)', padding: 2 }}
@@ -736,7 +766,7 @@ export function ImageDetailModal({
             >
               <Icon name="chevron_left" size={12} strokeWidth={1.8} />
             </button>
-            <span className="mono text-[11px] text-(--color-text-2) px-1 min-w-[50px] text-center font-medium">
+            <span className="mono min-w-[50px] px-1 text-center text-xs font-medium text-(--color-text-2)">
               {currentIdx + 1}
               <span className="text-(--color-text-4)"> / {stack.items.length}</span>
             </span>
@@ -752,35 +782,20 @@ export function ImageDetailModal({
           </div>
         )}
 
-        {!editing && (
-          <button
-            className="chip shrink-0"
-            onClick={() => setViewMode((prev) => (prev === 'gallery' ? 'detail' : 'gallery'))}
-            title={viewMode === 'gallery' ? '回到预览' : '查看全部图片'}
-          >
-            <Icon name={viewMode === 'gallery' ? 'chevron_left' : 'image'} size={12} strokeWidth={1.8} />
-            <span className="hidden md:inline">{viewMode === 'gallery' ? '回到预览' : '全部图片'}</span>
-          </button>
-        )}
+        <button
+          className="chip shrink-0"
+          onClick={() => setViewMode((prev) => (prev === 'gallery' ? 'detail' : 'gallery'))}
+          title={viewMode === 'gallery' ? '回到预览' : '查看全部图片'}
+        >
+          <Icon name={viewMode === 'gallery' ? 'chevron_left' : 'image'} size={12} strokeWidth={1.8} />
+          <span className="hidden md:inline">{viewMode === 'gallery' ? '回到预览' : '全部图片'}</span>
+        </button>
         {viewMode === 'detail' && (
           <>
             <button className="chip shrink-0" onClick={handleAddRef} disabled={!currentImage} title="加为参考">
               <Icon name="plus" size={12} strokeWidth={1.8} /> <span className="hidden md:inline">参考</span>
             </button>
-            <button
-              className="chip shrink-0"
-              onClick={() => {
-                if (editing) exitEdit()
-                else if (currentImage) setEditing(true)
-              }}
-              title={editing ? '退出编辑' : '编辑这张图'}
-              disabled={!currentImage && !editing}
-              data-active={editing}
-            >
-              <Icon name="wand" size={12} strokeWidth={1.8} />
-              <span className="hidden md:inline">{editing ? '退出编辑' : '编辑'}</span>
-            </button>
-            {currentMeta?.prompt && !editing && (
+            {currentMeta?.prompt && (
               <button className="chip shrink-0" onClick={handleRegenerateAction} title="还原参数">
                 <Icon name="refresh" size={12} strokeWidth={1.8} /> <span className="hidden md:inline">还原参数</span>
               </button>
@@ -790,7 +805,7 @@ export function ImageDetailModal({
             </button>
           </>
         )}
-        {!editing && viewMode === 'detail' && (
+        {viewMode === 'detail' && (
           <button
             className="chip shrink-0 hidden md:inline-flex"
             onClick={toggleSidebar}
@@ -815,7 +830,21 @@ export function ImageDetailModal({
         />
       ) : (
         <>
-          <StackStrip stack={stack} selectedId={selectedItem?.id ?? null} onSelect={(item) => setSelection(toSelection(item))} />
+          <StackStrip
+            stack={stack}
+            selectedId={selectedItem?.id ?? null}
+            onSelect={(item) => {
+              setSelection(toSelection(item))
+              setRefDetailId(null)
+            }}
+            onCancelActiveJobs={() => {
+              for (const job of stack.jobs) {
+                if (job.slots.some((slot) => slot.status === 'queued' || slot.status === 'running' || slot.status === 'retrying')) {
+                  onCancelGenerationJob(job.id)
+                }
+              }
+            }}
+          />
 
           {/* ——— Body ——— */}
           <div className="flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden">
@@ -823,47 +852,22 @@ export function ImageDetailModal({
         <div
           className="min-w-0 relative md:flex-1"
           style={{
-            // On mobile in edit mode, lock canvas to a small fixed portion so
-            // the sheet can take the rest with flex-1 + overflow-y-auto. This
-            // is more robust than giving the sheet an explicit dvh height,
-            // which in flex-col can get clipped by the body's overflow-hidden.
-            ...(isMobileSheet && editing ? { height: '26dvh', flexShrink: 0 } : { flex: '1 1 0%' }),
+            flex: '1 1 0%',
             backgroundImage: `linear-gradient(var(--color-border) 1px, transparent 1px), linear-gradient(90deg, var(--color-border) 1px, transparent 1px)`,
             backgroundSize: '28px 28px, 28px 28px',
             backgroundColor: 'var(--color-bg-sunken)',
           }}
         >
-          {/* Canvas mode toolbar: layer selector + (while drawing) tool
-              picker, brush size, undo/clear. Always visible outside ref-
-              compare so clicking 标注/Mask from view state enters edit mode
-              directly. */}
-          {/* Persistent backdrop — sits under both the ZoomableImageView and
-              the DrawableLayer. When the user toggles view↔annotate, the
-              outgoing component unmounts a frame before the incoming one
-              paints; without this img there's a white flash between them.
-              Both views render on top with opaque content, so the backdrop
-              is only seen during that transitional frame. */}
-          {currentSrc && !refDetailId && (
-            <img
-              src={currentSrc}
-              alt=""
-              aria-hidden
-              draggable={false}
-              className="absolute inset-0 w-full h-full object-contain pointer-events-none"
-              style={{ zIndex: 0 }}
-            />
-          )}
-          {!refDetailId && (
+          {/* Canvas mode toolbar: layer selector + (while drawing) tool picker,
+              brush size, undo/clear. */}
+          {!refDetailId && editing && !mobileDrawOpen && (
             <CanvasModeToolbar
               mode={editMode}
               tool={drawTool}
               brushPreset={brushPreset}
               counts={drawableCounts}
               showToolRow={editing && editMode !== 'view'}
-              onChangeMode={(next) => {
-                if (next !== 'view' && !editing && currentImage) setEditing(true)
-                setEditMode(next)
-              }}
+              onChangeMode={handleChangeEditMode}
               onChangeTool={setDrawTool}
               onChangeBrushPreset={setBrushPreset}
               onUndo={() => drawableRef.current?.undo()}
@@ -896,7 +900,7 @@ export function ImageDetailModal({
                 <span className="sm:hidden">退出</span>
               </button>
             </div>
-          ) : editing && editMode !== 'view' && currentImage ? (
+          ) : editing && editMode !== 'view' && currentImage && !mobileDrawOpen ? (
             <DrawableLayer
               ref={drawableRef}
               key={currentImage.id}
@@ -924,9 +928,7 @@ export function ImageDetailModal({
             />
           )}
 
-          {/* Side nav arrows — hidden while editing to avoid accidental
-              navigation (they'd also sit under the canvas toolbar visually). */}
-          {!refDetailId && !editing && hasPrev && (
+          {!refDetailId && hasPrev && (
             <button
               onClick={goToPrev}
               aria-label="上一张"
@@ -941,7 +943,7 @@ export function ImageDetailModal({
               <Icon name="chevron_left" size={14} strokeWidth={1.8} />
             </button>
           )}
-          {!refDetailId && !editing && hasNext && (
+          {!refDetailId && hasNext && (
             <button
               onClick={goToNext}
               aria-label="下一张"
@@ -959,14 +961,12 @@ export function ImageDetailModal({
 
           {toast && (
             <div
-              className="absolute top-4 left-1/2 -translate-x-1/2 z-20 fade-in"
+              className="absolute top-4 left-1/2 z-20 -translate-x-1/2 text-xs font-medium fade-in"
               style={{
                 background: 'var(--color-text)',
                 color: 'var(--color-bg)',
                 padding: '6px 12px',
                 borderRadius: 6,
-                fontSize: 12,
-                fontWeight: 500,
                 boxShadow: '0 10px 28px -12px rgba(30,27,20,0.18), 0 2px 6px rgba(30,27,20,0.06)',
               }}
             >
@@ -982,34 +982,21 @@ export function ImageDetailModal({
             background: 'var(--color-bg)',
             overscrollBehavior: 'contain',
             ...(isMobileSheet
-              ? editing
-                ? {
-                    // Edit mode: sheet fills all remaining space below the
-                    // fixed-height canvas. This lets the internal overflow-y
-                    // scroll reach the CTA even on short viewports (iOS
-                    // keyboard, devtools mobile frame).
-                    flex: '1 1 0%',
-                    minHeight: 0,
-                  }
-                : {
-                    // View mode keeps drag-resizable dvh sheet for the 3-snap
-                    // peek/initial/expanded UX.
-                    flexShrink: 0,
-                    height: sheetHeightPx !== null ? `${sheetHeightPx}px` : `${MOBILE_SHEET_INITIAL_VH}dvh`,
-                    transition: sheetDragging ? 'none' : 'height 260ms cubic-bezier(0.22, 0.8, 0.4, 1)',
-                  }
+              ? {
+                  flexShrink: 0,
+                  height: sheetHeightPx !== null ? `${sheetHeightPx}px` : `${MOBILE_SHEET_INITIAL_VH}dvh`,
+                  transition: sheetDragging ? 'none' : 'height 260ms cubic-bezier(0.22, 0.8, 0.4, 1)',
+                }
               : {
                   flexShrink: 0,
-                  // Edit mode widens sidebar; user's "collapsed" pref is ignored while editing.
-                  width: editing ? 420 : sidebarCollapsed ? 0 : 340,
+                  width: sidebarCollapsed ? 0 : 340,
                   minWidth: 0,
                   transition: 'width 280ms cubic-bezier(0.22, 0.8, 0.4, 1)',
                 }),
           }}
         >
-          {/* Mobile drag handle — only in view mode; edit mode uses flex-1
-              layout, so dragging the handle wouldn't do anything. */}
-          {!editing && (
+          {/* Mobile drag handle */}
+          {isMobileSheet && (
             <div
               className="md:hidden sticky top-0 z-10 flex justify-center items-center h-7 cursor-grab active:cursor-grabbing select-none"
               style={{ background: 'var(--color-bg)', touchAction: 'none' }}
@@ -1024,8 +1011,32 @@ export function ImageDetailModal({
 
           <div
             className="px-[18px] pt-1 md:pt-4 pb-24 md:pb-10"
-            style={{ width: isMobileSheet ? undefined : editing ? 420 : 340 }}
+            style={{ width: isMobileSheet ? undefined : 340 }}
           >
+            <div className="mb-[18px]">
+              <div
+                className="segmented"
+                style={{
+                  width: '100%',
+                  ['--seg-count' as string]: 2,
+                  ['--seg-index' as string]: editing ? 1 : 0,
+                }}
+              >
+                <button type="button" onClick={exitEdit} data-active={!editing}>
+                  <span>详情</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (currentImage) setEditing(true)
+                  }}
+                  disabled={!currentImage}
+                  data-active={editing}
+                >
+                  <span>编辑</span>
+                </button>
+              </div>
+            </div>
             {editing && currentImage ? (
               <EditSidebar
                 sourceImage={currentImage}
@@ -1045,7 +1056,6 @@ export function ImageDetailModal({
                   setRefDetailId(null)
                 }}
                 onViewQueue={onClose}
-                onExit={exitEdit}
                 editMode={editMode}
                 drawableCounts={drawableCounts}
                 drawableRef={drawableRef}
@@ -1058,7 +1068,7 @@ export function ImageDetailModal({
                     <div className="flex items-center mb-1.5">
                       <span className="label">提示词</span>
                       <div className="flex-1" />
-                      <button className="chip shrink-0" style={{ height: 26, fontSize: 12 }} onClick={handleCopyPrompt}>
+                      <button className="chip shrink-0 text-xs" style={{ height: 26 }} onClick={handleCopyPrompt}>
                         {/* Safari (WebKit) ignores flex layout on <button> itself;
                       nesting the flex container in a <span> works around it. */}
                         <span className="inline-flex items-center gap-1.5">
@@ -1072,7 +1082,7 @@ export function ImageDetailModal({
                       </button>
                     </div>
                     <div
-                      className="p-3 rounded-[8px] text-[12.5px] leading-[1.6] text-(--color-text-2)"
+                      className="rounded-[8px] p-3 text-sm leading-[1.6] text-(--color-text-2)"
                       style={{
                         background: 'var(--color-surface)',
                         boxShadow: 'inset 0 0 0 1px var(--ring-edge)',
@@ -1090,7 +1100,7 @@ export function ImageDetailModal({
                   <div className="mb-[18px]">
                     <div className="flex items-center mb-1.5">
                       <span className="label">参考图</span>
-                      <span className="text-[11px] text-(--color-text-4) ml-1.5">
+                      <span className="ml-1.5 text-xs text-(--color-text-4)">
                         {currentMeta.referenceImageIds.length} 张
                       </span>
                     </div>
@@ -1236,7 +1246,7 @@ export function ImageDetailModal({
                 {/* Danger delete */}
                 {currentImage && canNavigate && (
                   <button
-                    className="w-full inline-flex items-center justify-center gap-1.5 text-[12px] font-medium transition-colors"
+                    className="inline-flex w-full items-center justify-center gap-1.5 text-xs font-medium transition-colors"
                     style={{
                       height: 30,
                       borderRadius: 6,
@@ -1270,7 +1280,7 @@ export function ImageDetailModal({
 
       {/* ——— Footer shortcuts ——— */}
       <div
-        className="hidden md:flex items-center gap-3.5 px-3.5 shrink-0 text-[11px] text-(--color-text-4)"
+        className="hidden shrink-0 items-center gap-3.5 px-3.5 text-xs text-(--color-text-4) md:flex"
         style={{
           height: 30,
           borderTop: '1px solid var(--color-border)',
@@ -1301,6 +1311,25 @@ export function ImageDetailModal({
         <div className="flex-1" />
         <span className="mono">#{(currentImage?.id ?? selectedItem?.id ?? stack.id).slice(0, 8)}</span>
       </div>
+      {editing && mobileDrawOpen && currentImage && (
+        <MobileDrawFullscreen
+          imageId={currentImage.id}
+          src={currentSrc ?? ''}
+          mode={editMode}
+          tool={drawTool}
+          brushPreset={brushPreset}
+          brushSize={brushSize}
+          counts={drawableCounts}
+          drawableRef={drawableRef}
+          onChangeMode={handleChangeEditMode}
+          onChangeTool={setDrawTool}
+          onChangeBrushPreset={setBrushPreset}
+          onItemsChange={setDrawableCounts}
+          onUndo={() => drawableRef.current?.undo()}
+          onClear={() => drawableRef.current?.clear()}
+          onClose={() => setMobileDrawOpen(false)}
+        />
+      )}
         </>
       )}
     </div>,
@@ -1343,7 +1372,7 @@ function GroundingSection({ metadata }: { metadata: GroundingMetadata }) {
       {sources.length > 0 && (
         <ul className="list-none p-0 m-0 space-y-1">
           {sources.map((s, i) => (
-            <li key={i} className="text-[12px] flex items-center gap-1.5 min-w-0">
+            <li key={i} className="flex min-w-0 items-center gap-1.5 text-xs">
               <Icon name={s.isImage ? 'image' : 'search'} size={11} />
               <a
                 href={s.uri}
@@ -1361,7 +1390,7 @@ function GroundingSection({ metadata }: { metadata: GroundingMetadata }) {
       {queries.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-1">
           {queries.map((q, i) => (
-            <span key={i} className="tag" style={{ fontSize: 10.5 }}>
+            <span key={i} className="tag text-xs">
               {q}
             </span>
           ))}
@@ -1394,7 +1423,6 @@ type EditSidebarProps = {
   onRemove: (id: string) => void
   onOpenImage: (image: PlaygroundImageMeta) => void
   onViewQueue: () => void
-  onExit: () => void
   editMode: EditMode
   drawableCounts: ItemCounts
   drawableRef: React.RefObject<DrawableLayerHandle | null>
@@ -1414,7 +1442,6 @@ function EditSidebar({
   onRemove,
   onOpenImage,
   onViewQueue,
-  onExit,
   editMode,
   drawableCounts,
   drawableRef,
@@ -1698,12 +1725,10 @@ function EditSidebar({
   // Count what actually ships to the provider. With annotations we send BOTH
   // the annotated composite and the clean source, so the model has the
   // unobscured pixels available for regions outside the user's marks.
-  const totalImagesToSend = 1 + (hasAnnotatedSource ? 1 : 0) + extraRefs.length + (hasOpenAIMask ? 1 : 0)
-  const summaryParts: string[] = ['原图']
-  if (hasAnnotationStrokes) summaryParts.push('带标注的图')
-  else if (hasMaskStrokes && !isOpenAI) summaryParts.push('带 Mask 叠加的图')
-  if (extraRefs.length > 0) summaryParts.push(`${extraRefs.length} 张参考图`)
-  if (hasOpenAIMask) summaryParts.push('Mask')
+  const lockedReferenceImages: LockedReferenceImage[] = [{ id: `${sourceImage.id}:source`, image: sourceImage, label: '原图' }]
+  if (hasAnnotationStrokes) lockedReferenceImages.push({ id: `${sourceImage.id}:annotate`, image: sourceImage, label: '标记' })
+  else if (hasMaskStrokes && !isOpenAI) lockedReferenceImages.push({ id: `${sourceImage.id}:mask-overlay`, image: sourceImage, label: 'Mask' })
+  if (hasOpenAIMask) lockedReferenceImages.push({ id: `${sourceImage.id}:mask`, image: sourceImage, label: 'Mask' })
 
   return (
     <div>
@@ -1732,53 +1757,13 @@ function EditSidebar({
           <button
             type="button"
             onClick={onViewQueue}
-            className="chip ghost w-full mt-2 justify-center"
-            style={{ height: 26, fontSize: 11.5 }}
+            className="chip ghost mt-2 w-full justify-center text-xs"
+            style={{ height: 26 }}
           >
             查看全部队列 <Icon name="chevron_right" size={11} />
           </button>
         </div>
       )}
-
-      {/* Header */}
-      <div className="mb-[18px] flex items-center gap-2">
-        <div className="font-display text-[14px] font-semibold tracking-[-0.01em]">编辑这张图</div>
-        <div className="flex-1" />
-        <button
-          type="button"
-          onClick={onExit}
-          className="chip ghost"
-          style={{ height: 24, padding: '0 8px', fontSize: 11.5 }}
-          title="退出编辑 (Esc)"
-        >
-          退出
-        </button>
-      </div>
-
-      {/* Source image chip — locked as the primary reference */}
-      <div className="mb-[18px]">
-        <div className="flex items-center justify-between mb-1.5 min-h-[20px]">
-          <span className="label">源图片</span>
-          <span className="text-[11px] text-(--color-text-4) inline-flex items-center gap-1">
-            <Icon name="lock" size={10} /> 锁定
-          </span>
-        </div>
-        <SourceImageChip image={sourceImage} />
-      </div>
-
-      {/* Extra references */}
-      <div className="mb-[18px]">
-        <ReferenceImageUpload
-          images={extraRefs}
-          maxTotal={maxExtraRefs}
-          dragOver={false}
-          error={effectiveRefsError}
-          onAdd={handleAddFiles}
-          onRemove={removeExtraRef}
-          onClearAll={clearExtraRefs}
-          onClearError={() => setRefsError(null)}
-        />
-      </div>
 
       {/* Resolution + aspect ratio (collapsed by default — rarely adjusted
           while editing). The grid-template-rows 0fr→1fr animation is paint-
@@ -1793,7 +1778,7 @@ function EditSidebar({
         >
           <span className="label">分辨率 · 宽高比</span>
           <span className="flex-1" />
-          <span className="mono text-[11px] text-(--color-text-3) mr-1.5">
+          <span className="mono mr-1.5 text-xs text-(--color-text-3)">
             {resolution} · {aspectRatio}
           </span>
           <Icon name={paramsCollapsed ? 'chevron_right' : 'chevron_down'} size={12} className="text-(--color-text-4)" />
@@ -1843,23 +1828,38 @@ function EditSidebar({
             onChange={(e) => setPrompt(e.target.value)}
             placeholder={placeholder}
             rows={1}
-            className="block w-full bg-transparent px-3 py-2.5 text-[16px] md:text-[13.5px] leading-[1.55] resize-none focus:outline-none"
+            className="block w-full resize-none bg-transparent px-3 py-2.5 text-base leading-[1.55] focus:outline-none md:text-sm"
             autoFocus
           />
-          <div className="flex items-center gap-2 px-2.5 py-1.5 border-t border-(--color-border) text-[11.5px] text-(--color-text-3)">
-            <span className="mono text-[11px] text-(--color-text-4)">{prompt.length} 字</span>
+          <div className="flex items-center gap-2 border-t border-(--color-border) px-2.5 py-1.5 text-xs text-(--color-text-3)">
+            <span className="mono text-xs text-(--color-text-4)">{prompt.length} 字</span>
             <div className="flex-1" />
             {prompt.length > 0 && (
               <button
                 type="button"
                 onClick={() => setPrompt('')}
-                className="inline-flex items-center gap-1 bg-transparent border-0 p-0 text-[11px] text-(--color-text-4) hover:text-(--color-text-2) transition-colors"
+                className="inline-flex items-center gap-1 border-0 bg-transparent p-0 text-xs text-(--color-text-4) transition-colors hover:text-(--color-text-2)"
               >
                 <Icon name="close" size={11} /> 清空
               </button>
             )}
           </div>
         </div>
+      </div>
+
+      {/* Extra references */}
+      <div className="mb-[18px]">
+        <ReferenceImageUpload
+          images={extraRefs}
+          lockedImages={lockedReferenceImages}
+          maxTotal={maxExtraRefs}
+          dragOver={false}
+          error={effectiveRefsError}
+          onAdd={handleAddFiles}
+          onRemove={removeExtraRef}
+          onClearAll={clearExtraRefs}
+          onClearError={() => setRefsError(null)}
+        />
       </div>
 
       {/* Batch count */}
@@ -1882,14 +1882,8 @@ function EditSidebar({
 
       {/* Summary + CTA */}
       <div className="pt-2.5 border-t border-dashed border-(--color-border)">
-        <div className="mb-2 flex items-baseline justify-between text-[11.5px]">
-          <span className="text-(--color-text-4)">
-            将发送 <span className="mono text-(--color-text-2)">{totalImagesToSend}</span> 张图
-            <span className="text-(--color-text-4)">（{summaryParts.join(' · ')}）</span>
-          </span>
-          {estimatedCost !== null && <span className="mono text-(--color-text-2)">≈ ${estimatedCost.toFixed(3)}</span>}
-        </div>
-        {submitError && <div className="mb-2 text-[11.5px] text-(--color-danger)">{submitError}</div>}
+        {estimatedCost !== null && <div className="mono mb-2 text-right text-xs text-(--color-text-2)">≈ ${estimatedCost.toFixed(3)}</div>}
+        {submitError && <div className="mb-2 text-xs text-(--color-danger)">{submitError}</div>}
         <button type="button" onClick={handleGenerate} disabled={!canSubmit} className="cta w-full">
           <Icon name="wand" size={13} strokeWidth={1.8} />
           <span>{submitting ? '提交中…' : `生成编辑 ×${batchCount}`}</span>
@@ -1899,38 +1893,6 @@ function EditSidebar({
             <kbd>⏎</kbd>
           </span>
         </button>
-      </div>
-    </div>
-  )
-}
-
-function SourceImageChip({ image }: { image: PlaygroundImageMeta }) {
-  const { ref, src } = useImageSrc(image.id, image.mimeType, undefined, { variant: 'preview' })
-  const label = image.source.type === 'upload' ? image.source.fileName : `gen-${image.id.slice(0, 6)}`
-  return (
-    <div
-      ref={ref}
-      className="flex items-center gap-3 p-2 rounded-[8px]"
-      style={{
-        background: 'var(--color-surface)',
-        boxShadow: 'inset 0 0 0 1px var(--ring-edge)',
-      }}
-    >
-      <div
-        className="w-12 h-12 rounded-[6px] overflow-hidden shrink-0"
-        style={{ background: 'var(--color-surface-2)', boxShadow: 'inset 0 0 0 1px var(--ring-edge)' }}
-      >
-        {src ? (
-          <img src={src} alt="" className="w-full h-full object-cover" />
-        ) : (
-          <div className="w-full h-full skeleton-animated" />
-        )}
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="text-[12.5px] font-medium text-(--color-text) truncate">{label}</div>
-        <div className="mono text-[11px] text-(--color-text-4) truncate">
-          {image.source.type === 'generated' ? `${image.source.resolution} · ${image.source.aspectRatio}` : '上传图片'}
-        </div>
       </div>
     </div>
   )
@@ -2014,7 +1976,7 @@ function SegmentButton({
       type="button"
       onClick={onClick}
       title={title}
-      className={`${mono ? 'mono' : ''} relative inline-flex items-center gap-1 px-2 py-1 text-[11px] font-medium rounded-[6px] transition-colors`}
+      className={`${mono ? 'mono' : ''} relative inline-flex items-center gap-1 rounded-[6px] px-2 py-1 text-xs font-medium transition-colors`}
       style={{
         background: active ? 'var(--color-surface)' : 'transparent',
         color: active ? 'var(--color-text)' : 'var(--color-text-3)',
@@ -2157,7 +2119,7 @@ function CanvasModeToolbar({
               onClick={onClear}
               disabled={!layerHasItems}
               title="清空当前层的所有标注"
-              className="px-2 py-1 text-[11px] font-medium rounded-[6px] transition-colors"
+              className="rounded-[6px] px-2 py-1 text-xs font-medium transition-colors"
               style={{
                 background: 'transparent',
                 color: layerHasItems ? 'var(--color-text-3)' : 'var(--color-text-4)',
@@ -2170,6 +2132,349 @@ function CanvasModeToolbar({
           </ToolbarPill>
         </>
       )}
+    </div>
+  )
+}
+
+function MobileDrawFullscreen({
+  imageId,
+  src,
+  mode,
+  tool,
+  brushPreset,
+  brushSize,
+  counts,
+  drawableRef,
+  onChangeMode,
+  onChangeTool,
+  onChangeBrushPreset,
+  onItemsChange,
+  onUndo,
+  onClear,
+  onClose,
+}: {
+  imageId: string
+  src: string
+  mode: EditMode
+  tool: DrawTool
+  brushPreset: BrushPresetId
+  brushSize: number
+  counts: ItemCounts
+  drawableRef: RefObject<DrawableLayerHandle | null>
+  onChangeMode: (mode: EditMode) => void
+  onChangeTool: (tool: DrawTool) => void
+  onChangeBrushPreset: (preset: BrushPresetId) => void
+  onItemsChange: (counts: ItemCounts) => void
+  onUndo: () => void
+  onClear: () => void
+  onClose: () => void
+}) {
+  const viewportRef = useRef<HTMLDivElement>(null)
+  const activePointersRef = useRef(new Map<number, Point>())
+  const dragStartRef = useRef<{ point: Point; offset: Point } | null>(null)
+  const pinchStartRef = useRef<{ center: Point; distance: number; scale: number; offset: Point } | null>(null)
+  const scaleRef = useRef(FIT_SCALE)
+  const offsetRef = useRef<Point>({ x: 0, y: 0 })
+  const fitSizeRef = useRef<Size>({ width: 0, height: 0 })
+
+  const [naturalSize, setNaturalSize] = useState<Size>({ width: 0, height: 0 })
+  const [viewportSize, setViewportSize] = useState<Size>({ width: 0, height: 0 })
+  const [scale, setScale] = useState(FIT_SCALE)
+  const [offset, setOffset] = useState<Point>({ x: 0, y: 0 })
+
+  const layerHasItems = mode === 'mask' ? counts.mask > 0 : mode === 'annotate' ? counts.annotate > 0 : false
+  const toolOptions: Array<{ id: DrawTool; label: string; icon: IconName }> =
+    mode === 'mask'
+      ? [
+          { id: 'brush', label: '笔刷', icon: 'brush' },
+          { id: 'eraser', label: '橡皮', icon: 'eraser' },
+        ]
+      : [
+          { id: 'brush', label: '笔刷', icon: 'brush' },
+          { id: 'rect', label: '框', icon: 'square' },
+          { id: 'step', label: '编号', icon: 'map_pin' },
+          { id: 'eraser', label: '橡皮', icon: 'eraser' },
+        ]
+
+  const applyView = useCallback((nextScale: number, nextOffset: Point) => {
+    const clampedScale = clamp(nextScale, FIT_SCALE, MAX_SCALE)
+    const viewport = viewportSize.width ? viewportSize : getViewportSize(viewportRef.current)
+    const clampedOffset = clampOffset(nextOffset, clampedScale, viewport, fitSizeRef.current)
+    scaleRef.current = clampedScale
+    offsetRef.current = clampedOffset
+    setScale(clampedScale)
+    setOffset(clampedOffset)
+  }, [viewportSize])
+
+  const resetView = useCallback(() => {
+    activePointersRef.current.clear()
+    dragStartRef.current = null
+    pinchStartRef.current = null
+    applyView(FIT_SCALE, { x: 0, y: 0 })
+  }, [applyView])
+
+  const zoomAtPoint = useCallback(
+    (targetScale: number, anchor: Point) => {
+      const currentScale = scaleRef.current
+      const nextScale = clamp(targetScale, FIT_SCALE, MAX_SCALE)
+      const ratio = nextScale / currentScale
+      const currentOffset = offsetRef.current
+      applyView(nextScale, {
+        x: anchor.x - ratio * (anchor.x - currentOffset.x),
+        y: anchor.y - ratio * (anchor.y - currentOffset.y),
+      })
+    },
+    [applyView],
+  )
+
+  useEffect(() => {
+    if (!src) {
+      setNaturalSize({ width: 0, height: 0 })
+      return
+    }
+    let cancelled = false
+    const img = new Image()
+    img.onload = () => {
+      if (!cancelled) setNaturalSize({ width: img.naturalWidth, height: img.naturalHeight })
+    }
+    img.src = src
+    return () => {
+      cancelled = true
+    }
+  }, [src])
+
+  useEffect(() => {
+    const element = viewportRef.current
+    if (!element) return
+    const update = () => setViewportSize(getViewportSize(element))
+    update()
+    const observer = new ResizeObserver(update)
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [])
+
+  useEffect(() => {
+    const nextFit = getContainedSize(viewportSize, naturalSize)
+    fitSizeRef.current = nextFit
+    applyView(scaleRef.current, offsetRef.current)
+  }, [applyView, naturalSize, viewportSize])
+
+  useEffect(() => {
+    resetView()
+  }, [imageId, resetView])
+
+  const startViewGesture = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (mode !== 'view') return
+    if (event.pointerType === 'mouse' && event.button !== 0) return
+    const point = getRelativePoint(viewportRef.current, event.clientX, event.clientY)
+    event.currentTarget.setPointerCapture(event.pointerId)
+    activePointersRef.current.set(event.pointerId, point)
+    if (activePointersRef.current.size === 1) {
+      dragStartRef.current = { point, offset: offsetRef.current }
+      pinchStartRef.current = null
+    } else if (activePointersRef.current.size === 2) {
+      const [first, second] = Array.from(activePointersRef.current.values())
+      pinchStartRef.current = {
+        center: getCenter(first, second),
+        distance: Math.max(getDistance(first, second), 1),
+        scale: scaleRef.current,
+        offset: offsetRef.current,
+      }
+      dragStartRef.current = null
+    }
+  }
+
+  const moveViewGesture = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (mode !== 'view' || !activePointersRef.current.has(event.pointerId)) return
+    const point = getRelativePoint(viewportRef.current, event.clientX, event.clientY)
+    activePointersRef.current.set(event.pointerId, point)
+    if (activePointersRef.current.size === 2 && pinchStartRef.current) {
+      const [first, second] = Array.from(activePointersRef.current.values())
+      const start = pinchStartRef.current
+      const nextScale = clamp(start.scale * (Math.max(getDistance(first, second), 1) / start.distance), FIT_SCALE, MAX_SCALE)
+      const center = getCenter(first, second)
+      const ratio = nextScale / start.scale
+      applyView(nextScale, {
+        x: center.x - ratio * (start.center.x - start.offset.x),
+        y: center.y - ratio * (start.center.y - start.offset.y),
+      })
+      return
+    }
+    if (activePointersRef.current.size === 1 && dragStartRef.current && scaleRef.current > FIT_SCALE) {
+      const start = dragStartRef.current
+      applyView(scaleRef.current, {
+        x: start.offset.x + point.x - start.point.x,
+        y: start.offset.y + point.y - start.point.y,
+      })
+    }
+  }
+
+  const endViewGesture = (event: React.PointerEvent<HTMLDivElement>) => {
+    activePointersRef.current.delete(event.pointerId)
+    if (activePointersRef.current.size === 1) {
+      const [remainingPoint] = Array.from(activePointersRef.current.values())
+      dragStartRef.current = { point: remainingPoint, offset: offsetRef.current }
+      pinchStartRef.current = null
+    } else {
+      dragStartRef.current = null
+      pinchStartRef.current = null
+    }
+  }
+
+  const zoomCenter = (factor: number) => {
+    zoomAtPoint(scaleRef.current * factor, { x: 0, y: 0 })
+  }
+
+  return (
+    <div className="fixed inset-0 z-[140] flex flex-col bg-(--color-bg)">
+      <div className="flex h-12 shrink-0 items-center gap-2 border-b border-(--color-border) px-3">
+        <button type="button" className="icon-btn" onClick={onClose} title="完成">
+          <Icon name="chevron_left" size={15} strokeWidth={1.8} />
+        </button>
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-sm font-semibold text-(--color-text)">{mode === 'mask' ? 'Mask' : mode === 'annotate' ? '标注' : '查看图片'}</div>
+          <div className="text-xs text-(--color-text-4)">查看模式可拖动、双指缩放；切回标注后按当前缩放绘制</div>
+        </div>
+        <button type="button" className="chip text-xs" onClick={onClose} style={{ height: 28 }}>
+          完成
+        </button>
+      </div>
+
+      <div
+        ref={viewportRef}
+        className="relative min-h-0 flex-1 overflow-hidden touch-none select-none"
+        style={{
+          backgroundImage: `linear-gradient(var(--color-border) 1px, transparent 1px), linear-gradient(90deg, var(--color-border) 1px, transparent 1px)`,
+          backgroundSize: '28px 28px, 28px 28px',
+          backgroundColor: 'var(--color-bg-sunken)',
+        }}
+        onPointerDown={startViewGesture}
+        onPointerMove={moveViewGesture}
+        onPointerUp={endViewGesture}
+        onPointerCancel={endViewGesture}
+        onDoubleClick={(event) => {
+          if (mode !== 'view') return
+          const point = getRelativePoint(viewportRef.current, event.clientX, event.clientY)
+          if (scaleRef.current > FIT_SCALE) resetView()
+          else zoomAtPoint(2.5, point)
+        }}
+      >
+        {mode === 'view' ? (
+          src && fitSizeRef.current.width ? (
+            <img
+              src={src}
+              alt=""
+              draggable={false}
+              className="absolute left-1/2 top-1/2 shrink-0 object-contain"
+              style={{
+                width: fitSizeRef.current.width,
+                height: fitSizeRef.current.height,
+                transform: `translate3d(calc(-50% + ${offset.x}px), calc(-50% + ${offset.y}px), 0) scale(${scale})`,
+                transformOrigin: 'center center',
+                borderRadius: 8,
+                boxShadow: '0 0 0 1px var(--ring-edge-strong), 0 30px 60px -24px rgba(0,0,0,0.3)',
+              }}
+            />
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="spinner" />
+            </div>
+          )
+        ) : (
+          <DrawableLayer
+            ref={drawableRef}
+            key={`${imageId}:mobile-draw`}
+            imageId={imageId}
+            src={src}
+            mode={mode}
+            tool={tool}
+            brushSize={brushSize}
+            viewTransform={{ scale, offset }}
+            onItemsChange={onItemsChange}
+          />
+        )}
+
+        <div className="pointer-events-none absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-0.5 rounded-[8px] p-1"
+          style={{ background: 'color-mix(in srgb, var(--color-surface) 92%, transparent)', boxShadow: '0 0 0 1px var(--ring-edge), 0 1px 2px rgba(0,0,0,0.04)', backdropFilter: 'blur(10px)' }}
+        >
+          <button type="button" className="icon-btn pointer-events-auto" onClick={() => zoomCenter(0.8)} title="缩小" style={{ width: 28, height: 26 }}>
+            <Icon name="zoom_out_map" size={12} strokeWidth={1.8} />
+          </button>
+          <button type="button" className="mono pointer-events-auto px-2 text-xs font-medium text-(--color-text-2)" onClick={resetView} title="重置">
+            {Math.round(scale * 100)}%
+          </button>
+          <button type="button" className="icon-btn pointer-events-auto" onClick={() => zoomCenter(1.25)} title="放大" style={{ width: 28, height: 26 }}>
+            <Icon name="zoom_in" size={12} strokeWidth={1.8} />
+          </button>
+        </div>
+      </div>
+
+      <div className="shrink-0 border-t border-(--color-border) px-3 py-3" style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}>
+        <div className="mb-2 grid grid-cols-3 gap-1.5 rounded-[10px] p-1" style={{ background: 'var(--color-surface-2)', boxShadow: 'inset 0 0 0 1px var(--ring-edge)' }}>
+          {[
+            { id: 'view' as const, label: '查看' },
+            { id: 'annotate' as const, label: '标注' },
+            { id: 'mask' as const, label: 'Mask' },
+          ].map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => onChangeMode(item.id)}
+              className="rounded-[8px] px-3 py-2 text-sm font-medium transition-colors"
+              style={{
+                border: 0,
+                background: mode === item.id ? 'var(--color-surface)' : 'transparent',
+                color: mode === item.id ? 'var(--color-text)' : 'var(--color-text-3)',
+                boxShadow: mode === item.id ? 'inset 0 0 0 1px var(--ring-edge)' : 'none',
+              }}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+        {mode !== 'view' && (
+          <div className="space-y-2">
+            <div className="flex gap-1.5 overflow-x-auto pb-0.5">
+              {toolOptions.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => onChangeTool(item.id)}
+                  className="chip shrink-0 text-sm"
+                  data-active={tool === item.id}
+                  style={{ height: 36 }}
+                >
+                  <Icon name={item.icon} size={14} strokeWidth={1.8} />
+                  {item.label}
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5">
+              {tool !== 'eraser' &&
+                BRUSH_PRESETS.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => onChangeBrushPreset(item.id)}
+                    className="chip shrink-0 text-sm"
+                    data-active={brushPreset === item.id}
+                    style={{ height: 36 }}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              <div className="flex-1" />
+              <button type="button" className="chip shrink-0 text-sm" onClick={onUndo} disabled={!layerHasItems} style={{ height: 36 }}>
+                <Icon name="undo" size={14} strokeWidth={1.8} />
+                撤销
+              </button>
+              <button type="button" className="chip ghost shrink-0 text-sm" onClick={onClear} disabled={!layerHasItems} style={{ height: 36 }}>
+                清空
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
@@ -2490,17 +2795,15 @@ function ZoomableImageView({
         </button>
         <button
           onClick={resetView}
-          className="mono"
+          className="mono text-xs font-medium"
           title="双击画布可重置 · 快捷键 0"
           style={{
             background: 'none',
             border: 0,
             color: 'var(--color-text-2)',
-            fontSize: 11,
             minWidth: 48,
             textAlign: 'center',
             padding: '0 4px',
-            fontWeight: 500,
             cursor: 'pointer',
           }}
         >

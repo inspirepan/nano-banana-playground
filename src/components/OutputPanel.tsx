@@ -83,7 +83,7 @@ function StackRow({
   onOpenGallery: (stack: ImageStack) => void
 }) {
   const totalItems = stack.images.length + stack.activeSlotCount + stack.failedSlotCount
-  const previewItems = [...stack.items].slice(-4).reverse()
+  const previewItems = [...stack.items].slice(-10).reverse()
 
   return (
     <div
@@ -103,36 +103,38 @@ function StackRow({
           {stack.activeSlotCount > 0 && <span className="text-[11.5px] text-(--color-accent)">生成中 {stack.activeSlotCount}</span>}
           {stack.failedSlotCount > 0 && <span className="text-[11.5px]" style={{ color: 'var(--color-danger)' }}>失败 {stack.failedSlotCount}</span>}
         </div>
-        <div
-          className="grid min-w-0 overflow-hidden gap-2 p-1.5"
-          style={{
-            gridTemplateColumns: 'repeat(4, clamp(112px, 18vw, 156px))',
-            gridAutoRows: 'clamp(84px, 13.5vw, 112px)',
-          }}
-        >
-          {previewItems.length > 0 ? (
-            previewItems.map((item) => {
-              const tall = isTallStackItem(item)
-              return (
-                <StackItemThumb
-                  key={item.id}
-                  item={item}
-                  outerRing
-                  className={`${tall ? 'row-span-2' : ''} h-full w-full`}
-                  onSelect={(next) => onOpenItem(stack, next)}
-                />
-              )
-            })
-          ) : (
-            <button
-              type="button"
-              onClick={() => onOpenGallery(stack)}
-              className="aspect-[4/3] rounded-[8px] text-[11px] text-(--color-text-4)"
-              style={{ background: 'var(--color-surface-2)', boxShadow: 'inset 0 0 0 1px var(--ring-edge)' }}
-            >
-              暂无图片
-            </button>
-          )}
+        <div className="min-w-0 overflow-x-auto overflow-y-hidden overscroll-x-contain px-1.5 py-1.5">
+          <div
+            className="grid w-max gap-2"
+            style={{
+              gridTemplateColumns: `repeat(${Math.max(1, previewItems.length)}, clamp(112px, 34vw, 156px))`,
+              gridAutoRows: 'clamp(84px, 25.5vw, 112px)',
+            }}
+          >
+            {previewItems.length > 0 ? (
+              previewItems.map((item) => {
+                const tall = isTallStackItem(item)
+                return (
+                  <StackItemThumb
+                    key={item.id}
+                    item={item}
+                    outerRing
+                    className={`${tall ? 'row-span-2' : ''} h-full w-full`}
+                    onSelect={(next) => onOpenItem(stack, next)}
+                  />
+                )
+              })
+            ) : (
+              <button
+                type="button"
+                onClick={() => onOpenGallery(stack)}
+                className="aspect-[4/3] w-[156px] rounded-[8px] text-[11px] text-(--color-text-4)"
+                style={{ background: 'var(--color-surface-2)', boxShadow: 'inset 0 0 0 1px var(--ring-edge)' }}
+              >
+                暂无图片
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

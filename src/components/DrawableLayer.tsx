@@ -30,6 +30,7 @@ type Props = {
   tool: DrawTool
   brushSize: number
   annotateColor?: string
+  viewTransform?: { scale: number; offset: Point }
   // Fires whenever the items list changes. Breakdown by mode lets the
   // parent drive per-layer indicators without peeking into the cache.
   onItemsChange?: (counts: ItemCounts) => void
@@ -173,7 +174,7 @@ function paintItem(ctx: CanvasRenderingContext2D, item: DrawItem, paintColor: st
 }
 
 export const DrawableLayer = forwardRef<DrawableLayerHandle, Props>(function DrawableLayer(
-  { imageId, src, mode, tool, brushSize, annotateColor = DEFAULT_ANNOTATE_COLOR, onItemsChange },
+  { imageId, src, mode, tool, brushSize, annotateColor = DEFAULT_ANNOTATE_COLOR, viewTransform, onItemsChange },
   ref,
 ) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -520,6 +521,10 @@ export const DrawableLayer = forwardRef<DrawableLayerHandle, Props>(function Dra
           boxShadow: ready
             ? '0 0 0 1px var(--ring-edge-strong), 0 30px 60px -24px rgba(0,0,0,0.3), 0 4px 10px rgba(0,0,0,0.06)'
             : 'none',
+          transform: viewTransform
+            ? `translate3d(${viewTransform.offset.x}px, ${viewTransform.offset.y}px, 0) scale(${viewTransform.scale})`
+            : undefined,
+          transformOrigin: 'center center',
         }}
       >
         <img

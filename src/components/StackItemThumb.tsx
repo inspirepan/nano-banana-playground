@@ -46,7 +46,7 @@ export function StackItemThumb({ item, active = false, outerRing = false, classN
             ) : (
               <span className="spinner" style={{ width: 12, height: 12 }} />
             )}
-            <span className="mono text-[9.5px]">#{(slot?.index ?? item.order) + 1}</span>
+            <span className="mono text-xs">#{(slot?.index ?? item.order) + 1}</span>
           </div>
         )}
       </div>
