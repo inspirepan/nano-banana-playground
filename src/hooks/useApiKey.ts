@@ -67,6 +67,12 @@ export function useApiKey(provider: Provider) {
     setStatus('empty')
   }
 
+  const keepCurrent = () => {
+    if (!apiKey) return
+    setError(null)
+    setStatus('valid')
+  }
+
   const setBaseUrl = (next: string) => {
     const trimmed = next.trim()
     setBaseUrlRaw(trimmed)
@@ -78,5 +84,5 @@ export function useApiKey(provider: Provider) {
     setStatus('invalid')
   }
 
-  return { apiKey, baseUrl, status, error, submit, reset, setBaseUrl, invalidate }
+  return { apiKey, baseUrl, status, error, submit, reset, keepCurrent, setBaseUrl, invalidate }
 }

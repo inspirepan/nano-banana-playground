@@ -439,22 +439,8 @@ export function InputPanel({
   const optionSummaryLabels = getOptionSummaryLabels(model, options)
 
   const currentKeyStatus = model.provider === 'google' ? googleKeyStatus : openaiKeyStatus
-  const keyDisplay: Record<string, { color: string; bg: string; text: string }> = {
-    valid: {
-      color: 'var(--color-success)',
-      bg: 'color-mix(in srgb, var(--color-success) 10%, transparent)',
-      text: '已验证',
-    },
-    validating: { color: 'var(--color-text-3)', bg: 'var(--color-surface-2)', text: '验证中' },
-    invalid: {
-      color: 'var(--color-danger)',
-      bg: 'color-mix(in srgb, var(--color-danger) 10%, transparent)',
-      text: '无效',
-    },
-    empty: { color: 'var(--color-text-3)', bg: 'var(--color-surface-2)', text: '未配置' },
-  }
-  const keyInfo = keyDisplay[currentKeyStatus] ?? keyDisplay.empty
-  const maskedKey = apiKey ? `${apiKey.slice(0, 4)}******${apiKey.slice(-3)}` : ''
+  const isCurrentKeyMissing = currentKeyStatus === 'empty' || apiKey.trim() === ''
+  const providerLabel = model.provider === 'google' ? 'Gemini' : 'OpenAI'
 
   return (
     <div
@@ -472,49 +458,29 @@ export function InputPanel({
         <div className="text-[12px] text-(--color-text-3)">配置参数，撰写提示词</div>
       </div>
 
-      {/* API key card */}
-      <Section
-        label="API 密钥"
-        right={
-          <button
-            type="button"
-            onClick={onOpenApiKeys}
-            className="chip ghost"
-            style={{ height: 22, padding: '0 6px', fontSize: 11.5 }}
-          >
-            {currentKeyStatus === 'empty' ? '添加配置' : '修改配置'}
-          </button>
-        }
-      >
-        {currentKeyStatus === 'empty' ? (
-          <button
-            type="button"
-            onClick={onOpenApiKeys}
-            className="card flex items-center gap-2.5 px-3 py-2 w-full text-left cursor-pointer hover:bg-(--color-surface-2) transition-colors"
-          >
-            <Icon name="key" size={13} />
-            <span className="text-[12.5px] font-medium">{model.provider === 'google' ? 'Gemini' : 'OpenAI'}</span>
-            <div className="flex-1" />
-            <span className="tag" style={{ color: keyInfo.color, background: keyInfo.bg }}>
-              {keyInfo.text}
+      {isCurrentKeyMissing && (
+        <button
+          type="button"
+          onClick={onOpenApiKeys}
+          className="card mb-[18px] flex w-full items-start gap-2.5 px-3 py-2.5 text-left transition-colors"
+          style={{
+            color: 'var(--color-danger)',
+            background: 'var(--color-danger-soft)',
+            boxShadow: 'inset 0 0 0 1px color-mix(in srgb, var(--color-danger) 24%, transparent)',
+          }}
+        >
+          <Icon name="alert_circle" size={14} style={{ marginTop: 1, flexShrink: 0 }} />
+          <span className="flex-1">
+            <span className="block text-[12.5px] font-medium">当前模型未配置 API 密钥</span>
+            <span className="mt-0.5 block text-[11.5px] leading-[1.45] opacity-80">
+              使用 {model.name} 需要先配置 {providerLabel} API Key。
             </span>
-          </button>
-        ) : (
-          <div className="card flex items-center gap-2.5 px-3 py-2">
-            <Icon name="key" size={13} />
-            <span className="text-[12.5px] font-medium">{model.provider === 'google' ? 'Gemini' : 'OpenAI'}</span>
-            {maskedKey && <span className="mono text-[11px] text-(--color-text-3)">{maskedKey}</span>}
-            <div className="flex-1" />
-            <span className="tag" style={{ color: keyInfo.color, background: keyInfo.bg }}>
-              {currentKeyStatus === 'valid' && <Icon name="check" size={10} strokeWidth={2} />}
-              {currentKeyStatus === 'validating' && (
-                <span className="spinner" style={{ width: 9, height: 9, borderWidth: 1.2 }} />
-              )}
-              {keyInfo.text}
-            </span>
-          </div>
-        )}
-      </Section>
+          </span>
+          <span className="chip danger shrink-0" style={{ height: 22, padding: '0 7px', fontSize: 11.5 }}>
+            去配置
+          </span>
+        </button>
+      )}
 
       {/* MODEL segmented */}
       <Section label="模型" right={<span className="mono text-[11px] text-(--color-text-4)">{model.apiModel}</span>}>

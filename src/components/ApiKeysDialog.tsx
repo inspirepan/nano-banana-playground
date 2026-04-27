@@ -12,6 +12,7 @@ type KeyHook = {
   error: string | null
   submit: (key: string, baseUrl?: string) => void
   reset: () => void
+  keepCurrent: () => void
   setBaseUrl: (baseUrl: string) => void
 }
 
@@ -78,7 +79,7 @@ export function ApiKeysDialog({ open, googleKey, openaiKey, onClose }: Props) {
 
 function KeyRow({ provider, hook }: { provider: Provider; hook: KeyHook }) {
   const { label, placeholder, hint } = LABELS[provider]
-  const { apiKey, baseUrl, status, error, submit, reset } = hook
+  const { apiKey, baseUrl, status, error, submit, reset, keepCurrent } = hook
   const [draft, setDraft] = useState('')
   const [baseUrlDraft, setBaseUrlDraft] = useState(baseUrl)
   const [baseUrlSyncKey, setBaseUrlSyncKey] = useState(baseUrl)
@@ -87,7 +88,9 @@ function KeyRow({ provider, hook }: { provider: Provider; hook: KeyHook }) {
     setBaseUrlDraft(baseUrl)
   }
   const [justValidated, setJustValidated] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
   const prevStatusRef = useRef(status)
+  const suppressValidFlashRef = useRef(false)
 
   // Detect the valid transition to briefly flash a "验证成功" state on the primary button.
   useEffect(() => {
@@ -95,6 +98,12 @@ function KeyRow({ provider, hook }: { provider: Provider; hook: KeyHook }) {
     prevStatusRef.current = status
     if (prev !== 'valid' && status === 'valid') {
       setDraft('')
+      setIsEditing(false)
+      if (suppressValidFlashRef.current) {
+        suppressValidFlashRef.current = false
+        setJustValidated(false)
+        return
+      }
       setJustValidated(true)
       const t = setTimeout(() => setJustValidated(false), 1000)
       return () => clearTimeout(t)
@@ -102,9 +111,32 @@ function KeyRow({ provider, hook }: { provider: Provider; hook: KeyHook }) {
   }, [status])
 
   const handleSubmit = () => {
-    const key = draft.trim()
+    const key = draft.trim() || apiKey
     if (!key) return
     submit(key, baseUrlDraft.trim())
+  }
+
+  const handleEdit = () => {
+    setDraft('')
+    setBaseUrlDraft(baseUrl)
+    setJustValidated(false)
+    setIsEditing(true)
+  }
+
+  const handleCancelEdit = () => {
+    setDraft('')
+    setBaseUrlDraft(baseUrl)
+    setIsEditing(false)
+    setJustValidated(false)
+    suppressValidFlashRef.current = true
+    keepCurrent()
+  }
+
+  const handleReset = () => {
+    reset()
+    setDraft('')
+    setIsEditing(false)
+    setJustValidated(false)
   }
 
   const masked = apiKey ? `${apiKey.slice(0, 6)}******${apiKey.slice(-4)}` : ''
@@ -117,7 +149,7 @@ function KeyRow({ provider, hook }: { provider: Provider; hook: KeyHook }) {
     </div>
   )
 
-  if (status === 'valid') {
+  if (status === 'valid' && !isEditing) {
     return (
       <div>
         {header}
@@ -157,7 +189,7 @@ function KeyRow({ provider, hook }: { provider: Provider; hook: KeyHook }) {
           ) : (
             <button
               type="button"
-              onClick={reset}
+              onClick={handleEdit}
               className="w-full rounded-md bg-(--color-surface) text-[12.5px] font-medium text-(--color-text-2) shadow-[inset_0_0_0_1px_var(--ring-edge)] hover:bg-(--color-surface-2) hover:text-(--color-text) hover:shadow-[inset_0_0_0_1px_var(--ring-edge-strong)] transition-colors"
               style={{ height: 32 }}
             >
@@ -169,8 +201,13 @@ function KeyRow({ provider, hook }: { provider: Provider; hook: KeyHook }) {
     )
   }
 
-  // empty / invalid / validating: full form with a single primary save button
+  // empty / invalid / validating / editing: full form with explicit save and clear actions.
   const isValidating = status === 'validating'
+  const hasExistingKey = apiKey.trim() !== ''
+  const hasDraftKey = draft.trim() !== ''
+  const hasBaseUrlDraft = baseUrlDraft.trim() !== ''
+  const hasBaseUrlChange = baseUrlDraft.trim() !== baseUrl
+  const canSubmit = !isValidating && (hasDraftKey || (hasExistingKey && hasBaseUrlChange))
   return (
     <div>
       {header}
@@ -189,7 +226,7 @@ function KeyRow({ provider, hook }: { provider: Provider; hook: KeyHook }) {
           onKeyDown={(e) => {
             if (e.key === 'Enter') handleSubmit()
           }}
-          placeholder={placeholder}
+          placeholder={hasExistingKey ? '粘贴新密钥；留空则继续使用当前密钥' : placeholder}
           disabled={isValidating}
           className="w-full rounded-[6px] bg-(--color-surface) px-2.5 py-1.5 text-[12.5px]
                      shadow-[inset_0_0_0_1px_var(--ring-edge)]
@@ -222,7 +259,11 @@ function KeyRow({ provider, hook }: { provider: Provider; hook: KeyHook }) {
                        placeholder:text-(--color-text-4)
                        disabled:opacity-60 disabled:cursor-not-allowed"
           />
-          <div className="mt-1 flex items-start gap-1 text-[10.5px] leading-[1.5] text-(--color-text-4)">
+          <div
+            className="mt-1 flex items-start gap-1 text-[10.5px] leading-[1.5] text-(--color-text-4)"
+            aria-hidden={!hasBaseUrlDraft}
+            style={{ visibility: hasBaseUrlDraft ? 'visible' : 'hidden' }}
+          >
             <span className="shrink-0">实际调用</span>
             <span className="mono min-w-0 flex-1 break-all text-(--color-text-3)">
               {previewEndpoint(provider, baseUrlDraft)}
@@ -233,7 +274,7 @@ function KeyRow({ provider, hook }: { provider: Provider; hook: KeyHook }) {
         <button
           type="button"
           onClick={handleSubmit}
-          disabled={isValidating || !draft.trim()}
+          disabled={!canSubmit}
           className="cta w-full"
           style={{
             height: 32,
@@ -256,6 +297,28 @@ function KeyRow({ provider, hook }: { provider: Provider; hook: KeyHook }) {
             `保存并验证 ${label}`
           )}
         </button>
+
+        {hasExistingKey && !isValidating && (
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleReset}
+              className="chip danger"
+              style={{ height: 28, padding: '0 9px', fontSize: 11.5 }}
+            >
+              移除密钥
+            </button>
+            <div className="flex-1" />
+            <button
+              type="button"
+              onClick={handleCancelEdit}
+              className="chip ghost"
+              style={{ height: 28, padding: '0 9px', fontSize: 11.5 }}
+            >
+              取消
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )
