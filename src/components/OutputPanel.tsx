@@ -1,14 +1,15 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { PlaygroundImage, PlaygroundImageMeta } from '../lib/types'
+
+import { Icon } from './Icon'
+import { ImageDetailModal } from './ImageDetailModal'
+import { StackItemThumb } from './StackItemThumb'
+import { Tooltip } from './Tooltip'
 import type { ModelConfig } from '../config/models'
 import type { GenerationJob, GenerationQueueSummary } from '../hooks/usePlayground'
 import { downloadImagePng, downloadImagesZip } from '../lib/exportImages'
-import { ImageDetailModal } from './ImageDetailModal'
-import { Icon } from './Icon'
-import { Tooltip } from './Tooltip'
 import { formatTime } from '../lib/queueJobDisplay'
 import { buildImageStacks, type ImageStack, type StackItem } from '../lib/stacks'
-import { StackItemThumb } from './StackItemThumb'
+import type { PlaygroundImage, PlaygroundImageMeta } from '../lib/types'
 
 type Props = {
   history: PlaygroundImageMeta[]
@@ -61,11 +62,12 @@ function aspectValue(aspectRatio: string): number | null {
 }
 
 function isTallStackItem(item: StackItem): boolean {
-  const aspectRatio = item.type === 'image' && item.image.source.type === 'generated'
-    ? item.image.source.aspectRatio
-    : item.type === 'slot'
-      ? item.job.request.aspectRatio
-      : null
+  const aspectRatio =
+    item.type === 'image' && item.image.source.type === 'generated'
+      ? item.image.source.aspectRatio
+      : item.type === 'slot'
+        ? item.job.request.aspectRatio
+        : null
   const value = aspectRatio ? aspectValue(aspectRatio) : null
   return value !== null && value < 1
 }
@@ -89,9 +91,7 @@ function StackRow({
   const previewItems = [...stack.items].slice(-10).reverse()
 
   return (
-    <div
-      className="min-w-0 border-b border-dashed border-(--color-border) py-3 last:border-b-0"
-    >
+    <div className="min-w-0 border-b border-dashed border-(--color-border) py-3 last:border-b-0">
       <div className="min-w-0 p-3">
         <div className="mb-2 flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1">
           <span className="mono shrink-0 text-[11.5px] text-(--color-text-3)">{formatTime(stack.updatedAt)}</span>
@@ -113,8 +113,14 @@ function StackRow({
               {downloading ? '打包中…' : '下载 ZIP'}
             </button>
           )}
-          {stack.activeSlotCount > 0 && <span className="text-[11.5px] text-(--color-accent)">生成中 {stack.activeSlotCount}</span>}
-          {stack.failedSlotCount > 0 && <span className="text-[11.5px]" style={{ color: 'var(--color-danger)' }}>失败 {stack.failedSlotCount}</span>}
+          {stack.activeSlotCount > 0 && (
+            <span className="text-[11.5px] text-(--color-accent)">生成中 {stack.activeSlotCount}</span>
+          )}
+          {stack.failedSlotCount > 0 && (
+            <span className="text-[11.5px]" style={{ color: 'var(--color-danger)' }}>
+              失败 {stack.failedSlotCount}
+            </span>
+          )}
         </div>
         <div className="min-w-0 overflow-x-auto overflow-y-hidden overscroll-x-contain px-1.5 py-1.5">
           <div
@@ -144,7 +150,12 @@ function StackRow({
                               onEditItem(stack, item)
                             }}
                             className="inline-flex h-[24px] flex-1 items-center justify-center gap-1 rounded-[5px] px-2 text-[11px] font-medium"
-                            style={{ background: 'rgba(0,0,0,0.28)', color: '#fff', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.18)', backdropFilter: 'blur(8px)' }}
+                            style={{
+                              background: 'rgba(0,0,0,0.28)',
+                              color: '#fff',
+                              boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.18)',
+                              backdropFilter: 'blur(8px)',
+                            }}
                           >
                             <Icon name="wand" size={11} strokeWidth={1.8} />
                             编辑
@@ -156,7 +167,12 @@ function StackRow({
                               void downloadImagePng(item.image)
                             }}
                             className="inline-flex h-[24px] flex-1 items-center justify-center gap-1 rounded-[5px] px-2 text-[11px] font-medium"
-                            style={{ background: 'rgba(0,0,0,0.28)', color: '#fff', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.18)', backdropFilter: 'blur(8px)' }}
+                            style={{
+                              background: 'rgba(0,0,0,0.28)',
+                              color: '#fff',
+                              boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.18)',
+                              backdropFilter: 'blur(8px)',
+                            }}
                           >
                             <Icon name="download" size={11} strokeWidth={1.8} />
                             PNG
@@ -234,15 +250,18 @@ export const OutputPanel = memo(function OutputPanel({
     }
   }
 
-  const handleExportStack = useCallback(async (stack: ImageStack) => {
-    if (exportingStackId || stack.images.length < 2) return
-    setExportingStackId(stack.id)
-    try {
-      await downloadImagesZip(stack.images, `nano-banana-stack-${stack.id.slice(0, 8)}.zip`)
-    } finally {
-      setExportingStackId(null)
-    }
-  }, [exportingStackId])
+  const handleExportStack = useCallback(
+    async (stack: ImageStack) => {
+      if (exportingStackId || stack.images.length < 2) return
+      setExportingStackId(stack.id)
+      try {
+        await downloadImagesZip(stack.images, `nano-banana-stack-${stack.id.slice(0, 8)}.zip`)
+      } finally {
+        setExportingStackId(null)
+      }
+    },
+    [exportingStackId],
+  )
 
   const scrollRef = useRef<HTMLDivElement>(null)
   const topStackIdRef = useRef<string | null>(null)

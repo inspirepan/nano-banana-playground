@@ -1,9 +1,9 @@
-import type { PlaygroundImageMeta } from '../lib/types'
-import type { GenerationJob, GenerationSlot } from '../hooks/usePlayground'
-import { countSlots, formatTime, jobStatusLabel } from '../lib/queueJobDisplay'
+import { Icon } from './Icon'
 import { ImageCard } from './ImageCard'
 import { ImageGrid, GridCell } from './ImageGrid'
-import { Icon } from './Icon'
+import type { GenerationJob, GenerationSlot } from '../hooks/usePlayground'
+import { countSlots, formatTime, jobStatusLabel } from '../lib/queueJobDisplay'
+import type { PlaygroundImageMeta } from '../lib/types'
 
 function StatusCard({ slot, onCancel }: { slot: GenerationSlot; onCancel: (slotId: string) => void }) {
   if (slot.status === 'failed') return <FailedCard index={slot.index} error={slot.error ?? '生成失败'} />

@@ -1,9 +1,10 @@
 import { memo, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import type { PlaygroundImageMeta } from '../lib/types'
+
+import { Icon } from './Icon'
 import { ensureBlobLoaded, useImageSrc, getBlobFromCache } from '../hooks/useImageSrc'
 import { imageDownloadFileName } from '../lib/downloadFileName'
-import { Icon } from './Icon'
+import type { PlaygroundImageMeta } from '../lib/types'
 
 type Props = {
   image: PlaygroundImageMeta
@@ -73,7 +74,9 @@ export const ImageCard = memo(function ImageCard({
       if (!context) return
       context.drawImage(bitmap, 0, 0)
       bitmap.close()
-      const pngBlob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'))
+      const pngBlob = await new Promise<Blob | null>((resolve) => {
+        canvas.toBlob(resolve, 'image/png')
+      })
       if (!pngBlob) return
       clipboardBlob = pngBlob
     }
@@ -198,7 +201,7 @@ export const ImageCard = memo(function ImageCard({
             type="button"
             onClick={(e) => {
               e.stopPropagation()
-              handleDownload()
+              void handleDownload()
             }}
             className="inline-flex items-center gap-1 rounded-[5px] px-2.5 py-1.5 text-[11px] font-medium whitespace-nowrap"
             style={{ background: 'rgba(255,255,255,0.95)', color: '#111', border: 0 }}

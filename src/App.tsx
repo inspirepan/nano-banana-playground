@@ -1,12 +1,13 @@
+import { Agentation } from 'agentation'
 import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom'
-import { Agentation } from 'agentation'
-import { usePlayground } from './hooks/usePlayground'
-import type { PlaygroundImageMeta } from './lib/types'
-import { InputPanel } from './components/InputPanel'
-import { OutputPanel } from './components/OutputPanel'
+
 import { ApiKeysDialog } from './components/ApiKeysDialog'
 import { Icon, type IconName } from './components/Icon'
+import { InputPanel } from './components/InputPanel'
+import { OutputPanel } from './components/OutputPanel'
+import { usePlayground } from './hooks/usePlayground'
+import type { PlaygroundImageMeta } from './lib/types'
 
 type Theme = 'light' | 'dark' | 'system'
 type ColorThemeId = 'default' | 'green' | 'yellow' | 'pink' | 'orange' | 'purple' | 'mono'
@@ -171,7 +172,7 @@ function App() {
 
   const handleAddToRef = useCallback(
     (image: PlaygroundImageMeta) => {
-      addToReferences(image)
+      void addToReferences(image)
     },
     [addToReferences],
   )

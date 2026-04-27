@@ -1,4 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
+
+import { useApiKey } from './useApiKey'
+import { putBlobInCache, getBlobFromCache, removeBlobFromCache, clearBlobCache } from './useImageSrc'
 import {
   MODEL_CONFIGS,
   DEFAULT_MODEL,
@@ -8,8 +11,7 @@ import {
   type ModelConfig,
 } from '../config/models'
 import { generateImage, GENERATE_MAX_ATTEMPTS } from '../lib/api'
-import type { PlaygroundImage, PlaygroundImageMeta } from '../lib/types'
-import { isKeyError } from '../lib/validateKey'
+import { readFileAsImageData } from '../lib/fileToImage'
 import {
   saveToHistory,
   loadHistoryPage,
@@ -20,10 +22,9 @@ import {
   loadDraftRefs,
   clearDraftRefs,
 } from '../lib/history'
-import { readFileAsImageData } from '../lib/fileToImage'
+import type { PlaygroundImage, PlaygroundImageMeta } from '../lib/types'
 import { readSimpleUrlParams, updateUrl } from '../lib/urlState'
-import { useApiKey } from './useApiKey'
-import { putBlobInCache, getBlobFromCache, removeBlobFromCache, clearBlobCache } from './useImageSrc'
+import { isKeyError } from '../lib/validateKey'
 
 export type GenerationSlotStatus = 'queued' | 'running' | 'retrying' | 'succeeded' | 'failed' | 'canceled'
 export type GenerationJobStatus = 'queued' | 'running' | 'completed' | 'partial_failed' | 'failed' | 'canceled'
@@ -219,22 +220,30 @@ export function usePlayground() {
 
   // Load first page of history on mount
   useEffect(() => {
-    loadHistoryPage(0, HISTORY_PAGE_SIZE).then(({ items, hasMore }) => {
-      setHistory(items)
-      setHistoryHasMore(hasMore)
-    })
+    void loadHistoryPage(0, HISTORY_PAGE_SIZE)
+      .then(({ items, hasMore }) => {
+        setHistory(items)
+        setHistoryHasMore(hasMore)
+      })
+      .catch(() => {
+        setHistory([])
+        setHistoryHasMore(false)
+      })
   }, [])
 
   // Load persisted draft reference images on mount
   const draftRefsLoadedRef = useRef(false)
   useEffect(() => {
-    loadDraftRefs().then((images) => {
-      if (images.length > 0) {
-        setReferenceImages(images)
-        for (const img of images) putBlobInCache(img.id, img.data)
-      }
-      draftRefsLoadedRef.current = true
-    })
+    void loadDraftRefs()
+      .then((images) => {
+        if (images.length > 0) {
+          setReferenceImages(images)
+          for (const img of images) putBlobInCache(img.id, img.data)
+        }
+      })
+      .finally(() => {
+        draftRefsLoadedRef.current = true
+      })
   }, [])
 
   // Load more history pages (infinite scroll)
@@ -284,7 +293,7 @@ export function usePlayground() {
     if (!draftRefsLoadedRef.current) return // skip initial save before load completes
     window.clearTimeout(draftRefsDebounceRef.current)
     draftRefsDebounceRef.current = window.setTimeout(() => {
-      saveDraftRefs(referenceImages)
+      void saveDraftRefs(referenceImages).catch(() => {})
     }, 500)
     return () => window.clearTimeout(draftRefsDebounceRef.current)
   }, [referenceImages])
@@ -321,7 +330,7 @@ export function usePlayground() {
       const remaining = maxTotal - referenceImages.length
       const toAdd = files.slice(0, remaining)
 
-      Promise.allSettled(
+      void Promise.allSettled(
         toAdd.map((file) =>
           readFileAsImageData(file).then((result) => {
             if (!result) return null

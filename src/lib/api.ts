@@ -1,7 +1,7 @@
-import type { ModelConfig } from '../config/models'
-import type { GroundingMetadata, PlaygroundImage, TokenUsage } from './types'
 import { openAISize } from './openai'
+import type { GroundingMetadata, PlaygroundImage, TokenUsage } from './types'
 import { resolveBaseUrl } from './validateKey'
+import type { ModelConfig } from '../config/models'
 
 export type GenerateParams = {
   apiKey: string
@@ -177,7 +177,9 @@ async function generateImageGoogle(
   for (let attempt = 0; attempt <= GENERATE_MAX_RETRIES; attempt++) {
     if (attempt > 0) {
       const delay = GENERATE_RETRY_DELAYS[attempt - 1]
-      await new Promise((r) => setTimeout(r, delay))
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, delay)
+      })
       if (signal?.aborted) throw signal.reason
     }
 
@@ -403,7 +405,9 @@ async function generateImageOpenAI(
   for (let attempt = 0; attempt <= GENERATE_MAX_RETRIES; attempt++) {
     if (attempt > 0) {
       const delay = GENERATE_RETRY_DELAYS[attempt - 1]
-      await new Promise((r) => setTimeout(r, delay))
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, delay)
+      })
       if (signal?.aborted) throw signal.reason
     }
 

@@ -1,4 +1,5 @@
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState } from 'react'
+
 import {
   computeItemCounts,
   getEditState,
@@ -229,7 +230,10 @@ export const DrawableLayer = forwardRef<DrawableLayerHandle, Props>(function Dra
 
   const [natural, setNatural] = useState<{ w: number; h: number } | null>(null)
   const [stage, setStage] = useState<{ w: number; h: number }>({ w: 0, h: 0 })
-  const [localView, setLocalView] = useState<{ scale: number; offset: Point }>({ scale: LOCAL_FIT_SCALE, offset: { x: 0, y: 0 } })
+  const [localView, setLocalView] = useState<{ scale: number; offset: Point }>({
+    scale: LOCAL_FIT_SCALE,
+    offset: { x: 0, y: 0 },
+  })
   const [isPanning, setIsPanning] = useState(false)
   const localViewRef = useRef(localView)
 
@@ -303,13 +307,16 @@ export const DrawableLayer = forwardRef<DrawableLayerHandle, Props>(function Dra
     return () => obs.disconnect()
   }, [recomputeStage])
 
-  const clampLocalOffset = useCallback((offset: Point, scale: number): Point => {
-    const container = containerRef.current
-    if (!container) return { x: 0, y: 0 }
-    const maxX = Math.max(0, (stage.w * scale - container.clientWidth) / 2)
-    const maxY = Math.max(0, (stage.h * scale - container.clientHeight) / 2)
-    return { x: clamp(offset.x, -maxX, maxX), y: clamp(offset.y, -maxY, maxY) }
-  }, [stage])
+  const clampLocalOffset = useCallback(
+    (offset: Point, scale: number): Point => {
+      const container = containerRef.current
+      if (!container) return { x: 0, y: 0 }
+      const maxX = Math.max(0, (stage.w * scale - container.clientWidth) / 2)
+      const maxY = Math.max(0, (stage.h * scale - container.clientHeight) / 2)
+      return { x: clamp(offset.x, -maxX, maxX), y: clamp(offset.y, -maxY, maxY) }
+    },
+    [stage],
+  )
 
   const applyLocalView = useCallback(
     (scale: number, offset: Point) => {

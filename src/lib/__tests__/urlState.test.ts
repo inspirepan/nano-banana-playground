@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
+
 import { readSimpleUrlParams, updateUrl } from '../urlState'
 
 // Stubs window for URL-related tests. Returns the replaceState spy.

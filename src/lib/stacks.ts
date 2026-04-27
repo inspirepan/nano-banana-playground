@@ -1,5 +1,5 @@
-import type { GenerationJob, GenerationSlot } from '../hooks/usePlayground'
 import type { PlaygroundImageMeta } from './types'
+import type { GenerationJob, GenerationSlot } from '../hooks/usePlayground'
 
 export type StackImageItem = {
   type: 'image'
@@ -78,7 +78,10 @@ export function buildImageStacks(history: PlaygroundImageMeta[], generationJobs:
     if (image.source.type !== 'generated') continue
     if (jobBatchIds.has(image.source.batchId)) continue
     const current = batchTimestamps.get(image.source.batchId)
-    batchTimestamps.set(image.source.batchId, current === undefined ? image.timestamp : Math.min(current, image.timestamp))
+    batchTimestamps.set(
+      image.source.batchId,
+      current === undefined ? image.timestamp : Math.min(current, image.timestamp),
+    )
   }
 
   for (const image of history) {

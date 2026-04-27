@@ -1,24 +1,41 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+  type RefObject,
+} from 'react'
 import { createPortal } from 'react-dom'
-import type { GeneratedSource, GroundingMetadata, PlaygroundImage, PlaygroundImageMeta } from '../lib/types'
-import type { GenerationJob } from '../hooks/usePlayground'
-import { MODEL_CONFIGS, DEFAULT_MODEL, defaultOptionsFor, type ModelConfig } from '../config/models'
-import { getActualCost, getPricePerImage } from '../lib/pricing'
-import { ensureBlobLoaded, useImageSrc } from '../hooks/useImageSrc'
-import { loadImageMetas } from '../lib/history'
-import { downloadImagesZip } from '../lib/exportImages'
-import { Icon, type IconName } from './Icon'
-import { ChipGroup } from './ChipGroup'
+
 import { AspectRatioSelector } from './AspectRatioSelector'
-import { ReferenceImageUpload, type LockedReferenceImage } from './ReferenceImageUpload'
-import { QueueJobSection } from './QueueJobSection'
+import { ChipGroup } from './ChipGroup'
 import { DrawableLayer, type DrawableLayerHandle, type DrawMode, type DrawTool } from './DrawableLayer'
-import { computeItemCounts, copyEditState, getEditState, setEditItems, setEditPrompt, type ItemCounts } from '../lib/editStateCache'
-import { openAISize } from '../lib/openai'
-import { readFileAsImageData } from '../lib/fileToImage'
-import { imageDownloadFileName } from '../lib/downloadFileName'
-import type { ImageStack, StackItem } from '../lib/stacks'
+import { Icon, type IconName } from './Icon'
+import { QueueJobSection } from './QueueJobSection'
+import { ReferenceImageUpload, type LockedReferenceImage } from './ReferenceImageUpload'
 import { StackItemThumb } from './StackItemThumb'
+import { MODEL_CONFIGS, DEFAULT_MODEL, defaultOptionsFor, type ModelConfig } from '../config/models'
+import { ensureBlobLoaded, useImageSrc } from '../hooks/useImageSrc'
+import type { GenerationJob } from '../hooks/usePlayground'
+import { imageDownloadFileName } from '../lib/downloadFileName'
+import {
+  computeItemCounts,
+  copyEditState,
+  getEditState,
+  setEditItems,
+  setEditPrompt,
+  type ItemCounts,
+} from '../lib/editStateCache'
+import { downloadImagesZip } from '../lib/exportImages'
+import { readFileAsImageData } from '../lib/fileToImage'
+import { loadImageMetas } from '../lib/history'
+import { openAISize } from '../lib/openai'
+import { getActualCost, getPricePerImage } from '../lib/pricing'
+import type { ImageStack, StackItem } from '../lib/stacks'
+import type { GeneratedSource, GroundingMetadata, PlaygroundImage, PlaygroundImageMeta } from '../lib/types'
 
 type EditMode = 'view' | DrawMode
 type ModalViewMode = 'detail' | 'gallery'
@@ -188,9 +205,7 @@ function MetaRow({ label, value, mono, last }: { label: string; value: ReactNode
       style={{ borderBottom: last ? 'none' : '1px solid var(--color-border)' }}
     >
       <div className="w-[76px] shrink-0 text-xs font-medium text-(--color-text-3)">{label}</div>
-      <div className={`${mono ? 'mono' : ''} flex-1 break-words text-right text-sm text-(--color-text)`}>
-        {value}
-      </div>
+      <div className={`${mono ? 'mono' : ''} flex-1 break-words text-right text-sm text-(--color-text)`}>{value}</div>
     </div>
   )
 }
@@ -227,8 +242,10 @@ function SlotHero({
       )}
       <div className="mono text-sm text-(--color-text-2)">{label}</div>
       {slot?.error && <div className="max-w-[420px] text-xs leading-[1.5] text-(--color-text-4)">{slot.error}</div>}
-      {slot && job && (slot.status === 'queued' || slot.status === 'running' || slot.status === 'retrying') && (
-        job.slots.length === 1 ? (
+      {slot &&
+        job &&
+        (slot.status === 'queued' || slot.status === 'running' || slot.status === 'retrying') &&
+        (job.slots.length === 1 ? (
           <button type="button" className="chip danger mt-2" onClick={() => onCancelSlot(slot.id)}>
             取消
           </button>
@@ -241,8 +258,7 @@ function SlotHero({
               取消全部
             </button>
           </div>
-        )
-      )}
+        ))}
       {slot && job && (slot.status === 'failed' || slot.status === 'canceled') && (
         <button type="button" className="chip ghost mt-2" onClick={() => onDismissJob(job.id)}>
           关闭任务
@@ -279,12 +295,17 @@ function StackStrip({
     >
       <div className="flex items-center gap-2">
         <div className="-m-1 flex min-w-0 flex-1 items-center gap-2 overflow-x-auto p-1">
-        {stack.items.map((item) => (
-          <StackItemThumb key={item.id} item={item} active={selectedId === item.id} outerRing onSelect={onSelect} />
-        ))}
+          {stack.items.map((item) => (
+            <StackItemThumb key={item.id} item={item} active={selectedId === item.id} outerRing onSelect={onSelect} />
+          ))}
         </div>
         {hasActiveJobs && (
-          <button type="button" onClick={onCancelActiveJobs} className="chip danger shrink-0 text-xs" style={{ height: 24, padding: '0 8px' }}>
+          <button
+            type="button"
+            onClick={onCancelActiveJobs}
+            className="chip danger shrink-0 text-xs"
+            style={{ height: 24, padding: '0 8px' }}
+          >
             取消全部
           </button>
         )}
@@ -538,7 +559,9 @@ export function ImageDetailModal({
 
   useEffect(() => {
     if (missingRefIds.length === 0) return
-    loadImageMetas(missingRefIds).then(setDbRefMetas)
+    void loadImageMetas(missingRefIds)
+      .then(setDbRefMetas)
+      .catch(() => setDbRefMetas(new Map()))
   }, [missingRefIds])
 
   const findRefImage = useCallback(
@@ -553,15 +576,17 @@ export function ImageDetailModal({
     if (refSrcMap.has(refDetailId)) return
     const refImg = findRefImage(refDetailId)
     if (!refImg) return
-    ensureBlobLoaded(refImg.id, refImg.mimeType).then((src) => {
-      if (!src) return
-      setRefSrcMap((prev) => {
-        if (prev.has(refDetailId)) return prev
-        const next = new Map(prev)
-        next.set(refDetailId, src)
-        return next
+    void ensureBlobLoaded(refImg.id, refImg.mimeType)
+      .then((src) => {
+        if (!src) return
+        setRefSrcMap((prev) => {
+          if (prev.has(refDetailId)) return prev
+          const next = new Map(prev)
+          next.set(refDetailId, src)
+          return next
+        })
       })
-    })
+      .catch(() => {})
   }, [refDetailId, refSrcMap, findRefImage])
 
   const goToPrev = useCallback(() => {
@@ -580,7 +605,7 @@ export function ImageDetailModal({
 
   useEffect(() => {
     if (!currentImage) return
-    ensureBlobLoaded(currentImage.id, currentImage.mimeType)
+    void ensureBlobLoaded(currentImage.id, currentImage.mimeType).catch(() => {})
   }, [currentImage])
 
   useEffect(() => {
@@ -616,12 +641,14 @@ export function ImageDetailModal({
     if (next?.type === 'image') neighbors.push(next.image)
     let cancelled = false
     for (const n of neighbors) {
-      ensureBlobLoaded(n.id, n.mimeType).then((dataUrl) => {
-        if (cancelled || !dataUrl) return
-        const pre = new Image()
-        pre.decoding = 'async'
-        pre.src = dataUrl
-      })
+      void ensureBlobLoaded(n.id, n.mimeType)
+        .then((dataUrl) => {
+          if (cancelled || !dataUrl) return
+          const pre = new Image()
+          pre.decoding = 'async'
+          pre.src = dataUrl
+        })
+        .catch(() => {})
     }
     return () => {
       cancelled = true
@@ -870,7 +897,7 @@ export function ImageDetailModal({
 
   const handleCopyPrompt = () => {
     if (!currentMeta?.prompt) return
-    navigator.clipboard?.writeText(currentMeta.prompt)
+    void navigator.clipboard?.writeText(currentMeta.prompt).catch(() => {})
     setCopiedPrompt(true)
     setTimeout(() => setCopiedPrompt(false), 1400)
   }
@@ -1005,7 +1032,12 @@ export function ImageDetailModal({
         )}
         {viewMode === 'detail' && (
           <>
-            <button className="chip hidden shrink-0 md:inline-flex" onClick={handleAddRef} disabled={!currentImage} title="加为参考">
+            <button
+              className="chip hidden shrink-0 md:inline-flex"
+              onClick={handleAddRef}
+              disabled={!currentImage}
+              title="加为参考"
+            >
               <Icon name="plus" size={12} strokeWidth={1.8} /> <span className="hidden md:inline">参考</span>
             </button>
             {currentMeta?.prompt && (
@@ -1022,7 +1054,12 @@ export function ImageDetailModal({
             >
               <Icon name="download" size={14} strokeWidth={1.8} /> 下载
             </button>
-            <button className="chip hidden shrink-0 md:inline-flex" onClick={handleDownload} disabled={!currentImage} title="下载 PNG">
+            <button
+              className="chip hidden shrink-0 md:inline-flex"
+              onClick={handleDownload}
+              disabled={!currentImage}
+              title="下载 PNG"
+            >
               <Icon name="download" size={12} strokeWidth={1.8} /> <span className="hidden md:inline">PNG</span>
             </button>
           </>
@@ -1063,7 +1100,11 @@ export function ImageDetailModal({
             }}
             onCancelActiveJobs={() => {
               for (const job of stack.jobs) {
-                if (job.slots.some((slot) => slot.status === 'queued' || slot.status === 'running' || slot.status === 'retrying')) {
+                if (
+                  job.slots.some(
+                    (slot) => slot.status === 'queued' || slot.status === 'running' || slot.status === 'retrying',
+                  )
+                ) {
                   onCancelGenerationJob(job.id)
                 }
               }
@@ -1072,555 +1113,559 @@ export function ImageDetailModal({
 
           {/* ——— Body ——— */}
           <div className="flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden">
-        {/* Canvas with grid background */}
-        <div
-          className="relative min-h-0 min-w-0 overflow-hidden md:flex-1"
-          style={{
-            flex: '1 1 0%',
-            minHeight: 0,
-            backgroundImage: `linear-gradient(var(--color-border) 1px, transparent 1px), linear-gradient(90deg, var(--color-border) 1px, transparent 1px)`,
-            backgroundSize: '28px 28px, 28px 28px',
-            backgroundColor: 'var(--color-bg-sunken)',
-          }}
-        >
-          {refDetailId && refDetailSrc && currentImage ? (
-            <div className="relative flex flex-row h-full gap-px">
-              <div className="h-full flex-1 min-w-0 relative">
-                <ZoomableImageView key={refDetailId ?? 'ref'} src={refDetailSrc} alt="" label="左 · 参考图" />
-              </div>
-              <div className="h-full flex-1 min-w-0 relative">
-                <ZoomableImageView
-                  key={currentImage.id}
-                  src={currentSrc ?? ''}
-                  alt={currentMeta?.prompt ?? ''}
-                  label="右 · 生成图"
-                />
-              </div>
-              <button
-                type="button"
-                onClick={() => setRefDetailId(null)}
-                className="absolute top-3 right-3 z-30 chip"
-                style={{ height: 26 }}
-                title="退出对比"
-                aria-label="退出对比"
-              >
-                <Icon name="close" size={12} />
-                <span className="hidden sm:inline">退出对比</span>
-                <span className="sm:hidden">退出</span>
-              </button>
-            </div>
-          ) : currentImage ? (
-            <>
-              {!desktopAnnotationActive && (
-                <ZoomableImageView
-                  key="main-viewer"
-                  src={displayImage?.src ?? currentSrc ?? ''}
-                  alt={displayImage?.alt ?? currentMeta?.prompt ?? ''}
-                  onSwipeLeft={hasNext ? goToNext : undefined}
-                  onSwipeRight={hasPrev ? goToPrev : undefined}
-                />
-              )}
-              {(editMode !== 'view' || hasDrawableMarks) && !mobileDrawOpen && (
-                <DrawableLayer
-                  ref={drawableRef}
-                  key={`${currentImage.id}:${drawRevision}`}
-                  imageId={currentImage.id}
-                  src={currentSrc ?? ''}
-                  mode={activeDrawMode}
-                  tool={drawTool}
-                  brushSize={brushSize}
-                  visibleModes={['mask', 'annotate']}
-                  eraseAllModes
-                  readOnly={editMode === 'view' || desktopMoveActive}
-                  panEnabled={desktopMoveActive}
-                  onItemsChange={setDrawableCounts}
-                />
-              )}
-              {desktopAnnotationActive && (
-                <DesktopAnnotationToolbar
-                  drawTool={drawTool}
-                  desktopMoveActive={desktopMoveActive}
-                  brushPreset={brushPreset}
-                  layerHasItems={hasDrawableMarks}
-                  onChangeDrawTool={(tool) => {
-                    setDesktopMoveActive(false)
-                    setDrawTool(tool)
-                  }}
-                  onChangeDesktopMoveActive={setDesktopMoveActive}
-                  onChangeBrushPreset={setBrushPreset}
-                  onUndo={() => drawableRef.current?.undo()}
-                  onClear={clearAnnotations}
-                  onFinish={finishAnnotation}
-                />
-              )}
-            </>
-          ) : (
-            <SlotHero
-              item={selectedItem}
-              onCancelSlot={onCancelGenerationSlot}
-              onCancelJob={onCancelGenerationJob}
-              onDismissJob={onDismissGenerationJob}
-            />
-          )}
-
-          {!refDetailId && hasPrev && (
-            <button
-              onClick={goToPrev}
-              aria-label="上一张"
-              className="absolute left-4 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full flex items-center justify-center transition-colors"
+            {/* Canvas with grid background */}
+            <div
+              className="relative min-h-0 min-w-0 overflow-hidden md:flex-1"
               style={{
-                background: 'color-mix(in srgb, var(--color-surface) 90%, transparent)',
-                color: 'var(--color-text-2)',
-                backdropFilter: 'blur(8px)',
-                boxShadow: '0 0 0 1px var(--ring-edge), 0 1px 2px rgba(0,0,0,0.04)',
+                flex: '1 1 0%',
+                minHeight: 0,
+                backgroundImage: `linear-gradient(var(--color-border) 1px, transparent 1px), linear-gradient(90deg, var(--color-border) 1px, transparent 1px)`,
+                backgroundSize: '28px 28px, 28px 28px',
+                backgroundColor: 'var(--color-bg-sunken)',
               }}
             >
-              <Icon name="chevron_left" size={14} strokeWidth={1.8} />
-            </button>
-          )}
-          {!refDetailId && hasNext && (
-            <button
-              onClick={goToNext}
-              aria-label="下一张"
-              className="absolute right-4 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full flex items-center justify-center transition-colors"
-              style={{
-                background: 'color-mix(in srgb, var(--color-surface) 90%, transparent)',
-                color: 'var(--color-text-2)',
-                backdropFilter: 'blur(8px)',
-                boxShadow: '0 0 0 1px var(--ring-edge), 0 1px 2px rgba(0,0,0,0.04)',
-              }}
-            >
-              <Icon name="chevron_right" size={14} strokeWidth={1.8} />
-            </button>
-          )}
+              {refDetailId && refDetailSrc && currentImage ? (
+                <div className="relative flex flex-row h-full gap-px">
+                  <div className="h-full flex-1 min-w-0 relative">
+                    <ZoomableImageView key={refDetailId ?? 'ref'} src={refDetailSrc} alt="" label="左 · 参考图" />
+                  </div>
+                  <div className="h-full flex-1 min-w-0 relative">
+                    <ZoomableImageView
+                      key={currentImage.id}
+                      src={currentSrc ?? ''}
+                      alt={currentMeta?.prompt ?? ''}
+                      label="右 · 生成图"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setRefDetailId(null)}
+                    className="absolute top-3 right-3 z-30 chip"
+                    style={{ height: 26 }}
+                    title="退出对比"
+                    aria-label="退出对比"
+                  >
+                    <Icon name="close" size={12} />
+                    <span className="hidden sm:inline">退出对比</span>
+                    <span className="sm:hidden">退出</span>
+                  </button>
+                </div>
+              ) : currentImage ? (
+                <>
+                  {!desktopAnnotationActive && (
+                    <ZoomableImageView
+                      key="main-viewer"
+                      src={displayImage?.src ?? currentSrc ?? ''}
+                      alt={displayImage?.alt ?? currentMeta?.prompt ?? ''}
+                      onSwipeLeft={hasNext ? goToNext : undefined}
+                      onSwipeRight={hasPrev ? goToPrev : undefined}
+                    />
+                  )}
+                  {(editMode !== 'view' || hasDrawableMarks) && !mobileDrawOpen && (
+                    <DrawableLayer
+                      ref={drawableRef}
+                      key={`${currentImage.id}:${drawRevision}`}
+                      imageId={currentImage.id}
+                      src={currentSrc ?? ''}
+                      mode={activeDrawMode}
+                      tool={drawTool}
+                      brushSize={brushSize}
+                      visibleModes={['mask', 'annotate']}
+                      eraseAllModes
+                      readOnly={editMode === 'view' || desktopMoveActive}
+                      panEnabled={desktopMoveActive}
+                      onItemsChange={setDrawableCounts}
+                    />
+                  )}
+                  {desktopAnnotationActive && (
+                    <DesktopAnnotationToolbar
+                      drawTool={drawTool}
+                      desktopMoveActive={desktopMoveActive}
+                      brushPreset={brushPreset}
+                      layerHasItems={hasDrawableMarks}
+                      onChangeDrawTool={(tool) => {
+                        setDesktopMoveActive(false)
+                        setDrawTool(tool)
+                      }}
+                      onChangeDesktopMoveActive={setDesktopMoveActive}
+                      onChangeBrushPreset={setBrushPreset}
+                      onUndo={() => drawableRef.current?.undo()}
+                      onClear={clearAnnotations}
+                      onFinish={finishAnnotation}
+                    />
+                  )}
+                </>
+              ) : (
+                <SlotHero
+                  item={selectedItem}
+                  onCancelSlot={onCancelGenerationSlot}
+                  onCancelJob={onCancelGenerationJob}
+                  onDismissJob={onDismissGenerationJob}
+                />
+              )}
 
-          {toast && (
-            <div
-              className="absolute top-4 left-1/2 z-20 -translate-x-1/2 text-xs font-medium fade-in"
-              style={{
-                background: 'var(--color-text)',
-                color: 'var(--color-bg)',
-                padding: '6px 12px',
-                borderRadius: 6,
-                boxShadow: '0 10px 28px -12px rgba(30,27,20,0.18), 0 2px 6px rgba(30,27,20,0.06)',
-              }}
-            >
-              {toast}
-            </div>
-          )}
-        </div>
-
-        {/* Right metadata panel (mobile: draggable bottom sheet) */}
-        <div
-          className="w-full overflow-y-auto overflow-x-hidden border-t md:border-t-0 md:border-l border-(--color-border) md:h-auto"
-          style={{
-            background: 'var(--color-bg)',
-            overscrollBehavior: 'contain',
-            ...(isMobileSheet
-              ? {
-                  flexShrink: 0,
-                  height: `${sheetHeightPx ?? getMobileSheetHeights(getVisualViewportHeight()).initialHeight}px`,
-                  transition: sheetDragging ? 'none' : 'height 260ms cubic-bezier(0.22, 0.8, 0.4, 1)',
-                }
-              : {
-                  flexShrink: 0,
-                  width: sidebarCollapsed ? 0 : 340,
-                  minWidth: 0,
-                  transition: 'width 280ms cubic-bezier(0.22, 0.8, 0.4, 1)',
-                }),
-          }}
-        >
-          {/* Mobile drag handle */}
-          {isMobileSheet && (
-            <div
-              className="md:hidden sticky top-0 z-10 flex justify-center items-center h-7 cursor-grab active:cursor-grabbing select-none"
-              style={{ background: 'var(--color-bg)', touchAction: 'none' }}
-              onPointerDown={handleSheetPointerDown}
-              onPointerMove={handleSheetPointerMove}
-              onPointerUp={handleSheetPointerUp}
-              onPointerCancel={handleSheetPointerUp}
-            >
-              <div className="w-9 h-1 rounded-full" style={{ background: 'var(--color-border)' }} />
-            </div>
-          )}
-
-          <div
-            className="px-[18px] pt-1 md:pt-4 pb-24 md:pb-10"
-            style={{ width: isMobileSheet ? undefined : 340 }}
-          >
-            <div
-              className="mb-[18px]"
-              style={isMobileSheet ? { touchAction: 'none' } : undefined}
-              onClick={expandMobileSheet}
-              onPointerDown={isMobileSheet ? handleSheetPointerDown : undefined}
-              onPointerMove={isMobileSheet ? handleSheetPointerMove : undefined}
-              onPointerUp={isMobileSheet ? handleSheetPointerUp : undefined}
-              onPointerCancel={isMobileSheet ? handleSheetPointerUp : undefined}
-            >
-              <div
-                className="segmented"
-                style={{
-                  width: '100%',
-                  ['--seg-count' as string]: 2,
-                  ['--seg-index' as string]: editing ? 1 : 0,
-                }}
-              >
+              {!refDetailId && hasPrev && (
                 <button
-                  type="button"
-                  onClick={() => {
-                    expandMobileSheet()
-                    exitEdit()
+                  onClick={goToPrev}
+                  aria-label="上一张"
+                  className="absolute left-4 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full flex items-center justify-center transition-colors"
+                  style={{
+                    background: 'color-mix(in srgb, var(--color-surface) 90%, transparent)',
+                    color: 'var(--color-text-2)',
+                    backdropFilter: 'blur(8px)',
+                    boxShadow: '0 0 0 1px var(--ring-edge), 0 1px 2px rgba(0,0,0,0.04)',
                   }}
-                  data-active={!editing}
                 >
-                  <span>详情</span>
+                  <Icon name="chevron_left" size={14} strokeWidth={1.8} />
                 </button>
+              )}
+              {!refDetailId && hasNext && (
                 <button
-                  type="button"
-                  onClick={() => {
-                    expandMobileSheet()
-                    if (currentImage) setEditing(true)
+                  onClick={goToNext}
+                  aria-label="下一张"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full flex items-center justify-center transition-colors"
+                  style={{
+                    background: 'color-mix(in srgb, var(--color-surface) 90%, transparent)',
+                    color: 'var(--color-text-2)',
+                    backdropFilter: 'blur(8px)',
+                    boxShadow: '0 0 0 1px var(--ring-edge), 0 1px 2px rgba(0,0,0,0.04)',
                   }}
-                  disabled={!currentImage}
-                  data-active={editing}
                 >
-                  <span>编辑</span>
+                  <Icon name="chevron_right" size={14} strokeWidth={1.8} />
                 </button>
-              </div>
+              )}
+
+              {toast && (
+                <div
+                  className="absolute top-4 left-1/2 z-20 -translate-x-1/2 text-xs font-medium fade-in"
+                  style={{
+                    background: 'var(--color-text)',
+                    color: 'var(--color-bg)',
+                    padding: '6px 12px',
+                    borderRadius: 6,
+                    boxShadow: '0 10px 28px -12px rgba(30,27,20,0.18), 0 2px 6px rgba(30,27,20,0.06)',
+                  }}
+                >
+                  {toast}
+                </div>
+              )}
             </div>
-            {editing && currentImage ? (
-              <EditSidebar
-                sourceImage={currentImage}
-                generationJobs={generationJobs}
-                activeEditBatchId={activeEditBatchId}
-                onEditImage={onEditImage}
-                onSetActiveBatchId={setActiveEditBatch}
-                onCancelGenerationJob={onCancelGenerationJob}
-                onDismissGenerationJob={onDismissGenerationJob}
-                onCancelGenerationSlot={onCancelGenerationSlot}
-                onAddToRef={onAddToRef}
-                onRegenerate={onRegenerate}
-                onRemove={onRemove}
-                onOpenImage={(img) => {
-                  const item = stack.items.find((candidate) => candidate.type === 'image' && candidate.image.id === img.id)
-                  setSelection(toSelection(item ?? null))
-                  setRefDetailId(null)
-                }}
-                onViewQueue={onClose}
-                annotationActive={editMode !== 'view'}
-                hasAnnotations={hasDrawableMarks}
-                annotationToolsFloating={!isMobileSheet}
-                drawableCounts={drawableCounts}
-                drawableRef={drawableRef}
-                drawTool={drawTool}
-                desktopMoveActive={desktopMoveActive}
-                brushPreset={brushPreset}
-                onStartAnnotation={startAnnotation}
-                onFinishAnnotation={finishAnnotation}
-                onClearAnnotations={clearAnnotations}
-                onChangeDrawTool={(tool) => {
-                  setDesktopMoveActive(false)
-                  setDrawTool(tool)
-                }}
-                onChangeDesktopMoveActive={setDesktopMoveActive}
-                onChangeBrushPreset={setBrushPreset}
-              />
-            ) : (
-              <>
-                {currentImage && (
-                  <div className="mb-[18px] grid grid-cols-2 gap-1.5 md:hidden">
-                    <button type="button" className="chip justify-center" onClick={handleAddRef} disabled={!currentImage}>
-                      <Icon name="plus" size={12} strokeWidth={1.8} />
-                      +参考
+
+            {/* Right metadata panel (mobile: draggable bottom sheet) */}
+            <div
+              className="w-full overflow-y-auto overflow-x-hidden border-t md:border-t-0 md:border-l border-(--color-border) md:h-auto"
+              style={{
+                background: 'var(--color-bg)',
+                overscrollBehavior: 'contain',
+                ...(isMobileSheet
+                  ? {
+                      flexShrink: 0,
+                      height: `${sheetHeightPx ?? getMobileSheetHeights(getVisualViewportHeight()).initialHeight}px`,
+                      transition: sheetDragging ? 'none' : 'height 260ms cubic-bezier(0.22, 0.8, 0.4, 1)',
+                    }
+                  : {
+                      flexShrink: 0,
+                      width: sidebarCollapsed ? 0 : 340,
+                      minWidth: 0,
+                      transition: 'width 280ms cubic-bezier(0.22, 0.8, 0.4, 1)',
+                    }),
+              }}
+            >
+              {/* Mobile drag handle */}
+              {isMobileSheet && (
+                <div
+                  className="md:hidden sticky top-0 z-10 flex justify-center items-center h-7 cursor-grab active:cursor-grabbing select-none"
+                  style={{ background: 'var(--color-bg)', touchAction: 'none' }}
+                  onPointerDown={handleSheetPointerDown}
+                  onPointerMove={handleSheetPointerMove}
+                  onPointerUp={handleSheetPointerUp}
+                  onPointerCancel={handleSheetPointerUp}
+                >
+                  <div className="w-9 h-1 rounded-full" style={{ background: 'var(--color-border)' }} />
+                </div>
+              )}
+
+              <div className="px-[18px] pt-1 md:pt-4 pb-24 md:pb-10" style={{ width: isMobileSheet ? undefined : 340 }}>
+                <div
+                  className="mb-[18px]"
+                  style={isMobileSheet ? { touchAction: 'none' } : undefined}
+                  onClick={expandMobileSheet}
+                  onPointerDown={isMobileSheet ? handleSheetPointerDown : undefined}
+                  onPointerMove={isMobileSheet ? handleSheetPointerMove : undefined}
+                  onPointerUp={isMobileSheet ? handleSheetPointerUp : undefined}
+                  onPointerCancel={isMobileSheet ? handleSheetPointerUp : undefined}
+                >
+                  <div
+                    className="segmented"
+                    style={{
+                      width: '100%',
+                      ['--seg-count' as string]: 2,
+                      ['--seg-index' as string]: editing ? 1 : 0,
+                    }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => {
+                        expandMobileSheet()
+                        exitEdit()
+                      }}
+                      data-active={!editing}
+                    >
+                      <span>详情</span>
                     </button>
                     <button
                       type="button"
-                      className="chip justify-center"
-                      onClick={handleRegenerateAction}
-                      disabled={!currentMeta?.prompt}
+                      onClick={() => {
+                        expandMobileSheet()
+                        if (currentImage) setEditing(true)
+                      }}
+                      disabled={!currentImage}
+                      data-active={editing}
                     >
-                      <Icon name="refresh" size={12} strokeWidth={1.8} />
-                      还原参数
+                      <span>编辑</span>
                     </button>
                   </div>
-                )}
-
-                {/* Prompt */}
-                {currentMeta?.prompt && (
-                  <div className="mb-[18px]">
-                    <div className="flex items-center mb-1.5">
-                      <span className="label">提示词</span>
-                      <div className="flex-1" />
-                      <button className="chip shrink-0 text-xs" style={{ height: 26 }} onClick={handleCopyPrompt}>
-                        {/* Safari (WebKit) ignores flex layout on <button> itself;
-                      nesting the flex container in a <span> works around it. */}
-                        <span className="inline-flex items-center gap-1.5">
-                          <Icon
-                            name={copiedPrompt ? 'check' : 'copy'}
-                            size={12}
-                            strokeWidth={copiedPrompt ? 2.2 : 1.8}
-                          />
-                          {copiedPrompt ? '已复制' : '复制'}
-                        </span>
-                      </button>
-                    </div>
-                    <div
-                      className="rounded-[8px] p-3 text-sm leading-[1.6] text-(--color-text-2)"
-                      style={{
-                        background: 'var(--color-surface)',
-                        boxShadow: 'inset 0 0 0 1px var(--ring-edge)',
-                        maxHeight: 220,
-                        overflowY: 'auto',
-                      }}
-                    >
-                      {renderPromptLines(currentMeta.prompt)}
-                    </div>
-                  </div>
-                )}
-
-                {/* Reference images */}
-                {currentMeta && currentMeta.referenceImageIds.length > 0 && (
-                  <div className="mb-[18px]">
-                    <div className="flex items-center mb-1.5">
-                      <span className="label">参考图</span>
-                      <span className="ml-1.5 text-xs text-(--color-text-4)">
-                        {currentMeta.referenceImageIds.length} 张
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-4 gap-1.5">
-                      {currentMeta.referenceImageIds.map((refId) => {
-                        const refImg = findRefImage(refId)
-                        if (!refImg)
-                          return (
-                            <div
-                              key={refId}
-                              className="aspect-square rounded-[6px] flex items-center justify-center text-(--color-text-4)"
-                              style={{
-                                boxShadow: 'inset 0 0 0 1px var(--ring-edge)',
-                                background: 'var(--color-surface-2)',
-                              }}
-                            >
-                              ?
-                            </div>
-                          )
-                        return (
-                          <RefThumbnail
-                            key={refId}
-                            image={refImg}
-                            isActive={refDetailId === refImg.id}
-                            onClick={() => setRefDetailId((prev) => (prev === refImg.id ? null : refImg.id))}
-                          />
-                        )
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {/* Metadata */}
-                <div className="mb-[18px]">
-                  <div className="label mb-1">元数据</div>
-                  {currentMeta && (
-                    <>
-                      <MetaRow label="模型" value={modelName!} />
-                      {modelApiId && <MetaRow label="模型 ID" value={modelApiId} mono />}
-                      <MetaRow label="分辨率" value={currentMeta.resolution} mono />
-                      <MetaRow label="宽高比" value={currentMeta.aspectRatio} mono />
-                      {(() => {
-                        const bag = effectiveOptions(currentMeta)
-                        // Render rows in the order the active model declares options, then any
-                        // legacy keys that don't appear in the current descriptors.
-                        const declaredIds = modelConfig?.options?.map((o) => o.id) ?? []
-                        const leftover = Object.keys(bag).filter((id) => !declaredIds.includes(id))
-                        const ordered = [...declaredIds, ...leftover]
-                        return ordered.map((id) => {
-                          const formatted = formatOptionValue(modelConfig, id, bag[id])
-                          if (formatted === null) return null
-                          return <MetaRow key={id} label={optionLabel(modelConfig, id)} value={formatted} />
-                        })
-                      })()}
-                      {actualCost !== null && (
-                        <MetaRow label="费用" value={<span>${actualCost.toFixed(4)}</span>} mono />
-                      )}
-                      {currentMeta.tokenUsage && modelConfig?.provider === 'openai' && (
-                        <>
-                          <MetaRow
-                            label="文本输入 Token"
-                            value={
-                              currentMeta.tokenUsage.inputTextTokens?.toLocaleString() ??
-                              currentMeta.tokenUsage.inputTokens.toLocaleString()
-                            }
-                            mono
-                          />
-                          {(currentMeta.tokenUsage.inputImageTokens ?? 0) > 0 && (
-                            <MetaRow
-                              label="图片输入 Token"
-                              value={(currentMeta.tokenUsage.inputImageTokens ?? 0).toLocaleString()}
-                              mono
-                            />
-                          )}
-                          <MetaRow
-                            label="图片输出 Token"
-                            value={currentMeta.tokenUsage.imageOutputTokens.toLocaleString()}
-                            mono
-                          />
-                          {currentMeta.tokenUsage.textOutputTokens > 0 && (
-                            <MetaRow
-                              label="文本输出 Token"
-                              value={currentMeta.tokenUsage.textOutputTokens.toLocaleString()}
-                              mono
-                            />
-                          )}
-                        </>
-                      )}
-                      {currentMeta.tokenUsage && modelConfig?.provider === 'google' && (
-                        <>
-                          <MetaRow
-                            label="输入 Token"
-                            value={currentMeta.tokenUsage.inputTokens.toLocaleString()}
-                            mono
-                          />
-                          <MetaRow
-                            label="图片 Token"
-                            value={currentMeta.tokenUsage.imageOutputTokens.toLocaleString()}
-                            mono
-                          />
-                          {currentMeta.tokenUsage.textOutputTokens > 0 && (
-                            <MetaRow
-                              label="思考 Token"
-                              value={currentMeta.tokenUsage.textOutputTokens.toLocaleString()}
-                              mono
-                            />
-                          )}
-                        </>
-                      )}
-                    </>
-                  )}
-                  {currentImage?.source.type === 'upload' && (
-                    <MetaRow label="来源" value={`上传: ${currentImage.source.fileName}`} />
-                  )}
-                  {currentImage ? (
-                    <MetaRow
-                      label="创建时间"
-                      value={new Date(currentImage.timestamp).toLocaleString('zh-CN', { hour12: false })}
-                      mono
-                    />
-                  ) : (
-                    <MetaRow label="状态" value={currentSlot?.status === 'failed' ? '生成失败' : '等待生成'} />
-                  )}
-                  {currentMeta && stackInfo && (
-                    <MetaRow
-                      label="Stack"
-                      value={
-                        <span>
-                          <span className="mono">s_{stack.id.slice(0, 6)}</span>
-                          <span className="mono text-(--color-text-4) ml-1.5">
-                            #{stackInfo.pos}/{stackInfo.total}
-                          </span>
-                        </span>
-                      }
-                      last
-                    />
-                  )}
                 </div>
+                {editing && currentImage ? (
+                  <EditSidebar
+                    sourceImage={currentImage}
+                    generationJobs={generationJobs}
+                    activeEditBatchId={activeEditBatchId}
+                    onEditImage={onEditImage}
+                    onSetActiveBatchId={setActiveEditBatch}
+                    onCancelGenerationJob={onCancelGenerationJob}
+                    onDismissGenerationJob={onDismissGenerationJob}
+                    onCancelGenerationSlot={onCancelGenerationSlot}
+                    onAddToRef={onAddToRef}
+                    onRegenerate={onRegenerate}
+                    onRemove={onRemove}
+                    onOpenImage={(img) => {
+                      const item = stack.items.find(
+                        (candidate) => candidate.type === 'image' && candidate.image.id === img.id,
+                      )
+                      setSelection(toSelection(item ?? null))
+                      setRefDetailId(null)
+                    }}
+                    onViewQueue={onClose}
+                    annotationActive={editMode !== 'view'}
+                    hasAnnotations={hasDrawableMarks}
+                    annotationToolsFloating={!isMobileSheet}
+                    drawableCounts={drawableCounts}
+                    drawableRef={drawableRef}
+                    drawTool={drawTool}
+                    desktopMoveActive={desktopMoveActive}
+                    brushPreset={brushPreset}
+                    onStartAnnotation={startAnnotation}
+                    onFinishAnnotation={finishAnnotation}
+                    onClearAnnotations={clearAnnotations}
+                    onChangeDrawTool={(tool) => {
+                      setDesktopMoveActive(false)
+                      setDrawTool(tool)
+                    }}
+                    onChangeDesktopMoveActive={setDesktopMoveActive}
+                    onChangeBrushPreset={setBrushPreset}
+                  />
+                ) : (
+                  <>
+                    {currentImage && (
+                      <div className="mb-[18px] grid grid-cols-2 gap-1.5 md:hidden">
+                        <button
+                          type="button"
+                          className="chip justify-center"
+                          onClick={handleAddRef}
+                          disabled={!currentImage}
+                        >
+                          <Icon name="plus" size={12} strokeWidth={1.8} />
+                          +参考
+                        </button>
+                        <button
+                          type="button"
+                          className="chip justify-center"
+                          onClick={handleRegenerateAction}
+                          disabled={!currentMeta?.prompt}
+                        >
+                          <Icon name="refresh" size={12} strokeWidth={1.8} />
+                          还原参数
+                        </button>
+                      </div>
+                    )}
 
-                {/* Grounding sources (Google Search / Image Search) */}
-                {currentMeta?.groundingMetadata && <GroundingSection metadata={currentMeta.groundingMetadata} />}
+                    {/* Prompt */}
+                    {currentMeta?.prompt && (
+                      <div className="mb-[18px]">
+                        <div className="flex items-center mb-1.5">
+                          <span className="label">提示词</span>
+                          <div className="flex-1" />
+                          <button className="chip shrink-0 text-xs" style={{ height: 26 }} onClick={handleCopyPrompt}>
+                            {/* Safari (WebKit) ignores flex layout on <button> itself;
+                      nesting the flex container in a <span> works around it. */}
+                            <span className="inline-flex items-center gap-1.5">
+                              <Icon
+                                name={copiedPrompt ? 'check' : 'copy'}
+                                size={12}
+                                strokeWidth={copiedPrompt ? 2.2 : 1.8}
+                              />
+                              {copiedPrompt ? '已复制' : '复制'}
+                            </span>
+                          </button>
+                        </div>
+                        <div
+                          className="rounded-[8px] p-3 text-sm leading-[1.6] text-(--color-text-2)"
+                          style={{
+                            background: 'var(--color-surface)',
+                            boxShadow: 'inset 0 0 0 1px var(--ring-edge)',
+                            maxHeight: 220,
+                            overflowY: 'auto',
+                          }}
+                        >
+                          {renderPromptLines(currentMeta.prompt)}
+                        </div>
+                      </div>
+                    )}
 
-                {/* Danger delete */}
-                {currentImage && canNavigate && (
-                  <button
-                    className="inline-flex w-full items-center justify-center gap-1.5 text-xs font-medium transition-colors"
-                    style={{
-                      height: 30,
-                      borderRadius: 6,
-                      boxShadow: 'inset 0 0 0 1px var(--ring-edge)',
-                      background: 'var(--color-surface)',
-                      color: 'var(--color-danger)',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background =
-                        'color-mix(in srgb, var(--color-danger) 8%, var(--color-surface))'
-                      e.currentTarget.style.boxShadow =
-                        'inset 0 0 0 1px color-mix(in srgb, var(--color-danger) 30%, transparent)'
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = 'var(--color-surface)'
-                      e.currentTarget.style.boxShadow = 'inset 0 0 0 1px var(--ring-edge)'
-                    }}
-                    onClick={() => {
-                      onRemove(currentImage.id)
-                      onClose()
-                    }}
-                  >
-                    <Icon name="trash" size={12} strokeWidth={1.8} /> 从历史中删除
-                  </button>
+                    {/* Reference images */}
+                    {currentMeta && currentMeta.referenceImageIds.length > 0 && (
+                      <div className="mb-[18px]">
+                        <div className="flex items-center mb-1.5">
+                          <span className="label">参考图</span>
+                          <span className="ml-1.5 text-xs text-(--color-text-4)">
+                            {currentMeta.referenceImageIds.length} 张
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-4 gap-1.5">
+                          {currentMeta.referenceImageIds.map((refId) => {
+                            const refImg = findRefImage(refId)
+                            if (!refImg)
+                              return (
+                                <div
+                                  key={refId}
+                                  className="aspect-square rounded-[6px] flex items-center justify-center text-(--color-text-4)"
+                                  style={{
+                                    boxShadow: 'inset 0 0 0 1px var(--ring-edge)',
+                                    background: 'var(--color-surface-2)',
+                                  }}
+                                >
+                                  ?
+                                </div>
+                              )
+                            return (
+                              <RefThumbnail
+                                key={refId}
+                                image={refImg}
+                                isActive={refDetailId === refImg.id}
+                                onClick={() => setRefDetailId((prev) => (prev === refImg.id ? null : refImg.id))}
+                              />
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Metadata */}
+                    <div className="mb-[18px]">
+                      <div className="label mb-1">元数据</div>
+                      {currentMeta && (
+                        <>
+                          <MetaRow label="模型" value={modelName!} />
+                          {modelApiId && <MetaRow label="模型 ID" value={modelApiId} mono />}
+                          <MetaRow label="分辨率" value={currentMeta.resolution} mono />
+                          <MetaRow label="宽高比" value={currentMeta.aspectRatio} mono />
+                          {(() => {
+                            const bag = effectiveOptions(currentMeta)
+                            // Render rows in the order the active model declares options, then any
+                            // legacy keys that don't appear in the current descriptors.
+                            const declaredIds = modelConfig?.options?.map((o) => o.id) ?? []
+                            const leftover = Object.keys(bag).filter((id) => !declaredIds.includes(id))
+                            const ordered = [...declaredIds, ...leftover]
+                            return ordered.map((id) => {
+                              const formatted = formatOptionValue(modelConfig, id, bag[id])
+                              if (formatted === null) return null
+                              return <MetaRow key={id} label={optionLabel(modelConfig, id)} value={formatted} />
+                            })
+                          })()}
+                          {actualCost !== null && (
+                            <MetaRow label="费用" value={<span>${actualCost.toFixed(4)}</span>} mono />
+                          )}
+                          {currentMeta.tokenUsage && modelConfig?.provider === 'openai' && (
+                            <>
+                              <MetaRow
+                                label="文本输入 Token"
+                                value={
+                                  currentMeta.tokenUsage.inputTextTokens?.toLocaleString() ??
+                                  currentMeta.tokenUsage.inputTokens.toLocaleString()
+                                }
+                                mono
+                              />
+                              {(currentMeta.tokenUsage.inputImageTokens ?? 0) > 0 && (
+                                <MetaRow
+                                  label="图片输入 Token"
+                                  value={(currentMeta.tokenUsage.inputImageTokens ?? 0).toLocaleString()}
+                                  mono
+                                />
+                              )}
+                              <MetaRow
+                                label="图片输出 Token"
+                                value={currentMeta.tokenUsage.imageOutputTokens.toLocaleString()}
+                                mono
+                              />
+                              {currentMeta.tokenUsage.textOutputTokens > 0 && (
+                                <MetaRow
+                                  label="文本输出 Token"
+                                  value={currentMeta.tokenUsage.textOutputTokens.toLocaleString()}
+                                  mono
+                                />
+                              )}
+                            </>
+                          )}
+                          {currentMeta.tokenUsage && modelConfig?.provider === 'google' && (
+                            <>
+                              <MetaRow
+                                label="输入 Token"
+                                value={currentMeta.tokenUsage.inputTokens.toLocaleString()}
+                                mono
+                              />
+                              <MetaRow
+                                label="图片 Token"
+                                value={currentMeta.tokenUsage.imageOutputTokens.toLocaleString()}
+                                mono
+                              />
+                              {currentMeta.tokenUsage.textOutputTokens > 0 && (
+                                <MetaRow
+                                  label="思考 Token"
+                                  value={currentMeta.tokenUsage.textOutputTokens.toLocaleString()}
+                                  mono
+                                />
+                              )}
+                            </>
+                          )}
+                        </>
+                      )}
+                      {currentImage?.source.type === 'upload' && (
+                        <MetaRow label="来源" value={`上传: ${currentImage.source.fileName}`} />
+                      )}
+                      {currentImage ? (
+                        <MetaRow
+                          label="创建时间"
+                          value={new Date(currentImage.timestamp).toLocaleString('zh-CN', { hour12: false })}
+                          mono
+                        />
+                      ) : (
+                        <MetaRow label="状态" value={currentSlot?.status === 'failed' ? '生成失败' : '等待生成'} />
+                      )}
+                      {currentMeta && stackInfo && (
+                        <MetaRow
+                          label="Stack"
+                          value={
+                            <span>
+                              <span className="mono">s_{stack.id.slice(0, 6)}</span>
+                              <span className="mono text-(--color-text-4) ml-1.5">
+                                #{stackInfo.pos}/{stackInfo.total}
+                              </span>
+                            </span>
+                          }
+                          last
+                        />
+                      )}
+                    </div>
+
+                    {/* Grounding sources (Google Search / Image Search) */}
+                    {currentMeta?.groundingMetadata && <GroundingSection metadata={currentMeta.groundingMetadata} />}
+
+                    {/* Danger delete */}
+                    {currentImage && canNavigate && (
+                      <button
+                        className="inline-flex w-full items-center justify-center gap-1.5 text-xs font-medium transition-colors"
+                        style={{
+                          height: 30,
+                          borderRadius: 6,
+                          boxShadow: 'inset 0 0 0 1px var(--ring-edge)',
+                          background: 'var(--color-surface)',
+                          color: 'var(--color-danger)',
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background =
+                            'color-mix(in srgb, var(--color-danger) 8%, var(--color-surface))'
+                          e.currentTarget.style.boxShadow =
+                            'inset 0 0 0 1px color-mix(in srgb, var(--color-danger) 30%, transparent)'
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = 'var(--color-surface)'
+                          e.currentTarget.style.boxShadow = 'inset 0 0 0 1px var(--ring-edge)'
+                        }}
+                        onClick={() => {
+                          void onRemove(currentImage.id)
+                          onClose()
+                        }}
+                      >
+                        <Icon name="trash" size={12} strokeWidth={1.8} /> 从历史中删除
+                      </button>
+                    )}
+                  </>
                 )}
+              </div>
+            </div>
+          </div>
+
+          {/* ——— Footer shortcuts ——— */}
+          <div
+            className="hidden shrink-0 items-center gap-3.5 px-3.5 text-xs text-(--color-text-4) md:flex"
+            style={{
+              height: 30,
+              borderTop: '1px solid var(--color-border)',
+              background: 'var(--color-bg-sunken)',
+            }}
+          >
+            {!editing && (
+              <>
+                <span className="inline-flex items-center gap-1.5">
+                  <kbd>←</kbd>
+                  <kbd>→</kbd> 切换
+                </span>
+                <span className="inline-flex items-center gap-1.5">滚轮 缩放</span>
+                <span className="inline-flex items-center gap-1.5">
+                  <kbd>0</kbd> / 双击 重置
+                </span>
               </>
             )}
+            {editing && (
+              <span className="inline-flex items-center gap-1.5">
+                <kbd>⌘</kbd>
+                <kbd>Z</kbd> 撤销
+              </span>
+            )}
+            <span className="inline-flex items-center gap-1.5">
+              <kbd>Esc</kbd> 关闭
+            </span>
+            <div className="flex-1" />
+            <span className="mono">#{(currentImage?.id ?? selectedItem?.id ?? stack.id).slice(0, 8)}</span>
           </div>
-        </div>
-      </div>
-
-      {/* ——— Footer shortcuts ——— */}
-      <div
-        className="hidden shrink-0 items-center gap-3.5 px-3.5 text-xs text-(--color-text-4) md:flex"
-        style={{
-          height: 30,
-          borderTop: '1px solid var(--color-border)',
-          background: 'var(--color-bg-sunken)',
-        }}
-      >
-        {!editing && (
-          <>
-            <span className="inline-flex items-center gap-1.5">
-              <kbd>←</kbd>
-              <kbd>→</kbd> 切换
-            </span>
-            <span className="inline-flex items-center gap-1.5">滚轮 缩放</span>
-            <span className="inline-flex items-center gap-1.5">
-              <kbd>0</kbd> / 双击 重置
-            </span>
-          </>
-        )}
-        {editing && (
-          <span className="inline-flex items-center gap-1.5">
-            <kbd>⌘</kbd>
-            <kbd>Z</kbd> 撤销
-          </span>
-        )}
-        <span className="inline-flex items-center gap-1.5">
-          <kbd>Esc</kbd> 关闭
-        </span>
-        <div className="flex-1" />
-        <span className="mono">#{(currentImage?.id ?? selectedItem?.id ?? stack.id).slice(0, 8)}</span>
-      </div>
-      {editing && mobileDrawOpen && currentImage && (
-        <MobileDrawFullscreen
-          imageId={currentImage.id}
-          src={currentSrc ?? ''}
-          mode={activeDrawMode}
-          tool={drawTool}
-          brushPreset={brushPreset}
-          brushSize={brushSize}
-          counts={drawableCounts}
-          drawableRef={drawableRef}
-          onChangeTool={setDrawTool}
-          onChangeBrushPreset={setBrushPreset}
-          onItemsChange={setDrawableCounts}
-          onUndo={() => drawableRef.current?.undo()}
-          onClear={clearAnnotations}
-          onClose={finishAnnotation}
-        />
-      )}
-      {mobilePreviewOpen && currentImage && (
-        <MobilePreviewFullscreen
-          src={currentSrc ?? ''}
-          alt={currentMeta?.prompt ?? ''}
-          onClose={() => setMobilePreviewOpen(false)}
-          onSwipeLeft={hasNext ? goToNext : undefined}
-          onSwipeRight={hasPrev ? goToPrev : undefined}
-        />
-      )}
+          {editing && mobileDrawOpen && currentImage && (
+            <MobileDrawFullscreen
+              imageId={currentImage.id}
+              src={currentSrc ?? ''}
+              mode={activeDrawMode}
+              tool={drawTool}
+              brushPreset={brushPreset}
+              brushSize={brushSize}
+              counts={drawableCounts}
+              drawableRef={drawableRef}
+              onChangeTool={setDrawTool}
+              onChangeBrushPreset={setBrushPreset}
+              onItemsChange={setDrawableCounts}
+              onUndo={() => drawableRef.current?.undo()}
+              onClear={clearAnnotations}
+              onClose={finishAnnotation}
+            />
+          )}
+          {mobilePreviewOpen && currentImage && (
+            <MobilePreviewFullscreen
+              src={currentSrc ?? ''}
+              alt={currentMeta?.prompt ?? ''}
+              onClose={() => setMobilePreviewOpen(false)}
+              onSwipeLeft={hasNext ? goToNext : undefined}
+              onSwipeRight={hasPrev ? goToPrev : undefined}
+            />
+          )}
         </>
       )}
     </div>,
@@ -1806,7 +1851,9 @@ function EditSidebar({
     sourceIdRef.current = sourceImage.id
     setModelId(sourceDefaultModel.id)
     setResolution(sourceDefaultModel.resolutions.includes(sourceRes) ? sourceRes : sourceDefaultModel.defaultResolution)
-    setAspectRatio(sourceDefaultModel.aspectRatios.includes(sourceAspect) ? sourceAspect : sourceDefaultModel.defaultAspectRatio)
+    setAspectRatio(
+      sourceDefaultModel.aspectRatios.includes(sourceAspect) ? sourceAspect : sourceDefaultModel.defaultAspectRatio,
+    )
     setPrompt(getEditState(sourceImage.id).prompt)
   }, [sourceImage.id, sourceDefaultModel, sourceRes, sourceAspect])
 
@@ -2005,7 +2052,6 @@ function EditSidebar({
     batchCount,
     onSetActiveBatchId,
     drawableRef,
-    drawableCounts,
     hasAnnotationStrokes,
     hasMaskStrokes,
     hasOpenAIMask,
@@ -2025,7 +2071,7 @@ function EditSidebar({
     const handler = (e: KeyboardEvent) => {
       if (e.metaKey && e.key === 'Enter') {
         e.preventDefault()
-        if (canSubmit) handleGenerate()
+        if (canSubmit) void handleGenerate()
       }
     }
     window.addEventListener('keydown', handler)
@@ -2035,8 +2081,11 @@ function EditSidebar({
   // Count what actually ships to the provider. With annotations we send BOTH
   // the annotated composite and the clean source, so the model has the
   // unobscured pixels available for regions outside the user's marks.
-  const lockedReferenceImages: LockedReferenceImage[] = [{ id: `${sourceImage.id}:source`, image: sourceImage, label: '原图' }]
-  if (hasAnnotatedSource) lockedReferenceImages.push({ id: `${sourceImage.id}:annotate`, image: sourceImage, label: '标注' })
+  const lockedReferenceImages: LockedReferenceImage[] = [
+    { id: `${sourceImage.id}:source`, image: sourceImage, label: '原图' },
+  ]
+  if (hasAnnotatedSource)
+    lockedReferenceImages.push({ id: `${sourceImage.id}:annotate`, image: sourceImage, label: '标注' })
   if (hasOpenAIMask) lockedReferenceImages.push({ id: `${sourceImage.id}:mask`, image: sourceImage, label: 'Mask' })
 
   return (
@@ -2181,7 +2230,11 @@ function EditSidebar({
       <div className="mb-[18px]">
         <div className="label mb-1.5">标注</div>
         <div className="flex items-center gap-2">
-          <button type="button" className="chip flex-1 justify-center" onClick={annotationActive ? onFinishAnnotation : onStartAnnotation}>
+          <button
+            type="button"
+            className="chip flex-1 justify-center"
+            onClick={annotationActive ? onFinishAnnotation : onStartAnnotation}
+          >
             <Icon name={annotationActive ? 'check' : 'brush'} size={13} strokeWidth={1.8} />
             {annotationActive ? '完成标注' : '标注'}
           </button>
@@ -2275,7 +2328,9 @@ function EditSidebar({
 
       {/* Summary + CTA */}
       <div className="pt-2.5 border-t border-dashed border-(--color-border)">
-        {estimatedCost !== null && <div className="mono mb-2 text-right text-xs text-(--color-text-2)">≈ ${estimatedCost.toFixed(3)}</div>}
+        {estimatedCost !== null && (
+          <div className="mono mb-2 text-right text-xs text-(--color-text-2)">≈ ${estimatedCost.toFixed(3)}</div>
+        )}
         {submitError && <div className="mb-2 text-xs text-(--color-danger)">{submitError}</div>}
         <button type="button" onClick={handleGenerate} disabled={!canSubmit} className="cta w-full">
           <Icon name="wand" size={13} strokeWidth={1.8} />
@@ -2414,7 +2469,12 @@ function DesktopAnnotationToolbar({
           <Icon name="undo" size={13} strokeWidth={1.8} />
           撤销
         </button>
-        <button type="button" className="annotation-tool-btn text-(--color-text-3) shrink-0" onClick={onClear} disabled={!layerHasItems}>
+        <button
+          type="button"
+          className="annotation-tool-btn text-(--color-text-3) shrink-0"
+          onClick={onClear}
+          disabled={!layerHasItems}
+        >
           清空
         </button>
         <button type="button" className="annotation-tool-btn shrink-0" data-active="true" onClick={onFinish}>
@@ -2480,15 +2540,18 @@ function MobileDrawFullscreen({
     { id: 'eraser', label: '橡皮', icon: 'eraser' },
   ]
 
-  const applyView = useCallback((nextScale: number, nextOffset: Point) => {
-    const clampedScale = clamp(nextScale, FIT_SCALE, MAX_SCALE)
-    const viewport = viewportSize.width ? viewportSize : getViewportSize(viewportRef.current)
-    const clampedOffset = clampOffset(nextOffset, clampedScale, viewport, fitSizeRef.current)
-    scaleRef.current = clampedScale
-    offsetRef.current = clampedOffset
-    setScale(clampedScale)
-    setOffset(clampedOffset)
-  }, [viewportSize])
+  const applyView = useCallback(
+    (nextScale: number, nextOffset: Point) => {
+      const clampedScale = clamp(nextScale, FIT_SCALE, MAX_SCALE)
+      const viewport = viewportSize.width ? viewportSize : getViewportSize(viewportRef.current)
+      const clampedOffset = clampOffset(nextOffset, clampedScale, viewport, fitSizeRef.current)
+      scaleRef.current = clampedScale
+      offsetRef.current = clampedOffset
+      setScale(clampedScale)
+      setOffset(clampedOffset)
+    },
+    [viewportSize],
+  )
 
   const resetView = useCallback(() => {
     activePointersRef.current.clear()
@@ -2583,7 +2646,11 @@ function MobileDrawFullscreen({
     if (activePointersRef.current.size === 2 && pinchStartRef.current) {
       const [first, second] = Array.from(activePointersRef.current.values())
       const start = pinchStartRef.current
-      const nextScale = clamp(start.scale * (Math.max(getDistance(first, second), 1) / start.distance), FIT_SCALE, MAX_SCALE)
+      const nextScale = clamp(
+        start.scale * (Math.max(getDistance(first, second), 1) / start.distance),
+        FIT_SCALE,
+        MAX_SCALE,
+      )
       const center = getCenter(first, second)
       const ratio = nextScale / start.scale
       applyView(nextScale, {
@@ -2626,7 +2693,9 @@ function MobileDrawFullscreen({
         </button>
         <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-semibold text-(--color-text)">标注</div>
-          <div className="text-xs text-(--color-text-4)">{isMoveTool ? '单指拖动，双指缩放' : '涂抹编辑区域，或用编号补充说明'}</div>
+          <div className="text-xs text-(--color-text-4)">
+            {isMoveTool ? '单指拖动，双指缩放' : '涂抹编辑区域，或用编号补充说明'}
+          </div>
         </div>
         <button type="button" className="chip text-xs" onClick={onClose} style={{ height: 28 }}>
           完成
@@ -2667,22 +2736,47 @@ function MobileDrawFullscreen({
           onItemsChange={onItemsChange}
         />
 
-        <div className="pointer-events-none absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-0.5 rounded-[8px] p-1"
-          style={{ background: 'color-mix(in srgb, var(--color-surface) 92%, transparent)', boxShadow: '0 0 0 1px var(--ring-edge), 0 1px 2px rgba(0,0,0,0.04)', backdropFilter: 'blur(10px)' }}
+        <div
+          className="pointer-events-none absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-0.5 rounded-[8px] p-1"
+          style={{
+            background: 'color-mix(in srgb, var(--color-surface) 92%, transparent)',
+            boxShadow: '0 0 0 1px var(--ring-edge), 0 1px 2px rgba(0,0,0,0.04)',
+            backdropFilter: 'blur(10px)',
+          }}
         >
-          <button type="button" className="icon-btn pointer-events-auto" onClick={() => zoomCenter(0.8)} title="缩小" style={{ width: 28, height: 26 }}>
+          <button
+            type="button"
+            className="icon-btn pointer-events-auto"
+            onClick={() => zoomCenter(0.8)}
+            title="缩小"
+            style={{ width: 28, height: 26 }}
+          >
             <Icon name="zoom_out_map" size={12} strokeWidth={1.8} />
           </button>
-          <button type="button" className="mono pointer-events-auto px-2 text-xs font-medium text-(--color-text-2)" onClick={resetView} title="重置">
+          <button
+            type="button"
+            className="mono pointer-events-auto px-2 text-xs font-medium text-(--color-text-2)"
+            onClick={resetView}
+            title="重置"
+          >
             {Math.round(scale * 100)}%
           </button>
-          <button type="button" className="icon-btn pointer-events-auto" onClick={() => zoomCenter(1.25)} title="放大" style={{ width: 28, height: 26 }}>
+          <button
+            type="button"
+            className="icon-btn pointer-events-auto"
+            onClick={() => zoomCenter(1.25)}
+            title="放大"
+            style={{ width: 28, height: 26 }}
+          >
             <Icon name="zoom_in" size={12} strokeWidth={1.8} />
           </button>
         </div>
       </div>
 
-      <div className="shrink-0 border-t border-(--color-border) px-3 py-3" style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}>
+      <div
+        className="shrink-0 border-t border-(--color-border) px-3 py-3"
+        style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}
+      >
         <div className="space-y-2">
           <div className="flex gap-1.5 overflow-x-auto pb-0.5">
             {toolOptions.map((item) => (
@@ -2703,7 +2797,8 @@ function MobileDrawFullscreen({
             ))}
           </div>
           <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5">
-            {mobileTool !== 'move' && mobileTool !== 'eraser' &&
+            {mobileTool !== 'move' &&
+              mobileTool !== 'eraser' &&
               BRUSH_PRESETS.map((item) => (
                 <button
                   key={item.id}
@@ -2719,11 +2814,23 @@ function MobileDrawFullscreen({
                 </button>
               ))}
             <div className="flex-1" />
-            <button type="button" className="chip shrink-0 text-sm" onClick={onUndo} disabled={!layerHasItems} style={{ height: 36 }}>
+            <button
+              type="button"
+              className="chip shrink-0 text-sm"
+              onClick={onUndo}
+              disabled={!layerHasItems}
+              style={{ height: 36 }}
+            >
               <Icon name="undo" size={14} strokeWidth={1.8} />
               撤销
             </button>
-            <button type="button" className="chip ghost shrink-0 text-sm" onClick={onClear} disabled={!layerHasItems} style={{ height: 36 }}>
+            <button
+              type="button"
+              className="chip ghost shrink-0 text-sm"
+              onClick={onClear}
+              disabled={!layerHasItems}
+              style={{ height: 36 }}
+            >
               清空
             </button>
           </div>

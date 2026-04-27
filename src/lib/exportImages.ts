@@ -1,7 +1,8 @@
 import JSZip from 'jszip'
-import type { PlaygroundImageMeta } from './types'
-import { loadImageBlobs } from './history'
+
 import { imageDownloadFileName } from './downloadFileName'
+import { loadImageBlobs } from './history'
+import type { PlaygroundImageMeta } from './types'
 import { ensureBlobLoaded, getBlobFromCache, putBlobInCache } from '../hooks/useImageSrc'
 
 export async function downloadImagePng(image: PlaygroundImageMeta): Promise<void> {

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+
 import { loadImageBlob, loadImagePreview, saveImagePreview } from '../lib/history'
 
 const PREVIEW_MAX_SIZE = 1024

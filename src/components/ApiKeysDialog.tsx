@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+
+import { Icon } from './Icon'
 import type { Provider } from '../config/models'
 import type { ApiKeyStatus } from '../hooks/useApiKey'
 import { DEFAULT_BASE_URL, previewEndpoint } from '../lib/validateKey'
-import { Icon } from './Icon'
 
 type KeyHook = {
   apiKey: string

@@ -1,7 +1,8 @@
 import { useCallback, useRef } from 'react'
-import type { PlaygroundImage, PlaygroundImageMeta } from '../lib/types'
-import { useImageSrc } from '../hooks/useImageSrc'
+
 import { Icon } from './Icon'
+import { useImageSrc } from '../hooks/useImageSrc'
+import type { PlaygroundImage, PlaygroundImageMeta } from '../lib/types'
 
 export type LockedReferenceImage = {
   id: string
@@ -139,7 +140,12 @@ function LockedReferenceThumb({ item }: { item: LockedReferenceImage }) {
       className="ref-thumb group aspect-square rounded-[6px] overflow-hidden bg-(--color-surface-2) shadow-[inset_0_0_0_1px_var(--ring-edge)]"
     >
       {src ? (
-        <img src={src} alt={item.label ?? '锁定参考图'} className="absolute inset-0 w-full h-full object-cover" draggable={false} />
+        <img
+          src={src}
+          alt={item.label ?? '锁定参考图'}
+          className="absolute inset-0 w-full h-full object-cover"
+          draggable={false}
+        />
       ) : (
         <div className="absolute inset-0 skeleton-animated" />
       )}

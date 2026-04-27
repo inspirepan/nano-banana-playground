@@ -1,16 +1,17 @@
 import { useState, useRef, useCallback, useEffect, useLayoutEffect, type ReactNode } from 'react'
-import type { PlaygroundImage } from '../lib/types'
-import { MODEL_CONFIGS, type ModelConfig, type ModelOption, type ModelToggleOption } from '../config/models'
-import type { GenerationQueueSummary } from '../hooks/usePlayground'
-import type { ApiKeyStatus } from '../hooks/useApiKey'
-import { openAISize } from '../lib/openai'
-import { getPricePerImage } from '../lib/pricing'
-import { isHeifFile } from '../lib/fileToImage'
-import { ChipGroup } from './ChipGroup'
+
 import { AspectRatioSelector } from './AspectRatioSelector'
+import { ChipGroup } from './ChipGroup'
+import { Icon } from './Icon'
 import { ReferenceImageUpload } from './ReferenceImageUpload'
 import { Tooltip } from './Tooltip'
-import { Icon } from './Icon'
+import { MODEL_CONFIGS, type ModelConfig, type ModelOption, type ModelToggleOption } from '../config/models'
+import type { ApiKeyStatus } from '../hooks/useApiKey'
+import type { GenerationQueueSummary } from '../hooks/usePlayground'
+import { isHeifFile } from '../lib/fileToImage'
+import { openAISize } from '../lib/openai'
+import { getPricePerImage } from '../lib/pricing'
+import type { PlaygroundImage } from '../lib/types'
 
 // ——— Section helper ———
 function Section({

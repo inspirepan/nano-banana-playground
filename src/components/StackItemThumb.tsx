@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react'
+
+import { Icon } from './Icon'
 import { getBlobFromCache, useImageSrc } from '../hooks/useImageSrc'
 import type { StackItem } from '../lib/stacks'
-import { Icon } from './Icon'
 
 type Props = {
   item: StackItem
@@ -26,7 +27,9 @@ export function StackItemThumb({
 }: Props) {
   const image = item.type === 'image' ? item.image : null
   const slot = item.type === 'slot' ? item.slot : null
-  const { ref, src } = useImageSrc(image?.id ?? item.id, image?.mimeType ?? 'image/png', undefined, { variant: 'preview' })
+  const { ref, src } = useImageSrc(image?.id ?? item.id, image?.mimeType ?? 'image/png', undefined, {
+    variant: 'preview',
+  })
   const highlighted = selected || active
   const boxShadow = outerRing
     ? highlighted
@@ -63,7 +66,14 @@ export function StackItemThumb({
       <div ref={ref} className="absolute inset-0">
         {image ? (
           src ? (
-            <img src={src} alt="" loading="lazy" decoding="async" draggable={false} className="h-full w-full object-cover" />
+            <img
+              src={src}
+              alt=""
+              loading="lazy"
+              decoding="async"
+              draggable={false}
+              className="h-full w-full object-cover"
+            />
           ) : (
             <div className="h-full w-full skeleton-animated" />
           )
@@ -86,9 +96,7 @@ export function StackItemThumb({
           style={{
             background: selected ? 'var(--color-accent)' : 'color-mix(in srgb, var(--color-surface) 86%, transparent)',
             color: selected ? 'var(--color-accent-fg)' : 'var(--color-text-4)',
-            boxShadow: selected
-              ? 'inset 0 0 0 1px var(--color-accent)'
-              : 'inset 0 0 0 1px var(--ring-edge-strong)',
+            boxShadow: selected ? 'inset 0 0 0 1px var(--color-accent)' : 'inset 0 0 0 1px var(--ring-edge-strong)',
             backdropFilter: 'blur(8px)',
           }}
         >
