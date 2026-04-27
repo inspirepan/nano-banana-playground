@@ -11,7 +11,7 @@ import { Icon, type IconName } from './components/Icon'
 type Theme = 'light' | 'dark' | 'system'
 type ColorThemeId = 'default' | 'green' | 'yellow' | 'pink' | 'orange' | 'purple' | 'mono'
 
-const BASE_TITLE = 'Nano Banana Playground'
+const BASE_TITLE = 'Imagine Playground'
 const TITLE_RESET_DELAY_MS = 8000
 
 const COLOR_THEMES: { id: ColorThemeId; name: string; color: string }[] = [
@@ -276,9 +276,7 @@ function App() {
   const topbar = (
     <div className="topbar flex items-center gap-2.5 px-4 shrink-0 sticky top-0 z-30">
       <div className="flex items-center gap-2 min-w-0">
-        <div className="font-display font-semibold text-[13.5px] tracking-[-0.01em]">Image Generation</div>
-        <span className="text-(--color-text-4) text-[12px] ml-0.5">/</span>
-        <span className="text-(--color-text-3) text-[12.5px] font-medium">Playground</span>
+        <div className="font-display font-semibold text-[13.5px] tracking-[-0.01em]">Imagine Playground</div>
       </div>
 
       <div className="flex-1" />

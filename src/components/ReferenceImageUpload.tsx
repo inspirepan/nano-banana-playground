@@ -104,7 +104,9 @@ export function ReferenceImageUpload({
           </button>
         </div>
       )}
-      <div className="text-[11px] text-(--color-text-4) mt-1.5">拖拽文件、粘贴图片，或从历史中拖入</div>
+      <div className="text-[11px] text-(--color-text-4) mt-1.5">
+        可拖入本地图片，或按 ⌘/Ctrl+V 粘贴；也可拖入右侧历史图
+      </div>
       <input
         ref={inputRef}
         type="file"
