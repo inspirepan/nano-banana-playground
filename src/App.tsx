@@ -26,6 +26,8 @@ const TITLE_RESET_DELAY_MS = 8000
 const GOOGLE_FONTS_LINK_ID = 'nano-banana-google-fonts'
 const GOOGLE_FONT_PREVIEWS_LINK_ID = 'nano-banana-google-font-previews'
 
+type SettingsTarget = 'generationConcurrency'
+
 function getInitialTheme(): Theme {
   const stored = localStorage.getItem('nano-banana-theme')
   if (stored === 'light' || stored === 'dark' || stored === 'system') return stored
@@ -107,6 +109,7 @@ function App() {
   const [monoFont, setMonoFont] = useState<MonoFontId>(getInitialMonoFont)
   const [regenToast, setRegenToast] = useState<string | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [settingsTarget, setSettingsTarget] = useState<SettingsTarget | null>(null)
   const regenToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const titleResetTimerRef = useRef<number | null>(null)
   const prevActiveQueueRef = useRef(0)
@@ -140,6 +143,11 @@ function App() {
     },
     [pgHistory, resolveFullImages, restoreSession, setAspectRatio, setResolution, switchModel],
   )
+
+  const openSettings = useCallback((target: SettingsTarget | null = null) => {
+    setSettingsTarget(target)
+    setSettingsOpen(true)
+  }, [])
 
   useLayoutEffect(() => {
     const root = document.documentElement
@@ -244,7 +252,7 @@ function App() {
 
       <div className="flex-1" />
 
-      <button type="button" onClick={() => setSettingsOpen(true)} className="icon-btn" title="设置" aria-label="设置">
+      <button type="button" onClick={() => openSettings()} className="icon-btn" title="设置" aria-label="设置">
         <Icon name="settings" size={14} />
       </button>
     </div>
@@ -270,7 +278,7 @@ function App() {
             apiKeyStatus={pg.apiKeyStatus}
             googleKeyStatus={pg.googleKey.status}
             openaiKeyStatus={pg.openaiKey.status}
-            onOpenApiKeys={() => setSettingsOpen(true)}
+            onOpenApiKeys={() => openSettings()}
             onSwitchModel={pg.switchModel}
             onResolutionChange={pg.setResolution}
             onAspectRatioChange={pg.setAspectRatio}
@@ -298,6 +306,7 @@ function App() {
               onRemove={pg.removeFromHistory}
               onClearAll={pg.clearAllHistory}
               onLoadMore={pg.loadMoreHistory}
+              onOpenGenerationSettings={() => openSettings('generationConcurrency')}
             />
           </div>
         </div>
@@ -323,7 +332,7 @@ function App() {
               apiKeyStatus={pg.apiKeyStatus}
               googleKeyStatus={pg.googleKey.status}
               openaiKeyStatus={pg.openaiKey.status}
-              onOpenApiKeys={() => setSettingsOpen(true)}
+              onOpenApiKeys={() => openSettings()}
               onSwitchModel={pg.switchModel}
               onResolutionChange={pg.setResolution}
               onAspectRatioChange={pg.setAspectRatio}
@@ -353,6 +362,7 @@ function App() {
             onRemove={pg.removeFromHistory}
             onClearAll={pg.clearAllHistory}
             onLoadMore={pg.loadMoreHistory}
+            onOpenGenerationSettings={() => openSettings('generationConcurrency')}
           />
           {import.meta.env.DEV && <Agentation />}
         </div>
@@ -377,6 +387,7 @@ function App() {
         sansFont={sansFont}
         monoFont={monoFont}
         generationConcurrency={pg.generationConcurrency}
+        focusSection={settingsTarget}
         onThemeChange={setTheme}
         onColorThemeChange={setColorTheme}
         onSansFontChange={setSansFont}

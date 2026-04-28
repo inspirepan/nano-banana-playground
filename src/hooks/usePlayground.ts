@@ -80,7 +80,8 @@ export type GenerationQueueSummary = {
 const HISTORY_PAGE_SIZE = 20
 const GENERATION_CONCURRENCY_KEY = 'nano-banana-generation-concurrency'
 const DEFAULT_GENERATION_CONCURRENCY = 2
-const MAX_GENERATION_CONCURRENCY = 4
+const MAX_STANDARD_GENERATION_CONCURRENCY = 4
+const UNLIMITED_GENERATION_CONCURRENCY = 999
 
 // Read simple URL params once at module load to safely init useState
 const _initial = readSimpleUrlParams()
@@ -103,7 +104,8 @@ function initialOptionsFor(model: ModelConfig, rawParams: Record<string, string>
 }
 
 function clampGenerationConcurrency(value: number): number {
-  return Math.min(Math.max(1, value), MAX_GENERATION_CONCURRENCY)
+  if (value >= UNLIMITED_GENERATION_CONCURRENCY) return UNLIMITED_GENERATION_CONCURRENCY
+  return Math.min(Math.max(1, value), MAX_STANDARD_GENERATION_CONCURRENCY)
 }
 
 function initialGenerationConcurrency(): number {

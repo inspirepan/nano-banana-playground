@@ -35,9 +35,11 @@ type Props = {
   onRemove: (id: string) => void
   onClearAll: () => void
   onLoadMore: () => void
+  onOpenGenerationSettings: () => void
 }
 
 type DetailTarget = { stackId: string; itemId?: string; viewMode?: 'detail' | 'gallery'; initialEditing?: boolean }
+type ActiveStackStatusPart = { kind: 'running' | 'retrying' | 'queued'; label: string }
 
 function latestImages(stack: ImageStack): PlaygroundImageMeta[] {
   return [...stack.images].sort((a, b) => b.timestamp - a.timestamp)
@@ -53,13 +55,13 @@ function hasActiveGenerationSlots(job: GenerationJob): boolean {
   return job.slots.some((slot) => slot.status === 'queued' || slot.status === 'running' || slot.status === 'retrying')
 }
 
-function activeStackStatusText(stack: ImageStack): string | null {
+function activeStackStatusParts(stack: ImageStack): ActiveStackStatusPart[] {
   const counts = countSlots(stack.jobs.flatMap((job) => job.slots))
-  const parts: string[] = []
-  if (counts.running > 0) parts.push(`${counts.running} 项生成中`)
-  if (counts.retrying > 0) parts.push(`${counts.retrying} 项重试中`)
-  if (counts.queued > 0) parts.push(`${counts.queued} 项排队中`)
-  return parts.length > 0 ? parts.join(' · ') : null
+  const parts: ActiveStackStatusPart[] = []
+  if (counts.running > 0) parts.push({ kind: 'running', label: `${counts.running} 项生成中` })
+  if (counts.retrying > 0) parts.push({ kind: 'retrying', label: `${counts.retrying} 项重试中` })
+  if (counts.queued > 0) parts.push({ kind: 'queued', label: `${counts.queued} 项排队中` })
+  return parts
 }
 
 function StackRow({
@@ -69,6 +71,7 @@ function StackRow({
   onOpenGallery,
   onDownloadStack,
   onCancelStackGeneration,
+  onOpenGenerationSettings,
   downloading,
 }: {
   stack: ImageStack
@@ -77,10 +80,11 @@ function StackRow({
   onOpenGallery: (stack: ImageStack) => void
   onDownloadStack: (stack: ImageStack) => void
   onCancelStackGeneration: (stack: ImageStack) => void
+  onOpenGenerationSettings: () => void
   downloading: boolean
 }) {
   const totalItems = stack.images.length + stack.activeSlotCount + stack.failedSlotCount
-  const activeStatusText = activeStackStatusText(stack)
+  const activeStatusParts = activeStackStatusParts(stack)
   const stackItemNumberById = new Map(stack.items.map((item, index) => [item.id, index + 1]))
   const previewItems = stack.items
 
@@ -112,11 +116,29 @@ function StackRow({
               </button>
             </>
           )}
-          {activeStatusText && (
+          {activeStatusParts.length > 0 && (
             <>
               <span className="text-(--color-text-4)">·</span>
               <span className="inline-flex items-center gap-1.5">
-                <span className="font-medium text-(--color-text-3)">{activeStatusText}</span>
+                <span className="inline-flex items-center gap-1.5 font-medium text-(--color-text-3)">
+                  {activeStatusParts.map((part, index) => (
+                    <span key={part.kind} className="contents">
+                      {index > 0 && <span className="font-normal text-(--color-text-4)">·</span>}
+                      <span>
+                        {part.label}
+                        {part.kind === 'queued' && (
+                          <button
+                            type="button"
+                            onClick={onOpenGenerationSettings}
+                            className="bg-transparent p-0 font-normal text-(--color-text-4) transition-colors hover:text-(--color-text-2)"
+                          >
+                            （调整）
+                          </button>
+                        )}
+                      </span>
+                    </span>
+                  ))}
+                </span>
                 <span className="text-(--color-text-4)">·</span>
                 <button
                   type="button"
@@ -212,6 +234,7 @@ export const OutputPanel = memo(function OutputPanel({
   onRemove,
   onClearAll,
   onLoadMore,
+  onOpenGenerationSettings,
 }: Props) {
   const [detailTarget, setDetailTarget] = useState<DetailTarget | null>(null)
   const [exporting, setExporting] = useState(false)
@@ -332,6 +355,7 @@ export const OutputPanel = memo(function OutputPanel({
                 onOpenGallery={openStackGallery}
                 onDownloadStack={handleExportStack}
                 onCancelStackGeneration={handleCancelStackGeneration}
+                onOpenGenerationSettings={onOpenGenerationSettings}
                 downloading={exportingStackId === stack.id}
               />
             ))}

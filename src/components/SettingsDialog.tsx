@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 
 import { ApiKeysSettings, type KeyHook } from './ApiKeysDialog'
@@ -22,6 +22,14 @@ const SERIF_FONT_IDS = new Set<SansFontId>([
 ])
 const SANS_FONT_CHOICES = SANS_FONTS.filter((font) => !SERIF_FONT_IDS.has(font.id))
 
+const GENERATION_CONCURRENCY_CHOICES = [
+  { value: 1, label: '1', suffix: '张' },
+  { value: 2, label: '2', suffix: '张' },
+  { value: 3, label: '3', suffix: '张' },
+  { value: 4, label: '4', suffix: '张' },
+  { value: 999, label: '不限' },
+]
+
 type Props = {
   open: boolean
   googleKey: KeyHook
@@ -31,6 +39,7 @@ type Props = {
   sansFont: SansFontId
   monoFont: MonoFontId
   generationConcurrency: number
+  focusSection?: 'generationConcurrency' | null
   onThemeChange: (theme: Theme) => void
   onColorThemeChange: (id: ColorThemeId) => void
   onSansFontChange: (id: SansFontId) => void
@@ -48,6 +57,7 @@ export function SettingsDialog({
   sansFont,
   monoFont,
   generationConcurrency,
+  focusSection,
   onThemeChange,
   onColorThemeChange,
   onSansFontChange,
@@ -55,6 +65,8 @@ export function SettingsDialog({
   onGenerationConcurrencyChange,
   onClose,
 }: Props) {
+  const generationConcurrencyRef = useRef<HTMLDivElement>(null)
+
   useEffect(() => {
     if (!open) return
     const onKey = (e: KeyboardEvent) => {
@@ -63,6 +75,14 @@ export function SettingsDialog({
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [open, onClose])
+
+  useEffect(() => {
+    if (!open || focusSection !== 'generationConcurrency') return
+    const timer = window.setTimeout(() => {
+      generationConcurrencyRef.current?.scrollIntoView({ block: 'center' })
+    }, 0)
+    return () => window.clearTimeout(timer)
+  }, [focusSection, open])
 
   if (!open) return null
 
@@ -165,31 +185,37 @@ export function SettingsDialog({
               </div>
             </SettingsSection>
 
-            <SettingsSection
-              title="同时生成的最大并发数"
-              description="控制一次最多同时生成几张图。数字越大，排队更少，但更容易遇到接口限流。"
-            >
-              <div
-                className="segmented sm:w-[220px]"
-                style={{
-                  ['--seg-count' as string]: 4,
-                  ['--seg-index' as string]: generationConcurrency - 1,
-                }}
+            <div ref={generationConcurrencyRef}>
+              <SettingsSection
+                title="同时生成的最大并发数"
+                description="控制一次最多同时生成几张图。数字越大，排队更少，但更容易遇到接口限流。"
               >
-                {[1, 2, 3, 4].map((value) => (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => onGenerationConcurrencyChange(value)}
-                    data-active={generationConcurrency === value}
-                  >
-                    <span>
-                      <span className="mono text-base">{value}</span> 张
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </SettingsSection>
+                <div
+                  className="segmented sm:w-[292px]"
+                  style={{
+                    ['--seg-count' as string]: GENERATION_CONCURRENCY_CHOICES.length,
+                    ['--seg-index' as string]: Math.max(
+                      0,
+                      GENERATION_CONCURRENCY_CHOICES.findIndex((choice) => choice.value === generationConcurrency),
+                    ),
+                  }}
+                >
+                  {GENERATION_CONCURRENCY_CHOICES.map((choice) => (
+                    <button
+                      key={choice.value}
+                      type="button"
+                      onClick={() => onGenerationConcurrencyChange(choice.value)}
+                      data-active={generationConcurrency === choice.value}
+                    >
+                      <span>
+                        <span className="mono text-base">{choice.label}</span>
+                        {choice.suffix ? ` ${choice.suffix}` : null}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </SettingsSection>
+            </div>
           </div>
         </div>
       </div>
