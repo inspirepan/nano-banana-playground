@@ -5,7 +5,7 @@ import { ImageDetailModal } from './ImageDetailModal'
 import { GridCell, ImageGrid } from './ImageGrid'
 import { StackItemThumb } from './StackItemThumb'
 import type { ModelConfig } from '../config/models'
-import type { GenerationJob, GenerationQueueSummary } from '../hooks/usePlayground'
+import type { GenerationJob } from '../hooks/usePlayground'
 import { downloadImagePng, downloadImagesZip } from '../lib/exportImages'
 import { formatTime } from '../lib/queueJobDisplay'
 import { buildImageStacks, type ImageStack, type StackItem } from '../lib/stacks'
@@ -15,7 +15,6 @@ type Props = {
   history: PlaygroundImageMeta[]
   historyHasMore: boolean
   generationJobs: GenerationJob[]
-  generationQueueSummary: GenerationQueueSummary
   onCancelGenerationJob: (jobId: string) => void
   onDismissGenerationJob: (jobId: string) => void
   onCancelGenerationSlot: (slotId: string) => void
@@ -39,15 +38,6 @@ type Props = {
 }
 
 type DetailTarget = { stackId: string; itemId?: string; viewMode?: 'detail' | 'gallery'; initialEditing?: boolean }
-
-function queueSummaryLabel(summary: GenerationQueueSummary): string {
-  const parts = [`队列 ${summary.total}`]
-  const running = summary.running + summary.retrying
-  if (running > 0) parts.push(`运行 ${running}`)
-  if (summary.queued > 0) parts.push(`排队 ${summary.queued}`)
-  if (summary.failed > 0) parts.push(`失败 ${summary.failed}`)
-  return parts.join(' · ')
-}
 
 function latestImages(stack: ImageStack): PlaygroundImageMeta[] {
   return [...stack.images].sort((a, b) => b.timestamp - a.timestamp)
@@ -214,7 +204,6 @@ export const OutputPanel = memo(function OutputPanel({
   history,
   historyHasMore,
   generationJobs,
-  generationQueueSummary,
   onCancelGenerationJob,
   onDismissGenerationJob,
   onCancelGenerationSlot,
@@ -330,17 +319,6 @@ export const OutputPanel = memo(function OutputPanel({
             </button>
           )}
         </div>
-
-        {generationQueueSummary.total > 0 && (
-          <div className="flex justify-end">
-            <div
-              className="mono inline-flex h-[30px] shrink-0 items-center whitespace-nowrap rounded-[6px] px-2 text-[11.5px] text-(--color-text-3)"
-              style={{ background: 'var(--color-surface-2)', boxShadow: 'inset 0 0 0 1px var(--ring-edge)' }}
-            >
-              {queueSummaryLabel(generationQueueSummary)}
-            </div>
-          </div>
-        )}
       </div>
 
       {stacks.length > 0 ? (

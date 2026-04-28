@@ -206,7 +206,6 @@ function App() {
               history={pg.history}
               historyHasMore={pg.historyHasMore}
               generationJobs={pg.generationJobs}
-              generationQueueSummary={pg.generationQueueSummary}
               onCancelGenerationJob={pg.cancelGenerationJob}
               onDismissGenerationJob={pg.dismissGenerationJob}
               onCancelGenerationSlot={pg.cancelGenerationSlot}
@@ -262,7 +261,6 @@ function App() {
             history={pg.history}
             historyHasMore={pg.historyHasMore}
             generationJobs={pg.generationJobs}
-            generationQueueSummary={pg.generationQueueSummary}
             onCancelGenerationJob={pg.cancelGenerationJob}
             onDismissGenerationJob={pg.dismissGenerationJob}
             onCancelGenerationSlot={pg.cancelGenerationSlot}
