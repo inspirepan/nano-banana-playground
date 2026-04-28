@@ -168,9 +168,17 @@ export function DetailSidebar({
                     mono
                   />
                 )}
-                <MetaRow label="图片输出 Token" value={currentMeta.tokenUsage.imageOutputTokens.toLocaleString()} mono />
+                <MetaRow
+                  label="图片输出 Token"
+                  value={currentMeta.tokenUsage.imageOutputTokens.toLocaleString()}
+                  mono
+                />
                 {currentMeta.tokenUsage.textOutputTokens > 0 && (
-                  <MetaRow label="文本输出 Token" value={currentMeta.tokenUsage.textOutputTokens.toLocaleString()} mono />
+                  <MetaRow
+                    label="文本输出 Token"
+                    value={currentMeta.tokenUsage.textOutputTokens.toLocaleString()}
+                    mono
+                  />
                 )}
               </>
             )}
@@ -185,9 +193,15 @@ export function DetailSidebar({
             )}
           </>
         )}
-        {currentImage?.source.type === 'upload' && <MetaRow label="来源" value={`上传: ${currentImage.source.fileName}`} />}
+        {currentImage?.source.type === 'upload' && (
+          <MetaRow label="来源" value={`上传: ${currentImage.source.fileName}`} />
+        )}
         {currentImage ? (
-          <MetaRow label="创建时间" value={new Date(currentImage.timestamp).toLocaleString('zh-CN', { hour12: false })} mono />
+          <MetaRow
+            label="创建时间"
+            value={new Date(currentImage.timestamp).toLocaleString('zh-CN', { hour12: false })}
+            mono
+          />
         ) : (
           <MetaRow label="状态" value={currentSlot?.status === 'failed' ? '生成失败' : '等待生成'} />
         )}
@@ -263,7 +277,8 @@ function effectiveOptions(source: GeneratedSource): Record<string, unknown> {
 function formatOptionValue(model: ModelConfig | null | undefined, optionId: string, value: unknown): string | null {
   if (value === undefined || value === null || value === '' || value === false) return null
   const opt = model?.options?.find((o) => o.id === optionId)
-  if (opt?.type === 'select' && typeof value === 'string') return opt.choices.find((c) => c.value === value)?.label ?? value
+  if (opt?.type === 'select' && typeof value === 'string')
+    return opt.choices.find((c) => c.value === value)?.label ?? value
   if (opt?.type === 'toggle') return value === true ? '已启用' : null
   if (typeof value === 'boolean') return value ? '是' : null
   return String(value)
@@ -304,7 +319,10 @@ function renderPromptLines(text: string): ReactNode[] {
 
 function MetaRow({ label, value, mono, last }: { label: string; value: ReactNode; mono?: boolean; last?: boolean }) {
   return (
-    <div className="flex items-baseline gap-3 py-1.5" style={{ borderBottom: last ? 'none' : '1px solid var(--color-border)' }}>
+    <div
+      className="flex items-baseline gap-3 py-1.5"
+      style={{ borderBottom: last ? 'none' : '1px solid var(--color-border)' }}
+    >
       <div className="w-[76px] shrink-0 text-xs font-medium text-(--color-text-3)">{label}</div>
       <div className={`${mono ? 'mono' : ''} flex-1 break-words text-right text-sm text-(--color-text)`}>{value}</div>
     </div>
@@ -339,7 +357,13 @@ function GroundingSection({ metadata }: { metadata: GroundingMetadata }) {
           {sources.map((s, i) => (
             <li key={i} className="flex min-w-0 items-center gap-1.5 text-xs">
               <Icon name={s.isImage ? 'image' : 'search'} size={11} />
-              <a href={s.uri} target="_blank" rel="noreferrer" className="truncate text-(--color-accent) hover:underline" title={s.uri}>
+              <a
+                href={s.uri}
+                target="_blank"
+                rel="noreferrer"
+                className="truncate text-(--color-accent) hover:underline"
+                title={s.uri}
+              >
                 {s.title}
               </a>
             </li>
@@ -359,7 +383,15 @@ function GroundingSection({ metadata }: { metadata: GroundingMetadata }) {
   )
 }
 
-function RefThumbnail({ image, isActive, onClick }: { image: PlaygroundImageMeta; isActive: boolean; onClick: () => void }) {
+function RefThumbnail({
+  image,
+  isActive,
+  onClick,
+}: {
+  image: PlaygroundImageMeta
+  isActive: boolean
+  onClick: () => void
+}) {
   const { ref, src } = useImageSrc(image.id, image.mimeType, undefined, { variant: 'preview' })
   return (
     <div
@@ -377,7 +409,11 @@ function RefThumbnail({ image, isActive, onClick }: { image: PlaygroundImageMeta
         if (!isActive) e.currentTarget.style.boxShadow = 'inset 0 0 0 1px var(--ring-edge)'
       }}
     >
-      {src ? <img src={src} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" /> : <div className="w-full h-full skeleton-animated" />}
+      {src ? (
+        <img src={src} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
+      ) : (
+        <div className="w-full h-full skeleton-animated" />
+      )}
     </div>
   )
 }

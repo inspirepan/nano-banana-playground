@@ -6,13 +6,7 @@ import { MODEL_CONFIGS } from '../config/models'
 import { ensureBlobLoaded, useImageSrc } from '../hooks/useImageSrc'
 import type { GenerationJob } from '../hooks/usePlayground'
 import { imageDownloadFileName } from '../lib/downloadFileName'
-import {
-  computeItemCounts,
-  copyEditState,
-  getEditState,
-  setEditItems,
-  type ItemCounts,
-} from '../lib/editStateCache'
+import { computeItemCounts, copyEditState, getEditState, setEditItems, type ItemCounts } from '../lib/editStateCache'
 import { loadImageMetas } from '../lib/history'
 import { getActualCost } from '../lib/pricing'
 import type { ImageStack, StackItem } from '../lib/stacks'
@@ -26,7 +20,6 @@ import { MobileDrawFullscreen } from './image-detail/MobileDrawFullscreen'
 import { MobilePreviewFullscreen } from './image-detail/MobilePreviewFullscreen'
 import { SlotHero, StackGallery, StackStrip } from './image-detail/StackViews'
 import { ZoomableImageView } from './image-detail/ZoomableImageView'
-
 
 type EditMode = 'view' | DrawMode
 type ModalViewMode = 'detail' | 'gallery'
@@ -428,11 +421,14 @@ export function ImageDetailModal({
     })
   }, [])
 
-  const expandMobileSheet = useCallback((nextEditing = editing) => {
-    if (!isMobileSheet) return
-    const { expandedHeight } = getMobileSheetHeights(getVisualViewportHeight(), nextEditing)
-    setSheetHeightPx(expandedHeight)
-  }, [editing, isMobileSheet])
+  const expandMobileSheet = useCallback(
+    (nextEditing = editing) => {
+      if (!isMobileSheet) return
+      const { expandedHeight } = getMobileSheetHeights(getVisualViewportHeight(), nextEditing)
+      setSheetHeightPx(expandedHeight)
+    },
+    [editing, isMobileSheet],
+  )
 
   const handleSheetPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!isMobileSheet) return

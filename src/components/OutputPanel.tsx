@@ -2,6 +2,7 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { Icon } from './Icon'
 import { ImageDetailModal } from './ImageDetailModal'
+import { GridCell, ImageGrid } from './ImageGrid'
 import { StackItemThumb } from './StackItemThumb'
 import { Tooltip } from './Tooltip'
 import type { ModelConfig } from '../config/models'
@@ -55,21 +56,10 @@ function latestImages(stack: ImageStack): PlaygroundImageMeta[] {
   return [...stack.images].sort((a, b) => b.timestamp - a.timestamp)
 }
 
-function aspectValue(aspectRatio: string): number | null {
-  const [w, h] = aspectRatio.split(':').map((part) => Number.parseFloat(part))
-  if (!Number.isFinite(w) || !Number.isFinite(h) || h === 0) return null
-  return w / h
-}
-
-function isTallStackItem(item: StackItem): boolean {
-  const aspectRatio =
-    item.type === 'image' && item.image.source.type === 'generated'
-      ? item.image.source.aspectRatio
-      : item.type === 'slot'
-        ? item.job.request.aspectRatio
-        : null
-  const value = aspectRatio ? aspectValue(aspectRatio) : null
-  return value !== null && value < 1
+function stackItemAspectRatio(item: StackItem): string {
+  if (item.type === 'image' && item.image.source.type === 'generated') return item.image.source.aspectRatio
+  if (item.type === 'slot') return item.job.request.aspectRatio
+  return '1:1'
 }
 
 function StackRow({
@@ -88,7 +78,7 @@ function StackRow({
   downloading: boolean
 }) {
   const totalItems = stack.images.length + stack.activeSlotCount + stack.failedSlotCount
-  const previewItems = [...stack.items].slice(-10).reverse()
+  const previewItems = [...stack.items].reverse()
 
   return (
     <div className="min-w-0 border-b border-dashed border-(--color-border) py-3 last:border-b-0">
@@ -122,23 +112,15 @@ function StackRow({
             </span>
           )}
         </div>
-        <div className="min-w-0 overflow-x-auto overflow-y-hidden overscroll-x-contain px-1.5 py-1.5">
-          <div
-            className="grid w-max gap-2"
-            style={{
-              gridTemplateColumns: `repeat(${Math.max(1, previewItems.length)}, clamp(112px, 34vw, 156px))`,
-              gridAutoRows: 'clamp(84px, 25.5vw, 112px)',
-            }}
-          >
+        <div className="min-w-0">
+          <ImageGrid>
             {previewItems.length > 0 ? (
-              previewItems.map((item) => {
-                const tall = isTallStackItem(item)
-                return (
+              previewItems.map((item) => (
+                <GridCell key={item.id} aspectRatio={stackItemAspectRatio(item)}>
                   <StackItemThumb
-                    key={item.id}
                     item={item}
                     outerRing
-                    className={`${tall ? 'row-span-2' : ''} h-full w-full`}
+                    className="h-full w-full"
                     onSelect={(next) => onOpenItem(stack, next)}
                     actions={
                       item.type === 'image' ? (
@@ -181,19 +163,21 @@ function StackRow({
                       ) : undefined
                     }
                   />
-                )
-              })
+                </GridCell>
+              ))
             ) : (
-              <button
-                type="button"
-                onClick={() => onOpenGallery(stack)}
-                className="aspect-[4/3] w-[156px] rounded-[8px] text-[11px] text-(--color-text-4)"
-                style={{ background: 'var(--color-surface-2)', boxShadow: 'inset 0 0 0 1px var(--ring-edge)' }}
-              >
-                暂无图片
-              </button>
+              <GridCell aspectRatio="4:3">
+                <button
+                  type="button"
+                  onClick={() => onOpenGallery(stack)}
+                  className="h-full w-full rounded-[8px] text-[11px] text-(--color-text-4)"
+                  style={{ background: 'var(--color-surface-2)', boxShadow: 'inset 0 0 0 1px var(--ring-edge)' }}
+                >
+                  暂无图片
+                </button>
+              </GridCell>
             )}
-          </div>
+          </ImageGrid>
         </div>
       </div>
     </div>
