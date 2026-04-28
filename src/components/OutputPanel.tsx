@@ -55,6 +55,10 @@ function hasActiveGenerationSlots(job: GenerationJob): boolean {
   return job.slots.some((slot) => slot.status === 'queued' || slot.status === 'running' || slot.status === 'retrying')
 }
 
+function canDismissFailedGenerationJob(job: GenerationJob): boolean {
+  return !hasActiveGenerationSlots(job) && job.slots.some((slot) => slot.status === 'failed')
+}
+
 function activeStackStatusParts(stack: ImageStack): ActiveStackStatusPart[] {
   const counts = countSlots(stack.jobs.flatMap((job) => job.slots))
   const parts: ActiveStackStatusPart[] = []
@@ -71,6 +75,7 @@ function StackRow({
   onOpenGallery,
   onDownloadStack,
   onCancelStackGeneration,
+  onDismissStackFailedJobs,
   onOpenGenerationSettings,
   downloading,
 }: {
@@ -80,11 +85,13 @@ function StackRow({
   onOpenGallery: (stack: ImageStack) => void
   onDownloadStack: (stack: ImageStack) => void
   onCancelStackGeneration: (stack: ImageStack) => void
+  onDismissStackFailedJobs: (stack: ImageStack) => void
   onOpenGenerationSettings: () => void
   downloading: boolean
 }) {
   const totalItems = stack.images.length + stack.activeSlotCount + stack.failedSlotCount
   const activeStatusParts = activeStackStatusParts(stack)
+  const hasDismissibleFailures = stack.jobs.some(canDismissFailedGenerationJob)
   const stackItemNumberById = new Map(stack.items.map((item, index) => [item.id, index + 1]))
   const previewItems = stack.items
 
@@ -157,6 +164,19 @@ function StackRow({
               <span className="text-base" style={{ color: 'var(--color-danger)' }}>
                 失败 {stack.failedSlotCount}
               </span>
+              {hasDismissibleFailures && (
+                <>
+                  <span className="text-(--color-text-4)">·</span>
+                  <button
+                    type="button"
+                    onClick={() => onDismissStackFailedJobs(stack)}
+                    className="bg-transparent p-0 text-base font-semibold transition-colors hover:brightness-110"
+                    style={{ color: 'var(--color-danger)' }}
+                  >
+                    清空失败
+                  </button>
+                </>
+              )}
             </>
           )}
         </div>
@@ -292,6 +312,15 @@ export const OutputPanel = memo(function OutputPanel({
     [onCancelGenerationJob],
   )
 
+  const handleDismissStackFailedJobs = useCallback(
+    (stack: ImageStack) => {
+      for (const job of stack.jobs) {
+        if (canDismissFailedGenerationJob(job)) onDismissGenerationJob(job.id)
+      }
+    },
+    [onDismissGenerationJob],
+  )
+
   const scrollRef = useRef<HTMLDivElement>(null)
   const topStackIdRef = useRef<string | null>(null)
 
@@ -356,6 +385,7 @@ export const OutputPanel = memo(function OutputPanel({
                 onOpenGallery={openStackGallery}
                 onDownloadStack={handleExportStack}
                 onCancelStackGeneration={handleCancelStackGeneration}
+                onDismissStackFailedJobs={handleDismissStackFailedJobs}
                 onOpenGenerationSettings={onOpenGenerationSettings}
                 downloading={exportingStackId === stack.id}
               />
