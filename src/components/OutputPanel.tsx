@@ -169,6 +169,7 @@ function StackRow({
                     item={item}
                     number={stackItemNumberById.get(item.id)}
                     outerRing
+                    showSlotReason
                     className="h-full w-full"
                     onSelect={(next) => onOpenItem(stack, next)}
                     actions={

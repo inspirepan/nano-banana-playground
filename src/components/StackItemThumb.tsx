@@ -11,9 +11,28 @@ type Props = {
   outerRing?: boolean
   selectable?: boolean
   selected?: boolean
+  showSlotReason?: boolean
   actions?: ReactNode
   className?: string
   onSelect: (item: StackItem) => void
+}
+
+type Slot = Extract<StackItem, { type: 'slot' }>['slot']
+
+function slotReasonText(slot: Slot): string | null {
+  if (slot.status === 'queued') return '排队中'
+  if (slot.status === 'failed') return slot.error ? `失败：${slot.error}` : '失败：未知错误'
+  if (slot.status !== 'retrying') return null
+
+  const parts = [`重试中 ${slot.attempt}/${slot.maxAttempts}`]
+  if (slot.error) parts.push(slot.error)
+  return parts.join(' · ')
+}
+
+function slotReasonColor(slot: Slot): string {
+  if (slot.status === 'failed') return 'var(--color-danger)'
+  if (slot.status === 'retrying') return 'var(--color-accent)'
+  return 'var(--color-text-4)'
 }
 
 export function StackItemThumb({
@@ -23,6 +42,7 @@ export function StackItemThumb({
   outerRing = false,
   selectable = false,
   selected = false,
+  showSlotReason = false,
   actions,
   className = 'h-14 w-14',
   onSelect,
@@ -33,6 +53,8 @@ export function StackItemThumb({
     variant: 'preview',
   })
   const highlighted = selected || active
+  const slotReason = showSlotReason && slot ? slotReasonText(slot) : null
+  const title = image?.source.type === 'generated' ? image.source.prompt : (slotReason ?? undefined)
   const outerRingShadow = slot ? '' : ', var(--shadow-lift)'
   const boxShadow = outerRing
     ? highlighted
@@ -64,7 +86,7 @@ export function StackItemThumb({
       aria-pressed={selectable ? selected : undefined}
       className={`group relative shrink-0 overflow-hidden rounded-[7px] transition-transform ${selectable ? '' : 'hover:-translate-y-0.5'} ${className}`}
       style={{ background: 'var(--color-surface-2)', boxShadow }}
-      title={image?.source.type === 'generated' ? image.source.prompt : undefined}
+      title={title}
     >
       <div ref={ref} className="absolute inset-0">
         {image ? (
@@ -81,7 +103,7 @@ export function StackItemThumb({
             <div className="h-full w-full skeleton-animated" />
           )
         ) : (
-          <div className="flex h-full w-full flex-col items-center justify-center gap-1 text-(--color-text-4)">
+          <div className="flex h-full w-full flex-col items-center justify-center gap-1 px-3 text-(--color-text-4)">
             {slot?.status === 'failed' || slot?.status === 'canceled' ? (
               <Icon name="close" size={13} strokeWidth={1.8} />
             ) : slot?.status === 'queued' ? (
@@ -90,6 +112,20 @@ export function StackItemThumb({
               <span className="spinner" style={{ width: 12, height: 12 }} />
             )}
             <span className="mono text-sm">#{(slot?.index ?? item.order) + 1}</span>
+            {slotReason && slot && (
+              <span
+                className="mt-1 max-w-full text-center text-sm font-normal leading-[1.45]"
+                style={{
+                  color: slotReasonColor(slot),
+                  display: '-webkit-box',
+                  WebkitBoxOrient: 'vertical',
+                  WebkitLineClamp: 3,
+                  overflow: 'hidden',
+                }}
+              >
+                {slotReason}
+              </span>
+            )}
           </div>
         )}
       </div>
