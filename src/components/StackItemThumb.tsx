@@ -14,6 +14,9 @@ type Props = {
   showSlotReason?: boolean
   actions?: ReactNode
   className?: string
+  numberBadgeInset?: number
+  metaBadge?: string
+  metaBadgeTitle?: string
   onSelect: (item: StackItem) => void
 }
 
@@ -45,6 +48,9 @@ export function StackItemThumb({
   showSlotReason = false,
   actions,
   className = 'h-14 w-14',
+  numberBadgeInset = 3,
+  metaBadge,
+  metaBadgeTitle,
   onSelect,
 }: Props) {
   const image = item.type === 'image' ? item.image : null
@@ -130,8 +136,10 @@ export function StackItemThumb({
         )}
       </div>
       <span
-        className="pointer-events-none absolute left-[3px] top-[3px] z-10 inline-flex h-[18px] min-w-[24px] items-center justify-center rounded-[5px] px-1.5 mono text-base font-normal leading-none"
+        className="pointer-events-none absolute z-10 inline-flex h-[18px] min-w-[24px] items-center justify-center rounded-[5px] px-1.5 mono text-base font-normal leading-none"
         style={{
+          left: numberBadgeInset,
+          top: numberBadgeInset,
           background: 'rgba(0,0,0,0.56)',
           color: '#fff',
           boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.18)',
@@ -140,6 +148,22 @@ export function StackItemThumb({
       >
         #{number ?? item.order + 1}
       </span>
+      {metaBadge && (
+        <span
+          className="pointer-events-none absolute z-10 truncate rounded-[5px] px-1.5 py-[3px] text-[11px] font-medium leading-none text-white"
+          style={{
+            top: numberBadgeInset,
+            right: numberBadgeInset,
+            maxWidth: `calc(100% - ${numberBadgeInset * 2 + 36}px)`,
+            background: 'rgba(0,0,0,0.5)',
+            boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.16)',
+            backdropFilter: 'blur(8px)',
+          }}
+          title={metaBadgeTitle ?? metaBadge}
+        >
+          {metaBadge}
+        </span>
+      )}
       {selectable && (
         <span
           className="pointer-events-none absolute right-1.5 top-1.5 flex h-[18px] w-[18px] items-center justify-center rounded-[5px] transition-colors"

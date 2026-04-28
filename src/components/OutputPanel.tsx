@@ -4,7 +4,7 @@ import { Icon } from './Icon'
 import { ImageDetailModal } from './ImageDetailModal'
 import { GridCell, ImageGrid } from './ImageGrid'
 import { StackItemThumb } from './StackItemThumb'
-import type { ModelConfig } from '../config/models'
+import { MODEL_CONFIGS, type ModelConfig } from '../config/models'
 import type { GenerationJob } from '../hooks/usePlayground'
 import { downloadImagePng, downloadImagesZip } from '../lib/exportImages'
 import { countSlots, formatTime } from '../lib/queueJobDisplay'
@@ -41,6 +41,7 @@ type Props = {
 
 type DetailTarget = { stackId: string; itemId?: string; viewMode?: 'detail' | 'gallery'; initialEditing?: boolean }
 type ActiveStackStatusPart = { kind: 'running' | 'retrying' | 'queued'; label: string }
+type ItemGenerationSummary = { modelName: string; aspectRatio: string; resolution: string }
 
 function latestImages(stack: ImageStack): PlaygroundImageMeta[] {
   return [...stack.images].sort((a, b) => b.timestamp - a.timestamp)
@@ -50,6 +51,23 @@ function stackItemAspectRatio(item: StackItem): string {
   if (item.type === 'image' && item.image.source.type === 'generated') return item.image.source.aspectRatio
   if (item.type === 'slot') return item.job.request.aspectRatio
   return '1:1'
+}
+
+function stackItemGenerationSummary(item: StackItem): ItemGenerationSummary | null {
+  if (item.type === 'slot') {
+    return {
+      modelName: item.job.request.model.name,
+      aspectRatio: item.job.request.aspectRatio,
+      resolution: item.job.request.resolution,
+    }
+  }
+  const source = item.image.source
+  if (source.type !== 'generated') return null
+  return {
+    modelName: MODEL_CONFIGS.find((model) => model.id === source.modelId)?.name ?? source.modelId,
+    aspectRatio: source.aspectRatio,
+    resolution: source.resolution,
+  }
 }
 
 function hasActiveGenerationSlots(job: GenerationJob): boolean {
@@ -184,46 +202,55 @@ function StackRow({
         <div className="min-w-0">
           <ImageGrid>
             {previewItems.length > 0 ? (
-              previewItems.map((item) => (
-                <GridCell key={item.id} aspectRatio={stackItemAspectRatio(item)}>
-                  <StackItemThumb
-                    item={item}
-                    number={stackItemNumberById.get(item.id)}
-                    outerRing
-                    showSlotReason
-                    className="h-full w-full"
-                    onSelect={(next) => onOpenItem(stack, next)}
-                    actions={
-                      item.type === 'image' ? (
-                        <div className="hidden items-center gap-1 opacity-0 transition-opacity md:flex md:group-hover:opacity-100 md:group-focus-within:opacity-100">
-                          <button
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation()
-                              onEditItem(stack, item)
-                            }}
-                            className="media-action flex-1"
-                          >
-                            <Icon name="wand" size={11} strokeWidth={1.8} />
-                            编辑
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation()
-                              void downloadImagePng(item.image)
-                            }}
-                            className="media-action flex-1"
-                          >
-                            <Icon name="download" size={11} strokeWidth={1.8} />
-                            PNG
-                          </button>
-                        </div>
-                      ) : undefined
-                    }
-                  />
-                </GridCell>
-              ))
+              previewItems.map((item) => {
+                const summary = stackItemGenerationSummary(item)
+                const metaBadge = summary
+                  ? `${summary.modelName} · ${summary.aspectRatio} · ${summary.resolution}`
+                  : undefined
+                return (
+                  <GridCell key={item.id} aspectRatio={stackItemAspectRatio(item)}>
+                    <StackItemThumb
+                      item={item}
+                      number={stackItemNumberById.get(item.id)}
+                      outerRing
+                      showSlotReason
+                      className="h-full w-full"
+                      numberBadgeInset={8}
+                      metaBadge={metaBadge}
+                      metaBadgeTitle={metaBadge}
+                      onSelect={(next) => onOpenItem(stack, next)}
+                      actions={
+                        item.type === 'image' ? (
+                          <div className="hidden items-center gap-1 opacity-0 transition-opacity md:flex md:group-hover:opacity-100 md:group-focus-within:opacity-100">
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation()
+                                onEditItem(stack, item)
+                              }}
+                              className="media-action flex-1"
+                            >
+                              <Icon name="wand" size={11} strokeWidth={1.8} />
+                              编辑
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation()
+                                void downloadImagePng(item.image)
+                              }}
+                              className="media-action flex-1"
+                            >
+                              <Icon name="download" size={11} strokeWidth={1.8} />
+                              PNG
+                            </button>
+                          </div>
+                        ) : undefined
+                      }
+                    />
+                  </GridCell>
+                )
+              })
             ) : (
               <GridCell aspectRatio="4:3">
                 <button
