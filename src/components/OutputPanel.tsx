@@ -106,7 +106,8 @@ function StackRow({
             <>
               <span className="text-[11.5px] text-(--color-text-4)">·</span>
               <span className="inline-flex items-center gap-1.5">
-                <span className="text-[11.5px] text-(--color-accent)">{stack.activeSlotCount} 项生成中</span>
+                <span className="text-[11.5px] text-(--color-text-3)">{stack.activeSlotCount} 项生成中</span>
+                <span className="text-[11.5px] text-(--color-text-4)">·</span>
                 <button
                   type="button"
                   onClick={() => onCancelStackGeneration(stack)}
