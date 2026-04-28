@@ -3,7 +3,6 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, typ
 import { BrushPresetDot } from './annotationControls'
 import { BRUSH_PRESETS, type BrushPresetId } from './annotationPresets'
 import type { DrawableLayerHandle, DrawTool } from './DrawableLayer'
-import { QueueJobSection } from './QueueJobSection'
 import { MODEL_CONFIGS, DEFAULT_MODEL, defaultOptionsFor, type ModelConfig } from '../../config/models'
 import type { GenerationJob } from '../../hooks/usePlayground'
 import { getEditState, setEditPrompt, type ItemCounts } from '../../lib/editStateCache'
@@ -57,14 +56,6 @@ type EditSidebarProps = {
   activeEditBatchId: string | null
   onEditImage: EditImageHandler
   onSetActiveBatchId: (id: string | null, sourceImageId?: string) => void
-  onCancelGenerationJob: (jobId: string) => void
-  onDismissGenerationJob: (jobId: string) => void
-  onCancelGenerationSlot: (slotId: string) => void
-  onAddToRef: (image: PlaygroundImageMeta) => void
-  onRegenerate: (image: PlaygroundImageMeta) => void
-  onRemove: (id: string) => void
-  onOpenImage: (image: PlaygroundImageMeta) => void
-  onViewQueue: () => void
   annotationActive: boolean
   hasAnnotations: boolean
   annotationToolsFloating: boolean
@@ -87,14 +78,6 @@ export function EditSidebar({
   activeEditBatchId,
   onEditImage,
   onSetActiveBatchId,
-  onCancelGenerationJob,
-  onDismissGenerationJob,
-  onCancelGenerationSlot,
-  onAddToRef,
-  onRegenerate,
-  onRemove,
-  onOpenImage,
-  onViewQueue,
   annotationActive,
   hasAnnotations,
   annotationToolsFloating,
@@ -332,8 +315,8 @@ export function EditSidebar({
   }, [drawableCounts, drawableRef, hasAnnotatedSource, hasOpenAIMask, isOpenAI, sourceImage.id])
 
   // Allow submitting a new edit even while a previous batch is still running.
-  // The new batchId overrides activeEditBatchId, replacing what the embedded
-  // QueueJobSection tracks; previous jobs keep running in their stack strip.
+  // The latest batch stays tracked for auto-navigation; previous jobs keep
+  // running in their stack strip.
   const canSubmit = prompt.trim() !== '' && !submitting && !referenceLimitExceeded
 
   const handleGenerate = useCallback(async () => {
@@ -465,39 +448,6 @@ export function EditSidebar({
 
   return (
     <div>
-      {/* Active edit job (embedded copy of the queue card). Sticky at the top
-          so the user can scroll the edit form below while keeping progress,
-          slot thumbnails, and cancel within reach. */}
-      {activeJob && (
-        <div
-          className="sticky top-0 z-20 -mx-[18px] mb-[18px] px-[18px] pt-2 pb-3"
-          style={{
-            background: 'var(--color-bg)',
-            borderBottom: '1px solid var(--color-border)',
-          }}
-        >
-          <QueueJobSection
-            job={activeJob}
-            onCancelJob={onCancelGenerationJob}
-            onDismissJob={onDismissGenerationJob}
-            onCancelSlot={onCancelGenerationSlot}
-            onAddToRef={onAddToRef}
-            onRegenerate={onRegenerate}
-            onRemove={onRemove}
-            onOpen={onOpenImage}
-            maxRowHeight={110}
-          />
-          <button
-            type="button"
-            onClick={onViewQueue}
-            className="chip ghost mt-2 w-full justify-center text-xs"
-            style={{ height: 26 }}
-          >
-            查看全部队列 <Icon name="chevron_right" size={11} />
-          </button>
-        </div>
-      )}
-
       {/* Prompt */}
       <div className="mb-[18px]">
         <div className="label mb-1.5">编辑指令</div>

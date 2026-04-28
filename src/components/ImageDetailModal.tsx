@@ -100,6 +100,7 @@ export function ImageDetailModal({
   const currentIdx = selectedItem ? stack.items.findIndex((item) => item.id === selectedItem.id) : -1
   const currentImage = selectedItem?.type === 'image' ? selectedItem.image : null
   const currentSlot = selectedItem?.type === 'slot' ? selectedItem.slot : null
+  const currentJob = selectedItem?.type === 'slot' ? selectedItem.job : null
   const [editing, setEditing] = useState(initialEditing)
   const [mobileDrawOpen, setMobileDrawOpen] = useState(false)
   const [mobilePreviewOpen, setMobilePreviewOpen] = useState(false)
@@ -507,8 +508,9 @@ export function ImageDetailModal({
   }
 
   const handleCopyPrompt = () => {
-    if (!currentMeta?.prompt) return
-    void navigator.clipboard?.writeText(currentMeta.prompt).catch(() => {})
+    const promptToCopy = currentMeta?.prompt ?? currentJob?.request.prompt
+    if (!promptToCopy) return
+    void navigator.clipboard?.writeText(promptToCopy).catch(() => {})
     setCopiedPrompt(true)
     setTimeout(() => setCopiedPrompt(false), 1400)
   }
@@ -951,20 +953,6 @@ export function ImageDetailModal({
                     activeEditBatchId={activeEditBatchId}
                     onEditImage={onEditImage}
                     onSetActiveBatchId={setActiveEditBatch}
-                    onCancelGenerationJob={onCancelGenerationJob}
-                    onDismissGenerationJob={onDismissGenerationJob}
-                    onCancelGenerationSlot={onCancelGenerationSlot}
-                    onAddToRef={onAddToRef}
-                    onRegenerate={onRegenerate}
-                    onRemove={onRemove}
-                    onOpenImage={(img) => {
-                      const item = stack.items.find(
-                        (candidate) => candidate.type === 'image' && candidate.image.id === img.id,
-                      )
-                      setSelection(toSelection(item ?? null))
-                      setRefDetailId(null)
-                    }}
-                    onViewQueue={onClose}
                     annotationActive={editMode !== 'view'}
                     hasAnnotations={hasDrawableMarks}
                     annotationToolsFloating={!isMobileSheet}
@@ -988,6 +976,7 @@ export function ImageDetailModal({
                     currentImage={currentImage}
                     currentMeta={currentMeta}
                     currentSlot={currentSlot}
+                    currentJob={currentJob}
                     modelName={modelName}
                     modelApiId={modelApiId}
                     modelConfig={modelConfig}

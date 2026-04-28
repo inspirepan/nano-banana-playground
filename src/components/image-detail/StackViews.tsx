@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { downloadImagesZip } from '../../lib/exportImages'
 import type { ImageStack, StackItem } from '../../lib/stacks'
@@ -76,9 +76,15 @@ export function StackStrip({
   onSelect: (item: StackItem) => void
   onCancelActiveJobs: () => void
 }) {
+  const selectedItemRef = useRef<HTMLDivElement | null>(null)
   const hasActiveJobs = stack.jobs.some((job) =>
     job.slots.some((slot) => slot.status === 'queued' || slot.status === 'running' || slot.status === 'retrying'),
   )
+
+  useEffect(() => {
+    selectedItemRef.current?.scrollIntoView({ block: 'nearest', inline: 'end', behavior: 'smooth' })
+  }, [selectedId, stack.items.length])
+
   return (
     <div
       className="shrink-0 overflow-x-auto border-b border-(--color-border) px-3.5 py-2"
@@ -92,9 +98,14 @@ export function StackStrip({
     >
       <div className="flex items-center gap-2">
         <div className="-m-1 flex min-w-0 flex-1 items-center gap-2 overflow-x-auto p-1">
-          {stack.items.map((item) => (
-            <StackItemThumb key={item.id} item={item} active={selectedId === item.id} outerRing onSelect={onSelect} />
-          ))}
+          {stack.items.map((item) => {
+            const active = selectedId === item.id
+            return (
+              <div key={item.id} ref={active ? selectedItemRef : undefined} className="shrink-0">
+                <StackItemThumb item={item} active={active} outerRing onSelect={onSelect} />
+              </div>
+            )
+          })}
         </div>
         {hasActiveJobs && (
           <button

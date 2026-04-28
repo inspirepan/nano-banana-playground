@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 
 import type { ModelConfig } from '../../config/models'
 import { useImageSrc } from '../../hooks/useImageSrc'
-import type { GenerationSlot } from '../../hooks/usePlayground'
+import type { GenerationJob, GenerationSlot } from '../../hooks/usePlayground'
 import type { GeneratedSource, GroundingMetadata, PlaygroundImageMeta } from '../../lib/types'
 import { Icon } from '../Icon'
 
@@ -27,6 +27,7 @@ type DetailSidebarProps = {
   currentImage: PlaygroundImageMeta | null
   currentMeta: GeneratedSource | null
   currentSlot: GenerationSlot | null
+  currentJob: GenerationJob | null
   modelName: string | null
   modelApiId: string | null
   modelConfig: ModelConfig | null | undefined
@@ -49,6 +50,7 @@ export function DetailSidebar({
   currentImage,
   currentMeta,
   currentSlot,
+  currentJob,
   modelName,
   modelApiId,
   modelConfig,
@@ -66,6 +68,8 @@ export function DetailSidebar({
   onRemove,
   onClose,
 }: DetailSidebarProps) {
+  const prompt = currentMeta?.prompt ?? currentJob?.request.prompt ?? null
+
   return (
     <>
       {currentImage && (
@@ -81,7 +85,7 @@ export function DetailSidebar({
         </div>
       )}
 
-      {currentMeta?.prompt && (
+      {prompt && (
         <div className="mb-[18px]">
           <div className="flex items-center mb-1.5">
             <span className="label">提示词</span>
@@ -103,7 +107,7 @@ export function DetailSidebar({
               overflowY: 'auto',
             }}
           >
-            {renderPromptLines(currentMeta.prompt)}
+            {renderPromptLines(prompt)}
           </div>
         </div>
       )}
@@ -193,6 +197,28 @@ export function DetailSidebar({
             )}
           </>
         )}
+        {!currentMeta && currentSlot && currentJob && (
+          <>
+            <MetaRow label="状态" value={slotStatusLabel(currentSlot)} />
+            <MetaRow label="模型" value={currentJob.request.model.name} />
+            <MetaRow label="模型 ID" value={currentJob.request.model.apiModel} mono />
+            <MetaRow label="分辨率" value={currentJob.request.resolution} mono />
+            <MetaRow label="宽高比" value={currentJob.request.aspectRatio} mono />
+            {renderRequestOptionRows(currentJob.request.options, currentJob.request.model)}
+            <MetaRow label="数量" value={`${currentSlot.index + 1}/${currentJob.slots.length}`} mono />
+            <MetaRow label="参考图" value={`${currentJob.request.referenceImages.length} 张`} />
+            {currentJob.request.mask && <MetaRow label="Mask" value="已提供" />}
+            <MetaRow
+              label="发起时间"
+              value={new Date(currentJob.createdAt).toLocaleString('zh-CN', { hour12: false })}
+              mono
+            />
+            {currentSlot.status === 'retrying' && (
+              <MetaRow label="重试" value={`${currentSlot.attempt}/${currentSlot.maxAttempts}`} mono />
+            )}
+            {currentSlot.error && <MetaRow label="错误" value={currentSlot.error} />}
+          </>
+        )}
         {currentImage?.source.type === 'upload' && (
           <MetaRow label="来源" value={`上传: ${currentImage.source.fileName}`} />
         )}
@@ -202,9 +228,9 @@ export function DetailSidebar({
             value={new Date(currentImage.timestamp).toLocaleString('zh-CN', { hour12: false })}
             mono
           />
-        ) : (
+        ) : !currentJob ? (
           <MetaRow label="状态" value={currentSlot?.status === 'failed' ? '生成失败' : '等待生成'} />
-        )}
+        ) : null}
         {currentMeta && stackInfo && (
           <MetaRow
             label="Stack"
@@ -255,6 +281,14 @@ export function DetailSidebar({
 
 function renderOptionRows(source: GeneratedSource, model: ModelConfig | null | undefined) {
   const bag = effectiveOptions(source)
+  return renderOptionBagRows(bag, model)
+}
+
+function renderRequestOptionRows(options: Record<string, unknown>, model: ModelConfig) {
+  return renderOptionBagRows(options, model)
+}
+
+function renderOptionBagRows(bag: Record<string, unknown>, model: ModelConfig | null | undefined) {
   const declaredIds = model?.options?.map((o) => o.id) ?? []
   const leftover = Object.keys(bag).filter((id) => !declaredIds.includes(id))
   return [...declaredIds, ...leftover].map((id) => {
@@ -272,6 +306,15 @@ function effectiveOptions(source: GeneratedSource): Record<string, unknown> {
     if (source.searchTools.image) bag.imageSearch = true
   }
   return bag
+}
+
+function slotStatusLabel(slot: GenerationSlot): string {
+  if (slot.status === 'queued') return '排队中'
+  if (slot.status === 'running') return '生成中'
+  if (slot.status === 'retrying') return '重试中'
+  if (slot.status === 'failed') return '生成失败'
+  if (slot.status === 'canceled') return '已取消'
+  return '已完成'
 }
 
 function formatOptionValue(model: ModelConfig | null | undefined, optionId: string, value: unknown): string | null {
