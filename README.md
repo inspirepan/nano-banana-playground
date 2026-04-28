@@ -8,7 +8,7 @@ A pure frontend playground for Gemini and GPT Image generation. No backend — y
 
 ### Design
 
-Restrained **Linear / Notion-style** chrome: warm-stone neutral palette with a single subtle accent (indigo by default, 7 presets), 1px hairline borders, 6–10px radii, and dense 13px type. Typography pairs **Roboto** (body and headings) with **Roboto Mono** for numeric/metadata runs. Lucide icon set, no component library.
+Restrained **Linear / Notion-style** chrome: warm-stone neutral palette with a single subtle accent (indigo by default, 7 presets), 1px hairline borders, 6–10px radii, and dense 13px type. Typography pairs **Geist** (body and headings) with **Geist Mono** for numeric/metadata runs. Lucide icon set, no component library.
 
 ### Models & Output
 

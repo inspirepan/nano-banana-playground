@@ -48,7 +48,7 @@
 | 框架 | React 19 + TypeScript 5.9 + Vite 8                                           |
 | 样式 | Tailwind CSS 4 + `src/index.css` 自定义 token / utility layer                |
 | 存储 | IndexedDB（图片/历史）+ localStorage（API Key / 外观）+ URL params（编辑态） |
-| 字体 | Roboto（正文 / 标题）+ Roboto Mono（等宽）                                   |
+| 字体 | Geist（正文 / 标题）+ Geist Mono（等宽）                                     |
 | 图标 | `lucide-react`，统一经由 `src/components/Icon.tsx`                           |
 
 禁止引入：CSS-in-JS、zustand/redux 等状态库、MUI/shadcn 等 UI 组件库。
@@ -105,8 +105,8 @@ src/
 
 - **整体气质**：克制、紧凑、偏工具感，不做 Material、大圆角卡片、重阴影、彩色渐变、发光描边。
 - **色彩系统**：基础盘是 warm-stone 中性色，强调色默认 indigo，可通过 `.theme-*` 类切到 blue / green / yellow / pink / orange / purple。优先复用 `--color-bg`、`--color-surface*`、`--color-border*`、`--color-text*`、`--color-accent*`，不要到处写裸十六进制。
-- **排版**：正文 `Roboto Variable`（`--font-sans`），标题（品牌名 / 弹窗标题 / 面板 header）挂 `.font-display` 使用 `--font-display`（当前别名到 `--font-sans`，保留入口便于未来单独切换 display 字体），数字/分辨率/元数据/快捷键用 `.mono`（Roboto Mono，`--font-mono`）。全局基线是 **13px**，不是 14/16px 默认网页节奏。
-- **中文字体回退**：保持 `PingFang SC -> Hiragino Sans GB -> Microsoft YaHei -> Source Han Sans / Noto Sans CJK` 的顺序，`font-feature-settings` 只保留 `tnum`，不要加回会切换 CJK 字形的 Latin 变体 tag。
+- **排版**：正文 `Geist Variable`（`--font-sans`），标题（品牌名 / 弹窗标题 / 面板 header）挂 `.font-display` 使用 `--font-display`（当前别名到 `--font-sans`，保留入口便于未来单独切换 display 字体），数字/分辨率/元数据/快捷键用 `.mono`（Geist Mono，`--font-mono`）。全局基线是 **13px**，不是 14/16px 默认网页节奏。
+- **中文字体回退**：保持 `PingFang SC -> Hiragino Sans GB -> Microsoft YaHei -> Source Han Sans / Noto Sans CJK` 的顺序。Geist 相关 `font-feature-settings` 只使用 `kern`、`liga`、`calt`、`tnum`、`zero` 等安全特性，不要加回会切换 CJK 字形的 `ss*` / `cv*` 变体 tag。
 - **边缘定义**：优先用 ring / inset ring 表达 1px 边缘，而不是 solid border。浮层、卡片、按钮、图片容器、topbar、分栏分隔线等不要同时叠加实色 border 和 shadow；优先复用 `--ring-edge`、`--ring-edge-soft`、`--ring-edge-strong`、`--shadow-lift`、`--shadow-float`。
 - **同心圆角**：嵌套圆角必须按“外层 radius - padding = 内层 radius”处理。当前常用层级是外层 `8 / 10px`、内层 `6px`、小 glyph / badge `2 / 4px`，不要让内外层使用同一个 radius 造成视觉别扭。
 - **按钮形态**：主 CTA 维持 `36px` 左右高度和 pill 形态；普通 chip / segmented / icon button 维持紧凑工具型尺寸。不要把所有按钮都改成大胶囊，也不要随手给按钮塞装饰图标。

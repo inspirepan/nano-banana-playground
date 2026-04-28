@@ -77,11 +77,11 @@ function StackRow({
   return (
     <div className="min-w-0">
       <div className="min-w-0 px-3 py-2">
-        <div className="mb-2 flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1">
-          <span className="mono shrink-0 text-sm text-(--color-text-3)">{formatTime(stack.updatedAt)}</span>
-          <span className="text-sm text-(--color-text-4)">·</span>
-          <span className="mono text-sm text-(--color-text-3)">{totalItems} 张</span>
-          <span className="text-sm text-(--color-text-4)">·</span>
+        <div className="mb-2 flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1 text-base">
+          <span className="mono shrink-0 font-medium text-(--color-text-3)">{formatTime(stack.updatedAt)}</span>
+          <span className="text-(--color-text-4)">·</span>
+          <span className="mono font-medium text-(--color-text-3)">{totalItems} 张</span>
+          <span className="text-(--color-text-4)">·</span>
           <button
             type="button"
             onClick={() => onOpenGallery(stack)}
@@ -91,7 +91,7 @@ function StackRow({
           </button>
           {stack.images.length > 1 && (
             <>
-              <span className="text-sm text-(--color-text-4)">·</span>
+              <span className="text-(--color-text-4)">·</span>
               <button
                 type="button"
                 onClick={() => onDownloadStack(stack)}
@@ -104,10 +104,10 @@ function StackRow({
           )}
           {stack.activeSlotCount > 0 && (
             <>
-              <span className="text-sm text-(--color-text-4)">·</span>
+              <span className="text-(--color-text-4)">·</span>
               <span className="inline-flex items-center gap-1.5">
-                <span className="text-sm text-(--color-text-3)">{stack.activeSlotCount} 项生成中</span>
-                <span className="text-sm text-(--color-text-4)">·</span>
+                <span className="font-medium text-(--color-text-3)">{stack.activeSlotCount} 项生成中</span>
+                <span className="text-(--color-text-4)">·</span>
                 <button
                   type="button"
                   onClick={() => onCancelStackGeneration(stack)}
@@ -121,7 +121,7 @@ function StackRow({
           )}
           {stack.failedSlotCount > 0 && (
             <>
-              <span className="text-sm text-(--color-text-4)">·</span>
+              <span className="text-(--color-text-4)">·</span>
               <span className="text-base" style={{ color: 'var(--color-danger)' }}>
                 失败 {stack.failedSlotCount}
               </span>

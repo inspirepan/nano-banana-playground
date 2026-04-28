@@ -14,8 +14,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@fontsource-variable/roboto": "^5.2.10",
-    "@fontsource-variable/roboto-mono": "^5.2.8",
+    "@fontsource-variable/geist": "^5.2.8",
+    "@fontsource-variable/geist-mono": "^5.2.7",
     "agentation": "^2.3.2",
     "heic2any": "^0.0.4",
     "jszip": "^3.10.1",
