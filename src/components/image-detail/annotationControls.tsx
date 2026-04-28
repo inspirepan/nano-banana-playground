@@ -43,7 +43,7 @@ export function DesktopAnnotationToolbar({
   return (
     <div className="pointer-events-none absolute bottom-5 left-1/2 z-30 hidden -translate-x-1/2 md:block">
       <div
-        className="pointer-events-auto flex flex-nowrap items-center justify-start gap-1.5 overflow-x-auto rounded-[10px] px-2 py-1.5"
+        className="pointer-events-auto flex flex-nowrap items-center justify-start gap-0.5 overflow-x-auto rounded-[10px] p-1"
         style={{
           maxWidth: 'min(820px, calc(100vw - 420px))',
           background: 'var(--color-surface)',
@@ -68,7 +68,7 @@ export function DesktopAnnotationToolbar({
 
         {!desktopMoveActive && drawTool !== 'eraser' && (
           <>
-            <div className="annotation-toolbar-divider mx-0.5 h-5 w-px shrink-0" />
+            <div className="annotation-toolbar-divider mx-1 h-4 w-px shrink-0" />
             {BRUSH_PRESETS.map((item) => (
               <button
                 key={item.id}
@@ -85,20 +85,16 @@ export function DesktopAnnotationToolbar({
           </>
         )}
 
-        <div className="annotation-toolbar-divider mx-0.5 h-5 w-px shrink-0" />
+        <div className="annotation-toolbar-divider mx-1 h-4 w-px shrink-0" />
         <button type="button" className="annotation-tool-btn shrink-0" onClick={onUndo} disabled={!layerHasItems}>
           <Icon name="undo" size={13} strokeWidth={1.8} />
           撤销
         </button>
-        <button
-          type="button"
-          className="annotation-tool-btn text-(--color-text-3) shrink-0"
-          onClick={onClear}
-          disabled={!layerHasItems}
-        >
+        <button type="button" className="annotation-tool-btn shrink-0" onClick={onClear} disabled={!layerHasItems}>
           清空
         </button>
-        <button type="button" className="annotation-tool-btn shrink-0" data-active="true" onClick={onFinish}>
+        <div className="annotation-toolbar-divider mx-1 h-4 w-px shrink-0" />
+        <button type="button" className="annotation-finish-btn shrink-0" onClick={onFinish}>
           <Icon name="check" size={13} strokeWidth={1.8} />
           完成
         </button>

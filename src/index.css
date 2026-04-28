@@ -383,10 +383,11 @@
     box-shadow: inset 0 0 0 1px var(--color-accent-wash-2);
   }
   .annotation-tool-btn,
-  .annotation-dot-btn {
+  .annotation-dot-btn,
+  .annotation-finish-btn {
     height: 28px;
     border: 0;
-    border-radius: 7px;
+    border-radius: 6px;
     background: transparent;
     color: var(--color-text-2);
     -webkit-appearance: none;
@@ -404,35 +405,57 @@
       box-shadow 120ms;
   }
   .annotation-tool-btn {
-    padding: 0 10px;
+    padding: 0 9px;
   }
   .annotation-dot-btn {
-    width: 32px;
+    width: 26px;
     padding: 0;
   }
   .annotation-tool-btn:hover:not(:disabled),
   .annotation-dot-btn:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--color-surface) 42%, transparent);
+    background: color-mix(in srgb, var(--color-text) 6%, transparent);
     color: var(--color-text);
   }
   .annotation-tool-btn[data-active='true'],
   .annotation-dot-btn[data-active='true'] {
-    background: color-mix(in srgb, var(--color-accent) 13%, transparent);
-    color: var(--color-accent);
-    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-accent) 26%, transparent);
+    background: color-mix(in srgb, var(--color-text) 8%, transparent);
+    color: var(--color-text);
   }
   .annotation-tool-btn[data-active='true']:hover:not(:disabled),
   .annotation-dot-btn[data-active='true']:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--color-accent) 17%, transparent);
-    color: var(--color-accent);
+    background: color-mix(in srgb, var(--color-text) 11%, transparent);
+    color: var(--color-text);
   }
   .annotation-tool-btn:disabled,
-  .annotation-dot-btn:disabled {
+  .annotation-dot-btn:disabled,
+  .annotation-finish-btn:disabled {
     cursor: not-allowed;
     opacity: 0.42;
   }
   .annotation-toolbar-divider {
-    background: color-mix(in srgb, var(--color-text) 22%, transparent);
+    background: var(--ring-edge-strong);
+  }
+
+  /* Primary CTA inside the annotation toolbar. Solid accent pill keeps it
+     visually separate from the neutral tool buttons so only one element
+     in the bar carries the accent color. */
+  .annotation-finish-btn {
+    padding: 0 11px;
+    background: var(--color-accent);
+    color: var(--color-accent-fg);
+    font-weight: 600;
+    box-shadow:
+      inset 0 0 0 1px color-mix(in srgb, var(--color-accent) 55%, #000 10%),
+      inset 0 1px 0 rgba(255, 255, 255, 0.12),
+      0 1px 2px rgba(0, 0, 0, 0.08);
+  }
+  .annotation-finish-btn:hover:not(:disabled) {
+    filter: brightness(1.06);
+    background: var(--color-accent);
+    color: var(--color-accent-fg);
+  }
+  .annotation-finish-btn:active:not(:disabled) {
+    transform: translateY(0.5px);
   }
   .chip.ghost {
     background: transparent;
@@ -836,37 +859,42 @@
     border: 0;
     border-radius: var(--radius-sm);
     padding: 5px 10px;
-    background: rgba(255, 255, 255, 0.16);
+    background: rgba(31, 29, 26, 0.82);
     color: #fff;
     font-size: 11px;
     font-weight: 500;
     white-space: nowrap;
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
     transition:
       background 120ms,
       box-shadow 120ms,
       transform 60ms;
   }
   .media-action:hover:not(:disabled) {
-    background: rgba(255, 255, 255, 0.22);
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28);
+    background: rgba(42, 39, 35, 0.92);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
   }
   .media-action:active:not(:disabled) {
     transform: translateY(0.5px);
   }
   .media-action.light {
-    background: rgba(255, 255, 255, 0.94);
+    background: rgba(255, 255, 255, 0.9);
     color: #111;
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+  }
+  .media-action.light:hover:not(:disabled) {
+    background: rgba(244, 243, 241, 0.96);
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
   }
   .media-action.icon-only {
     width: 26px;
     padding-inline: 5px;
   }
   .media-action.danger {
-    background: rgba(225, 86, 86, 0.28);
+    background: color-mix(in srgb, var(--color-danger) 82%, transparent);
+  }
+  .media-action.danger:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--color-danger) 92%, #000 8%);
   }
 }
 

@@ -589,6 +589,17 @@ export function ImageDetailModal({
     setDesktopMoveActive(false)
   }
 
+  // Wipe items but keep the user inside the annotation session. Used by the
+  // in-editor toolbars where the expectation is "undo everything, let me
+  // keep drawing", unlike the sidebar chip which also exits the mode.
+  const clearAnnotationsInPlace = () => {
+    if (!currentImage) return
+    drawableRef.current?.clearAll()
+    setEditItems(currentImage.id, [])
+    setDrawableCounts({ annotate: 0, mask: 0 })
+    setDrawRevision((prev) => prev + 1)
+  }
+
   // Size helper — show approximate px
   const pxDim = currentMeta ? `${currentMeta.resolution} · ${currentMeta.aspectRatio}` : ''
 
@@ -839,7 +850,7 @@ export function ImageDetailModal({
                       onChangeDesktopMoveActive={setDesktopMoveActive}
                       onChangeBrushPreset={setBrushPreset}
                       onUndo={() => drawableRef.current?.undo()}
-                      onClear={clearAnnotations}
+                      onClear={clearAnnotationsInPlace}
                       onFinish={finishAnnotation}
                     />
                   )}
