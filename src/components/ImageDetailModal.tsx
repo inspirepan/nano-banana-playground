@@ -648,13 +648,13 @@ export function ImageDetailModal({
 
         {currentMeta ? (
           <div className="flex min-w-0 items-baseline gap-2">
-            <span className="truncate text-base font-semibold leading-none tracking-[-0.01em] text-(--color-text) md:text-base md:font-medium md:tracking-normal">
+            <span className="truncate text-base font-semibold leading-[1.25] tracking-[-0.01em] text-(--color-text) md:text-base md:font-medium md:tracking-normal">
               {modelName}
             </span>
-            <span className="mono shrink-0 text-sm leading-none text-(--color-text-4)">{pxDim}</span>
+            <span className="mono shrink-0 text-sm leading-[1.25] text-(--color-text-4)">{pxDim}</span>
           </div>
         ) : (
-          <span className="truncate text-base font-semibold leading-none tracking-[-0.01em] text-(--color-text) md:text-base md:font-medium md:tracking-normal">
+          <span className="truncate text-base font-semibold leading-[1.25] tracking-[-0.01em] text-(--color-text) md:text-base md:font-medium md:tracking-normal">
             {currentSlot ? '生成任务' : '图片组'}
           </span>
         )}
@@ -663,7 +663,7 @@ export function ImageDetailModal({
 
         {viewMode === 'detail' && (
           <button
-            className="chip hidden shrink-0 md:inline-flex"
+            className="chip hidden shrink-0 font-normal md:inline-flex"
             onClick={() => {
               setGalleryInitialMode('manage')
               setGalleryReturnTarget('detail')
@@ -677,7 +677,7 @@ export function ImageDetailModal({
         )}
         {viewMode === 'detail' && (
           <button
-            className="chip shrink-0 text-sm md:hidden"
+            className="chip shrink-0 text-sm font-normal md:hidden"
             onClick={() => setMobilePreviewOpen(true)}
             disabled={!currentImage}
             title="全屏预览"
@@ -690,7 +690,7 @@ export function ImageDetailModal({
         {viewMode === 'detail' && (
           <>
             <button
-              className="chip hidden shrink-0 md:inline-flex"
+              className="chip hidden shrink-0 font-normal md:inline-flex"
               onClick={handleAddRef}
               disabled={!currentImage}
               title="加为参考"
@@ -698,12 +698,16 @@ export function ImageDetailModal({
               <Icon name="plus" size={12} strokeWidth={1.8} /> <span className="hidden md:inline">参考</span>
             </button>
             {currentMeta?.prompt && (
-              <button className="chip hidden shrink-0 md:inline-flex" onClick={handleRegenerateAction} title="还原参数">
+              <button
+                className="chip hidden shrink-0 font-normal md:inline-flex"
+                onClick={handleRegenerateAction}
+                title="还原参数"
+              >
                 <Icon name="refresh" size={12} strokeWidth={1.8} /> <span className="hidden md:inline">还原参数</span>
               </button>
             )}
             <button
-              className="chip shrink-0 text-sm md:hidden"
+              className="chip shrink-0 text-sm font-normal md:hidden"
               onClick={handleDownload}
               disabled={!currentImage}
               title="下载 PNG"
@@ -712,7 +716,7 @@ export function ImageDetailModal({
               <Icon name="download" size={14} strokeWidth={1.8} /> 下载
             </button>
             <button
-              className="chip hidden shrink-0 md:inline-flex"
+              className="chip hidden shrink-0 font-normal md:inline-flex"
               onClick={handleDownload}
               disabled={!currentImage}
               title="下载 PNG"
@@ -723,7 +727,7 @@ export function ImageDetailModal({
         )}
         {viewMode === 'detail' && (
           <button
-            className="chip shrink-0 hidden md:inline-flex"
+            className="chip hidden shrink-0 font-normal md:inline-flex"
             onClick={toggleSidebar}
             title={sidebarCollapsed ? '展开详情面板' : '收起详情面板'}
             aria-pressed={!sidebarCollapsed}

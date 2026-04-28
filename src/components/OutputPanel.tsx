@@ -7,7 +7,7 @@ import { StackItemThumb } from './StackItemThumb'
 import type { ModelConfig } from '../config/models'
 import type { GenerationJob } from '../hooks/usePlayground'
 import { downloadImagePng, downloadImagesZip } from '../lib/exportImages'
-import { formatTime } from '../lib/queueJobDisplay'
+import { countSlots, formatTime } from '../lib/queueJobDisplay'
 import { buildImageStacks, type ImageStack, type StackItem } from '../lib/stacks'
 import type { PlaygroundImage, PlaygroundImageMeta } from '../lib/types'
 
@@ -53,6 +53,15 @@ function hasActiveGenerationSlots(job: GenerationJob): boolean {
   return job.slots.some((slot) => slot.status === 'queued' || slot.status === 'running' || slot.status === 'retrying')
 }
 
+function activeStackStatusText(stack: ImageStack): string | null {
+  const counts = countSlots(stack.jobs.flatMap((job) => job.slots))
+  const parts: string[] = []
+  if (counts.running > 0) parts.push(`${counts.running} 项生成中`)
+  if (counts.retrying > 0) parts.push(`${counts.retrying} 项重试中`)
+  if (counts.queued > 0) parts.push(`${counts.queued} 项排队中`)
+  return parts.length > 0 ? parts.join(' · ') : null
+}
+
 function StackRow({
   stack,
   onOpenItem,
@@ -71,16 +80,17 @@ function StackRow({
   downloading: boolean
 }) {
   const totalItems = stack.images.length + stack.activeSlotCount + stack.failedSlotCount
+  const activeStatusText = activeStackStatusText(stack)
   const stackItemNumberById = new Map(stack.items.map((item, index) => [item.id, index + 1]))
-  const previewItems = [...stack.items].reverse()
+  const previewItems = stack.items
 
   return (
     <div className="min-w-0">
       <div className="min-w-0 px-3 py-2">
         <div className="mb-2 flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1 text-base">
-          <span className="mono shrink-0 font-medium text-(--color-text-3)">{formatTime(stack.updatedAt)}</span>
+          <span className="shrink-0 font-normal text-(--color-text-3)">{formatTime(stack.updatedAt)}</span>
           <span className="text-(--color-text-4)">·</span>
-          <span className="mono font-medium text-(--color-text-3)">{totalItems} 张</span>
+          <span className="font-normal text-(--color-text-3)">{totalItems} 张</span>
           <span className="text-(--color-text-4)">·</span>
           <button
             type="button"
@@ -102,11 +112,11 @@ function StackRow({
               </button>
             </>
           )}
-          {stack.activeSlotCount > 0 && (
+          {activeStatusText && (
             <>
               <span className="text-(--color-text-4)">·</span>
               <span className="inline-flex items-center gap-1.5">
-                <span className="font-medium text-(--color-text-3)">{stack.activeSlotCount} 项生成中</span>
+                <span className="font-medium text-(--color-text-3)">{activeStatusText}</span>
                 <span className="text-(--color-text-4)">·</span>
                 <button
                   type="button"

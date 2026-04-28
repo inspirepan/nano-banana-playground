@@ -3,13 +3,20 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
+  --font-cjk-sans:
+    'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei UI', 'Microsoft YaHei', 'Source Han Sans SC',
+    'Noto Sans CJK SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --font-cjk-serif:
+    'Noto Serif SC', 'Songti SC', 'STSong', 'SimSun', 'Noto Serif CJK SC', Georgia, 'Times New Roman', serif;
+  --font-cjk-mono:
+    ui-monospace, SFMono-Regular, 'SF Mono', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', monospace;
   --font-sans:
-    'Geist Variable', 'Geist', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei UI', 'Microsoft YaHei',
-    'Source Han Sans SC', 'Noto Sans CJK SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    'Geist', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei UI', 'Microsoft YaHei', 'Source Han Sans SC',
+    'Noto Sans CJK SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
   --font-sans--font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1, 'tnum' 1;
   --font-mono:
-    'Geist Mono Variable', 'Geist Mono', ui-monospace, SFMono-Regular, 'SF Mono', 'PingFang SC', 'Hiragino Sans GB',
-    'Microsoft YaHei', monospace;
+    'Geist Mono', ui-monospace, SFMono-Regular, 'SF Mono', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei',
+    monospace;
   --font-mono--font-feature-settings: 'liga' 0, 'calt' 0, 'tnum' 1, 'zero' 1;
   --font-display: var(--font-sans);
 
@@ -93,6 +100,96 @@
   --radius-md: 8px;
   --radius-lg: 10px;
   --radius-xl: 14px;
+}
+
+.font-sans-geist {
+  --font-sans: 'Geist', var(--font-cjk-sans);
+  --font-sans--font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1, 'tnum' 1;
+}
+
+.font-sans-inter {
+  --font-sans: 'Inter', var(--font-cjk-sans);
+  --font-sans--font-feature-settings: 'tnum' 1;
+}
+
+.font-sans-roboto {
+  --font-sans: 'Roboto', var(--font-cjk-sans);
+  --font-sans--font-feature-settings: 'tnum' 1;
+}
+
+.font-sans-space-grotesk {
+  --font-sans: 'Space Grotesk', var(--font-cjk-sans);
+  --font-sans--font-feature-settings: 'tnum' 1;
+}
+
+.font-sans-google-sans-flex {
+  --font-sans: 'Google Sans Flex', var(--font-cjk-sans);
+  --font-sans--font-feature-settings: 'tnum' 1;
+}
+
+.font-sans-manrope {
+  --font-sans: 'Manrope', var(--font-cjk-sans);
+  --font-sans--font-feature-settings: 'tnum' 1;
+}
+
+.font-sans-plus-jakarta-sans {
+  --font-sans: 'Plus Jakarta Sans', var(--font-cjk-sans);
+  --font-sans--font-feature-settings: 'tnum' 1;
+}
+
+.font-sans-dm-sans {
+  --font-sans: 'DM Sans', var(--font-cjk-sans);
+  --font-sans--font-feature-settings: 'tnum' 1;
+}
+
+.font-sans-source-serif-4 {
+  --font-sans: 'Source Serif 4', var(--font-cjk-serif);
+  --font-sans--font-feature-settings: 'tnum' 1;
+}
+
+.font-sans-newsreader {
+  --font-sans: 'Newsreader', var(--font-cjk-serif);
+  --font-sans--font-feature-settings: 'tnum' 1;
+}
+
+.font-sans-literata {
+  --font-sans: 'Literata', var(--font-cjk-serif);
+  --font-sans--font-feature-settings: 'tnum' 1;
+}
+
+.font-sans-bitter {
+  --font-sans: 'Bitter', var(--font-cjk-serif);
+  --font-sans--font-feature-settings: 'tnum' 1;
+}
+
+.font-sans-crimson-pro {
+  --font-sans: 'Crimson Pro', var(--font-cjk-serif);
+  --font-sans--font-feature-settings: 'tnum' 1;
+}
+
+.font-sans-gelasio {
+  --font-sans: 'Gelasio', var(--font-cjk-serif);
+  --font-sans--font-feature-settings: 'tnum' 1;
+}
+
+.font-mono-geist-mono {
+  --font-mono: 'Geist Mono', var(--font-cjk-mono);
+}
+
+.font-mono-google-sans-code {
+  --font-mono: 'Google Sans Code', var(--font-cjk-mono);
+}
+
+.font-mono-jetbrains-mono {
+  --font-mono: 'JetBrains Mono', var(--font-cjk-mono);
+}
+
+.font-mono-roboto-mono {
+  --font-mono: 'Roboto Mono', var(--font-cjk-mono);
+}
+
+.font-mono-dm-mono {
+  --font-mono: 'DM Mono', var(--font-cjk-mono);
 }
 
 /* Dark theme */
@@ -247,7 +344,7 @@
     background: var(--color-bg);
     color: var(--color-text);
     font-family: var(--font-sans);
-    /* Geist features plus tnum; avoid stylistic-set tags because CJK fallbacks reuse them. */
+    /* Geist keeps kern/liga/calt/tnum; other sans choices override this to safe tnum only. */
     font-feature-settings: var(--font-sans--font-feature-settings);
     font-variant-numeric: tabular-nums;
     /* Disable synthetic bold/italic — forces the browser to use real glyphs from PingFang SC

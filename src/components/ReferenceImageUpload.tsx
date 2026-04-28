@@ -15,6 +15,7 @@ type Props = {
   images: PlaygroundImage[]
   lockedImages?: LockedReferenceImage[]
   hint?: string
+  labelClassName?: string
   maxTotal: number
   dragOver: boolean
   error: string | null
@@ -28,6 +29,7 @@ export function ReferenceImageUpload({
   images,
   lockedImages = [],
   hint = '可拖入本地图片，或按 ⌘/Ctrl+V 粘贴；也可拖入右侧历史图',
+  labelClassName = 'label',
   maxTotal,
   dragOver,
   error,
@@ -55,7 +57,7 @@ export function ReferenceImageUpload({
   return (
     <div>
       <div className="flex items-center justify-between mb-1.5 min-h-[20px]">
-        <span className="label">参考图</span>
+        <span className={labelClassName}>参考图</span>
         <div className="flex items-center gap-2">
           {images.length > 0 && (
             <button

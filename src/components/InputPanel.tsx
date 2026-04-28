@@ -13,6 +13,8 @@ import { openAISize } from '../lib/openai'
 import { getPricePerImage } from '../lib/pricing'
 import type { PlaygroundImage } from '../lib/types'
 
+const INPUT_LABEL_CLASS = 'text-base font-semibold tracking-normal text-(--color-text-3)'
+
 // ——— Section helper ———
 function Section({
   label,
@@ -29,7 +31,7 @@ function Section({
     <div className="mb-[18px]">
       <div className="flex items-center justify-between mb-1.5 min-h-[20px]">
         <div className="flex items-center gap-2">
-          <span className="label">{label}</span>
+          <span className={INPUT_LABEL_CLASS}>{label}</span>
           {hint && <span className="text-sm text-(--color-text-4)">{hint}</span>}
         </div>
         {right}
@@ -525,6 +527,7 @@ export function InputPanel({
         value={aspectRatio}
         resolution={resolution}
         onChange={onAspectRatioChange}
+        labelClassName={INPUT_LABEL_CLASS}
         pixelLabel={model.provider === 'openai' ? (ratio, res) => openAISize(res, ratio).replace('x', '×') : undefined}
       />
 
@@ -561,6 +564,7 @@ export function InputPanel({
           maxTotal={maxRef}
           dragOver={dragOver}
           error={referenceImageError}
+          labelClassName={INPUT_LABEL_CLASS}
           onAdd={onAddReferenceImages}
           onRemove={onRemoveReferenceImage}
           onClearAll={onClearAllReferences}
@@ -658,7 +662,7 @@ export function InputPanel({
       <div className="relative">
         <div className="mb-2.5 pt-2.5 shadow-[inset_0_1px_0_var(--ring-edge-soft)]">
           <div className="flex items-baseline justify-between mb-2">
-            <span className="label">参数概览</span>
+            <span className={INPUT_LABEL_CLASS}>参数概览</span>
             {estimatedCost !== null && (
               <span className="mono text-base text-(--color-text-2)">≈ ${estimatedCost.toFixed(3)}</span>
             )}

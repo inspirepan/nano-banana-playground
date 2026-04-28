@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 
 import { ApiKeysSettings, type KeyHook } from './ApiKeysDialog'
 import { Icon, type IconName } from './Icon'
+import { MONO_FONTS, SANS_FONTS, type MonoFontId, type SansFontId } from '../config/fonts'
 import { COLOR_THEMES, type ColorThemeId, type Theme } from '../config/theme'
 
 const BRIGHTNESS: { value: Theme; icon: IconName; label: string }[] = [
@@ -11,15 +12,29 @@ const BRIGHTNESS: { value: Theme; icon: IconName; label: string }[] = [
   { value: 'system', icon: 'contrast', label: '系统' },
 ]
 
+const SERIF_FONT_IDS = new Set<SansFontId>([
+  'source-serif-4',
+  'newsreader',
+  'literata',
+  'bitter',
+  'crimson-pro',
+  'gelasio',
+])
+const SANS_FONT_CHOICES = SANS_FONTS.filter((font) => !SERIF_FONT_IDS.has(font.id))
+
 type Props = {
   open: boolean
   googleKey: KeyHook
   openaiKey: KeyHook
   theme: Theme
   colorTheme: ColorThemeId
+  sansFont: SansFontId
+  monoFont: MonoFontId
   generationConcurrency: number
   onThemeChange: (theme: Theme) => void
   onColorThemeChange: (id: ColorThemeId) => void
+  onSansFontChange: (id: SansFontId) => void
+  onMonoFontChange: (id: MonoFontId) => void
   onGenerationConcurrencyChange: (value: number) => void
   onClose: () => void
 }
@@ -30,9 +45,13 @@ export function SettingsDialog({
   openaiKey,
   theme,
   colorTheme,
+  sansFont,
+  monoFont,
   generationConcurrency,
   onThemeChange,
   onColorThemeChange,
+  onSansFontChange,
+  onMonoFontChange,
   onGenerationConcurrencyChange,
   onClose,
 }: Props) {
@@ -127,6 +146,22 @@ export function SettingsDialog({
                     })}
                   </div>
                 </div>
+
+                <FontChoiceGroup
+                  label="正文字体"
+                  fonts={SANS_FONT_CHOICES}
+                  value={sansFont}
+                  sample="Imagine 生成任务"
+                  onChange={onSansFontChange}
+                />
+
+                <FontChoiceGroup
+                  label="等宽字体"
+                  fonts={MONO_FONTS}
+                  value={monoFont}
+                  sample="4K · 1:1 · #A12B"
+                  onChange={onMonoFontChange}
+                />
               </div>
             </SettingsSection>
 
@@ -160,6 +195,47 @@ export function SettingsDialog({
       </div>
     </div>,
     document.body,
+  )
+}
+
+function FontChoiceGroup<T extends string>({
+  label,
+  fonts,
+  value,
+  sample,
+  onChange,
+}: {
+  label: string
+  fonts: { id: T; name: string; cssFamily: string }[]
+  value: T
+  sample: string
+  onChange: (id: T) => void
+}) {
+  return (
+    <div>
+      <div className="label mb-1.5 px-1">{label}</div>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        {fonts.map((font) => (
+          <button
+            key={font.id}
+            type="button"
+            onClick={() => onChange(font.id)}
+            className="rounded-[6px] bg-(--color-surface) px-3 py-2 text-left transition-colors hover:bg-(--color-surface-2)"
+            style={{
+              boxShadow:
+                value === font.id ? 'inset 0 0 0 1.5px var(--color-accent)' : 'inset 0 0 0 1px var(--ring-edge-soft)',
+            }}
+          >
+            <div className="text-sm font-medium text-(--color-text)" style={{ fontFamily: font.cssFamily }}>
+              {font.name}
+            </div>
+            <div className="mt-1 truncate text-sm text-(--color-text-3)" style={{ fontFamily: font.cssFamily }}>
+              {sample}
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
   )
 }
 

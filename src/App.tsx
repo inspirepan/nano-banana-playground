@@ -5,12 +5,26 @@ import { Icon } from './components/Icon'
 import { InputPanel } from './components/InputPanel'
 import { OutputPanel } from './components/OutputPanel'
 import { SettingsDialog } from './components/SettingsDialog'
+import {
+  DEFAULT_MONO_FONT,
+  DEFAULT_SANS_FONT,
+  MONO_FONT_IDS,
+  MONO_FONTS,
+  SANS_FONT_IDS,
+  SANS_FONTS,
+  googleFontPreviewsHref,
+  googleFontsHref,
+  type MonoFontId,
+  type SansFontId,
+} from './config/fonts'
 import { COLOR_THEME_IDS, type ColorThemeId, type Theme } from './config/theme'
 import { usePlayground } from './hooks/usePlayground'
 import type { PlaygroundImageMeta } from './lib/types'
 
 const BASE_TITLE = 'Imagine Playground'
 const TITLE_RESET_DELAY_MS = 8000
+const GOOGLE_FONTS_LINK_ID = 'nano-banana-google-fonts'
+const GOOGLE_FONT_PREVIEWS_LINK_ID = 'nano-banana-google-font-previews'
 
 function getInitialTheme(): Theme {
   const stored = localStorage.getItem('nano-banana-theme')
@@ -23,6 +37,57 @@ function getInitialColorTheme(): ColorThemeId {
   const id = stored && (COLOR_THEME_IDS as string[]).includes(stored) ? (stored as ColorThemeId) : 'default'
   if (id !== 'default') document.documentElement.classList.add(`theme-${id}`)
   return id
+}
+
+function getInitialSansFont(): SansFontId {
+  const stored = localStorage.getItem('nano-banana-sans-font')
+  const id = stored && (SANS_FONT_IDS as string[]).includes(stored) ? (stored as SansFontId) : DEFAULT_SANS_FONT
+  document.documentElement.classList.add(
+    SANS_FONTS.find((font) => font.id === id)?.className ?? SANS_FONTS[0].className,
+  )
+  return id
+}
+
+function getInitialMonoFont(): MonoFontId {
+  const stored = localStorage.getItem('nano-banana-mono-font')
+  const id = stored && (MONO_FONT_IDS as string[]).includes(stored) ? (stored as MonoFontId) : DEFAULT_MONO_FONT
+  document.documentElement.classList.add(
+    MONO_FONTS.find((font) => font.id === id)?.className ?? MONO_FONTS[0].className,
+  )
+  return id
+}
+
+function ensureGoogleFontsPreconnect() {
+  let preconnect = document.querySelector<HTMLLinkElement>('link[data-nano-banana-fonts-preconnect="fonts-googleapis"]')
+  if (!preconnect) {
+    preconnect = document.createElement('link')
+    preconnect.rel = 'preconnect'
+    preconnect.href = 'https://fonts.googleapis.com'
+    preconnect.dataset.nanoBananaFontsPreconnect = 'fonts-googleapis'
+    document.head.appendChild(preconnect)
+  }
+
+  let gstatic = document.querySelector<HTMLLinkElement>('link[data-nano-banana-fonts-preconnect="fonts-gstatic"]')
+  if (!gstatic) {
+    gstatic = document.createElement('link')
+    gstatic.rel = 'preconnect'
+    gstatic.href = 'https://fonts.gstatic.com'
+    gstatic.crossOrigin = 'anonymous'
+    gstatic.dataset.nanoBananaFontsPreconnect = 'fonts-gstatic'
+    document.head.appendChild(gstatic)
+  }
+}
+
+function ensureGoogleFontsLink(id: string, href: string) {
+  ensureGoogleFontsPreconnect()
+  let link = document.getElementById(id) as HTMLLinkElement | null
+  if (!link) {
+    link = document.createElement('link')
+    link.id = id
+    link.rel = 'stylesheet'
+    document.head.appendChild(link)
+  }
+  link.href = href
 }
 
 function App() {
@@ -38,6 +103,8 @@ function App() {
   } = pg
   const [theme, setTheme] = useState<Theme>(getInitialTheme)
   const [colorTheme, setColorTheme] = useState<ColorThemeId>(getInitialColorTheme)
+  const [sansFont, setSansFont] = useState<SansFontId>(getInitialSansFont)
+  const [monoFont, setMonoFont] = useState<MonoFontId>(getInitialMonoFont)
   const [regenToast, setRegenToast] = useState<string | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const regenToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -80,6 +147,22 @@ function App() {
     if (colorTheme !== 'default') root.classList.add(`theme-${colorTheme}`)
     localStorage.setItem('nano-banana-color-theme', colorTheme)
   }, [colorTheme])
+
+  useLayoutEffect(() => {
+    const root = document.documentElement
+    SANS_FONTS.forEach((font) => root.classList.remove(font.className))
+    MONO_FONTS.forEach((font) => root.classList.remove(font.className))
+    root.classList.add(SANS_FONTS.find((font) => font.id === sansFont)?.className ?? SANS_FONTS[0].className)
+    root.classList.add(MONO_FONTS.find((font) => font.id === monoFont)?.className ?? MONO_FONTS[0].className)
+    ensureGoogleFontsLink(GOOGLE_FONTS_LINK_ID, googleFontsHref(sansFont, monoFont))
+    if (settingsOpen) {
+      ensureGoogleFontsLink(GOOGLE_FONT_PREVIEWS_LINK_ID, googleFontPreviewsHref())
+    } else {
+      document.getElementById(GOOGLE_FONT_PREVIEWS_LINK_ID)?.remove()
+    }
+    localStorage.setItem('nano-banana-sans-font', sansFont)
+    localStorage.setItem('nano-banana-mono-font', monoFont)
+  }, [monoFont, sansFont, settingsOpen])
 
   useEffect(() => {
     const root = document.documentElement
@@ -291,9 +374,13 @@ function App() {
         openaiKey={pg.openaiKey}
         theme={theme}
         colorTheme={colorTheme}
+        sansFont={sansFont}
+        monoFont={monoFont}
         generationConcurrency={pg.generationConcurrency}
         onThemeChange={setTheme}
         onColorThemeChange={setColorTheme}
+        onSansFontChange={setSansFont}
+        onMonoFontChange={setMonoFont}
         onGenerationConcurrencyChange={pg.setGenerationConcurrency}
         onClose={() => setSettingsOpen(false)}
       />

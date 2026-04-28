@@ -4,6 +4,7 @@ type Props = {
   resolution: string
   onChange: (value: string) => void
   pixelLabel?: (ratio: string, resolution: string) => string
+  labelClassName?: string
   // When false, the "宽高比" header row is omitted. Useful when rendered
   // under an enclosing section that already labels the control.
   showLabel?: boolean
@@ -42,13 +43,14 @@ export function AspectRatioSelector({
   resolution,
   onChange,
   pixelLabel = defaultPixelLabel,
+  labelClassName = 'label',
   showLabel = true,
 }: Props) {
   return (
     <div>
       {showLabel ? (
         <div className="flex items-center justify-between mb-1.5">
-          <span className="label">宽高比</span>
+          <span className={labelClassName}>宽高比</span>
           <span className="mono text-sm text-(--color-text-4)">{pixelLabel(value, resolution)}</span>
         </div>
       ) : (
