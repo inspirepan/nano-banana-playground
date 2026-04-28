@@ -78,7 +78,7 @@ export function DetailSidebar({
         <div className="mb-[18px] grid grid-cols-3 gap-1.5 md:hidden">
           <button type="button" className="chip justify-center" onClick={onAddRef} disabled={!currentImage}>
             <Icon name="plus" size={12} strokeWidth={1.8} />
-            +参考
+            参考
           </button>
           <button type="button" className="chip justify-center" onClick={onRegenerate} disabled={!currentMeta?.prompt}>
             <Icon name="undo" size={12} strokeWidth={1.8} />

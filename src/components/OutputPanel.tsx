@@ -1,7 +1,7 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { Icon } from './Icon'
-import { ImageDetailModal } from './ImageDetailModal'
+import { ImageDetailModal } from './image-detail/ImageDetailModal'
 import { GridCell, ImageGrid } from './ImageGrid'
 import { StackItemThumb } from './StackItemThumb'
 import { MODEL_CONFIGS, type ModelConfig } from '../config/models'
