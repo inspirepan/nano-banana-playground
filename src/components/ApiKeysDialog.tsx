@@ -6,7 +6,7 @@ import type { Provider } from '../config/models'
 import type { ApiKeyStatus } from '../hooks/useApiKey'
 import { DEFAULT_BASE_URL, previewEndpoint } from '../lib/validateKey'
 
-type KeyHook = {
+export type KeyHook = {
   apiKey: string
   baseUrl: string
   status: ApiKeyStatus
@@ -65,12 +65,8 @@ export function ApiKeysDialog({ open, googleKey, openaiKey, onClose }: Props) {
             <Icon name="close" size={13} />
           </button>
         </div>
-        <div className="px-5 py-4 space-y-4">
-          <KeyRow provider="google" hook={googleKey} />
-          <KeyRow provider="openai" hook={openaiKey} />
-          <p className="text-[11.5px] leading-relaxed text-(--color-text-3)">
-            密钥与 Base URL 仅保存在当前浏览器的 localStorage，不会上传任何服务器。
-          </p>
+        <div className="px-5 py-4">
+          <ApiKeysSettings googleKey={googleKey} openaiKey={openaiKey} />
         </div>
       </div>
     </div>,
@@ -78,7 +74,29 @@ export function ApiKeysDialog({ open, googleKey, openaiKey, onClose }: Props) {
   )
 }
 
-function KeyRow({ provider, hook }: { provider: Provider; hook: KeyHook }) {
+type ApiKeysSettingsVariant = 'dialog' | 'embedded'
+
+export function ApiKeysSettings({
+  googleKey,
+  openaiKey,
+  variant = 'dialog',
+}: {
+  googleKey: KeyHook
+  openaiKey: KeyHook
+  variant?: ApiKeysSettingsVariant
+}) {
+  return (
+    <div className="space-y-4">
+      <KeyRow provider="google" hook={googleKey} variant={variant} />
+      <KeyRow provider="openai" hook={openaiKey} variant={variant} />
+      <p className="text-[11.5px] leading-relaxed text-(--color-text-3)">
+        密钥与 Base URL 仅保存在当前浏览器的 localStorage，不会上传任何服务器。
+      </p>
+    </div>
+  )
+}
+
+function KeyRow({ provider, hook, variant }: { provider: Provider; hook: KeyHook; variant: ApiKeysSettingsVariant }) {
   const { label, placeholder, hint } = LABELS[provider]
   const { apiKey, baseUrl, status, error, submit, reset, keepCurrent } = hook
   const [draft, setDraft] = useState('')
@@ -151,6 +169,41 @@ function KeyRow({ provider, hook }: { provider: Provider; hook: KeyHook }) {
   )
 
   if (status === 'valid' && !isEditing) {
+    if (variant === 'embedded') {
+      return (
+        <div>
+          {header}
+          <div className="rounded-[8px] bg-(--color-surface-2) px-3 py-2.5">
+            <div className="flex min-w-0 items-center gap-2">
+              <Icon name="check_circle" size={13} className="shrink-0 text-(--color-success)" strokeWidth={1.9} />
+              <span className="mono min-w-0 flex-1 truncate text-[12px] text-(--color-text-2)">{masked}</span>
+              {justValidated ? (
+                <span className="inline-flex shrink-0 items-center gap-1 text-[11.5px] font-medium text-(--color-success)">
+                  <Icon name="check_circle" size={12} strokeWidth={2.1} />
+                  验证成功
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleEdit}
+                  className="shrink-0 bg-transparent p-0 text-[12px] font-medium text-(--color-text-3) transition-colors hover:text-(--color-text)"
+                >
+                  修改
+                </button>
+              )}
+            </div>
+            <div className="mt-1.5 flex min-w-0 items-center gap-2 text-[11.5px] text-(--color-text-3)">
+              <span className="shrink-0 text-(--color-text-4)">Base URL</span>
+              <span className="mono min-w-0 flex-1 truncate">
+                {baseUrl || baseUrlPlaceholder}
+                {!baseUrl && <span className="ml-1 text-(--color-text-4)">（默认）</span>}
+              </span>
+            </div>
+          </div>
+        </div>
+      )
+    }
+
     return (
       <div>
         {header}
@@ -213,34 +266,39 @@ function KeyRow({ provider, hook }: { provider: Provider; hook: KeyHook }) {
     <div>
       {header}
 
-      <div className="card px-3 py-3 space-y-2.5">
+      <div
+        className={`${variant === 'embedded' ? 'rounded-[8px] bg-(--color-surface-2)' : 'card'} px-3 py-3 space-y-2.5`}
+      >
         {status === 'invalid' && (
           <div className="text-[11.5px] leading-relaxed text-(--color-danger) break-words">
             {error ?? '密钥无效或已过期，请重新输入。'}
           </div>
         )}
 
-        <input
-          type="password"
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') handleSubmit()
-          }}
-          placeholder={hasExistingKey ? '粘贴新密钥；留空则继续使用当前密钥' : placeholder}
-          disabled={isValidating}
-          className="w-full rounded-[6px] bg-(--color-surface) px-2.5 py-1.5 text-[12.5px]
-                     shadow-[inset_0_0_0_1px_var(--ring-edge)]
-                     focus:shadow-[inset_0_0_0_1px_var(--color-accent),0_0_0_3px_var(--color-accent-wash)]
-                     transition-[box-shadow,background]
-                     placeholder:text-(--color-text-4)
-                     disabled:opacity-60 disabled:cursor-not-allowed"
-        />
+        <div>
+          <label className="mb-1 block text-[11.5px] font-medium text-(--color-text-2)">API Key</label>
+          <input
+            type="password"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleSubmit()
+            }}
+            placeholder={hasExistingKey ? '粘贴新密钥；留空则继续使用当前密钥' : placeholder}
+            disabled={isValidating}
+            className="w-full rounded-[6px] bg-(--color-surface) px-2.5 py-1.5 text-[12.5px]
+                       shadow-[inset_0_0_0_1px_var(--ring-edge)]
+                       focus:shadow-[inset_0_0_0_1px_var(--color-accent),0_0_0_3px_var(--color-accent-wash)]
+                       transition-[box-shadow,background]
+                       placeholder:text-(--color-text-4)
+                       disabled:opacity-60 disabled:cursor-not-allowed"
+          />
+        </div>
 
         <div>
           <div className="flex items-baseline justify-between mb-1">
             <label className="text-[11.5px] font-medium text-(--color-text-2)">Base URL</label>
-            <span className="text-[10.5px] text-(--color-text-4)">可选，留空使用默认</span>
+            <span className="text-[10.5px] text-(--color-text-4)">可选，留空使用原生 API</span>
           </div>
           <input
             type="url"

@@ -4,7 +4,6 @@ import { Icon } from './Icon'
 import { ImageDetailModal } from './ImageDetailModal'
 import { GridCell, ImageGrid } from './ImageGrid'
 import { StackItemThumb } from './StackItemThumb'
-import { Tooltip } from './Tooltip'
 import type { ModelConfig } from '../config/models'
 import type { GenerationJob, GenerationQueueSummary } from '../hooks/usePlayground'
 import { downloadImagePng, downloadImagesZip } from '../lib/exportImages'
@@ -17,8 +16,6 @@ type Props = {
   historyHasMore: boolean
   generationJobs: GenerationJob[]
   generationQueueSummary: GenerationQueueSummary
-  generationConcurrency: number
-  onGenerationConcurrencyChange: (value: number) => void
   onCancelGenerationJob: (jobId: string) => void
   onDismissGenerationJob: (jobId: string) => void
   onCancelGenerationSlot: (slotId: string) => void
@@ -218,8 +215,6 @@ export const OutputPanel = memo(function OutputPanel({
   historyHasMore,
   generationJobs,
   generationQueueSummary,
-  generationConcurrency,
-  onGenerationConcurrencyChange,
   onCancelGenerationJob,
   onDismissGenerationJob,
   onCancelGenerationSlot,
@@ -336,54 +331,16 @@ export const OutputPanel = memo(function OutputPanel({
           )}
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <Tooltip
-              text="控制一次最多同时生成几张图。数字越大，排队更少，但也更容易遇到接口限流；不影响每个任务本身要生成的张数。"
-              placement="bottom"
-              maxWidth={260}
-            >
-              <div className="inline-flex shrink-0 items-center gap-1 text-[11px] font-medium text-(--color-text-4)">
-                <span>同时最多生成</span>
-                <span
-                  className="inline-flex h-[13px] w-[13px] items-center justify-center rounded-full mono text-[9px]"
-                  style={{ boxShadow: 'inset 0 0 0 1px var(--ring-edge)' }}
-                >
-                  ?
-                </span>
-              </div>
-            </Tooltip>
-            <div
-              className="segmented"
-              style={{
-                width: 156,
-                ['--seg-count' as string]: 4,
-                ['--seg-index' as string]: generationConcurrency - 1,
-              }}
-            >
-              {[1, 2, 3, 4].map((value) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => onGenerationConcurrencyChange(value)}
-                  data-active={generationConcurrency === value}
-                >
-                  <span>
-                    <span className="mono text-[11px]">{value}</span> 张
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-          {generationQueueSummary.total > 0 && (
+        {generationQueueSummary.total > 0 && (
+          <div className="flex justify-end">
             <div
               className="mono inline-flex h-[30px] shrink-0 items-center whitespace-nowrap rounded-[6px] px-2 text-[11.5px] text-(--color-text-3)"
               style={{ background: 'var(--color-surface-2)', boxShadow: 'inset 0 0 0 1px var(--ring-edge)' }}
             >
               {queueSummaryLabel(generationQueueSummary)}
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {stacks.length > 0 ? (
