@@ -62,12 +62,17 @@ function stackItemAspectRatio(item: StackItem): string {
   return '1:1'
 }
 
+function hasActiveGenerationSlots(job: GenerationJob): boolean {
+  return job.slots.some((slot) => slot.status === 'queued' || slot.status === 'running' || slot.status === 'retrying')
+}
+
 function StackRow({
   stack,
   onOpenItem,
   onEditItem,
   onOpenGallery,
   onDownloadStack,
+  onCancelStackGeneration,
   downloading,
 }: {
   stack: ImageStack
@@ -75,6 +80,7 @@ function StackRow({
   onEditItem: (stack: ImageStack, item: StackItem) => void
   onOpenGallery: (stack: ImageStack) => void
   onDownloadStack: (stack: ImageStack) => void
+  onCancelStackGeneration: (stack: ImageStack) => void
   downloading: boolean
 }) {
   const totalItems = stack.images.length + stack.activeSlotCount + stack.failedSlotCount
@@ -85,7 +91,9 @@ function StackRow({
       <div className="min-w-0 p-3">
         <div className="mb-2 flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1">
           <span className="mono shrink-0 text-[11.5px] text-(--color-text-3)">{formatTime(stack.updatedAt)}</span>
+          <span className="text-[11.5px] text-(--color-text-4)">·</span>
           <span className="mono text-[11.5px] text-(--color-text-3)">{totalItems} 张</span>
+          <span className="text-[11.5px] text-(--color-text-4)">·</span>
           <button
             type="button"
             onClick={() => onOpenGallery(stack)}
@@ -94,22 +102,41 @@ function StackRow({
             查看全部
           </button>
           {stack.images.length > 1 && (
-            <button
-              type="button"
-              onClick={() => onDownloadStack(stack)}
-              disabled={downloading}
-              className="bg-transparent p-0 text-[11.5px] font-medium text-(--color-text-3) transition-colors hover:text-(--color-text-2) disabled:cursor-not-allowed disabled:opacity-45"
-            >
-              {downloading ? '打包中…' : '下载 ZIP'}
-            </button>
+            <>
+              <span className="text-[11.5px] text-(--color-text-4)">·</span>
+              <button
+                type="button"
+                onClick={() => onDownloadStack(stack)}
+                disabled={downloading}
+                className="bg-transparent p-0 text-[11.5px] font-medium text-(--color-text-3) transition-colors hover:text-(--color-text-2) disabled:cursor-not-allowed disabled:opacity-45"
+              >
+                {downloading ? '打包中…' : '下载 ZIP'}
+              </button>
+            </>
           )}
           {stack.activeSlotCount > 0 && (
-            <span className="text-[11.5px] text-(--color-accent)">生成中 {stack.activeSlotCount}</span>
+            <>
+              <span className="text-[11.5px] text-(--color-text-4)">·</span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="text-[11.5px] text-(--color-accent)">{stack.activeSlotCount} 项生成中</span>
+                <button
+                  type="button"
+                  onClick={() => onCancelStackGeneration(stack)}
+                  className="bg-transparent p-0 text-[11.5px] font-semibold transition-colors hover:brightness-110"
+                  style={{ color: 'var(--color-danger)' }}
+                >
+                  取消生成
+                </button>
+              </span>
+            </>
           )}
           {stack.failedSlotCount > 0 && (
-            <span className="text-[11.5px]" style={{ color: 'var(--color-danger)' }}>
-              失败 {stack.failedSlotCount}
-            </span>
+            <>
+              <span className="text-[11.5px] text-(--color-text-4)">·</span>
+              <span className="text-[11.5px]" style={{ color: 'var(--color-danger)' }}>
+                失败 {stack.failedSlotCount}
+              </span>
+            </>
           )}
         </div>
         <div className="min-w-0">
@@ -247,6 +274,15 @@ export const OutputPanel = memo(function OutputPanel({
     [exportingStackId],
   )
 
+  const handleCancelStackGeneration = useCallback(
+    (stack: ImageStack) => {
+      for (const job of stack.jobs) {
+        if (hasActiveGenerationSlots(job)) onCancelGenerationJob(job.id)
+      }
+    },
+    [onCancelGenerationJob],
+  )
+
   const scrollRef = useRef<HTMLDivElement>(null)
   const topStackIdRef = useRef<string | null>(null)
 
@@ -359,6 +395,7 @@ export const OutputPanel = memo(function OutputPanel({
                 onEditItem={editStackItem}
                 onOpenGallery={openStackGallery}
                 onDownloadStack={handleExportStack}
+                onCancelStackGeneration={handleCancelStackGeneration}
                 downloading={exportingStackId === stack.id}
               />
             ))}
