@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 
 import { ApiKeysSettings, type KeyHook } from './ApiKeysDialog'
@@ -66,6 +66,7 @@ export function SettingsDialog({
   onClose,
 }: Props) {
   const generationConcurrencyRef = useRef<HTMLDivElement>(null)
+  const [generationConcurrencyPulse, setGenerationConcurrencyPulse] = useState(false)
 
   useEffect(() => {
     if (!open) return
@@ -77,11 +78,25 @@ export function SettingsDialog({
   }, [open, onClose])
 
   useEffect(() => {
-    if (!open || focusSection !== 'generationConcurrency') return
-    const timer = window.setTimeout(() => {
+    if (!open || focusSection !== 'generationConcurrency') {
+      setGenerationConcurrencyPulse(false)
+      return
+    }
+    setGenerationConcurrencyPulse(false)
+    const scrollTimer = window.setTimeout(() => {
       generationConcurrencyRef.current?.scrollIntoView({ block: 'center' })
     }, 0)
-    return () => window.clearTimeout(timer)
+    const pulseTimer = window.setTimeout(() => {
+      setGenerationConcurrencyPulse(true)
+    }, 180)
+    const resetTimer = window.setTimeout(() => {
+      setGenerationConcurrencyPulse(false)
+    }, 1700)
+    return () => {
+      window.clearTimeout(scrollTimer)
+      window.clearTimeout(pulseTimer)
+      window.clearTimeout(resetTimer)
+    }
   }, [focusSection, open])
 
   if (!open) return null
@@ -185,7 +200,10 @@ export function SettingsDialog({
               </div>
             </SettingsSection>
 
-            <div ref={generationConcurrencyRef}>
+            <div
+              ref={generationConcurrencyRef}
+              className={generationConcurrencyPulse ? 'settings-focus-pulse' : undefined}
+            >
               <SettingsSection
                 title="同时生成的最大并发数"
                 description="控制一次最多同时生成几张图。数字越大，排队更少，但更容易遇到接口限流。"

@@ -120,7 +120,7 @@ function StackRow({
             <>
               <span className="text-(--color-text-4)">·</span>
               <span className="inline-flex items-center gap-1.5">
-                <span className="inline-flex items-center gap-1.5 font-medium text-(--color-text-3)">
+                <span className="inline-flex items-center gap-1.5 font-normal text-(--color-text-3)">
                   {activeStatusParts.map((part, index) => (
                     <span key={part.kind} className="contents">
                       {index > 0 && <span className="font-normal text-(--color-text-4)">·</span>}
