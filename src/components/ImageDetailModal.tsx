@@ -43,27 +43,6 @@ type Props = {
   onRemove: (id: string) => void | Promise<void>
 }
 
-const MOBILE_SHEET_EXPANDED_VH = 45
-const MOBILE_MODAL_HEADER_PX = 48
-const MOBILE_SHEET_LOW_PX = 88
-
-// Prefer visualViewport.height so the sheet math follows the dynamic viewport
-// (excluding the iOS soft keyboard area) instead of the layout viewport.
-function getVisualViewportHeight(): number {
-  if (typeof window === 'undefined') return 0
-  return window.visualViewport?.height ?? window.innerHeight
-}
-
-function getMobileSheetHeights(viewportHeight: number, editing = false) {
-  const maxHeight = Math.max(MOBILE_SHEET_LOW_PX, viewportHeight - MOBILE_MODAL_HEADER_PX)
-  if (editing) return { initialHeight: maxHeight, expandedHeight: maxHeight }
-
-  const preferredHeight = Math.round((viewportHeight * MOBILE_SHEET_EXPANDED_VH) / 100)
-  const expandedHeight = Math.min(maxHeight, Math.max(MOBILE_SHEET_LOW_PX, preferredHeight))
-  const initialHeight = Math.min(MOBILE_SHEET_LOW_PX, expandedHeight)
-  return { initialHeight, expandedHeight }
-}
-
 export function ImageDetailModal({
   stack,
   initialItemId,
@@ -366,68 +345,25 @@ export function ImageDetailModal({
     }
   }, [activeEditBatchId, stack.items, toSelection])
 
-  // —— Mobile bottom-sheet: start lower to prioritize the image, but keep a
-  // larger expanded stop for metadata-heavy batches.
-  const [isMobileSheet, setIsMobileSheet] = useState(() => {
+  const [isMobileLayout, setIsMobileLayout] = useState(() => {
     if (typeof window === 'undefined') return false
     return window.matchMedia('(max-width: 767px)').matches
   })
-  // null = use the initial lower resting height; a number overrides with an
-  // explicit snapped pixel height after the first drag.
-  const [sheetHeightPx, setSheetHeightPx] = useState<number | null>(null)
-  const [sheetDragging, setSheetDragging] = useState(false)
-  const sheetLayoutKey = `${isMobileSheet}`
-  const [sheetLayoutStamp, setSheetLayoutStamp] = useState(sheetLayoutKey)
-  if (sheetLayoutKey !== sheetLayoutStamp) {
-    setSheetLayoutStamp(sheetLayoutKey)
-    if (sheetHeightPx !== null) setSheetHeightPx(null)
-  }
-  const sheetDragRef = useRef<{
-    startY: number
-    startHeight: number
-    initialHeight: number
-    expandedHeight: number
-    pointerId: number
-  } | null>(null)
-
   useEffect(() => {
     if (typeof window === 'undefined') return
     const mql = window.matchMedia('(max-width: 767px)')
-    const handler = (e: MediaQueryListEvent) => setIsMobileSheet(e.matches)
+    const handler = (e: MediaQueryListEvent) => setIsMobileLayout(e.matches)
     mql.addEventListener('change', handler)
     return () => mql.removeEventListener('change', handler)
   }, [])
 
   useEffect(() => {
-    if (!isMobileSheet || !editing) setMobileDrawOpen(false)
-  }, [isMobileSheet, editing])
+    if (!isMobileLayout || !editing) setMobileDrawOpen(false)
+  }, [isMobileLayout, editing])
 
   useEffect(() => {
-    if (!isMobileSheet || !currentImage) setMobilePreviewOpen(false)
-  }, [isMobileSheet, currentImage])
-
-  // Clamp the snapped sheet height against the current visual viewport so it
-  // doesn't overflow when the iOS keyboard opens.
-  useEffect(() => {
-    if (!isMobileSheet) return
-    const vv = window.visualViewport
-    if (!vv) return
-    const handler = () => {
-      setSheetHeightPx((prev) => {
-        if (prev === null) return prev
-        const { expandedHeight } = getMobileSheetHeights(vv.height, editing)
-        return Math.min(prev, expandedHeight)
-      })
-    }
-    vv.addEventListener('resize', handler)
-    return () => vv.removeEventListener('resize', handler)
-  }, [editing, isMobileSheet])
-
-  useEffect(() => {
-    if (!isMobileSheet || !editing) return
-    const { expandedHeight } = getMobileSheetHeights(getVisualViewportHeight(), true)
-    setSheetHeightPx(expandedHeight)
-  }, [editing, isMobileSheet])
+    if (!isMobileLayout || !currentImage) setMobilePreviewOpen(false)
+  }, [isMobileLayout, currentImage])
 
   // Desktop-only: collapse the right metadata sidebar to give the canvas more room.
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
@@ -446,56 +382,6 @@ export function ImageDetailModal({
       return next
     })
   }, [])
-
-  const expandMobileSheet = useCallback(
-    (nextEditing = editing) => {
-      if (!isMobileSheet) return
-      const { expandedHeight } = getMobileSheetHeights(getVisualViewportHeight(), nextEditing)
-      setSheetHeightPx(expandedHeight)
-    },
-    [editing, isMobileSheet],
-  )
-
-  const handleSheetPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!isMobileSheet || editing) return
-    if (e.pointerType === 'mouse' && e.button !== 0) return
-    const { initialHeight, expandedHeight } = getMobileSheetHeights(getVisualViewportHeight(), editing)
-    sheetDragRef.current = {
-      startY: e.clientY,
-      startHeight: sheetHeightPx ?? initialHeight,
-      initialHeight,
-      expandedHeight,
-      pointerId: e.pointerId,
-    }
-    setSheetDragging(true)
-    e.currentTarget.setPointerCapture(e.pointerId)
-  }
-
-  const handleSheetPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    const drag = sheetDragRef.current
-    if (!drag || drag.pointerId !== e.pointerId) return
-    const delta = e.clientY - drag.startY // +down, -up
-    const next = Math.max(drag.initialHeight, Math.min(drag.expandedHeight, drag.startHeight - delta))
-    setSheetHeightPx(next)
-  }
-
-  const handleSheetPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
-    const drag = sheetDragRef.current
-    if (!drag || drag.pointerId !== e.pointerId) return
-    sheetDragRef.current = null
-    setSheetDragging(false)
-    const delta = e.clientY - drag.startY
-    const current = Math.max(drag.initialHeight, Math.min(drag.expandedHeight, drag.startHeight - delta))
-    const nextHeight =
-      delta < -8
-        ? drag.expandedHeight
-        : delta > 8
-          ? drag.initialHeight
-          : Math.abs(drag.expandedHeight - current) < Math.abs(current - drag.initialHeight)
-            ? drag.expandedHeight
-            : drag.initialHeight
-    setSheetHeightPx(nextHeight)
-  }
 
   const modelConfig = currentMeta ? MODEL_CONFIGS.find((m) => m.id === currentMeta.modelId) : null
   const modelName = modelConfig?.name ?? currentMeta?.modelId ?? null
@@ -554,11 +440,10 @@ export function ImageDetailModal({
 
   const hasPrev = canNavigate && currentIdx > 0
   const hasNext = canNavigate && currentIdx < stack.items.length - 1
-  const showStackStrip = !(isMobileSheet && editing)
   const hasDrawableMarks = drawableCounts.annotate > 0 || drawableCounts.mask > 0
-  const desktopAnnotationActive = editing && editMode !== 'view' && !isMobileSheet && !mobileDrawOpen
+  const desktopAnnotationActive = editing && editMode !== 'view' && !isMobileLayout && !mobileDrawOpen
   const drawableLayerVisible = (editMode !== 'view' || hasDrawableMarks) && !mobileDrawOpen
-  const desktopDrawableLayerVisible = drawableLayerVisible && !isMobileSheet
+  const desktopDrawableLayerVisible = drawableLayerVisible && !isMobileLayout
 
   const startAnnotation = () => {
     if (!currentImage) return
@@ -567,7 +452,7 @@ export function ImageDetailModal({
     setEditMode('mask')
     if (drawTool === 'rect') setDrawTool('brush')
     setDesktopMoveActive(false)
-    if (isMobileSheet) setMobileDrawOpen(true)
+    if (isMobileLayout) setMobileDrawOpen(true)
   }
 
   const finishAnnotation = () => {
@@ -615,9 +500,7 @@ export function ImageDetailModal({
     <div
       className="fixed top-0 left-0 w-full z-[100] flex flex-col fade-in"
       style={{
-        // Track the dynamic viewport so the modal's bottom rises with the iOS
-        // soft keyboard — otherwise `inset-0` pins the bottom to the layout
-        // viewport and the edit sheet's CTA is hidden behind the keyboard.
+        // Track the dynamic viewport so the modal follows the iOS soft keyboard.
         height: '100dvh',
         background: 'color-mix(in srgb, var(--color-bg) 82%, transparent)',
         backdropFilter: 'blur(14px)',
@@ -753,7 +636,10 @@ export function ImageDetailModal({
         />
       ) : (
         <>
-          {showStackStrip && (
+          <div
+            className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden md:flex md:flex-col md:overflow-hidden"
+            style={{ WebkitOverflowScrolling: 'touch' }}
+          >
             <StackStrip
               stack={stack}
               selectedId={selectedItem?.id ?? null}
@@ -773,278 +659,253 @@ export function ImageDetailModal({
                 }
               }}
             />
-          )}
 
-          {/* ——— Body ——— */}
-          <div className="flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden">
-            {/* Canvas with grid background */}
-            <div
-              className="relative min-h-0 min-w-0 overflow-hidden md:flex-1"
-              style={{
-                flex: '1 1 0%',
-                minHeight: 0,
-                backgroundImage: `linear-gradient(var(--color-border) 1px, transparent 1px), linear-gradient(90deg, var(--color-border) 1px, transparent 1px)`,
-                backgroundSize: '28px 28px, 28px 28px',
-                backgroundColor: 'var(--color-bg-sunken)',
-              }}
-            >
-              {refDetailId && refDetailSrc && currentImage ? (
-                <div className="relative flex flex-row h-full gap-px">
-                  <div className="h-full flex-1 min-w-0 relative">
-                    <ZoomableImageView key={refDetailId ?? 'ref'} src={refDetailSrc} alt="" label="左 · 参考图" />
+            {/* ——— Body ——— */}
+            <div className="flex flex-col md:flex-1 md:flex-row md:min-h-0">
+              {/* Canvas with grid background */}
+              <div
+                className="relative min-h-0 min-w-0 overflow-hidden md:flex-1"
+                style={{
+                  flex: isMobileLayout ? '0 0 min(48dvh, 420px)' : '1 1 0%',
+                  height: isMobileLayout ? 'min(48dvh, 420px)' : undefined,
+                  minHeight: 0,
+                  backgroundImage: `linear-gradient(var(--color-border) 1px, transparent 1px), linear-gradient(90deg, var(--color-border) 1px, transparent 1px)`,
+                  backgroundSize: '28px 28px, 28px 28px',
+                  backgroundColor: 'var(--color-bg-sunken)',
+                }}
+              >
+                {refDetailId && refDetailSrc && currentImage ? (
+                  <div className="relative flex flex-row h-full gap-px">
+                    <div className="h-full flex-1 min-w-0 relative">
+                      <ZoomableImageView key={refDetailId ?? 'ref'} src={refDetailSrc} alt="" label="左 · 参考图" />
+                    </div>
+                    <div className="h-full flex-1 min-w-0 relative">
+                      <ZoomableImageView
+                        key={currentImage.id}
+                        src={currentSrc ?? ''}
+                        alt={currentMeta?.prompt ?? ''}
+                        label="右 · 生成图"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setRefDetailId(null)}
+                      className="absolute top-3 right-3 z-30 chip"
+                      style={{ height: 26 }}
+                      title="退出对比"
+                      aria-label="退出对比"
+                    >
+                      <Icon name="close" size={12} />
+                      <span className="hidden sm:inline">退出对比</span>
+                      <span className="sm:hidden">退出</span>
+                    </button>
                   </div>
-                  <div className="h-full flex-1 min-w-0 relative">
-                    <ZoomableImageView
-                      key={currentImage.id}
-                      src={currentSrc ?? ''}
-                      alt={currentMeta?.prompt ?? ''}
-                      label="右 · 生成图"
-                    />
-                  </div>
+                ) : currentImage ? (
+                  <>
+                    {!desktopDrawableLayerVisible && (
+                      <ZoomableImageView
+                        key="main-viewer"
+                        src={displayImage?.src ?? currentSrc ?? ''}
+                        alt={displayImage?.alt ?? currentMeta?.prompt ?? ''}
+                        onSwipeLeft={hasNext ? goToNext : undefined}
+                        onSwipeRight={hasPrev ? goToPrev : undefined}
+                      />
+                    )}
+                    {drawableLayerVisible && (
+                      <DrawableLayer
+                        ref={drawableRef}
+                        key={`${currentImage.id}:${drawRevision}`}
+                        imageId={currentImage.id}
+                        src={currentSrc ?? ''}
+                        mode={activeDrawMode}
+                        tool={drawTool}
+                        brushSize={brushSize}
+                        visibleModes={['mask', 'annotate']}
+                        eraseAllModes
+                        readOnly={editMode === 'view' || desktopMoveActive}
+                        panEnabled={desktopMoveActive || (editMode === 'view' && hasDrawableMarks && !isMobileLayout)}
+                        onItemsChange={setDrawableCounts}
+                      />
+                    )}
+                    {desktopAnnotationActive && (
+                      <DesktopAnnotationToolbar
+                        drawTool={drawTool}
+                        desktopMoveActive={desktopMoveActive}
+                        brushPreset={brushPreset}
+                        layerHasItems={hasDrawableMarks}
+                        onChangeDrawTool={(tool) => {
+                          setDesktopMoveActive(false)
+                          setDrawTool(tool)
+                        }}
+                        onChangeDesktopMoveActive={setDesktopMoveActive}
+                        onChangeBrushPreset={setBrushPreset}
+                        onUndo={() => drawableRef.current?.undo()}
+                        onClear={clearAnnotationsInPlace}
+                        onFinish={finishAnnotation}
+                      />
+                    )}
+                  </>
+                ) : (
+                  <SlotHero
+                    item={selectedItem}
+                    onCancelSlot={onCancelGenerationSlot}
+                    onCancelJob={onCancelGenerationJob}
+                    onDismissJob={onDismissGenerationJob}
+                  />
+                )}
+
+                {!refDetailId && hasPrev && (
                   <button
-                    type="button"
-                    onClick={() => setRefDetailId(null)}
-                    className="absolute top-3 right-3 z-30 chip"
-                    style={{ height: 26 }}
-                    title="退出对比"
-                    aria-label="退出对比"
+                    onClick={goToPrev}
+                    aria-label="上一张"
+                    className="absolute left-4 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full flex items-center justify-center transition-colors"
+                    style={{
+                      background: 'color-mix(in srgb, var(--color-surface) 90%, transparent)',
+                      color: 'var(--color-text-2)',
+                      backdropFilter: 'blur(8px)',
+                      boxShadow: '0 0 0 1px var(--ring-edge), 0 1px 2px rgba(0,0,0,0.04)',
+                    }}
                   >
-                    <Icon name="close" size={12} />
-                    <span className="hidden sm:inline">退出对比</span>
-                    <span className="sm:hidden">退出</span>
+                    <Icon name="chevron_left" size={14} strokeWidth={1.8} />
                   </button>
-                </div>
-              ) : currentImage ? (
-                <>
-                  {!desktopDrawableLayerVisible && (
-                    <ZoomableImageView
-                      key="main-viewer"
-                      src={displayImage?.src ?? currentSrc ?? ''}
-                      alt={displayImage?.alt ?? currentMeta?.prompt ?? ''}
-                      onSwipeLeft={hasNext ? goToNext : undefined}
-                      onSwipeRight={hasPrev ? goToPrev : undefined}
-                    />
-                  )}
-                  {drawableLayerVisible && (
-                    <DrawableLayer
-                      ref={drawableRef}
-                      key={`${currentImage.id}:${drawRevision}`}
-                      imageId={currentImage.id}
-                      src={currentSrc ?? ''}
-                      mode={activeDrawMode}
-                      tool={drawTool}
-                      brushSize={brushSize}
-                      visibleModes={['mask', 'annotate']}
-                      eraseAllModes
-                      readOnly={editMode === 'view' || desktopMoveActive}
-                      panEnabled={desktopMoveActive || (editMode === 'view' && hasDrawableMarks && !isMobileSheet)}
-                      onItemsChange={setDrawableCounts}
-                    />
-                  )}
-                  {desktopAnnotationActive && (
-                    <DesktopAnnotationToolbar
+                )}
+                {!refDetailId && hasNext && (
+                  <button
+                    onClick={goToNext}
+                    aria-label="下一张"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full flex items-center justify-center transition-colors"
+                    style={{
+                      background: 'color-mix(in srgb, var(--color-surface) 90%, transparent)',
+                      color: 'var(--color-text-2)',
+                      backdropFilter: 'blur(8px)',
+                      boxShadow: '0 0 0 1px var(--ring-edge), 0 1px 2px rgba(0,0,0,0.04)',
+                    }}
+                  >
+                    <Icon name="chevron_right" size={14} strokeWidth={1.8} />
+                  </button>
+                )}
+
+                {toast && (
+                  <div
+                    className="absolute top-4 left-1/2 z-20 -translate-x-1/2 text-sm font-medium fade-in"
+                    style={{
+                      background: 'var(--color-text)',
+                      color: 'var(--color-bg)',
+                      padding: '6px 12px',
+                      borderRadius: 6,
+                      boxShadow: 'var(--shadow-float)',
+                    }}
+                  >
+                    {toast}
+                  </div>
+                )}
+              </div>
+
+              {/* Right metadata panel */}
+              <div
+                className="w-full shadow-[inset_0_1px_0_var(--ring-edge-soft)] md:h-auto md:overflow-y-auto md:overflow-x-hidden md:shadow-[inset_1px_0_0_var(--ring-edge-soft)]"
+                style={{
+                  background: 'var(--color-bg)',
+                  overscrollBehavior: 'contain',
+                  ...(isMobileLayout
+                    ? {
+                        flex: '0 0 auto',
+                        minHeight: 0,
+                      }
+                    : {
+                        flexShrink: 0,
+                        width: sidebarCollapsed ? 0 : 340,
+                        minWidth: 0,
+                        transition: 'width 280ms cubic-bezier(0.22, 0.8, 0.4, 1)',
+                      }),
+                }}
+              >
+                <div
+                  className="px-[18px] pt-2.5 md:pt-4 pb-24 md:pb-10"
+                  style={{ width: isMobileLayout ? undefined : 340 }}
+                >
+                  <div className="mb-[18px]">
+                    <div
+                      className="segmented"
+                      style={{
+                        width: '100%',
+                        ['--seg-count' as string]: 2,
+                        ['--seg-index' as string]: editing ? 1 : 0,
+                      }}
+                    >
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          exitEdit()
+                        }}
+                        data-active={!editing}
+                      >
+                        <span>详情</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          if (currentImage) setEditing(true)
+                        }}
+                        disabled={!currentImage}
+                        data-active={editing}
+                      >
+                        <span>编辑</span>
+                      </button>
+                    </div>
+                  </div>
+                  {editing && currentImage ? (
+                    <EditSidebar
+                      sourceImage={currentImage}
+                      generationJobs={generationJobs}
+                      activeEditBatchId={activeEditBatchId}
+                      onEditImage={onEditImage}
+                      onSetActiveBatchId={setActiveEditBatch}
+                      annotationActive={editMode !== 'view'}
+                      hasAnnotations={hasDrawableMarks}
+                      annotationToolsFloating={!isMobileLayout}
+                      drawableCounts={drawableCounts}
+                      drawableRef={drawableRef}
                       drawTool={drawTool}
                       desktopMoveActive={desktopMoveActive}
                       brushPreset={brushPreset}
-                      layerHasItems={hasDrawableMarks}
+                      onStartAnnotation={startAnnotation}
+                      onFinishAnnotation={finishAnnotation}
+                      onClearAnnotations={clearAnnotations}
                       onChangeDrawTool={(tool) => {
                         setDesktopMoveActive(false)
                         setDrawTool(tool)
                       }}
                       onChangeDesktopMoveActive={setDesktopMoveActive}
                       onChangeBrushPreset={setBrushPreset}
-                      onUndo={() => drawableRef.current?.undo()}
-                      onClear={clearAnnotationsInPlace}
-                      onFinish={finishAnnotation}
+                    />
+                  ) : (
+                    <DetailSidebar
+                      currentImage={currentImage}
+                      currentMeta={currentMeta}
+                      currentSlot={currentSlot}
+                      currentJob={currentJob}
+                      modelName={modelName}
+                      modelApiId={modelApiId}
+                      modelConfig={modelConfig}
+                      actualCost={actualCost}
+                      stackId={stack.id}
+                      stackInfo={stackInfo}
+                      canNavigate={canNavigate}
+                      copiedPrompt={copiedPrompt}
+                      refDetailId={refDetailId}
+                      findRefImage={findRefImage}
+                      onToggleRefDetail={(id) => setRefDetailId((prev) => (prev === id ? null : id))}
+                      onAddRef={handleAddRef}
+                      onRegenerate={handleRegenerateAction}
+                      onCopyPrompt={handleCopyPrompt}
+                      onRemove={onRemove}
+                      onClose={onClose}
                     />
                   )}
-                </>
-              ) : (
-                <SlotHero
-                  item={selectedItem}
-                  onCancelSlot={onCancelGenerationSlot}
-                  onCancelJob={onCancelGenerationJob}
-                  onDismissJob={onDismissGenerationJob}
-                />
-              )}
-
-              {!refDetailId && hasPrev && (
-                <button
-                  onClick={goToPrev}
-                  aria-label="上一张"
-                  className="absolute left-4 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full flex items-center justify-center transition-colors"
-                  style={{
-                    background: 'color-mix(in srgb, var(--color-surface) 90%, transparent)',
-                    color: 'var(--color-text-2)',
-                    backdropFilter: 'blur(8px)',
-                    boxShadow: '0 0 0 1px var(--ring-edge), 0 1px 2px rgba(0,0,0,0.04)',
-                  }}
-                >
-                  <Icon name="chevron_left" size={14} strokeWidth={1.8} />
-                </button>
-              )}
-              {!refDetailId && hasNext && (
-                <button
-                  onClick={goToNext}
-                  aria-label="下一张"
-                  className="absolute right-4 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full flex items-center justify-center transition-colors"
-                  style={{
-                    background: 'color-mix(in srgb, var(--color-surface) 90%, transparent)',
-                    color: 'var(--color-text-2)',
-                    backdropFilter: 'blur(8px)',
-                    boxShadow: '0 0 0 1px var(--ring-edge), 0 1px 2px rgba(0,0,0,0.04)',
-                  }}
-                >
-                  <Icon name="chevron_right" size={14} strokeWidth={1.8} />
-                </button>
-              )}
-
-              {toast && (
-                <div
-                  className="absolute top-4 left-1/2 z-20 -translate-x-1/2 text-sm font-medium fade-in"
-                  style={{
-                    background: 'var(--color-text)',
-                    color: 'var(--color-bg)',
-                    padding: '6px 12px',
-                    borderRadius: 6,
-                    boxShadow: 'var(--shadow-float)',
-                  }}
-                >
-                  {toast}
                 </div>
-              )}
-            </div>
-
-            {/* Right metadata panel (mobile: draggable bottom sheet) */}
-            <div
-              className="w-full overflow-y-auto overflow-x-hidden shadow-[inset_0_1px_0_var(--ring-edge-soft)] md:h-auto md:shadow-[inset_1px_0_0_var(--ring-edge-soft)]"
-              style={{
-                background: 'var(--color-bg)',
-                overscrollBehavior: 'contain',
-                WebkitOverflowScrolling: 'touch',
-                ...(isMobileSheet
-                  ? {
-                      flexShrink: 0,
-                      height: `${sheetHeightPx ?? getMobileSheetHeights(getVisualViewportHeight(), editing).initialHeight}px`,
-                      transition: sheetDragging ? 'none' : 'height 260ms cubic-bezier(0.22, 0.8, 0.4, 1)',
-                    }
-                  : {
-                      flexShrink: 0,
-                      width: sidebarCollapsed ? 0 : 340,
-                      minWidth: 0,
-                      transition: 'width 280ms cubic-bezier(0.22, 0.8, 0.4, 1)',
-                    }),
-              }}
-            >
-              {/* Mobile drag handle */}
-              {isMobileSheet && !editing && (
-                <div
-                  className="md:hidden sticky top-0 z-10 flex justify-center items-center h-7 cursor-grab active:cursor-grabbing select-none"
-                  style={{ background: 'var(--color-bg)', touchAction: 'none' }}
-                  onPointerDown={handleSheetPointerDown}
-                  onPointerMove={handleSheetPointerMove}
-                  onPointerUp={handleSheetPointerUp}
-                  onPointerCancel={handleSheetPointerUp}
-                >
-                  <div className="w-9 h-1 rounded-full" style={{ background: 'var(--color-border)' }} />
-                </div>
-              )}
-
-              <div
-                className="px-[18px] pt-2.5 md:pt-4 pb-24 md:pb-10"
-                style={{ width: isMobileSheet ? undefined : 340 }}
-              >
-                <div
-                  className="mb-[18px]"
-                  style={isMobileSheet && !editing ? { touchAction: 'none' } : undefined}
-                  onClick={() => expandMobileSheet()}
-                  onPointerDown={isMobileSheet && !editing ? handleSheetPointerDown : undefined}
-                  onPointerMove={isMobileSheet && !editing ? handleSheetPointerMove : undefined}
-                  onPointerUp={isMobileSheet && !editing ? handleSheetPointerUp : undefined}
-                  onPointerCancel={isMobileSheet && !editing ? handleSheetPointerUp : undefined}
-                >
-                  <div
-                    className="segmented"
-                    style={{
-                      width: '100%',
-                      ['--seg-count' as string]: 2,
-                      ['--seg-index' as string]: editing ? 1 : 0,
-                    }}
-                  >
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        expandMobileSheet(false)
-                        exitEdit()
-                      }}
-                      data-active={!editing}
-                    >
-                      <span>详情</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        expandMobileSheet(true)
-                        if (currentImage) setEditing(true)
-                      }}
-                      disabled={!currentImage}
-                      data-active={editing}
-                    >
-                      <span>编辑</span>
-                    </button>
-                  </div>
-                </div>
-                {editing && currentImage ? (
-                  <EditSidebar
-                    sourceImage={currentImage}
-                    generationJobs={generationJobs}
-                    activeEditBatchId={activeEditBatchId}
-                    onEditImage={onEditImage}
-                    onSetActiveBatchId={setActiveEditBatch}
-                    annotationActive={editMode !== 'view'}
-                    hasAnnotations={hasDrawableMarks}
-                    annotationToolsFloating={!isMobileSheet}
-                    drawableCounts={drawableCounts}
-                    drawableRef={drawableRef}
-                    drawTool={drawTool}
-                    desktopMoveActive={desktopMoveActive}
-                    brushPreset={brushPreset}
-                    onStartAnnotation={startAnnotation}
-                    onFinishAnnotation={finishAnnotation}
-                    onClearAnnotations={clearAnnotations}
-                    onChangeDrawTool={(tool) => {
-                      setDesktopMoveActive(false)
-                      setDrawTool(tool)
-                    }}
-                    onChangeDesktopMoveActive={setDesktopMoveActive}
-                    onChangeBrushPreset={setBrushPreset}
-                  />
-                ) : (
-                  <DetailSidebar
-                    currentImage={currentImage}
-                    currentMeta={currentMeta}
-                    currentSlot={currentSlot}
-                    currentJob={currentJob}
-                    modelName={modelName}
-                    modelApiId={modelApiId}
-                    modelConfig={modelConfig}
-                    actualCost={actualCost}
-                    stackId={stack.id}
-                    stackInfo={stackInfo}
-                    canNavigate={canNavigate}
-                    copiedPrompt={copiedPrompt}
-                    refDetailId={refDetailId}
-                    findRefImage={findRefImage}
-                    onToggleRefDetail={(id) => setRefDetailId((prev) => (prev === id ? null : id))}
-                    onAddRef={handleAddRef}
-                    onRegenerate={handleRegenerateAction}
-                    onCopyPrompt={handleCopyPrompt}
-                    onRemove={onRemove}
-                    onClose={onClose}
-                  />
-                )}
               </div>
             </div>
           </div>

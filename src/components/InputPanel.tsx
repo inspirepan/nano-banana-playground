@@ -707,7 +707,7 @@ export function InputPanel({
         <button type="button" onClick={() => onGenerate()} disabled={!canGenerate} className="cta w-full">
           <Icon name="wand" size={13} strokeWidth={1.8} />
           <span>
-            {activeQueueCount > 0 ? '开始生成' : `使用 ${model.name} 生成`} {batchCount} 张
+            使用 {model.name} 生成 {batchCount} 张
           </span>
           <span className="flex-1" />
           <span className="flex gap-0.5">
