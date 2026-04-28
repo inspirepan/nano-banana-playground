@@ -90,6 +90,7 @@
   /* Edge rings — replace 1px solid borders on elevated/tinted containers so
      shadows stay clean (Schoger). Flip to a light ring in dark mode below. */
   --ring-edge: rgba(0, 0, 0, 0.08);
+  --ring-edge-elevated: rgba(3, 7, 18, 0.1);
   --ring-edge-strong: rgba(0, 0, 0, 0.14);
   --ring-edge-soft: rgba(0, 0, 0, 0.05);
   --shadow-lift: 0 12px 28px -18px rgba(30, 27, 20, 0.22), 0 1px 2px rgba(30, 27, 20, 0.04);
@@ -220,6 +221,7 @@
   --color-success: #52c08a;
 
   --ring-edge: rgba(255, 255, 255, 0.06);
+  --ring-edge-elevated: rgba(255, 255, 255, 0.08);
   --ring-edge-strong: rgba(255, 255, 255, 0.11);
   --ring-edge-soft: rgba(255, 255, 255, 0.04);
   --shadow-lift: 0 12px 28px -18px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.28);

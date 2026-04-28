@@ -33,10 +33,11 @@ export function StackItemThumb({
     variant: 'preview',
   })
   const highlighted = selected || active
+  const outerRingShadow = slot ? '' : ', var(--shadow-lift)'
   const boxShadow = outerRing
     ? highlighted
-      ? '0 0 0 1px rgba(3, 7, 18, 0.16), 0 0 0 3px color-mix(in srgb, var(--color-accent) 70%, transparent), 0 10px 24px -16px rgba(3, 7, 18, 0.28)'
-      : '0 0 0 1px rgba(3, 7, 18, 0.16), 0 10px 24px -16px rgba(3, 7, 18, 0.28)'
+      ? `0 0 0 1px var(--ring-edge-elevated), 0 0 0 3px color-mix(in srgb, var(--color-accent) 70%, transparent)${outerRingShadow}`
+      : `0 0 0 1px var(--ring-edge-elevated)${outerRingShadow}`
     : highlighted
       ? '0 0 0 2px var(--color-surface), 0 0 0 3px var(--color-accent)'
       : 'inset 0 0 0 1px var(--ring-edge)'
