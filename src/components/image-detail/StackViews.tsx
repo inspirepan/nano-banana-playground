@@ -153,6 +153,7 @@ export function StackStrip({
   onCancelActiveJobs: () => void
 }) {
   const selectedItemRef = useRef<HTMLDivElement | null>(null)
+  const itemNumberById = useMemo(() => new Map(stack.items.map((item, index) => [item.id, index + 1])), [stack.items])
   const hasActiveJobs = stack.jobs.some((job) =>
     job.slots.some((slot) => slot.status === 'queued' || slot.status === 'running' || slot.status === 'retrying'),
   )
@@ -178,7 +179,13 @@ export function StackStrip({
             const active = selectedId === item.id
             return (
               <div key={item.id} ref={active ? selectedItemRef : undefined} className="shrink-0">
-                <StackItemThumb item={item} active={active} outerRing onSelect={onSelect} />
+                <StackItemThumb
+                  item={item}
+                  number={itemNumberById.get(item.id)}
+                  active={active}
+                  outerRing
+                  onSelect={onSelect}
+                />
               </div>
             )
           })}
@@ -220,6 +227,7 @@ export function StackGallery({
   const selectedCount = selectedImages.length
   const allSelected = selectableImages.length > 0 && selectedCount === selectableImages.length
   const batches = useMemo(() => buildStackGalleryBatches(stack.items), [stack.items])
+  const itemNumberById = useMemo(() => new Map(stack.items.map((item, index) => [item.id, index + 1])), [stack.items])
 
   const toggleImage = (item: StackItem) => {
     if (item.type !== 'image') return
@@ -375,6 +383,7 @@ export function StackGallery({
                 <StackItemThumb
                   key={item.id}
                   item={item}
+                  number={itemNumberById.get(item.id)}
                   active={mode === 'view' && selectedId === item.id}
                   selectable={mode === 'manage' && item.type === 'image'}
                   selected={mode === 'manage' && item.type === 'image' && selectedIds.has(item.image.id)}

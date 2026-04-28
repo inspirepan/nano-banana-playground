@@ -6,6 +6,7 @@ import type { StackItem } from '../lib/stacks'
 
 type Props = {
   item: StackItem
+  number?: number
   active?: boolean
   outerRing?: boolean
   selectable?: boolean
@@ -17,6 +18,7 @@ type Props = {
 
 export function StackItemThumb({
   item,
+  number,
   active = false,
   outerRing = false,
   selectable = false,
@@ -90,6 +92,17 @@ export function StackItemThumb({
           </div>
         )}
       </div>
+      <span
+        className="pointer-events-none absolute left-[3px] top-[3px] z-10 inline-flex h-[18px] min-w-[24px] items-center justify-center rounded-[5px] px-1.5 mono text-[10px] font-semibold leading-none"
+        style={{
+          background: 'rgba(0,0,0,0.56)',
+          color: '#fff',
+          boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.18)',
+          backdropFilter: 'blur(8px)',
+        }}
+      >
+        #{number ?? item.order + 1}
+      </span>
       {selectable && (
         <span
           className="pointer-events-none absolute right-1.5 top-1.5 flex h-[18px] w-[18px] items-center justify-center rounded-[5px] transition-colors"

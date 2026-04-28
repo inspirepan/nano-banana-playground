@@ -84,6 +84,7 @@ function StackRow({
   downloading: boolean
 }) {
   const totalItems = stack.images.length + stack.activeSlotCount + stack.failedSlotCount
+  const stackItemNumberById = new Map(stack.items.map((item, index) => [item.id, index + 1]))
   const previewItems = [...stack.items].reverse()
 
   return (
@@ -146,6 +147,7 @@ function StackRow({
                 <GridCell key={item.id} aspectRatio={stackItemAspectRatio(item)}>
                   <StackItemThumb
                     item={item}
+                    number={stackItemNumberById.get(item.id)}
                     outerRing
                     className="h-full w-full"
                     onSelect={(next) => onOpenItem(stack, next)}
