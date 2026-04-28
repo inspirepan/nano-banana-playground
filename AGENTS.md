@@ -127,6 +127,20 @@ src/
 
 ## 提交前检查
 
+每次提交前必须对本次改动涉及的文件运行 lint 和 format 检查，并修复所有相关问题。可按需使用：
+
+```bash
+npm run lint
+npm run format:check
+```
+
+需要自动修复时使用：
+
+```bash
+npm run lint:fix
+npm run format
+```
+
 每次提交前至少执行：
 
 ```bash
