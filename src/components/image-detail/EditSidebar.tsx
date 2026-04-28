@@ -506,6 +506,35 @@ export function EditSidebar({
         </div>
       )}
 
+      {/* Prompt */}
+      <div className="mb-[18px]">
+        <div className="label mb-1.5">编辑指令</div>
+        <div className="prompt-wrap">
+          <textarea
+            ref={textareaRef}
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            placeholder={placeholder}
+            rows={1}
+            className="block w-full resize-none bg-transparent px-3 py-2.5 text-[16px] leading-[1.55] focus:outline-none md:text-sm"
+            autoFocus
+          />
+          <div className="flex items-center gap-2 border-t border-(--color-border) px-2.5 py-1.5 text-xs text-(--color-text-3)">
+            <span className="mono text-xs text-(--color-text-4)">{prompt.length} 字</span>
+            <div className="flex-1" />
+            {prompt.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setPrompt('')}
+                className="inline-flex items-center gap-1 border-0 bg-transparent p-0 text-xs text-(--color-text-4) transition-colors hover:text-(--color-text-2)"
+              >
+                <Icon name="close" size={11} /> 清空
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Model + size params (collapsed by default — rarely adjusted while editing). */}
       <div className="mb-[18px]">
         <button
@@ -577,35 +606,6 @@ export function EditSidebar({
                 }
               />
             </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Prompt */}
-      <div className="mb-[18px]">
-        <div className="label mb-1.5">编辑指令</div>
-        <div className="prompt-wrap">
-          <textarea
-            ref={textareaRef}
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            placeholder={placeholder}
-            rows={1}
-            className="block w-full resize-none bg-transparent px-3 py-2.5 text-[16px] leading-[1.55] focus:outline-none md:text-sm"
-            autoFocus
-          />
-          <div className="flex items-center gap-2 border-t border-(--color-border) px-2.5 py-1.5 text-xs text-(--color-text-3)">
-            <span className="mono text-xs text-(--color-text-4)">{prompt.length} 字</span>
-            <div className="flex-1" />
-            {prompt.length > 0 && (
-              <button
-                type="button"
-                onClick={() => setPrompt('')}
-                className="inline-flex items-center gap-1 border-0 bg-transparent p-0 text-xs text-(--color-text-4) transition-colors hover:text-(--color-text-2)"
-              >
-                <Icon name="close" size={11} /> 清空
-              </button>
-            )}
           </div>
         </div>
       </div>

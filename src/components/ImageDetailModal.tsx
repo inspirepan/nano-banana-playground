@@ -50,6 +50,7 @@ type Props = {
 }
 
 const MOBILE_SHEET_EXPANDED_VH = 45
+const MOBILE_EDIT_SHEET_EXPANDED_VH = 76
 const MOBILE_SHEET_LOW_PX = 88
 
 // Prefer visualViewport.height so the sheet math follows the dynamic viewport
@@ -59,9 +60,12 @@ function getVisualViewportHeight(): number {
   return window.visualViewport?.height ?? window.innerHeight
 }
 
-function getMobileSheetHeights(viewportHeight: number) {
-  const expandedVh = MOBILE_SHEET_EXPANDED_VH
-  const expandedHeight = Math.max(MOBILE_SHEET_LOW_PX, Math.round((viewportHeight * expandedVh) / 100))
+function getMobileSheetHeights(viewportHeight: number, editing = false) {
+  const expandedVh = editing ? MOBILE_EDIT_SHEET_EXPANDED_VH : MOBILE_SHEET_EXPANDED_VH
+  const maxHeight = Math.max(MOBILE_SHEET_LOW_PX, viewportHeight - 12)
+  const preferredHeight = Math.round((viewportHeight * expandedVh) / 100)
+  const minEditHeight = editing ? Math.min(360, maxHeight) : MOBILE_SHEET_LOW_PX
+  const expandedHeight = Math.min(maxHeight, Math.max(MOBILE_SHEET_LOW_PX, preferredHeight, minEditHeight))
   const initialHeight = Math.min(MOBILE_SHEET_LOW_PX, expandedHeight)
   return { initialHeight, expandedHeight }
 }
@@ -392,13 +396,19 @@ export function ImageDetailModal({
     const handler = () => {
       setSheetHeightPx((prev) => {
         if (prev === null) return prev
-        const { expandedHeight } = getMobileSheetHeights(vv.height)
+        const { expandedHeight } = getMobileSheetHeights(vv.height, editing)
         return Math.min(prev, expandedHeight)
       })
     }
     vv.addEventListener('resize', handler)
     return () => vv.removeEventListener('resize', handler)
-  }, [isMobileSheet])
+  }, [editing, isMobileSheet])
+
+  useEffect(() => {
+    if (!isMobileSheet || !editing) return
+    const { expandedHeight } = getMobileSheetHeights(getVisualViewportHeight(), true)
+    setSheetHeightPx(expandedHeight)
+  }, [editing, isMobileSheet])
 
   // Desktop-only: collapse the right metadata sidebar to give the canvas more room.
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
@@ -418,16 +428,16 @@ export function ImageDetailModal({
     })
   }, [])
 
-  const expandMobileSheet = useCallback(() => {
+  const expandMobileSheet = useCallback((nextEditing = editing) => {
     if (!isMobileSheet) return
-    const { expandedHeight } = getMobileSheetHeights(getVisualViewportHeight())
+    const { expandedHeight } = getMobileSheetHeights(getVisualViewportHeight(), nextEditing)
     setSheetHeightPx(expandedHeight)
-  }, [isMobileSheet])
+  }, [editing, isMobileSheet])
 
   const handleSheetPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!isMobileSheet) return
     if (e.pointerType === 'mouse' && e.button !== 0) return
-    const { initialHeight, expandedHeight } = getMobileSheetHeights(getVisualViewportHeight())
+    const { initialHeight, expandedHeight } = getMobileSheetHeights(getVisualViewportHeight(), editing)
     sheetDragRef.current = {
       startY: e.clientY,
       startHeight: sheetHeightPx ?? initialHeight,
@@ -521,6 +531,7 @@ export function ImageDetailModal({
 
   const hasPrev = canNavigate && currentIdx > 0
   const hasNext = canNavigate && currentIdx < stack.items.length - 1
+  const showStackStrip = !(isMobileSheet && editing)
   const hasDrawableMarks = drawableCounts.annotate > 0 || drawableCounts.mask > 0
   const desktopAnnotationActive = editing && editMode !== 'view' && !isMobileSheet && !mobileDrawOpen
   const drawableLayerVisible = (editMode !== 'view' || hasDrawableMarks) && !mobileDrawOpen
@@ -698,25 +709,27 @@ export function ImageDetailModal({
         />
       ) : (
         <>
-          <StackStrip
-            stack={stack}
-            selectedId={selectedItem?.id ?? null}
-            onSelect={(item) => {
-              setSelection(toSelection(item))
-              setRefDetailId(null)
-            }}
-            onCancelActiveJobs={() => {
-              for (const job of stack.jobs) {
-                if (
-                  job.slots.some(
-                    (slot) => slot.status === 'queued' || slot.status === 'running' || slot.status === 'retrying',
-                  )
-                ) {
-                  onCancelGenerationJob(job.id)
+          {showStackStrip && (
+            <StackStrip
+              stack={stack}
+              selectedId={selectedItem?.id ?? null}
+              onSelect={(item) => {
+                setSelection(toSelection(item))
+                setRefDetailId(null)
+              }}
+              onCancelActiveJobs={() => {
+                for (const job of stack.jobs) {
+                  if (
+                    job.slots.some(
+                      (slot) => slot.status === 'queued' || slot.status === 'running' || slot.status === 'retrying',
+                    )
+                  ) {
+                    onCancelGenerationJob(job.id)
+                  }
                 }
-              }
-            }}
-          />
+              }}
+            />
+          )}
 
           {/* ——— Body ——— */}
           <div className="flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden">
@@ -867,7 +880,7 @@ export function ImageDetailModal({
                 ...(isMobileSheet
                   ? {
                       flexShrink: 0,
-                      height: `${sheetHeightPx ?? getMobileSheetHeights(getVisualViewportHeight()).initialHeight}px`,
+                      height: `${sheetHeightPx ?? getMobileSheetHeights(getVisualViewportHeight(), editing).initialHeight}px`,
                       transition: sheetDragging ? 'none' : 'height 260ms cubic-bezier(0.22, 0.8, 0.4, 1)',
                     }
                   : {
@@ -896,7 +909,7 @@ export function ImageDetailModal({
                 <div
                   className="mb-[18px]"
                   style={isMobileSheet ? { touchAction: 'none' } : undefined}
-                  onClick={expandMobileSheet}
+                  onClick={() => expandMobileSheet()}
                   onPointerDown={isMobileSheet ? handleSheetPointerDown : undefined}
                   onPointerMove={isMobileSheet ? handleSheetPointerMove : undefined}
                   onPointerUp={isMobileSheet ? handleSheetPointerUp : undefined}
@@ -912,8 +925,9 @@ export function ImageDetailModal({
                   >
                     <button
                       type="button"
-                      onClick={() => {
-                        expandMobileSheet()
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        expandMobileSheet(false)
                         exitEdit()
                       }}
                       data-active={!editing}
@@ -922,8 +936,9 @@ export function ImageDetailModal({
                     </button>
                     <button
                       type="button"
-                      onClick={() => {
-                        expandMobileSheet()
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        expandMobileSheet(true)
                         if (currentImage) setEditing(true)
                       }}
                       disabled={!currentImage}
