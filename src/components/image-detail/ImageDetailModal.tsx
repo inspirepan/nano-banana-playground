@@ -134,7 +134,13 @@ export function ImageDetailModal({
   }
   const drawableRef = useRef<DrawableLayerHandle | null>(null)
 
-  const { ref: imgRef, src: currentSrc } = useImageSrc(currentImage?.id ?? '', currentImage?.mimeType ?? 'image/png')
+  const currentInlineData =
+    currentImage && 'data' in currentImage && typeof currentImage.data === 'string' ? currentImage.data : undefined
+  const { ref: imgRef, src: currentSrc } = useImageSrc(
+    currentImage?.id ?? '',
+    currentImage?.mimeType ?? 'image/png',
+    currentInlineData,
+  )
   const currentMeta = currentImage?.source.type === 'generated' ? currentImage.source : null
   const [displayImage, setDisplayImage] = useState<{ id: string; src: string; alt: string } | null>(null)
   const canNavigate = stack.items.length > 0 && currentIdx >= 0
@@ -142,6 +148,8 @@ export function ImageDetailModal({
   const [toast, setToast] = useState<string | null>(null)
   const [copiedPrompt, setCopiedPrompt] = useState(false)
   const [refDetailId, setRefDetailId] = useState<string | null>(null)
+  const detailScrollRef = useRef<HTMLDivElement | null>(null)
+  const editScrollAnchorRef = useRef<HTMLDivElement | null>(null)
   const [refSrcMap, setRefSrcMap] = useState<Map<string, string>>(new Map())
   const refDetailSrc = refDetailId ? (refSrcMap.get(refDetailId) ?? null) : null
 
@@ -370,6 +378,36 @@ export function ImageDetailModal({
     if (!isMobileLayout || !currentImage) setMobilePreviewOpen(false)
   }, [isMobileLayout, currentImage])
 
+  const scrollMobileEditIntoView = useCallback(
+    (behavior: ScrollBehavior = 'smooth') => {
+      if (!isMobileLayout) return
+      const scroller = detailScrollRef.current
+      const anchor = editScrollAnchorRef.current
+      if (!scroller || !anchor) return
+
+      const scrollerRect = scroller.getBoundingClientRect()
+      const anchorRect = anchor.getBoundingClientRect()
+      const targetTop = scroller.scrollTop + anchorRect.top - scrollerRect.top - 10
+      const maxTop = scroller.scrollHeight - scroller.clientHeight
+      const nextTop = Math.max(0, Math.min(targetTop, maxTop))
+      if (Math.abs(nextTop - scroller.scrollTop) < 2) return
+      scroller.scrollTo({ top: nextTop, behavior })
+    },
+    [isMobileLayout],
+  )
+
+  useEffect(() => {
+    if (!isMobileLayout || !editing || !currentImage) return
+
+    const delays = [0, 120, 320]
+    const timers = delays.map((delay) =>
+      window.setTimeout(() => scrollMobileEditIntoView(delay === 0 ? 'auto' : 'smooth'), delay),
+    )
+    return () => {
+      for (const timer of timers) window.clearTimeout(timer)
+    }
+  }, [currentImage, editing, isMobileLayout, scrollMobileEditIntoView])
+
   // Desktop-only: collapse the right metadata sidebar to give the canvas more room.
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     if (typeof window === 'undefined') return false
@@ -562,6 +600,7 @@ export function ImageDetailModal({
       ) : (
         <>
           <div
+            ref={detailScrollRef}
             className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden md:flex md:flex-col md:overflow-hidden"
             style={{ WebkitOverflowScrolling: 'touch' }}
           >
@@ -643,6 +682,7 @@ export function ImageDetailModal({
                 canNavigate={canNavigate}
                 copiedPrompt={copiedPrompt}
                 refDetailId={refDetailId}
+                editScrollAnchorRef={editScrollAnchorRef}
                 generationJobs={generationJobs}
                 activeEditBatchId={activeEditBatchId}
                 annotationActive={editMode !== 'view'}

@@ -26,6 +26,7 @@ type DetailSidePanelProps = {
   canNavigate: boolean
   copiedPrompt: boolean
   refDetailId: string | null
+  editScrollAnchorRef: RefObject<HTMLDivElement | null>
   generationJobs: GenerationJob[]
   activeEditBatchId: string | null
   annotationActive: boolean
@@ -72,6 +73,7 @@ export function DetailSidePanel({
   canNavigate,
   copiedPrompt,
   refDetailId,
+  editScrollAnchorRef,
   generationJobs,
   activeEditBatchId,
   annotationActive,
@@ -120,60 +122,63 @@ export function DetailSidePanel({
       }}
     >
       <div className="px-[18px] pt-2.5 md:pt-4 pb-24 md:pb-10" style={{ width: isMobileLayout ? undefined : 340 }}>
-        <div className="mb-[18px]">
-          <div
-            className="segmented"
-            style={{
-              width: '100%',
-              ['--seg-count' as string]: 2,
-              ['--seg-index' as string]: editing ? 1 : 0,
-            }}
-          >
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation()
-                onExitEdit()
+        {currentImage && (
+          <div className="mb-[18px]">
+            <div
+              className="segmented"
+              style={{
+                width: '100%',
+                ['--seg-count' as string]: 2,
+                ['--seg-index' as string]: editing ? 1 : 0,
               }}
-              data-active={!editing}
             >
-              <span>详情</span>
-            </button>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation()
-                onStartEdit()
-              }}
-              disabled={!currentImage}
-              data-active={editing}
-            >
-              <span>编辑</span>
-            </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onExitEdit()
+                }}
+                data-active={!editing}
+              >
+                <span>详情</span>
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onStartEdit()
+                }}
+                data-active={editing}
+              >
+                <span>编辑</span>
+              </button>
+            </div>
           </div>
-        </div>
+        )}
         {editing && currentImage ? (
-          <EditSidebar
-            sourceImage={currentImage}
-            generationJobs={generationJobs}
-            activeEditBatchId={activeEditBatchId}
-            onEditImage={onEditImage}
-            onSetActiveBatchId={onSetActiveBatchId}
-            annotationActive={annotationActive}
-            hasAnnotations={hasAnnotations}
-            annotationToolsFloating={!isMobileLayout}
-            drawableCounts={drawableCounts}
-            drawableRef={drawableRef}
-            drawTool={drawTool}
-            desktopMoveActive={desktopMoveActive}
-            brushPreset={brushPreset}
-            onStartAnnotation={onStartAnnotation}
-            onFinishAnnotation={onFinishAnnotation}
-            onClearAnnotations={onClearAnnotations}
-            onChangeDrawTool={onChangeDrawTool}
-            onChangeDesktopMoveActive={onChangeDesktopMoveActive}
-            onChangeBrushPreset={onChangeBrushPreset}
-          />
+          <div ref={editScrollAnchorRef}>
+            <EditSidebar
+              sourceImage={currentImage}
+              generationJobs={generationJobs}
+              activeEditBatchId={activeEditBatchId}
+              onEditImage={onEditImage}
+              onSetActiveBatchId={onSetActiveBatchId}
+              annotationActive={annotationActive}
+              hasAnnotations={hasAnnotations}
+              annotationToolsFloating={!isMobileLayout}
+              drawableCounts={drawableCounts}
+              drawableRef={drawableRef}
+              drawTool={drawTool}
+              desktopMoveActive={desktopMoveActive}
+              brushPreset={brushPreset}
+              onStartAnnotation={onStartAnnotation}
+              onFinishAnnotation={onFinishAnnotation}
+              onClearAnnotations={onClearAnnotations}
+              onChangeDrawTool={onChangeDrawTool}
+              onChangeDesktopMoveActive={onChangeDesktopMoveActive}
+              onChangeBrushPreset={onChangeBrushPreset}
+            />
+          </div>
         ) : (
           <DetailSidebar
             currentImage={currentImage}

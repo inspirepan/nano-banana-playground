@@ -56,7 +56,8 @@ export function StackItemThumb({
 }: Props) {
   const image = item.type === 'image' ? item.image : null
   const slot = item.type === 'slot' ? item.slot : null
-  const { ref, src } = useImageSrc(image?.id ?? item.id, image?.mimeType ?? 'image/png', undefined, {
+  const inlineData = image && 'data' in image && typeof image.data === 'string' ? image.data : undefined
+  const { ref, src } = useImageSrc(image?.id ?? item.id, image?.mimeType ?? 'image/png', inlineData, {
     variant: 'preview',
   })
   const highlighted = selected || active

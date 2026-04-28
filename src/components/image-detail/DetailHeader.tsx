@@ -87,11 +87,10 @@ export function DetailHeader({
           <span className="hidden md:inline">批量管理</span>
         </button>
       )}
-      {viewMode === 'detail' && (
+      {viewMode === 'detail' && currentImage && (
         <button
           className="chip shrink-0 text-sm font-normal md:hidden"
           onClick={onOpenMobilePreview}
-          disabled={!currentImage}
           title="全屏预览"
           style={{ height: 36, padding: '0 12px' }}
         >
@@ -99,12 +98,11 @@ export function DetailHeader({
           全屏
         </button>
       )}
-      {viewMode === 'detail' && (
+      {viewMode === 'detail' && currentImage && (
         <>
           <button
             className="chip hidden shrink-0 font-normal md:inline-flex"
             onClick={onAddRef}
-            disabled={!currentImage}
             title="加为参考"
           >
             <Icon name="plus" size={12} strokeWidth={1.8} /> <span className="hidden md:inline">参考</span>
@@ -130,7 +128,6 @@ export function DetailHeader({
           <button
             className="chip shrink-0 text-sm font-normal md:hidden"
             onClick={onDownload}
-            disabled={!currentImage}
             title="下载 PNG"
             style={{ height: 36, padding: '0 12px' }}
           >
@@ -139,7 +136,6 @@ export function DetailHeader({
           <button
             className="chip hidden shrink-0 font-normal md:inline-flex"
             onClick={onDownload}
-            disabled={!currentImage}
             title="下载 PNG"
           >
             <Icon name="download" size={12} strokeWidth={1.8} /> <span className="hidden md:inline">PNG</span>

@@ -152,6 +152,7 @@ export function StackStrip({
   onSelect: (item: StackItem) => void
   onCancelActiveJobs: () => void
 }) {
+  const stripScrollRef = useRef<HTMLDivElement | null>(null)
   const selectedItemRef = useRef<HTMLDivElement | null>(null)
   const itemNumberById = useMemo(() => new Map(stack.items.map((item, index) => [item.id, index + 1])), [stack.items])
   const hasActiveJobs = stack.jobs.some((job) =>
@@ -159,7 +160,13 @@ export function StackStrip({
   )
 
   useEffect(() => {
-    selectedItemRef.current?.scrollIntoView({ block: 'nearest', inline: 'end', behavior: 'smooth' })
+    const scroller = stripScrollRef.current
+    const selected = selectedItemRef.current
+    if (!scroller || !selected) return
+
+    const targetLeft = selected.offsetLeft + selected.offsetWidth - scroller.clientWidth + 10
+    const maxLeft = scroller.scrollWidth - scroller.clientWidth
+    scroller.scrollTo({ left: Math.max(0, Math.min(targetLeft, maxLeft)), behavior: 'smooth' })
   }, [selectedId, stack.items.length])
 
   return (
@@ -174,7 +181,7 @@ export function StackStrip({
       }}
     >
       <div className="flex items-center gap-2">
-        <div className="-m-1 flex min-w-0 flex-1 items-center gap-2 overflow-x-auto p-1">
+        <div ref={stripScrollRef} className="-m-1 flex min-w-0 flex-1 items-center gap-2 overflow-x-auto p-1 pr-2">
           {stack.items.map((item) => {
             const active = selectedId === item.id
             return (
@@ -189,6 +196,7 @@ export function StackStrip({
               </div>
             )
           })}
+          <div className="w-1 shrink-0" aria-hidden />
         </div>
         {hasActiveJobs && (
           <button
