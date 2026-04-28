@@ -47,7 +47,7 @@ export function DesktopAnnotationToolbar({
         style={{
           maxWidth: 'min(820px, calc(100vw - 420px))',
           background: 'var(--color-surface)',
-          boxShadow: '0 0 0 1px var(--ring-edge), 0 14px 30px -22px rgba(0,0,0,0.32)',
+          boxShadow: '0 0 0 2px var(--ring-edge-strong), 0 14px 30px -22px rgba(0,0,0,0.32)',
         }}
       >
         {toolOptions.map((item) => (

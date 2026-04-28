@@ -52,6 +52,8 @@
   --color-accent-soft: #f0f1fa;
   --color-accent-wash: color-mix(in srgb, #5e6ad2 10%, transparent);
   --color-accent-wash-2: color-mix(in srgb, #5e6ad2 16%, transparent);
+  --color-accent-ring: color-mix(in srgb, var(--color-accent) 11%, transparent);
+  --color-accent-ring-hover: color-mix(in srgb, var(--color-accent) 14%, transparent);
 
   --color-warning: #a56b08;
   --color-warning-soft: #faf2e4;
@@ -213,6 +215,8 @@
   --color-accent-soft: #1f2030;
   --color-accent-wash: color-mix(in srgb, #8088e0 18%, transparent);
   --color-accent-wash-2: color-mix(in srgb, #8088e0 28%, transparent);
+  --color-accent-ring: color-mix(in srgb, var(--color-accent) 20%, transparent);
+  --color-accent-ring-hover: color-mix(in srgb, var(--color-accent) 24%, transparent);
 
   --color-warning: #e0a340;
   --color-warning-soft: color-mix(in srgb, #e0a340 14%, transparent);
@@ -474,12 +478,12 @@
   .chip[data-active='true'] {
     background: var(--color-accent-wash);
     color: var(--color-accent);
-    box-shadow: inset 0 0 0 1px var(--color-accent-wash-2);
+    box-shadow: inset 0 0 0 1px var(--color-accent-ring);
   }
   .chip[data-active='true']:hover:not(:disabled) {
     background: var(--color-accent-wash-2);
     color: var(--color-accent);
-    box-shadow: inset 0 0 0 1px var(--color-accent-wash-2);
+    box-shadow: inset 0 0 0 1px var(--color-accent-ring-hover);
   }
   .annotation-tool-btn,
   .annotation-dot-btn,
@@ -789,12 +793,12 @@
   .aspect-tile[data-active='true'] {
     background: var(--color-accent-wash);
     color: var(--color-accent);
-    box-shadow: inset 0 0 0 1px var(--color-accent-wash-2);
+    box-shadow: inset 0 0 0 1px var(--color-accent-ring);
   }
   .aspect-tile[data-active='true']:hover {
     background: var(--color-accent-wash-2);
     color: var(--color-accent);
-    box-shadow: inset 0 0 0 1px var(--color-accent-wash-2);
+    box-shadow: inset 0 0 0 1px var(--color-accent-ring-hover);
   }
   .aspect-tile .glyph {
     display: inline-block;
