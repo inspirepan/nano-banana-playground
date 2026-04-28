@@ -114,7 +114,7 @@ export function SlotHero({
         <span className="spinner" />
       )}
       <div className="mono text-sm text-(--color-text-2)">{label}</div>
-      {slot?.error && <div className="max-w-[420px] text-xs leading-[1.5] text-(--color-text-4)">{slot.error}</div>}
+      {slot?.error && <div className="max-w-[420px] text-sm leading-[1.5] text-(--color-text-4)">{slot.error}</div>}
       {slot &&
         job &&
         (slot.status === 'queued' || slot.status === 'running' || slot.status === 'retrying') &&
@@ -194,7 +194,7 @@ export function StackStrip({
           <button
             type="button"
             onClick={onCancelActiveJobs}
-            className="chip danger shrink-0 text-xs"
+            className="chip danger shrink-0 text-sm"
             style={{ height: 24, padding: '0 8px' }}
           >
             取消全部
@@ -285,7 +285,7 @@ export function StackGallery({
           <div className="font-display text-base font-semibold tracking-[-0.01em]">
             {mode === 'manage' ? '批量管理' : '全部图片'}
           </div>
-          <div className="mt-0.5 text-xs text-(--color-text-3)">
+          <div className="mt-0.5 text-sm text-(--color-text-3)">
             {stack.images.length} 张图片，{stack.activeSlotCount} 个生成中
             {mode === 'manage' && selectedCount > 0 ? `，已选 ${selectedCount} 张` : ''}
           </div>
@@ -341,32 +341,32 @@ export function StackGallery({
           <section key={batch.id} className="min-w-0">
             <div className="mb-2.5 min-w-0 px-0.5 py-1">
               <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-                <span className="mono whitespace-nowrap text-xs text-(--color-text-3)">
+                <span className="mono whitespace-nowrap text-sm text-(--color-text-3)">
                   {formatTime(batch.createdAt)}
                 </span>
                 {batch.modelName && (
-                  <span className="whitespace-nowrap text-xs font-medium text-(--color-text-2)">{batch.modelName}</span>
+                  <span className="whitespace-nowrap text-sm font-medium text-(--color-text-2)">{batch.modelName}</span>
                 )}
                 {batch.resolution && batch.aspectRatio && (
-                  <span className="mono whitespace-nowrap text-xs text-(--color-text-3)">
+                  <span className="mono whitespace-nowrap text-sm text-(--color-text-3)">
                     {batch.resolution} · {batch.aspectRatio}
                   </span>
                 )}
-                <span className="mono whitespace-nowrap text-xs text-(--color-text-3)">{batch.imageCount} 张</span>
+                <span className="mono whitespace-nowrap text-sm text-(--color-text-3)">{batch.imageCount} 张</span>
                 {batch.activeSlotCount > 0 && (
-                  <span className="whitespace-nowrap text-xs text-(--color-accent)">
+                  <span className="whitespace-nowrap text-sm text-(--color-accent)">
                     生成中 {batch.activeSlotCount}
                   </span>
                 )}
                 {batch.failedSlotCount > 0 && (
-                  <span className="whitespace-nowrap text-xs" style={{ color: 'var(--color-danger)' }}>
+                  <span className="whitespace-nowrap text-sm" style={{ color: 'var(--color-danger)' }}>
                     失败 {batch.failedSlotCount}
                   </span>
                 )}
               </div>
               {batch.prompt && (
                 <div
-                  className="mt-1.5 overflow-hidden text-xs leading-[1.55] text-(--color-text-3)"
+                  className="mt-1.5 overflow-hidden text-sm leading-[1.55] text-(--color-text-3)"
                   style={{
                     display: '-webkit-box',
                     WebkitBoxOrient: 'vertical',

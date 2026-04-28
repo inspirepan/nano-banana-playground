@@ -332,7 +332,7 @@ export function ZoomableImageView({
         </button>
         <button
           onClick={resetView}
-          className="mono text-xs font-medium"
+          className="mono text-sm font-medium"
           title="双击画布可重置 · 快捷键 0"
           style={{
             background: 'none',

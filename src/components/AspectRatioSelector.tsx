@@ -49,11 +49,11 @@ export function AspectRatioSelector({
       {showLabel ? (
         <div className="flex items-center justify-between mb-1.5">
           <span className="label">宽高比</span>
-          <span className="mono text-[13px] text-(--color-text-4)">{pixelLabel(value, resolution)}</span>
+          <span className="mono text-sm text-(--color-text-4)">{pixelLabel(value, resolution)}</span>
         </div>
       ) : (
         <div className="flex justify-end mb-1.5">
-          <span className="mono text-[13px] text-(--color-text-4)">{pixelLabel(value, resolution)}</span>
+          <span className="mono text-sm text-(--color-text-4)">{pixelLabel(value, resolution)}</span>
         </div>
       )}
       <div className="grid grid-cols-4 gap-1.5">
@@ -87,7 +87,7 @@ export function AspectRatioSelector({
               </button>
               {/* Notion-style pixel tooltip */}
               <div
-                className={`pointer-events-none absolute left-1/2 -translate-x-1/2 z-20 px-2 py-1 rounded-[5px] mono text-[13px] whitespace-nowrap opacity-0 translate-y-0.5 transition-[opacity,translate] duration-150 delay-100 group-hover:opacity-100 group-hover:translate-y-0 ${isBottomRow ? 'bottom-full mb-1.5' : 'top-full mt-1.5'}`}
+                className={`pointer-events-none absolute left-1/2 -translate-x-1/2 z-20 px-2 py-1 rounded-[5px] mono text-base whitespace-nowrap opacity-0 translate-y-0.5 transition-[opacity,translate] duration-150 delay-100 group-hover:opacity-100 group-hover:translate-y-0 ${isBottomRow ? 'bottom-full mb-1.5' : 'top-full mt-1.5'}`}
                 style={{
                   background: 'var(--color-text)',
                   color: 'var(--color-bg)',

@@ -167,7 +167,7 @@ export const ImageCard = memo(function ImageCard({
       >
         {index !== undefined ? (
           <span
-            className="rounded-[4px] px-1.5 py-0.5 text-[13px] font-medium"
+            className="rounded-[4px] px-1.5 py-0.5 text-base font-medium"
             style={{ background: 'rgba(0,0,0,0.42)', backdropFilter: 'blur(6px)' }}
           >
             #{index + 1}
@@ -176,7 +176,7 @@ export const ImageCard = memo(function ImageCard({
           <span />
         )}
         {meta && (
-          <span className="mono text-[13px]" style={{ opacity: 0.85 }}>
+          <span className="mono text-base" style={{ opacity: 0.85 }}>
             {meta.resolution} · {meta.aspectRatio}
           </span>
         )}
@@ -187,7 +187,7 @@ export const ImageCard = memo(function ImageCard({
         className={`pointer-events-none absolute inset-x-0 top-1/2 z-10 flex -translate-y-1/2 justify-center transition-all duration-300 ${toast ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}`}
       >
         <div
-          className="rounded-[6px] px-3 py-1.5 text-[13px] font-medium"
+          className="rounded-[6px] px-3 py-1.5 text-base font-medium"
           style={{ background: 'rgba(0,0,0,0.7)', color: '#fff', backdropFilter: 'blur(8px)' }}
         >
           已复制
@@ -258,7 +258,7 @@ export const ImageCard = memo(function ImageCard({
                   setMenu(null)
                   item.onClick()
                 }}
-                className={`flex w-full items-center rounded-[5px] px-2.5 py-1.5 text-left text-[13px] transition-colors
+                className={`flex w-full items-center rounded-[5px] px-2.5 py-1.5 text-left text-base transition-colors
                 ${item.danger ? 'text-(--color-danger) hover:bg-(--color-danger-soft)' : 'text-(--color-text) hover:bg-(--color-surface-2)'}`}
               >
                 {item.label}

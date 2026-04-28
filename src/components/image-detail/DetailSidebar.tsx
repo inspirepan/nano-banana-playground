@@ -90,7 +90,7 @@ export function DetailSidebar({
           <div className="flex items-center mb-1.5">
             <span className="label">提示词</span>
             <div className="flex-1" />
-            <button className="chip shrink-0 text-xs" style={{ height: 26 }} onClick={onCopyPrompt}>
+            <button className="chip shrink-0 text-sm" style={{ height: 26 }} onClick={onCopyPrompt}>
               {/* Safari ignores flex layout on <button>; nesting fixes it. */}
               <span className="inline-flex items-center gap-1.5">
                 <Icon name={copiedPrompt ? 'check' : 'copy'} size={12} strokeWidth={copiedPrompt ? 2.2 : 1.8} />
@@ -116,7 +116,7 @@ export function DetailSidebar({
         <div className="mb-[18px]">
           <div className="flex items-center mb-1.5">
             <span className="label">参考图</span>
-            <span className="ml-1.5 text-xs text-(--color-text-4)">{currentMeta.referenceImageIds.length} 张</span>
+            <span className="ml-1.5 text-sm text-(--color-text-4)">{currentMeta.referenceImageIds.length} 张</span>
           </div>
           <div className="grid grid-cols-4 gap-1.5">
             {currentMeta.referenceImageIds.map((refId) => {
@@ -251,7 +251,7 @@ export function DetailSidebar({
 
       {currentImage && canNavigate && (
         <button
-          className="inline-flex w-full items-center justify-center gap-1.5 text-xs font-medium transition-colors"
+          className="inline-flex w-full items-center justify-center gap-1.5 text-sm font-medium transition-colors"
           style={{
             height: 30,
             borderRadius: 6,
@@ -366,7 +366,7 @@ function MetaRow({ label, value, mono, last }: { label: string; value: ReactNode
       className="flex items-baseline gap-3 py-1.5"
       style={{ borderBottom: last ? 'none' : '1px solid var(--color-border)' }}
     >
-      <div className="w-[76px] shrink-0 text-xs font-medium text-(--color-text-3)">{label}</div>
+      <div className="w-[76px] shrink-0 text-sm font-medium text-(--color-text-3)">{label}</div>
       <div className={`${mono ? 'mono' : ''} flex-1 break-words text-right text-sm text-(--color-text)`}>{value}</div>
     </div>
   )
@@ -398,7 +398,7 @@ function GroundingSection({ metadata }: { metadata: GroundingMetadata }) {
       {sources.length > 0 && (
         <ul className="list-none p-0 m-0 space-y-1">
           {sources.map((s, i) => (
-            <li key={i} className="flex min-w-0 items-center gap-1.5 text-xs">
+            <li key={i} className="flex min-w-0 items-center gap-1.5 text-sm">
               <Icon name={s.isImage ? 'image' : 'search'} size={11} />
               <a
                 href={s.uri}
@@ -416,7 +416,7 @@ function GroundingSection({ metadata }: { metadata: GroundingMetadata }) {
       {queries.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-1">
           {queries.map((q, i) => (
-            <span key={i} className="tag text-xs">
+            <span key={i} className="tag text-sm">
               {q}
             </span>
           ))}

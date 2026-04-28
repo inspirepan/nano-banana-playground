@@ -78,25 +78,25 @@ function StackRow({
     <div className="min-w-0">
       <div className="min-w-0 px-3 py-2">
         <div className="mb-2 flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1">
-          <span className="mono shrink-0 text-[13px] text-(--color-text-3)">{formatTime(stack.updatedAt)}</span>
-          <span className="text-[13px] text-(--color-text-4)">·</span>
-          <span className="mono text-[13px] text-(--color-text-3)">{totalItems} 张</span>
-          <span className="text-[13px] text-(--color-text-4)">·</span>
+          <span className="mono shrink-0 text-sm text-(--color-text-3)">{formatTime(stack.updatedAt)}</span>
+          <span className="text-sm text-(--color-text-4)">·</span>
+          <span className="mono text-sm text-(--color-text-3)">{totalItems} 张</span>
+          <span className="text-sm text-(--color-text-4)">·</span>
           <button
             type="button"
             onClick={() => onOpenGallery(stack)}
-            className="bg-transparent p-0 text-[13px] font-medium text-(--color-text-3) transition-colors hover:text-(--color-text-2)"
+            className="bg-transparent p-0 text-base font-medium text-(--color-text-3) transition-colors hover:text-(--color-text-2)"
           >
             查看全部
           </button>
           {stack.images.length > 1 && (
             <>
-              <span className="text-[13px] text-(--color-text-4)">·</span>
+              <span className="text-sm text-(--color-text-4)">·</span>
               <button
                 type="button"
                 onClick={() => onDownloadStack(stack)}
                 disabled={downloading}
-                className="bg-transparent p-0 text-[13px] font-medium text-(--color-text-3) transition-colors hover:text-(--color-text-2) disabled:cursor-not-allowed disabled:opacity-45"
+                className="bg-transparent p-0 text-base font-medium text-(--color-text-3) transition-colors hover:text-(--color-text-2) disabled:cursor-not-allowed disabled:opacity-45"
               >
                 {downloading ? '打包中…' : '下载 ZIP'}
               </button>
@@ -104,14 +104,14 @@ function StackRow({
           )}
           {stack.activeSlotCount > 0 && (
             <>
-              <span className="text-[13px] text-(--color-text-4)">·</span>
+              <span className="text-sm text-(--color-text-4)">·</span>
               <span className="inline-flex items-center gap-1.5">
-                <span className="text-[13px] text-(--color-text-3)">{stack.activeSlotCount} 项生成中</span>
-                <span className="text-[13px] text-(--color-text-4)">·</span>
+                <span className="text-sm text-(--color-text-3)">{stack.activeSlotCount} 项生成中</span>
+                <span className="text-sm text-(--color-text-4)">·</span>
                 <button
                   type="button"
                   onClick={() => onCancelStackGeneration(stack)}
-                  className="bg-transparent p-0 text-[13px] font-semibold transition-colors hover:brightness-110"
+                  className="bg-transparent p-0 text-base font-semibold transition-colors hover:brightness-110"
                   style={{ color: 'var(--color-danger)' }}
                 >
                   取消生成
@@ -121,8 +121,8 @@ function StackRow({
           )}
           {stack.failedSlotCount > 0 && (
             <>
-              <span className="text-[13px] text-(--color-text-4)">·</span>
-              <span className="text-[13px]" style={{ color: 'var(--color-danger)' }}>
+              <span className="text-sm text-(--color-text-4)">·</span>
+              <span className="text-base" style={{ color: 'var(--color-danger)' }}>
                 失败 {stack.failedSlotCount}
               </span>
             </>
@@ -175,7 +175,7 @@ function StackRow({
                 <button
                   type="button"
                   onClick={() => onOpenGallery(stack)}
-                  className="h-full w-full rounded-[8px] text-[13px] text-(--color-text-4)"
+                  className="h-full w-full rounded-[8px] text-sm text-(--color-text-4)"
                   style={{ background: 'var(--color-surface-2)', boxShadow: 'inset 0 0 0 1px var(--ring-edge)' }}
                 >
                   暂无图片
@@ -296,8 +296,8 @@ export const OutputPanel = memo(function OutputPanel({
       <div className="mb-5 space-y-3">
         <div className="flex items-start gap-3">
           <div className="min-w-0">
-            <div className="font-display text-[15px] font-semibold tracking-[-0.01em]">结果</div>
-            <div className="text-[13px] text-(--color-text-3) mt-0.5">
+            <div className="font-display text-xl font-semibold tracking-[-0.01em]">结果</div>
+            <div className="text-sm text-(--color-text-3) mt-0.5">
               {stacks.length} 组，{generatedImageCount} 张生成图，存储于本地浏览器
             </div>
           </div>
@@ -329,13 +329,13 @@ export const OutputPanel = memo(function OutputPanel({
 
           {historyHasMore && (
             <div ref={sentinelRef} className="flex justify-center py-4">
-              <div className="text-[13px] text-(--color-text-4)">加载更多…</div>
+              <div className="text-sm text-(--color-text-4)">加载更多…</div>
             </div>
           )}
 
           <div className="flex justify-center py-2">
             {confirmClear ? (
-              <div className="flex items-center gap-3 text-[13px]">
+              <div className="flex items-center gap-3 text-base">
                 <span className="text-(--color-text-3)">确认清除全部历史？</span>
                 <button
                   type="button"
@@ -361,7 +361,7 @@ export const OutputPanel = memo(function OutputPanel({
               <button
                 type="button"
                 onClick={() => setConfirmClear(true)}
-                className="text-[13px] font-medium transition-colors hover:brightness-110"
+                className="text-base font-medium transition-colors hover:brightness-110"
                 style={{ color: 'var(--color-danger)', background: 'none', border: 0 }}
               >
                 清除全部
@@ -372,8 +372,8 @@ export const OutputPanel = memo(function OutputPanel({
       ) : (
         <div className="card px-4 py-5 text-(--color-text-3)">
           <div className="label mb-2">空历史</div>
-          <div className="text-[13px] font-medium text-(--color-text-2)">生成结果会出现在这里</div>
-          <div className="mt-1 text-[13px] leading-[1.7] text-(--color-text-4)">配置左侧参数并点击「生成」开始。</div>
+          <div className="text-base font-medium text-(--color-text-2)">生成结果会出现在这里</div>
+          <div className="mt-1 text-sm leading-[1.7] text-(--color-text-4)">配置左侧参数并点击「生成」开始。</div>
         </div>
       )}
 

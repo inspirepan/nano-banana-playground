@@ -156,7 +156,7 @@ function App() {
   const topbar = (
     <div className="topbar flex items-center gap-2.5 px-4 shrink-0 sticky top-0 z-30">
       <div className="flex items-center gap-2 min-w-0">
-        <div className="font-display font-semibold text-[13.5px] tracking-[-0.01em]">Imagine Playground</div>
+        <div className="font-display font-semibold text-lg tracking-[-0.01em]">Imagine Playground</div>
       </div>
 
       <div className="flex-1" />
@@ -280,7 +280,7 @@ function App() {
         className={`pointer-events-none fixed bottom-8 left-1/2 z-[100] -translate-x-1/2 transition-all duration-300
         ${regenToast ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}
       >
-        <div className="rounded-md bg-(--color-surface) px-4 py-2 text-[13px] font-medium text-(--color-text) shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-float)] whitespace-nowrap">
+        <div className="rounded-md bg-(--color-surface) px-4 py-2 text-base font-medium text-(--color-text) shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-float)] whitespace-nowrap">
           {regenToast}
         </div>
       </div>

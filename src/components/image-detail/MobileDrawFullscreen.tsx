@@ -226,11 +226,11 @@ export function MobileDrawFullscreen({
         </button>
         <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-semibold text-(--color-text)">标注</div>
-          <div className="text-xs text-(--color-text-4)">
+          <div className="text-sm text-(--color-text-4)">
             {isMoveTool ? '单指拖动，双指缩放' : '涂抹编辑区域，或用编号补充说明'}
           </div>
         </div>
-        <button type="button" className="chip text-xs" onClick={onClose} style={{ height: 28 }}>
+        <button type="button" className="chip text-sm" onClick={onClose} style={{ height: 28 }}>
           完成
         </button>
       </div>
@@ -288,7 +288,7 @@ export function MobileDrawFullscreen({
           </button>
           <button
             type="button"
-            className="mono pointer-events-auto px-2 text-xs font-medium text-(--color-text-2)"
+            className="mono pointer-events-auto px-2 text-sm font-medium text-(--color-text-2)"
             onClick={resetView}
             title="重置"
           >

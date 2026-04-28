@@ -458,17 +458,17 @@ export function EditSidebar({
             onChange={(e) => setPrompt(e.target.value)}
             placeholder={placeholder}
             rows={1}
-            className="block w-full resize-none bg-transparent px-3 py-2.5 text-[16px] leading-[1.55] focus:outline-none md:text-sm"
+            className="block w-full resize-none bg-transparent px-3 py-2.5 text-[16px] leading-[1.55] focus:outline-none md:text-base"
             autoFocus
           />
-          <div className="flex items-center gap-2 px-2.5 py-1.5 text-xs text-(--color-text-3) shadow-[inset_0_1px_0_var(--ring-edge-soft)]">
-            <span className="mono text-xs text-(--color-text-4)">{prompt.length} 字</span>
+          <div className="flex items-center gap-2 px-2.5 py-1.5 text-sm text-(--color-text-3) shadow-[inset_0_1px_0_var(--ring-edge-soft)]">
+            <span className="mono text-sm text-(--color-text-4)">{prompt.length} 字</span>
             <div className="flex-1" />
             {prompt.length > 0 && (
               <button
                 type="button"
                 onClick={() => setPrompt('')}
-                className="inline-flex items-center gap-1 border-0 bg-transparent p-0 text-xs text-(--color-text-4) transition-colors hover:text-(--color-text-2)"
+                className="inline-flex items-center gap-1 border-0 bg-transparent p-0 text-sm text-(--color-text-4) transition-colors hover:text-(--color-text-2)"
               >
                 <Icon name="close" size={11} /> 清空
               </button>
@@ -487,7 +487,7 @@ export function EditSidebar({
         >
           <span className="label">模型 · 分辨率 · 宽高比</span>
           <span className="flex-1" />
-          <span className="mono mr-1.5 text-xs text-(--color-text-3)">
+          <span className="mono mr-1.5 text-sm text-(--color-text-3)">
             {getModelShortLabel(sourceModel)} · {resolution} · {aspectRatio}
           </span>
           <Icon name={paramsCollapsed ? 'chevron_right' : 'chevron_down'} size={12} className="text-(--color-text-4)" />
@@ -520,7 +520,7 @@ export function EditSidebar({
                       onClick={() => handleModelChange(model.id)}
                       title={model.name}
                     >
-                      {model.provider === 'google' ? <span className="text-[13px]">🍌</span> : <OpenAILogo />}
+                      {model.provider === 'google' ? <span className="text-base">🍌</span> : <OpenAILogo />}
                       <span>{getModelShortLabel(model)}</span>
                     </button>
                   ))}
@@ -654,9 +654,9 @@ export function EditSidebar({
       {/* Summary + CTA */}
       <div className="pt-2.5 shadow-[inset_0_1px_0_var(--ring-edge-soft)]">
         {estimatedCost !== null && (
-          <div className="mono mb-2 text-right text-xs text-(--color-text-2)">≈ ${estimatedCost.toFixed(3)}</div>
+          <div className="mono mb-2 text-right text-sm text-(--color-text-2)">≈ ${estimatedCost.toFixed(3)}</div>
         )}
-        {submitError && <div className="mb-2 text-xs text-(--color-danger)">{submitError}</div>}
+        {submitError && <div className="mb-2 text-sm text-(--color-danger)">{submitError}</div>}
         <button type="button" onClick={handleGenerate} disabled={!canSubmit} className="cta w-full">
           <Icon name="wand" size={13} strokeWidth={1.8} />
           <span>{submitting ? '提交中…' : `生成编辑 ×${batchCount}`}</span>

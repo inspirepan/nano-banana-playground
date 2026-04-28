@@ -11,17 +11,17 @@
     'Microsoft YaHei', monospace;
   --font-display: var(--font-sans);
 
-  /* 13px base — Linear-style dense rhythm */
-  --text-xs: 0.8125rem; /* 13px */
+  /* Compact type scale */
+  --text-xs: 0.75rem; /* 12px */
   --text-xs--line-height: 1.35;
-  --text-sm: 0.8125rem; /* 13px */
-  --text-sm--line-height: 1.45;
+  --text-sm: 0.75rem; /* 12px */
+  --text-sm--line-height: 1.4;
   --text-base: 0.8125rem; /* 13px */
   --text-base--line-height: 1.45;
-  --text-md: 0.875rem; /* 14px */
-  --text-md--line-height: 1.35;
-  --text-lg: 0.9375rem; /* 15px */
+  --text-lg: 0.875rem; /* 14px */
   --text-lg--line-height: 1.35;
+  --text-xl: 0.9375rem; /* 15px */
+  --text-xl--line-height: 1.35;
 
   /* Neutrals — warm stone à la Linear */
   --color-bg: #fbfbfa;
@@ -252,7 +252,7 @@
     /* Disable synthetic bold/italic — forces the browser to use real glyphs from PingFang SC
        (native Semibold at weight 600) instead of thickening Regular strokes mechanically. */
     font-synthesis: none;
-    font-size: 13px;
+    font-size: var(--text-base);
     line-height: 1.45;
     letter-spacing: -0.005em;
   }
@@ -307,11 +307,10 @@
 }
 
 @layer components {
-  /* Mono — slightly downsized so Roboto Mono's x-height lines up with Roboto at the same pt */
+  /* Mono */
   .mono {
     font-family: var(--font-mono);
     font-feature-settings: 'zero' 1;
-    font-size: 0.94em;
   }
 
   /* Display — used for brand mark and section headings; currently maps to --font-sans */
@@ -324,7 +323,7 @@
   /* kbd */
   kbd {
     font-family: inherit;
-    font-size: 13px;
+    font-size: var(--text-sm);
     font-weight: 500;
     color: var(--color-text-3);
     background: var(--color-surface-2);
@@ -351,7 +350,7 @@
     background: var(--color-surface);
     color: var(--color-text-2);
     font-weight: 500;
-    font-size: 13px;
+    font-size: var(--text-base);
     /* Safari ignores inline-flex on <button> unless appearance is reset,
        which makes icon + text stack vertically. */
     -webkit-appearance: none;
@@ -396,7 +395,7 @@
     align-items: center;
     justify-content: center;
     gap: 6px;
-    font-size: 13px;
+    font-size: var(--text-base);
     font-weight: 500;
     white-space: nowrap;
     transition:
@@ -491,7 +490,7 @@
   /* Section label */
   .label {
     font-family: var(--font-mono);
-    font-size: 13px;
+    font-size: var(--text-sm);
     font-weight: 600;
     letter-spacing: 0.07em;
     line-height: 1.35;
@@ -538,7 +537,7 @@
     color: var(--color-accent-fg);
     border: 0;
     font-weight: 600;
-    font-size: 13px;
+    font-size: var(--text-base);
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -640,7 +639,7 @@
     background: transparent;
     color: var(--color-text-2);
     font-family: var(--font-sans);
-    font-size: 13px;
+    font-size: var(--text-base);
     font-weight: 500;
     display: inline-flex;
     align-items: center;
@@ -666,7 +665,7 @@
     border: 0;
     background: var(--color-surface);
     color: var(--color-text-3);
-    font-size: 13px;
+    font-size: var(--text-sm);
     font-weight: 500;
     font-variant-numeric: tabular-nums;
     box-shadow: inset 0 0 0 1px var(--ring-edge);
@@ -791,7 +790,7 @@
     gap: 3px;
     padding: 0 5px;
     height: 17px;
-    font-size: 13px;
+    font-size: var(--text-sm);
     line-height: 1;
     font-weight: 500;
     border-radius: var(--radius-xs);
@@ -861,7 +860,7 @@
     padding: 5px 10px;
     background: rgba(31, 29, 26, 0.82);
     color: #fff;
-    font-size: 13px;
+    font-size: var(--text-base);
     font-weight: 500;
     white-space: nowrap;
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);

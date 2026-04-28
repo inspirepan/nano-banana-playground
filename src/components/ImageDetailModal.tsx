@@ -648,13 +648,13 @@ export function ImageDetailModal({
 
         {currentMeta ? (
           <div className="flex min-w-0 items-baseline gap-2">
-            <span className="truncate text-base font-semibold leading-none tracking-[-0.01em] text-(--color-text) md:text-sm md:font-medium md:tracking-normal">
+            <span className="truncate text-base font-semibold leading-none tracking-[-0.01em] text-(--color-text) md:text-base md:font-medium md:tracking-normal">
               {modelName}
             </span>
             <span className="mono shrink-0 text-sm leading-none text-(--color-text-4)">{pxDim}</span>
           </div>
         ) : (
-          <span className="truncate text-base font-semibold leading-none tracking-[-0.01em] text-(--color-text) md:text-sm md:font-medium md:tracking-normal">
+          <span className="truncate text-base font-semibold leading-none tracking-[-0.01em] text-(--color-text) md:text-base md:font-medium md:tracking-normal">
             {currentSlot ? '生成任务' : '图片组'}
           </span>
         )}
@@ -897,7 +897,7 @@ export function ImageDetailModal({
 
               {toast && (
                 <div
-                  className="absolute top-4 left-1/2 z-20 -translate-x-1/2 text-xs font-medium fade-in"
+                  className="absolute top-4 left-1/2 z-20 -translate-x-1/2 text-sm font-medium fade-in"
                   style={{
                     background: 'var(--color-text)',
                     color: 'var(--color-bg)',
@@ -1047,7 +1047,7 @@ export function ImageDetailModal({
 
           {/* ——— Footer shortcuts ——— */}
           <div
-            className="hidden shrink-0 items-center gap-3.5 px-3.5 text-xs text-(--color-text-4) md:flex"
+            className="hidden shrink-0 items-center gap-3.5 px-3.5 text-sm text-(--color-text-4) md:flex"
             style={{
               height: 30,
               borderTop: '1px solid var(--color-border)',

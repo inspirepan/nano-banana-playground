@@ -29,7 +29,7 @@ function StatusCard({ slot, onCancel }: { slot: GenerationSlot; onCancel: (slotI
       <button
         type="button"
         onClick={() => onCancel(slot.id)}
-        className="absolute right-2 top-2 z-10 rounded-[5px] px-2 py-1 text-[13px] font-medium transition-colors"
+        className="absolute right-2 top-2 z-10 rounded-[5px] px-2 py-1 text-base font-medium transition-colors"
         style={{
           color: 'var(--color-text-2)',
           background: 'color-mix(in srgb, var(--color-surface) 86%, transparent)',
@@ -44,12 +44,12 @@ function StatusCard({ slot, onCancel }: { slot: GenerationSlot; onCancel: (slotI
         ) : (
           <span className="spinner" />
         )}
-        <div className="mono text-[13px] text-(--color-text-3)">
+        <div className="mono text-sm text-(--color-text-3)">
           {label} #{slot.index + 1}
         </div>
-        <div className="text-[13px] text-(--color-text-4)">{hint}</div>
+        <div className="text-sm text-(--color-text-4)">{hint}</div>
         {retrying && slot.error && (
-          <div className="max-h-[44px] overflow-y-auto break-words text-[13px] leading-[1.45] text-(--color-text-4)">
+          <div className="max-h-[44px] overflow-y-auto break-words text-sm leading-[1.45] text-(--color-text-4)">
             {slot.error}
           </div>
         )}
@@ -70,7 +70,7 @@ function FailedCard({ index, error }: { index: number; error: string }) {
       <div className="absolute inset-0 flex flex-col gap-2 px-3 py-2.5 text-left">
         <div className="flex items-center gap-1.5 shrink-0">
           <div
-            className="w-4 h-4 rounded-full flex shrink-0 items-center justify-center text-[13px] font-semibold leading-none"
+            className="w-4 h-4 rounded-full flex shrink-0 items-center justify-center text-base font-semibold leading-none"
             style={{
               background: 'color-mix(in srgb, var(--color-danger) 14%, transparent)',
               color: 'var(--color-danger)',
@@ -78,11 +78,11 @@ function FailedCard({ index, error }: { index: number; error: string }) {
           >
             ×
           </div>
-          <div className="mono text-[13px]" style={{ color: 'var(--color-danger)' }}>
+          <div className="mono text-base" style={{ color: 'var(--color-danger)' }}>
             失败 #{index + 1}
           </div>
         </div>
-        <div className="flex-1 min-h-0 overflow-y-auto mono text-[13px] leading-[1.55] break-words text-(--color-text-2) whitespace-pre-wrap">
+        <div className="flex-1 min-h-0 overflow-y-auto mono text-sm leading-[1.55] break-words text-(--color-text-2) whitespace-pre-wrap">
           {error}
         </div>
       </div>
@@ -101,7 +101,7 @@ function CanceledCard({ index }: { index: number }) {
     >
       <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-(--color-text-4)">
         <Icon name="close" size={14} strokeWidth={1.8} />
-        <div className="mono text-[13px]">已取消 #{index + 1}</div>
+        <div className="mono text-base">已取消 #{index + 1}</div>
       </div>
     </div>
   )
@@ -139,17 +139,17 @@ export function QueueJobSection({
     <div>
       <div className="mb-2 grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2">
         <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-          <span className="mono whitespace-nowrap text-[13px] text-(--color-text-3)">{formatTime(job.createdAt)}</span>
+          <span className="mono whitespace-nowrap text-sm text-(--color-text-3)">{formatTime(job.createdAt)}</span>
           <span className="text-(--color-text-4)">·</span>
-          <span className="whitespace-nowrap text-[13px] font-medium text-(--color-text-2)">
+          <span className="whitespace-nowrap text-base font-medium text-(--color-text-2)">
             {job.request.model.name}
           </span>
           <span className="text-(--color-text-4)">·</span>
-          <span className="mono whitespace-nowrap text-[13px] text-(--color-text-3)">
+          <span className="mono whitespace-nowrap text-sm text-(--color-text-3)">
             {job.request.resolution} · {job.request.aspectRatio} · {job.slots.length}
           </span>
           <span className="text-(--color-text-4)">·</span>
-          <span className="mono whitespace-nowrap text-[13px]" style={{ color: statusColor }}>
+          <span className="mono whitespace-nowrap text-base" style={{ color: statusColor }}>
             {jobStatusLabel(counts)}
           </span>
         </div>
@@ -157,8 +157,8 @@ export function QueueJobSection({
           <button
             type="button"
             onClick={() => onCancelJob(job.id)}
-            className="chip danger"
-            style={{ height: 24, padding: '0 8px', fontSize: 11.5 }}
+            className="chip danger text-sm"
+            style={{ height: 24, padding: '0 8px' }}
           >
             取消全部
           </button>
@@ -167,8 +167,8 @@ export function QueueJobSection({
           <button
             type="button"
             onClick={() => onDismissJob(job.id)}
-            className="chip ghost"
-            style={{ height: 24, padding: '0 8px', fontSize: 11.5 }}
+            className="chip ghost text-sm"
+            style={{ height: 24, padding: '0 8px' }}
           >
             关闭
           </button>

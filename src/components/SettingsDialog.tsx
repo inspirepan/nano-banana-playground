@@ -63,8 +63,8 @@ export function SettingsDialog({
       >
         <div className="flex items-center justify-between px-5 py-4 shadow-[inset_0_-1px_0_var(--ring-edge-soft)]">
           <div>
-            <h2 className="font-display text-[14px] font-semibold tracking-[-0.01em]">设置</h2>
-            <p className="mt-0.5 text-[13px] text-(--color-text-3)">管理密钥、外观和生成队列行为</p>
+            <h2 className="font-display text-lg font-semibold tracking-[-0.01em]">设置</h2>
+            <p className="mt-0.5 text-sm text-(--color-text-3)">管理密钥、外观和生成队列行为</p>
           </div>
           <button type="button" onClick={onClose} className="icon-btn" aria-label="关闭">
             <Icon name="close" size={13} />
@@ -149,7 +149,7 @@ export function SettingsDialog({
                     data-active={generationConcurrency === value}
                   >
                     <span>
-                      <span className="mono text-[13px]">{value}</span> 张
+                      <span className="mono text-base">{value}</span> 张
                     </span>
                   </button>
                 ))}
@@ -175,8 +175,8 @@ function SettingsSection({
   return (
     <section className="card p-4">
       <div className="mb-3">
-        <h3 className="font-display text-[13px] font-semibold tracking-[-0.01em] text-(--color-text)">{title}</h3>
-        <p className="mt-0.5 text-[13px] leading-relaxed text-(--color-text-3)">{description}</p>
+        <h3 className="font-display text-base font-semibold tracking-[-0.01em] text-(--color-text)">{title}</h3>
+        <p className="mt-0.5 text-sm leading-relaxed text-(--color-text-3)">{description}</p>
       </div>
       {children}
     </section>
