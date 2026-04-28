@@ -21,13 +21,16 @@ import {
   Monitor,
   Moon,
   MousePointer2,
+  Paperclip,
   Plus,
   Redo2,
   RefreshCw,
   Search,
+  SendHorizontal,
   Settings,
   Sparkles,
   Square,
+  CircleStop,
   Sun,
   Trash2,
   Undo2,
@@ -66,13 +69,16 @@ export type IconName =
   | 'map_pin'
   | 'more'
   | 'mouse_pointer'
+  | 'paperclip'
   | 'plus'
   | 'redo'
   | 'refresh'
   | 'search'
+  | 'send'
   | 'settings'
   | 'sparkles'
   | 'square'
+  | 'stop_circle'
   | 'trash'
   | 'undo'
   | 'upload'
@@ -110,13 +116,16 @@ const ICONS = {
   map_pin: MapPin,
   more: MoreHorizontal,
   mouse_pointer: MousePointer2,
+  paperclip: Paperclip,
   plus: Plus,
   redo: Redo2,
   refresh: RefreshCw,
   search: Search,
+  send: SendHorizontal,
   settings: Settings,
   sparkles: Sparkles,
   square: Square,
+  stop_circle: CircleStop,
   trash: Trash2,
   undo: Undo2,
   upload: Upload,

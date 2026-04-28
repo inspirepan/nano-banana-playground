@@ -254,12 +254,23 @@ function App() {
       <div className="flex flex-col h-[100dvh] md:hidden overflow-y-auto bg-(--color-bg)">
         <div className="px-3">
           <InputPanel
+            inputMode={pg.inputMode}
             model={pg.model}
             resolution={pg.resolution}
             aspectRatio={pg.aspectRatio}
             batchCount={pg.batchCount}
             options={pg.options}
             prompt={pg.prompt}
+            agentModels={pg.agentModels}
+            agentModel={pg.agentModel}
+            agentThinkingLevel={pg.agentThinkingLevel}
+            agentMessages={pg.agentMessages}
+            agentStreamingMessage={pg.agentStreamingMessage}
+            agentIsStreaming={pg.agentIsStreaming}
+            agentError={pg.agentError}
+            agentDraft={pg.agentDraft}
+            agentAttachments={pg.agentAttachments}
+            agentAttachmentError={pg.agentAttachmentError}
             referenceImages={pg.referenceImages}
             referenceImageError={pg.referenceImageError}
             apiKey={pg.apiKey}
@@ -267,10 +278,20 @@ function App() {
             googleKeyStatus={pg.googleKey.status}
             openaiKeyStatus={pg.openaiKey.status}
             onOpenApiKeys={() => openSettings()}
+            onInputModeChange={pg.setInputMode}
             onSwitchModel={pg.switchModel}
             onResolutionChange={pg.setResolution}
             onAspectRatioChange={pg.setAspectRatio}
             onPromptChange={pg.setPrompt}
+            onAgentModelChange={pg.setAgentModelId}
+            onAgentThinkingLevelChange={pg.setAgentThinkingLevel}
+            onAgentDraftChange={pg.setAgentDraft}
+            onAddAgentAttachments={pg.addAgentAttachments}
+            onRemoveAgentAttachment={pg.removeAgentAttachment}
+            onClearAgentAttachmentError={pg.clearAgentAttachmentError}
+            onSendAgentMessage={pg.sendAgentMessage}
+            onStopAgentMessage={pg.stopAgentMessage}
+            onClearAgentChat={pg.clearAgentChat}
             onBatchCountChange={pg.setBatchCount}
             onOptionChange={pg.setOption}
             onAddReferenceImages={pg.addReferenceImages}
@@ -307,12 +328,23 @@ function App() {
           {/* Left input panel */}
           <div className="w-[380px] shrink-0 flex flex-col overflow-y-auto [scrollbar-gutter:stable] bg-(--color-bg) shadow-[inset_-1px_0_0_var(--ring-edge-soft)]">
             <InputPanel
+              inputMode={pg.inputMode}
               model={pg.model}
               resolution={pg.resolution}
               aspectRatio={pg.aspectRatio}
               batchCount={pg.batchCount}
               options={pg.options}
               prompt={pg.prompt}
+              agentModels={pg.agentModels}
+              agentModel={pg.agentModel}
+              agentThinkingLevel={pg.agentThinkingLevel}
+              agentMessages={pg.agentMessages}
+              agentStreamingMessage={pg.agentStreamingMessage}
+              agentIsStreaming={pg.agentIsStreaming}
+              agentError={pg.agentError}
+              agentDraft={pg.agentDraft}
+              agentAttachments={pg.agentAttachments}
+              agentAttachmentError={pg.agentAttachmentError}
               referenceImages={pg.referenceImages}
               referenceImageError={pg.referenceImageError}
               apiKey={pg.apiKey}
@@ -320,10 +352,20 @@ function App() {
               googleKeyStatus={pg.googleKey.status}
               openaiKeyStatus={pg.openaiKey.status}
               onOpenApiKeys={() => openSettings()}
+              onInputModeChange={pg.setInputMode}
               onSwitchModel={pg.switchModel}
               onResolutionChange={pg.setResolution}
               onAspectRatioChange={pg.setAspectRatio}
               onPromptChange={pg.setPrompt}
+              onAgentModelChange={pg.setAgentModelId}
+              onAgentThinkingLevelChange={pg.setAgentThinkingLevel}
+              onAgentDraftChange={pg.setAgentDraft}
+              onAddAgentAttachments={pg.addAgentAttachments}
+              onRemoveAgentAttachment={pg.removeAgentAttachment}
+              onClearAgentAttachmentError={pg.clearAgentAttachmentError}
+              onSendAgentMessage={pg.sendAgentMessage}
+              onStopAgentMessage={pg.stopAgentMessage}
+              onClearAgentChat={pg.clearAgentChat}
               onBatchCountChange={pg.setBatchCount}
               onOptionChange={pg.setOption}
               onAddReferenceImages={pg.addReferenceImages}

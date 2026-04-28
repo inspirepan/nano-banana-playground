@@ -1,11 +1,14 @@
+import type { AppMessage as AgentMessage } from '@mariozechner/pi-agent'
 import { useState, useRef, useCallback, useLayoutEffect, type ReactNode } from 'react'
 
+import { AgentChatPanel } from './AgentChatPanel'
 import { AspectRatioSelector } from './AspectRatioSelector'
 import { ChipGroup } from './ChipGroup'
 import { Icon } from './Icon'
 import { OpenAILogo } from './ModelLabel'
 import { ReferenceImageUpload } from './ReferenceImageUpload'
 import { Tooltip } from './Tooltip'
+import type { AgentModelConfig, AgentThinkingLevel } from '../config/agentModels'
 import {
   MODEL_CONFIGS,
   getModelShortLabel,
@@ -15,6 +18,8 @@ import {
 } from '../config/models'
 import { useMountEffect, useWindowEvent } from '../hooks/effects'
 import type { ApiKeyStatus } from '../hooks/useApiKey'
+import type { InputMode } from '../hooks/usePlayground'
+import type { AgentChatAttachment } from '../lib/agentChat'
 import { isHeifFile } from '../lib/fileToImage'
 import { openAISize } from '../lib/openai'
 import { getPricePerImage } from '../lib/pricing'
@@ -228,12 +233,23 @@ function ToggleGroupSection({
 }
 
 type Props = {
+  inputMode: InputMode
   model: ModelConfig
   resolution: string
   aspectRatio: string
   batchCount: number
   options: Record<string, unknown>
   prompt: string
+  agentModels: AgentModelConfig[]
+  agentModel: AgentModelConfig
+  agentThinkingLevel: AgentThinkingLevel
+  agentMessages: AgentMessage[]
+  agentStreamingMessage: AgentMessage | null
+  agentIsStreaming: boolean
+  agentError: string | null
+  agentDraft: string
+  agentAttachments: AgentChatAttachment[]
+  agentAttachmentError: string | null
   referenceImages: PlaygroundImage[]
   referenceImageError: string | null
   apiKey: string
@@ -241,10 +257,20 @@ type Props = {
   googleKeyStatus: ApiKeyStatus
   openaiKeyStatus: ApiKeyStatus
   onOpenApiKeys: () => void
+  onInputModeChange: (mode: InputMode) => void
   onSwitchModel: (id: string) => void
   onResolutionChange: (v: string) => void
   onAspectRatioChange: (v: string) => void
   onPromptChange: (v: string) => void
+  onAgentModelChange: (id: string) => void
+  onAgentThinkingLevelChange: (level: AgentThinkingLevel) => void
+  onAgentDraftChange: (v: string) => void
+  onAddAgentAttachments: (files: File[]) => void
+  onRemoveAgentAttachment: (id: string) => void
+  onClearAgentAttachmentError: () => void
+  onSendAgentMessage: () => void
+  onStopAgentMessage: () => void
+  onClearAgentChat: () => void
   onBatchCountChange: (v: number) => void
   onOptionChange: (id: string, value: unknown) => void
   onAddReferenceImages: (files: File[]) => void
@@ -256,22 +282,43 @@ type Props = {
 }
 
 export function InputPanel({
+  inputMode,
   model,
   resolution,
   aspectRatio,
   batchCount,
   options,
   prompt,
+  agentModels,
+  agentModel,
+  agentThinkingLevel,
+  agentMessages,
+  agentStreamingMessage,
+  agentIsStreaming,
+  agentError,
+  agentDraft,
+  agentAttachments,
+  agentAttachmentError,
   referenceImages,
   referenceImageError,
   apiKey,
   googleKeyStatus,
   openaiKeyStatus,
   onOpenApiKeys,
+  onInputModeChange,
   onSwitchModel,
   onResolutionChange,
   onAspectRatioChange,
   onPromptChange,
+  onAgentModelChange,
+  onAgentThinkingLevelChange,
+  onAgentDraftChange,
+  onAddAgentAttachments,
+  onRemoveAgentAttachment,
+  onClearAgentAttachmentError,
+  onSendAgentMessage,
+  onStopAgentMessage,
+  onClearAgentChat,
   onBatchCountChange,
   onOptionChange,
   onAddReferenceImages,
@@ -355,7 +402,7 @@ export function InputPanel({
     (e) => {
       if (e.metaKey && e.key === 'Enter') {
         e.preventDefault()
-        if (canGenerate) onGenerate()
+        if (inputMode === 'generate' && canGenerate) onGenerate()
       }
     },
     undefined,
@@ -437,12 +484,16 @@ export function InputPanel({
   return (
     <div
       ref={panelRef}
-      onDragEnter={handlePanelDragEnter}
-      onDragLeave={handlePanelDragLeave}
-      onDragOver={handlePanelDragOver}
-      onDrop={handlePanelDrop}
-      onPaste={handlePanelPaste}
-      className="relative px-[18px] py-[18px] pb-[120px]"
+      onDragEnter={inputMode === 'generate' ? handlePanelDragEnter : undefined}
+      onDragLeave={inputMode === 'generate' ? handlePanelDragLeave : undefined}
+      onDragOver={inputMode === 'generate' ? handlePanelDragOver : undefined}
+      onDrop={inputMode === 'generate' ? handlePanelDrop : undefined}
+      onPaste={inputMode === 'generate' ? handlePanelPaste : undefined}
+      className={
+        inputMode === 'agent'
+          ? 'relative flex min-h-full flex-col px-[18px] py-[18px]'
+          : 'relative px-[18px] py-[18px] pb-[120px]'
+      }
     >
       <div className="mb-[22px] flex min-h-[28px] items-center gap-2.5">
         <div className="min-w-0 font-display text-lg font-semibold tracking-[-0.01em] text-(--color-text)">
@@ -455,261 +506,311 @@ export function InputPanel({
       </div>
 
       {/* Title + meta */}
-      <div className="mb-[18px]">
-        <div className="font-display text-xl font-semibold tracking-[-0.01em] mb-0.5">新生成任务</div>
-        <div className="text-sm text-(--color-text-3)">配置参数，撰写提示词</div>
+      <div className="mb-[14px] h-[48px]">
+        <div className="font-display h-[26px] text-xl leading-[26px] font-semibold tracking-[-0.01em]">
+          {inputMode === 'agent' ? 'Agent 聊天' : '新生成任务'}
+        </div>
+        <div className="mt-1 h-[18px] text-sm leading-[18px] text-(--color-text-3)">
+          {inputMode === 'agent' ? '讨论提示词、分析图片，逐步接入工具' : '配置参数，撰写提示词'}
+        </div>
       </div>
 
-      {isCurrentKeyMissing && (
-        <button
-          type="button"
-          onClick={onOpenApiKeys}
-          className="card mb-[18px] flex w-full items-start gap-2.5 px-3 py-2.5 text-left transition-colors"
-          style={{
-            color: 'var(--color-danger)',
-            background: 'var(--color-danger-soft)',
-            boxShadow: 'inset 0 0 0 1px color-mix(in srgb, var(--color-danger) 24%, transparent)',
-          }}
-        >
-          <Icon name="alert_circle" size={14} style={{ marginTop: 1, flexShrink: 0 }} />
-          <span className="flex-1">
-            <span className="block text-base font-medium">当前模型未配置 API 密钥</span>
-            <span className="mt-0.5 block text-sm leading-[1.45] opacity-80">
-              使用 {model.name} 需要先配置 {providerLabel} API Key。
-            </span>
-          </span>
-          <span className="chip danger shrink-0 text-sm" style={{ height: 22, padding: '0 7px' }}>
-            去配置
-          </span>
-        </button>
-      )}
-
-      {/* MODEL segmented */}
-      <Section label="模型" right={<span className="mono text-sm text-(--color-text-4)">{model.apiModel}</span>}>
-        <div
-          className="segmented"
-          style={{
-            ['--seg-count' as string]: MODEL_CONFIGS.length,
-            ['--seg-index' as string]: Math.max(
-              0,
-              MODEL_CONFIGS.findIndex((m) => m.id === model.id),
-            ),
-          }}
-        >
-          {MODEL_CONFIGS.map((m) => (
-            <button
-              key={m.id}
-              type="button"
-              data-active={model.id === m.id}
-              onClick={() => onSwitchModel(m.id)}
-              title={m.name}
-            >
-              {m.provider === 'google' ? <span className="text-base">🍌</span> : <OpenAILogo />}
-              <span>{getModelShortLabel(m)}</span>
-            </button>
-          ))}
-        </div>
-      </Section>
-
-      {/* Prompt */}
-      <Section
-        label="提示词"
-        right={
-          <div className="flex gap-0.5">
-            <button
-              type="button"
-              onClick={handleHistoryUndo}
-              disabled={!historyState.canUndo}
-              title="撤销"
-              className="icon-btn"
-            >
-              <Icon name="undo" size={13} />
-            </button>
-            <button
-              type="button"
-              onClick={handleHistoryRedo}
-              disabled={!historyState.canRedo}
-              title="重做"
-              className="icon-btn"
-            >
-              <Icon name="redo" size={13} />
-            </button>
-          </div>
-        }
+      <div
+        className="segmented mb-[18px]"
+        style={{
+          ['--seg-count' as string]: 2,
+          ['--seg-index' as string]: inputMode === 'generate' ? 0 : 1,
+        }}
       >
-        <div className="prompt-wrap">
-          <textarea
-            ref={textareaRef}
-            value={prompt}
-            onChange={(e) => {
-              onPromptChange(e.target.value)
-              pushHistory(e.target.value)
-              autoResizeTextarea(e.target)
-            }}
-            placeholder="描述你想生成的图片…  例：一只在霓虹雨夜里啃香蕉的机械猫"
-            rows={1}
-            className="block w-full bg-transparent px-3 py-2.5 text-[16px] md:text-base leading-[1.55] resize-none focus:outline-none"
-          />
-          <div className="flex items-center gap-2 px-2.5 py-1.5 text-sm text-(--color-text-3) shadow-[inset_0_1px_0_var(--ring-edge-soft)]">
-            <span className="text-sm text-(--color-text-4)">{prompt.length} 字</span>
-            <div className="flex-1" />
-            {prompt.length > 0 && (
-              <button
-                type="button"
-                onClick={() => {
-                  onPromptChange('')
-                  pushHistory('')
-                  // Defer until after the textarea has shrunk so the scroll
-                  // target reflects the final layout, not the pre-clear size.
-                  requestAnimationFrame(() => {
-                    const el = textareaRef.current
-                    if (!el) return
-                    el.focus({ preventScroll: true })
-                    el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-                  })
-                }}
-                title="清空提示词"
-                aria-label="清空提示词"
-                className="inline-flex items-center gap-1 bg-transparent border-0 p-0 text-sm text-(--color-text-4) hover:text-(--color-text-2) transition-colors"
-              >
-                <Icon name="close" size={11} />
-                清空
-              </button>
-            )}
-          </div>
-        </div>
-      </Section>
-
-      {/* Resolution chips */}
-      <Section label="分辨率">
-        <ChipGroup
-          options={model.resolutions}
-          value={resolution}
-          onChange={onResolutionChange}
-          mono={false}
-          columns={model.resolutions.length}
-        />
-      </Section>
-
-      {/* Aspect ratio grid */}
-      <AspectRatioSelector
-        options={model.aspectRatios}
-        value={aspectRatio}
-        resolution={resolution}
-        onChange={onAspectRatioChange}
-        labelClassName={INPUT_LABEL_CLASS}
-        pixelLabel={model.provider === 'openai' ? (ratio, res) => openAISize(res, ratio).replace('x', '×') : undefined}
-      />
-
-      <div className="h-[18px] " />
-
-      {/* Model-declared options (quality, search tools, thinking level, ...) */}
-      {optionBlocks.map((block, idx) => {
-        if (block.kind === 'single') {
-          return (
-            <OptionSection
-              key={block.option.id}
-              option={block.option}
-              value={options[block.option.id]}
-              onChange={(v) => onOptionChange(block.option.id, v)}
-            />
-          )
-        }
-        return (
-          <ToggleGroupSection
-            key={`group-${idx}`}
-            label={block.label}
-            hint={block.hint}
-            options={block.options}
-            values={options}
-            onChange={onOptionChange}
-          />
-        )
-      })}
-
-      {/* Reference images */}
-      <div className="mb-[18px]">
-        <ReferenceImageUpload
-          images={referenceImages}
-          maxTotal={maxRef}
-          dragOver={dragOver}
-          error={referenceImageError}
-          labelClassName={INPUT_LABEL_CLASS}
-          onAdd={onAddReferenceImages}
-          onRemove={onRemoveReferenceImage}
-          onClearAll={onClearAllReferences}
-          onClearError={onClearReferenceImageError}
-        />
-      </div>
-
-      {/* Batch count */}
-      <Section label="数量">
-        <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${model.maxBatchCount}, 1fr)` }}>
-          {Array.from({ length: model.maxBatchCount }, (_, i) => i + 1).map((n) => (
-            <button
-              key={n}
-              type="button"
-              className="chip justify-center"
-              data-active={batchCount === n}
-              onClick={() => onBatchCountChange(n)}
-            >
-              <span>×{n}</span>
-            </button>
-          ))}
-        </div>
-      </Section>
-
-      {/* CTA */}
-      <div className="relative">
-        <div className="mb-2.5 pt-2.5 shadow-[inset_0_1px_0_var(--ring-edge-soft)]">
-          <div className="flex items-baseline justify-between mb-2">
-            <span className={INPUT_LABEL_CLASS}>参数概览</span>
-            {estimatedCost !== null && (
-              <span className="text-base text-(--color-text-2)">≈ ${estimatedCost.toFixed(3)}</span>
-            )}
-          </div>
-          <dl className="grid grid-cols-[52px_1fr] gap-x-3 gap-y-[5px] text-sm leading-[1.5]">
-            <dt className="text-(--color-text-4)">模型</dt>
-            <dd className="text-(--color-text-2)">{model.name}</dd>
-            <dt className="text-(--color-text-4)">尺寸</dt>
-            <dd className="text-(--color-text-2)">
-              <span>{resolution}</span>
-              <span className="mx-1.5 text-(--color-text-4)">/</span>
-              <span>{aspectRatio}</span>
-            </dd>
-            <dt className="text-(--color-text-4)">数量</dt>
-            <dd className="text-(--color-text-2)">
-              <span>×{batchCount}</span>
-            </dd>
-            {referenceImages.length > 0 && (
-              <>
-                <dt className="text-(--color-text-4)">参考图</dt>
-                <dd className="text-(--color-text-2)">
-                  <span>{referenceImages.length}</span> 张
-                </dd>
-              </>
-            )}
-            {optionSummaryLabels.length > 0 && (
-              <>
-                <dt className="text-(--color-text-4)">选项</dt>
-                <dd className="text-(--color-text-2)">{optionSummaryLabels.join('、')}</dd>
-              </>
-            )}
-          </dl>
-        </div>
-        <button type="button" onClick={() => onGenerate()} disabled={!canGenerate} className="cta w-full">
-          <Icon name="wand" size={13} strokeWidth={1.8} />
-          <span>
-            使用 {model.name} 生成 {batchCount} 张
-          </span>
-          <span className="flex-1" />
-          <span className="flex gap-0.5">
-            <kbd>⌘</kbd>
-            <kbd>⏎</kbd>
-          </span>
+        <button type="button" data-active={inputMode === 'generate'} onClick={() => onInputModeChange('generate')}>
+          <span>直接生成</span>
         </button>
-        {!apiKey.trim() && <div className="mt-1.5 text-sm text-(--color-text-4) text-center">请先配置 API Key</div>}
+        <button type="button" data-active={inputMode === 'agent'} onClick={() => onInputModeChange('agent')}>
+          <span>Agent</span>
+        </button>
       </div>
+
+      {inputMode === 'agent' ? (
+        <AgentChatPanel
+          messages={agentMessages}
+          streamingMessage={agentStreamingMessage}
+          isStreaming={agentIsStreaming}
+          error={agentError}
+          draft={agentDraft}
+          attachments={agentAttachments}
+          attachmentError={agentAttachmentError}
+          model={agentModel}
+          models={agentModels}
+          thinkingLevel={agentThinkingLevel}
+          googleKeyStatus={googleKeyStatus}
+          openaiKeyStatus={openaiKeyStatus}
+          onOpenApiKeys={onOpenApiKeys}
+          onDraftChange={onAgentDraftChange}
+          onAddAttachments={onAddAgentAttachments}
+          onRemoveAttachment={onRemoveAgentAttachment}
+          onClearAttachmentError={onClearAgentAttachmentError}
+          onModelChange={onAgentModelChange}
+          onThinkingLevelChange={onAgentThinkingLevelChange}
+          onSend={onSendAgentMessage}
+          onStop={onStopAgentMessage}
+          onClear={onClearAgentChat}
+        />
+      ) : (
+        <>
+          {isCurrentKeyMissing && (
+            <button
+              type="button"
+              onClick={onOpenApiKeys}
+              className="card mb-[18px] flex w-full items-start gap-2.5 px-3 py-2.5 text-left transition-colors"
+              style={{
+                color: 'var(--color-danger)',
+                background: 'var(--color-danger-soft)',
+                boxShadow: 'inset 0 0 0 1px color-mix(in srgb, var(--color-danger) 24%, transparent)',
+              }}
+            >
+              <Icon name="alert_circle" size={14} style={{ marginTop: 1, flexShrink: 0 }} />
+              <span className="flex-1">
+                <span className="block text-base font-medium">当前模型未配置 API 密钥</span>
+                <span className="mt-0.5 block text-sm leading-[1.45] opacity-80">
+                  使用 {model.name} 需要先配置 {providerLabel} API Key。
+                </span>
+              </span>
+              <span className="chip danger shrink-0 text-sm" style={{ height: 22, padding: '0 7px' }}>
+                去配置
+              </span>
+            </button>
+          )}
+
+          {/* MODEL segmented */}
+          <Section label="模型" right={<span className="mono text-sm text-(--color-text-4)">{model.apiModel}</span>}>
+            <div
+              className="segmented"
+              style={{
+                ['--seg-count' as string]: MODEL_CONFIGS.length,
+                ['--seg-index' as string]: Math.max(
+                  0,
+                  MODEL_CONFIGS.findIndex((m) => m.id === model.id),
+                ),
+              }}
+            >
+              {MODEL_CONFIGS.map((m) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  data-active={model.id === m.id}
+                  onClick={() => onSwitchModel(m.id)}
+                  title={m.name}
+                >
+                  {m.provider === 'google' ? <span className="text-base">🍌</span> : <OpenAILogo />}
+                  <span>{getModelShortLabel(m)}</span>
+                </button>
+              ))}
+            </div>
+          </Section>
+
+          {/* Prompt */}
+          <Section
+            label="提示词"
+            right={
+              <div className="flex gap-0.5">
+                <button
+                  type="button"
+                  onClick={handleHistoryUndo}
+                  disabled={!historyState.canUndo}
+                  title="撤销"
+                  className="icon-btn"
+                >
+                  <Icon name="undo" size={13} />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleHistoryRedo}
+                  disabled={!historyState.canRedo}
+                  title="重做"
+                  className="icon-btn"
+                >
+                  <Icon name="redo" size={13} />
+                </button>
+              </div>
+            }
+          >
+            <div className="prompt-wrap">
+              <textarea
+                ref={textareaRef}
+                value={prompt}
+                onChange={(e) => {
+                  onPromptChange(e.target.value)
+                  pushHistory(e.target.value)
+                  autoResizeTextarea(e.target)
+                }}
+                placeholder="描述你想生成的图片…  例：一只在霓虹雨夜里啃香蕉的机械猫"
+                rows={1}
+                className="block w-full bg-transparent px-3 py-2.5 text-[16px] md:text-base leading-[1.55] resize-none focus:outline-none"
+              />
+              <div className="flex items-center gap-2 px-2.5 py-1.5 text-sm text-(--color-text-3) shadow-[inset_0_1px_0_var(--ring-edge-soft)]">
+                <span className="text-sm text-(--color-text-4)">{prompt.length} 字</span>
+                <div className="flex-1" />
+                {prompt.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onPromptChange('')
+                      pushHistory('')
+                      // Defer until after the textarea has shrunk so the scroll
+                      // target reflects the final layout, not the pre-clear size.
+                      requestAnimationFrame(() => {
+                        const el = textareaRef.current
+                        if (!el) return
+                        el.focus({ preventScroll: true })
+                        el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                      })
+                    }}
+                    title="清空提示词"
+                    aria-label="清空提示词"
+                    className="inline-flex items-center gap-1 bg-transparent border-0 p-0 text-sm text-(--color-text-4) hover:text-(--color-text-2) transition-colors"
+                  >
+                    <Icon name="close" size={11} />
+                    清空
+                  </button>
+                )}
+              </div>
+            </div>
+          </Section>
+
+          {/* Resolution chips */}
+          <Section label="分辨率">
+            <ChipGroup
+              options={model.resolutions}
+              value={resolution}
+              onChange={onResolutionChange}
+              mono={false}
+              columns={model.resolutions.length}
+            />
+          </Section>
+
+          {/* Aspect ratio grid */}
+          <AspectRatioSelector
+            options={model.aspectRatios}
+            value={aspectRatio}
+            resolution={resolution}
+            onChange={onAspectRatioChange}
+            labelClassName={INPUT_LABEL_CLASS}
+            pixelLabel={
+              model.provider === 'openai' ? (ratio, res) => openAISize(res, ratio).replace('x', '×') : undefined
+            }
+          />
+
+          <div className="h-[18px] " />
+
+          {/* Model-declared options (quality, search tools, thinking level, ...) */}
+          {optionBlocks.map((block, idx) => {
+            if (block.kind === 'single') {
+              return (
+                <OptionSection
+                  key={block.option.id}
+                  option={block.option}
+                  value={options[block.option.id]}
+                  onChange={(v) => onOptionChange(block.option.id, v)}
+                />
+              )
+            }
+            return (
+              <ToggleGroupSection
+                key={`group-${idx}`}
+                label={block.label}
+                hint={block.hint}
+                options={block.options}
+                values={options}
+                onChange={onOptionChange}
+              />
+            )
+          })}
+
+          {/* Reference images */}
+          <div className="mb-[18px]">
+            <ReferenceImageUpload
+              images={referenceImages}
+              maxTotal={maxRef}
+              dragOver={dragOver}
+              error={referenceImageError}
+              labelClassName={INPUT_LABEL_CLASS}
+              onAdd={onAddReferenceImages}
+              onRemove={onRemoveReferenceImage}
+              onClearAll={onClearAllReferences}
+              onClearError={onClearReferenceImageError}
+            />
+          </div>
+
+          {/* Batch count */}
+          <Section label="数量">
+            <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${model.maxBatchCount}, 1fr)` }}>
+              {Array.from({ length: model.maxBatchCount }, (_, i) => i + 1).map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  className="chip justify-center"
+                  data-active={batchCount === n}
+                  onClick={() => onBatchCountChange(n)}
+                >
+                  <span>×{n}</span>
+                </button>
+              ))}
+            </div>
+          </Section>
+
+          {/* CTA */}
+          <div className="relative">
+            <div className="mb-2.5 pt-2.5 shadow-[inset_0_1px_0_var(--ring-edge-soft)]">
+              <div className="flex items-baseline justify-between mb-2">
+                <span className={INPUT_LABEL_CLASS}>参数概览</span>
+                {estimatedCost !== null && (
+                  <span className="text-base text-(--color-text-2)">≈ ${estimatedCost.toFixed(3)}</span>
+                )}
+              </div>
+              <dl className="grid grid-cols-[52px_1fr] gap-x-3 gap-y-[5px] text-sm leading-[1.5]">
+                <dt className="text-(--color-text-4)">模型</dt>
+                <dd className="text-(--color-text-2)">{model.name}</dd>
+                <dt className="text-(--color-text-4)">尺寸</dt>
+                <dd className="text-(--color-text-2)">
+                  <span>{resolution}</span>
+                  <span className="mx-1.5 text-(--color-text-4)">/</span>
+                  <span>{aspectRatio}</span>
+                </dd>
+                <dt className="text-(--color-text-4)">数量</dt>
+                <dd className="text-(--color-text-2)">
+                  <span>×{batchCount}</span>
+                </dd>
+                {referenceImages.length > 0 && (
+                  <>
+                    <dt className="text-(--color-text-4)">参考图</dt>
+                    <dd className="text-(--color-text-2)">
+                      <span>{referenceImages.length}</span> 张
+                    </dd>
+                  </>
+                )}
+                {optionSummaryLabels.length > 0 && (
+                  <>
+                    <dt className="text-(--color-text-4)">选项</dt>
+                    <dd className="text-(--color-text-2)">{optionSummaryLabels.join('、')}</dd>
+                  </>
+                )}
+              </dl>
+            </div>
+            <button type="button" onClick={() => onGenerate()} disabled={!canGenerate} className="cta w-full">
+              <Icon name="wand" size={13} strokeWidth={1.8} />
+              <span>
+                使用 {model.name} 生成 {batchCount} 张
+              </span>
+              <span className="flex-1" />
+              <span className="flex gap-0.5">
+                <kbd>⌘</kbd>
+                <kbd>⏎</kbd>
+              </span>
+            </button>
+            {!apiKey.trim() && <div className="mt-1.5 text-sm text-(--color-text-4) text-center">请先配置 API Key</div>}
+          </div>
+        </>
+      )}
 
       {dragOver && (
         <div

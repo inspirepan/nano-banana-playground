@@ -1,9 +1,18 @@
+import { Agent, ProviderTransport, type AppMessage as AgentMessage } from '@mariozechner/pi-agent'
 import { useState, useCallback, useRef } from 'react'
 
 import { useExternalSync, useMountEffect } from './effects'
 import { useApiKey } from './useApiKey'
 import { useGenerationQueue, type GenerationJob } from './useGenerationQueue'
 import { putBlobInCache, getBlobFromCache, removeBlobFromCache } from './useImageSrc'
+import {
+  AGENT_MODEL_CONFIGS,
+  DEFAULT_AGENT_MODEL,
+  agentModelWithBaseUrl,
+  resolveAgentModelConfig,
+  type AgentModelProvider,
+  type AgentThinkingLevel,
+} from '../config/agentModels'
 import {
   MODEL_CONFIGS,
   DEFAULT_MODEL,
@@ -12,6 +21,7 @@ import {
   serializeOptionValue,
   type ModelConfig,
 } from '../config/models'
+import { attachmentToAgentAttachment, type AgentChatAttachment } from '../lib/agentChat'
 import { readFileAsImageData } from '../lib/fileToImage'
 import {
   loadHistoryPage,
@@ -24,6 +34,7 @@ import {
 } from '../lib/history'
 import type { GeneratedSource, PlaygroundImage, PlaygroundImageMeta } from '../lib/types'
 import { readSimpleUrlParams, updateUrl } from '../lib/urlState'
+import { isKeyError } from '../lib/validateKey'
 
 export type {
   GenerationJob,
@@ -38,7 +49,12 @@ export type RerollGeneratedImageResult =
   | { status: 'unsupported-mask' }
   | { status: 'unavailable' }
 
+export type InputMode = 'generate' | 'agent'
+
 const HISTORY_PAGE_SIZE = 20
+const AGENT_MAX_ATTACHMENTS = 8
+const AGENT_SYSTEM_PROMPT =
+  '你是 Imagine Playground 里的图像创作助手。用中文回答，帮助用户分析图片、打磨提示词、比较模型选择，并保持回答简洁可执行。'
 
 // Read simple URL params once at module load to safely init useState
 const _initial = readSimpleUrlParams()
@@ -147,6 +163,20 @@ function stackIdForGenerationRequest(params: {
   return `stack-${hashString(stableStringify(payload))}`
 }
 
+function agentStateValue(agent: Agent, key: 'streamingMessage' | 'streamMessage' | 'errorMessage' | 'error'): unknown {
+  return (agent.state as unknown as Record<string, unknown>)[key]
+}
+
+function getAgentStreamingMessage(agent: Agent): AgentMessage | null {
+  const value = agentStateValue(agent, 'streamingMessage') ?? agentStateValue(agent, 'streamMessage')
+  return value && typeof value === 'object' ? (value as AgentMessage) : null
+}
+
+function getAgentError(agent: Agent): string | null {
+  const value = agentStateValue(agent, 'errorMessage') ?? agentStateValue(agent, 'error')
+  return typeof value === 'string' ? value : null
+}
+
 export function usePlayground() {
   const googleKeyHook = useApiKey('google')
   const openaiKeyHook = useApiKey('openai')
@@ -171,12 +201,35 @@ export function usePlayground() {
     initialOptionsFor(resolveModel(_initial.modelId), _initial.rawParams),
   )
   const [prompt, setPromptRaw] = useState(_initial.prompt ?? '')
+  const [inputMode, setInputMode] = useState<InputMode>('generate')
+  const [agentModelId, setAgentModelId] = useState(DEFAULT_AGENT_MODEL.id)
+  const agentModel = resolveAgentModelConfig(agentModelId)
+  const [agentThinkingLevel, setAgentThinkingLevelState] = useState<AgentThinkingLevel>('off')
+  const [agentMessages, setAgentMessages] = useState<AgentMessage[]>([])
+  const [agentStreamingMessage, setAgentStreamingMessage] = useState<AgentMessage | null>(null)
+  const [agentIsStreaming, setAgentIsStreaming] = useState(false)
+  const [agentError, setAgentError] = useState<string | null>(null)
+  const [agentDraft, setAgentDraft] = useState('')
+  const [agentAttachments, setAgentAttachments] = useState<AgentChatAttachment[]>([])
+  const [agentAttachmentError, setAgentAttachmentError] = useState<string | null>(null)
 
   const [referenceImages, setReferenceImages] = useState<PlaygroundImage[]>([])
   const [referenceImageError, setReferenceImageError] = useState<string | null>(null)
   const [history, setHistory] = useState<PlaygroundImageMeta[]>([])
   const [historyHasMore, setHistoryHasMore] = useState(true)
   const historyLoadingRef = useRef(false)
+  const agentRef = useRef<Agent | null>(null)
+  const agentCredentialsRef = useRef({
+    google: { apiKey: googleKeyHook.apiKey, baseUrl: googleKeyHook.baseUrl },
+    openai: { apiKey: openaiKeyHook.apiKey, baseUrl: openaiKeyHook.baseUrl },
+  })
+
+  useExternalSync(() => {
+    agentCredentialsRef.current = {
+      google: { apiKey: googleKeyHook.apiKey, baseUrl: googleKeyHook.baseUrl },
+      openai: { apiKey: openaiKeyHook.apiKey, baseUrl: openaiKeyHook.baseUrl },
+    }
+  }, [googleKeyHook.apiKey, googleKeyHook.baseUrl, openaiKeyHook.apiKey, openaiKeyHook.baseUrl])
 
   const getProviderCredentials = useCallback(
     (provider: ModelConfig['provider']) => {
@@ -305,6 +358,63 @@ export function usePlayground() {
     setOptionsState((prev) => ({ ...prev, [id]: value }))
   }, [])
 
+  const setAgentThinkingLevel = useCallback((level: AgentThinkingLevel) => {
+    setAgentThinkingLevelState(level)
+  }, [])
+
+  const syncAgentSnapshot = useCallback((agent: Agent) => {
+    setAgentMessages(agent.state.messages.slice())
+    setAgentStreamingMessage(getAgentStreamingMessage(agent))
+    setAgentIsStreaming(agent.state.isStreaming)
+    setAgentError(getAgentError(agent))
+  }, [])
+
+  const getAgentBaseUrl = useCallback(
+    (provider: AgentModelProvider) => agentCredentialsRef.current[provider].baseUrl,
+    [],
+  )
+
+  const applyAgentRuntimeConfig = useCallback(
+    (agent: Agent, config = agentModel) => {
+      agent.state.systemPrompt = AGENT_SYSTEM_PROMPT
+      agent.state.model = agentModelWithBaseUrl(config, getAgentBaseUrl(config.provider))
+      agent.state.thinkingLevel = config.supportsThinking ? agentThinkingLevel : 'off'
+      agent.state.tools = []
+    },
+    [agentModel, agentThinkingLevel, getAgentBaseUrl],
+  )
+
+  const getOrCreateAgent = useCallback(() => {
+    if (agentRef.current) return agentRef.current
+    const agent = new Agent({
+      transport: new ProviderTransport({
+        getApiKey: (provider) => {
+          if (provider === 'google' || provider === 'openai') {
+            return agentCredentialsRef.current[provider].apiKey || undefined
+          }
+          return undefined
+        },
+      }),
+      initialState: {
+        systemPrompt: AGENT_SYSTEM_PROMPT,
+        model: agentModelWithBaseUrl(agentModel, getAgentBaseUrl(agentModel.provider)),
+        thinkingLevel: agentModel.supportsThinking ? agentThinkingLevel : 'off',
+        tools: [],
+        messages: [],
+      },
+    })
+    agent.subscribe(() => syncAgentSnapshot(agent))
+    agentRef.current = agent
+    return agent
+  }, [agentModel, agentThinkingLevel, getAgentBaseUrl, syncAgentSnapshot])
+
+  useExternalSync(() => {
+    const agent = agentRef.current
+    if (!agent) return
+    applyAgentRuntimeConfig(agent)
+    syncAgentSnapshot(agent)
+  }, [applyAgentRuntimeConfig, syncAgentSnapshot])
+
   const switchModel = useCallback((modelId: string) => {
     const config = MODEL_CONFIGS.find((m) => m.id === modelId)
     if (!config) return
@@ -363,6 +473,56 @@ export function usePlayground() {
     },
     [model, referenceImages.length],
   )
+
+  const addAgentAttachments = useCallback(
+    (files: File[]) => {
+      const remaining = AGENT_MAX_ATTACHMENTS - agentAttachments.length
+      if (remaining <= 0) {
+        setAgentAttachmentError(`最多附加 ${AGENT_MAX_ATTACHMENTS} 张图片`)
+        return
+      }
+
+      const toAdd = files.slice(0, remaining)
+      void Promise.allSettled(
+        toAdd.map((file) =>
+          readFileAsImageData(file).then((result) => {
+            if (!result) return null
+            return {
+              id: crypto.randomUUID(),
+              data: result.base64,
+              mimeType: result.mimeType,
+              fileName: result.fileName,
+              size: file.size,
+            } satisfies AgentChatAttachment
+          }),
+        ),
+      ).then((results) => {
+        const attachments: AgentChatAttachment[] = []
+        const errors: string[] = []
+        for (const result of results) {
+          if (result.status === 'fulfilled' && result.value) {
+            attachments.push(result.value)
+          } else if (result.status === 'rejected') {
+            errors.push((result.reason as Error).message)
+          }
+        }
+        if (attachments.length > 0) {
+          setAgentAttachments((prev) => [...prev, ...attachments].slice(0, AGENT_MAX_ATTACHMENTS))
+          setAgentAttachmentError(null)
+        }
+        if (errors.length > 0) setAgentAttachmentError(errors.join('\n'))
+      })
+    },
+    [agentAttachments.length],
+  )
+
+  const removeAgentAttachment = useCallback((id: string) => {
+    setAgentAttachments((prev) => prev.filter((item) => item.id !== id))
+  }, [])
+
+  const clearAgentAttachmentError = useCallback(() => {
+    setAgentAttachmentError(null)
+  }, [])
 
   const removeReferenceImage = useCallback((id: string) => {
     setReferenceImages((prev) => prev.filter((img) => img.id !== id))
@@ -437,6 +597,60 @@ export function usePlayground() {
     },
     [resolveFullImages, resolveReferenceMetas],
   )
+
+  const sendAgentMessage = useCallback(() => {
+    const trimmed = agentDraft.trim()
+    if (agentIsStreaming || (!trimmed && agentAttachments.length === 0)) return
+
+    const credentials = agentCredentialsRef.current[agentModel.provider]
+    if (!credentials.apiKey) {
+      setAgentError(`使用 ${agentModel.label} 需要先配置 ${agentModel.providerLabel} API Key。`)
+      return
+    }
+
+    const agent = getOrCreateAgent()
+    applyAgentRuntimeConfig(agent, agentModel)
+    const images = agentAttachments.map(attachmentToAgentAttachment)
+    const promptText = trimmed || '请分析这些图片。'
+    setAgentDraft('')
+    setAgentAttachments([])
+    setAgentAttachmentError(null)
+    syncAgentSnapshot(agent)
+
+    void agent
+      .prompt(promptText, images)
+      .then(() => {
+        const message = getAgentError(agent)
+        if (message && isKeyError(message)) invalidateGenerationKey(agentModel.provider)
+      })
+      .finally(() => syncAgentSnapshot(agent))
+  }, [
+    agentAttachments,
+    agentDraft,
+    agentIsStreaming,
+    agentModel,
+    applyAgentRuntimeConfig,
+    getOrCreateAgent,
+    invalidateGenerationKey,
+    syncAgentSnapshot,
+  ])
+
+  const stopAgentMessage = useCallback(() => {
+    agentRef.current?.abort()
+  }, [])
+
+  const clearAgentChat = useCallback(() => {
+    const agent = agentRef.current
+    if (agent?.state.isStreaming) return
+    agent?.reset()
+    setAgentMessages([])
+    setAgentStreamingMessage(null)
+    setAgentIsStreaming(false)
+    setAgentError(null)
+    setAgentDraft('')
+    setAgentAttachments([])
+    setAgentAttachmentError(null)
+  }, [])
 
   const rerollGeneratedImage = useCallback(
     async (image: PlaygroundImageMeta): Promise<RerollGeneratedImageResult> => {
@@ -628,6 +842,17 @@ export function usePlayground() {
     batchCount,
     options,
     prompt,
+    inputMode,
+    agentModels: AGENT_MODEL_CONFIGS,
+    agentModel,
+    agentThinkingLevel,
+    agentMessages,
+    agentStreamingMessage,
+    agentIsStreaming,
+    agentError,
+    agentDraft,
+    agentAttachments,
+    agentAttachmentError,
     referenceImages,
     referenceImageError,
     history,
@@ -636,12 +861,22 @@ export function usePlayground() {
     generationQueueSummary,
     generationConcurrency,
     switchModel,
+    setInputMode,
+    setAgentModelId,
+    setAgentThinkingLevel,
+    setAgentDraft,
     setResolution,
     setAspectRatio,
     setBatchCount,
     setOption,
     setPrompt,
     setGenerationConcurrency,
+    addAgentAttachments,
+    removeAgentAttachment,
+    clearAgentAttachmentError,
+    sendAgentMessage,
+    stopAgentMessage,
+    clearAgentChat,
     addReferenceImages,
     removeReferenceImage,
     clearAllReferences,
