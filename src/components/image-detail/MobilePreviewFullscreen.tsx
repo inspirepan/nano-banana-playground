@@ -21,11 +21,15 @@ export function MobilePreviewFullscreen({
           <Icon name="chevron_left" size={15} strokeWidth={1.8} />
         </button>
         <div className="min-w-0 flex-1 truncate text-sm font-semibold text-(--color-text)">全屏预览</div>
-        <button type="button" className="chip text-xs" onClick={onClose} style={{ height: 28 }}>
-          退出
-        </button>
       </div>
-      <div className="min-h-0 flex-1">
+      <div
+        className="min-h-0 flex-1"
+        style={{
+          backgroundImage: `linear-gradient(var(--color-border) 1px, transparent 1px), linear-gradient(90deg, var(--color-border) 1px, transparent 1px)`,
+          backgroundSize: '28px 28px, 28px 28px',
+          backgroundColor: 'var(--color-bg-sunken)',
+        }}
+      >
         {src ? (
           <ZoomableImageView src={src} alt={alt} onSwipeLeft={onSwipeLeft} onSwipeRight={onSwipeRight} />
         ) : (

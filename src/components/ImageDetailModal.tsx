@@ -44,7 +44,7 @@ type Props = {
 }
 
 const MOBILE_SHEET_EXPANDED_VH = 45
-const MOBILE_EDIT_SHEET_EXPANDED_VH = 76
+const MOBILE_MODAL_HEADER_PX = 48
 const MOBILE_SHEET_LOW_PX = 88
 
 // Prefer visualViewport.height so the sheet math follows the dynamic viewport
@@ -55,11 +55,11 @@ function getVisualViewportHeight(): number {
 }
 
 function getMobileSheetHeights(viewportHeight: number, editing = false) {
-  const expandedVh = editing ? MOBILE_EDIT_SHEET_EXPANDED_VH : MOBILE_SHEET_EXPANDED_VH
-  const maxHeight = Math.max(MOBILE_SHEET_LOW_PX, viewportHeight - 12)
-  const preferredHeight = Math.round((viewportHeight * expandedVh) / 100)
-  const minEditHeight = editing ? Math.min(360, maxHeight) : MOBILE_SHEET_LOW_PX
-  const expandedHeight = Math.min(maxHeight, Math.max(MOBILE_SHEET_LOW_PX, preferredHeight, minEditHeight))
+  const maxHeight = Math.max(MOBILE_SHEET_LOW_PX, viewportHeight - MOBILE_MODAL_HEADER_PX)
+  if (editing) return { initialHeight: maxHeight, expandedHeight: maxHeight }
+
+  const preferredHeight = Math.round((viewportHeight * MOBILE_SHEET_EXPANDED_VH) / 100)
+  const expandedHeight = Math.min(maxHeight, Math.max(MOBILE_SHEET_LOW_PX, preferredHeight))
   const initialHeight = Math.min(MOBILE_SHEET_LOW_PX, expandedHeight)
   return { initialHeight, expandedHeight }
 }
@@ -457,7 +457,7 @@ export function ImageDetailModal({
   )
 
   const handleSheetPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!isMobileSheet) return
+    if (!isMobileSheet || editing) return
     if (e.pointerType === 'mouse' && e.button !== 0) return
     const { initialHeight, expandedHeight } = getMobileSheetHeights(getVisualViewportHeight(), editing)
     sheetDragRef.current = {
@@ -917,6 +917,7 @@ export function ImageDetailModal({
               style={{
                 background: 'var(--color-bg)',
                 overscrollBehavior: 'contain',
+                WebkitOverflowScrolling: 'touch',
                 ...(isMobileSheet
                   ? {
                       flexShrink: 0,
@@ -932,7 +933,7 @@ export function ImageDetailModal({
               }}
             >
               {/* Mobile drag handle */}
-              {isMobileSheet && (
+              {isMobileSheet && !editing && (
                 <div
                   className="md:hidden sticky top-0 z-10 flex justify-center items-center h-7 cursor-grab active:cursor-grabbing select-none"
                   style={{ background: 'var(--color-bg)', touchAction: 'none' }}
@@ -945,15 +946,18 @@ export function ImageDetailModal({
                 </div>
               )}
 
-              <div className="px-[18px] pt-1 md:pt-4 pb-24 md:pb-10" style={{ width: isMobileSheet ? undefined : 340 }}>
+              <div
+                className="px-[18px] pt-2.5 md:pt-4 pb-24 md:pb-10"
+                style={{ width: isMobileSheet ? undefined : 340 }}
+              >
                 <div
                   className="mb-[18px]"
-                  style={isMobileSheet ? { touchAction: 'none' } : undefined}
+                  style={isMobileSheet && !editing ? { touchAction: 'none' } : undefined}
                   onClick={() => expandMobileSheet()}
-                  onPointerDown={isMobileSheet ? handleSheetPointerDown : undefined}
-                  onPointerMove={isMobileSheet ? handleSheetPointerMove : undefined}
-                  onPointerUp={isMobileSheet ? handleSheetPointerUp : undefined}
-                  onPointerCancel={isMobileSheet ? handleSheetPointerUp : undefined}
+                  onPointerDown={isMobileSheet && !editing ? handleSheetPointerDown : undefined}
+                  onPointerMove={isMobileSheet && !editing ? handleSheetPointerMove : undefined}
+                  onPointerUp={isMobileSheet && !editing ? handleSheetPointerUp : undefined}
+                  onPointerCancel={isMobileSheet && !editing ? handleSheetPointerUp : undefined}
                 >
                   <div
                     className="segmented"
