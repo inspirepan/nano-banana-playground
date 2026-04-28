@@ -94,15 +94,7 @@ function ensureGoogleFontsLink(id: string, href: string) {
 
 function App() {
   const pg = usePlayground()
-  const {
-    addToReferences,
-    history: pgHistory,
-    restoreSession,
-    resolveFullImages,
-    switchModel,
-    setResolution,
-    setAspectRatio,
-  } = pg
+  const { addToReferences, restoreGeneratedImageParams, rerollGeneratedImage } = pg
   const [theme, setTheme] = useState<Theme>(getInitialTheme)
   const [colorTheme, setColorTheme] = useState<ColorThemeId>(getInitialColorTheme)
   const [sansFont, setSansFont] = useState<SansFontId>(getInitialSansFont)
@@ -128,20 +120,37 @@ function App() {
 
   const handleRegenerate = useCallback(
     async (image: PlaygroundImageMeta) => {
-      if (image.source.type !== 'generated') return
-      const meta = image.source
-      switchModel(meta.modelId)
-      setResolution(meta.resolution)
-      setAspectRatio(meta.aspectRatio)
-      const refMetas = pgHistory.filter((h) => meta.referenceImageIds.includes(h.id))
-      const refs = await resolveFullImages(refMetas)
-      restoreSession(meta.prompt, refs)
-      const message = refs.length > 0 ? `已还原提示词和 ${refs.length} 张参考图` : '已还原提示词'
+      const result = await restoreGeneratedImageParams(image)
+      if (result === null) return
+      const message = result.restoredModel
+        ? result.refCount > 0
+          ? `已还原提示词、参数和 ${result.refCount} 张参考图`
+          : '已还原提示词和参数'
+        : result.refCount > 0
+          ? `原模型已不可用，已还原提示词和 ${result.refCount} 张参考图`
+          : '原模型已不可用，已还原提示词'
       if (regenToastTimer.current) clearTimeout(regenToastTimer.current)
       setRegenToast(message)
       regenToastTimer.current = setTimeout(() => setRegenToast(null), 2500)
     },
-    [pgHistory, resolveFullImages, restoreSession, setAspectRatio, setResolution, switchModel],
+    [restoreGeneratedImageParams],
+  )
+
+  const handleReroll = useCallback(
+    async (image: PlaygroundImageMeta) => {
+      const result = await rerollGeneratedImage(image).catch(() => ({ status: 'unavailable' as const }))
+      const message =
+        result.status === 'queued'
+          ? '已按原参数加入生成队列'
+          : result.status === 'unsupported-mask'
+            ? '暂不支持重抽带遮罩的 OpenAI 编辑图'
+            : '无法重新生成：请检查 API Key 或参考图'
+      if (regenToastTimer.current) clearTimeout(regenToastTimer.current)
+      setRegenToast(message)
+      regenToastTimer.current = setTimeout(() => setRegenToast(null), 2500)
+      return { ok: result.status === 'queued', message }
+    },
+    [rerollGeneratedImage],
   )
 
   const openSettings = useCallback((target: SettingsTarget | null = null) => {
@@ -302,6 +311,7 @@ function App() {
               onCancelGenerationSlot={pg.cancelGenerationSlot}
               onAddToRef={handleAddToRef}
               onRegenerate={handleRegenerate}
+              onReroll={handleReroll}
               onEditImage={pg.editImage}
               onRemove={pg.removeFromHistory}
               onClearAll={pg.clearAllHistory}
@@ -358,6 +368,7 @@ function App() {
             onCancelGenerationSlot={pg.cancelGenerationSlot}
             onAddToRef={handleAddToRef}
             onRegenerate={handleRegenerate}
+            onReroll={handleReroll}
             onEditImage={pg.editImage}
             onRemove={pg.removeFromHistory}
             onClearAll={pg.clearAllHistory}

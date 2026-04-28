@@ -19,6 +19,7 @@ type DetailHeaderProps = {
   onOpenMobilePreview: () => void
   onAddRef: () => void
   onRegenerate: () => void
+  onReroll: () => void
   onDownload: () => void
   onToggleSidebar: () => void
 }
@@ -38,6 +39,7 @@ export function DetailHeader({
   onOpenMobilePreview,
   onAddRef,
   onRegenerate,
+  onReroll,
   onDownload,
   onToggleSidebar,
 }: DetailHeaderProps) {
@@ -108,9 +110,22 @@ export function DetailHeader({
             <Icon name="plus" size={12} strokeWidth={1.8} /> <span className="hidden md:inline">参考</span>
           </button>
           {currentMeta?.prompt && (
-            <button className="chip hidden shrink-0 font-normal md:inline-flex" onClick={onRegenerate} title="还原参数">
-              <Icon name="refresh" size={12} strokeWidth={1.8} /> <span className="hidden md:inline">还原参数</span>
-            </button>
+            <>
+              <button
+                className="chip hidden shrink-0 font-normal md:inline-flex"
+                onClick={onRegenerate}
+                title="还原参数"
+              >
+                <Icon name="undo" size={12} strokeWidth={1.8} /> <span className="hidden md:inline">还原参数</span>
+              </button>
+              <button
+                className="chip hidden shrink-0 font-normal md:inline-flex"
+                onClick={onReroll}
+                title="按原参数重新生成"
+              >
+                <Icon name="refresh" size={12} strokeWidth={1.8} /> <span className="hidden md:inline">重抽</span>
+              </button>
+            </>
           )}
           <button
             className="chip shrink-0 text-sm font-normal md:hidden"

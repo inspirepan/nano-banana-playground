@@ -496,6 +496,7 @@ async function generateImageOpenAI(
         ...(slotIndex !== undefined ? { slotIndex } : {}),
         tokenUsage,
         options: { ...options },
+        usesMask: Boolean(mask),
       },
       timestamp: Date.now(),
     }

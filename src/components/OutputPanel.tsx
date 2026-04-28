@@ -20,6 +20,7 @@ type Props = {
   onCancelGenerationSlot: (slotId: string) => void
   onAddToRef: (image: PlaygroundImageMeta) => void
   onRegenerate: (image: PlaygroundImageMeta) => void
+  onReroll: (image: PlaygroundImageMeta) => Promise<{ ok: boolean; message: string }>
   onEditImage: (params: {
     sourceImage: PlaygroundImageMeta
     model: ModelConfig
@@ -251,6 +252,7 @@ export const OutputPanel = memo(function OutputPanel({
   onCancelGenerationSlot,
   onAddToRef,
   onRegenerate,
+  onReroll,
   onEditImage,
   onRemove,
   onClearAll,
@@ -453,6 +455,7 @@ export const OutputPanel = memo(function OutputPanel({
           onClose={() => setDetailTarget(null)}
           onAddToRef={onAddToRef}
           onRegenerate={onRegenerate}
+          onReroll={onReroll}
           onEditImage={onEditImage}
           onCancelGenerationJob={onCancelGenerationJob}
           onDismissGenerationJob={onDismissGenerationJob}

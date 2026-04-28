@@ -678,7 +678,6 @@ export const DrawableLayer = forwardRef<DrawableLayerHandle, Props>(function Dra
           height: ready ? stage.h : '100%',
           maxWidth: '100%',
           maxHeight: '100%',
-          borderRadius: 8,
           overflow: 'hidden',
           boxShadow: ready
             ? '0 0 0 1px var(--ring-edge-strong), 0 30px 60px -24px rgba(0,0,0,0.3), 0 4px 10px rgba(0,0,0,0.06)'

@@ -18,11 +18,12 @@ import {
   deleteFromHistory,
   clearHistory,
   loadImageBlobs,
+  loadImageMetas,
   saveDraftRefs,
   loadDraftRefs,
   clearDraftRefs,
 } from '../lib/history'
-import type { PlaygroundImage, PlaygroundImageMeta } from '../lib/types'
+import type { GeneratedSource, PlaygroundImage, PlaygroundImageMeta } from '../lib/types'
 import { readSimpleUrlParams, updateUrl } from '../lib/urlState'
 import { isKeyError } from '../lib/validateKey'
 
@@ -77,6 +78,11 @@ export type GenerationQueueSummary = {
   activeJobs: number
 }
 
+export type RerollGeneratedImageResult =
+  | { status: 'queued'; batchId: string }
+  | { status: 'unsupported-mask' }
+  | { status: 'unavailable' }
+
 const HISTORY_PAGE_SIZE = 20
 const GENERATION_CONCURRENCY_KEY = 'nano-banana-generation-concurrency'
 const DEFAULT_GENERATION_CONCURRENCY = 2
@@ -112,6 +118,34 @@ function initialGenerationConcurrency(): number {
   const raw = localStorage.getItem(GENERATION_CONCURRENCY_KEY)
   const parsed = raw ? Number.parseInt(raw, 10) : DEFAULT_GENERATION_CONCURRENCY
   return clampGenerationConcurrency(Number.isFinite(parsed) ? parsed : DEFAULT_GENERATION_CONCURRENCY)
+}
+
+function findModelConfig(modelId: string): ModelConfig | null {
+  return MODEL_CONFIGS.find((item) => item.id === modelId) ?? null
+}
+
+function optionsForGeneratedSource(model: ModelConfig, source: GeneratedSource): Record<string, unknown> {
+  const next = defaultOptionsFor(model)
+  for (const opt of model.options ?? []) {
+    if (source.options && opt.id in source.options) {
+      next[opt.id] = source.options[opt.id]
+    } else if (opt.id === 'quality' && source.quality) {
+      next[opt.id] = source.quality
+    } else if (opt.id === 'webSearch' && source.searchTools?.web !== undefined) {
+      next[opt.id] = source.searchTools.web
+    } else if (opt.id === 'imageSearch' && source.searchTools?.image !== undefined) {
+      next[opt.id] = source.searchTools.image
+    }
+  }
+  return next
+}
+
+function normalizeResolution(model: ModelConfig, resolution: string): string {
+  return model.resolutions.includes(resolution) ? resolution : model.defaultResolution
+}
+
+function normalizeAspectRatio(model: ModelConfig, aspectRatio: string): string {
+  return model.aspectRatios.includes(aspectRatio) ? aspectRatio : model.defaultAspectRatio
 }
 
 function isActiveSlot(slot: GenerationSlot): boolean {
@@ -404,6 +438,43 @@ export function usePlayground() {
     return result
   }, [])
 
+  const resolveReferenceMetas = useCallback(
+    async (ids: string[]): Promise<PlaygroundImageMeta[]> => {
+      if (ids.length === 0) return []
+      const loaded = new Map(history.map((item) => [item.id, item]))
+      const missingIds = ids.filter((id) => !loaded.has(id))
+      if (missingIds.length > 0) {
+        const missing = await loadImageMetas(missingIds)
+        for (const [id, item] of missing) loaded.set(id, item)
+      }
+      return ids.map((id) => loaded.get(id)).filter((item): item is PlaygroundImageMeta => Boolean(item))
+    },
+    [history],
+  )
+
+  const restoreGeneratedImageParams = useCallback(
+    async (image: PlaygroundImageMeta): Promise<{ refCount: number; restoredModel: boolean } | null> => {
+      if (image.source.type !== 'generated') return null
+      const source = image.source
+      const targetModel = findModelConfig(source.modelId)
+
+      setPromptRaw(source.prompt)
+      if (targetModel) {
+        setModel(targetModel)
+        setResolutionRaw(normalizeResolution(targetModel, source.resolution))
+        setAspectRatioRaw(normalizeAspectRatio(targetModel, source.aspectRatio))
+        setBatchCountRaw((prev) => Math.min(prev, targetModel.maxBatchCount))
+        setOptionsState(optionsForGeneratedSource(targetModel, source))
+      }
+
+      const refMetas = await resolveReferenceMetas(source.referenceImageIds)
+      const refs = await resolveFullImages(refMetas)
+      setReferenceImages(refs)
+      return { refCount: refs.length, restoredModel: Boolean(targetModel) }
+    },
+    [resolveFullImages, resolveReferenceMetas],
+  )
+
   const updateGenerationSlot = useCallback(
     (jobId: string, slotId: string, updateSlot: (slot: GenerationSlot) => GenerationSlot, removeCompleted = false) => {
       setGenerationJobs((prev) =>
@@ -616,6 +687,49 @@ export function usePlayground() {
       return batchId
     },
     [setGenerationJobs],
+  )
+
+  const rerollGeneratedImage = useCallback(
+    async (image: PlaygroundImageMeta): Promise<RerollGeneratedImageResult> => {
+      if (image.source.type !== 'generated') return { status: 'unavailable' }
+      const source = image.source
+      const targetModel = findModelConfig(source.modelId)
+      if (!targetModel) return { status: 'unavailable' }
+      if (targetModel.provider === 'openai' && source.parentImageId && source.usesMask !== false) {
+        return { status: 'unsupported-mask' }
+      }
+      const keyHook = targetModel.provider === 'google' ? googleKeyHook : openaiKeyHook
+      if (!keyHook.apiKey) return { status: 'unavailable' }
+
+      const trimmed = source.prompt.trim()
+      if (!trimmed) return { status: 'unavailable' }
+
+      const refMetas = await resolveReferenceMetas(source.referenceImageIds)
+      if (refMetas.length !== source.referenceImageIds.length) return { status: 'unavailable' }
+      const refs = await resolveFullImages(refMetas)
+      if (refs.length !== source.referenceImageIds.length) return { status: 'unavailable' }
+
+      const maxTotal = targetModel.maxReferenceImages + targetModel.maxCharacterImages
+      if (refs.length > maxTotal) return { status: 'unavailable' }
+
+      const batchId = enqueueGenerationJob(
+        {
+          apiKey: keyHook.apiKey,
+          baseUrl: keyHook.baseUrl,
+          model: targetModel,
+          prompt: trimmed,
+          referenceImages: refs,
+          resolution: normalizeResolution(targetModel, source.resolution),
+          aspectRatio: normalizeAspectRatio(targetModel, source.aspectRatio),
+          options: optionsForGeneratedSource(targetModel, source),
+        },
+        1,
+        source.stackId ?? source.batchId,
+        source.parentImageId,
+      )
+      return { status: 'queued', batchId }
+    },
+    [enqueueGenerationJob, googleKeyHook, openaiKeyHook, resolveFullImages, resolveReferenceMetas],
   )
 
   const generate = useCallback(() => {
@@ -838,6 +952,8 @@ export function usePlayground() {
     clearAllReferences,
     clearReferenceImageError,
     restoreSession,
+    restoreGeneratedImageParams,
+    rerollGeneratedImage,
     resolveFullImages,
     generate,
     editImage,

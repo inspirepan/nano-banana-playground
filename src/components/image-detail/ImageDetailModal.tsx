@@ -36,6 +36,7 @@ type Props = {
   onClose: () => void
   onAddToRef: (image: PlaygroundImageMeta) => void
   onRegenerate: (image: PlaygroundImageMeta) => void
+  onReroll: (image: PlaygroundImageMeta) => Promise<{ ok: boolean; message: string }>
   onEditImage: EditImageHandler
   onCancelGenerationJob: (jobId: string) => void
   onDismissGenerationJob: (jobId: string) => void
@@ -53,6 +54,7 @@ export function ImageDetailModal({
   onClose,
   onAddToRef,
   onRegenerate,
+  onReroll,
   onEditImage,
   onCancelGenerationJob,
   onDismissGenerationJob,
@@ -104,7 +106,10 @@ export function ImageDetailModal({
   // Canvas-edit mode: view (default pan/zoom), annotate (paint colored strokes
   // baked into the reference), or mask (paint a region for OpenAI's mask
   // field / Gemini red overlay).
-  const [editMode, setEditMode] = useState<EditMode>('view')
+  const [editMode, setEditMode] = useState<EditMode>(() => {
+    if (typeof window === 'undefined') return 'view'
+    return initialEditing && !window.matchMedia('(max-width: 767px)').matches ? 'mask' : 'view'
+  })
   const [drawTool, setDrawTool] = useState<DrawTool>('brush')
   const [desktopMoveActive, setDesktopMoveActive] = useState(false)
   if (drawTool === 'rect') {
@@ -438,6 +443,13 @@ export function ImageDetailModal({
     onClose()
   }
 
+  const handleRerollAction = () => {
+    if (!currentImage) return
+    void onReroll(currentImage).then((result) => {
+      flash(result.ok ? '已加入重新生成队列' : result.message)
+    })
+  }
+
   const hasPrev = canNavigate && currentIdx > 0
   const hasNext = canNavigate && currentIdx < stack.items.length - 1
   const hasDrawableMarks = drawableCounts.annotate > 0 || drawableCounts.mask > 0
@@ -529,6 +541,7 @@ export function ImageDetailModal({
         onOpenMobilePreview={() => setMobilePreviewOpen(true)}
         onAddRef={handleAddRef}
         onRegenerate={handleRegenerateAction}
+        onReroll={handleRerollAction}
         onDownload={handleDownload}
         onToggleSidebar={toggleSidebar}
       />
@@ -642,7 +655,9 @@ export function ImageDetailModal({
                 findRefImage={findRefImage}
                 onExitEdit={exitEdit}
                 onStartEdit={() => {
-                  if (currentImage) setEditing(true)
+                  if (!currentImage) return
+                  if (isMobileLayout) setEditing(true)
+                  else startAnnotation()
                 }}
                 onEditImage={onEditImage}
                 onSetActiveBatchId={setActiveEditBatch}
@@ -658,6 +673,7 @@ export function ImageDetailModal({
                 onToggleRefDetail={(id) => setRefDetailId((prev) => (prev === id ? null : id))}
                 onAddRef={handleAddRef}
                 onRegenerate={handleRegenerateAction}
+                onReroll={handleRerollAction}
                 onCopyPrompt={handleCopyPrompt}
                 onRemove={onRemove}
                 onClose={onClose}

@@ -43,6 +43,9 @@ export type GeneratedSource = {
   options?: Record<string, unknown>
   // Google-only: grounding sources returned when google_search tool was used.
   groundingMetadata?: GroundingMetadata
+  // OpenAI-only: whether the source request used an alpha mask that is not
+  // persisted as a normal reference image.
+  usesMask?: boolean
   // Legacy fields retained for reading pre-refactor history records. New records
   // write to `options` instead. Readers should prefer `options[...]` first.
   quality?: string

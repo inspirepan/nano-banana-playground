@@ -41,6 +41,7 @@ type DetailSidebarProps = {
   onToggleRefDetail: (id: string) => void
   onAddRef: () => void
   onRegenerate: () => void
+  onReroll: () => void
   onCopyPrompt: () => void
   onRemove: (id: string) => void | Promise<void>
   onClose: () => void
@@ -64,6 +65,7 @@ export function DetailSidebar({
   onToggleRefDetail,
   onAddRef,
   onRegenerate,
+  onReroll,
   onCopyPrompt,
   onRemove,
   onClose,
@@ -73,14 +75,18 @@ export function DetailSidebar({
   return (
     <>
       {currentImage && (
-        <div className="mb-[18px] grid grid-cols-2 gap-1.5 md:hidden">
+        <div className="mb-[18px] grid grid-cols-3 gap-1.5 md:hidden">
           <button type="button" className="chip justify-center" onClick={onAddRef} disabled={!currentImage}>
             <Icon name="plus" size={12} strokeWidth={1.8} />
             +参考
           </button>
           <button type="button" className="chip justify-center" onClick={onRegenerate} disabled={!currentMeta?.prompt}>
-            <Icon name="refresh" size={12} strokeWidth={1.8} />
+            <Icon name="undo" size={12} strokeWidth={1.8} />
             还原参数
+          </button>
+          <button type="button" className="chip justify-center" onClick={onReroll} disabled={!currentMeta?.prompt}>
+            <Icon name="refresh" size={12} strokeWidth={1.8} />
+            重抽
           </button>
         </div>
       )}

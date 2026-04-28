@@ -49,6 +49,7 @@ type DetailSidePanelProps = {
   onToggleRefDetail: (id: string) => void
   onAddRef: () => void
   onRegenerate: () => void
+  onReroll: () => void
   onCopyPrompt: () => void
   onRemove: (id: string) => void | Promise<void>
   onClose: () => void
@@ -94,6 +95,7 @@ export function DetailSidePanel({
   onToggleRefDetail,
   onAddRef,
   onRegenerate,
+  onReroll,
   onCopyPrompt,
   onRemove,
   onClose,
@@ -191,6 +193,7 @@ export function DetailSidePanel({
             onToggleRefDetail={onToggleRefDetail}
             onAddRef={onAddRef}
             onRegenerate={onRegenerate}
+            onReroll={onReroll}
             onCopyPrompt={onCopyPrompt}
             onRemove={onRemove}
             onClose={onClose}

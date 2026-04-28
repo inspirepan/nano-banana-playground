@@ -289,7 +289,6 @@ export function ZoomableImageView({
               height: fitSize.height || undefined,
               transform: `translate3d(${offset.x}px, ${offset.y}px, 0) scale(${scale})`,
               transformOrigin: 'center center',
-              borderRadius: 8,
               boxShadow:
                 '0 0 0 1px var(--ring-edge-strong), 0 30px 60px -24px rgba(0,0,0,0.3), 0 4px 10px rgba(0,0,0,0.06)',
               opacity: fitSize.width ? 1 : 0,
