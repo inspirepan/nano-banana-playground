@@ -4,16 +4,24 @@ export type SansFontId =
   | 'roboto'
   | 'space-grotesk'
   | 'google-sans-flex'
-  | 'manrope'
-  | 'plus-jakarta-sans'
   | 'dm-sans'
+  | 'ibm-plex-sans'
+  | 'outfit'
+  | 'onest'
+  | 'albert-sans'
   | 'source-serif-4'
   | 'newsreader'
   | 'literata'
   | 'bitter'
   | 'crimson-pro'
   | 'gelasio'
-export type MonoFontId = 'geist-mono' | 'google-sans-code' | 'jetbrains-mono' | 'roboto-mono' | 'dm-mono'
+export type MonoFontId =
+  | 'geist-mono'
+  | 'google-sans-code'
+  | 'jetbrains-mono'
+  | 'roboto-mono'
+  | 'dm-mono'
+  | 'ibm-plex-mono'
 
 type FontOption<T extends string> = {
   id: T
@@ -64,25 +72,39 @@ export const SANS_FONTS: FontOption<SansFontId>[] = [
     googleQuery: 'Google Sans Flex:opsz,wght@6..144,1..1000',
   },
   {
-    id: 'manrope',
-    name: 'Manrope',
-    className: 'font-sans-manrope',
-    cssFamily: "'Manrope'",
-    googleQuery: 'Manrope:wght@200..800',
-  },
-  {
-    id: 'plus-jakarta-sans',
-    name: 'Plus Jakarta Sans',
-    className: 'font-sans-plus-jakarta-sans',
-    cssFamily: "'Plus Jakarta Sans'",
-    googleQuery: 'Plus Jakarta Sans:wght@200..800',
-  },
-  {
     id: 'dm-sans',
     name: 'DM Sans',
     className: 'font-sans-dm-sans',
     cssFamily: "'DM Sans'",
     googleQuery: 'DM Sans:opsz,wght@9..40,100..1000',
+  },
+  {
+    id: 'ibm-plex-sans',
+    name: 'IBM Plex Sans',
+    className: 'font-sans-ibm-plex-sans',
+    cssFamily: "'IBM Plex Sans'",
+    googleQuery: 'IBM Plex Sans:wght@100;200;300;400;500;600;700',
+  },
+  {
+    id: 'outfit',
+    name: 'Outfit',
+    className: 'font-sans-outfit',
+    cssFamily: "'Outfit'",
+    googleQuery: 'Outfit:wght@100..900',
+  },
+  {
+    id: 'onest',
+    name: 'Onest',
+    className: 'font-sans-onest',
+    cssFamily: "'Onest'",
+    googleQuery: 'Onest:wght@100..900',
+  },
+  {
+    id: 'albert-sans',
+    name: 'Albert Sans',
+    className: 'font-sans-albert-sans',
+    cssFamily: "'Albert Sans'",
+    googleQuery: 'Albert Sans:wght@100..900',
   },
   {
     id: 'source-serif-4',
@@ -169,6 +191,13 @@ export const MONO_FONTS: FontOption<MonoFontId>[] = [
     className: 'font-mono-dm-mono',
     cssFamily: "'DM Mono'",
     googleQuery: 'DM Mono:wght@300;400;500',
+  },
+  {
+    id: 'ibm-plex-mono',
+    name: 'IBM Plex Mono',
+    className: 'font-mono-ibm-plex-mono',
+    cssFamily: "'IBM Plex Mono'",
+    googleQuery: 'IBM Plex Mono:wght@100;200;300;400;500;600;700',
   },
 ]
 

@@ -130,18 +130,28 @@
   --font-sans--font-feature-settings: 'tnum' 1;
 }
 
-.font-sans-manrope {
-  --font-sans: 'Manrope', var(--font-cjk-sans);
-  --font-sans--font-feature-settings: 'tnum' 1;
-}
-
-.font-sans-plus-jakarta-sans {
-  --font-sans: 'Plus Jakarta Sans', var(--font-cjk-sans);
-  --font-sans--font-feature-settings: 'tnum' 1;
-}
-
 .font-sans-dm-sans {
   --font-sans: 'DM Sans', var(--font-cjk-sans);
+  --font-sans--font-feature-settings: 'tnum' 1;
+}
+
+.font-sans-ibm-plex-sans {
+  --font-sans: 'IBM Plex Sans', var(--font-cjk-sans);
+  --font-sans--font-feature-settings: 'tnum' 1;
+}
+
+.font-sans-outfit {
+  --font-sans: 'Outfit', var(--font-cjk-sans);
+  --font-sans--font-feature-settings: 'tnum' 1;
+}
+
+.font-sans-onest {
+  --font-sans: 'Onest', var(--font-cjk-sans);
+  --font-sans--font-feature-settings: 'tnum' 1;
+}
+
+.font-sans-albert-sans {
+  --font-sans: 'Albert Sans', var(--font-cjk-sans);
   --font-sans--font-feature-settings: 'tnum' 1;
 }
 
@@ -193,6 +203,10 @@
 
 .font-mono-dm-mono {
   --font-mono: 'DM Mono', var(--font-cjk-mono);
+}
+
+.font-mono-ibm-plex-mono {
+  --font-mono: 'IBM Plex Mono', var(--font-cjk-mono);
 }
 
 /* Dark theme */
