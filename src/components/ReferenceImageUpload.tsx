@@ -8,6 +8,7 @@ export type LockedReferenceImage = {
   id: string
   image: PlaygroundImageMeta
   label?: string
+  preview?: PlaygroundImage
 }
 
 type Props = {
@@ -134,14 +135,15 @@ export function ReferenceImageUpload({
 
 function LockedReferenceThumb({ item }: { item: LockedReferenceImage }) {
   const { ref, src } = useImageSrc(item.image.id, item.image.mimeType, undefined, { variant: 'preview' })
+  const previewSrc = item.preview ? `data:${item.preview.mimeType};base64,${item.preview.data}` : null
   return (
     <div
       ref={ref}
       className="ref-thumb group aspect-square rounded-[6px] overflow-hidden bg-(--color-surface-2) shadow-[inset_0_0_0_1px_var(--ring-edge)]"
     >
-      {src ? (
+      {previewSrc || src ? (
         <img
-          src={src}
+          src={previewSrc ?? src ?? undefined}
           alt={item.label ?? '锁定参考图'}
           className="absolute inset-0 w-full h-full object-cover"
           draggable={false}

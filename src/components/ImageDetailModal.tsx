@@ -1840,6 +1840,7 @@ function EditSidebar({
   const [refsError, setRefsError] = useState<string | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [drawablePreview, setDrawablePreview] = useState<{ annotated?: PlaygroundImage; mask?: PlaygroundImage }>({})
   // Editing rarely needs resolution / aspect changes, so collapse by default.
   const [paramsCollapsed, setParamsCollapsed] = useState(true)
 
@@ -1884,7 +1885,7 @@ function EditSidebar({
   const hasMaskStrokes = drawableCounts.mask > 0
   const isOpenAI = sourceModel.provider === 'openai'
   const hasOpenAIMask = hasMaskStrokes && isOpenAI
-  const hasAnnotatedSource = hasAnnotationStrokes || hasMaskStrokes
+  const hasAnnotatedSource = isOpenAI ? hasAnnotationStrokes : hasAnnotationStrokes || hasMaskStrokes
   const maxReferenceImages = sourceModel.maxReferenceImages + sourceModel.maxCharacterImages
   const maxExtraRefs = Math.max(0, maxReferenceImages - 1 - (hasAnnotatedSource ? 1 : 0))
   const referenceLimitExceeded = extraRefs.length > maxExtraRefs
@@ -1968,6 +1969,64 @@ function EditSidebar({
   const pricePerImage = getPricePerImage(sourceModel, resolution, aspectRatio, inheritedOptions)
   const estimatedCost = pricePerImage !== null ? pricePerImage * batchCount : null
 
+  useEffect(() => {
+    if (!hasAnnotatedSource && !hasOpenAIMask) {
+      setDrawablePreview({})
+      return
+    }
+
+    let cancelled = false
+    void (async () => {
+      let drawable = drawableRef.current
+      for (let i = 0; i < 20 && !cancelled && !drawable?.isReady(); i++) {
+        await new Promise<void>((resolve) => {
+          window.setTimeout(resolve, 80)
+        })
+        drawable = drawableRef.current
+      }
+      if (cancelled) return
+      if (!drawable?.isReady()) {
+        setDrawablePreview({})
+        return
+      }
+
+      try {
+        const next: { annotated?: PlaygroundImage; mask?: PlaygroundImage } = {}
+        if (hasAnnotatedSource) {
+          const out = isOpenAI ? await drawable.exportAnnotated() : await drawable.exportMarkedComposite()
+          if (out) {
+            next.annotated = {
+              id: `${sourceImage.id}:annotated-preview`,
+              data: out.base64,
+              mimeType: out.mimeType,
+              source: { type: 'upload', fileName: 'annotated-preview.png' },
+              timestamp: Date.now(),
+            }
+          }
+        }
+        if (hasOpenAIMask) {
+          const out = await drawable.exportMaskRedOverlay()
+          if (out) {
+            next.mask = {
+              id: `${sourceImage.id}:mask-preview`,
+              data: out.base64,
+              mimeType: out.mimeType,
+              source: { type: 'upload', fileName: 'mask-preview.png' },
+              timestamp: Date.now(),
+            }
+          }
+        }
+        if (!cancelled) setDrawablePreview(next)
+      } catch {
+        if (!cancelled) setDrawablePreview({})
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [drawableCounts, drawableRef, hasAnnotatedSource, hasOpenAIMask, isOpenAI, sourceImage.id])
+
   // Allow submitting a new edit even while a previous batch is still running.
   // The new batchId overrides activeEditBatchId, replacing what the embedded
   // QueueJobSection tracks; previous jobs keep running in their stack strip.
@@ -1978,19 +2037,19 @@ function EditSidebar({
     setSubmitting(true)
     setSubmitError(null)
     try {
-      // Bake all visible marks into a reference image. If there are mask
-      // strokes and the provider supports native masks, also export the alpha
-      // mask so the API gets both a precise edit region and visual guidance.
+      // Gemini needs visual marks baked into a reference image. OpenAI gets a
+      // native alpha mask for brush strokes; numbered annotations still travel
+      // as a separate visual reference.
       let annotatedSource: PlaygroundImage | undefined
       let mask: PlaygroundImage | undefined
       const drawable = drawableRef.current
-      const needsDrawableExport = hasAnnotationStrokes || hasMaskStrokes
+      const needsDrawableExport = hasAnnotatedSource || hasOpenAIMask
       if (needsDrawableExport && (!drawable || !drawable.isReady())) {
         setSubmitError('图片仍在加载，请稍后再提交')
         return
       }
-      if (drawable && needsDrawableExport) {
-        const out = await drawable.exportMarkedComposite()
+      if (drawable && hasAnnotatedSource) {
+        const out = isOpenAI ? await drawable.exportAnnotated() : await drawable.exportMarkedComposite()
         if (!out) {
           setSubmitError('标注导出失败，请稍后再试')
           return
@@ -2054,9 +2113,9 @@ function EditSidebar({
     batchCount,
     onSetActiveBatchId,
     drawableRef,
-    hasAnnotationStrokes,
-    hasMaskStrokes,
+    hasAnnotatedSource,
     hasOpenAIMask,
+    isOpenAI,
   ])
 
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -2080,15 +2139,25 @@ function EditSidebar({
     return () => window.removeEventListener('keydown', handler)
   }, [canSubmit, handleGenerate])
 
-  // Count what actually ships to the provider. With annotations we send BOTH
-  // the annotated composite and the clean source, so the model has the
-  // unobscured pixels available for regions outside the user's marks.
+  // Count what actually ships to the provider. Visual annotation references
+  // take image slots; OpenAI masks travel through the native mask field.
   const lockedReferenceImages: LockedReferenceImage[] = [
     { id: `${sourceImage.id}:source`, image: sourceImage, label: '原图' },
   ]
   if (hasAnnotatedSource)
-    lockedReferenceImages.push({ id: `${sourceImage.id}:annotate`, image: sourceImage, label: '标注' })
-  if (hasOpenAIMask) lockedReferenceImages.push({ id: `${sourceImage.id}:mask`, image: sourceImage, label: 'Mask' })
+    lockedReferenceImages.push({
+      id: `${sourceImage.id}:annotate`,
+      image: sourceImage,
+      label: '标注',
+      preview: drawablePreview.annotated,
+    })
+  if (hasOpenAIMask)
+    lockedReferenceImages.push({
+      id: `${sourceImage.id}:mask`,
+      image: sourceImage,
+      label: 'Mask',
+      preview: drawablePreview.mask,
+    })
 
   return (
     <div>
