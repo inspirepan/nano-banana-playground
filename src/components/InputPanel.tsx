@@ -30,7 +30,7 @@ function Section({
       <div className="flex items-center justify-between mb-1.5 min-h-[20px]">
         <div className="flex items-center gap-2">
           <span className="label">{label}</span>
-          {hint && <span className="text-[11px] text-(--color-text-4)">{hint}</span>}
+          {hint && <span className="text-[13px] text-(--color-text-4)">{hint}</span>}
         </div>
         {right}
       </div>
@@ -454,7 +454,7 @@ export function InputPanel({
       {/* Title + meta */}
       <div className="mb-[18px]">
         <div className="font-display text-[15px] font-semibold tracking-[-0.01em] mb-0.5">新生成任务</div>
-        <div className="text-[12px] text-(--color-text-3)">配置参数，撰写提示词</div>
+        <div className="text-[13px] text-(--color-text-3)">配置参数，撰写提示词</div>
       </div>
 
       {isCurrentKeyMissing && (
@@ -470,8 +470,8 @@ export function InputPanel({
         >
           <Icon name="alert_circle" size={14} style={{ marginTop: 1, flexShrink: 0 }} />
           <span className="flex-1">
-            <span className="block text-[12.5px] font-medium">当前模型未配置 API 密钥</span>
-            <span className="mt-0.5 block text-[11.5px] leading-[1.45] opacity-80">
+            <span className="block text-[13px] font-medium">当前模型未配置 API 密钥</span>
+            <span className="mt-0.5 block text-[13px] leading-[1.45] opacity-80">
               使用 {model.name} 需要先配置 {providerLabel} API Key。
             </span>
           </span>
@@ -482,7 +482,7 @@ export function InputPanel({
       )}
 
       {/* MODEL segmented */}
-      <Section label="模型" right={<span className="mono text-[11px] text-(--color-text-4)">{model.apiModel}</span>}>
+      <Section label="模型" right={<span className="mono text-[13px] text-(--color-text-4)">{model.apiModel}</span>}>
         <div
           className="segmented"
           style={{
@@ -501,7 +501,7 @@ export function InputPanel({
               onClick={() => onSwitchModel(m.id)}
               title={m.name}
             >
-              {m.provider === 'google' ? <span className="text-[11px]">🍌</span> : <OpenAILogo />}
+              {m.provider === 'google' ? <span className="text-[13px]">🍌</span> : <OpenAILogo />}
               <span>{getModelShortLabel(m)}</span>
             </button>
           ))}
@@ -607,8 +607,8 @@ export function InputPanel({
             rows={1}
             className="block w-full bg-transparent px-3 py-2.5 text-[16px] md:text-[13.5px] leading-[1.55] resize-none focus:outline-none"
           />
-          <div className="flex items-center gap-2 px-2.5 py-1.5 text-[11.5px] text-(--color-text-3) shadow-[inset_0_1px_0_var(--ring-edge-soft)]">
-            <span className="mono text-[11px] text-(--color-text-4)">{prompt.length} 字</span>
+          <div className="flex items-center gap-2 px-2.5 py-1.5 text-[13px] text-(--color-text-3) shadow-[inset_0_1px_0_var(--ring-edge-soft)]">
+            <span className="mono text-[13px] text-(--color-text-4)">{prompt.length} 字</span>
             <div className="flex-1" />
             {prompt.length > 0 && (
               <button
@@ -627,7 +627,7 @@ export function InputPanel({
                 }}
                 title="清空提示词"
                 aria-label="清空提示词"
-                className="inline-flex items-center gap-1 bg-transparent border-0 p-0 text-[11px] text-(--color-text-4) hover:text-(--color-text-2) transition-colors"
+                className="inline-flex items-center gap-1 bg-transparent border-0 p-0 text-[13px] text-(--color-text-4) hover:text-(--color-text-2) transition-colors"
               >
                 <Icon name="close" size={11} />
                 清空
@@ -660,10 +660,10 @@ export function InputPanel({
           <div className="flex items-baseline justify-between mb-2">
             <span className="label">参数概览</span>
             {estimatedCost !== null && (
-              <span className="mono text-[11.5px] text-(--color-text-2)">≈ ${estimatedCost.toFixed(3)}</span>
+              <span className="mono text-[13px] text-(--color-text-2)">≈ ${estimatedCost.toFixed(3)}</span>
             )}
           </div>
-          <dl className="grid grid-cols-[52px_1fr] gap-x-3 gap-y-[5px] text-[11.5px] leading-[1.5]">
+          <dl className="grid grid-cols-[52px_1fr] gap-x-3 gap-y-[5px] text-[13px] leading-[1.5]">
             <dt className="text-(--color-text-4)">模型</dt>
             <dd className="text-(--color-text-2)">{model.name}</dd>
             <dt className="text-(--color-text-4)">尺寸</dt>
@@ -711,7 +711,7 @@ export function InputPanel({
             <kbd>⏎</kbd>
           </span>
         </button>
-        {!apiKey.trim() && <div className="mt-1.5 text-[11px] text-(--color-text-4) text-center">请先配置 API Key</div>}
+        {!apiKey.trim() && <div className="mt-1.5 text-[13px] text-(--color-text-4) text-center">请先配置 API Key</div>}
       </div>
 
       {dragOver && (

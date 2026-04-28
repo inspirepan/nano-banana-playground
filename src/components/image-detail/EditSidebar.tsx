@@ -520,7 +520,7 @@ export function EditSidebar({
                       onClick={() => handleModelChange(model.id)}
                       title={model.name}
                     >
-                      {model.provider === 'google' ? <span className="text-[11px]">🍌</span> : <OpenAILogo />}
+                      {model.provider === 'google' ? <span className="text-[13px]">🍌</span> : <OpenAILogo />}
                       <span>{getModelShortLabel(model)}</span>
                     </button>
                   ))}

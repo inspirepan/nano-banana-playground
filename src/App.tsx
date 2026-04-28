@@ -280,7 +280,7 @@ function App() {
         className={`pointer-events-none fixed bottom-8 left-1/2 z-[100] -translate-x-1/2 transition-all duration-300
         ${regenToast ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}
       >
-        <div className="rounded-md bg-(--color-surface) px-4 py-2 text-[12.5px] font-medium text-(--color-text) shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-float)] whitespace-nowrap">
+        <div className="rounded-md bg-(--color-surface) px-4 py-2 text-[13px] font-medium text-(--color-text) shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-float)] whitespace-nowrap">
           {regenToast}
         </div>
       </div>

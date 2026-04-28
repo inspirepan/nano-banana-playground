@@ -61,12 +61,12 @@ export function ReferenceImageUpload({
             <button
               type="button"
               onClick={onClearAll}
-              className="text-[11px] text-(--color-text-4) hover:text-(--color-text-2) transition-colors"
+              className="text-[13px] text-(--color-text-4) hover:text-(--color-text-2) transition-colors"
             >
               清空
             </button>
           )}
-          <span className="mono text-[11px] text-(--color-text-4)">
+          <span className="mono text-[13px] text-(--color-text-4)">
             {lockedImages.length + images.length}/{lockedImages.length + maxTotal}
           </span>
         </div>
@@ -92,7 +92,7 @@ export function ReferenceImageUpload({
           <button
             type="button"
             onClick={() => inputRef.current?.click()}
-            className="dropzone aspect-square flex flex-col items-center justify-center gap-1 text-[11px] font-medium text-(--color-text-3)"
+            className="dropzone aspect-square flex flex-col items-center justify-center gap-1 text-[13px] font-medium text-(--color-text-3)"
             data-drag-active={dragOver}
           >
             <Icon name="plus" size={14} />
@@ -102,7 +102,7 @@ export function ReferenceImageUpload({
       </div>
       {error && (
         <div
-          className="mt-1.5 flex items-start gap-1.5 text-[11px] leading-[1.45] rounded-[6px] px-2 py-1.5"
+          className="mt-1.5 flex items-start gap-1.5 text-[13px] leading-[1.45] rounded-[6px] px-2 py-1.5"
           style={{ color: 'var(--color-danger)', background: 'var(--color-danger-soft)' }}
         >
           <Icon name="alert_circle" size={12} style={{ marginTop: 1, flexShrink: 0 }} />
@@ -118,7 +118,7 @@ export function ReferenceImageUpload({
           </button>
         </div>
       )}
-      <div className="text-[11px] text-(--color-text-4) mt-1.5">{hint}</div>
+      <div className="text-[13px] text-(--color-text-4) mt-1.5">{hint}</div>
       <input
         ref={inputRef}
         type="file"
@@ -147,7 +147,7 @@ function LockedReferenceThumb({ item }: { item: LockedReferenceImage }) {
         <div className="absolute inset-0 skeleton-animated" />
       )}
       {item.label && (
-        <span className="absolute bottom-1 left-1 rounded-[4px] bg-black/55 px-1.5 py-0.5 text-[9.5px] font-medium leading-none text-white backdrop-blur-[4px]">
+        <span className="absolute bottom-1 left-1 rounded-[4px] bg-black/55 px-1.5 py-0.5 text-[13px] font-medium leading-none text-white backdrop-blur-[4px]">
           {item.label}
         </span>
       )}

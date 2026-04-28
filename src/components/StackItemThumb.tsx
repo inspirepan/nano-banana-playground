@@ -93,7 +93,7 @@ export function StackItemThumb({
         )}
       </div>
       <span
-        className="pointer-events-none absolute left-[3px] top-[3px] z-10 inline-flex h-[18px] min-w-[24px] items-center justify-center rounded-[5px] px-1.5 mono text-[10px] font-semibold leading-none"
+        className="pointer-events-none absolute left-[3px] top-[3px] z-10 inline-flex h-[18px] min-w-[24px] items-center justify-center rounded-[5px] px-1.5 mono text-[13px] font-semibold leading-none"
         style={{
           background: 'rgba(0,0,0,0.56)',
           color: '#fff',

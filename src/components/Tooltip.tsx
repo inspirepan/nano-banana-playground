@@ -81,7 +81,7 @@ export function Tooltip({ text, children, placement = 'bottom', maxWidth = 240 }
           <div
             ref={tooltipRef}
             role="tooltip"
-            className="pointer-events-none fixed z-[9999] px-2.5 py-1.5 rounded-[6px] text-[11.5px] leading-[1.45] fade-in"
+            className="pointer-events-none fixed z-[9999] px-2.5 py-1.5 rounded-[6px] text-[13px] leading-[1.45] fade-in"
             style={{
               top: pos.top,
               left: pos.left,

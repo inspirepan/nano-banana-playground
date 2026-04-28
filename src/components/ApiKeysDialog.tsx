@@ -89,7 +89,7 @@ export function ApiKeysSettings({
     <div className="space-y-4">
       <KeyRow provider="google" hook={googleKey} variant={variant} />
       <KeyRow provider="openai" hook={openaiKey} variant={variant} />
-      <p className="text-[11.5px] leading-relaxed text-(--color-text-3)">
+      <p className="text-[13px] leading-relaxed text-(--color-text-3)">
         密钥与 Base URL 仅保存在当前浏览器的 localStorage，不会上传任何服务器。
       </p>
     </div>
@@ -163,8 +163,8 @@ function KeyRow({ provider, hook, variant }: { provider: Provider; hook: KeyHook
 
   const header = (
     <div className="flex items-baseline justify-between mb-1.5">
-      <label className="text-[12.5px] font-medium text-(--color-text)">{label}</label>
-      <span className="text-[11px] text-(--color-text-4)">{hint}</span>
+      <label className="text-[13px] font-medium text-(--color-text)">{label}</label>
+      <span className="text-[13px] text-(--color-text-4)">{hint}</span>
     </div>
   )
 
@@ -176,9 +176,9 @@ function KeyRow({ provider, hook, variant }: { provider: Provider; hook: KeyHook
           <div className="rounded-[8px] bg-(--color-surface-2) px-3 py-2.5 shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
             <div className="flex min-w-0 items-center gap-2">
               <Icon name="check_circle" size={13} className="shrink-0 text-(--color-success)" strokeWidth={1.9} />
-              <span className="mono min-w-0 flex-1 truncate text-[12px] text-(--color-text-2)">{masked}</span>
+              <span className="mono min-w-0 flex-1 truncate text-[13px] text-(--color-text-2)">{masked}</span>
               {justValidated ? (
-                <span className="inline-flex shrink-0 items-center gap-1 text-[11.5px] font-medium text-(--color-success)">
+                <span className="inline-flex shrink-0 items-center gap-1 text-[13px] font-medium text-(--color-success)">
                   <Icon name="check_circle" size={12} strokeWidth={2.1} />
                   验证成功
                 </span>
@@ -186,13 +186,13 @@ function KeyRow({ provider, hook, variant }: { provider: Provider; hook: KeyHook
                 <button
                   type="button"
                   onClick={handleEdit}
-                  className="shrink-0 bg-transparent p-0 text-[12px] font-medium text-(--color-text-3) transition-colors hover:text-(--color-text)"
+                  className="shrink-0 bg-transparent p-0 text-[13px] font-medium text-(--color-text-3) transition-colors hover:text-(--color-text)"
                 >
                   修改
                 </button>
               )}
             </div>
-            <div className="mt-1.5 flex min-w-0 items-center gap-2 text-[11.5px] text-(--color-text-3)">
+            <div className="mt-1.5 flex min-w-0 items-center gap-2 text-[13px] text-(--color-text-3)">
               <span className="shrink-0 text-(--color-text-4)">Base URL</span>
               <span className="mono min-w-0 flex-1 truncate">
                 {baseUrl || baseUrlPlaceholder}
@@ -210,14 +210,14 @@ function KeyRow({ provider, hook, variant }: { provider: Provider; hook: KeyHook
         <div className="card px-3 py-2.5 space-y-2">
           <div className="flex items-center gap-2">
             <Icon name="check_circle" size={13} className="text-(--color-success)" strokeWidth={1.9} />
-            <span className="mono min-w-0 flex-1 truncate text-[12px] text-(--color-text-2)">{masked}</span>
+            <span className="mono min-w-0 flex-1 truncate text-[13px] text-(--color-text-2)">{masked}</span>
           </div>
 
           <div className="h-px bg-(--color-border)" />
 
           <div className="flex items-center gap-2">
-            <span className="shrink-0 text-[11px] text-(--color-text-4)">Base URL</span>
-            <span className="mono min-w-0 flex-1 truncate text-[11.5px] text-(--color-text-3)">
+            <span className="shrink-0 text-[13px] text-(--color-text-4)">Base URL</span>
+            <span className="mono min-w-0 flex-1 truncate text-[13px] text-(--color-text-3)">
               {baseUrl || baseUrlPlaceholder}
               {!baseUrl && <span className="ml-1 text-(--color-text-4)">（默认）</span>}
             </span>
@@ -241,7 +241,7 @@ function KeyRow({ provider, hook, variant }: { provider: Provider; hook: KeyHook
             <button
               type="button"
               onClick={handleEdit}
-              className="w-full rounded-md bg-(--color-surface) text-[12.5px] font-medium text-(--color-text-2) shadow-[inset_0_0_0_1px_var(--ring-edge)] hover:bg-(--color-surface-2) hover:text-(--color-text) hover:shadow-[inset_0_0_0_1px_var(--ring-edge-strong)] transition-colors"
+              className="w-full rounded-md bg-(--color-surface) text-[13px] font-medium text-(--color-text-2) shadow-[inset_0_0_0_1px_var(--ring-edge)] hover:bg-(--color-surface-2) hover:text-(--color-text) hover:shadow-[inset_0_0_0_1px_var(--ring-edge-strong)] transition-colors"
               style={{ height: 32 }}
             >
               修改
@@ -267,13 +267,13 @@ function KeyRow({ provider, hook, variant }: { provider: Provider; hook: KeyHook
         className={`${variant === 'embedded' ? 'rounded-[8px] bg-(--color-surface-2) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]' : 'card'} px-3 py-3 space-y-2.5`}
       >
         {status === 'invalid' && (
-          <div className="text-[11.5px] leading-relaxed text-(--color-danger) break-words">
+          <div className="text-[13px] leading-relaxed text-(--color-danger) break-words">
             {error ?? '密钥无效或已过期，请重新输入。'}
           </div>
         )}
 
         <div>
-          <label className="mb-1 block text-[11.5px] font-medium text-(--color-text-2)">API Key</label>
+          <label className="mb-1 block text-[13px] font-medium text-(--color-text-2)">API Key</label>
           <input
             type="password"
             value={draft}
@@ -283,7 +283,7 @@ function KeyRow({ provider, hook, variant }: { provider: Provider; hook: KeyHook
             }}
             placeholder={hasExistingKey ? '粘贴新密钥；留空则继续使用当前密钥' : placeholder}
             disabled={isValidating}
-            className="w-full rounded-[6px] bg-(--color-surface) px-2.5 py-1.5 text-[12.5px]
+            className="w-full rounded-[6px] bg-(--color-surface) px-2.5 py-1.5 text-[13px]
                        shadow-[inset_0_0_0_1px_var(--ring-edge)]
                        focus:shadow-[inset_0_0_0_1px_var(--color-accent),0_0_0_3px_var(--color-accent-wash)]
                        transition-[box-shadow,background]
@@ -294,8 +294,8 @@ function KeyRow({ provider, hook, variant }: { provider: Provider; hook: KeyHook
 
         <div>
           <div className="flex items-baseline justify-between mb-1">
-            <label className="text-[11.5px] font-medium text-(--color-text-2)">Base URL</label>
-            <span className="text-[10.5px] text-(--color-text-4)">可选，留空使用原生 API</span>
+            <label className="text-[13px] font-medium text-(--color-text-2)">Base URL</label>
+            <span className="text-[13px] text-(--color-text-4)">可选，留空使用原生 API</span>
           </div>
           <input
             type="url"
@@ -308,7 +308,7 @@ function KeyRow({ provider, hook, variant }: { provider: Provider; hook: KeyHook
             spellCheck={false}
             autoComplete="off"
             disabled={isValidating}
-            className="mono w-full rounded-[6px] bg-(--color-surface) px-2.5 py-1.5 text-[11.5px]
+            className="mono w-full rounded-[6px] bg-(--color-surface) px-2.5 py-1.5 text-[13px]
                        shadow-[inset_0_0_0_1px_var(--ring-edge)]
                        focus:shadow-[inset_0_0_0_1px_var(--color-accent),0_0_0_3px_var(--color-accent-wash)]
                        transition-[box-shadow,background]
@@ -316,7 +316,7 @@ function KeyRow({ provider, hook, variant }: { provider: Provider; hook: KeyHook
                        disabled:opacity-60 disabled:cursor-not-allowed"
           />
           <div
-            className="mt-1 flex items-start gap-1 text-[10.5px] leading-[1.5] text-(--color-text-4)"
+            className="mt-1 flex items-start gap-1 text-[13px] leading-[1.5] text-(--color-text-4)"
             aria-hidden={!hasBaseUrlDraft}
             style={{ visibility: hasBaseUrlDraft ? 'visible' : 'hidden' }}
           >
