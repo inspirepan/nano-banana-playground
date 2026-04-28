@@ -14,6 +14,7 @@ export type GenerateParams = {
   // Provider/model-specific generation parameters, keyed by option id.
   options: Record<string, unknown>
   batchId: string
+  batchCreatedAt: number
   stackId: string
   parentImageId?: string
   slotIndex?: number
@@ -108,6 +109,7 @@ async function generateImageGoogle(
     resolution,
     aspectRatio,
     batchId,
+    batchCreatedAt,
     stackId,
     parentImageId,
     slotIndex,
@@ -314,6 +316,7 @@ async function generateImageGoogle(
         aspectRatio,
         referenceImageIds: referenceImages.map((r) => r.id),
         batchId,
+        batchCreatedAt,
         stackId,
         ...(parentImageId ? { parentImageId } : {}),
         ...(slotIndex !== undefined ? { slotIndex } : {}),
@@ -352,6 +355,7 @@ async function generateImageOpenAI(
     aspectRatio,
     options,
     batchId,
+    batchCreatedAt,
     stackId,
     parentImageId,
     slotIndex,
@@ -491,6 +495,7 @@ async function generateImageOpenAI(
         aspectRatio,
         referenceImageIds: referenceImages.map((r) => r.id),
         batchId,
+        batchCreatedAt,
         stackId,
         ...(parentImageId ? { parentImageId } : {}),
         ...(slotIndex !== undefined ? { slotIndex } : {}),

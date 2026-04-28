@@ -561,6 +561,7 @@ export function usePlayground() {
             {
               ...job.request,
               batchId: job.id,
+              batchCreatedAt: job.createdAt,
               stackId: job.stackId,
               parentImageId: job.parentImageId,
               slotIndex: slot.index,

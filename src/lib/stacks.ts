@@ -69,6 +69,11 @@ function compareStackItems(a: StackItem, b: StackItem): number {
   return a.timestamp - b.timestamp || a.order - b.order || a.id.localeCompare(b.id)
 }
 
+function batchTimestampForImage(image: PlaygroundImageMeta): number {
+  if (image.source.type !== 'generated') return image.timestamp
+  return image.source.batchCreatedAt ?? image.timestamp
+}
+
 export function buildImageStacks(history: PlaygroundImageMeta[], generationJobs: GenerationJob[]): ImageStack[] {
   const stacks = new Map<string, ImageStack>()
   const jobBatchIds = new Set(generationJobs.map((job) => job.id))
@@ -77,10 +82,11 @@ export function buildImageStacks(history: PlaygroundImageMeta[], generationJobs:
   for (const image of history) {
     if (image.source.type !== 'generated') continue
     if (jobBatchIds.has(image.source.batchId)) continue
+    const batchTimestamp = batchTimestampForImage(image)
     const current = batchTimestamps.get(image.source.batchId)
     batchTimestamps.set(
       image.source.batchId,
-      current === undefined ? image.timestamp : Math.min(current, image.timestamp),
+      current === undefined ? batchTimestamp : Math.min(current, batchTimestamp),
     )
   }
 
@@ -89,9 +95,9 @@ export function buildImageStacks(history: PlaygroundImageMeta[], generationJobs:
     if (jobBatchIds.has(image.source.batchId)) continue
     const stackId = stackIdForImage(image)
     if (!stackId) continue
-    const batchTimestamp = batchTimestamps.get(image.source.batchId) ?? image.timestamp
+    const batchTimestamp = batchTimestamps.get(image.source.batchId) ?? batchTimestampForImage(image)
     const order = image.source.slotIndex ?? image.timestamp
-    const stack = ensureStack(stacks, stackId, image.timestamp)
+    const stack = ensureStack(stacks, stackId, batchTimestamp)
     stack.images.push(image)
     stack.items.push({
       type: 'image',

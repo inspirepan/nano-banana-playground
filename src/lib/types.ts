@@ -34,6 +34,7 @@ export type GeneratedSource = {
   aspectRatio: string
   referenceImageIds: string[]
   batchId: string
+  batchCreatedAt?: number
   stackId?: string
   parentImageId?: string
   slotIndex?: number
