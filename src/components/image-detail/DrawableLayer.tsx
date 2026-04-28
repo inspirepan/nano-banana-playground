@@ -10,9 +10,9 @@ import {
   type ItemCounts,
   type Point,
   type StepItem,
-} from '../lib/editStateCache'
+} from '../../lib/editStateCache'
 
-export type { DrawMode, DrawTool, ItemCounts } from '../lib/editStateCache'
+export type { DrawMode, DrawTool, ItemCounts } from '../../lib/editStateCache'
 
 export type DrawableLayerHandle = {
   isReady: () => boolean
