@@ -107,7 +107,12 @@ src/
 - **色彩系统**：基础盘是 warm-stone 中性色，强调色默认 indigo，可通过 `.theme-*` 类切到 blue / green / yellow / pink / orange / purple。优先复用 `--color-bg`、`--color-surface*`、`--color-border*`、`--color-text*`、`--color-accent*`，不要到处写裸十六进制。
 - **排版**：正文 `Roboto Variable`（`--font-sans`），标题（品牌名 / 弹窗标题 / 面板 header）挂 `.font-display` 使用 `--font-display`（当前别名到 `--font-sans`，保留入口便于未来单独切换 display 字体），数字/分辨率/元数据/快捷键用 `.mono`（Roboto Mono，`--font-mono`）。全局基线是 **13px**，不是 14/16px 默认网页节奏。
 - **中文字体回退**：保持 `PingFang SC -> Hiragino Sans GB -> Microsoft YaHei -> Source Han Sans / Noto Sans CJK` 的顺序，`font-feature-settings` 只保留 `tnum`，不要加回会切换 CJK 字形的 Latin 变体 tag。
-- **边框与圆角**：以 **1px hairline border** 为主，常用圆角为 `6 / 8 / 10px`，大多数控件是 flat surface，不靠阴影塑形。
+- **边缘定义**：优先用 ring / inset ring 表达 1px 边缘，而不是 solid border。浮层、卡片、按钮、图片容器、topbar、分栏分隔线等不要同时叠加实色 border 和 shadow；优先复用 `--ring-edge`、`--ring-edge-soft`、`--ring-edge-strong`、`--shadow-lift`、`--shadow-float`。
+- **同心圆角**：嵌套圆角必须按“外层 radius - padding = 内层 radius”处理。当前常用层级是外层 `8 / 10px`、内层 `6px`、小 glyph / badge `2 / 4px`，不要让内外层使用同一个 radius 造成视觉别扭。
+- **按钮形态**：主 CTA 维持 `36px` 左右高度和 pill 形态；普通 chip / segmented / icon button 维持紧凑工具型尺寸。不要把所有按钮都改成大胶囊，也不要随手给按钮塞装饰图标。
+- **容器层级**：大多数控件保持 flat surface；只有图库图片、弹窗、toast、上下文菜单等真正需要浮起的层级才使用轻量阴影。淡色容器边缘用低透明度 inset ring 定义，不用重边框抢内容焦点。
+- **排版细节**：`.label` 是 mono eyebrow 语义；数字、尺寸、计数、快捷键和模型 ID 用 `.mono`。标题使用 `.font-display` 并保持轻微负 tracking；长说明优先控制行高和宽度，不做大段居中文案。
+- **布局取舍**：这是工具型 SPA，不是营销页。不要套用 hero、testimonial、logo cloud、canvas grid、大面积居中空态、厚重展示卡片等 landing page 技巧；空态和面板标题默认左对齐、紧凑、可扫描。
 - **滚动条**：沿用 `src/index.css` 里的近乎不可见 Linear 风格滚动条，不要改成系统粗滚动条。
 - **图标**：只用 Lucide，经 `Icon.tsx` 映射；不要再使用 Material Symbols。
 - **暗色模式**：由 `<html>` 上的 `.dark` 控制；主色主题由 `<html>` 上的 `.theme-*` 控制。

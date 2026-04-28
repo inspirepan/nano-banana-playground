@@ -201,7 +201,7 @@ function App() {
             onClearReferenceImageError={pg.clearReferenceImageError}
             onGenerate={handleGenerate}
           />
-          <div ref={mobileOutputAreaRef} className="border-t border-(--color-border) pt-5">
+          <div ref={mobileOutputAreaRef} className="pt-5 shadow-[inset_0_1px_0_var(--ring-edge-soft)]">
             <OutputPanel
               history={pg.history}
               historyHasMore={pg.historyHasMore}
@@ -225,7 +225,7 @@ function App() {
         {topbar}
         <div className="flex flex-1 min-h-0 overflow-hidden">
           {/* Left input panel */}
-          <div className="w-[380px] shrink-0 flex flex-col border-r border-(--color-border) overflow-y-auto [scrollbar-gutter:stable] bg-(--color-bg)">
+          <div className="w-[380px] shrink-0 flex flex-col overflow-y-auto [scrollbar-gutter:stable] bg-(--color-bg) shadow-[inset_-1px_0_0_var(--ring-edge-soft)]">
             <InputPanel
               model={pg.model}
               resolution={pg.resolution}
@@ -280,7 +280,7 @@ function App() {
         className={`pointer-events-none fixed bottom-8 left-1/2 z-[100] -translate-x-1/2 transition-all duration-300
         ${regenToast ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}
       >
-        <div className="rounded-md bg-(--color-surface) px-4 py-2 text-[12.5px] font-medium text-(--color-text) shadow-[0_0_0_1px_var(--ring-edge),0_10px_28px_-12px_rgba(30,27,20,0.18),0_2px_6px_rgba(30,27,20,0.06)] whitespace-nowrap">
+        <div className="rounded-md bg-(--color-surface) px-4 py-2 text-[12.5px] font-medium text-(--color-text) shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-float)] whitespace-nowrap">
           {regenToast}
         </div>
       </div>

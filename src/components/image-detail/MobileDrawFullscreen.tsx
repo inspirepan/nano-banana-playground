@@ -220,7 +220,7 @@ export function MobileDrawFullscreen({
 
   return (
     <div className="fixed inset-0 z-[140] flex flex-col bg-(--color-bg)">
-      <div className="flex h-12 shrink-0 items-center gap-2 border-b border-(--color-border) px-3">
+      <div className="flex h-12 shrink-0 items-center gap-2 px-3 shadow-[inset_0_-1px_0_var(--ring-edge-soft)]">
         <button type="button" className="icon-btn" onClick={onClose} title="完成">
           <Icon name="chevron_left" size={15} strokeWidth={1.8} />
         </button>
@@ -307,7 +307,7 @@ export function MobileDrawFullscreen({
       </div>
 
       <div
-        className="shrink-0 border-t border-(--color-border) px-3 py-3"
+        className="shrink-0 px-3 py-3 shadow-[inset_0_1px_0_var(--ring-edge-soft)]"
         style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}
       >
         <div className="space-y-2">

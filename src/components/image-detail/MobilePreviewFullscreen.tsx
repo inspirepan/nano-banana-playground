@@ -16,7 +16,7 @@ export function MobilePreviewFullscreen({
 }) {
   return (
     <div className="fixed inset-0 z-[130] flex flex-col bg-(--color-bg)">
-      <div className="flex h-12 shrink-0 items-center gap-2 border-b border-(--color-border) px-3">
+      <div className="flex h-12 shrink-0 items-center gap-2 px-3 shadow-[inset_0_-1px_0_var(--ring-edge-soft)]">
         <button type="button" className="icon-btn" onClick={onClose} title="退出全屏预览">
           <Icon name="chevron_left" size={15} strokeWidth={1.8} />
         </button>

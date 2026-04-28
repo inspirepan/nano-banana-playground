@@ -461,7 +461,7 @@ export function EditSidebar({
             className="block w-full resize-none bg-transparent px-3 py-2.5 text-[16px] leading-[1.55] focus:outline-none md:text-sm"
             autoFocus
           />
-          <div className="flex items-center gap-2 border-t border-(--color-border) px-2.5 py-1.5 text-xs text-(--color-text-3)">
+          <div className="flex items-center gap-2 px-2.5 py-1.5 text-xs text-(--color-text-3) shadow-[inset_0_1px_0_var(--ring-edge-soft)]">
             <span className="mono text-xs text-(--color-text-4)">{prompt.length} 字</span>
             <div className="flex-1" />
             {prompt.length > 0 && (
@@ -652,7 +652,7 @@ export function EditSidebar({
       </div>
 
       {/* Summary + CTA */}
-      <div className="pt-2.5 border-t border-dashed border-(--color-border)">
+      <div className="pt-2.5 shadow-[inset_0_1px_0_var(--ring-edge-soft)]">
         {estimatedCost !== null && (
           <div className="mono mb-2 text-right text-xs text-(--color-text-2)">≈ ${estimatedCost.toFixed(3)}</div>
         )}

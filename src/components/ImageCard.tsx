@@ -203,8 +203,7 @@ export const ImageCard = memo(function ImageCard({
               e.stopPropagation()
               void handleDownload()
             }}
-            className="inline-flex items-center gap-1 rounded-[5px] px-2.5 py-1.5 text-[11px] font-medium whitespace-nowrap"
-            style={{ background: 'rgba(255,255,255,0.95)', color: '#111', border: 0 }}
+            className="media-action light"
           >
             <Icon name="download" size={12} strokeWidth={1.6} /> PNG
           </button>
@@ -248,7 +247,7 @@ export const ImageCard = memo(function ImageCard({
           <div
             style={{ top: menu.y, left: menu.x }}
             onMouseDown={(e) => e.stopPropagation()}
-            className="fixed z-[120] min-w-[140px] rounded-[8px] bg-(--color-surface) p-1 shadow-[0_0_0_1px_var(--ring-edge),0_10px_28px_-12px_rgba(30,27,20,0.18),0_2px_6px_rgba(30,27,20,0.06)]"
+            className="fixed z-[120] min-w-[140px] rounded-[8px] bg-(--color-surface) p-1 shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-float)]"
           >
             {actionItems.map((item) => (
               <button
@@ -288,13 +287,7 @@ function OverlayButton({
     <button
       type="button"
       onClick={onClick}
-      className={`inline-flex items-center gap-1 rounded-[5px] ${hasText ? 'px-2.5 py-1.5' : 'px-1.5 py-1.5'} text-[11px] font-medium whitespace-nowrap transition-colors`}
-      style={{
-        background: danger ? 'rgba(225,86,86,0.28)' : 'rgba(255,255,255,0.15)',
-        color: '#fff',
-        boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.22)',
-        backdropFilter: 'blur(8px)',
-      }}
+      className={`media-action ${hasText ? '' : 'icon-only'} ${danger ? 'danger' : ''}`}
     >
       <Icon name={icon} size={12} strokeWidth={1.6} />
       {children}

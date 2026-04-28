@@ -56,10 +56,10 @@ export function ApiKeysDialog({ open, googleKey, openaiKey, onClose }: Props) {
         role="dialog"
         aria-modal="true"
         aria-label="API Keys"
-        className="relative w-full max-w-md rounded-[10px] bg-(--color-surface) shadow-[0_0_0_1px_var(--ring-edge),0_10px_28px_-12px_rgba(30,27,20,0.18),0_2px_6px_rgba(30,27,20,0.06)]"
+        className="relative w-full max-w-md rounded-[10px] bg-(--color-surface) shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-float)]"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-(--color-border)">
+        <div className="flex items-center justify-between px-5 pt-4 pb-3 shadow-[inset_0_-1px_0_var(--ring-edge-soft)]">
           <h2 className="font-display text-[13.5px] font-semibold tracking-[-0.01em]">API Keys</h2>
           <button type="button" onClick={onClose} className="icon-btn" aria-label="关闭">
             <Icon name="close" size={13} />
@@ -173,7 +173,7 @@ function KeyRow({ provider, hook, variant }: { provider: Provider; hook: KeyHook
       return (
         <div>
           {header}
-          <div className="rounded-[8px] bg-(--color-surface-2) px-3 py-2.5">
+          <div className="rounded-[8px] bg-(--color-surface-2) px-3 py-2.5 shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
             <div className="flex min-w-0 items-center gap-2">
               <Icon name="check_circle" size={13} className="shrink-0 text-(--color-success)" strokeWidth={1.9} />
               <span className="mono min-w-0 flex-1 truncate text-[12px] text-(--color-text-2)">{masked}</span>
@@ -227,14 +227,11 @@ function KeyRow({ provider, hook, variant }: { provider: Provider; hook: KeyHook
             <button
               type="button"
               disabled
-              className="w-full rounded-md inline-flex items-center justify-center gap-1.5"
+              className="cta w-full"
               style={{
-                height: 32,
                 background: 'var(--color-success)',
                 color: '#fff',
                 boxShadow: '0 0 0 1px color-mix(in srgb, var(--color-success) 55%, #000 10%)',
-                fontWeight: 600,
-                fontSize: 12.5,
               }}
             >
               <Icon name="check_circle" size={13} strokeWidth={2.1} />
@@ -267,7 +264,7 @@ function KeyRow({ provider, hook, variant }: { provider: Provider; hook: KeyHook
       {header}
 
       <div
-        className={`${variant === 'embedded' ? 'rounded-[8px] bg-(--color-surface-2)' : 'card'} px-3 py-3 space-y-2.5`}
+        className={`${variant === 'embedded' ? 'rounded-[8px] bg-(--color-surface-2) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]' : 'card'} px-3 py-3 space-y-2.5`}
       >
         {status === 'invalid' && (
           <div className="text-[11.5px] leading-relaxed text-(--color-danger) break-words">
@@ -336,7 +333,6 @@ function KeyRow({ provider, hook, variant }: { provider: Provider; hook: KeyHook
           disabled={!canSubmit}
           className="cta w-full"
           style={{
-            height: 32,
             ...(isValidating && {
               background: 'var(--color-accent)',
               color: 'var(--color-accent-fg)',

@@ -207,9 +207,7 @@ function ToggleGroupSection({
                 className="inline-flex items-center justify-center w-[13px] h-[13px] rounded-[3px] transition-colors"
                 style={{
                   background: active ? 'var(--color-accent)' : 'var(--color-surface)',
-                  boxShadow: active
-                    ? 'inset 0 0 0 1px var(--color-accent)'
-                    : 'inset 0 0 0 1px var(--color-border-strong)',
+                  boxShadow: active ? 'inset 0 0 0 1px var(--color-accent)' : 'inset 0 0 0 1px var(--ring-edge)',
                 }}
               >
                 {active && <Icon name="check" size={9} strokeWidth={3} style={{ color: 'var(--color-accent-fg)' }} />}
@@ -609,7 +607,7 @@ export function InputPanel({
             rows={1}
             className="block w-full bg-transparent px-3 py-2.5 text-[16px] md:text-[13.5px] leading-[1.55] resize-none focus:outline-none"
           />
-          <div className="flex items-center gap-2 px-2.5 py-1.5 border-t border-(--color-border) text-[11.5px] text-(--color-text-3)">
+          <div className="flex items-center gap-2 px-2.5 py-1.5 text-[11.5px] text-(--color-text-3) shadow-[inset_0_1px_0_var(--ring-edge-soft)]">
             <span className="mono text-[11px] text-(--color-text-4)">{prompt.length} 字</span>
             <div className="flex-1" />
             {prompt.length > 0 && (
@@ -658,7 +656,7 @@ export function InputPanel({
 
       {/* CTA */}
       <div className="relative">
-        <div className="mb-2.5 pt-2.5 border-t border-dashed border-(--color-border)">
+        <div className="mb-2.5 pt-2.5 shadow-[inset_0_1px_0_var(--ring-edge-soft)]">
           <div className="flex items-baseline justify-between mb-2">
             <span className="label">参数概览</span>
             {estimatedCost !== null && (
@@ -718,8 +716,8 @@ export function InputPanel({
 
       {dragOver && (
         <div
-          className="absolute inset-0 z-40 rounded-[8px] border-2 border-dashed pointer-events-none"
-          style={{ borderColor: 'var(--color-accent)', background: 'var(--color-accent-wash)' }}
+          className="absolute inset-0 z-40 rounded-[8px] pointer-events-none"
+          style={{ background: 'var(--color-accent-wash)', boxShadow: 'inset 0 0 0 2px var(--color-accent)' }}
         />
       )}
     </div>

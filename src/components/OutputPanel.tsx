@@ -75,8 +75,8 @@ function StackRow({
   const previewItems = [...stack.items].reverse()
 
   return (
-    <div className="min-w-0 border-b border-dashed border-(--color-border) py-3 last:border-b-0">
-      <div className="min-w-0 p-3">
+    <div className="min-w-0">
+      <div className="min-w-0 px-3 py-2">
         <div className="mb-2 flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1">
           <span className="mono shrink-0 text-[11.5px] text-(--color-text-3)">{formatTime(stack.updatedAt)}</span>
           <span className="text-[11.5px] text-(--color-text-4)">·</span>
@@ -148,13 +148,7 @@ function StackRow({
                               event.stopPropagation()
                               onEditItem(stack, item)
                             }}
-                            className="inline-flex h-[24px] flex-1 items-center justify-center gap-1 rounded-[5px] px-2 text-[11px] font-medium"
-                            style={{
-                              background: 'rgba(0,0,0,0.28)',
-                              color: '#fff',
-                              boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.18)',
-                              backdropFilter: 'blur(8px)',
-                            }}
+                            className="media-action flex-1"
                           >
                             <Icon name="wand" size={11} strokeWidth={1.8} />
                             编辑
@@ -165,13 +159,7 @@ function StackRow({
                               event.stopPropagation()
                               void downloadImagePng(item.image)
                             }}
-                            className="inline-flex h-[24px] flex-1 items-center justify-center gap-1 rounded-[5px] px-2 text-[11px] font-medium"
-                            style={{
-                              background: 'rgba(0,0,0,0.28)',
-                              color: '#fff',
-                              boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.18)',
-                              backdropFilter: 'blur(8px)',
-                            }}
+                            className="media-action flex-1"
                           >
                             <Icon name="download" size={11} strokeWidth={1.8} />
                             PNG
@@ -324,7 +312,7 @@ export const OutputPanel = memo(function OutputPanel({
 
       {stacks.length > 0 ? (
         <div className="space-y-[26px]">
-          <div className="space-y-3">
+          <div className="space-y-2">
             {stacks.map((stack) => (
               <StackRow
                 key={stack.id}
@@ -382,9 +370,10 @@ export const OutputPanel = memo(function OutputPanel({
           </div>
         </div>
       ) : (
-        <div className="py-20 text-center text-(--color-text-3)">
-          <div className="text-[13px] mb-1.5">尚无生成记录</div>
-          <div className="text-[11.5px] text-(--color-text-4)">配置参数并点击「生成」开始</div>
+        <div className="card px-4 py-5 text-(--color-text-3)">
+          <div className="label mb-2">空历史</div>
+          <div className="text-[13px] font-medium text-(--color-text-2)">生成结果会出现在这里</div>
+          <div className="mt-1 text-[11.5px] leading-[1.7] text-(--color-text-4)">配置左侧参数并点击「生成」开始。</div>
         </div>
       )}
 

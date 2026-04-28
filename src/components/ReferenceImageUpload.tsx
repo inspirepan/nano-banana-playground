@@ -76,10 +76,7 @@ export function ReferenceImageUpload({
           <LockedReferenceThumb key={item.id} item={item} />
         ))}
         {images.map((img) => (
-          <div
-            key={img.id}
-            className="ref-thumb group aspect-square rounded-[6px] overflow-hidden bg-(--color-surface-2) shadow-[inset_0_0_0_1px_var(--ring-edge)]"
-          >
+          <div key={img.id} className="ref-thumb group aspect-square">
             <img
               src={`data:${img.mimeType};base64,${img.data}`}
               alt={getLabel(img)}
@@ -95,7 +92,8 @@ export function ReferenceImageUpload({
           <button
             type="button"
             onClick={() => inputRef.current?.click()}
-            className={`dropzone aspect-square flex flex-col items-center justify-center gap-1 text-[11px] font-medium text-(--color-text-3) ${dragOver ? 'border-(--color-accent) bg-(--color-accent-wash)' : ''}`}
+            className="dropzone aspect-square flex flex-col items-center justify-center gap-1 text-[11px] font-medium text-(--color-text-3)"
+            data-drag-active={dragOver}
           >
             <Icon name="plus" size={14} />
             上传
@@ -137,10 +135,7 @@ function LockedReferenceThumb({ item }: { item: LockedReferenceImage }) {
   const { ref, src } = useImageSrc(item.image.id, item.image.mimeType, undefined, { variant: 'preview' })
   const previewSrc = item.preview ? `data:${item.preview.mimeType};base64,${item.preview.data}` : null
   return (
-    <div
-      ref={ref}
-      className="ref-thumb group aspect-square rounded-[6px] overflow-hidden bg-(--color-surface-2) shadow-[inset_0_0_0_1px_var(--ring-edge)]"
-    >
+    <div ref={ref} className="ref-thumb group aspect-square">
       {previewSrc || src ? (
         <img
           src={previewSrc ?? src ?? undefined}

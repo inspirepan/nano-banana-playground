@@ -58,10 +58,10 @@ export function SettingsDialog({
         role="dialog"
         aria-modal="true"
         aria-label="设置"
-        className="relative flex max-h-[min(760px,calc(100dvh-32px))] w-full max-w-2xl flex-col overflow-hidden rounded-[10px] bg-(--color-surface) shadow-[0_0_0_1px_var(--ring-edge),0_10px_28px_-12px_rgba(30,27,20,0.18),0_2px_6px_rgba(30,27,20,0.06)]"
+        className="relative flex max-h-[min(760px,calc(100dvh-32px))] w-full max-w-2xl flex-col overflow-hidden rounded-[10px] bg-(--color-surface) shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-float)]"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-(--color-border) px-5 py-4">
+        <div className="flex items-center justify-between px-5 py-4 shadow-[inset_0_-1px_0_var(--ring-edge-soft)]">
           <div>
             <h2 className="font-display text-[14px] font-semibold tracking-[-0.01em]">设置</h2>
             <p className="mt-0.5 text-[11.5px] text-(--color-text-3)">管理密钥、外观和生成队列行为</p>
@@ -73,7 +73,7 @@ export function SettingsDialog({
 
         <div className="min-h-0 overflow-y-auto px-5 py-4">
           <div className="space-y-5">
-            <SettingsSection title="Provider" description="配置浏览器本地保存的 Gemini 和 OpenAI 访问密钥。">
+            <SettingsSection title="接口密钥" description="配置浏览器本地保存的 Gemini 和 OpenAI 访问密钥。">
               <ApiKeysSettings googleKey={googleKey} openaiKey={openaiKey} variant="embedded" />
             </SettingsSection>
 
@@ -120,7 +120,7 @@ export function SettingsDialog({
                             boxShadow:
                               colorTheme === ct.id
                                 ? `inset 0 0 0 2px var(--color-surface), 0 0 0 2px ${swatch}`
-                                : 'inset 0 0 0 1px rgba(0,0,0,0.08)',
+                                : 'inset 0 0 0 1px var(--ring-edge)',
                           }}
                         />
                       )

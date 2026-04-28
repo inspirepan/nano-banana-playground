@@ -621,7 +621,7 @@ export function ImageDetailModal({
         className="flex items-center gap-2 px-3.5 shrink-0 flex-nowrap"
         style={{
           height: 48,
-          borderBottom: '1px solid var(--color-border)',
+          boxShadow: 'inset 0 -1px 0 var(--ring-edge-soft)',
           background: 'color-mix(in srgb, var(--color-surface) 80%, transparent)',
         }}
       >
@@ -633,7 +633,7 @@ export function ImageDetailModal({
         >
           <Icon name={galleryBacksToDetail ? 'chevron_left' : 'close'} size={13} strokeWidth={1.8} />
         </button>
-        <div className="h-6 w-px shrink-0 bg-(--color-border)" />
+        <div className="h-6 w-px shrink-0 bg-(--ring-edge-soft)" />
 
         {currentMeta ? (
           <div className="flex min-w-0 items-baseline gap-2">
@@ -892,7 +892,7 @@ export function ImageDetailModal({
                     color: 'var(--color-bg)',
                     padding: '6px 12px',
                     borderRadius: 6,
-                    boxShadow: '0 10px 28px -12px rgba(30,27,20,0.18), 0 2px 6px rgba(30,27,20,0.06)',
+                    boxShadow: 'var(--shadow-float)',
                   }}
                 >
                   {toast}
@@ -902,7 +902,7 @@ export function ImageDetailModal({
 
             {/* Right metadata panel (mobile: draggable bottom sheet) */}
             <div
-              className="w-full overflow-y-auto overflow-x-hidden border-t md:border-t-0 md:border-l border-(--color-border) md:h-auto"
+              className="w-full overflow-y-auto overflow-x-hidden shadow-[inset_0_1px_0_var(--ring-edge-soft)] md:h-auto md:shadow-[inset_1px_0_0_var(--ring-edge-soft)]"
               style={{
                 background: 'var(--color-bg)',
                 overscrollBehavior: 'contain',

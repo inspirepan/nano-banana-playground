@@ -82,6 +82,9 @@
      shadows stay clean (Schoger). Flip to a light ring in dark mode below. */
   --ring-edge: rgba(0, 0, 0, 0.08);
   --ring-edge-strong: rgba(0, 0, 0, 0.14);
+  --ring-edge-soft: rgba(0, 0, 0, 0.05);
+  --shadow-lift: 0 12px 28px -18px rgba(30, 27, 20, 0.22), 0 1px 2px rgba(30, 27, 20, 0.04);
+  --shadow-float: 0 16px 36px -24px rgba(30, 27, 20, 0.24), 0 2px 6px rgba(30, 27, 20, 0.06);
 
   --radius-xs: 4px;
   --radius-sm: 6px;
@@ -119,6 +122,9 @@
 
   --ring-edge: rgba(255, 255, 255, 0.06);
   --ring-edge-strong: rgba(255, 255, 255, 0.11);
+  --ring-edge-soft: rgba(255, 255, 255, 0.04);
+  --shadow-lift: 0 12px 28px -18px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.28);
+  --shadow-float: 0 16px 36px -24px rgba(0, 0, 0, 0.62), 0 2px 6px rgba(0, 0, 0, 0.34);
 
   color-scheme: dark;
 }
@@ -311,7 +317,8 @@
   /* Display — used for brand mark and section headings; currently maps to --font-sans */
   .font-display {
     font-family: var(--font-display);
-    letter-spacing: -0.01em;
+    letter-spacing: -0.015em;
+    text-wrap: balance;
   }
 
   /* kbd */
@@ -321,8 +328,7 @@
     font-weight: 500;
     color: var(--color-text-3);
     background: var(--color-surface-2);
-    border: 1px solid var(--color-border);
-    border-bottom-width: 1.5px;
+    border: 0;
     padding: 1px 5px;
     border-radius: 4px;
     min-width: 16px;
@@ -331,6 +337,9 @@
     justify-content: center;
     height: 18px;
     line-height: 1;
+    box-shadow:
+      inset 0 0 0 1px var(--ring-edge),
+      inset 0 -1px 0 var(--ring-edge-soft);
   }
 
   /* chip — pill-ish but flat, edge defined by an inset ring (not a solid border) */
@@ -458,9 +467,11 @@
 
   /* Section label */
   .label {
+    font-family: var(--font-mono);
     font-size: 11px;
     font-weight: 600;
-    letter-spacing: 0.02em;
+    letter-spacing: 0.07em;
+    line-height: 1.35;
     color: var(--color-text-3);
     text-transform: uppercase;
   }
@@ -469,7 +480,7 @@
     background: var(--color-surface);
     border: 0;
     border-radius: var(--radius-md);
-    box-shadow: inset 0 0 0 1px var(--ring-edge);
+    box-shadow: inset 0 0 0 1px var(--ring-edge-soft);
   }
 
   .icon-btn {
@@ -497,9 +508,9 @@
 
   /* Primary CTA — outer ring instead of solid border keeps the drop shadow clean */
   .cta {
-    height: 34px;
-    padding: 0 14px;
-    border-radius: var(--radius-md);
+    height: 36px;
+    padding: 0 16px;
+    border-radius: 999px;
     background: var(--color-accent);
     color: var(--color-accent-fg);
     border: 0;
@@ -515,8 +526,8 @@
       background 120ms;
     box-shadow:
       0 0 0 1px color-mix(in srgb, var(--color-accent) 50%, #000 8%),
-      inset 0 1px 0 rgba(255, 255, 255, 0.15),
-      0 1px 2px rgba(0, 0, 0, 0.12);
+      inset 0 1px 0 rgba(255, 255, 255, 0.14),
+      0 1px 2px rgba(0, 0, 0, 0.1);
   }
   .cta:hover:not(:disabled) {
     filter: brightness(1.06);
@@ -531,13 +542,15 @@
   }
   .cta kbd {
     background: rgba(255, 255, 255, 0.15);
-    border-color: rgba(255, 255, 255, 0.2);
     color: color-mix(in srgb, var(--color-accent-fg) 75%, transparent);
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.18),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.1);
   }
   .cta:disabled kbd {
     background: transparent;
-    border-color: var(--color-border);
     color: var(--color-text-4);
+    box-shadow: inset 0 0 0 1px var(--ring-edge);
   }
   .cta.danger {
     background: var(--color-danger);
@@ -575,8 +588,8 @@
     border: 0;
     border-radius: 6px;
     box-shadow:
-      0 0 0 1px rgba(0, 0, 0, 0.08),
-      0 1px 2px rgba(0, 0, 0, 0.05);
+      0 0 0 1px var(--ring-edge),
+      0 1px 2px rgba(0, 0, 0, 0.04);
     transition:
       transform 260ms cubic-bezier(0.4, 0, 0.2, 1),
       width 260ms cubic-bezier(0.4, 0, 0.2, 1);
@@ -589,8 +602,8 @@
   .dark .segmented::before {
     background: var(--color-surface-3);
     box-shadow:
-      0 0 0 1px rgba(255, 255, 255, 0.06),
-      0 1px 2px rgba(0, 0, 0, 0.4);
+      0 0 0 1px var(--ring-edge),
+      0 1px 2px rgba(0, 0, 0, 0.32);
   }
   .segmented button {
     position: relative;
@@ -688,21 +701,32 @@
   }
 
   .dropzone {
-    border: 1px dashed var(--color-border-strong);
+    border: 0;
     background: var(--color-surface);
     border-radius: var(--radius-md);
+    box-shadow: inset 0 0 0 1px var(--ring-edge);
     transition:
-      border-color 120ms,
+      box-shadow 120ms,
       background 120ms;
   }
   .dropzone:hover {
-    border-color: var(--color-text-3);
     background: var(--color-surface-2);
+    box-shadow: inset 0 0 0 1px var(--ring-edge-strong);
+  }
+  .dropzone[data-drag-active='true'] {
+    background: var(--color-accent-wash);
+    box-shadow:
+      inset 0 0 0 1px color-mix(in srgb, var(--color-accent) 38%, transparent),
+      0 0 0 3px var(--color-accent-wash);
   }
 
   /* Reference image thumbnail — replace `relative` so we can scope close btn */
   .ref-thumb {
     position: relative;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    background: var(--color-surface-2);
+    box-shadow: inset 0 0 0 1px var(--ring-edge-soft);
   }
 
   /* Delete button on reference thumbnails. On hover devices it's hidden
@@ -765,20 +789,16 @@
     border: 0;
     background: var(--color-surface-2);
     box-shadow:
-      inset 0 0 0 1px var(--ring-edge),
       0 0 0 1px var(--ring-edge),
-      0 1px 2px rgba(0, 0, 0, 0.04),
-      0 8px 20px -10px rgba(0, 0, 0, 0.1);
+      var(--shadow-lift);
     transition:
       box-shadow 160ms ease,
       transform 160ms ease;
   }
   .img-card:hover {
     box-shadow:
-      inset 0 0 0 1px var(--ring-edge-strong),
       0 0 0 1px var(--ring-edge-strong),
-      0 2px 4px rgba(0, 0, 0, 0.06),
-      0 16px 32px -12px rgba(0, 0, 0, 0.14);
+      var(--shadow-float);
   }
   .img-card .overlay {
     position: absolute;
@@ -800,10 +820,53 @@
   /* Topbar */
   .topbar {
     height: 44px;
-    border-bottom: 1px solid var(--color-border);
+    border-bottom: 0;
     background: color-mix(in srgb, var(--color-bg) 75%, transparent);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
+    box-shadow: 0 1px 0 var(--ring-edge-soft);
+  }
+
+  .media-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    min-height: 26px;
+    border: 0;
+    border-radius: var(--radius-sm);
+    padding: 5px 10px;
+    background: rgba(255, 255, 255, 0.16);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 500;
+    white-space: nowrap;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition:
+      background 120ms,
+      box-shadow 120ms,
+      transform 60ms;
+  }
+  .media-action:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.22);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28);
+  }
+  .media-action:active:not(:disabled) {
+    transform: translateY(0.5px);
+  }
+  .media-action.light {
+    background: rgba(255, 255, 255, 0.94);
+    color: #111;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+  }
+  .media-action.icon-only {
+    width: 26px;
+    padding-inline: 5px;
+  }
+  .media-action.danger {
+    background: rgba(225, 86, 86, 0.28);
   }
 }
 
