@@ -918,6 +918,8 @@ export function ImageDetailModal({
   const hasNext = canNavigate && currentIdx < stack.items.length - 1
   const hasDrawableMarks = drawableCounts.annotate > 0 || drawableCounts.mask > 0
   const desktopAnnotationActive = editing && editMode !== 'view' && !isMobileSheet && !mobileDrawOpen
+  const drawableLayerVisible = (editMode !== 'view' || hasDrawableMarks) && !mobileDrawOpen
+  const desktopDrawableLayerVisible = drawableLayerVisible && !isMobileSheet
 
   const startAnnotation = () => {
     if (!currentImage) return
@@ -1152,7 +1154,7 @@ export function ImageDetailModal({
                 </div>
               ) : currentImage ? (
                 <>
-                  {!desktopAnnotationActive && (
+                  {!desktopDrawableLayerVisible && (
                     <ZoomableImageView
                       key="main-viewer"
                       src={displayImage?.src ?? currentSrc ?? ''}
@@ -1161,7 +1163,7 @@ export function ImageDetailModal({
                       onSwipeRight={hasPrev ? goToPrev : undefined}
                     />
                   )}
-                  {(editMode !== 'view' || hasDrawableMarks) && !mobileDrawOpen && (
+                  {drawableLayerVisible && (
                     <DrawableLayer
                       ref={drawableRef}
                       key={`${currentImage.id}:${drawRevision}`}
@@ -1173,7 +1175,7 @@ export function ImageDetailModal({
                       visibleModes={['mask', 'annotate']}
                       eraseAllModes
                       readOnly={editMode === 'view' || desktopMoveActive}
-                      panEnabled={desktopMoveActive}
+                      panEnabled={desktopMoveActive || (editMode === 'view' && hasDrawableMarks && !isMobileSheet)}
                       onItemsChange={setDrawableCounts}
                     />
                   )}
