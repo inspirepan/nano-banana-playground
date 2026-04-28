@@ -7,7 +7,6 @@ import { ReferenceImageUpload } from './ReferenceImageUpload'
 import { Tooltip } from './Tooltip'
 import { MODEL_CONFIGS, type ModelConfig, type ModelOption, type ModelToggleOption } from '../config/models'
 import type { ApiKeyStatus } from '../hooks/useApiKey'
-import type { GenerationQueueSummary } from '../hooks/usePlayground'
 import { isHeifFile } from '../lib/fileToImage'
 import { openAISize } from '../lib/openai'
 import { getPricePerImage } from '../lib/pricing'
@@ -239,7 +238,6 @@ type Props = {
   prompt: string
   referenceImages: PlaygroundImage[]
   referenceImageError: string | null
-  generationQueueSummary: GenerationQueueSummary
   apiKey: string
   apiKeyStatus?: ApiKeyStatus
   googleKeyStatus: ApiKeyStatus
@@ -268,7 +266,6 @@ export function InputPanel({
   prompt,
   referenceImages,
   referenceImageError,
-  generationQueueSummary,
   apiKey,
   googleKeyStatus,
   openaiKeyStatus,
@@ -292,8 +289,6 @@ export function InputPanel({
 
   const hasPrompt = prompt.trim() !== ''
   const canGenerate = apiKey.trim() !== '' && hasPrompt
-  const activeQueueCount =
-    generationQueueSummary.queued + generationQueueSummary.running + generationQueueSummary.retrying
 
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
@@ -692,14 +687,6 @@ export function InputPanel({
               <>
                 <dt className="text-(--color-text-4)">选项</dt>
                 <dd className="text-(--color-text-2)">{optionSummaryLabels.join('、')}</dd>
-              </>
-            )}
-            {activeQueueCount > 0 && (
-              <>
-                <dt className="text-(--color-text-4)">队列</dt>
-                <dd className="text-(--color-text-2)">
-                  <span className="mono">{activeQueueCount}</span> 张等待/运行中
-                </dd>
               </>
             )}
           </dl>

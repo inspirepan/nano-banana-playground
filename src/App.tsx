@@ -282,7 +282,6 @@ function App() {
             prompt={pg.prompt}
             referenceImages={pg.referenceImages}
             referenceImageError={pg.referenceImageError}
-            generationQueueSummary={pg.generationQueueSummary}
             apiKey={pg.apiKey}
             apiKeyStatus={pg.apiKeyStatus}
             googleKeyStatus={pg.googleKey.status}
@@ -337,7 +336,6 @@ function App() {
               prompt={pg.prompt}
               referenceImages={pg.referenceImages}
               referenceImageError={pg.referenceImageError}
-              generationQueueSummary={pg.generationQueueSummary}
               apiKey={pg.apiKey}
               apiKeyStatus={pg.apiKeyStatus}
               googleKeyStatus={pg.googleKey.status}

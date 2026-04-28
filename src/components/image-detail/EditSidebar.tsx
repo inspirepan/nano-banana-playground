@@ -28,6 +28,10 @@ function getModelShortLabel(model: ModelConfig) {
   return model.name.replace(/^Nano\s+/, '')
 }
 
+function InlineParamDivider() {
+  return <span aria-hidden className="h-1 w-1 shrink-0 rounded-full bg-(--color-text-4) opacity-70" />
+}
+
 // Rotating example prompts for the edit textarea.
 const EDIT_PROMPT_EXAMPLES = [
   '把背景换成日落海边',
@@ -485,10 +489,20 @@ export function EditSidebar({
           aria-expanded={!paramsCollapsed}
           className="flex items-center w-full bg-transparent border-0 p-0 cursor-pointer min-h-[20px]"
         >
-          <span className="label">模型 · 分辨率 · 宽高比</span>
+          <span className="flex items-center gap-1.5">
+            <span className="label">模型</span>
+            <InlineParamDivider />
+            <span className="label">分辨率</span>
+            <InlineParamDivider />
+            <span className="label">宽高比</span>
+          </span>
           <span className="flex-1" />
-          <span className="mono mr-1.5 text-sm text-(--color-text-3)">
-            {getModelShortLabel(sourceModel)} · {resolution} · {aspectRatio}
+          <span className="mono mr-1.5 flex items-center gap-1.5 text-sm text-(--color-text-3)">
+            <span>{getModelShortLabel(sourceModel)}</span>
+            <InlineParamDivider />
+            <span>{resolution}</span>
+            <InlineParamDivider />
+            <span>{aspectRatio}</span>
           </span>
           <Icon name={paramsCollapsed ? 'chevron_right' : 'chevron_down'} size={12} className="text-(--color-text-4)" />
         </button>
