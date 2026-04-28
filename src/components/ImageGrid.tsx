@@ -1,63 +1,58 @@
 import { createContext, useContext, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 
-const GRID_GAP = 12
-const DEFAULT_GRID_COLS = 4
+const GRID_GAP = 8
+const TARGET_CELL_WIDTH = 76
+const MIN_GRID_COLS = 6
+const MAX_GRID_COLS = 16
+const DEFAULT_GRID_COLS = 8
 
 type GridSpan = {
   cols: number
   rows: number
 }
 
-const ASPECT_RATIO_SPANS: Record<string, GridSpan> = {
-  '1:1': { cols: 1, rows: 1 },
-  '2:3': { cols: 1, rows: 2 },
-  '3:4': { cols: 1, rows: 2 },
-  '4:5': { cols: 1, rows: 2 },
-  '9:16': { cols: 1, rows: 2 },
-  '1:4': { cols: 1, rows: 2 },
-  '1:8': { cols: 1, rows: 3 },
-  '3:2': { cols: 2, rows: 1 },
-  '4:3': { cols: 2, rows: 1 },
-  '5:4': { cols: 2, rows: 1 },
-  '16:9': { cols: 2, rows: 1 },
-  '4:1': { cols: 2, rows: 1 },
-  '21:9': { cols: 3, rows: 1 },
-  '8:1': { cols: 3, rows: 1 },
-}
-
 function getGridCols(width: number): number {
-  if (width < 560) return 2
-  return 4
+  const cols = Math.floor((width + GRID_GAP) / (TARGET_CELL_WIDTH + GRID_GAP))
+  return Math.max(MIN_GRID_COLS, Math.min(MAX_GRID_COLS, cols))
 }
 
 function parseAspectRatio(ratio: string): number {
   const [width, height] = ratio.split(':').map(Number)
-  return width / height
-}
-
-function getFallbackSpan(ratio: number): GridSpan {
-  if (ratio >= 5) return { cols: 3, rows: 1 }
-  if (ratio > 1.4) return { cols: 2, rows: 1 }
-  if (ratio >= 0.8) return { cols: 1, rows: 1 }
-  if (ratio >= 0.3) return { cols: 1, rows: 2 }
-  return { cols: 1, rows: 3 }
+  const value = width / height
+  return Number.isFinite(value) && value > 0 ? value : 1
 }
 
 function getGridSpan(aspectRatio: string): GridSpan {
-  return ASPECT_RATIO_SPANS[aspectRatio] ?? getFallbackSpan(parseAspectRatio(aspectRatio))
-}
+  const ratio = parseAspectRatio(aspectRatio)
+  if (ratio >= 0.95 && ratio <= 1.05) return { cols: 3, rows: 3 }
+  if (ratio <= 0.35) return { cols: 2, rows: 4 }
+  if (ratio >= 2.85) return { cols: 4, rows: 2 }
 
-function normalizeGridSpan(span: GridSpan, gridCols: number): GridSpan {
-  if (gridCols === 2) {
-    return {
-      cols: Math.min(span.cols, 2),
-      rows: Math.min(span.rows, 2),
+  let bestSpan: GridSpan = { cols: 2, rows: 2 }
+  let bestScore = Number.POSITIVE_INFINITY
+
+  for (let cols = 2; cols <= 5; cols++) {
+    for (let rows = 2; rows <= 5; rows++) {
+      const aspectScore = Math.abs(Math.log(cols / rows / ratio))
+      const areaScore = (cols * rows - 4) * 0.006
+      const score = aspectScore + areaScore
+      if (score < bestScore) {
+        bestScore = score
+        bestSpan = { cols, rows }
+      }
     }
   }
 
+  return bestSpan
+}
+
+function normalizeGridSpan(span: GridSpan, gridCols: number): GridSpan {
+  if (span.cols <= gridCols) return span
+
+  const scale = gridCols / span.cols
   return {
-    cols: Math.min(span.cols, gridCols),
-    rows: span.rows,
+    cols: gridCols,
+    rows: Math.max(2, Math.round(span.rows * scale)),
   }
 }
 
@@ -73,7 +68,7 @@ type ImageGridProps = {
 export function ImageGrid({ children, maxRowHeight }: ImageGridProps) {
   const ref = useRef<HTMLDivElement>(null)
   const [gridCols, setGridCols] = useState(DEFAULT_GRID_COLS)
-  const [rowHeight, setRowHeight] = useState(120)
+  const [rowHeight, setRowHeight] = useState(TARGET_CELL_WIDTH)
 
   useLayoutEffect(() => {
     const element = ref.current
@@ -83,7 +78,7 @@ export function ImageGrid({ children, maxRowHeight }: ImageGridProps) {
       const width = element.clientWidth
       const cols = getGridCols(width)
       const colWidth = (width - (cols - 1) * GRID_GAP) / cols
-      const baseRowHeight = Math.max(72, Math.round(colWidth))
+      const baseRowHeight = Math.max(48, Math.round(colWidth))
       const nextRowHeight = maxRowHeight !== undefined ? Math.min(baseRowHeight, maxRowHeight) : baseRowHeight
 
       setGridCols((prev) => (prev === cols ? prev : cols))
@@ -102,7 +97,7 @@ export function ImageGrid({ children, maxRowHeight }: ImageGridProps) {
     <GridColsContext.Provider value={gridCols}>
       <div
         ref={ref}
-        className="grid gap-3"
+        className="grid gap-2"
         style={{
           gridTemplateColumns: `repeat(${gridCols}, minmax(0, 1fr))`,
           gridAutoRows: `${rowHeight}px`,
