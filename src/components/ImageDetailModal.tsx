@@ -24,6 +24,7 @@ import { ZoomableImageView } from './image-detail/ZoomableImageView'
 type EditMode = 'view' | DrawMode
 type ModalViewMode = 'detail' | 'gallery'
 type GalleryMode = 'view' | 'manage'
+type GalleryReturnTarget = 'output' | 'detail'
 
 type Props = {
   stack: ImageStack
@@ -106,6 +107,13 @@ export function ImageDetailModal({
   const [mobilePreviewOpen, setMobilePreviewOpen] = useState(false)
   const [viewMode, setViewMode] = useState<ModalViewMode>(initialViewMode)
   const [galleryInitialMode, setGalleryInitialMode] = useState<GalleryMode>('view')
+  const [galleryReturnTarget, setGalleryReturnTarget] = useState<GalleryReturnTarget>(() =>
+    initialViewMode === 'gallery' ? 'output' : 'detail',
+  )
+
+  useEffect(() => {
+    if (viewMode === 'detail' && galleryReturnTarget !== 'detail') setGalleryReturnTarget('detail')
+  }, [galleryReturnTarget, viewMode])
   // After submit, we watch history for the first new image with this batchId
   // and auto-navigate the pager to it.
   const [activeEditBatchId, setActiveEditBatchId] = useState<string | null>(null)
@@ -296,6 +304,11 @@ export function ImageDetailModal({
           setDrawRevision((prev) => prev + 1)
           return
         }
+        if (viewMode === 'gallery') {
+          if (galleryReturnTarget === 'detail') setViewMode('detail')
+          else onClose()
+          return
+        }
         if (editing) {
           exitEdit()
           return
@@ -315,7 +328,19 @@ export function ImageDetailModal({
     }
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
-  }, [canNavigate, editing, editMode, exitEdit, goToNext, goToPrev, mobileDrawOpen, mobilePreviewOpen, onClose])
+  }, [
+    canNavigate,
+    editing,
+    editMode,
+    exitEdit,
+    galleryReturnTarget,
+    goToNext,
+    goToPrev,
+    mobileDrawOpen,
+    mobilePreviewOpen,
+    onClose,
+    viewMode,
+  ])
 
   // Auto-select the new edit batch inside the stack strip. The selection starts
   // on the pending slot, then follows the same batch/order when it becomes an image.
@@ -573,6 +598,7 @@ export function ImageDetailModal({
       const posInStack = stack.images.findIndex((img) => img.id === currentImage.id)
       return { pos: posInStack + 1, total: stack.images.length }
     })()
+  const galleryBacksToDetail = viewMode === 'gallery' && galleryReturnTarget === 'detail'
 
   return createPortal(
     <div
@@ -599,8 +625,13 @@ export function ImageDetailModal({
           background: 'color-mix(in srgb, var(--color-surface) 80%, transparent)',
         }}
       >
-        <button className="icon-btn shrink-0" onClick={onClose} title="关闭 (Esc)" style={{ width: 32, height: 32 }}>
-          <Icon name="close" size={13} strokeWidth={1.8} />
+        <button
+          className="icon-btn shrink-0"
+          onClick={galleryBacksToDetail ? () => setViewMode('detail') : onClose}
+          title={galleryBacksToDetail ? '回到预览' : '关闭 (Esc)'}
+          style={{ width: 32, height: 32 }}
+        >
+          <Icon name={galleryBacksToDetail ? 'chevron_left' : 'close'} size={13} strokeWidth={1.8} />
         </button>
         <div className="h-6 w-px shrink-0 bg-(--color-border)" />
 
@@ -619,21 +650,20 @@ export function ImageDetailModal({
 
         <div className="flex-1" />
 
-        <button
-          className="chip hidden shrink-0 md:inline-flex"
-          onClick={() => {
-            if (viewMode === 'gallery') {
-              setViewMode('detail')
-              return
-            }
-            setGalleryInitialMode('manage')
-            setViewMode('gallery')
-          }}
-          title={viewMode === 'gallery' ? '回到预览' : '打开批量管理'}
-        >
-          <Icon name={viewMode === 'gallery' ? 'chevron_left' : 'check_circle'} size={12} strokeWidth={1.8} />
-          <span className="hidden md:inline">{viewMode === 'gallery' ? '回到预览' : '批量管理'}</span>
-        </button>
+        {viewMode === 'detail' && (
+          <button
+            className="chip hidden shrink-0 md:inline-flex"
+            onClick={() => {
+              setGalleryInitialMode('manage')
+              setGalleryReturnTarget('detail')
+              setViewMode('gallery')
+            }}
+            title="打开批量管理"
+          >
+            <Icon name="check_circle" size={12} strokeWidth={1.8} />
+            <span className="hidden md:inline">批量管理</span>
+          </button>
+        )}
         {viewMode === 'detail' && (
           <button
             className="chip shrink-0 text-sm md:hidden"
@@ -701,6 +731,7 @@ export function ImageDetailModal({
           onSelect={(item) => {
             setSelection(toSelection(item))
             setRefDetailId(null)
+            setGalleryReturnTarget('detail')
             setViewMode('detail')
           }}
           onRemove={onRemove}

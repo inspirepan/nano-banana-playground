@@ -1,11 +1,87 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
+import { MODEL_CONFIGS } from '../../config/models'
 import { downloadImagesZip } from '../../lib/exportImages'
+import { formatTime } from '../../lib/queueJobDisplay'
 import type { ImageStack, StackItem } from '../../lib/stacks'
 import { Icon } from '../Icon'
 import { StackItemThumb } from '../StackItemThumb'
 
 type GalleryMode = 'view' | 'manage'
+
+type StackGalleryBatch = {
+  id: string
+  createdAt: number
+  updatedAt: number
+  items: StackItem[]
+  prompt: string | null
+  modelName: string | null
+  resolution: string | null
+  aspectRatio: string | null
+  imageCount: number
+  activeSlotCount: number
+  failedSlotCount: number
+}
+
+function modelNameOf(modelId: string): string {
+  return MODEL_CONFIGS.find((model) => model.id === modelId)?.name ?? modelId
+}
+
+function isActiveSlotItem(item: StackItem): boolean {
+  return item.type === 'slot' && ['queued', 'running', 'retrying'].includes(item.slot.status)
+}
+
+function buildStackGalleryBatches(items: StackItem[]): StackGalleryBatch[] {
+  const map = new Map<string, StackGalleryBatch>()
+
+  for (const item of items) {
+    let batch = map.get(item.batchId)
+    if (!batch) {
+      batch = {
+        id: item.batchId,
+        createdAt: item.timestamp,
+        updatedAt: item.timestamp,
+        items: [],
+        prompt: null,
+        modelName: null,
+        resolution: null,
+        aspectRatio: null,
+        imageCount: 0,
+        activeSlotCount: 0,
+        failedSlotCount: 0,
+      }
+      map.set(item.batchId, batch)
+    }
+
+    batch.createdAt = Math.min(batch.createdAt, item.timestamp)
+    batch.updatedAt = Math.max(batch.updatedAt, item.timestamp)
+    batch.items.push(item)
+
+    if (item.type === 'image') {
+      batch.imageCount += 1
+      if (item.image.source.type === 'generated') {
+        batch.prompt ??= item.image.source.prompt
+        batch.modelName ??= modelNameOf(item.image.source.modelId)
+        batch.resolution ??= item.image.source.resolution
+        batch.aspectRatio ??= item.image.source.aspectRatio
+      }
+    } else {
+      if (isActiveSlotItem(item)) batch.activeSlotCount += 1
+      if (item.slot.status === 'failed') batch.failedSlotCount += 1
+      batch.prompt ??= item.job.request.prompt
+      batch.modelName ??= item.job.request.model.name
+      batch.resolution ??= item.job.request.resolution
+      batch.aspectRatio ??= item.job.request.aspectRatio
+    }
+  }
+
+  return Array.from(map.values())
+    .map((batch) => ({
+      ...batch,
+      items: [...batch.items].sort((a, b) => a.order - b.order || a.id.localeCompare(b.id)),
+    }))
+    .sort((a, b) => b.updatedAt - a.updatedAt || b.id.localeCompare(a.id))
+}
 
 export function SlotHero({
   item,
@@ -143,6 +219,7 @@ export function StackGallery({
   const selectedImages = selectableImages.filter((image) => selectedIds.has(image.id))
   const selectedCount = selectedImages.length
   const allSelected = selectableImages.length > 0 && selectedCount === selectableImages.length
+  const batches = useMemo(() => buildStackGalleryBatches(stack.items), [stack.items])
 
   const toggleImage = (item: StackItem) => {
     if (item.type !== 'image') return
@@ -251,18 +328,63 @@ export function StackGallery({
           )}
         </div>
       </div>
-      <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8">
-        {stack.items.map((item) => (
-          <StackItemThumb
-            key={item.id}
-            item={item}
-            active={mode === 'view' && selectedId === item.id}
-            selectable={mode === 'manage' && item.type === 'image'}
-            selected={mode === 'manage' && item.type === 'image' && selectedIds.has(item.image.id)}
-            outerRing
-            className="aspect-square h-auto w-full"
-            onSelect={mode === 'manage' ? toggleImage : onSelect}
-          />
+      <div className="space-y-5">
+        {batches.map((batch) => (
+          <section key={batch.id} className="min-w-0">
+            <div className="mb-2.5 min-w-0 px-0.5 py-1">
+              <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                <span className="mono whitespace-nowrap text-xs text-(--color-text-3)">
+                  {formatTime(batch.createdAt)}
+                </span>
+                {batch.modelName && (
+                  <span className="whitespace-nowrap text-xs font-medium text-(--color-text-2)">{batch.modelName}</span>
+                )}
+                {batch.resolution && batch.aspectRatio && (
+                  <span className="mono whitespace-nowrap text-xs text-(--color-text-3)">
+                    {batch.resolution} · {batch.aspectRatio}
+                  </span>
+                )}
+                <span className="mono whitespace-nowrap text-xs text-(--color-text-3)">{batch.imageCount} 张</span>
+                {batch.activeSlotCount > 0 && (
+                  <span className="whitespace-nowrap text-xs text-(--color-accent)">
+                    生成中 {batch.activeSlotCount}
+                  </span>
+                )}
+                {batch.failedSlotCount > 0 && (
+                  <span className="whitespace-nowrap text-xs" style={{ color: 'var(--color-danger)' }}>
+                    失败 {batch.failedSlotCount}
+                  </span>
+                )}
+              </div>
+              {batch.prompt && (
+                <div
+                  className="mt-1.5 overflow-hidden text-xs leading-[1.55] text-(--color-text-3)"
+                  style={{
+                    display: '-webkit-box',
+                    WebkitBoxOrient: 'vertical',
+                    WebkitLineClamp: 2,
+                  }}
+                  title={batch.prompt}
+                >
+                  {batch.prompt}
+                </div>
+              )}
+            </div>
+            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8">
+              {batch.items.map((item) => (
+                <StackItemThumb
+                  key={item.id}
+                  item={item}
+                  active={mode === 'view' && selectedId === item.id}
+                  selectable={mode === 'manage' && item.type === 'image'}
+                  selected={mode === 'manage' && item.type === 'image' && selectedIds.has(item.image.id)}
+                  outerRing
+                  className="aspect-square h-auto w-full"
+                  onSelect={mode === 'manage' ? toggleImage : onSelect}
+                />
+              ))}
+            </div>
+          </section>
         ))}
       </div>
     </div>
