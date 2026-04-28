@@ -221,7 +221,7 @@ function StackRow({
                       onSelect={(next) => onOpenItem(stack, next)}
                       actions={
                         item.type === 'image' ? (
-                          <div className="hidden items-center gap-1 opacity-0 transition-opacity md:flex md:group-hover:opacity-100 md:group-focus-within:opacity-100">
+                          <div className="pointer-events-none hidden items-center gap-1 opacity-[0.001] transition-opacity md:flex md:group-hover:pointer-events-auto md:group-hover:opacity-100 md:group-focus-within:pointer-events-auto md:group-focus-within:opacity-100">
                             <button
                               type="button"
                               onClick={(event) => {

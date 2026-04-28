@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 
 import { Icon } from './Icon'
 import { getBlobFromCache, useImageSrc } from '../hooks/useImageSrc'
@@ -21,6 +21,7 @@ type Props = {
 }
 
 type Slot = Extract<StackItem, { type: 'slot' }>['slot']
+type StackThumbStyle = CSSProperties & { '--stack-thumb-action-bg'?: string }
 
 function slotReasonText(slot: Slot): string | null {
   if (slot.status === 'queued') return '排队中'
@@ -69,6 +70,7 @@ export function StackItemThumb({
     : highlighted
       ? '0 0 0 2px var(--color-surface), 0 0 0 3px var(--color-accent)'
       : 'inset 0 0 0 1px var(--ring-edge)'
+  const actionStyle: StackThumbStyle | undefined = src ? { '--stack-thumb-action-bg': `url("${src}")` } : undefined
 
   return (
     <div
@@ -177,7 +179,11 @@ export function StackItemThumb({
           {selected && <Icon name="check" size={11} strokeWidth={2.4} />}
         </span>
       )}
-      {actions && <div className="absolute inset-x-1.5 bottom-1.5 z-10">{actions}</div>}
+      {actions && (
+        <div className="stack-thumb-actions absolute inset-x-1.5 bottom-1.5 z-10" style={actionStyle}>
+          {actions}
+        </div>
+      )}
     </div>
   )
 }
