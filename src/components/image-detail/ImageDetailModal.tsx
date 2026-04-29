@@ -620,14 +620,14 @@ export function ImageDetailModal({
               trailingNode={
                 <button
                   type="button"
-                  className="chip shrink-0 font-normal"
+                  className="chip ghost shrink-0 font-normal text-(--color-text-3)"
                   onClick={() => {
                     setGalleryInitialMode('manage')
                     setGalleryReturnTarget('detail')
                     setViewMode('gallery')
                   }}
                   title="打开批量管理"
-                  style={{ height: 24, padding: '0 8px' }}
+                  style={{ height: 24, padding: '0 6px' }}
                 >
                   <Icon name="check_circle" size={12} strokeWidth={1.8} />
                   <span>批量管理</span>

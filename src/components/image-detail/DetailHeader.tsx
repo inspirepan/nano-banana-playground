@@ -91,7 +91,7 @@ export function DetailHeader({
 
       {viewMode === 'detail' && (
         <button
-          className="chip shrink-0 text-sm font-normal md:text-[13px]"
+          className="chip ghost shrink-0 text-sm font-normal text-(--color-text-3) md:text-[13px]"
           onClick={onOpenManageGallery}
           title="打开批量管理"
         >
