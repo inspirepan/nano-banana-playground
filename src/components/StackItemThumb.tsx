@@ -72,6 +72,11 @@ export function StackItemThumb({
       ? '0 0 0 2px var(--color-surface), 0 0 0 3px var(--color-accent)'
       : 'inset 0 0 0 1px var(--ring-edge)'
   const actionStyle: StackThumbStyle | undefined = src ? { '--stack-thumb-action-bg': `url("${src}")` } : undefined
+  // Slot placeholders get a subtle diagonal stripe texture so they read as
+  // "work pending" rather than an empty tile.
+  const background = slot
+    ? 'repeating-linear-gradient(-45deg, var(--color-surface-2) 0 6px, var(--color-surface-3) 6px 12px)'
+    : 'var(--color-surface-2)'
   const metaBadgeParts = metaBadge?.split(' · ')
   const splitMetaBadge =
     metaBadgeParts && metaBadgeParts.length >= 3
@@ -107,7 +112,7 @@ export function StackItemThumb({
       }}
       aria-pressed={selectable ? selected : undefined}
       className={`group relative shrink-0 overflow-hidden rounded-[7px] transition-transform ${selectable ? '' : 'hover:-translate-y-0.5'} ${className}`}
-      style={{ background: 'var(--color-surface-2)', boxShadow }}
+      style={{ background, boxShadow }}
       title={title}
     >
       <div ref={ref} className="absolute inset-0">
