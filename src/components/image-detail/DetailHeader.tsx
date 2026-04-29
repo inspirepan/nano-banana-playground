@@ -122,14 +122,6 @@ export function DetailHeader({
               </button>
             </>
           )}
-          <button
-            className="chip shrink-0 text-sm font-normal md:hidden"
-            onClick={onDownload}
-            title="下载 PNG"
-            style={{ height: 36, padding: '0 12px' }}
-          >
-            <Icon name="download" size={14} strokeWidth={1.8} /> 下载
-          </button>
           <button className="chip hidden shrink-0 font-normal md:inline-flex" onClick={onDownload} title="下载 PNG">
             <Icon name="download" size={12} strokeWidth={1.8} /> <span className="hidden md:inline">PNG</span>
           </button>
