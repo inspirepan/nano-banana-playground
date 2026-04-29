@@ -191,6 +191,7 @@ export function StackStrip({
 }) {
   const stripScrollRef = useRef<HTMLDivElement | null>(null)
   const selectedItemRef = useRef<HTMLDivElement | null>(null)
+  const [collapsed, setCollapsed] = useState(false)
   const itemNumberById = useMemo(() => new Map(stack.items.map((item, index) => [item.id, index + 1])), [stack.items])
   const batches = useMemo(() => buildStackStripBatches(stack.items), [stack.items])
   const hasActiveJobs = stack.jobs.some((job) =>
@@ -205,7 +206,7 @@ export function StackStrip({
     const targetLeft = selected.offsetLeft + selected.offsetWidth - scroller.clientWidth + 10
     const maxLeft = scroller.scrollWidth - scroller.clientWidth
     scroller.scrollTo({ left: Math.max(0, Math.min(targetLeft, maxLeft)), behavior: 'smooth' })
-  }, [selectedId, stack.items.length])
+  }, [selectedId, stack.items.length, collapsed])
 
   return (
     <div
@@ -219,22 +220,34 @@ export function StackStrip({
       }}
     >
       <div className="flex items-stretch gap-2">
-        <div ref={stripScrollRef} className="-m-1 flex min-w-0 flex-1 items-stretch gap-5 overflow-x-auto p-1 pr-2">
+        <div
+          ref={stripScrollRef}
+          className="strip-scroller -m-1 flex min-w-0 flex-1 items-stretch overflow-x-auto p-1 pr-2"
+          data-collapsed={collapsed || undefined}
+        >
           {batches.map((batch, batchIdx) => {
             const headline = batchIdx === 0 ? '初始' : `编辑 ${batchIdx}`
             return (
-              <div key={batch.id} className="flex shrink-0 flex-col gap-1.5">
-                <div className="min-w-0 px-0.5" style={{ maxWidth: 240 }}>
-                  <div className="flex items-center gap-1 text-sm leading-[1.3] text-(--color-text-2)">
-                    <span className="font-medium">{headline}</span>
-                    <span className="text-(--color-text-4)">·</span>
-                    <span className="text-(--color-text-3)">{formatHourMinute(batch.createdAt)}</span>
-                  </div>
-                  <div
-                    className="mt-0.5 truncate text-sm leading-[1.35] text-(--color-text-4)"
-                    title={batch.prompt ?? undefined}
-                  >
-                    {batch.prompt ?? '—'}
+              <div key={batch.id} className="strip-batch flex shrink-0 flex-col" data-collapsed={collapsed || undefined}>
+                <div className="strip-header-collapse" data-collapsed={collapsed || undefined}>
+                  <div className="min-w-0 overflow-hidden">
+                    <div
+                      className="strip-header-content min-w-0 px-0.5"
+                      style={{ maxWidth: 240 }}
+                      data-collapsed={collapsed || undefined}
+                    >
+                      <div className="flex items-center gap-1 text-sm leading-[1.3] text-(--color-text-2)">
+                        <span className="font-medium">{headline}</span>
+                        <span className="text-(--color-text-4)">·</span>
+                        <span className="text-(--color-text-3)">{formatHourMinute(batch.createdAt)}</span>
+                      </div>
+                      <div
+                        className="mt-0.5 truncate text-sm leading-[1.35] text-(--color-text-4)"
+                        title={batch.prompt ?? undefined}
+                      >
+                        {batch.prompt ?? '—'}
+                      </div>
+                    </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -258,16 +271,34 @@ export function StackStrip({
           })}
           <div className="w-1 shrink-0" aria-hidden />
         </div>
-        {hasActiveJobs && (
+        <div className="flex shrink-0 flex-col items-end justify-end gap-1">
+          {hasActiveJobs && (
+            <button
+              type="button"
+              onClick={onCancelActiveJobs}
+              className="chip danger text-sm"
+              style={{ height: 24, padding: '0 8px' }}
+            >
+              取消全部
+            </button>
+          )}
           <button
             type="button"
-            onClick={onCancelActiveJobs}
-            className="chip danger shrink-0 self-center text-sm"
-            style={{ height: 24, padding: '0 8px' }}
+            onClick={() => setCollapsed((value) => !value)}
+            className="chip ghost strip-toggle"
+            style={{ height: 24, padding: '0 6px' }}
+            title={collapsed ? '展开' : '收起'}
+            aria-label={collapsed ? '展开' : '收起'}
           >
-            取消全部
+            <Icon
+              name="chevron_down"
+              size={14}
+              strokeWidth={1.8}
+              className="strip-toggle-icon"
+              data-collapsed={collapsed || undefined}
+            />
           </button>
-        )}
+        </div>
       </div>
     </div>
   )
