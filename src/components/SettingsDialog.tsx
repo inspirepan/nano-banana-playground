@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 
 import { ApiKeysSettings, type KeyHook } from './ApiKeysDialog'
 import { Icon, type IconName } from './Icon'
 import { SANS_FONTS, type SansFontId } from '../config/fonts'
 import { COLOR_THEMES, type ColorThemeId, type Theme } from '../config/theme'
+import { clearCurrentSiteData, getCurrentSiteDataUsage, type SiteDataUsage } from '../lib/siteData'
 
 const BRIGHTNESS: { value: Theme; icon: IconName; label: string }[] = [
   { value: 'light', icon: 'light_mode', label: '浅色' },
@@ -29,6 +30,12 @@ const GENERATION_CONCURRENCY_CHOICES = [
   { value: 4, label: '4', suffix: '张' },
   { value: 999, label: '不限' },
 ]
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(bytes < 10 * 1024 ? 1 : 0)} KB`
+  return `${(bytes / 1024 / 1024).toFixed(bytes < 10 * 1024 * 1024 ? 1 : 0)} MB`
+}
 
 type Props = {
   open: boolean
@@ -63,6 +70,24 @@ export function SettingsDialog({
 }: Props) {
   const generationConcurrencyRef = useRef<HTMLDivElement>(null)
   const [generationConcurrencyPulse, setGenerationConcurrencyPulse] = useState(false)
+  const [clearDataConfirm, setClearDataConfirm] = useState(false)
+  const [clearDataBusy, setClearDataBusy] = useState(false)
+  const [clearDataError, setClearDataError] = useState<string | null>(null)
+  const [siteDataUsage, setSiteDataUsage] = useState<SiteDataUsage | null>(null)
+  const [siteDataUsageLoading, setSiteDataUsageLoading] = useState(false)
+  const [siteDataUsageError, setSiteDataUsageError] = useState<string | null>(null)
+
+  const refreshSiteDataUsage = useCallback(async () => {
+    setSiteDataUsageLoading(true)
+    setSiteDataUsageError(null)
+    try {
+      setSiteDataUsage(await getCurrentSiteDataUsage())
+    } catch (error) {
+      setSiteDataUsageError(error instanceof Error ? error.message : '无法读取当前数据大小。')
+    } finally {
+      setSiteDataUsageLoading(false)
+    }
+  }, [])
 
   useEffect(() => {
     if (!open) return
@@ -94,6 +119,35 @@ export function SettingsDialog({
       window.clearTimeout(resetTimer)
     }
   }, [focusSection, open])
+
+  useEffect(() => {
+    if (open) return
+    setClearDataConfirm(false)
+    setClearDataBusy(false)
+    setClearDataError(null)
+  }, [open])
+
+  useEffect(() => {
+    if (!open) return
+    void refreshSiteDataUsage()
+  }, [open, refreshSiteDataUsage])
+
+  const handleClearSiteData = async () => {
+    if (clearDataBusy) return
+    setClearDataBusy(true)
+    setClearDataError(null)
+    try {
+      await clearCurrentSiteData()
+      window.location.replace(`${window.location.origin}${window.location.pathname}`)
+    } catch (error) {
+      setClearDataError(error instanceof Error ? error.message : '清空失败，请刷新后重试。')
+      setClearDataBusy(false)
+    }
+  }
+
+  const handleRefreshSiteDataUsageClick = () => {
+    refreshSiteDataUsage().catch(() => undefined)
+  }
 
   if (!open) return null
 
@@ -226,6 +280,81 @@ export function SettingsDialog({
                 </div>
               </SettingsSection>
             </div>
+
+            <SettingsSection title="数据" description="清空当前站点保存在此浏览器里的所有数据。">
+              <div className="flex items-baseline justify-between gap-3">
+                <div>
+                  <div className="label mb-1">当前占用</div>
+                  <div className="text-lg font-semibold tracking-[-0.01em] text-(--color-text)">
+                    {siteDataUsage ? formatBytes(siteDataUsage.totalBytes) : siteDataUsageLoading ? '计算中…' : '未知'}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleRefreshSiteDataUsageClick()
+                  }}
+                  disabled={siteDataUsageLoading || clearDataBusy}
+                  className="chip shrink-0"
+                >
+                  <Icon name="refresh" size={12} /> {siteDataUsageLoading ? '计算中' : '刷新'}
+                </button>
+              </div>
+              {siteDataUsage?.browserEstimateBytes !== null && siteDataUsage?.browserEstimateBytes !== undefined && (
+                <div className="mt-1 text-sm text-(--color-text-4)">
+                  浏览器估算 {formatBytes(siteDataUsage.browserEstimateBytes)}
+                  {siteDataUsage.quotaBytes ? ` / 可用 ${formatBytes(siteDataUsage.quotaBytes)}` : ''}
+                </div>
+              )}
+              {siteDataUsageError && (
+                <div className="mt-2 text-sm" style={{ color: 'var(--color-danger)' }}>
+                  {siteDataUsageError}
+                </div>
+              )}
+              <p className="mt-4 text-sm leading-relaxed text-(--color-text-3)">
+                会删除 API Key、外观设置、生成历史、参考图、缓存、当前 URL 编辑态，以及旧版 IndexedDB
+                数据。清空后页面会重新加载。
+              </p>
+              {clearDataError && (
+                <p className="mt-2 text-sm leading-relaxed" style={{ color: 'var(--color-danger)' }}>
+                  {clearDataError}
+                </p>
+              )}
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                {clearDataConfirm ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleClearSiteData}
+                      disabled={clearDataBusy}
+                      className="chip danger"
+                    >
+                      <Icon name="trash" size={12} /> {clearDataBusy ? '清空中…' : '确认清空'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setClearDataConfirm(false)
+                        setClearDataError(null)
+                      }}
+                      disabled={clearDataBusy}
+                      className="chip"
+                    >
+                      取消
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setClearDataConfirm(true)}
+                    disabled={clearDataBusy}
+                    className="chip danger"
+                  >
+                    <Icon name="trash" size={12} /> 清空数据
+                  </button>
+                )}
+              </div>
+            </SettingsSection>
           </div>
         </div>
       </div>

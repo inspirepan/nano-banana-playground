@@ -296,7 +296,6 @@ function App() {
               onReroll={handleReroll}
               onEditImage={pg.editImage}
               onRemove={pg.removeFromHistory}
-              onClearAll={pg.clearAllHistory}
               onLoadMore={pg.loadMoreHistory}
               onOpenGenerationSettings={() => openSettings('generationConcurrency')}
             />
@@ -352,7 +351,6 @@ function App() {
             onReroll={handleReroll}
             onEditImage={pg.editImage}
             onRemove={pg.removeFromHistory}
-            onClearAll={pg.clearAllHistory}
             onLoadMore={pg.loadMoreHistory}
             onOpenGenerationSettings={() => openSettings('generationConcurrency')}
           />

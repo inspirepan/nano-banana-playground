@@ -34,7 +34,6 @@ type Props = {
     mask?: PlaygroundImage
   }) => Promise<string | null>
   onRemove: (id: string) => void
-  onClearAll: () => void
   onLoadMore: () => void
   onOpenGenerationSettings: () => void
 }
@@ -96,7 +95,12 @@ function StackRow({
   onCancelStackGeneration,
   onDismissStackFailedJobs,
   onOpenGenerationSettings,
+  onDeleteStack,
   downloading,
+  deleteConfirming,
+  deleting,
+  onRequestDeleteConfirm,
+  onCancelDeleteConfirm,
 }: {
   stack: ImageStack
   onOpenItem: (stack: ImageStack, item: StackItem) => void
@@ -106,13 +110,19 @@ function StackRow({
   onCancelStackGeneration: (stack: ImageStack) => void
   onDismissStackFailedJobs: (stack: ImageStack) => void
   onOpenGenerationSettings: () => void
+  onDeleteStack: (stack: ImageStack) => void
   downloading: boolean
+  deleteConfirming: boolean
+  deleting: boolean
+  onRequestDeleteConfirm: (stackId: string) => void
+  onCancelDeleteConfirm: () => void
 }) {
   const totalItems = stack.images.length + stack.activeSlotCount + stack.failedSlotCount
   const activeStatusParts = activeStackStatusParts(stack)
   const hasDismissibleFailures = stack.jobs.some(canDismissFailedGenerationJob)
   const stackItemNumberById = new Map(stack.items.map((item, index) => [item.id, index + 1]))
   const previewItems = stack.items
+  const canDelete = stack.images.length > 0 && activeStatusParts.length === 0
 
   return (
     <div className="min-w-0">
@@ -195,6 +205,42 @@ function StackRow({
                     清空失败
                   </button>
                 </>
+              )}
+            </>
+          )}
+          {canDelete && (
+            <>
+              <span className="meta-dot text-(--color-text-4)" aria-hidden />
+              {deleteConfirming ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => onDeleteStack(stack)}
+                    disabled={deleting}
+                    className="bg-transparent p-0 text-base font-semibold transition-colors hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+                    style={{ color: 'var(--color-danger)' }}
+                  >
+                    {deleting ? '删除中…' : '确认删除'}
+                  </button>
+                  <span className="meta-dot text-(--color-text-4)" aria-hidden />
+                  <button
+                    type="button"
+                    onClick={onCancelDeleteConfirm}
+                    disabled={deleting}
+                    className="bg-transparent p-0 text-base font-medium text-(--color-text-3) transition-colors hover:text-(--color-text-2) disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    取消
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => onRequestDeleteConfirm(stack.id)}
+                  className="bg-transparent p-0 text-base font-medium transition-colors hover:brightness-110"
+                  style={{ color: 'var(--color-danger)' }}
+                >
+                  删除
+                </button>
               )}
             </>
           )}
@@ -282,14 +328,14 @@ export const OutputPanel = memo(function OutputPanel({
   onReroll,
   onEditImage,
   onRemove,
-  onClearAll,
   onLoadMore,
   onOpenGenerationSettings,
 }: Props) {
   const [detailTarget, setDetailTarget] = useState<DetailTarget | null>(null)
   const [exporting, setExporting] = useState(false)
   const [exportingStackId, setExportingStackId] = useState<string | null>(null)
-  const [confirmClear, setConfirmClear] = useState(false)
+  const [confirmDeleteStackId, setConfirmDeleteStackId] = useState<string | null>(null)
+  const [deletingStackId, setDeletingStackId] = useState<string | null>(null)
   const stacks = useMemo(() => buildImageStacks(history, generationJobs), [history, generationJobs])
   const generatedImageCount = useMemo(() => history.filter((img) => img.source.type === 'generated').length, [history])
   const detailStack = detailTarget ? (stacks.find((stack) => stack.id === detailTarget.stackId) ?? null) : null
@@ -348,6 +394,37 @@ export const OutputPanel = memo(function OutputPanel({
       }
     },
     [onDismissGenerationJob],
+  )
+
+  const handleRequestDeleteStack = useCallback((stackId: string) => {
+    setConfirmDeleteStackId(stackId)
+  }, [])
+
+  const handleCancelDeleteStack = useCallback(() => {
+    setConfirmDeleteStackId(null)
+  }, [])
+
+  const handleDeleteStack = useCallback(
+    async (stack: ImageStack) => {
+      if (deletingStackId) return
+      setDeletingStackId(stack.id)
+      try {
+        for (const image of stack.images) {
+          await Promise.resolve(onRemove(image.id))
+        }
+        setConfirmDeleteStackId((current) => (current === stack.id ? null : current))
+      } finally {
+        setDeletingStackId(null)
+      }
+    },
+    [deletingStackId, onRemove],
+  )
+
+  const handleDeleteStackClick = useCallback(
+    (stack: ImageStack) => {
+      handleDeleteStack(stack).catch(() => undefined)
+    },
+    [handleDeleteStack],
   )
 
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -416,7 +493,12 @@ export const OutputPanel = memo(function OutputPanel({
                 onCancelStackGeneration={handleCancelStackGeneration}
                 onDismissStackFailedJobs={handleDismissStackFailedJobs}
                 onOpenGenerationSettings={onOpenGenerationSettings}
+                onDeleteStack={handleDeleteStackClick}
                 downloading={exportingStackId === stack.id}
+                deleteConfirming={confirmDeleteStackId === stack.id}
+                deleting={deletingStackId === stack.id}
+                onRequestDeleteConfirm={handleRequestDeleteStack}
+                onCancelDeleteConfirm={handleCancelDeleteStack}
               />
             ))}
           </div>
@@ -426,42 +508,6 @@ export const OutputPanel = memo(function OutputPanel({
               <div className="text-sm text-(--color-text-4)">加载更多…</div>
             </div>
           )}
-
-          <div className="flex justify-center py-2">
-            {confirmClear ? (
-              <div className="flex items-center gap-3 text-base">
-                <span className="text-(--color-text-3)">确认清除全部历史？</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setConfirmClear(false)
-                    onClearAll()
-                  }}
-                  className="font-medium transition-colors hover:brightness-110"
-                  style={{ color: 'var(--color-danger)', background: 'none', border: 0 }}
-                >
-                  确认
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setConfirmClear(false)}
-                  className="text-(--color-text-3) hover:text-(--color-text) transition-colors"
-                  style={{ background: 'none', border: 0 }}
-                >
-                  取消
-                </button>
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setConfirmClear(true)}
-                className="text-base font-medium transition-colors hover:brightness-110"
-                style={{ color: 'var(--color-danger)', background: 'none', border: 0 }}
-              >
-                清除全部
-              </button>
-            )}
-          </div>
         </div>
       ) : (
         <div className="card px-4 py-5 text-(--color-text-3)">
