@@ -50,6 +50,7 @@ type DetailSidePanelProps = {
   onAddRef: () => void
   onRegenerate: () => void
   onReroll: () => void
+  onDownload: () => void
   onCopyPrompt: () => void
   onRemove: (id: string) => void | Promise<void>
   onClose: () => void
@@ -96,6 +97,7 @@ export function DetailSidePanel({
   onAddRef,
   onRegenerate,
   onReroll,
+  onDownload,
   onCopyPrompt,
   onRemove,
   onClose,
@@ -197,6 +199,7 @@ export function DetailSidePanel({
             onAddRef={onAddRef}
             onRegenerate={onRegenerate}
             onReroll={onReroll}
+            onDownload={onDownload}
             onCopyPrompt={onCopyPrompt}
             onRemove={onRemove}
             onClose={onClose}

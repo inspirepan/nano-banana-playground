@@ -42,6 +42,7 @@ type DetailSidebarProps = {
   onAddRef: () => void
   onRegenerate: () => void
   onReroll: () => void
+  onDownload: () => void
   onCopyPrompt: () => void
   onRemove: (id: string) => void | Promise<void>
   onClose: () => void
@@ -66,6 +67,7 @@ export function DetailSidebar({
   onAddRef,
   onRegenerate,
   onReroll,
+  onDownload,
   onCopyPrompt,
   onRemove,
   onClose,
@@ -75,17 +77,39 @@ export function DetailSidebar({
   return (
     <>
       {currentImage && (
-        <div className="mb-[18px] grid grid-cols-3 gap-1.5 md:hidden">
-          <button type="button" className="chip justify-center" onClick={onAddRef} disabled={!currentImage}>
-            <Icon name="plus" size={12} strokeWidth={1.8} />
+        <div className="mb-[18px] -mx-1 flex items-center">
+          <button
+            type="button"
+            className="action-soft flex-1"
+            onClick={onAddRef}
+            disabled={!currentImage}
+            title="加为参考"
+          >
+            <Icon name="plus" size={13} strokeWidth={1.8} className="action-soft-icon" />
             参考
           </button>
-          <button type="button" className="chip justify-center" onClick={onRegenerate} disabled={!currentMeta?.prompt}>
-            <Icon name="undo" size={12} strokeWidth={1.8} />
+          <button type="button" className="action-soft flex-1" onClick={onDownload} title="下载 PNG">
+            <Icon name="download" size={13} strokeWidth={1.8} className="action-soft-icon" />
+            下载
+          </button>
+          <button
+            type="button"
+            className="action-soft flex-1"
+            onClick={onRegenerate}
+            disabled={!currentMeta?.prompt}
+            title="还原参数"
+          >
+            <Icon name="undo" size={13} strokeWidth={1.8} className="action-soft-icon" />
             还原参数
           </button>
-          <button type="button" className="chip justify-center" onClick={onReroll} disabled={!currentMeta?.prompt}>
-            <Icon name="refresh" size={12} strokeWidth={1.8} />
+          <button
+            type="button"
+            className="action-soft flex-1"
+            onClick={onReroll}
+            disabled={!currentMeta?.prompt}
+            title="按原参数重抽"
+          >
+            <Icon name="refresh" size={13} strokeWidth={1.8} className="action-soft-icon" />
             重抽
           </button>
         </div>
@@ -96,10 +120,21 @@ export function DetailSidebar({
           <div className="flex items-center mb-1.5">
             <span className="label">提示词</span>
             <div className="flex-1" />
-            <button className="chip shrink-0 text-sm" style={{ height: 26 }} onClick={onCopyPrompt}>
+            <button
+              type="button"
+              className="action-soft shrink-0"
+              style={{ height: 26 }}
+              onClick={onCopyPrompt}
+              title="复制提示词"
+            >
               {/* Safari ignores flex layout on <button>; nesting fixes it. */}
               <span className="inline-flex items-center gap-1.5">
-                <Icon name={copiedPrompt ? 'check' : 'copy'} size={12} strokeWidth={copiedPrompt ? 2.2 : 1.8} />
+                <Icon
+                  name={copiedPrompt ? 'check' : 'copy'}
+                  size={12}
+                  strokeWidth={copiedPrompt ? 2.2 : 1.8}
+                  className="action-soft-icon"
+                />
                 {copiedPrompt ? '已复制' : '复制'}
               </span>
             </button>

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 
+import { Icon } from '../Icon'
 import { BRUSH_PRESETS, type BrushPresetId } from './annotationPresets'
 import { DetailCanvas } from './DetailCanvas'
 import { DetailFooter } from './DetailFooter'
@@ -556,6 +557,7 @@ export function ImageDetailModal({
         viewMode={viewMode}
         galleryBacksToDetail={galleryBacksToDetail}
         sidebarCollapsed={sidebarCollapsed}
+        className={viewMode === 'detail' ? 'md:hidden' : undefined}
         onClose={onClose}
         onBackToDetail={() => setViewMode('detail')}
         onOpenManageGallery={() => {
@@ -604,9 +606,50 @@ export function ImageDetailModal({
                   }
                 }
               }}
+              leadingNode={
+                <button
+                  type="button"
+                  className="icon-btn"
+                  onClick={onClose}
+                  title="关闭 (Esc)"
+                  style={{ width: 32, height: 32 }}
+                >
+                  <Icon name="close" size={13} strokeWidth={1.8} />
+                </button>
+              }
+              trailingNode={
+                <button
+                  type="button"
+                  className="chip shrink-0 font-normal"
+                  onClick={() => {
+                    setGalleryInitialMode('manage')
+                    setGalleryReturnTarget('detail')
+                    setViewMode('gallery')
+                  }}
+                  title="打开批量管理"
+                  style={{ height: 24, padding: '0 8px' }}
+                >
+                  <Icon name="check_circle" size={12} strokeWidth={1.8} />
+                  <span>批量管理</span>
+                </button>
+              }
             />
 
-            <div className="flex flex-col md:flex-1 md:flex-row md:min-h-0">
+            <div className="flex flex-col md:relative md:flex-1 md:flex-row md:min-h-0">
+              <button
+                type="button"
+                onClick={toggleSidebar}
+                title={sidebarCollapsed ? '展开详情面板' : '收起详情面板'}
+                aria-pressed={!sidebarCollapsed}
+                className="sidebar-edge-toggle"
+                data-collapsed={sidebarCollapsed || undefined}
+              >
+                <Icon
+                  name={sidebarCollapsed ? 'chevron_left' : 'chevron_right'}
+                  size={14}
+                  strokeWidth={1.8}
+                />
+              </button>
               <DetailCanvas
                 selectedItem={selectedItem}
                 currentImage={currentImage}
@@ -696,6 +739,7 @@ export function ImageDetailModal({
                 onAddRef={handleAddRef}
                 onRegenerate={handleRegenerateAction}
                 onReroll={handleRerollAction}
+                onDownload={handleDownload}
                 onCopyPrompt={handleCopyPrompt}
                 onRemove={onRemove}
                 onClose={onClose}

@@ -13,6 +13,7 @@ type DetailHeaderProps = {
   viewMode: ModalViewMode
   galleryBacksToDetail: boolean
   sidebarCollapsed: boolean
+  className?: string
   onClose: () => void
   onBackToDetail: () => void
   onOpenManageGallery: () => void
@@ -32,6 +33,7 @@ export function DetailHeader({
   viewMode,
   galleryBacksToDetail,
   sidebarCollapsed,
+  className,
   onClose,
   onBackToDetail,
   onOpenManageGallery,
@@ -45,7 +47,7 @@ export function DetailHeader({
 
   return (
     <div
-      className="flex items-center gap-2 px-3.5 shrink-0 flex-nowrap"
+      className={`flex items-center gap-2 px-3.5 shrink-0 flex-nowrap${className ? ` ${className}` : ''}`}
       style={{
         height: 48,
         boxShadow: 'inset 0 -1px 0 var(--ring-edge-soft)',

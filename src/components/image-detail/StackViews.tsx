@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 
 import { MODEL_CONFIGS } from '../../config/models'
 import { downloadImagesZip } from '../../lib/exportImages'
@@ -183,11 +183,15 @@ export function StackStrip({
   selectedId,
   onSelect,
   onCancelActiveJobs,
+  leadingNode,
+  trailingNode,
 }: {
   stack: ImageStack
   selectedId: string | null
   onSelect: (item: StackItem) => void
   onCancelActiveJobs: () => void
+  leadingNode?: ReactNode
+  trailingNode?: ReactNode
 }) {
   const stripScrollRef = useRef<HTMLDivElement | null>(null)
   const selectedItemRef = useRef<HTMLDivElement | null>(null)
@@ -220,6 +224,7 @@ export function StackStrip({
       }}
     >
       <div className="flex items-stretch gap-2">
+        {leadingNode && <div className="hidden shrink-0 self-center md:flex">{leadingNode}</div>}
         <div
           ref={stripScrollRef}
           className="strip-scroller -m-1 flex min-w-0 flex-1 items-stretch overflow-x-auto p-1 pr-2"
@@ -271,33 +276,39 @@ export function StackStrip({
           })}
           <div className="w-1 shrink-0" aria-hidden />
         </div>
-        <div className="flex shrink-0 flex-col items-end justify-end gap-1">
-          {hasActiveJobs && (
+        <div className="flex shrink-0 flex-col items-end gap-1">
+          {trailingNode && (
+            <div className="hidden flex-wrap items-center justify-end gap-1.5 md:flex">{trailingNode}</div>
+          )}
+          <div className="min-h-0 flex-1" />
+          <div className="flex items-center gap-1">
+            {hasActiveJobs && (
+              <button
+                type="button"
+                onClick={onCancelActiveJobs}
+                className="chip danger text-sm"
+                style={{ height: 24, padding: '0 8px' }}
+              >
+                取消全部
+              </button>
+            )}
             <button
               type="button"
-              onClick={onCancelActiveJobs}
-              className="chip danger text-sm"
-              style={{ height: 24, padding: '0 8px' }}
+              onClick={() => setCollapsed((value) => !value)}
+              className="chip ghost strip-toggle"
+              style={{ height: 24, padding: '0 6px' }}
+              title={collapsed ? '展开' : '收起'}
+              aria-label={collapsed ? '展开' : '收起'}
             >
-              取消全部
+              <Icon
+                name="chevron_down"
+                size={14}
+                strokeWidth={1.8}
+                className="strip-toggle-icon"
+                data-collapsed={collapsed || undefined}
+              />
             </button>
-          )}
-          <button
-            type="button"
-            onClick={() => setCollapsed((value) => !value)}
-            className="chip ghost strip-toggle"
-            style={{ height: 24, padding: '0 6px' }}
-            title={collapsed ? '展开' : '收起'}
-            aria-label={collapsed ? '展开' : '收起'}
-          >
-            <Icon
-              name="chevron_down"
-              size={14}
-              strokeWidth={1.8}
-              className="strip-toggle-icon"
-              data-collapsed={collapsed || undefined}
-            />
-          </button>
+          </div>
         </div>
       </div>
     </div>
