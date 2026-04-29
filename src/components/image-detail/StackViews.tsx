@@ -201,10 +201,9 @@ export function StackStrip({
 }) {
   const stripScrollRef = useRef<HTMLDivElement | null>(null)
   const selectedItemRef = useRef<HTMLDivElement | null>(null)
-  const [collapsed, setCollapsed] = useState(false)
   const itemNumberById = useMemo(() => new Map(stack.items.map((item, index) => [item.id, index + 1])), [stack.items])
   const batches = useMemo(() => buildStackStripBatches(stack.items), [stack.items])
-  const selectedScrollKey = `${selectedId ?? 'none'}:${stack.items.length}:${collapsed ? 'collapsed' : 'expanded'}`
+  const selectedScrollKey = `${selectedId ?? 'none'}:${stack.items.length}`
 
   useExternalSync(() => {
     if (selectedScrollKey.length === 0) return
@@ -228,13 +227,9 @@ export function StackStrip({
         WebkitBackdropFilter: 'blur(10px)',
       }}
     >
-      <div className="flex items-stretch gap-2">
-        {leadingNode && <div className="hidden shrink-0 self-center md:flex">{leadingNode}</div>}
-        <div
-          ref={stripScrollRef}
-          className="strip-scroller -m-1 flex min-w-0 flex-1 items-stretch overflow-x-auto p-1 pr-2"
-          data-collapsed={collapsed || undefined}
-        >
+      <div className="flex items-center gap-2">
+        {leadingNode && <div className="hidden shrink-0 md:flex">{leadingNode}</div>}
+        <div ref={stripScrollRef} className="-m-1 flex min-w-0 flex-1 items-stretch gap-5 overflow-x-auto p-1 pr-2">
           {batches.map((batch) => {
             const previousBatches = batches.slice(0, batches.indexOf(batch))
             const initialIndex = previousBatches.filter((item) => item.kind === 'initial').length + 1
@@ -242,30 +237,18 @@ export function StackStrip({
             const headline =
               batch.kind === 'initial' ? (initialIndex === 1 ? '初始' : `初始 ${initialIndex}`) : `编辑 ${editIndex}`
             return (
-              <div
-                key={batch.id}
-                className="strip-batch flex shrink-0 flex-col"
-                data-collapsed={collapsed || undefined}
-              >
-                <div className="strip-header-collapse" data-collapsed={collapsed || undefined}>
-                  <div className="min-w-0 overflow-hidden">
-                    <div
-                      className="strip-header-content min-w-0 px-0.5"
-                      style={{ maxWidth: collapsed ? 0 : 240 }}
-                      data-collapsed={collapsed || undefined}
-                    >
-                      <div className="flex items-center gap-1 text-sm leading-[1.3] text-(--color-text-2)">
-                        <span className="font-medium">{headline}</span>
-                        <span className="text-(--color-text-4)">·</span>
-                        <span className="text-(--color-text-3)">{formatHourMinute(batch.createdAt)}</span>
-                      </div>
-                      <div
-                        className="mt-0.5 truncate text-sm leading-[1.35] text-(--color-text-4)"
-                        title={batch.prompt ?? undefined}
-                      >
-                        {batch.prompt ?? '—'}
-                      </div>
-                    </div>
+              <div key={batch.id} className="flex shrink-0 flex-col gap-1.5 md:flex-row md:items-center md:gap-2.5">
+                <div className="min-w-0 px-0.5 md:max-w-[200px] md:shrink-0">
+                  <div className="flex items-center gap-1 text-sm leading-[1.3] text-(--color-text-2)">
+                    <span className="font-medium">{headline}</span>
+                    <span className="text-(--color-text-4)">·</span>
+                    <span className="text-(--color-text-3)">{formatHourMinute(batch.createdAt)}</span>
+                  </div>
+                  <div
+                    className="mt-0.5 truncate text-sm leading-[1.35] text-(--color-text-4)"
+                    title={batch.prompt ?? undefined}
+                  >
+                    {batch.prompt ?? '—'}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -289,30 +272,9 @@ export function StackStrip({
           })}
           <div className="w-1 shrink-0" aria-hidden />
         </div>
-        <div className="flex shrink-0 flex-col items-end gap-1">
-          {trailingNode && (
-            <div className="hidden flex-wrap items-center justify-end gap-1.5 md:flex">{trailingNode}</div>
-          )}
-          <div className="min-h-0 flex-1" />
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              onClick={() => setCollapsed((value) => !value)}
-              className="chip ghost strip-toggle"
-              style={{ height: 24, padding: '0 6px' }}
-              title={collapsed ? '展开' : '收起'}
-              aria-label={collapsed ? '展开' : '收起'}
-            >
-              <Icon
-                name="chevron_down"
-                size={14}
-                strokeWidth={1.8}
-                className="strip-toggle-icon"
-                data-collapsed={collapsed || undefined}
-              />
-            </button>
-          </div>
-        </div>
+        {trailingNode && (
+          <div className="hidden shrink-0 flex-wrap items-center justify-end gap-1.5 md:flex">{trailingNode}</div>
+        )}
       </div>
     </div>
   )
