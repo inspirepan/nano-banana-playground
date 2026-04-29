@@ -198,6 +198,57 @@ function toDisplayError(e: unknown): string {
   return err.message
 }
 
+function stableStringify(value: unknown): string {
+  if (value === undefined) return '"__undefined__"'
+  if (value === null || typeof value !== 'object') return JSON.stringify(value)
+  if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`
+
+  const record = value as Record<string, unknown>
+  return `{${Object.keys(record)
+    .sort()
+    .map((key) => `${JSON.stringify(key)}:${stableStringify(record[key])}`)
+    .join(',')}}`
+}
+
+function hashString(value: string): string {
+  let a = 0x811c9dc5
+  let b = 0x45d9f3b
+  for (let i = 0; i < value.length; i++) {
+    const code = value.charCodeAt(i)
+    a ^= code
+    a = Math.imul(a, 0x01000193)
+    b ^= code
+    b = Math.imul(b, 0x1000193)
+  }
+  return `${(a >>> 0).toString(36)}${(b >>> 0).toString(36)}`
+}
+
+function stackIdForGenerationRequest(params: {
+  model: ModelConfig
+  prompt: string
+  referenceImages: PlaygroundImage[]
+  resolution: string
+  aspectRatio: string
+  options: Record<string, unknown>
+  batchCount: number
+}): string {
+  const payload = {
+    version: 1,
+    modelId: params.model.id,
+    prompt: params.prompt,
+    resolution: params.resolution,
+    aspectRatio: params.aspectRatio,
+    batchCount: params.batchCount,
+    options: params.options,
+    referenceImages: params.referenceImages.map((image) => ({
+      mimeType: image.mimeType,
+      dataHash: hashString(image.data),
+    })),
+  }
+
+  return `stack-${hashString(stableStringify(payload))}`
+}
+
 export function usePlayground() {
   const googleKeyHook = useApiKey('google')
   const openaiKeyHook = useApiKey('openai')
@@ -740,7 +791,15 @@ export function usePlayground() {
     const activeOptions: Record<string, unknown> = {}
     for (const opt of model.options ?? []) activeOptions[opt.id] = options[opt.id]
 
-    const stackId = crypto.randomUUID()
+    const stackId = stackIdForGenerationRequest({
+      model,
+      prompt: trimmed,
+      referenceImages,
+      resolution,
+      aspectRatio,
+      options: activeOptions,
+      batchCount,
+    })
     enqueueGenerationJob(
       {
         apiKey: apiKeyHook.apiKey,

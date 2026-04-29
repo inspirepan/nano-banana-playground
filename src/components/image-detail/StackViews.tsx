@@ -146,6 +146,7 @@ type StackStripBatch = {
   createdAt: number
   items: StackItem[]
   prompt: string | null
+  kind: 'initial' | 'edit'
 }
 
 function buildStackStripBatches(items: StackItem[]): StackStripBatch[] {
@@ -154,12 +155,18 @@ function buildStackStripBatches(items: StackItem[]): StackStripBatch[] {
   for (const item of items) {
     let batch = map.get(item.batchId)
     if (!batch) {
-      batch = { id: item.batchId, createdAt: item.timestamp, items: [], prompt: null }
+      batch = { id: item.batchId, createdAt: item.timestamp, items: [], prompt: null, kind: 'initial' }
       map.set(item.batchId, batch)
       order.push(item.batchId)
     }
     batch.items.push(item)
     batch.createdAt = Math.min(batch.createdAt, item.timestamp)
+    if (
+      (item.type === 'image' && item.image.source.type === 'generated' && item.image.source.parentImageId) ||
+      (item.type === 'slot' && item.job.parentImageId)
+    ) {
+      batch.kind = 'edit'
+    }
     if (!batch.prompt) {
       if (item.type === 'image' && item.image.source.type === 'generated') {
         batch.prompt = item.image.source.prompt
@@ -236,8 +243,11 @@ export function StackStrip({
           className="strip-scroller -m-1 flex min-w-0 flex-1 items-stretch overflow-x-auto p-1 pr-2"
           data-collapsed={collapsed || undefined}
         >
-          {batches.map((batch, batchIdx) => {
-            const headline = batchIdx === 0 ? '初始' : `编辑 ${batchIdx}`
+          {batches.map((batch) => {
+            const previousBatches = batches.slice(0, batches.indexOf(batch))
+            const initialIndex = previousBatches.filter((item) => item.kind === 'initial').length + 1
+            const editIndex = previousBatches.filter((item) => item.kind === 'edit').length + 1
+            const headline = batch.kind === 'initial' ? (initialIndex === 1 ? '初始' : `初始 ${initialIndex}`) : `编辑 ${editIndex}`
             return (
               <div
                 key={batch.id}
