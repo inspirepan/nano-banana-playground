@@ -77,7 +77,7 @@ export function AspectRatioSelector({
                   <span className="glyph" style={{ width: w, height: h }} />
                 </span>
                 {/* ratio digits — fixed 2ch slots keep every colon column-aligned */}
-                <span className="inline-flex items-center">
+                <span className="inline-flex items-center text-base">
                   <span className="inline-block text-right" style={{ width: '2ch' }}>
                     {left}
                   </span>
