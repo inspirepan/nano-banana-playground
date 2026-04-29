@@ -511,245 +511,255 @@ export function ImageDetailModal({
     })()
   const galleryBacksToDetail = viewMode === 'gallery' && galleryReturnTarget === 'detail'
 
-  // 100dvh doesn't always match the visible area on iOS Safari when the
-  // keyboard opens; tracking the visual viewport height keeps the modal
-  // bottom flush with the keyboard top.
-  const { height: viewportHeight } = useVisualViewport()
+  // Keep the backdrop covering the full layout viewport. iOS Safari shrinks
+  // visualViewport when the keyboard opens, so only the content layer follows
+  // it; otherwise the modal background gets clipped and the page underneath
+  // peeks through.
+  const { height: viewportHeight, offsetTop: viewportOffsetTop } = useVisualViewport()
 
   return createPortal(
     <div
-      className="fixed top-0 left-0 w-full z-[100] flex flex-col fade-in"
+      className="fixed inset-0 z-[100] overflow-hidden fade-in"
       style={{
-        // iOS Safari already lays position:fixed relative to the visual
-        // viewport — only the height needs explicit tracking so the modal
-        // shrinks with the soft keyboard instead of leaving a blank gap.
-        height: viewportHeight || '100dvh',
         background: 'color-mix(in srgb, var(--color-bg) 82%, transparent)',
         backdropFilter: 'blur(14px)',
         WebkitBackdropFilter: 'blur(14px)',
       }}
     >
-      {/* Sentinel for preview loader */}
-      <div ref={imgRef} className="fixed top-0 left-0 w-0 h-0 pointer-events-none" aria-hidden />
-
-      <DetailHeader
-        currentImage={currentImage}
-        currentMeta={currentMeta}
-        currentSlot={currentSlot}
-        modelName={modelName}
-        pxDim={pxDim}
-        viewMode={viewMode}
-        galleryBacksToDetail={galleryBacksToDetail}
-        sidebarCollapsed={sidebarCollapsed}
-        className={viewMode === 'detail' ? 'md:hidden' : undefined}
-        onClose={onClose}
-        onBackToDetail={() => {
-          setGalleryReturnTarget('detail')
-          setViewMode('detail')
+      <div
+        className="flex flex-col"
+        style={{
+          height: viewportHeight || '100dvh',
+          transform: viewportOffsetTop ? `translateY(${viewportOffsetTop}px)` : undefined,
         }}
-        onOpenManageGallery={() => {
-          setGalleryInitialMode('manage')
-          setGalleryReturnTarget('detail')
-          setViewMode('gallery')
-        }}
-        onAddRef={handleAddRef}
-        onRegenerate={handleRegenerateAction}
-        onReroll={handleRerollAction}
-        onDownload={handleDownload}
-        onToggleSidebar={toggleSidebar}
-      />
+      >
+        {/* Sentinel for preview loader */}
+        <div ref={imgRef} className="fixed top-0 left-0 w-0 h-0 pointer-events-none" aria-hidden />
 
-      {viewMode === 'gallery' ? (
-        <StackGallery
-          stack={stack}
-          initialMode={galleryInitialMode}
-          selectedId={selectedItem?.id ?? null}
-          onSelect={(item) => {
-            selectStackItem(item)
+        <DetailHeader
+          currentImage={currentImage}
+          currentMeta={currentMeta}
+          currentSlot={currentSlot}
+          modelName={modelName}
+          pxDim={pxDim}
+          viewMode={viewMode}
+          galleryBacksToDetail={galleryBacksToDetail}
+          sidebarCollapsed={sidebarCollapsed}
+          className={viewMode === 'detail' ? 'md:hidden' : undefined}
+          onClose={onClose}
+          onBackToDetail={() => {
             setGalleryReturnTarget('detail')
             setViewMode('detail')
           }}
-          onRemove={onRemove}
+          onOpenManageGallery={() => {
+            setGalleryInitialMode('manage')
+            setGalleryReturnTarget('detail')
+            setViewMode('gallery')
+          }}
+          onAddRef={handleAddRef}
+          onRegenerate={handleRegenerateAction}
+          onReroll={handleRerollAction}
+          onDownload={handleDownload}
+          onToggleSidebar={toggleSidebar}
         />
-      ) : (
-        <>
-          <div
-            ref={detailScrollRef}
-            className="relative flex-1 min-h-0 overflow-y-auto overflow-x-hidden md:flex md:flex-col md:overflow-hidden"
-            style={{ WebkitOverflowScrolling: 'touch' }}
-          >
-            <StackStrip
-              stack={stack}
-              selectedId={selectedItem?.id ?? null}
-              onSelect={selectStackItem}
-              leadingNode={
-                <button
-                  type="button"
-                  className="icon-btn"
-                  onClick={onClose}
-                  title="关闭 (Esc)"
-                  style={{ width: 32, height: 32 }}
-                >
-                  <Icon name="close" size={13} strokeWidth={1.8} />
-                </button>
-              }
-              trailingNode={
-                <button
-                  type="button"
-                  className="chip ghost shrink-0 font-normal text-(--color-text-3)"
-                  onClick={() => {
-                    setGalleryInitialMode('manage')
-                    setGalleryReturnTarget('detail')
-                    setViewMode('gallery')
-                  }}
-                  title="打开批量管理"
-                  style={{ height: 24, padding: '0 6px' }}
-                >
-                  <Icon name="check_circle" size={12} strokeWidth={1.8} />
-                  <span>批量管理</span>
-                </button>
-              }
-            />
 
-            <div className="flex flex-col md:relative md:flex-1 md:flex-row md:min-h-0">
-              <button
-                type="button"
-                onClick={toggleSidebar}
-                title={sidebarCollapsed ? '展开详情面板' : '收起详情面板'}
-                aria-pressed={!sidebarCollapsed}
-                className="sidebar-edge-toggle"
-                data-collapsed={sidebarCollapsed || undefined}
-              >
-                <Icon name={sidebarCollapsed ? 'chevron_left' : 'chevron_right'} size={14} strokeWidth={1.8} />
-              </button>
-              <DetailCanvas
-                selectedItem={selectedItem}
-                currentImage={currentImage}
-                currentMeta={currentMeta}
-                currentSrc={currentSrc}
-                displayImage={displayImage}
-                refDetailId={refDetailId}
-                refDetailSrc={refDetailSrc}
-                hasPrev={hasPrev}
-                hasNext={hasNext}
-                isMobileLayout={isMobileLayout}
-                toast={toast}
-                drawRevision={drawRevision}
-                activeDrawMode={activeDrawMode}
-                drawTool={drawTool}
+        {viewMode === 'gallery' ? (
+          <StackGallery
+            stack={stack}
+            initialMode={galleryInitialMode}
+            selectedId={selectedItem?.id ?? null}
+            onSelect={(item) => {
+              selectStackItem(item)
+              setGalleryReturnTarget('detail')
+              setViewMode('detail')
+            }}
+            onRemove={onRemove}
+          />
+        ) : (
+          <>
+            <div
+              ref={detailScrollRef}
+              className="relative flex-1 min-h-0 overflow-y-auto overflow-x-hidden md:flex md:flex-col md:overflow-hidden"
+              style={{ WebkitOverflowScrolling: 'touch' }}
+            >
+              <StackStrip
+                stack={stack}
+                selectedId={selectedItem?.id ?? null}
+                onSelect={selectStackItem}
+                leadingNode={
+                  <button
+                    type="button"
+                    className="icon-btn"
+                    onClick={onClose}
+                    title="关闭 (Esc)"
+                    style={{ width: 32, height: 32 }}
+                  >
+                    <Icon name="close" size={13} strokeWidth={1.8} />
+                  </button>
+                }
+                trailingNode={
+                  <button
+                    type="button"
+                    className="chip ghost shrink-0 font-normal text-(--color-text-3)"
+                    onClick={() => {
+                      setGalleryInitialMode('manage')
+                      setGalleryReturnTarget('detail')
+                      setViewMode('gallery')
+                    }}
+                    title="打开批量管理"
+                    style={{ height: 24, padding: '0 6px' }}
+                  >
+                    <Icon name="check_circle" size={12} strokeWidth={1.8} />
+                    <span>批量管理</span>
+                  </button>
+                }
+              />
+
+              <div className="flex flex-col md:relative md:flex-1 md:flex-row md:min-h-0">
+                <button
+                  type="button"
+                  onClick={toggleSidebar}
+                  title={sidebarCollapsed ? '展开详情面板' : '收起详情面板'}
+                  aria-pressed={!sidebarCollapsed}
+                  className="sidebar-edge-toggle"
+                  data-collapsed={sidebarCollapsed || undefined}
+                >
+                  <Icon name={sidebarCollapsed ? 'chevron_left' : 'chevron_right'} size={14} strokeWidth={1.8} />
+                </button>
+                <DetailCanvas
+                  selectedItem={selectedItem}
+                  currentImage={currentImage}
+                  currentMeta={currentMeta}
+                  currentSrc={currentSrc}
+                  displayImage={displayImage}
+                  refDetailId={refDetailId}
+                  refDetailSrc={refDetailSrc}
+                  hasPrev={hasPrev}
+                  hasNext={hasNext}
+                  isMobileLayout={isMobileLayout}
+                  toast={toast}
+                  drawRevision={drawRevision}
+                  activeDrawMode={activeDrawMode}
+                  drawTool={drawTool}
+                  brushPreset={brushPreset}
+                  brushSize={brushSize}
+                  desktopMoveActive={desktopMoveActive}
+                  hasDrawableMarks={hasDrawableMarks}
+                  drawableLayerVisible={drawableLayerVisible}
+                  desktopAnnotationActive={desktopAnnotationActive}
+                  drawableReadOnly={editMode === 'view' || desktopMoveActive}
+                  drawablePanEnabled={desktopMoveActive || (editMode === 'view' && hasDrawableMarks && !isMobileLayout)}
+                  drawableRef={drawableRef}
+                  onGoPrev={goToPrev}
+                  onGoNext={goToNext}
+                  onOpenMobilePreview={() => setMobilePreviewOpen(true)}
+                  onCloseRefDetail={() => setRefDetailId(null)}
+                  onChangeDrawTool={setDrawTool}
+                  onChangeDesktopMoveActive={setDesktopMoveActive}
+                  onChangeBrushPreset={setBrushPreset}
+                  onItemsChange={setDrawableCounts}
+                  onUndo={() => drawableRef.current?.undo()}
+                  onClearAnnotationsInPlace={clearAnnotationsInPlace}
+                  onFinishAnnotation={finishAnnotation}
+                  onCancelGenerationSlot={onCancelGenerationSlot}
+                  onCancelGenerationJob={onCancelGenerationJob}
+                  onDismissGenerationJob={onDismissGenerationJob}
+                  onRetryGenerationSlot={handleRetrySlotAction}
+                />
+
+                <DetailSidePanel
+                  editing={editing}
+                  isMobileLayout={isMobileLayout}
+                  sidebarCollapsed={sidebarCollapsed}
+                  currentImage={currentImage}
+                  currentMeta={currentMeta}
+                  currentSlot={currentSlot}
+                  currentJob={currentJob}
+                  modelName={modelName}
+                  modelApiId={modelApiId}
+                  modelConfig={modelConfig}
+                  actualCost={actualCost}
+                  stackId={stack.id}
+                  stackInfo={stackInfo}
+                  canNavigate={canNavigate}
+                  copiedPrompt={copiedPrompt}
+                  refDetailId={refDetailId}
+                  generationJobs={generationJobs}
+                  activeEditBatchId={activeEditBatchId}
+                  annotationActive={editMode !== 'view'}
+                  hasAnnotations={hasDrawableMarks}
+                  drawableCounts={drawableCounts}
+                  drawableRef={drawableRef}
+                  drawTool={drawTool}
+                  desktopMoveActive={desktopMoveActive}
+                  brushPreset={brushPreset}
+                  findRefImage={findRefImage}
+                  onExitEdit={exitEdit}
+                  onStartEdit={() => {
+                    if (!currentImage) return
+                    if (isMobileLayout) setEditing(true)
+                    else startAnnotation()
+                  }}
+                  onEditImage={onEditImage}
+                  onSetActiveBatchId={setActiveEditBatch}
+                  onStartAnnotation={startAnnotation}
+                  onFinishAnnotation={finishAnnotation}
+                  onClearAnnotations={clearAnnotations}
+                  onChangeDrawTool={(tool) => {
+                    setDesktopMoveActive(false)
+                    setDrawTool(tool)
+                  }}
+                  onChangeDesktopMoveActive={setDesktopMoveActive}
+                  onChangeBrushPreset={setBrushPreset}
+                  onToggleRefDetail={(id) => setRefDetailId((prev) => (prev === id ? null : id))}
+                  onAddRef={handleAddRef}
+                  onRegenerate={handleRegenerateAction}
+                  onReroll={handleRerollAction}
+                  onDownload={handleDownload}
+                  onCopyPrompt={handleCopyPrompt}
+                  onRemove={onRemove}
+                  onClose={onClose}
+                />
+              </div>
+            </div>
+
+            <DetailFooter
+              editing={editing}
+              currentImage={currentImage}
+              selectedItem={selectedItem}
+              stackId={stack.id}
+            />
+            {isMobileLayout && editing && mobileDrawOpen && currentImage && (
+              <MobileDrawFullscreen
+                key={currentImage.id}
+                imageId={currentImage.id}
+                src={currentSrc ?? ''}
+                mode={activeDrawMode}
+                tool={drawTool}
                 brushPreset={brushPreset}
                 brushSize={brushSize}
-                desktopMoveActive={desktopMoveActive}
-                hasDrawableMarks={hasDrawableMarks}
-                drawableLayerVisible={drawableLayerVisible}
-                desktopAnnotationActive={desktopAnnotationActive}
-                drawableReadOnly={editMode === 'view' || desktopMoveActive}
-                drawablePanEnabled={desktopMoveActive || (editMode === 'view' && hasDrawableMarks && !isMobileLayout)}
+                counts={drawableCounts}
                 drawableRef={drawableRef}
-                onGoPrev={goToPrev}
-                onGoNext={goToNext}
-                onOpenMobilePreview={() => setMobilePreviewOpen(true)}
-                onCloseRefDetail={() => setRefDetailId(null)}
-                onChangeDrawTool={setDrawTool}
-                onChangeDesktopMoveActive={setDesktopMoveActive}
+                onChangeTool={setDrawTool}
                 onChangeBrushPreset={setBrushPreset}
                 onItemsChange={setDrawableCounts}
                 onUndo={() => drawableRef.current?.undo()}
-                onClearAnnotationsInPlace={clearAnnotationsInPlace}
-                onFinishAnnotation={finishAnnotation}
-                onCancelGenerationSlot={onCancelGenerationSlot}
-                onCancelGenerationJob={onCancelGenerationJob}
-                onDismissGenerationJob={onDismissGenerationJob}
-                onRetryGenerationSlot={handleRetrySlotAction}
+                onClear={clearAnnotations}
+                onClose={finishAnnotation}
               />
-
-              <DetailSidePanel
-                editing={editing}
-                isMobileLayout={isMobileLayout}
-                sidebarCollapsed={sidebarCollapsed}
-                currentImage={currentImage}
-                currentMeta={currentMeta}
-                currentSlot={currentSlot}
-                currentJob={currentJob}
-                modelName={modelName}
-                modelApiId={modelApiId}
-                modelConfig={modelConfig}
-                actualCost={actualCost}
-                stackId={stack.id}
-                stackInfo={stackInfo}
-                canNavigate={canNavigate}
-                copiedPrompt={copiedPrompt}
-                refDetailId={refDetailId}
-                generationJobs={generationJobs}
-                activeEditBatchId={activeEditBatchId}
-                annotationActive={editMode !== 'view'}
-                hasAnnotations={hasDrawableMarks}
-                drawableCounts={drawableCounts}
-                drawableRef={drawableRef}
-                drawTool={drawTool}
-                desktopMoveActive={desktopMoveActive}
-                brushPreset={brushPreset}
-                findRefImage={findRefImage}
-                onExitEdit={exitEdit}
-                onStartEdit={() => {
-                  if (!currentImage) return
-                  if (isMobileLayout) setEditing(true)
-                  else startAnnotation()
-                }}
-                onEditImage={onEditImage}
-                onSetActiveBatchId={setActiveEditBatch}
-                onStartAnnotation={startAnnotation}
-                onFinishAnnotation={finishAnnotation}
-                onClearAnnotations={clearAnnotations}
-                onChangeDrawTool={(tool) => {
-                  setDesktopMoveActive(false)
-                  setDrawTool(tool)
-                }}
-                onChangeDesktopMoveActive={setDesktopMoveActive}
-                onChangeBrushPreset={setBrushPreset}
-                onToggleRefDetail={(id) => setRefDetailId((prev) => (prev === id ? null : id))}
-                onAddRef={handleAddRef}
-                onRegenerate={handleRegenerateAction}
-                onReroll={handleRerollAction}
-                onDownload={handleDownload}
-                onCopyPrompt={handleCopyPrompt}
-                onRemove={onRemove}
-                onClose={onClose}
+            )}
+            {isMobileLayout && mobilePreviewOpen && currentImage && (
+              <MobilePreviewFullscreen
+                src={displayImage?.src ?? currentSrc ?? ''}
+                alt={displayImage?.alt ?? currentMeta?.prompt ?? ''}
+                onClose={() => setMobilePreviewOpen(false)}
+                onSwipeLeft={hasNext ? goToNext : undefined}
+                onSwipeRight={hasPrev ? goToPrev : undefined}
               />
-            </div>
-          </div>
-
-          <DetailFooter editing={editing} currentImage={currentImage} selectedItem={selectedItem} stackId={stack.id} />
-          {isMobileLayout && editing && mobileDrawOpen && currentImage && (
-            <MobileDrawFullscreen
-              key={currentImage.id}
-              imageId={currentImage.id}
-              src={currentSrc ?? ''}
-              mode={activeDrawMode}
-              tool={drawTool}
-              brushPreset={brushPreset}
-              brushSize={brushSize}
-              counts={drawableCounts}
-              drawableRef={drawableRef}
-              onChangeTool={setDrawTool}
-              onChangeBrushPreset={setBrushPreset}
-              onItemsChange={setDrawableCounts}
-              onUndo={() => drawableRef.current?.undo()}
-              onClear={clearAnnotations}
-              onClose={finishAnnotation}
-            />
-          )}
-          {isMobileLayout && mobilePreviewOpen && currentImage && (
-            <MobilePreviewFullscreen
-              src={displayImage?.src ?? currentSrc ?? ''}
-              alt={displayImage?.alt ?? currentMeta?.prompt ?? ''}
-              onClose={() => setMobilePreviewOpen(false)}
-              onSwipeLeft={hasNext ? goToNext : undefined}
-              onSwipeRight={hasPrev ? goToPrev : undefined}
-            />
-          )}
-        </>
-      )}
+            )}
+          </>
+        )}
+      </div>
     </div>,
     document.body,
   )
