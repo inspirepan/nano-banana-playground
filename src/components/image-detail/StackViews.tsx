@@ -141,6 +141,43 @@ export function SlotHero({
   )
 }
 
+type StackStripBatch = {
+  id: string
+  createdAt: number
+  items: StackItem[]
+  prompt: string | null
+}
+
+function buildStackStripBatches(items: StackItem[]): StackStripBatch[] {
+  const map = new Map<string, StackStripBatch>()
+  const order: string[] = []
+  for (const item of items) {
+    let batch = map.get(item.batchId)
+    if (!batch) {
+      batch = { id: item.batchId, createdAt: item.timestamp, items: [], prompt: null }
+      map.set(item.batchId, batch)
+      order.push(item.batchId)
+    }
+    batch.items.push(item)
+    batch.createdAt = Math.min(batch.createdAt, item.timestamp)
+    if (!batch.prompt) {
+      if (item.type === 'image' && item.image.source.type === 'generated') {
+        batch.prompt = item.image.source.prompt
+      } else if (item.type === 'slot') {
+        batch.prompt = item.job.request.prompt
+      }
+    }
+  }
+  return order.map((id) => map.get(id) as StackStripBatch)
+}
+
+function formatHourMinute(ts: number): string {
+  const d = new Date(ts)
+  const h = d.getHours().toString().padStart(2, '0')
+  const m = d.getMinutes().toString().padStart(2, '0')
+  return `${h}:${m}`
+}
+
 export function StackStrip({
   stack,
   selectedId,
@@ -155,6 +192,7 @@ export function StackStrip({
   const stripScrollRef = useRef<HTMLDivElement | null>(null)
   const selectedItemRef = useRef<HTMLDivElement | null>(null)
   const itemNumberById = useMemo(() => new Map(stack.items.map((item, index) => [item.id, index + 1])), [stack.items])
+  const batches = useMemo(() => buildStackStripBatches(stack.items), [stack.items])
   const hasActiveJobs = stack.jobs.some((job) =>
     job.slots.some((slot) => slot.status === 'queued' || slot.status === 'running' || slot.status === 'retrying'),
   )
@@ -180,19 +218,41 @@ export function StackStrip({
         WebkitBackdropFilter: 'blur(10px)',
       }}
     >
-      <div className="flex items-center gap-2">
-        <div ref={stripScrollRef} className="-m-1 flex min-w-0 flex-1 items-center gap-2 overflow-x-auto p-1 pr-2">
-          {stack.items.map((item) => {
-            const active = selectedId === item.id
+      <div className="flex items-stretch gap-2">
+        <div ref={stripScrollRef} className="-m-1 flex min-w-0 flex-1 items-stretch gap-5 overflow-x-auto p-1 pr-2">
+          {batches.map((batch, batchIdx) => {
+            const headline = batchIdx === 0 ? '初始' : `编辑 ${batchIdx}`
             return (
-              <div key={item.id} ref={active ? selectedItemRef : undefined} className="shrink-0">
-                <StackItemThumb
-                  item={item}
-                  number={itemNumberById.get(item.id)}
-                  active={active}
-                  outerRing
-                  onSelect={onSelect}
-                />
+              <div key={batch.id} className="flex shrink-0 flex-col gap-1.5">
+                <div className="min-w-0 px-0.5" style={{ maxWidth: 240 }}>
+                  <div className="flex items-center gap-1 text-sm leading-[1.3] text-(--color-text-2)">
+                    <span className="font-medium">{headline}</span>
+                    <span className="text-(--color-text-4)">·</span>
+                    <span className="text-(--color-text-3)">{formatHourMinute(batch.createdAt)}</span>
+                  </div>
+                  <div
+                    className="mt-0.5 truncate text-sm leading-[1.35] text-(--color-text-4)"
+                    title={batch.prompt ?? undefined}
+                  >
+                    {batch.prompt ?? '—'}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {batch.items.map((item) => {
+                    const active = selectedId === item.id
+                    return (
+                      <div key={item.id} ref={active ? selectedItemRef : undefined} className="shrink-0">
+                        <StackItemThumb
+                          item={item}
+                          number={itemNumberById.get(item.id)}
+                          active={active}
+                          outerRing
+                          onSelect={onSelect}
+                        />
+                      </div>
+                    )
+                  })}
+                </div>
               </div>
             )
           })}
@@ -202,7 +262,7 @@ export function StackStrip({
           <button
             type="button"
             onClick={onCancelActiveJobs}
-            className="chip danger shrink-0 text-sm"
+            className="chip danger shrink-0 self-center text-sm"
             style={{ height: 24, padding: '0 8px' }}
           >
             取消全部
