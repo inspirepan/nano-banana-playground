@@ -28,6 +28,8 @@ function parseAspectRatio(ratio: string): number {
 function getGridSpan(aspectRatio: string, isMobile: boolean): GridSpan {
   const ratio = parseAspectRatio(aspectRatio)
   if (ratio >= 0.95 && ratio <= 1.05) return isMobile ? { cols: 2, rows: 2 } : { cols: 3, rows: 3 }
+  // Give common 2:3 portraits the same column weight as other primary thumbnails.
+  if (ratio >= 0.62 && ratio <= 0.7) return { cols: 3, rows: 5 }
   if (ratio <= 0.35) return { cols: 2, rows: 4 }
   if (ratio >= 2.85) return { cols: 4, rows: 2 }
 
