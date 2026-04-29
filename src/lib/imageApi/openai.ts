@@ -1,0 +1,160 @@
+import { GENERATE_MAX_RETRIES, GENERATE_RETRY_DELAYS, isRetryable, REQUEST_TIMEOUT_MS, retryMessage } from './retry'
+import type { GenerateCallbacks, GenerateParams } from './types'
+import { base64ToBlob } from '../blobUtils'
+import { openAISize } from '../openai'
+import type { PlaygroundImage, TokenUsage } from '../types'
+import { resolveBaseUrl } from '../validateKey'
+
+export async function generateImageOpenAI(
+  params: GenerateParams,
+  signal?: AbortSignal,
+  callbacks?: GenerateCallbacks,
+): Promise<PlaygroundImage> {
+  const {
+    apiKey,
+    baseUrl,
+    model,
+    prompt,
+    referenceImages,
+    resolution,
+    aspectRatio,
+    options,
+    batchId,
+    batchCreatedAt,
+    stackId,
+    parentImageId,
+    slotIndex,
+    mask,
+  } = params
+
+  const size = openAISize(resolution, aspectRatio)
+  const quality = typeof options.quality === 'string' ? options.quality : 'auto'
+
+  const base = resolveBaseUrl('openai', baseUrl)
+  const hasRefs = referenceImages.length > 0
+  const url = hasRefs ? `${base}/images/edits` : `${base}/images/generations`
+  const timeoutSignal = AbortSignal.timeout(REQUEST_TIMEOUT_MS)
+  const mergedSignal = signal ? AbortSignal.any([signal, timeoutSignal]) : timeoutSignal
+
+  let body: BodyInit
+  const headers: Record<string, string> = { Authorization: `Bearer ${apiKey}` }
+  if (hasRefs) {
+    const form = new FormData()
+    form.append('model', model.apiModel)
+    form.append('prompt', prompt)
+    form.append('size', size)
+    form.append('quality', quality)
+    form.append('n', '1')
+    for (const img of referenceImages) {
+      const blob = base64ToBlob(img.data, img.mimeType || 'image/png')
+      const ext = (img.mimeType || 'image/png').split('/')[1] || 'png'
+      form.append('image[]', blob, `ref.${ext}`)
+    }
+    if (mask) {
+      // images.edits requires the mask to match the reference image dimensions.
+      const maskBlob = base64ToBlob(mask.data, mask.mimeType || 'image/png')
+      form.append('mask', maskBlob, 'mask.png')
+    }
+    body = form
+  } else {
+    headers['Content-Type'] = 'application/json'
+    body = JSON.stringify({ model: model.apiModel, prompt, size, quality, n: 1 })
+  }
+
+  const requestInit: RequestInit = { method: 'POST', headers, body, signal: mergedSignal }
+  let lastError: unknown
+  for (let attempt = 0; attempt <= GENERATE_MAX_RETRIES; attempt++) {
+    if (attempt > 0) {
+      const delay = GENERATE_RETRY_DELAYS[attempt - 1]
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, delay)
+      })
+      if (signal?.aborted) throw signal.reason
+    }
+
+    let res: Response
+    try {
+      res = await fetch(url, requestInit)
+    } catch (e) {
+      lastError = e
+      if (isRetryable(e) && attempt < GENERATE_MAX_RETRIES) {
+        callbacks?.onRetry?.({
+          attempt: attempt + 1,
+          nextAttempt: attempt + 2,
+          delayMs: GENERATE_RETRY_DELAYS[attempt],
+          error: retryMessage(e),
+        })
+        continue
+      }
+      throw e
+    }
+
+    if (isRetryable(null, res.status) && attempt < GENERATE_MAX_RETRIES) {
+      lastError = new Error(`Server error ${res.status}`)
+      callbacks?.onRetry?.({
+        attempt: attempt + 1,
+        nextAttempt: attempt + 2,
+        delayMs: GENERATE_RETRY_DELAYS[attempt],
+        error: retryMessage(lastError),
+      })
+      continue
+    }
+
+    const data = (await res.json()) as {
+      data?: Array<{ b64_json?: string }>
+      usage?: {
+        input_tokens?: number
+        output_tokens?: number
+        total_tokens?: number
+        input_tokens_details?: { text_tokens?: number; image_tokens?: number }
+        output_tokens_details?: { text_tokens?: number; image_tokens?: number }
+      }
+      error?: { message: string }
+    }
+
+    if (!res.ok || data.error) throw new Error(data.error?.message ?? `HTTP ${res.status}`)
+
+    const b64 = data.data?.[0]?.b64_json
+    if (!b64) throw new Error('No image in response')
+
+    const outputImageTokens = data.usage?.output_tokens_details?.image_tokens ?? data.usage?.output_tokens ?? 0
+    const outputTextTokens =
+      data.usage?.output_tokens_details?.text_tokens ??
+      Math.max((data.usage?.output_tokens ?? 0) - outputImageTokens, 0)
+    const tokenUsage: TokenUsage | undefined = data.usage
+      ? {
+          inputTokens: data.usage.input_tokens ?? 0,
+          inputTextTokens: data.usage.input_tokens_details?.text_tokens ?? 0,
+          inputImageTokens: data.usage.input_tokens_details?.image_tokens ?? 0,
+          imageOutputTokens: outputImageTokens,
+          textOutputTokens: outputTextTokens,
+          totalTokens: data.usage.total_tokens ?? 0,
+        }
+      : undefined
+
+    return {
+      id: crypto.randomUUID(),
+      data: b64,
+      mimeType: 'image/png',
+      source: {
+        type: 'generated',
+        modelId: model.id,
+        prompt,
+        resolution,
+        aspectRatio,
+        referenceImageIds: referenceImages.map((r) => r.id),
+        batchId,
+        batchCreatedAt,
+        stackId,
+        ...(parentImageId ? { parentImageId } : {}),
+        ...(slotIndex !== undefined ? { slotIndex } : {}),
+        tokenUsage,
+        options: { ...options },
+        usesMask: Boolean(mask),
+      },
+      timestamp: Date.now(),
+    }
+  }
+
+  throw lastError
+}

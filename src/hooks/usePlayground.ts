@@ -2,6 +2,7 @@ import { useState, useCallback, useRef } from 'react'
 
 import { useExternalSync, useMountEffect } from './effects'
 import { useApiKey } from './useApiKey'
+import { useGenerationQueue, type GenerationJob } from './useGenerationQueue'
 import { putBlobInCache, getBlobFromCache, removeBlobFromCache } from './useImageSrc'
 import {
   MODEL_CONFIGS,
@@ -11,10 +12,8 @@ import {
   serializeOptionValue,
   type ModelConfig,
 } from '../config/models'
-import { generateImage, GENERATE_MAX_ATTEMPTS } from '../lib/api'
 import { readFileAsImageData } from '../lib/fileToImage'
 import {
-  saveToHistory,
   loadHistoryPage,
   deleteFromHistory,
   loadImageBlobs,
@@ -25,70 +24,21 @@ import {
 } from '../lib/history'
 import type { GeneratedSource, PlaygroundImage, PlaygroundImageMeta } from '../lib/types'
 import { readSimpleUrlParams, updateUrl } from '../lib/urlState'
-import { isKeyError } from '../lib/validateKey'
 
-export type GenerationSlotStatus = 'queued' | 'running' | 'retrying' | 'succeeded' | 'failed' | 'canceled'
-export type GenerationJobStatus = 'queued' | 'running' | 'completed' | 'partial_failed' | 'failed' | 'canceled'
-
-export type GenerationSlot = {
-  id: string
-  index: number
-  status: GenerationSlotStatus
-  attempt: number
-  maxAttempts: number
-  image?: PlaygroundImage
-  error?: string
-  retryDelayMs?: number
-  retryAt?: number
-}
-
-export type GenerationJob = {
-  id: string
-  stackId: string
-  parentImageId?: string
-  createdAt: number
-  startedAt?: number
-  finishedAt?: number
-  status: GenerationJobStatus
-  request: {
-    apiKey: string
-    baseUrl?: string
-    model: ModelConfig
-    prompt: string
-    referenceImages: PlaygroundImage[]
-    resolution: string
-    aspectRatio: string
-    options: Record<string, unknown>
-    // OpenAI-only: alpha-channel mask sent to images.edits. We keep it off the
-    // persisted `referenceImageIds` so history metadata doesn't show it as a
-    // user-visible reference, but the blob still lives here for retries.
-    mask?: PlaygroundImage
-  }
-  slots: GenerationSlot[]
-}
-
-export type GenerationQueueSummary = {
-  total: number
-  queued: number
-  running: number
-  retrying: number
-  succeeded: number
-  failed: number
-  canceled: number
-  activeJobs: number
-}
+export type {
+  GenerationJob,
+  GenerationQueueSummary,
+  GenerationSlot,
+  GenerationSlotStatus,
+  RetryGenerationSlotResult,
+} from './useGenerationQueue'
 
 export type RerollGeneratedImageResult =
   | { status: 'queued'; batchId: string }
   | { status: 'unsupported-mask' }
   | { status: 'unavailable' }
-export type RetryGenerationSlotResult = { status: 'queued'; batchId: string } | { status: 'unavailable' }
 
 const HISTORY_PAGE_SIZE = 20
-const GENERATION_CONCURRENCY_KEY = 'nano-banana-generation-concurrency'
-const DEFAULT_GENERATION_CONCURRENCY = 2
-const MAX_STANDARD_GENERATION_CONCURRENCY = 4
-const UNLIMITED_GENERATION_CONCURRENCY = 999
 
 // Read simple URL params once at module load to safely init useState
 const _initial = readSimpleUrlParams()
@@ -108,17 +58,6 @@ function initialOptionsFor(model: ModelConfig, rawParams: Record<string, string>
     bag[opt.id] = coerceOptionValue(opt, rawParams[opt.urlKey])
   }
   return bag
-}
-
-function clampGenerationConcurrency(value: number): number {
-  if (value >= UNLIMITED_GENERATION_CONCURRENCY) return UNLIMITED_GENERATION_CONCURRENCY
-  return Math.min(Math.max(1, value), MAX_STANDARD_GENERATION_CONCURRENCY)
-}
-
-function initialGenerationConcurrency(): number {
-  const raw = localStorage.getItem(GENERATION_CONCURRENCY_KEY)
-  const parsed = raw ? Number.parseInt(raw, 10) : DEFAULT_GENERATION_CONCURRENCY
-  return clampGenerationConcurrency(Number.isFinite(parsed) ? parsed : DEFAULT_GENERATION_CONCURRENCY)
 }
 
 function findModelConfig(modelId: string): ModelConfig | null {
@@ -147,57 +86,6 @@ function normalizeResolution(model: ModelConfig, resolution: string): string {
 
 function normalizeAspectRatio(model: ModelConfig, aspectRatio: string): string {
   return model.aspectRatios.includes(aspectRatio) ? aspectRatio : model.defaultAspectRatio
-}
-
-function isActiveSlot(slot: GenerationSlot): boolean {
-  return slot.status === 'queued' || slot.status === 'running' || slot.status === 'retrying'
-}
-
-function isActiveJob(job: GenerationJob): boolean {
-  return job.slots.some(isActiveSlot)
-}
-
-function deriveJobStatus(slots: GenerationSlot[]): GenerationJobStatus {
-  if (slots.some((slot) => slot.status === 'running' || slot.status === 'retrying')) return 'running'
-  if (slots.some((slot) => slot.status === 'queued')) return 'queued'
-
-  const succeeded = slots.filter((slot) => slot.status === 'succeeded').length
-  const failed = slots.filter((slot) => slot.status === 'failed').length
-  const canceled = slots.filter((slot) => slot.status === 'canceled').length
-  if (succeeded === slots.length) return 'completed'
-  if (canceled === slots.length) return 'canceled'
-  if (succeeded > 0 && failed + canceled > 0) return 'partial_failed'
-  if (failed > 0) return 'failed'
-  return 'canceled'
-}
-
-function summarizeGenerationQueue(jobs: GenerationJob[]): GenerationQueueSummary {
-  const summary: GenerationQueueSummary = {
-    total: 0,
-    queued: 0,
-    running: 0,
-    retrying: 0,
-    succeeded: 0,
-    failed: 0,
-    canceled: 0,
-    activeJobs: 0,
-  }
-
-  for (const job of jobs) {
-    if (isActiveJob(job)) summary.activeJobs++
-    for (const slot of job.slots) {
-      summary.total++
-      summary[slot.status]++
-    }
-  }
-
-  return summary
-}
-
-function toDisplayError(e: unknown): string {
-  const err = e instanceof Error ? e : new Error(String(e))
-  if (err.name === 'TimeoutError') return '请求超时（5min），请检查网络连接或代理配置后重试'
-  return err.message
 }
 
 function stableStringify(value: unknown): string {
@@ -259,24 +147,6 @@ function stackIdForGenerationRequest(params: {
   return `stack-${hashString(stableStringify(payload))}`
 }
 
-function generationRequestKey(params: {
-  model: ModelConfig
-  prompt: string
-  referenceImages: PlaygroundImage[]
-  resolution: string
-  aspectRatio: string
-  options: Record<string, unknown>
-}): string {
-  return stableStringify({
-    modelId: params.model.id,
-    prompt: params.prompt,
-    resolution: params.resolution,
-    aspectRatio: params.aspectRatio,
-    options: params.options,
-    referenceImageIds: params.referenceImages.map((image) => image.id),
-  })
-}
-
 export function usePlayground() {
   const googleKeyHook = useApiKey('google')
   const openaiKeyHook = useApiKey('openai')
@@ -307,27 +177,44 @@ export function usePlayground() {
   const [history, setHistory] = useState<PlaygroundImageMeta[]>([])
   const [historyHasMore, setHistoryHasMore] = useState(true)
   const historyLoadingRef = useRef(false)
-  const [generationJobs, setGenerationJobsState] = useState<GenerationJob[]>([])
-  const generationJobsRef = useRef<GenerationJob[]>([])
-  const [generationConcurrency, setGenerationConcurrencyState] = useState(initialGenerationConcurrency)
-  const generationConcurrencyRef = useRef(generationConcurrency)
-  const activeSlotIdsRef = useRef(new Set<string>())
-  const abortControllersRef = useRef(new Map<string, AbortController>())
-  const referencePersistenceRef = useRef(new Map<string, Promise<void>>())
-  const pumpQueueRef = useRef<() => void>(() => {})
 
-  const setGenerationJobs = useCallback((updater: (prev: GenerationJob[]) => GenerationJob[]) => {
-    const next = updater(generationJobsRef.current)
-    generationJobsRef.current = next
-    setGenerationJobsState(next)
+  const getProviderCredentials = useCallback(
+    (provider: ModelConfig['provider']) => {
+      const keyHook = provider === 'google' ? googleKeyHook : openaiKeyHook
+      return { apiKey: keyHook.apiKey, baseUrl: keyHook.baseUrl }
+    },
+    [googleKeyHook, openaiKeyHook],
+  )
+
+  const invalidateGenerationKey = useCallback(
+    (provider: ModelConfig['provider']) => {
+      if (provider === 'google') googleKeyHook.invalidate()
+      else openaiKeyHook.invalidate()
+    },
+    [googleKeyHook, openaiKeyHook],
+  )
+
+  const onGeneratedImageSaved = useCallback((image: PlaygroundImage) => {
+    const { data: _, ...meta } = image
+    setHistory((prev) => (prev.some((item) => item.id === meta.id) ? prev : [meta, ...prev]))
   }, [])
 
-  useMountEffect(() => {
-    return () => {
-      for (const controller of abortControllersRef.current.values()) controller.abort()
-      abortControllersRef.current.clear()
-      activeSlotIdsRef.current.clear()
-    }
+  const {
+    generationJobs,
+    generationQueueSummary,
+    generationConcurrency,
+    setGenerationConcurrency,
+    enqueueGenerationJob,
+    appendGenerationSlot,
+    findActiveGenerationJob,
+    retryGenerationSlot,
+    cancelGenerationSlot,
+    cancelGenerationJob,
+    dismissGenerationJob,
+  } = useGenerationQueue({
+    getProviderCredentials,
+    invalidateGenerationKey,
+    onImageSaved: onGeneratedImageSaved,
   })
 
   // Load first page of history on mount
@@ -551,270 +438,6 @@ export function usePlayground() {
     [resolveFullImages, resolveReferenceMetas],
   )
 
-  const updateGenerationSlot = useCallback(
-    (jobId: string, slotId: string, updateSlot: (slot: GenerationSlot) => GenerationSlot, removeCompleted = false) => {
-      setGenerationJobs((prev) =>
-        prev.flatMap((job) => {
-          if (job.id !== jobId) return [job]
-          const slots = job.slots.map((slot) => (slot.id === slotId ? updateSlot(slot) : slot))
-          const status = deriveJobStatus(slots)
-          const inactive = !slots.some(isActiveSlot)
-          const nextJob: GenerationJob = {
-            ...job,
-            slots,
-            status,
-            finishedAt: inactive ? (job.finishedAt ?? Date.now()) : undefined,
-          }
-          if (removeCompleted && status === 'completed') return []
-          return [nextJob]
-        }),
-      )
-    },
-    [setGenerationJobs],
-  )
-
-  const invalidateGenerationKey = useCallback(
-    (provider: ModelConfig['provider']) => {
-      if (provider === 'google') googleKeyHook.invalidate()
-      else openaiKeyHook.invalidate()
-    },
-    [googleKeyHook, openaiKeyHook],
-  )
-
-  const persistJobReferences = useCallback((job: GenerationJob): Promise<void> => {
-    const existing = referencePersistenceRef.current.get(job.id)
-    if (existing) return existing
-
-    const promise = Promise.all(
-      job.request.referenceImages.map(async (refImg) => {
-        await saveToHistory(refImg)
-        putBlobInCache(refImg.id, refImg.data)
-      }),
-    ).then(() => undefined)
-    referencePersistenceRef.current.set(job.id, promise)
-    return promise
-  }, [])
-
-  const startGenerationSlot = useCallback(
-    (jobId: string, slotId: string) => {
-      const job = generationJobsRef.current.find((item) => item.id === jobId)
-      const slot = job?.slots.find((item) => item.id === slotId)
-      if (!job || !slot || slot.status !== 'queued' || activeSlotIdsRef.current.has(slotId)) return
-
-      const controller = new AbortController()
-      activeSlotIdsRef.current.add(slotId)
-      abortControllersRef.current.set(slotId, controller)
-
-      setGenerationJobs((prev) =>
-        prev.map((item) => {
-          if (item.id !== jobId) return item
-          const slots = item.slots.map((current) =>
-            current.id === slotId
-              ? {
-                  ...current,
-                  status: 'running' as const,
-                  error: undefined,
-                  retryDelayMs: undefined,
-                  retryAt: undefined,
-                }
-              : current,
-          )
-          return {
-            ...item,
-            startedAt: item.startedAt ?? Date.now(),
-            status: deriveJobStatus(slots),
-            slots,
-          }
-        }),
-      )
-
-      void (async () => {
-        try {
-          await persistJobReferences(job)
-          if (controller.signal.aborted) return
-
-          const image = await generateImage(
-            {
-              ...job.request,
-              batchId: job.id,
-              batchCreatedAt: job.createdAt,
-              stackId: job.stackId,
-              parentImageId: job.parentImageId,
-              slotIndex: slot.index,
-            },
-            controller.signal,
-            {
-              onRetry: (event) => {
-                if (controller.signal.aborted) return
-                updateGenerationSlot(job.id, slot.id, (current) => {
-                  if (!isActiveSlot(current)) return current
-                  return {
-                    ...current,
-                    status: 'retrying',
-                    attempt: event.nextAttempt,
-                    error: event.error,
-                    retryDelayMs: event.delayMs,
-                    retryAt: Date.now() + event.delayMs,
-                  }
-                })
-              },
-            },
-          )
-
-          if (controller.signal.aborted) return
-
-          await saveToHistory(image)
-          if (controller.signal.aborted) {
-            await deleteFromHistory(image.id).catch(() => {})
-            removeBlobFromCache(image.id)
-            return
-          }
-          putBlobInCache(image.id, image.data)
-          const { data: _, ...meta } = image
-          setHistory((prev) => (prev.some((item) => item.id === meta.id) ? prev : [meta, ...prev]))
-          updateGenerationSlot(
-            job.id,
-            slot.id,
-            (current) => ({
-              ...current,
-              status: 'succeeded',
-              image,
-              error: undefined,
-              retryDelayMs: undefined,
-              retryAt: undefined,
-            }),
-            true,
-          )
-        } catch (e) {
-          const err = e instanceof Error ? e : new Error(String(e))
-          if (controller.signal.aborted || err.name === 'AbortError') {
-            updateGenerationSlot(job.id, slot.id, (current) => ({
-              ...current,
-              status: 'canceled',
-              error: undefined,
-              retryDelayMs: undefined,
-              retryAt: undefined,
-            }))
-            return
-          }
-
-          const msg = toDisplayError(err)
-          updateGenerationSlot(job.id, slot.id, (current) => ({
-            ...current,
-            status: 'failed',
-            error: msg,
-            retryDelayMs: undefined,
-            retryAt: undefined,
-          }))
-          if (isKeyError(msg)) invalidateGenerationKey(job.request.model.provider)
-        } finally {
-          activeSlotIdsRef.current.delete(slotId)
-          abortControllersRef.current.delete(slotId)
-          pumpQueueRef.current()
-        }
-      })()
-    },
-    [invalidateGenerationKey, persistJobReferences, setGenerationJobs, updateGenerationSlot],
-  )
-
-  const pumpGenerationQueue = useCallback(() => {
-    while (activeSlotIdsRef.current.size < generationConcurrencyRef.current) {
-      const next = [...generationJobsRef.current]
-        .reverse()
-        .flatMap((job) => job.slots.map((slot) => ({ job, slot })))
-        .find(({ slot }) => slot.status === 'queued')
-      if (!next) return
-      startGenerationSlot(next.job.id, next.slot.id)
-    }
-  }, [startGenerationSlot])
-
-  useExternalSync(() => {
-    pumpQueueRef.current = pumpGenerationQueue
-  }, [pumpGenerationQueue])
-
-  const setGenerationConcurrency = useCallback((value: number) => {
-    const next = clampGenerationConcurrency(value)
-    generationConcurrencyRef.current = next
-    setGenerationConcurrencyState(next)
-    localStorage.setItem(GENERATION_CONCURRENCY_KEY, String(next))
-    pumpQueueRef.current()
-  }, [])
-
-  const enqueueGenerationJob = useCallback(
-    (request: GenerationJob['request'], batchCount: number, stackId: string, parentImageId?: string): string => {
-      const batchId = crypto.randomUUID()
-      const job: GenerationJob = {
-        id: batchId,
-        stackId,
-        parentImageId,
-        createdAt: Date.now(),
-        status: 'queued',
-        request,
-        slots: Array.from({ length: batchCount }, (_, index) => ({
-          id: crypto.randomUUID(),
-          index,
-          status: 'queued',
-          attempt: 1,
-          maxAttempts: GENERATE_MAX_ATTEMPTS,
-        })),
-      }
-      setGenerationJobs((prev) => [job, ...prev.filter(isActiveJob)])
-      for (const refImg of request.referenceImages) putBlobInCache(refImg.id, refImg.data)
-      pumpQueueRef.current()
-      return batchId
-    },
-    [setGenerationJobs],
-  )
-
-  const appendGenerationSlot = useCallback(
-    (jobId: string): string | null => {
-      const slotId = crypto.randomUUID()
-      let appended = false
-      setGenerationJobs((prev) =>
-        prev.map((job) => {
-          if (job.id !== jobId || !isActiveJob(job)) return job
-          appended = true
-          const slots: GenerationSlot[] = [
-            ...job.slots,
-            {
-              id: slotId,
-              index: job.slots.length,
-              status: 'queued',
-              attempt: 1,
-              maxAttempts: GENERATE_MAX_ATTEMPTS,
-            },
-          ]
-          return {
-            ...job,
-            slots,
-            status: deriveJobStatus(slots),
-            finishedAt: undefined,
-          }
-        }),
-      )
-      if (!appended) return null
-      pumpQueueRef.current()
-      return slotId
-    },
-    [setGenerationJobs],
-  )
-
-  const findActiveGenerationJob = useCallback(
-    (params: { request: GenerationJob['request']; stackId: string; parentImageId?: string }): GenerationJob | null => {
-      const targetKey = generationRequestKey(params.request)
-      return (
-        generationJobsRef.current.find(
-          (job) =>
-            isActiveJob(job) &&
-            job.stackId === params.stackId &&
-            job.parentImageId === params.parentImageId &&
-            generationRequestKey(job.request) === targetKey,
-        ) ?? null
-      )
-    },
-    [],
-  )
-
   const rerollGeneratedImage = useCallback(
     async (image: PlaygroundImageMeta): Promise<RerollGeneratedImageResult> => {
       if (image.source.type !== 'generated') return { status: 'unavailable' }
@@ -868,32 +491,6 @@ export function usePlayground() {
       resolveFullImages,
       resolveReferenceMetas,
     ],
-  )
-
-  const retryGenerationSlot = useCallback(
-    (jobId: string, slotId: string): RetryGenerationSlotResult => {
-      const job = generationJobsRef.current.find((item) => item.id === jobId)
-      const slot = job?.slots.find((item) => item.id === slotId)
-      if (!job || !slot || slot.status !== 'failed') return { status: 'unavailable' }
-
-      const keyHook = job.request.model.provider === 'google' ? googleKeyHook : openaiKeyHook
-      if (!keyHook.apiKey) return { status: 'unavailable' }
-
-      const request: GenerationJob['request'] = {
-        ...job.request,
-        apiKey: keyHook.apiKey,
-        baseUrl: keyHook.baseUrl,
-      }
-      const activeJob = findActiveGenerationJob({ request, stackId: job.stackId, parentImageId: job.parentImageId })
-      if (activeJob) {
-        const nextSlotId = appendGenerationSlot(activeJob.id)
-        if (nextSlotId) return { status: 'queued', batchId: activeJob.id }
-      }
-
-      const batchId = enqueueGenerationJob(request, 1, job.stackId, job.parentImageId)
-      return { status: 'queued', batchId }
-    },
-    [appendGenerationSlot, enqueueGenerationJob, findActiveGenerationJob, googleKeyHook, openaiKeyHook],
   )
 
   const generate = useCallback(() => {
@@ -998,71 +595,6 @@ export function usePlayground() {
     [googleKeyHook, openaiKeyHook, resolveFullImages, enqueueGenerationJob],
   )
 
-  const cancelGenerationSlot = useCallback(
-    (slotId: string) => {
-      abortControllersRef.current.get(slotId)?.abort()
-      activeSlotIdsRef.current.delete(slotId)
-      abortControllersRef.current.delete(slotId)
-      setGenerationJobs((prev) =>
-        prev.map((job) => {
-          if (!job.slots.some((slot) => slot.id === slotId)) return job
-          const slots = job.slots.map((slot) =>
-            slot.id === slotId && isActiveSlot(slot)
-              ? { ...slot, status: 'canceled' as const, error: undefined, retryDelayMs: undefined, retryAt: undefined }
-              : slot,
-          )
-          const status = deriveJobStatus(slots)
-          return {
-            ...job,
-            slots,
-            status,
-            finishedAt: slots.some(isActiveSlot) ? undefined : (job.finishedAt ?? Date.now()),
-          }
-        }),
-      )
-      pumpQueueRef.current()
-    },
-    [setGenerationJobs],
-  )
-
-  const cancelGenerationJob = useCallback(
-    (jobId: string) => {
-      const job = generationJobsRef.current.find((item) => item.id === jobId)
-      if (!job) return
-      for (const slot of job.slots) {
-        if (!isActiveSlot(slot)) continue
-        abortControllersRef.current.get(slot.id)?.abort()
-        activeSlotIdsRef.current.delete(slot.id)
-        abortControllersRef.current.delete(slot.id)
-      }
-      setGenerationJobs((prev) =>
-        prev.map((item) => {
-          if (item.id !== jobId) return item
-          const slots = item.slots.map((slot) =>
-            isActiveSlot(slot)
-              ? { ...slot, status: 'canceled' as const, error: undefined, retryDelayMs: undefined, retryAt: undefined }
-              : slot,
-          )
-          return {
-            ...item,
-            slots,
-            status: deriveJobStatus(slots),
-            finishedAt: Date.now(),
-          }
-        }),
-      )
-      pumpQueueRef.current()
-    },
-    [setGenerationJobs],
-  )
-
-  const dismissGenerationJob = useCallback(
-    (jobId: string) => {
-      setGenerationJobs((prev) => prev.filter((job) => job.id !== jobId || isActiveJob(job)))
-    },
-    [setGenerationJobs],
-  )
-
   const addToReferences = useCallback(
     async (image: PlaygroundImageMeta) => {
       const maxTotal = model.maxReferenceImages + model.maxCharacterImages
@@ -1080,8 +612,6 @@ export function usePlayground() {
     removeBlobFromCache(id)
     setHistory((prev) => prev.filter((img) => img.id !== id))
   }, [])
-
-  const generationQueueSummary = summarizeGenerationQueue(generationJobs)
 
   return {
     apiKey: apiKeyHook.apiKey,
