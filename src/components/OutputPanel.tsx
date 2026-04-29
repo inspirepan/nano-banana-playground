@@ -19,6 +19,7 @@ type Props = {
   onCancelGenerationJob: (jobId: string) => void
   onDismissGenerationJob: (jobId: string) => void
   onCancelGenerationSlot: (slotId: string) => void
+  onRetryGenerationSlot: (jobId: string, slotId: string) => { ok: boolean; message: string }
   onAddToRef: (image: PlaygroundImageMeta) => void
   onRegenerate: (image: PlaygroundImageMeta) => void
   onReroll: (image: PlaygroundImageMeta) => Promise<{ ok: boolean; message: string }>
@@ -324,6 +325,7 @@ export const OutputPanel = memo(function OutputPanel({
   onCancelGenerationJob,
   onDismissGenerationJob,
   onCancelGenerationSlot,
+  onRetryGenerationSlot,
   onAddToRef,
   onRegenerate,
   onReroll,
@@ -534,6 +536,7 @@ export const OutputPanel = memo(function OutputPanel({
           onCancelGenerationJob={onCancelGenerationJob}
           onDismissGenerationJob={onDismissGenerationJob}
           onCancelGenerationSlot={onCancelGenerationSlot}
+          onRetryGenerationSlot={onRetryGenerationSlot}
           onRemove={onRemove}
         />
       )}

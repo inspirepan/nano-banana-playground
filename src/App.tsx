@@ -81,7 +81,7 @@ function ensureGoogleFontsLink(id: string, href: string) {
 
 function App() {
   const pg = usePlayground()
-  const { addToReferences, restoreGeneratedImageParams, rerollGeneratedImage } = pg
+  const { addToReferences, restoreGeneratedImageParams, rerollGeneratedImage, retryGenerationSlot } = pg
   const [theme, setTheme] = useState<Theme>(getInitialTheme)
   const [colorTheme, setColorTheme] = useState<ColorThemeId>(getInitialColorTheme)
   const [sansFont, setSansFont] = useState<SansFontId>(getInitialSansFont)
@@ -137,6 +137,18 @@ function App() {
       return { ok: result.status === 'queued', message }
     },
     [rerollGeneratedImage],
+  )
+
+  const handleRetryGenerationSlot = useCallback(
+    (jobId: string, slotId: string) => {
+      const result = retryGenerationSlot(jobId, slotId)
+      const message = result.status === 'queued' ? '已加入重试队列' : '无法重试：请检查 API Key 或任务状态'
+      if (regenToastTimer.current) clearTimeout(regenToastTimer.current)
+      setRegenToast(message)
+      regenToastTimer.current = setTimeout(() => setRegenToast(null), 2500)
+      return { ok: result.status === 'queued', message }
+    },
+    [retryGenerationSlot],
   )
 
   const openSettings = useCallback((target: SettingsTarget | null = null) => {
@@ -276,6 +288,7 @@ function App() {
               onCancelGenerationJob={pg.cancelGenerationJob}
               onDismissGenerationJob={pg.dismissGenerationJob}
               onCancelGenerationSlot={pg.cancelGenerationSlot}
+              onRetryGenerationSlot={handleRetryGenerationSlot}
               onAddToRef={handleAddToRef}
               onRegenerate={handleRegenerate}
               onReroll={handleReroll}
@@ -330,6 +343,7 @@ function App() {
             onCancelGenerationJob={pg.cancelGenerationJob}
             onDismissGenerationJob={pg.dismissGenerationJob}
             onCancelGenerationSlot={pg.cancelGenerationSlot}
+            onRetryGenerationSlot={handleRetryGenerationSlot}
             onAddToRef={handleAddToRef}
             onRegenerate={handleRegenerate}
             onReroll={handleReroll}

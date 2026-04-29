@@ -48,6 +48,7 @@ type DetailCanvasProps = {
   onCancelGenerationSlot: (slotId: string) => void
   onCancelGenerationJob: (jobId: string) => void
   onDismissGenerationJob: (jobId: string) => void
+  onRetryGenerationSlot: () => void
 }
 
 export function DetailCanvas({
@@ -88,6 +89,7 @@ export function DetailCanvas({
   onCancelGenerationSlot,
   onCancelGenerationJob,
   onDismissGenerationJob,
+  onRetryGenerationSlot,
 }: DetailCanvasProps) {
   return (
     <div
@@ -201,6 +203,7 @@ export function DetailCanvas({
           onCancelSlot={onCancelGenerationSlot}
           onCancelJob={onCancelGenerationJob}
           onDismissJob={onDismissGenerationJob}
+          onRetry={onRetryGenerationSlot}
         />
       )}
 

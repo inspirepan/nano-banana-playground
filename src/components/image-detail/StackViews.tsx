@@ -89,11 +89,13 @@ export function SlotHero({
   onCancelSlot,
   onCancelJob,
   onDismissJob,
+  onRetry,
 }: {
   item: StackItem | null
   onCancelSlot: (slotId: string) => void
   onCancelJob: (jobId: string) => void
   onDismissJob: (jobId: string) => void
+  onRetry: () => void
 }) {
   const slot = item?.type === 'slot' ? item.slot : null
   const job = item?.type === 'slot' ? item.job : null
@@ -134,9 +136,17 @@ export function SlotHero({
           </div>
         ))}
       {slot && job && (slot.status === 'failed' || slot.status === 'canceled') && (
-        <button type="button" className="chip ghost mt-2" onClick={() => onDismissJob(job.id)}>
-          关闭任务
-        </button>
+        <div className="mt-2 flex items-center gap-2">
+          {slot.status === 'failed' && (
+            <button type="button" className="chip" onClick={onRetry} title="按原参数重试">
+              <Icon name="refresh" size={12} strokeWidth={1.8} />
+              重试
+            </button>
+          )}
+          <button type="button" className="chip ghost" onClick={() => onDismissJob(job.id)}>
+            关闭任务
+          </button>
+        </div>
       )}
     </div>
   )

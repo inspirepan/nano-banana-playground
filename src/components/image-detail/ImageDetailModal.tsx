@@ -43,6 +43,7 @@ type Props = {
   onCancelGenerationJob: (jobId: string) => void
   onDismissGenerationJob: (jobId: string) => void
   onCancelGenerationSlot: (slotId: string) => void
+  onRetryGenerationSlot: (jobId: string, slotId: string) => { ok: boolean; message: string }
   onRemove: (id: string) => void | Promise<void>
 }
 
@@ -61,6 +62,7 @@ export function ImageDetailModal({
   onCancelGenerationJob,
   onDismissGenerationJob,
   onCancelGenerationSlot,
+  onRetryGenerationSlot,
   onRemove,
 }: Props) {
   const initialItem = useMemo(
@@ -446,6 +448,12 @@ export function ImageDetailModal({
     })
   }
 
+  const handleRetrySlotAction = () => {
+    if (!currentJob || !currentSlot) return
+    const result = onRetryGenerationSlot(currentJob.id, currentSlot.id)
+    flash(result.ok ? '已加入重试队列' : result.message)
+  }
+
   const hasPrev = canNavigate && currentIdx > 0
   const hasNext = canNavigate && currentIdx < stack.items.length - 1
   const hasDrawableMarks = drawableCounts.annotate > 0 || drawableCounts.mask > 0
@@ -650,6 +658,7 @@ export function ImageDetailModal({
                 onCancelGenerationSlot={onCancelGenerationSlot}
                 onCancelGenerationJob={onCancelGenerationJob}
                 onDismissGenerationJob={onDismissGenerationJob}
+                onRetryGenerationSlot={handleRetrySlotAction}
               />
 
               <DetailSidePanel

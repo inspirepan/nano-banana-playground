@@ -82,6 +82,7 @@ export type RerollGeneratedImageResult =
   | { status: 'queued'; batchId: string }
   | { status: 'unsupported-mask' }
   | { status: 'unavailable' }
+export type RetryGenerationSlotResult = { status: 'queued'; batchId: string } | { status: 'unavailable' }
 
 const HISTORY_PAGE_SIZE = 20
 const GENERATION_CONCURRENCY_KEY = 'nano-banana-generation-concurrency'
@@ -869,6 +870,32 @@ export function usePlayground() {
     ],
   )
 
+  const retryGenerationSlot = useCallback(
+    (jobId: string, slotId: string): RetryGenerationSlotResult => {
+      const job = generationJobsRef.current.find((item) => item.id === jobId)
+      const slot = job?.slots.find((item) => item.id === slotId)
+      if (!job || !slot || slot.status !== 'failed') return { status: 'unavailable' }
+
+      const keyHook = job.request.model.provider === 'google' ? googleKeyHook : openaiKeyHook
+      if (!keyHook.apiKey) return { status: 'unavailable' }
+
+      const request: GenerationJob['request'] = {
+        ...job.request,
+        apiKey: keyHook.apiKey,
+        baseUrl: keyHook.baseUrl,
+      }
+      const activeJob = findActiveGenerationJob({ request, stackId: job.stackId, parentImageId: job.parentImageId })
+      if (activeJob) {
+        const nextSlotId = appendGenerationSlot(activeJob.id)
+        if (nextSlotId) return { status: 'queued', batchId: activeJob.id }
+      }
+
+      const batchId = enqueueGenerationJob(request, 1, job.stackId, job.parentImageId)
+      return { status: 'queued', batchId }
+    },
+    [appendGenerationSlot, enqueueGenerationJob, findActiveGenerationJob, googleKeyHook, openaiKeyHook],
+  )
+
   const generate = useCallback(() => {
     if (!apiKeyHook.apiKey) return
     const trimmed = prompt.trim()
@@ -1092,6 +1119,7 @@ export function usePlayground() {
     restoreSession,
     restoreGeneratedImageParams,
     rerollGeneratedImage,
+    retryGenerationSlot,
     resolveFullImages,
     generate,
     editImage,
