@@ -41,6 +41,8 @@ export function DetailHeader({
   onDownload,
   onToggleSidebar,
 }: DetailHeaderProps) {
+  const pxDimParts = pxDim.split(' · ')
+
   return (
     <div
       className="flex items-center gap-2 px-3.5 shrink-0 flex-nowrap"
@@ -65,7 +67,17 @@ export function DetailHeader({
           <span className="truncate text-base font-semibold leading-[1.25] tracking-[-0.01em] text-(--color-text) md:text-base md:font-medium md:tracking-normal">
             {modelName}
           </span>
-          <span className="shrink-0 text-sm leading-[1.25] text-(--color-text-4)">{pxDim}</span>
+          <span className="flex shrink-0 items-center gap-1.5 text-sm leading-[1.25] text-(--color-text-4)">
+            {pxDimParts.length >= 2 ? (
+              <>
+                <span>{pxDimParts[0]}</span>
+                <span aria-hidden className="meta-dot" />
+                <span>{pxDimParts.slice(1).join(' · ')}</span>
+              </>
+            ) : (
+              pxDim
+            )}
+          </span>
         </div>
       ) : (
         <span className="truncate text-base font-semibold leading-[1.25] tracking-[-0.01em] text-(--color-text) md:text-base md:font-medium md:tracking-normal">

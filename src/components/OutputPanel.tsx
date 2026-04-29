@@ -119,9 +119,9 @@ function StackRow({
       <div className="min-w-0 px-3 py-2">
         <div className="mb-2 flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1 text-base">
           <span className="shrink-0 font-normal text-(--color-text-3)">{formatTime(stack.updatedAt)}</span>
-          <span className="text-(--color-text-4)">·</span>
+          <span className="meta-dot text-(--color-text-4)" aria-hidden />
           <span className="font-normal text-(--color-text-3)">{totalItems} 张</span>
-          <span className="text-(--color-text-4)">·</span>
+          <span className="meta-dot text-(--color-text-4)" aria-hidden />
           <button
             type="button"
             onClick={() => onOpenGallery(stack)}
@@ -131,7 +131,7 @@ function StackRow({
           </button>
           {stack.images.length > 1 && (
             <>
-              <span className="text-(--color-text-4)">·</span>
+              <span className="meta-dot text-(--color-text-4)" aria-hidden />
               <button
                 type="button"
                 onClick={() => onDownloadStack(stack)}
@@ -144,12 +144,12 @@ function StackRow({
           )}
           {activeStatusParts.length > 0 && (
             <>
-              <span className="text-(--color-text-4)">·</span>
+              <span className="meta-dot text-(--color-text-4)" aria-hidden />
               <span className="inline-flex items-center gap-1.5">
                 <span className="inline-flex items-center gap-1.5 font-normal text-(--color-text-3)">
                   {activeStatusParts.map((part, index) => (
                     <span key={part.kind} className="contents">
-                      {index > 0 && <span className="font-normal text-(--color-text-4)">·</span>}
+                      {index > 0 && <span className="meta-dot text-(--color-text-4)" aria-hidden />}
                       <span>
                         {part.label}
                         {part.kind === 'queued' && (
@@ -165,7 +165,7 @@ function StackRow({
                     </span>
                   ))}
                 </span>
-                <span className="text-(--color-text-4)">·</span>
+                <span className="meta-dot text-(--color-text-4)" aria-hidden />
                 <button
                   type="button"
                   onClick={() => onCancelStackGeneration(stack)}
@@ -179,13 +179,13 @@ function StackRow({
           )}
           {stack.failedSlotCount > 0 && (
             <>
-              <span className="text-(--color-text-4)">·</span>
+              <span className="meta-dot text-(--color-text-4)" aria-hidden />
               <span className="text-base" style={{ color: 'var(--color-danger)' }}>
                 失败 {stack.failedSlotCount}
               </span>
               {hasDismissibleFailures && (
                 <>
-                  <span className="text-(--color-text-4)">·</span>
+                  <span className="meta-dot text-(--color-text-4)" aria-hidden />
                   <button
                     type="button"
                     onClick={() => onDismissStackFailedJobs(stack)}
@@ -205,7 +205,7 @@ function StackRow({
               previewItems.map((item) => {
                 const summary = stackItemGenerationSummary(item)
                 const metaBadge = summary
-                  ? `${summary.modelName} · ${summary.aspectRatio} · ${summary.resolution}`
+                  ? `${summary.modelName} · ${summary.resolution} · ${summary.aspectRatio}`
                   : undefined
                 return (
                   <GridCell key={item.id} aspectRatio={stackItemAspectRatio(item)}>

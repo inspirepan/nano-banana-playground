@@ -41,63 +41,58 @@ export function DesktopAnnotationToolbar({
   ]
 
   return (
-    <div className="pointer-events-none absolute bottom-5 left-1/2 z-30 hidden -translate-x-1/2 md:block">
-      <div
-        className="pointer-events-auto flex flex-nowrap items-center justify-start gap-0.5 overflow-x-auto rounded-[10px] p-1"
-        style={{
-          maxWidth: 'min(820px, calc(100vw - 420px))',
-          background: 'var(--color-surface)',
-          boxShadow: '0 0 0 2px var(--ring-edge-strong), 0 14px 30px -22px rgba(0,0,0,0.32)',
-        }}
-      >
-        {toolOptions.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            className="annotation-tool-btn shrink-0"
-            data-active={item.id === 'move' ? desktopMoveActive : !desktopMoveActive && drawTool === item.id}
-            onClick={() => {
-              if (item.id === 'move') onChangeDesktopMoveActive(true)
-              else onChangeDrawTool(item.id)
-            }}
-          >
-            <Icon name={item.icon} size={13} strokeWidth={1.8} />
-            {item.label}
+    <div className="pointer-events-none absolute bottom-5 left-1/2 z-30 hidden max-w-[calc(100%-24px)] -translate-x-1/2 md:block">
+      <div className="annotation-toolbar-panel pointer-events-auto">
+        <div className="annotation-toolbar-row">
+          {toolOptions.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              className="annotation-tool-btn shrink-0"
+              data-active={item.id === 'move' ? desktopMoveActive : !desktopMoveActive && drawTool === item.id}
+              onClick={() => {
+                if (item.id === 'move') onChangeDesktopMoveActive(true)
+                else onChangeDrawTool(item.id)
+              }}
+            >
+              <Icon name={item.icon} size={13} strokeWidth={1.8} />
+              {item.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="annotation-toolbar-row">
+          {!desktopMoveActive && drawTool !== 'eraser' && (
+            <>
+              {BRUSH_PRESETS.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  className="annotation-dot-btn shrink-0"
+                  data-active={brushPreset === item.id}
+                  onClick={() => onChangeBrushPreset(item.id)}
+                  title={item.label}
+                  aria-label={item.label}
+                >
+                  <BrushPresetDot preset={item} />
+                </button>
+              ))}
+              <div className="annotation-toolbar-divider mx-1 h-4 w-px shrink-0" />
+            </>
+          )}
+          <button type="button" className="annotation-tool-btn shrink-0" onClick={onUndo} disabled={!layerHasItems}>
+            <Icon name="undo" size={13} strokeWidth={1.8} />
+            撤销
           </button>
-        ))}
-
-        {!desktopMoveActive && drawTool !== 'eraser' && (
-          <>
-            <div className="annotation-toolbar-divider mx-1 h-4 w-px shrink-0" />
-            {BRUSH_PRESETS.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                className="annotation-dot-btn shrink-0"
-                data-active={brushPreset === item.id}
-                onClick={() => onChangeBrushPreset(item.id)}
-                title={item.label}
-                aria-label={item.label}
-              >
-                <BrushPresetDot preset={item} />
-              </button>
-            ))}
-          </>
-        )}
-
-        <div className="annotation-toolbar-divider mx-1 h-4 w-px shrink-0" />
-        <button type="button" className="annotation-tool-btn shrink-0" onClick={onUndo} disabled={!layerHasItems}>
-          <Icon name="undo" size={13} strokeWidth={1.8} />
-          撤销
-        </button>
-        <button type="button" className="annotation-tool-btn shrink-0" onClick={onClear} disabled={!layerHasItems}>
-          清空
-        </button>
-        <div className="annotation-toolbar-divider mx-1 h-4 w-px shrink-0" />
-        <button type="button" className="annotation-finish-btn shrink-0" onClick={onFinish}>
-          <Icon name="check" size={13} strokeWidth={1.8} />
-          完成
-        </button>
+          <button type="button" className="annotation-tool-btn shrink-0" onClick={onClear} disabled={!layerHasItems}>
+            清空
+          </button>
+          <div className="annotation-toolbar-divider mx-1 h-4 w-px shrink-0" />
+          <button type="button" className="annotation-finish-btn shrink-0" onClick={onFinish}>
+            <Icon name="check" size={13} strokeWidth={1.8} />
+            完成
+          </button>
+        </div>
       </div>
     </div>
   )

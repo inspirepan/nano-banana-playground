@@ -13,7 +13,7 @@
   --font-sans:
     'Geist', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei UI', 'Microsoft YaHei', 'Source Han Sans SC',
     'Noto Sans CJK SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-  --font-sans--font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1, 'tnum' 1;
+  --font-sans--font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1, 'tnum' 1, 'case' 1;
   --font-mono: 'Roboto Mono', var(--font-cjk-mono);
   --font-mono--font-feature-settings: 'liga' 0, 'calt' 0, 'tnum' 1, 'zero' 1;
   --font-display: var(--font-sans);
@@ -105,77 +105,77 @@
 
 .font-sans-geist {
   --font-sans: 'Geist', var(--font-cjk-sans);
-  --font-sans--font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1, 'tnum' 1;
+  --font-sans--font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1, 'tnum' 1, 'case' 1;
 }
 
 .font-sans-inter {
   --font-sans: 'Inter', var(--font-cjk-sans);
-  --font-sans--font-feature-settings: 'tnum' 1;
+  --font-sans--font-feature-settings: 'calt' 1, 'tnum' 1, 'case' 1;
 }
 
 .font-sans-roboto {
   --font-sans: 'Roboto', var(--font-cjk-sans);
-  --font-sans--font-feature-settings: 'tnum' 1;
+  --font-sans--font-feature-settings: 'calt' 1, 'tnum' 1, 'case' 1;
 }
 
 .font-sans-space-grotesk {
   --font-sans: 'Space Grotesk', var(--font-cjk-sans);
-  --font-sans--font-feature-settings: 'tnum' 1;
+  --font-sans--font-feature-settings: 'calt' 1, 'tnum' 1, 'case' 1;
 }
 
 .font-sans-google-sans-flex {
   --font-sans: 'Google Sans Flex', var(--font-cjk-sans);
-  --font-sans--font-feature-settings: 'tnum' 1;
+  --font-sans--font-feature-settings: 'calt' 1, 'tnum' 1, 'case' 1;
 }
 
 .font-sans-dm-sans {
   --font-sans: 'DM Sans', var(--font-cjk-sans);
-  --font-sans--font-feature-settings: 'tnum' 1;
+  --font-sans--font-feature-settings: 'calt' 1, 'tnum' 1, 'case' 1;
 }
 
 .font-sans-ibm-plex-sans {
   --font-sans: 'IBM Plex Sans', var(--font-cjk-sans);
-  --font-sans--font-feature-settings: 'tnum' 1;
+  --font-sans--font-feature-settings: 'calt' 1, 'tnum' 1, 'case' 1;
 }
 
 .font-sans-outfit {
   --font-sans: 'Outfit', var(--font-cjk-sans);
-  --font-sans--font-feature-settings: 'tnum' 1;
+  --font-sans--font-feature-settings: 'calt' 1, 'tnum' 1, 'case' 1;
 }
 
 .font-sans-onest {
   --font-sans: 'Onest', var(--font-cjk-sans);
-  --font-sans--font-feature-settings: 'tnum' 1;
+  --font-sans--font-feature-settings: 'calt' 1, 'tnum' 1, 'case' 1;
 }
 
 .font-sans-source-serif-4 {
   --font-sans: 'Source Serif 4', var(--font-cjk-serif);
-  --font-sans--font-feature-settings: 'tnum' 1;
+  --font-sans--font-feature-settings: 'calt' 1, 'tnum' 1, 'case' 1;
 }
 
 .font-sans-newsreader {
   --font-sans: 'Newsreader', var(--font-cjk-serif);
-  --font-sans--font-feature-settings: 'tnum' 1;
+  --font-sans--font-feature-settings: 'calt' 1, 'tnum' 1, 'case' 1;
 }
 
 .font-sans-literata {
   --font-sans: 'Literata', var(--font-cjk-serif);
-  --font-sans--font-feature-settings: 'tnum' 1;
+  --font-sans--font-feature-settings: 'calt' 1, 'tnum' 1, 'case' 1;
 }
 
 .font-sans-bitter {
   --font-sans: 'Bitter', var(--font-cjk-serif);
-  --font-sans--font-feature-settings: 'tnum' 1;
+  --font-sans--font-feature-settings: 'calt' 1, 'tnum' 1, 'case' 1;
 }
 
 .font-sans-crimson-pro {
   --font-sans: 'Crimson Pro', var(--font-cjk-serif);
-  --font-sans--font-feature-settings: 'tnum' 1;
+  --font-sans--font-feature-settings: 'calt' 1, 'tnum' 1, 'case' 1;
 }
 
 .font-sans-gelasio {
   --font-sans: 'Gelasio', var(--font-cjk-serif);
-  --font-sans--font-feature-settings: 'tnum' 1;
+  --font-sans--font-feature-settings: 'calt' 1, 'tnum' 1, 'case' 1;
 }
 
 /* Dark theme */
@@ -483,7 +483,7 @@
     justify-content: center;
     gap: 6px;
     font-size: var(--text-base);
-    font-weight: 500;
+    font-weight: 400;
     white-space: nowrap;
     transition:
       background 120ms,
@@ -518,6 +518,35 @@
     cursor: not-allowed;
     opacity: 0.42;
   }
+  .annotation-toolbar-panel {
+    display: flex;
+    width: max-content;
+    max-width: 100%;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: center;
+    gap: 2px 6px;
+    border-radius: 10px;
+    background: var(--color-surface);
+    padding: 4px;
+    box-shadow:
+      0 0 0 2px var(--ring-edge-strong),
+      0 14px 30px -22px rgba(0, 0, 0, 0.32);
+  }
+  .annotation-toolbar-row {
+    display: inline-flex;
+    min-width: 0;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .annotation-toolbar-row::-webkit-scrollbar {
+    display: none;
+  }
   .annotation-toolbar-divider {
     background: var(--ring-edge-strong);
   }
@@ -529,7 +558,7 @@
     padding: 0 11px;
     background: var(--color-accent);
     color: var(--color-accent-fg);
-    font-weight: 600;
+    font-weight: 400;
     box-shadow:
       inset 0 0 0 1px color-mix(in srgb, var(--color-accent) 55%, #000 10%),
       inset 0 1px 0 rgba(255, 255, 255, 0.12),
@@ -572,6 +601,18 @@
     background: color-mix(in srgb, var(--color-danger) 12%, var(--color-surface));
     color: var(--color-danger);
     box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-danger) 32%, transparent);
+  }
+
+  .meta-dot {
+    display: inline-block;
+    width: 3px;
+    height: 3px;
+    flex-shrink: 0;
+    align-self: center;
+    border-radius: 999px;
+    background: currentColor;
+    opacity: 0.58;
+    vertical-align: middle;
   }
 
   /* Section label */

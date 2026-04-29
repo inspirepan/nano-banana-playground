@@ -29,7 +29,7 @@ function getModelShortLabel(model: ModelConfig) {
 }
 
 function InlineParamDivider() {
-  return <span aria-hidden className="h-1 w-1 shrink-0 rounded-full bg-(--color-text-4) opacity-70" />
+  return <span aria-hidden className="meta-dot text-(--color-text-4)" />
 }
 
 // Rotating example prompts for the edit textarea.

@@ -73,7 +73,7 @@ export function StackItemThumb({
       : 'inset 0 0 0 1px var(--ring-edge)'
   const actionStyle: StackThumbStyle | undefined = src ? { '--stack-thumb-action-bg': `url("${src}")` } : undefined
   const metaBadgeParts = metaBadge?.split(' · ')
-  const mobileMetaBadge =
+  const splitMetaBadge =
     metaBadgeParts && metaBadgeParts.length >= 3
       ? { title: metaBadgeParts[0], detail: metaBadgeParts.slice(1).join(' · ') }
       : null
@@ -165,33 +165,22 @@ export function StackItemThumb({
         #{number ?? item.order + 1}
       </span>
       {metaBadge && (
-        <>
-          <span
-            className="pointer-events-none absolute z-10 hidden truncate rounded-[5px] px-1.5 py-[3px] text-[11px] font-medium leading-none text-white md:block"
-            style={metaBadgeStyle}
-            title={metaBadgeTitle ?? metaBadge}
-          >
-            {metaBadge}
-          </span>
-          <span
-            className="pointer-events-none absolute z-10 flex flex-col items-start rounded-[5px] px-1.5 py-1 text-white md:hidden"
-            style={metaBadgeStyle}
-            title={metaBadgeTitle ?? metaBadge}
-          >
-            {mobileMetaBadge ? (
-              <>
-                <span className="max-w-full truncate text-[11px] font-medium leading-[12px]">
-                  {mobileMetaBadge.title}
-                </span>
-                <span className="mt-0.5 max-w-full truncate text-[10px] font-normal leading-[11px] text-white/85">
-                  {mobileMetaBadge.detail}
-                </span>
-              </>
-            ) : (
-              <span className="max-w-full truncate text-[11px] font-medium leading-none">{metaBadge}</span>
-            )}
-          </span>
-        </>
+        <span
+          className="pointer-events-none absolute z-10 flex flex-col items-start rounded-[5px] px-1.5 py-1 text-white"
+          style={metaBadgeStyle}
+          title={metaBadgeTitle ?? metaBadge}
+        >
+          {splitMetaBadge ? (
+            <>
+              <span className="max-w-full truncate text-[11px] font-medium leading-[12px]">{splitMetaBadge.title}</span>
+              <span className="mt-0.5 max-w-full truncate text-[10px] font-normal leading-[11px] text-white/85">
+                {splitMetaBadge.detail}
+              </span>
+            </>
+          ) : (
+            <span className="max-w-full truncate text-[11px] font-medium leading-none">{metaBadge}</span>
+          )}
+        </span>
       )}
       {selectable && (
         <span
