@@ -69,6 +69,9 @@ type EditSidebarProps = {
   onChangeDrawTool: (tool: DrawTool) => void
   onChangeDesktopMoveActive: (active: boolean) => void
   onChangeBrushPreset: (preset: BrushPresetId) => void
+  autoFocusPrompt?: boolean
+  submitFooterClassName?: string
+  showSubmitShortcut?: boolean
 }
 
 export function EditSidebar({
@@ -91,6 +94,9 @@ export function EditSidebar({
   onChangeDrawTool,
   onChangeDesktopMoveActive,
   onChangeBrushPreset,
+  autoFocusPrompt = true,
+  submitFooterClassName = 'pt-2.5 shadow-[inset_0_1px_0_var(--ring-edge-soft)]',
+  showSubmitShortcut = true,
 }: EditSidebarProps) {
   // Resolve the model / resolution / aspect ratio / options that generated the
   // source. For uploads, fall back to the default model's defaults.
@@ -446,7 +452,7 @@ export function EditSidebar({
             placeholder={placeholder}
             rows={1}
             className="block w-full resize-none bg-transparent px-3 py-2.5 text-[16px] leading-[1.55] focus:outline-none md:text-base"
-            autoFocus
+            autoFocus={autoFocusPrompt}
           />
           <div className="flex items-center gap-2 px-2.5 py-1.5 text-sm text-(--color-text-3) shadow-[inset_0_1px_0_var(--ring-edge-soft)]">
             <span className="text-sm text-(--color-text-4)">{prompt.length} 字</span>
@@ -649,7 +655,7 @@ export function EditSidebar({
       </div>
 
       {/* Summary + CTA */}
-      <div className="pt-2.5 shadow-[inset_0_1px_0_var(--ring-edge-soft)]">
+      <div className={submitFooterClassName}>
         {estimatedCost !== null && (
           <div className="mb-2 text-right text-sm text-(--color-text-2)">≈ ${estimatedCost.toFixed(3)}</div>
         )}
@@ -658,10 +664,12 @@ export function EditSidebar({
           <Icon name="wand" size={13} strokeWidth={1.8} />
           <span>{submitting ? '提交中…' : `生成编辑 ×${batchCount}`}</span>
           <span className="flex-1" />
-          <span className="flex gap-0.5">
-            <kbd>⌘</kbd>
-            <kbd>⏎</kbd>
-          </span>
+          {showSubmitShortcut && (
+            <span className="flex gap-0.5">
+              <kbd>⌘</kbd>
+              <kbd>⏎</kbd>
+            </span>
+          )}
         </button>
       </div>
     </div>

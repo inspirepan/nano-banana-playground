@@ -121,8 +121,8 @@ export function DetailSidePanel({
             }),
       }}
     >
-      <div className="px-[18px] pt-2.5 md:pt-4 pb-24 md:pb-10" style={{ width: isMobileLayout ? undefined : 340 }}>
-        {currentImage && (
+      <div className="px-[18px] pt-4 md:pt-4 pb-24 md:pb-10" style={{ width: isMobileLayout ? undefined : 340 }}>
+        {currentImage && !isMobileLayout && (
           <div className="mb-[18px]">
             <div
               className="segmented"
@@ -197,6 +197,7 @@ export function DetailSidePanel({
             refDetailId={refDetailId}
             findRefImage={findRefImage}
             onToggleRefDetail={onToggleRefDetail}
+            onStartEdit={isMobileLayout ? onStartEdit : undefined}
             onAddRef={onAddRef}
             onRegenerate={onRegenerate}
             onReroll={onReroll}

@@ -39,6 +39,7 @@ type DetailSidebarProps = {
   refDetailId: string | null
   findRefImage: (id: string) => PlaygroundImageMeta | undefined
   onToggleRefDetail: (id: string) => void
+  onStartEdit?: () => void
   onAddRef: () => void
   onRegenerate: () => void
   onReroll: () => void
@@ -64,6 +65,7 @@ export function DetailSidebar({
   refDetailId,
   findRefImage,
   onToggleRefDetail,
+  onStartEdit,
   onAddRef,
   onRegenerate,
   onReroll,
@@ -77,41 +79,60 @@ export function DetailSidebar({
   return (
     <>
       {currentImage && (
-        <div className="mb-[18px] -mx-1 flex items-center">
-          <button
-            type="button"
-            className="action-soft flex-1"
-            onClick={onAddRef}
-            disabled={!currentImage}
-            title="加为参考"
-          >
-            <Icon name="plus" size={13} strokeWidth={1.8} className="action-soft-icon" />
-            参考
-          </button>
-          <button type="button" className="action-soft flex-1" onClick={onDownload} title="下载 PNG">
-            <Icon name="download" size={13} strokeWidth={1.8} className="action-soft-icon" />
-            下载
-          </button>
-          <button
-            type="button"
-            className="action-soft flex-1"
-            onClick={onRegenerate}
-            disabled={!currentMeta?.prompt}
-            title="还原参数"
-          >
-            <Icon name="undo" size={13} strokeWidth={1.8} className="action-soft-icon" />
-            还原参数
-          </button>
-          <button
-            type="button"
-            className="action-soft flex-1"
-            onClick={onReroll}
-            disabled={!currentMeta?.prompt}
-            title="按原参数重抽"
-          >
-            <Icon name="refresh" size={13} strokeWidth={1.8} className="action-soft-icon" />
-            重抽
-          </button>
+        <div className="mb-[18px]">
+          <div className="detail-mobile-actions -mx-1 flex items-center">
+            <button
+              type="button"
+              className="action-soft detail-mobile-action flex-1"
+              onClick={onAddRef}
+              disabled={!currentImage}
+              title="加为参考"
+            >
+              <Icon name="plus" size={13} strokeWidth={1.8} className="action-soft-icon" />
+              参考
+            </button>
+            <button
+              type="button"
+              className="action-soft detail-mobile-action flex-1"
+              onClick={onDownload}
+              title="下载 PNG"
+            >
+              <Icon name="download" size={13} strokeWidth={1.8} className="action-soft-icon" />
+              下载
+            </button>
+            {onStartEdit ? (
+              <button
+                type="button"
+                className="action-soft detail-mobile-action flex-1"
+                onClick={onStartEdit}
+                title="编辑图片"
+              >
+                <Icon name="wand" size={13} strokeWidth={1.8} className="action-soft-icon" />
+                编辑
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="action-soft detail-mobile-action flex-1"
+                onClick={onRegenerate}
+                disabled={!currentMeta?.prompt}
+                title="还原参数"
+              >
+                <Icon name="undo" size={13} strokeWidth={1.8} className="action-soft-icon" />
+                还原参数
+              </button>
+            )}
+            <button
+              type="button"
+              className="action-soft detail-mobile-action flex-1"
+              onClick={onReroll}
+              disabled={!currentMeta?.prompt}
+              title="按原参数重抽"
+            >
+              <Icon name="refresh" size={13} strokeWidth={1.8} className="action-soft-icon" />
+              重抽
+            </button>
+          </div>
         </div>
       )}
 
