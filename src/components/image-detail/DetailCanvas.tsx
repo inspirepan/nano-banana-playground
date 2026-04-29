@@ -5,6 +5,7 @@ import type { BrushPresetId } from './annotationPresets'
 import { DrawableLayer, type DrawableLayerHandle, type DrawMode, type DrawTool } from './DrawableLayer'
 import { SlotHero } from './StackViews'
 import { ZoomableImageView } from './ZoomableImageView'
+import type { Inset } from './viewGeometry'
 import type { ItemCounts } from '../../lib/editStateCache'
 import type { StackItem } from '../../lib/stacks'
 import type { GeneratedSource, PlaygroundImageMeta } from '../../lib/types'
@@ -35,6 +36,7 @@ type DetailCanvasProps = {
   drawableReadOnly: boolean
   drawablePanEnabled: boolean
   drawableRef: RefObject<DrawableLayerHandle | null>
+  inset?: Inset
   onGoPrev: () => void
   onGoNext: () => void
   onOpenMobilePreview: () => void
@@ -76,6 +78,7 @@ export function DetailCanvas({
   drawableReadOnly,
   drawablePanEnabled,
   drawableRef,
+  inset,
   onGoPrev,
   onGoNext,
   onOpenMobilePreview,
@@ -137,6 +140,7 @@ export function DetailCanvas({
               alt={displayImage?.alt ?? currentMeta?.prompt ?? ''}
               onSwipeLeft={hasNext ? onGoNext : undefined}
               onSwipeRight={hasPrev ? onGoPrev : undefined}
+              inset={inset}
             />
           )}
           {!refDetailId && isMobileLayout && (

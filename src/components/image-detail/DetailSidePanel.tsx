@@ -13,6 +13,7 @@ type DetailSidePanelProps = {
   editing: boolean
   isMobileLayout: boolean
   sidebarCollapsed: boolean
+  safeAreaTop?: number
   currentImage: PlaygroundImageMeta | null
   currentMeta: GeneratedSource | null
   currentSlot: GenerationSlot | null
@@ -60,6 +61,7 @@ export function DetailSidePanel({
   editing,
   isMobileLayout,
   sidebarCollapsed,
+  safeAreaTop,
   currentImage,
   currentMeta,
   currentSlot,
@@ -121,7 +123,13 @@ export function DetailSidePanel({
             }),
       }}
     >
-      <div className="px-[18px] pt-2.5 md:pt-4 pb-24 md:pb-10" style={{ width: isMobileLayout ? undefined : 340 }}>
+      <div
+        className="px-[18px] pt-2.5 md:pt-4 pb-24 md:pb-10"
+        style={{
+          width: isMobileLayout ? undefined : 340,
+          paddingTop: !isMobileLayout && safeAreaTop ? safeAreaTop + 16 : undefined,
+        }}
+      >
         {currentImage && (
           <div className="mb-[18px]">
             <div

@@ -1,5 +1,6 @@
 export type Point = { x: number; y: number }
 export type Size = { width: number; height: number }
+export type Inset = { top?: number; right?: number; bottom?: number; left?: number }
 
 export const MIN_SCALE = 0.5
 export const MAX_SCALE = 6
@@ -17,9 +18,27 @@ export function getCenter(a: Point, b: Point): Point {
   return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }
 }
 
-export function getViewportSize(element: HTMLDivElement | null): Size {
+// Pixel offset that translates an item from container-center to safe-area-
+// center. When something has a top inset, the safe area shifts down → the
+// shift y is positive.
+export function getInsetCenterShift(inset?: Inset): Point {
+  const top = inset?.top ?? 0
+  const right = inset?.right ?? 0
+  const bottom = inset?.bottom ?? 0
+  const left = inset?.left ?? 0
+  return { x: (left - right) / 2, y: (top - bottom) / 2 }
+}
+
+export function getViewportSize(element: HTMLDivElement | null, inset?: Inset): Size {
   if (!element) return { width: 0, height: 0 }
-  return { width: element.clientWidth, height: element.clientHeight }
+  const top = inset?.top ?? 0
+  const right = inset?.right ?? 0
+  const bottom = inset?.bottom ?? 0
+  const left = inset?.left ?? 0
+  return {
+    width: Math.max(0, element.clientWidth - left - right),
+    height: Math.max(0, element.clientHeight - top - bottom),
+  }
 }
 
 export function getContainedSize(viewport: Size, naturalSize: Size): Size {
@@ -37,8 +56,19 @@ export function clampOffset(offset: Point, scale: number, viewport: Size, fitSiz
   return { x: clamp(offset.x, -maxX, maxX), y: clamp(offset.y, -maxY, maxY) }
 }
 
-export function getRelativePoint(element: HTMLDivElement | null, clientX: number, clientY: number): Point {
+export function getRelativePoint(
+  element: HTMLDivElement | null,
+  clientX: number,
+  clientY: number,
+  inset?: Inset,
+): Point {
   if (!element) return { x: 0, y: 0 }
   const rect = element.getBoundingClientRect()
-  return { x: clientX - rect.left - rect.width / 2, y: clientY - rect.top - rect.height / 2 }
+  const shift = getInsetCenterShift(inset)
+  // Returned coords are relative to the safe-area center so the same offset
+  // math (zoom anchoring, clampOffset) keeps working regardless of insets.
+  return {
+    x: clientX - rect.left - rect.width / 2 - shift.x,
+    y: clientY - rect.top - rect.height / 2 - shift.y,
+  }
 }
