@@ -258,6 +258,24 @@ function stackIdForGenerationRequest(params: {
   return `stack-${hashString(stableStringify(payload))}`
 }
 
+function generationRequestKey(params: {
+  model: ModelConfig
+  prompt: string
+  referenceImages: PlaygroundImage[]
+  resolution: string
+  aspectRatio: string
+  options: Record<string, unknown>
+}): string {
+  return stableStringify({
+    modelId: params.model.id,
+    prompt: params.prompt,
+    resolution: params.resolution,
+    aspectRatio: params.aspectRatio,
+    options: params.options,
+    referenceImageIds: params.referenceImages.map((image) => image.id),
+  })
+}
+
 export function usePlayground() {
   const googleKeyHook = useApiKey('google')
   const openaiKeyHook = useApiKey('openai')
@@ -747,6 +765,55 @@ export function usePlayground() {
     [setGenerationJobs],
   )
 
+  const appendGenerationSlot = useCallback(
+    (jobId: string): string | null => {
+      const slotId = crypto.randomUUID()
+      let appended = false
+      setGenerationJobs((prev) =>
+        prev.map((job) => {
+          if (job.id !== jobId || !isActiveJob(job)) return job
+          appended = true
+          const slots: GenerationSlot[] = [
+            ...job.slots,
+            {
+              id: slotId,
+              index: job.slots.length,
+              status: 'queued',
+              attempt: 1,
+              maxAttempts: GENERATE_MAX_ATTEMPTS,
+            },
+          ]
+          return {
+            ...job,
+            slots,
+            status: deriveJobStatus(slots),
+            finishedAt: undefined,
+          }
+        }),
+      )
+      if (!appended) return null
+      pumpQueueRef.current()
+      return slotId
+    },
+    [setGenerationJobs],
+  )
+
+  const findActiveGenerationJob = useCallback(
+    (params: { request: GenerationJob['request']; stackId: string; parentImageId?: string }): GenerationJob | null => {
+      const targetKey = generationRequestKey(params.request)
+      return (
+        generationJobsRef.current.find(
+          (job) =>
+            isActiveJob(job) &&
+            job.stackId === params.stackId &&
+            job.parentImageId === params.parentImageId &&
+            generationRequestKey(job.request) === targetKey,
+        ) ?? null
+      )
+    },
+    [],
+  )
+
   const rerollGeneratedImage = useCallback(
     async (image: PlaygroundImageMeta): Promise<RerollGeneratedImageResult> => {
       if (image.source.type !== 'generated') return { status: 'unavailable' }
@@ -770,24 +837,36 @@ export function usePlayground() {
       const maxTotal = targetModel.maxReferenceImages + targetModel.maxCharacterImages
       if (refs.length > maxTotal) return { status: 'unavailable' }
 
-      const batchId = enqueueGenerationJob(
-        {
-          apiKey: keyHook.apiKey,
-          baseUrl: keyHook.baseUrl,
-          model: targetModel,
-          prompt: trimmed,
-          referenceImages: refs,
-          resolution: normalizeResolution(targetModel, source.resolution),
-          aspectRatio: normalizeAspectRatio(targetModel, source.aspectRatio),
-          options: optionsForGeneratedSource(targetModel, source),
-        },
-        1,
-        source.stackId ?? source.batchId,
-        source.parentImageId,
-      )
+      const stackId = source.stackId ?? source.batchId
+      const parentImageId = source.parentImageId
+      const request: GenerationJob['request'] = {
+        apiKey: keyHook.apiKey,
+        baseUrl: keyHook.baseUrl,
+        model: targetModel,
+        prompt: trimmed,
+        referenceImages: refs,
+        resolution: normalizeResolution(targetModel, source.resolution),
+        aspectRatio: normalizeAspectRatio(targetModel, source.aspectRatio),
+        options: optionsForGeneratedSource(targetModel, source),
+      }
+      const activeJob = findActiveGenerationJob({ request, stackId, parentImageId })
+      if (activeJob) {
+        const slotId = appendGenerationSlot(activeJob.id)
+        if (slotId) return { status: 'queued', batchId: activeJob.id }
+      }
+
+      const batchId = enqueueGenerationJob(request, 1, stackId, parentImageId)
       return { status: 'queued', batchId }
     },
-    [enqueueGenerationJob, googleKeyHook, openaiKeyHook, resolveFullImages, resolveReferenceMetas],
+    [
+      appendGenerationSlot,
+      enqueueGenerationJob,
+      findActiveGenerationJob,
+      googleKeyHook,
+      openaiKeyHook,
+      resolveFullImages,
+      resolveReferenceMetas,
+    ],
   )
 
   const generate = useCallback(() => {
