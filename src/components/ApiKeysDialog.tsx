@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 
 import { Icon } from './Icon'
 import type { Provider } from '../config/models'
+import { useExternalSync, useWindowEvent } from '../hooks/effects'
 import type { ApiKeyStatus } from '../hooks/useApiKey'
 import { DEFAULT_BASE_URL, previewEndpoint } from '../lib/validateKey'
 
@@ -38,14 +39,14 @@ const LABELS: Record<Provider, { label: string; placeholder: string; hint: strin
 }
 
 export function ApiKeysDialog({ open, googleKey, openaiKey, onClose }: Props) {
-  useEffect(() => {
-    if (!open) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [open, onClose])
+  useWindowEvent(
+    'keydown',
+    (event) => {
+      if (event.key === 'Escape') onClose()
+    },
+    undefined,
+    open,
+  )
 
   if (!open) return null
 
@@ -112,7 +113,7 @@ function KeyRow({ provider, hook, variant }: { provider: Provider; hook: KeyHook
   const suppressValidFlashRef = useRef(false)
 
   // Detect the valid transition to briefly flash a "验证成功" state on the primary button.
-  useEffect(() => {
+  useExternalSync(() => {
     const prev = prevStatusRef.current
     prevStatusRef.current = status
     if (prev !== 'valid' && status === 'valid') {

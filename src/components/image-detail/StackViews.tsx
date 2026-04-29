@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useMemo, useRef, useState, type ReactNode } from 'react'
 
 import { MODEL_CONFIGS } from '../../config/models'
+import { useExternalSync } from '../../hooks/effects'
 import { downloadImagesZip } from '../../lib/exportImages'
 import { formatTime } from '../../lib/queueJobDisplay'
 import type { ImageStack, StackItem } from '../../lib/stacks'
@@ -205,8 +206,10 @@ export function StackStrip({
   const [collapsed, setCollapsed] = useState(false)
   const itemNumberById = useMemo(() => new Map(stack.items.map((item, index) => [item.id, index + 1])), [stack.items])
   const batches = useMemo(() => buildStackStripBatches(stack.items), [stack.items])
+  const selectedScrollKey = `${selectedId ?? 'none'}:${stack.items.length}:${collapsed ? 'collapsed' : 'expanded'}`
 
-  useEffect(() => {
+  useExternalSync(() => {
+    if (selectedScrollKey.length === 0) return
     const scroller = stripScrollRef.current
     const selected = selectedItemRef.current
     if (!scroller || !selected) return
@@ -214,7 +217,7 @@ export function StackStrip({
     const targetLeft = selected.offsetLeft + selected.offsetWidth - scroller.clientWidth + 10
     const maxLeft = scroller.scrollWidth - scroller.clientWidth
     scroller.scrollTo({ left: Math.max(0, Math.min(targetLeft, maxLeft)), behavior: 'smooth' })
-  }, [selectedId, stack.items.length, collapsed])
+  }, [selectedScrollKey])
 
   return (
     <div
@@ -247,7 +250,8 @@ export function StackStrip({
             const previousBatches = batches.slice(0, batches.indexOf(batch))
             const initialIndex = previousBatches.filter((item) => item.kind === 'initial').length + 1
             const editIndex = previousBatches.filter((item) => item.kind === 'edit').length + 1
-            const headline = batch.kind === 'initial' ? (initialIndex === 1 ? '初始' : `初始 ${initialIndex}`) : `编辑 ${editIndex}`
+            const headline =
+              batch.kind === 'initial' ? (initialIndex === 1 ? '初始' : `初始 ${initialIndex}`) : `编辑 ${editIndex}`
             return (
               <div
                 key={batch.id}

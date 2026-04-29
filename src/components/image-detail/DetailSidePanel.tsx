@@ -166,6 +166,7 @@ export function DetailSidePanel({
         {editing && currentImage ? (
           <div>
             <EditSidebar
+              key={currentImage.id}
               sourceImage={currentImage}
               generationJobs={generationJobs}
               activeEditBatchId={activeEditBatchId}

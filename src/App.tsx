@@ -1,5 +1,5 @@
 import { Agentation } from 'agentation'
-import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react'
+import { useState, useLayoutEffect, useRef, useCallback } from 'react'
 
 import { Icon } from './components/Icon'
 import { InputPanel } from './components/InputPanel'
@@ -14,6 +14,7 @@ import {
   type SansFontId,
 } from './config/fonts'
 import { COLOR_THEME_IDS, type ColorThemeId, type Theme } from './config/theme'
+import { useExternalSync, useMountEffect } from './hooks/effects'
 import { usePlayground } from './hooks/usePlayground'
 import type { PlaygroundImageMeta } from './lib/types'
 
@@ -164,7 +165,7 @@ function App() {
     localStorage.setItem('nano-banana-sans-font', sansFont)
   }, [sansFont, settingsOpen])
 
-  useEffect(() => {
+  useExternalSync(() => {
     const root = document.documentElement
     const applyDark = (isDark: boolean) => {
       root.classList.toggle('dark', isDark)
@@ -182,7 +183,7 @@ function App() {
     localStorage.setItem('nano-banana-theme', theme)
   }, [theme])
 
-  useEffect(() => {
+  useExternalSync(() => {
     const clearTitleResetTimer = () => {
       if (!titleResetTimerRef.current) return
       window.clearTimeout(titleResetTimerRef.current)
@@ -220,12 +221,12 @@ function App() {
     prevActiveQueueRef.current = queueActive
   }, [queueActive, queueDone, queueSummary.failed, queueSummary.succeeded, queueSummary.total])
 
-  useEffect(() => {
+  useMountEffect(() => {
     return () => {
       if (titleResetTimerRef.current) window.clearTimeout(titleResetTimerRef.current)
       document.title = BASE_TITLE
     }
-  }, [])
+  })
 
   const handleGenerate = () => {
     pg.generate()

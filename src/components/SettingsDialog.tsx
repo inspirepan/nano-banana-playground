@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 
 import { ApiKeysSettings, type KeyHook } from './ApiKeysDialog'
 import { Icon, type IconName } from './Icon'
 import { SANS_FONTS, type SansFontId } from '../config/fonts'
 import { COLOR_THEMES, type ColorThemeId, type Theme } from '../config/theme'
+import { useExternalSync, useWindowEvent } from '../hooks/effects'
 import { clearCurrentSiteData, getCurrentSiteDataUsage, type SiteDataUsage } from '../lib/siteData'
 
 const BRIGHTNESS: { value: Theme; icon: IconName; label: string }[] = [
@@ -69,7 +70,6 @@ export function SettingsDialog({
   onClose,
 }: Props) {
   const generationConcurrencyRef = useRef<HTMLDivElement>(null)
-  const [generationConcurrencyPulse, setGenerationConcurrencyPulse] = useState(false)
   const [clearDataConfirm, setClearDataConfirm] = useState(false)
   const [clearDataBusy, setClearDataBusy] = useState(false)
   const [clearDataError, setClearDataError] = useState<string | null>(null)
@@ -89,48 +89,46 @@ export function SettingsDialog({
     }
   }, [])
 
-  useEffect(() => {
-    if (!open) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [open, onClose])
-
-  useEffect(() => {
-    if (!open || focusSection !== 'generationConcurrency') {
-      setGenerationConcurrencyPulse(false)
-      return
-    }
-    setGenerationConcurrencyPulse(false)
-    const scrollTimer = window.setTimeout(() => {
-      generationConcurrencyRef.current?.scrollIntoView({ block: 'center' })
-    }, 0)
-    const pulseTimer = window.setTimeout(() => {
-      setGenerationConcurrencyPulse(true)
-    }, 180)
-    const resetTimer = window.setTimeout(() => {
-      setGenerationConcurrencyPulse(false)
-    }, 1700)
-    return () => {
-      window.clearTimeout(scrollTimer)
-      window.clearTimeout(pulseTimer)
-      window.clearTimeout(resetTimer)
-    }
-  }, [focusSection, open])
-
-  useEffect(() => {
-    if (open) return
+  const handleClose = useCallback(() => {
     setClearDataConfirm(false)
     setClearDataBusy(false)
     setClearDataError(null)
-  }, [open])
+    onClose()
+  }, [onClose])
 
-  useEffect(() => {
+  useWindowEvent(
+    'keydown',
+    (event) => {
+      if (event.key === 'Escape') handleClose()
+    },
+    undefined,
+    open,
+  )
+
+  useExternalSync(() => {
+    if (!open || focusSection !== 'generationConcurrency') return
+    const scrollTimer = window.setTimeout(() => {
+      generationConcurrencyRef.current?.scrollIntoView({ block: 'center' })
+    }, 0)
+    return () => {
+      window.clearTimeout(scrollTimer)
+    }
+  }, [focusSection, open])
+
+  useExternalSync(() => {
     if (!open) return
-    void refreshSiteDataUsage()
-  }, [open, refreshSiteDataUsage])
+    let cancelled = false
+    void getCurrentSiteDataUsage()
+      .then((usage) => {
+        if (!cancelled) setSiteDataUsage(usage)
+      })
+      .catch((error) => {
+        if (!cancelled) setSiteDataUsageError(error instanceof Error ? error.message : '无法读取当前数据大小。')
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [open])
 
   const handleClearSiteData = async () => {
     if (clearDataBusy) return
@@ -154,9 +152,10 @@ export function SettingsDialog({
   const isDark =
     theme === 'dark' ||
     (theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+  const effectiveSiteDataUsageLoading = siteDataUsageLoading || (open && !siteDataUsage && !siteDataUsageError)
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={handleClose}>
       <div className="absolute inset-0 bg-black/20 backdrop-blur-[2px] dark:bg-black/60" />
       <div
         role="dialog"
@@ -170,7 +169,7 @@ export function SettingsDialog({
             <h2 className="font-display text-lg font-semibold tracking-[-0.01em]">设置</h2>
             <p className="mt-0.5 text-sm text-(--color-text-3)">管理密钥、外观和生成队列行为</p>
           </div>
-          <button type="button" onClick={onClose} className="icon-btn" aria-label="关闭">
+          <button type="button" onClick={handleClose} className="icon-btn" aria-label="关闭">
             <Icon name="close" size={13} />
           </button>
         </div>
@@ -248,7 +247,7 @@ export function SettingsDialog({
 
             <div
               ref={generationConcurrencyRef}
-              className={generationConcurrencyPulse ? 'settings-focus-pulse' : undefined}
+              className={open && focusSection === 'generationConcurrency' ? 'settings-focus-pulse' : undefined}
             >
               <SettingsSection
                 title="同时生成的最大并发数"
@@ -286,7 +285,11 @@ export function SettingsDialog({
                 <div>
                   <div className="label mb-1">当前占用</div>
                   <div className="text-lg font-semibold tracking-[-0.01em] text-(--color-text)">
-                    {siteDataUsage ? formatBytes(siteDataUsage.totalBytes) : siteDataUsageLoading ? '计算中…' : '未知'}
+                    {siteDataUsage
+                      ? formatBytes(siteDataUsage.totalBytes)
+                      : effectiveSiteDataUsageLoading
+                        ? '计算中…'
+                        : '未知'}
                   </div>
                 </div>
                 <button
@@ -294,10 +297,10 @@ export function SettingsDialog({
                   onClick={() => {
                     handleRefreshSiteDataUsageClick()
                   }}
-                  disabled={siteDataUsageLoading || clearDataBusy}
+                  disabled={effectiveSiteDataUsageLoading || clearDataBusy}
                   className="chip shrink-0"
                 >
-                  <Icon name="refresh" size={12} /> {siteDataUsageLoading ? '计算中' : '刷新'}
+                  <Icon name="refresh" size={12} /> {effectiveSiteDataUsageLoading ? '计算中' : '刷新'}
                 </button>
               </div>
               {siteDataUsage?.browserEstimateBytes !== null && siteDataUsage?.browserEstimateBytes !== undefined && (

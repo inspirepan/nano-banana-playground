@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 
 import { Icon } from '../Icon'
@@ -13,6 +13,7 @@ import { MobileDrawFullscreen } from './MobileDrawFullscreen'
 import { MobilePreviewFullscreen } from './MobilePreviewFullscreen'
 import { StackGallery, StackStrip } from './StackViews'
 import { MODEL_CONFIGS } from '../../config/models'
+import { useExternalSync, useMediaQuery, useResizeObserver, useWindowEvent } from '../../hooks/effects'
 import { ensureBlobLoaded, useImageSrc } from '../../hooks/useImageSrc'
 import type { GenerationJob } from '../../hooks/usePlayground'
 import { imageDownloadFileName } from '../../lib/downloadFileName'
@@ -93,9 +94,6 @@ export function ImageDetailModal({
     initialViewMode === 'gallery' ? 'output' : 'detail',
   )
 
-  useEffect(() => {
-    if (viewMode === 'detail' && galleryReturnTarget !== 'detail') setGalleryReturnTarget('detail')
-  }, [galleryReturnTarget, viewMode])
   // After submit, we watch history for the first new image with this batchId
   // and auto-navigate the pager to it.
   const [activeEditBatchId, setActiveEditBatchId] = useState<string | null>(null)
@@ -154,18 +152,12 @@ export function ImageDetailModal({
   // Tracked height of the floating strip on desktop. Drives the canvas
   // safe-area inset so a 100% image stays clear of the strip.
   const [stripHeight, setStripHeight] = useState(120)
-  useEffect(() => {
-    const el = stripRef.current
-    if (!el) return
-    const ro = new ResizeObserver((entries) => {
-      const entry = entries[0]
-      if (!entry) return
-      const next = Math.round(entry.contentRect.height)
-      setStripHeight((prev) => (prev === next ? prev : next))
-    })
-    ro.observe(el)
-    return () => ro.disconnect()
-  }, [])
+  useResizeObserver(stripRef, (entries) => {
+    const entry = entries[0]
+    if (!entry) return
+    const next = Math.round(entry.contentRect.height)
+    setStripHeight((prev) => (prev === next ? prev : next))
+  })
   const [refSrcMap, setRefSrcMap] = useState<Map<string, string>>(new Map())
   const refDetailSrc = refDetailId ? (refSrcMap.get(refDetailId) ?? null) : null
 
@@ -176,7 +168,7 @@ export function ImageDetailModal({
     return currentMeta.referenceImageIds.filter((id) => !history.find((h) => h.id === id))
   }, [currentMeta, history])
 
-  useEffect(() => {
+  useExternalSync(() => {
     if (missingRefIds.length === 0) return
     void loadImageMetas(missingRefIds)
       .then(setDbRefMetas)
@@ -190,7 +182,7 @@ export function ImageDetailModal({
     [history, dbRefMetas],
   )
 
-  useEffect(() => {
+  useExternalSync(() => {
     if (!refDetailId) return
     if (refSrcMap.has(refDetailId)) return
     const refImg = findRefImage(refDetailId)
@@ -237,17 +229,13 @@ export function ImageDetailModal({
     selectStackItem(next)
   }, [currentIdx, selectStackItem, stack.items])
 
-  useEffect(() => {
+  useExternalSync(() => {
     if (!currentImage) return
     void ensureBlobLoaded(currentImage.id, currentImage.mimeType).catch(() => {})
   }, [currentImage])
 
-  useEffect(() => {
-    if (!currentImage) {
-      setDisplayImage(null)
-      return
-    }
-    if (!currentSrc) return
+  useExternalSync(() => {
+    if (!currentImage || !currentSrc) return
     let cancelled = false
     const next = { id: currentImage.id, src: currentSrc, alt: currentMeta?.prompt ?? '' }
     const img = new Image()
@@ -271,7 +259,7 @@ export function ImageDetailModal({
 
   // Prefetch neighbor blobs and prime the browser image decode cache so left/
   // right pager switches swap frames without a blank flash.
-  useEffect(() => {
+  useExternalSync(() => {
     if (!canNavigate) return
     const neighbors: PlaygroundImageMeta[] = []
     const prev = stack.items[currentIdx - 1]
@@ -301,78 +289,64 @@ export function ImageDetailModal({
     // whatever annotations were in progress. Counts stay for the dots.
   }, [resetDetailTab])
 
-  useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      // Ctrl/Cmd+Z triggers an undo on the drawable layer. Skip when the user
-      // is typing into an input/textarea (e.g. the prompt or text-pin editor)
-      // so undo stays a text-level operation there.
-      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && (e.key === 'z' || e.key === 'Z')) {
-        const target = e.target as HTMLElement | null
-        const tag = target?.tagName
-        const isTextInput = tag === 'INPUT' || tag === 'TEXTAREA' || target?.isContentEditable
-        if (editing && editMode !== 'view' && !isTextInput) {
-          e.preventDefault()
-          drawableRef.current?.undo()
-          return
-        }
-      }
-      if (e.key === 'Escape') {
-        if (mobilePreviewOpen) {
-          setMobilePreviewOpen(false)
-          return
-        }
-        if (mobileDrawOpen) {
-          setMobileDrawOpen(false)
-          return
-        }
-        if (editMode !== 'view') {
-          setEditMode('view')
-          setDrawRevision((prev) => prev + 1)
-          return
-        }
-        if (viewMode === 'gallery') {
-          if (galleryReturnTarget === 'detail') setViewMode('detail')
-          else onClose()
-          return
-        }
-        if (editing) {
-          exitEdit()
-          return
-        }
-        onClose()
+  useWindowEvent('keydown', (e) => {
+    // Ctrl/Cmd+Z triggers an undo on the drawable layer. Skip when the user
+    // is typing into an input/textarea (e.g. the prompt or text-pin editor)
+    // so undo stays a text-level operation there.
+    if ((e.metaKey || e.ctrlKey) && !e.shiftKey && (e.key === 'z' || e.key === 'Z')) {
+      const target = e.target as HTMLElement | null
+      const tag = target?.tagName
+      const isTextInput = tag === 'INPUT' || tag === 'TEXTAREA' || target?.isContentEditable
+      if (editing && editMode !== 'view' && !isTextInput) {
+        e.preventDefault()
+        drawableRef.current?.undo()
         return
       }
-      if (editing) return
-      if (!canNavigate) return
-      if (e.key === 'ArrowLeft') {
-        e.preventDefault()
-        goToPrev()
-      } else if (e.key === 'ArrowRight') {
-        e.preventDefault()
-        goToNext()
-      }
     }
-    window.addEventListener('keydown', handleKey)
-    return () => window.removeEventListener('keydown', handleKey)
-  }, [
-    canNavigate,
-    editing,
-    editMode,
-    exitEdit,
-    galleryReturnTarget,
-    goToNext,
-    goToPrev,
-    mobileDrawOpen,
-    mobilePreviewOpen,
-    onClose,
-    viewMode,
-  ])
+    if (e.key === 'Escape') {
+      if (mobilePreviewOpen) {
+        setMobilePreviewOpen(false)
+        return
+      }
+      if (mobileDrawOpen) {
+        setMobileDrawOpen(false)
+        return
+      }
+      if (editMode !== 'view') {
+        setEditMode('view')
+        setDrawRevision((prev) => prev + 1)
+        return
+      }
+      if (viewMode === 'gallery') {
+        if (galleryReturnTarget === 'detail') {
+          setGalleryReturnTarget('detail')
+          setViewMode('detail')
+        } else onClose()
+        return
+      }
+      if (editing) {
+        exitEdit()
+        return
+      }
+      onClose()
+      return
+    }
+    if (editing) return
+    if (!canNavigate) return
+    if (e.key === 'ArrowLeft') {
+      e.preventDefault()
+      goToPrev()
+    } else if (e.key === 'ArrowRight') {
+      e.preventDefault()
+      goToNext()
+    }
+  })
 
   // Auto-select the new edit batch inside the stack strip. The selection starts
   // on the pending slot, then follows the same batch/order when it becomes an image.
   const navedBatchIdRef = useRef<string | null>(null)
   const copiedEditTargetIdsRef = useRef(new Set<string>())
-  useEffect(() => {
+  useExternalSync(() => {
     if (!activeEditBatchId) return
     const firstItem = stack.items.find((item) => item.batchId === activeEditBatchId)
     if (firstItem && navedBatchIdRef.current !== activeEditBatchId) {
@@ -392,23 +366,13 @@ export function ImageDetailModal({
     }
   }, [activeEditBatchId, stack.items, toSelection])
 
-  const [isMobileLayout, setIsMobileLayout] = useState(() => {
-    if (typeof window === 'undefined') return false
-    return window.matchMedia('(max-width: 767px)').matches
-  })
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    const mql = window.matchMedia('(max-width: 767px)')
-    const handler = (e: MediaQueryListEvent) => setIsMobileLayout(e.matches)
-    mql.addEventListener('change', handler)
-    return () => mql.removeEventListener('change', handler)
-  }, [])
+  const isMobileLayout = useMediaQuery('(max-width: 767px)')
 
-  useEffect(() => {
+  useExternalSync(() => {
     if (!isMobileLayout || !editing) setMobileDrawOpen(false)
   }, [isMobileLayout, editing])
 
-  useEffect(() => {
+  useExternalSync(() => {
     if (!isMobileLayout || !currentImage) setMobilePreviewOpen(false)
   }, [isMobileLayout, currentImage])
 
@@ -574,7 +538,10 @@ export function ImageDetailModal({
         sidebarCollapsed={sidebarCollapsed}
         className={viewMode === 'detail' ? 'md:hidden' : undefined}
         onClose={onClose}
-        onBackToDetail={() => setViewMode('detail')}
+        onBackToDetail={() => {
+          setGalleryReturnTarget('detail')
+          setViewMode('detail')
+        }}
         onOpenManageGallery={() => {
           setGalleryInitialMode('manage')
           setGalleryReturnTarget('detail')
@@ -753,8 +720,9 @@ export function ImageDetailModal({
           </div>
 
           <DetailFooter editing={editing} currentImage={currentImage} selectedItem={selectedItem} stackId={stack.id} />
-          {editing && mobileDrawOpen && currentImage && (
+          {isMobileLayout && editing && mobileDrawOpen && currentImage && (
             <MobileDrawFullscreen
+              key={currentImage.id}
               imageId={currentImage.id}
               src={currentSrc ?? ''}
               mode={activeDrawMode}
@@ -771,7 +739,7 @@ export function ImageDetailModal({
               onClose={finishAnnotation}
             />
           )}
-          {mobilePreviewOpen && currentImage && (
+          {isMobileLayout && mobilePreviewOpen && currentImage && (
             <MobilePreviewFullscreen
               src={displayImage?.src ?? currentSrc ?? ''}
               alt={displayImage?.alt ?? currentMeta?.prompt ?? ''}

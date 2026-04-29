@@ -40,6 +40,9 @@ export default defineConfig([
           extensions: ['.js', '.jsx', '.ts', '.tsx'],
         },
       },
+      'react-hooks': {
+        additionalEffectHooks: '(useExternalSync)',
+      },
     },
     rules: {
       '@typescript-eslint/no-explicit-any': 'error',
@@ -87,11 +90,24 @@ export default defineConfig([
       ],
       'no-unused-vars': 'off',
       'no-void': ['error', { allowAsStatement: true }],
+      'no-restricted-imports': [
+        'warn',
+        {
+          paths: [
+            {
+              name: 'react',
+              importNames: ['useEffect'],
+              message:
+                'Do not add direct useEffect in product code. Prefer derived state, event handlers, key-based remounts, or a focused external-sync hook.',
+            },
+          ],
+        },
+      ],
       'prefer-arrow-callback': ['error', { allowNamedFunctions: true }],
       'prefer-promise-reject-errors': 'error',
       'react-hooks/exhaustive-deps': 'error',
       'react-hooks/preserve-manual-memoization': 'off',
-      'react-hooks/set-state-in-effect': 'off',
+      'react-hooks/set-state-in-effect': 'warn',
       'unused-imports/no-unused-imports': 'error',
       'unused-imports/no-unused-vars': [
         'error',
@@ -118,6 +134,12 @@ export default defineConfig([
     files: ['src/**/*.{ts,tsx}'],
     languageOptions: {
       globals: globals.browser,
+    },
+  },
+  {
+    files: ['src/hooks/effects.ts'],
+    rules: {
+      'no-restricted-imports': 'off',
     },
   },
   {

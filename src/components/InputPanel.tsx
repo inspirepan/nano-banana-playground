@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect, useLayoutEffect, type ReactNode } from 'react'
+import { useState, useRef, useCallback, useLayoutEffect, type ReactNode } from 'react'
 
 import { AspectRatioSelector } from './AspectRatioSelector'
 import { ChipGroup } from './ChipGroup'
@@ -6,6 +6,7 @@ import { Icon } from './Icon'
 import { ReferenceImageUpload } from './ReferenceImageUpload'
 import { Tooltip } from './Tooltip'
 import { MODEL_CONFIGS, type ModelConfig, type ModelOption, type ModelToggleOption } from '../config/models'
+import { useMountEffect, useWindowEvent } from '../hooks/effects'
 import type { ApiKeyStatus } from '../hooks/useApiKey'
 import { isHeifFile } from '../lib/fileToImage'
 import { openAISize } from '../lib/openai'
@@ -347,24 +348,22 @@ export function InputPanel({
     if (textareaRef.current) autoResizeTextarea(textareaRef.current)
   }, [prompt])
 
-  useEffect(
-    () => () => {
-      window.clearTimeout(debounceRef.current)
-    },
-    [],
-  )
+  useMountEffect(() => () => {
+    window.clearTimeout(debounceRef.current)
+  })
 
   // Cmd+Enter shortcut
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
+  useWindowEvent(
+    'keydown',
+    (e) => {
       if (e.metaKey && e.key === 'Enter') {
         e.preventDefault()
         if (canGenerate) onGenerate()
       }
-    }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
-  }, [canGenerate, onGenerate])
+    },
+    undefined,
+    true,
+  )
 
   // --- Drag-and-drop ---
   const [dragOver, setDragOver] = useState(false)

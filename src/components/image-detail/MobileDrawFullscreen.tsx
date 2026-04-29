@@ -1,7 +1,5 @@
-import { useCallback, useEffect, useRef, useState, type RefObject } from 'react'
+import { useCallback, useRef, useState, type RefObject } from 'react'
 
-import type { ItemCounts } from '../../lib/editStateCache'
-import { Icon, type IconName } from '../Icon'
 import { BrushPresetDot } from './annotationControls'
 import { BRUSH_PRESETS, type BrushPresetId } from './annotationPresets'
 import { DrawableLayer, type DrawableLayerHandle, type DrawMode, type DrawTool } from './DrawableLayer'
@@ -18,6 +16,9 @@ import {
   type Point,
   type Size,
 } from './viewGeometry'
+import { useExternalSync, useResizeObserver } from '../../hooks/effects'
+import type { ItemCounts } from '../../lib/editStateCache'
+import { Icon, type IconName } from '../Icon'
 
 export function MobileDrawFullscreen({
   imageId,
@@ -63,6 +64,7 @@ export function MobileDrawFullscreen({
   const [scale, setScale] = useState(FIT_SCALE)
   const [offset, setOffset] = useState<Point>({ x: 0, y: 0 })
   const [mobileTool, setMobileTool] = useState<DrawTool | 'move'>(tool)
+  const mobileToolRef = useRef(mobileTool)
 
   const layerHasItems = counts.mask > 0 || counts.annotate > 0
   const isMoveTool = mobileTool === 'move'
@@ -107,43 +109,20 @@ export function MobileDrawFullscreen({
     [applyView],
   )
 
-  useEffect(() => {
-    if (!src) {
-      setNaturalSize({ width: 0, height: 0 })
-      return
-    }
-    let cancelled = false
-    const img = new Image()
-    img.onload = () => {
-      if (!cancelled) setNaturalSize({ width: img.naturalWidth, height: img.naturalHeight })
-    }
-    img.src = src
-    return () => {
-      cancelled = true
-    }
-  }, [src])
-
-  useEffect(() => {
+  useResizeObserver(viewportRef, () => {
     const element = viewportRef.current
-    if (!element) return
-    const update = () => setViewportSize(getViewportSize(element))
-    update()
-    const observer = new ResizeObserver(update)
-    observer.observe(element)
-    return () => observer.disconnect()
-  }, [])
+    if (element) setViewportSize(getViewportSize(element))
+  })
 
-  useEffect(() => {
+  useExternalSync(() => {
     const nextFit = getContainedSize(viewportSize, naturalSize)
     fitSizeRef.current = nextFit
     applyView(scaleRef.current, offsetRef.current)
   }, [applyView, naturalSize, viewportSize])
 
-  useEffect(() => {
-    resetView()
-  }, [imageId, resetView])
-
-  useEffect(() => {
+  useExternalSync(() => {
+    if (mobileToolRef.current === mobileTool) return
+    mobileToolRef.current = mobileTool
     activePointersRef.current.clear()
     dragStartRef.current = null
     pinchStartRef.current = null
@@ -254,6 +233,19 @@ export function MobileDrawFullscreen({
           else zoomAtPoint(2.5, point)
         }}
       >
+        {src && (
+          <img
+            src={src}
+            alt=""
+            aria-hidden
+            decoding="async"
+            className="pointer-events-none absolute h-0 w-0 opacity-0"
+            onLoad={(event) => {
+              const img = event.currentTarget
+              setNaturalSize({ width: img.naturalWidth, height: img.naturalHeight })
+            }}
+          />
+        )}
         <DrawableLayer
           ref={drawableRef}
           key={`${imageId}:mobile-draw`}

@@ -1,6 +1,7 @@
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { forwardRef, useCallback, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from 'react'
 
 import { getInsetCenterShift, getViewportSize, type Inset } from './viewGeometry'
+import { useExternalSync, useResizeObserver } from '../../hooks/effects'
 import {
   computeItemCounts,
   getEditState,
@@ -277,19 +278,21 @@ export const DrawableLayer = forwardRef<DrawableLayerHandle, Props>(function Dra
     [imageId, onItemsChange],
   )
 
-  useEffect(() => {
-    itemsRef.current = items
-  }, [items])
+  itemsRef.current = items
+  const localViewImageIdRef = useRef(imageId)
+  const interactionModeRef = useRef({ mode, tool, panEnabled })
 
   // Clear image state when src is removed (e.g. switching images).
-  useEffect(() => {
+  useExternalSync(() => {
     if (!src) {
       imageRef.current = null
       setNatural(null)
     }
   }, [src])
 
-  useEffect(() => {
+  useExternalSync(() => {
+    if (localViewImageIdRef.current === imageId) return
+    localViewImageIdRef.current = imageId
     const next = { scale: LOCAL_FIT_SCALE, offset: { x: 0, y: 0 } }
     localViewRef.current = next
     setLocalView(next)
@@ -297,13 +300,16 @@ export const DrawableLayer = forwardRef<DrawableLayerHandle, Props>(function Dra
 
   // Report current counts to the parent. Runs on mount (so a remount under
   // a new imageId syncs the restored breakdown) and whenever items shift.
-  useEffect(() => {
+  useExternalSync(() => {
     onItemsChange?.(computeItemCounts(items))
   }, [items, onItemsChange])
 
   // Reset the pending draft when mode or tool switches, since its kind no
   // longer matches the active tool.
-  useEffect(() => {
+  useExternalSync(() => {
+    const prev = interactionModeRef.current
+    if (prev.mode === mode && prev.tool === tool && prev.panEnabled === panEnabled) return
+    interactionModeRef.current = { mode, tool, panEnabled }
     setDraft(null)
     pointerStateRef.current = null
     panStateRef.current = null
@@ -326,13 +332,7 @@ export const DrawableLayer = forwardRef<DrawableLayerHandle, Props>(function Dra
     recomputeStage()
   }, [recomputeStage])
 
-  useEffect(() => {
-    const el = containerRef.current
-    if (!el) return
-    const obs = new ResizeObserver(recomputeStage)
-    obs.observe(el)
-    return () => obs.disconnect()
-  }, [recomputeStage])
+  useResizeObserver(containerRef, recomputeStage)
 
   const clampLocalOffset = useCallback(
     (offset: Point, scale: number): Point => {
@@ -385,7 +385,7 @@ export const DrawableLayer = forwardRef<DrawableLayerHandle, Props>(function Dra
     [applyLocalView, natural, stage, viewTransform, effectiveShift.x, effectiveShift.y],
   )
 
-  useEffect(() => {
+  useExternalSync(() => {
     const container = containerRef.current
     if (!container) return
     container.addEventListener('wheel', handleWheel, { passive: false })
@@ -433,7 +433,7 @@ export const DrawableLayer = forwardRef<DrawableLayerHandle, Props>(function Dra
     setIsPanning(false)
   }, [])
 
-  useEffect(() => {
+  useExternalSync(() => {
     if (viewTransform) return
     applyLocalView(localViewRef.current.scale, localViewRef.current.offset)
   }, [applyLocalView, viewTransform])

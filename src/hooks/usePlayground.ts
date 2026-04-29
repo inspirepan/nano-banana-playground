@@ -1,5 +1,6 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useRef } from 'react'
 
+import { useExternalSync, useMountEffect } from './effects'
 import { useApiKey } from './useApiKey'
 import { putBlobInCache, getBlobFromCache, removeBlobFromCache } from './useImageSrc'
 import {
@@ -302,18 +303,16 @@ export function usePlayground() {
     setGenerationJobsState(next)
   }, [])
 
-  /* eslint-disable react-hooks/exhaustive-deps -- cleanup must read latest ref Maps at unmount, not a mount-time snapshot */
-  useEffect(() => {
+  useMountEffect(() => {
     return () => {
       for (const controller of abortControllersRef.current.values()) controller.abort()
       abortControllersRef.current.clear()
       activeSlotIdsRef.current.clear()
     }
-  }, [])
-  /* eslint-enable react-hooks/exhaustive-deps */
+  })
 
   // Load first page of history on mount
-  useEffect(() => {
+  useMountEffect(() => {
     void loadHistoryPage(0, HISTORY_PAGE_SIZE)
       .then(({ items, hasMore }) => {
         setHistory(items)
@@ -323,11 +322,11 @@ export function usePlayground() {
         setHistory([])
         setHistoryHasMore(false)
       })
-  }, [])
+  })
 
   // Load persisted draft reference images on mount
   const draftRefsLoadedRef = useRef(false)
-  useEffect(() => {
+  useMountEffect(() => {
     void loadDraftRefs()
       .then((images) => {
         if (images.length > 0) {
@@ -338,7 +337,7 @@ export function usePlayground() {
       .finally(() => {
         draftRefsLoadedRef.current = true
       })
-  }, [])
+  })
 
   // Load more history pages (infinite scroll)
   const loadMoreHistory = useCallback(async () => {
@@ -356,7 +355,7 @@ export function usePlayground() {
   // --- Debounced URL sync ---
   const urlDebounceRef = useRef<number>(0)
 
-  useEffect(() => {
+  useExternalSync(() => {
     window.clearTimeout(urlDebounceRef.current)
     urlDebounceRef.current = window.setTimeout(() => {
       // Clear every option urlKey declared by any model first, so switching
@@ -383,7 +382,7 @@ export function usePlayground() {
 
   // Persist draft reference images to IndexedDB + sessionStorage on change
   const draftRefsDebounceRef = useRef<number>(0)
-  useEffect(() => {
+  useExternalSync(() => {
     if (!draftRefsLoadedRef.current) return // skip initial save before load completes
     window.clearTimeout(draftRefsDebounceRef.current)
     draftRefsDebounceRef.current = window.setTimeout(() => {
@@ -710,7 +709,7 @@ export function usePlayground() {
     }
   }, [startGenerationSlot])
 
-  useEffect(() => {
+  useExternalSync(() => {
     pumpQueueRef.current = pumpGenerationQueue
   }, [pumpGenerationQueue])
 

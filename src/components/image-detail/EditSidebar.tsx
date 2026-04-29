@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react'
+import { useCallback, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react'
 
 import { BrushPresetDot } from './annotationControls'
 import { BRUSH_PRESETS, type BrushPresetId } from './annotationPresets'
 import type { DrawableLayerHandle, DrawTool } from './DrawableLayer'
 import { MODEL_CONFIGS, DEFAULT_MODEL, defaultOptionsFor, type ModelConfig } from '../../config/models'
+import { useExternalSync, useWindowEvent } from '../../hooks/effects'
 import type { GenerationJob } from '../../hooks/usePlayground'
 import { getEditState, setEditPrompt, type ItemCounts } from '../../lib/editStateCache'
 import { readFileAsImageData } from '../../lib/fileToImage'
@@ -126,7 +127,14 @@ export function EditSidebar({
   // Prompt text is cached per source image so users who close the modal
   // mid-edit (or switch between images via the pager) don't lose what they
   // were writing.
-  const [prompt, setPrompt] = useState(() => getEditState(sourceImage.id).prompt)
+  const [prompt, setPromptState] = useState(() => getEditState(sourceImage.id).prompt)
+  const setPrompt = useCallback(
+    (next: string) => {
+      setPromptState(next)
+      setEditPrompt(sourceImage.id, next)
+    },
+    [sourceImage.id],
+  )
   const [extraRefs, setExtraRefs] = useState<PlaygroundImage[]>([])
   const [refsError, setRefsError] = useState<string | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -134,22 +142,6 @@ export function EditSidebar({
   const [drawablePreview, setDrawablePreview] = useState<{ annotated?: PlaygroundImage; mask?: PlaygroundImage }>({})
   // Editing rarely needs resolution / aspect changes, so collapse by default.
   const [paramsCollapsed, setParamsCollapsed] = useState(true)
-
-  // Sync non-prompt params when the source image changes (pager nav or auto-
-  // nav after a successful edit). Prompt is also restored from this image's
-  // cache entry so per-image drafts survive pager navigation; extra refs
-  // intentionally do not.
-  const sourceIdRef = useRef(sourceImage.id)
-  useEffect(() => {
-    if (sourceIdRef.current === sourceImage.id) return
-    sourceIdRef.current = sourceImage.id
-    setModelId(sourceDefaultModel.id)
-    setResolution(sourceDefaultModel.resolutions.includes(sourceRes) ? sourceRes : sourceDefaultModel.defaultResolution)
-    setAspectRatio(
-      sourceDefaultModel.aspectRatios.includes(sourceAspect) ? sourceAspect : sourceDefaultModel.defaultAspectRatio,
-    )
-    setPrompt(getEditState(sourceImage.id).prompt)
-  }, [sourceImage.id, sourceDefaultModel, sourceRes, sourceAspect])
 
   const handleModelChange = useCallback((id: string) => {
     const nextModel = MODEL_CONFIGS.find((model) => model.id === id)
@@ -159,12 +151,6 @@ export function EditSidebar({
     setAspectRatio((prev) => (nextModel.aspectRatios.includes(prev) ? prev : nextModel.defaultAspectRatio))
     setBatchCount((prev) => Math.min(prev, nextModel.maxBatchCount))
   }, [])
-
-  // Write-through the prompt back to the cache so it survives remounts of
-  // this sidebar (closing the modal or switching to another image and back).
-  useEffect(() => {
-    setEditPrompt(sourceImage.id, prompt)
-  }, [sourceImage.id, prompt])
 
   // Pick a stable placeholder example per source image.
   const placeholder = useMemo(() => {
@@ -231,7 +217,7 @@ export function EditSidebar({
 
   // Clear activeEditBatchId when the job it points to is fully terminal, or
   // when it has dropped off the active jobs list (e.g. pruned after completion).
-  useEffect(() => {
+  useExternalSync(() => {
     if (!activeEditBatchId) return
     if (!activeJob) {
       onSetActiveBatchId(null)
@@ -259,12 +245,10 @@ export function EditSidebar({
 
   const pricePerImage = getPricePerImage(sourceModel, resolution, aspectRatio, inheritedOptions)
   const estimatedCost = pricePerImage !== null ? pricePerImage * batchCount : null
+  const drawablePreviewKey = `${drawableCounts.annotate}:${drawableCounts.mask}`
 
-  useEffect(() => {
-    if (!hasAnnotatedSource && !hasOpenAIMask) {
-      setDrawablePreview({})
-      return
-    }
+  useExternalSync(() => {
+    if (drawablePreviewKey === '0:0' || (!hasAnnotatedSource && !hasOpenAIMask)) return
 
     let cancelled = false
     void (async () => {
@@ -316,7 +300,7 @@ export function EditSidebar({
     return () => {
       cancelled = true
     }
-  }, [drawableCounts, drawableRef, hasAnnotatedSource, hasOpenAIMask, isOpenAI, sourceImage.id])
+  }, [drawablePreviewKey, drawableRef, hasAnnotatedSource, hasOpenAIMask, isOpenAI, sourceImage.id])
 
   // Allow submitting a new edit even while a previous batch is still running.
   // The latest batch stays tracked for auto-navigation; previous jobs keep
@@ -403,6 +387,7 @@ export function EditSidebar({
     inheritedOptions,
     batchCount,
     onSetActiveBatchId,
+    setPrompt,
     drawableRef,
     hasAnnotatedSource,
     hasOpenAIMask,
@@ -419,19 +404,16 @@ export function EditSidebar({
   }, [prompt])
 
   // Cmd+Enter to submit when focused inside the edit panel.
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.metaKey && e.key === 'Enter') {
-        e.preventDefault()
-        if (canSubmit) void handleGenerate()
-      }
+  useWindowEvent('keydown', (e) => {
+    if (e.metaKey && e.key === 'Enter') {
+      e.preventDefault()
+      if (canSubmit) void handleGenerate()
     }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
-  }, [canSubmit, handleGenerate])
+  })
 
   // Count what actually ships to the provider. Visual annotation references
   // take image slots; OpenAI masks travel through the native mask field.
+  const visibleDrawablePreview = hasAnnotatedSource || hasOpenAIMask ? drawablePreview : {}
   const lockedReferenceImages: LockedReferenceImage[] = [
     { id: `${sourceImage.id}:source`, image: sourceImage, label: '原图' },
   ]
@@ -440,14 +422,14 @@ export function EditSidebar({
       id: `${sourceImage.id}:annotate`,
       image: sourceImage,
       label: '标注',
-      preview: drawablePreview.annotated,
+      preview: visibleDrawablePreview.annotated,
     })
   if (hasOpenAIMask)
     lockedReferenceImages.push({
       id: `${sourceImage.id}:mask`,
       image: sourceImage,
       label: 'Mask',
-      preview: drawablePreview.mask,
+      preview: visibleDrawablePreview.mask,
     })
 
   return (

@@ -1,7 +1,8 @@
-import { memo, useEffect, useState } from 'react'
+import { memo, useState } from 'react'
 import { createPortal } from 'react-dom'
 
 import { Icon } from './Icon'
+import { useWindowEvent } from '../hooks/effects'
 import { ensureBlobLoaded, useImageSrc, getBlobFromCache } from '../hooks/useImageSrc'
 import { imageDownloadFileName } from '../lib/downloadFileName'
 import type { PlaygroundImageMeta } from '../lib/types'
@@ -95,23 +96,17 @@ export const ImageCard = memo(function ImageCard({
     event.dataTransfer.effectAllowed = 'copy'
   }
 
-  useEffect(() => {
-    if (!menu) return
-    const handleClose = () => setMenu(null)
-    const handleEscape = (event: KeyboardEvent) => {
+  useWindowEvent('mousedown', () => setMenu(null), undefined, Boolean(menu))
+  useWindowEvent('scroll', () => setMenu(null), { capture: true }, Boolean(menu))
+  useWindowEvent('resize', () => setMenu(null), undefined, Boolean(menu))
+  useWindowEvent(
+    'keydown',
+    (event) => {
       if (event.key === 'Escape') setMenu(null)
-    }
-    window.addEventListener('mousedown', handleClose)
-    window.addEventListener('scroll', handleClose, true)
-    window.addEventListener('resize', handleClose)
-    window.addEventListener('keydown', handleEscape)
-    return () => {
-      window.removeEventListener('mousedown', handleClose)
-      window.removeEventListener('scroll', handleClose, true)
-      window.removeEventListener('resize', handleClose)
-      window.removeEventListener('keydown', handleEscape)
-    }
-  }, [menu])
+    },
+    undefined,
+    Boolean(menu),
+  )
 
   const actionItems: Array<{ label: string; onClick: () => void; danger?: boolean }> = downloadOnly
     ? [{ label: '下载', onClick: handleDownload }]

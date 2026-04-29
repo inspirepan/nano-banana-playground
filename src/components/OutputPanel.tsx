@@ -1,10 +1,11 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { memo, useCallback, useMemo, useRef, useState } from 'react'
 
 import { Icon } from './Icon'
 import { ImageDetailModal } from './image-detail/ImageDetailModal'
 import { GridCell, ImageGrid } from './ImageGrid'
 import { StackItemThumb } from './StackItemThumb'
 import { MODEL_CONFIGS, type ModelConfig } from '../config/models'
+import { useExternalSync } from '../hooks/effects'
 import type { GenerationJob } from '../hooks/usePlayground'
 import { downloadImagePng, downloadImagesZip } from '../lib/exportImages'
 import { countSlots, formatTime } from '../lib/queueJobDisplay'
@@ -316,14 +317,6 @@ function StackRow({
   )
 }
 
-// Wrapper that captures `entering` on mount so the CSS animation isn't
-// interrupted when the parent re-renders (e.g. on slot status changes) and
-// flips the flag off before the animation finishes.
-function StackRowReveal({ entering, children }: { entering: boolean; children: ReactNode }) {
-  const [shouldAnimate] = useState(entering)
-  return <div className={shouldAnimate ? 'stack-row-reveal' : undefined}>{children}</div>
-}
-
 export const OutputPanel = memo(function OutputPanel({
   history,
   historyHasMore,
@@ -347,25 +340,6 @@ export const OutputPanel = memo(function OutputPanel({
   const stacks = useMemo(() => buildImageStacks(history, generationJobs), [history, generationJobs])
   const generatedImageCount = useMemo(() => history.filter((img) => img.source.type === 'generated').length, [history])
   const detailStack = detailTarget ? (stacks.find((stack) => stack.id === detailTarget.stackId) ?? null) : null
-
-  // Track which stack IDs have been seen so a newly appended stack row can
-  // animate in (existing rows get pushed down by the expanding wrapper).
-  // `null` means "not seeded yet" so the initial mount doesn't animate.
-  const [knownStackIds, setKnownStackIds] = useState<Set<string> | null>(null)
-  const newStackIds = useMemo(() => {
-    if (knownStackIds === null) return new Set<string>()
-    const added = new Set<string>()
-    for (const s of stacks) if (!knownStackIds.has(s.id)) added.add(s.id)
-    return added
-  }, [stacks, knownStackIds])
-  useEffect(() => {
-    setKnownStackIds((prev) => {
-      const next = new Set(prev ?? [])
-      for (const s of stacks) next.add(s.id)
-      if (prev && prev.size === next.size) return prev
-      return next
-    })
-  }, [stacks])
 
   const openStackItem = useCallback((stack: ImageStack, item: StackItem) => {
     setDetailTarget({ stackId: stack.id, itemId: item.id, viewMode: 'detail' })
@@ -457,7 +431,7 @@ export const OutputPanel = memo(function OutputPanel({
   const scrollRef = useRef<HTMLDivElement>(null)
   const topStackIdRef = useRef<string | null>(null)
 
-  useEffect(() => {
+  useExternalSync(() => {
     const topStackId = stacks[0]?.id ?? null
     if (topStackId && topStackIdRef.current !== topStackId) {
       scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
@@ -470,7 +444,7 @@ export const OutputPanel = memo(function OutputPanel({
     onLoadMore()
   }, [onLoadMore])
 
-  useEffect(() => {
+  useExternalSync(() => {
     const el = sentinelRef.current
     if (!el || !historyHasMore) return
 
@@ -510,24 +484,23 @@ export const OutputPanel = memo(function OutputPanel({
         <div className="space-y-[26px]">
           <div className="space-y-2">
             {stacks.map((stack) => (
-              <StackRowReveal key={stack.id} entering={newStackIds.has(stack.id)}>
-                <StackRow
-                  stack={stack}
-                  onOpenItem={openStackItem}
-                  onEditItem={editStackItem}
-                  onOpenGallery={openStackGallery}
-                  onDownloadStack={handleExportStack}
-                  onCancelStackGeneration={handleCancelStackGeneration}
-                  onDismissStackFailedJobs={handleDismissStackFailedJobs}
-                  onOpenGenerationSettings={onOpenGenerationSettings}
-                  onDeleteStack={handleDeleteStackClick}
-                  downloading={exportingStackId === stack.id}
-                  deleteConfirming={confirmDeleteStackId === stack.id}
-                  deleting={deletingStackId === stack.id}
-                  onRequestDeleteConfirm={handleRequestDeleteStack}
-                  onCancelDeleteConfirm={handleCancelDeleteStack}
-                />
-              </StackRowReveal>
+              <StackRow
+                key={stack.id}
+                stack={stack}
+                onOpenItem={openStackItem}
+                onEditItem={editStackItem}
+                onOpenGallery={openStackGallery}
+                onDownloadStack={handleExportStack}
+                onCancelStackGeneration={handleCancelStackGeneration}
+                onDismissStackFailedJobs={handleDismissStackFailedJobs}
+                onOpenGenerationSettings={onOpenGenerationSettings}
+                onDeleteStack={handleDeleteStackClick}
+                downloading={exportingStackId === stack.id}
+                deleteConfirming={confirmDeleteStackId === stack.id}
+                deleting={deletingStackId === stack.id}
+                onRequestDeleteConfirm={handleRequestDeleteStack}
+                onCancelDeleteConfirm={handleCancelDeleteStack}
+              />
             ))}
           </div>
 

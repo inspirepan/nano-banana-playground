@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react'
 
+import { useExternalSync, useMountEffect, useResizeObserver, useWindowEvent } from '../../hooks/effects'
 import { Icon } from '../Icon'
 import {
   FIT_SCALE,
@@ -167,15 +168,9 @@ export function ZoomableImageView({
     [applyView],
   )
 
-  useEffect(() => {
-    const element = containerRef.current
-    if (!element) return
-    const observer = new ResizeObserver(syncFitSize)
-    observer.observe(element)
-    return () => observer.disconnect()
-  }, [syncFitSize])
+  useResizeObserver(containerRef, syncFitSize)
 
-  useEffect(() => {
+  useExternalSync(() => {
     const element = containerRef.current
     if (!element) return
     const handleWheel = (event: WheelEvent) => {
@@ -194,35 +189,33 @@ export function ZoomableImageView({
 
   // Cancel pending fit-swipe timer on unmount so we don't fire onSwipeLeft/
   // onSwipeRight against a stale parent.
-  useEffect(() => {
+  useMountEffect(() => {
     return () => {
       if (fitAnimTimerRef.current !== null) {
         window.clearTimeout(fitAnimTimerRef.current)
         fitAnimTimerRef.current = null
       }
     }
-  }, [])
+  })
 
   // When the safe area changes (e.g. floating strip resizes), re-fit and
   // repaint the transform so the picture stays inside the new viewport.
-  useEffect(() => {
+  const safeAreaKey = `${visualShift.x}:${visualShift.y}:${inset?.top ?? 0}:${inset?.right ?? 0}:${inset?.bottom ?? 0}:${inset?.left ?? 0}`
+  useExternalSync(() => {
+    if (safeAreaKey.length === 0) return
     syncFitSize()
-  }, [visualShift.x, visualShift.y, inset?.top, inset?.right, inset?.bottom, inset?.left, syncFitSize])
+  }, [safeAreaKey, syncFitSize])
 
   // Keyboard 0 = reset
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key !== '0') return
-      const target = e.target as HTMLElement | null
-      const tag = target?.tagName
-      const isTextInput = tag === 'INPUT' || tag === 'TEXTAREA' || target?.isContentEditable
-      if (isTextInput) return
-      e.preventDefault()
-      resetView()
-    }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
-  }, [resetView])
+  useWindowEvent('keydown', (e) => {
+    if (e.key !== '0') return
+    const target = e.target as HTMLElement | null
+    const tag = target?.tagName
+    const isTextInput = tag === 'INPUT' || tag === 'TEXTAREA' || target?.isContentEditable
+    if (isTextInput) return
+    e.preventDefault()
+    resetView()
+  })
 
   return (
     <div className="relative h-full min-h-0 md:min-h-[640px] w-full overflow-hidden">
@@ -295,11 +288,7 @@ export function ZoomableImageView({
             return
           }
 
-          if (
-            activePointersRef.current.size === 1 &&
-            fitDragRef.current &&
-            scaleRef.current <= FIT_SCALE
-          ) {
+          if (activePointersRef.current.size === 1 && fitDragRef.current && scaleRef.current <= FIT_SCALE) {
             const drag = fitDragRef.current
             const dx = point.x - drag.start.x
             // Damp vertical motion — iOS lets the picture nudge a bit but

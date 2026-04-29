@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 
+import { useExternalSync } from './effects'
 import { loadImageBlob, loadImagePreview, saveImagePreview } from '../lib/history'
 
 const PREVIEW_MAX_SIZE = 1024
@@ -134,7 +135,7 @@ export function useImageSrc(
     }
   }
 
-  useEffect(() => {
+  useExternalSync(() => {
     // Skip if cache already has it (sync path handled it)
     const cached = variant === 'preview' ? previewCache.get(id) : (inlineData ?? blobCache.get(id))
     if (cached) return

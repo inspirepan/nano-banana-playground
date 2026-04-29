@@ -1,5 +1,7 @@
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
+
+import { useMountEffect, useWindowEvent } from '../hooks/effects'
 
 type Props = {
   text: string
@@ -60,18 +62,10 @@ export function Tooltip({ text, children, placement = 'bottom', maxWidth = 240 }
   // Dismiss on scroll or resize — recomputing on scroll would require listening
   // to every scrollable ancestor; dismissing is simpler and consistent with
   // other popovers in the app.
-  useEffect(() => {
-    if (!visible) return
-    const dismiss = () => setVisible(false)
-    window.addEventListener('scroll', dismiss, true)
-    window.addEventListener('resize', dismiss)
-    return () => {
-      window.removeEventListener('scroll', dismiss, true)
-      window.removeEventListener('resize', dismiss)
-    }
-  }, [visible])
+  useWindowEvent('scroll', () => setVisible(false), { capture: true }, visible)
+  useWindowEvent('resize', () => setVisible(false), undefined, visible)
 
-  useEffect(() => () => window.clearTimeout(showTimerRef.current), [])
+  useMountEffect(() => () => window.clearTimeout(showTimerRef.current))
 
   return (
     <div ref={wrapperRef} className="relative" onMouseEnter={handleEnter} onMouseLeave={handleLeave}>
