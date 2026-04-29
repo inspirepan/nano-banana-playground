@@ -511,16 +511,18 @@ export function ImageDetailModal({
     })()
   const galleryBacksToDetail = viewMode === 'gallery' && galleryReturnTarget === 'detail'
 
-  // iOS Safari shifts position:fixed elements when the keyboard opens and
-  // 100dvh doesn't always match the resulting visible area. Track the visual
-  // viewport explicitly so the modal stays glued to the keyboard top edge.
-  const { height: viewportHeight, offsetTop: viewportOffsetTop } = useVisualViewport()
+  // 100dvh doesn't always match the visible area on iOS Safari when the
+  // keyboard opens; tracking the visual viewport height keeps the modal
+  // bottom flush with the keyboard top.
+  const { height: viewportHeight } = useVisualViewport()
 
   return createPortal(
     <div
-      className="fixed left-0 w-full z-[100] flex flex-col fade-in"
+      className="fixed top-0 left-0 w-full z-[100] flex flex-col fade-in"
       style={{
-        top: viewportOffsetTop,
+        // iOS Safari already lays position:fixed relative to the visual
+        // viewport — only the height needs explicit tracking so the modal
+        // shrinks with the soft keyboard instead of leaving a blank gap.
         height: viewportHeight || '100dvh',
         background: 'color-mix(in srgb, var(--color-bg) 82%, transparent)',
         backdropFilter: 'blur(14px)',
