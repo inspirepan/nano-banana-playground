@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 
 import { useApiKey } from './useApiKey'
-import { putBlobInCache, getBlobFromCache, removeBlobFromCache, clearBlobCache } from './useImageSrc'
+import { putBlobInCache, getBlobFromCache, removeBlobFromCache } from './useImageSrc'
 import {
   MODEL_CONFIGS,
   DEFAULT_MODEL,
@@ -16,7 +16,6 @@ import {
   saveToHistory,
   loadHistoryPage,
   deleteFromHistory,
-  clearHistory,
   loadImageBlobs,
   loadImageMetas,
   saveDraftRefs,
@@ -910,13 +909,6 @@ export function usePlayground() {
     setHistory((prev) => prev.filter((img) => img.id !== id))
   }, [])
 
-  const clearAllHistory = useCallback(async () => {
-    await clearHistory()
-    clearBlobCache()
-    setHistory([])
-    setHistoryHasMore(false)
-  }, [])
-
   const generationQueueSummary = summarizeGenerationQueue(generationJobs)
 
   return {
@@ -963,7 +955,6 @@ export function usePlayground() {
     cancelGenerationSlot,
     addToReferences,
     removeFromHistory,
-    clearAllHistory,
     loadMoreHistory,
   }
 }

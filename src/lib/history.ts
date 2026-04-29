@@ -204,18 +204,6 @@ export async function deleteFromHistory(id: string): Promise<void> {
   })
 }
 
-export async function clearHistory(): Promise<void> {
-  const db = await openDB()
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction([META_STORE, BLOB_STORE, PREVIEW_STORE], 'readwrite')
-    tx.objectStore(META_STORE).clear()
-    tx.objectStore(BLOB_STORE).clear()
-    tx.objectStore(PREVIEW_STORE).clear()
-    tx.oncomplete = () => resolve()
-    tx.onerror = () => reject(tx.error)
-  })
-}
-
 // Count total items in history
 export async function countHistory(): Promise<number> {
   const db = await openDB()

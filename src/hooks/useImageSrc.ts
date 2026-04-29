@@ -27,11 +27,6 @@ export function removeBlobFromCache(id: string) {
   previewCache.delete(id)
 }
 
-export function clearBlobCache() {
-  blobCache.clear()
-  previewCache.clear()
-}
-
 function toDataUrl(mimeType: string, data: string): string {
   return `data:${mimeType};base64,${data}`
 }
@@ -108,7 +103,10 @@ export function useImageSrc(
   }
 
   const [src, setSrc] = useState<string | null>(() => {
-    const cached = variant === 'preview' ? (previewCache.get(id) ?? inlineData ?? blobCache.get(id)) : (inlineData ?? blobCache.get(id))
+    const cached =
+      variant === 'preview'
+        ? (previewCache.get(id) ?? inlineData ?? blobCache.get(id))
+        : (inlineData ?? blobCache.get(id))
     return cached ? toDataUrl(mimeType, cached) : null
   })
 
@@ -124,7 +122,10 @@ export function useImageSrc(
   ) {
     setPrevInputs({ id, variant, mimeType, inlineData })
 
-    const cached = variant === 'preview' ? (previewCache.get(id) ?? inlineData ?? blobCache.get(id)) : (inlineData ?? blobCache.get(id))
+    const cached =
+      variant === 'preview'
+        ? (previewCache.get(id) ?? inlineData ?? blobCache.get(id))
+        : (inlineData ?? blobCache.get(id))
     if (cached) {
       const nextSrc = toDataUrl(mimeType, cached)
       if (src !== nextSrc) setSrc(nextSrc)
