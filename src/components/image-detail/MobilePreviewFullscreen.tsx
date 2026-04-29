@@ -15,29 +15,37 @@ export function MobilePreviewFullscreen({
   onSwipeRight?: () => void
 }) {
   return (
-    <div className="fixed inset-0 z-[130] flex flex-col bg-(--color-bg)">
-      <div className="flex h-12 shrink-0 items-center gap-2 px-3 shadow-[inset_0_-1px_0_var(--ring-edge-soft)]">
-        <button type="button" className="icon-btn" onClick={onClose} title="退出全屏预览">
-          <Icon name="chevron_left" size={15} strokeWidth={1.8} />
-        </button>
-        <div className="min-w-0 flex-1 truncate text-sm font-semibold text-(--color-text)">全屏预览</div>
-      </div>
-      <div
-        className="min-h-0 flex-1"
+    <div
+      className="fixed inset-0 z-[130]"
+      style={{
+        backgroundImage: `linear-gradient(var(--color-border) 1px, transparent 1px), linear-gradient(90deg, var(--color-border) 1px, transparent 1px)`,
+        backgroundSize: '28px 28px, 28px 28px',
+        backgroundColor: 'var(--color-bg-sunken)',
+      }}
+    >
+      {src ? (
+        <ZoomableImageView src={src} alt={alt} onSwipeLeft={onSwipeLeft} onSwipeRight={onSwipeRight} />
+      ) : (
+        <div className="flex h-full items-center justify-center">
+          <span className="spinner" />
+        </div>
+      )}
+      <button
+        type="button"
+        onClick={onClose}
+        title="退出全屏预览"
+        aria-label="退出全屏预览"
+        className="fixed left-3 top-3 z-[2] flex h-9 w-9 items-center justify-center rounded-full transition-colors"
         style={{
-          backgroundImage: `linear-gradient(var(--color-border) 1px, transparent 1px), linear-gradient(90deg, var(--color-border) 1px, transparent 1px)`,
-          backgroundSize: '28px 28px, 28px 28px',
-          backgroundColor: 'var(--color-bg-sunken)',
+          background: 'color-mix(in srgb, var(--color-surface) 92%, transparent)',
+          color: 'var(--color-text-2)',
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
+          boxShadow: '0 0 0 1px var(--ring-edge), 0 1px 2px rgba(0,0,0,0.06)',
         }}
       >
-        {src ? (
-          <ZoomableImageView src={src} alt={alt} onSwipeLeft={onSwipeLeft} onSwipeRight={onSwipeRight} />
-        ) : (
-          <div className="flex h-full items-center justify-center">
-            <span className="spinner" />
-          </div>
-        )}
-      </div>
+        <Icon name="close" size={15} strokeWidth={1.8} />
+      </button>
     </div>
   )
 }
