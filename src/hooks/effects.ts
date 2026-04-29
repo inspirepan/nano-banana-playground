@@ -64,6 +64,33 @@ export function useMediaQuery(query: string): boolean {
   return state.matches
 }
 
+export function useVisualViewport(enabled = true): { height: number; offsetTop: number } {
+  const [state, setState] = useState(() => {
+    if (typeof window === 'undefined') return { height: 0, offsetTop: 0 }
+    const vv = window.visualViewport
+    return {
+      height: vv?.height ?? window.innerHeight,
+      offsetTop: vv?.offsetTop ?? 0,
+    }
+  })
+
+  useEffect(() => {
+    if (!enabled || typeof window === 'undefined') return
+    const vv = window.visualViewport
+    if (!vv) return
+    const update = () => setState({ height: vv.height, offsetTop: vv.offsetTop })
+    update()
+    vv.addEventListener('resize', update)
+    vv.addEventListener('scroll', update)
+    return () => {
+      vv.removeEventListener('resize', update)
+      vv.removeEventListener('scroll', update)
+    }
+  }, [enabled])
+
+  return state
+}
+
 export function useResizeObserver<T extends Element>(
   targetRef: RefObject<T | null>,
   onResize: ResizeObserverCallback,

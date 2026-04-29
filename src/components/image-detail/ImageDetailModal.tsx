@@ -13,7 +13,13 @@ import { MobileDrawFullscreen } from './MobileDrawFullscreen'
 import { MobilePreviewFullscreen } from './MobilePreviewFullscreen'
 import { StackGallery, StackStrip } from './StackViews'
 import { MODEL_CONFIGS } from '../../config/models'
-import { useExternalSync, useMediaQuery, useResizeObserver, useWindowEvent } from '../../hooks/effects'
+import {
+  useExternalSync,
+  useMediaQuery,
+  useResizeObserver,
+  useVisualViewport,
+  useWindowEvent,
+} from '../../hooks/effects'
 import { ensureBlobLoaded, useImageSrc } from '../../hooks/useImageSrc'
 import type { GenerationJob } from '../../hooks/usePlayground'
 import { imageDownloadFileName } from '../../lib/downloadFileName'
@@ -513,12 +519,17 @@ export function ImageDetailModal({
     })()
   const galleryBacksToDetail = viewMode === 'gallery' && galleryReturnTarget === 'detail'
 
+  // iOS Safari shifts position:fixed elements when the keyboard opens and
+  // 100dvh doesn't always match the resulting visible area. Track the visual
+  // viewport explicitly so the modal stays glued to the keyboard top edge.
+  const { height: viewportHeight, offsetTop: viewportOffsetTop } = useVisualViewport()
+
   return createPortal(
     <div
-      className="fixed top-0 left-0 w-full z-[100] flex flex-col fade-in"
+      className="fixed left-0 w-full z-[100] flex flex-col fade-in"
       style={{
-        // Track the dynamic viewport so the modal follows the iOS soft keyboard.
-        height: '100dvh',
+        top: viewportOffsetTop,
+        height: viewportHeight || '100dvh',
         background: 'color-mix(in srgb, var(--color-bg) 82%, transparent)',
         backdropFilter: 'blur(14px)',
         WebkitBackdropFilter: 'blur(14px)',
