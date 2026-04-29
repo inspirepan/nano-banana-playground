@@ -1,5 +1,3 @@
-import JSZip from 'jszip'
-
 import { base64ToBlob } from './blobUtils'
 import { imageDownloadFileName } from './downloadFileName'
 import { loadImageBlobs } from './history'
@@ -72,6 +70,7 @@ export async function downloadImagesZip(images: PlaygroundImageMeta[], fileName:
 
   if (await shareImages(images)) return
 
+  const { default: JSZip } = await import('jszip')
   const zip = new JSZip()
   for (const img of images) {
     const data = getBlobFromCache(img.id)
