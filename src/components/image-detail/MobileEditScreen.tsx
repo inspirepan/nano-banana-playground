@@ -83,7 +83,10 @@ export function MobileEditScreen({
         </div>
       </div>
 
-      <div className="shrink-0 px-3.5 pb-3 pt-3 shadow-[inset_0_-1px_0_var(--ring-edge-soft)]">
+      <div
+        className="min-h-0 flex-1 overflow-y-auto px-3.5 pb-[calc(18px+env(safe-area-inset-bottom))] pt-3"
+        style={{ WebkitOverflowScrolling: 'touch' }}
+      >
         <div className="relative h-[156px] overflow-hidden rounded-[8px] bg-(--color-bg-sunken) shadow-[inset_0_0_0_1px_var(--ring-edge)]">
           {currentSrc ? (
             <img src={currentSrc} alt="待编辑图片" className="h-full w-full object-contain" draggable={false} />
@@ -105,9 +108,6 @@ export function MobileEditScreen({
               onItemsChange={onItemsChange}
             />
           )}
-          <div className="pointer-events-none absolute left-2 top-2 rounded-[5px] bg-black/55 px-1.5 py-1 text-sm font-medium leading-none text-white backdrop-blur-[4px]">
-            {hasAnnotations ? `标注 ${drawableCounts.annotate + drawableCounts.mask}` : '原图'}
-          </div>
           <button
             type="button"
             className="icon-btn absolute right-2 top-2"
@@ -119,33 +119,33 @@ export function MobileEditScreen({
             <Icon name="maximize" size={13} strokeWidth={1.8} />
           </button>
         </div>
-      </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-3.5 pb-6 pt-4" style={{ WebkitOverflowScrolling: 'touch' }}>
-        <EditSidebar
-          sourceImage={sourceImage}
-          generationJobs={generationJobs}
-          activeEditBatchId={activeEditBatchId}
-          onEditImage={onEditImage}
-          onSetActiveBatchId={onSetActiveBatchId}
-          annotationActive={false}
-          hasAnnotations={hasAnnotations}
-          annotationToolsFloating={false}
-          drawableCounts={drawableCounts}
-          drawableRef={drawableRef}
-          drawTool={drawTool}
-          desktopMoveActive={false}
-          brushPreset={brushPreset}
-          onStartAnnotation={onStartAnnotation}
-          onFinishAnnotation={onFinishAnnotation}
-          onClearAnnotations={onClearAnnotations}
-          onChangeDrawTool={onChangeDrawTool}
-          onChangeDesktopMoveActive={onChangeDesktopMoveActive}
-          onChangeBrushPreset={onChangeBrushPreset}
-          autoFocusPrompt={false}
-          showSubmitShortcut={false}
-          submitFooterClassName="sticky bottom-0 z-10 -mx-3.5 bg-(--color-bg) px-3.5 pb-[calc(12px+env(safe-area-inset-bottom))] pt-2.5 shadow-[inset_0_1px_0_var(--ring-edge-soft)]"
-        />
+        <div className="pt-4">
+          <EditSidebar
+            sourceImage={sourceImage}
+            generationJobs={generationJobs}
+            activeEditBatchId={activeEditBatchId}
+            onEditImage={onEditImage}
+            onSetActiveBatchId={onSetActiveBatchId}
+            annotationActive={false}
+            hasAnnotations={hasAnnotations}
+            annotationToolsFloating={false}
+            drawableCounts={drawableCounts}
+            drawableRef={drawableRef}
+            drawTool={drawTool}
+            desktopMoveActive={false}
+            brushPreset={brushPreset}
+            onStartAnnotation={onStartAnnotation}
+            onFinishAnnotation={onFinishAnnotation}
+            onClearAnnotations={onClearAnnotations}
+            onChangeDrawTool={onChangeDrawTool}
+            onChangeDesktopMoveActive={onChangeDesktopMoveActive}
+            onChangeBrushPreset={onChangeBrushPreset}
+            autoFocusPrompt={false}
+            showSubmitShortcut={false}
+            submitFooterClassName="pt-2.5 shadow-[inset_0_1px_0_var(--ring-edge-soft)]"
+          />
+        </div>
       </div>
     </div>
   )
