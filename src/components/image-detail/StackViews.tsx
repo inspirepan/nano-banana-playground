@@ -182,7 +182,6 @@ export function StackStrip({
   stack,
   selectedId,
   onSelect,
-  onCancelActiveJobs,
   leadingNode,
   trailingNode,
   floating = false,
@@ -190,7 +189,6 @@ export function StackStrip({
   stack: ImageStack
   selectedId: string | null
   onSelect: (item: StackItem) => void
-  onCancelActiveJobs: () => void
   leadingNode?: ReactNode
   trailingNode?: ReactNode
   floating?: boolean
@@ -200,9 +198,6 @@ export function StackStrip({
   const [collapsed, setCollapsed] = useState(false)
   const itemNumberById = useMemo(() => new Map(stack.items.map((item, index) => [item.id, index + 1])), [stack.items])
   const batches = useMemo(() => buildStackStripBatches(stack.items), [stack.items])
-  const hasActiveJobs = stack.jobs.some((job) =>
-    job.slots.some((slot) => slot.status === 'queued' || slot.status === 'running' || slot.status === 'retrying'),
-  )
 
   useEffect(() => {
     const scroller = stripScrollRef.current
@@ -244,7 +239,11 @@ export function StackStrip({
           {batches.map((batch, batchIdx) => {
             const headline = batchIdx === 0 ? '初始' : `编辑 ${batchIdx}`
             return (
-              <div key={batch.id} className="strip-batch flex shrink-0 flex-col" data-collapsed={collapsed || undefined}>
+              <div
+                key={batch.id}
+                className="strip-batch flex shrink-0 flex-col"
+                data-collapsed={collapsed || undefined}
+              >
                 <div className="strip-header-collapse" data-collapsed={collapsed || undefined}>
                   <div className="min-w-0 overflow-hidden">
                     <div
@@ -293,16 +292,6 @@ export function StackStrip({
           )}
           <div className="min-h-0 flex-1" />
           <div className="flex items-center gap-1">
-            {hasActiveJobs && (
-              <button
-                type="button"
-                onClick={onCancelActiveJobs}
-                className="chip danger text-sm"
-                style={{ height: 24, padding: '0 8px' }}
-              >
-                取消全部
-              </button>
-            )}
             <button
               type="button"
               onClick={() => setCollapsed((value) => !value)}

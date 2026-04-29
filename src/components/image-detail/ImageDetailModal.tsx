@@ -613,17 +613,6 @@ export function ImageDetailModal({
                 selectedId={selectedItem?.id ?? null}
                 onSelect={selectStackItem}
                 floating={!isMobileLayout}
-                onCancelActiveJobs={() => {
-                  for (const job of stack.jobs) {
-                    if (
-                      job.slots.some(
-                        (slot) => slot.status === 'queued' || slot.status === 'running' || slot.status === 'retrying',
-                      )
-                    ) {
-                      onCancelGenerationJob(job.id)
-                    }
-                  }
-                }}
                 leadingNode={
                   <button
                     type="button"
@@ -664,11 +653,7 @@ export function ImageDetailModal({
                 data-collapsed={sidebarCollapsed || undefined}
                 style={{ top: stripHeight + 12 }}
               >
-                <Icon
-                  name={sidebarCollapsed ? 'chevron_left' : 'chevron_right'}
-                  size={14}
-                  strokeWidth={1.8}
-                />
+                <Icon name={sidebarCollapsed ? 'chevron_left' : 'chevron_right'} size={14} strokeWidth={1.8} />
               </button>
               <DetailCanvas
                 inset={!isMobileLayout ? { top: stripHeight } : undefined}
