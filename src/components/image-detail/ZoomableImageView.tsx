@@ -45,6 +45,10 @@ export function ZoomableImageView({
   const offsetRef = useRef<Point>({ x: 0, y: 0 })
   const lastTapRef = useRef<{ at: number; point: Point } | null>(null)
   const didPinchRef = useRef(false)
+  // iOS-album style swipe: when scale === FIT, drag follows the finger and
+  // releases either snap back to center or animate offscreen + change image.
+  const fitDragRef = useRef<{ start: Point; startTime: number; moved: boolean } | null>(null)
+  const fitAnimTimerRef = useRef<number | null>(null)
 
   const [scale, setScale] = useState(FIT_SCALE)
   const [offset, setOffset] = useState<Point>({ x: 0, y: 0 })
@@ -84,10 +88,49 @@ export function ZoomableImageView({
     dragStartRef.current = null
     pinchStartRef.current = null
     didPinchRef.current = false
+    fitDragRef.current = null
+    if (fitAnimTimerRef.current !== null) {
+      window.clearTimeout(fitAnimTimerRef.current)
+      fitAnimTimerRef.current = null
+    }
     setIsDragging(false)
     setIsInteracting(false)
     applyView(FIT_SCALE, { x: 0, y: 0 })
   }, [applyView])
+
+  // Direct DOM transform writer used during the fit-state drag/swipe gesture.
+  // Bypasses applyView's clampOffset so the picture can travel freely until
+  // release, then snaps back or animates offscreen.
+  const setFitTransform = useCallback((x: number, y: number, transition: string) => {
+    const picture = pictureRef.current
+    if (!picture) return
+    picture.style.transition = transition
+    picture.style.transform = `translate3d(${x}px, ${y}px, 0) scale(${FIT_SCALE})`
+  }, [])
+
+  const bounceFitBack = useCallback(() => {
+    setFitTransform(0, 0, 'transform 240ms cubic-bezier(0.23, 1, 0.32, 1)')
+  }, [setFitTransform])
+
+  const finishFitSwipe = useCallback(
+    (direction: 'left' | 'right') => {
+      const viewport = getViewportSize(containerRef.current)
+      const targetX = direction === 'left' ? -viewport.width : viewport.width
+      // Slide out fast — iOS uses ~200ms with a deep ease-out for this curve.
+      setFitTransform(targetX, 0, 'transform 220ms cubic-bezier(0.32, 0.72, 0, 1)')
+      if (fitAnimTimerRef.current !== null) window.clearTimeout(fitAnimTimerRef.current)
+      fitAnimTimerRef.current = window.setTimeout(() => {
+        fitAnimTimerRef.current = null
+        // Don't reset DOM transform here. The src swap below triggers a
+        // React rerender whose inline style restores transform to (0,0)
+        // with the existing 160ms ease-out, so the next image slides
+        // smoothly into place instead of flashing the old src at center.
+        if (direction === 'left') onSwipeLeft?.()
+        else onSwipeRight?.()
+      }, 220)
+    },
+    [onSwipeLeft, onSwipeRight, setFitTransform],
+  )
 
   const zoomAtPoint = useCallback(
     (targetScale: number, anchor: Point) => {
@@ -127,6 +170,17 @@ export function ZoomableImageView({
     element.addEventListener('wheel', handleWheel, { passive: false })
     return () => element.removeEventListener('wheel', handleWheel)
   }, [zoomAtPoint])
+
+  // Cancel pending fit-swipe timer on unmount so we don't fire onSwipeLeft/
+  // onSwipeRight against a stale parent.
+  useEffect(() => {
+    return () => {
+      if (fitAnimTimerRef.current !== null) {
+        window.clearTimeout(fitAnimTimerRef.current)
+        fitAnimTimerRef.current = null
+      }
+    }
+  }, [])
 
   // Keyboard 0 = reset
   useEffect(() => {
@@ -170,6 +224,16 @@ export function ZoomableImageView({
             dragStartRef.current = { point, offset: offsetRef.current }
             pinchStartRef.current = null
             setIsDragging(scaleRef.current > FIT_SCALE)
+            // Cancel any in-flight bounce/swipe-out animation and start a
+            // fresh fit-drag if we're at fit scale. This makes interrupting
+            // a return-to-center tap-and-hold feel responsive.
+            if (scaleRef.current <= FIT_SCALE) {
+              if (fitAnimTimerRef.current !== null) {
+                window.clearTimeout(fitAnimTimerRef.current)
+                fitAnimTimerRef.current = null
+              }
+              fitDragRef.current = { start: point, startTime: performance.now(), moved: false }
+            }
           }
           if (activePointersRef.current.size === 2) {
             const [first, second] = Array.from(activePointersRef.current.values())
@@ -180,6 +244,7 @@ export function ZoomableImageView({
               offset: offsetRef.current,
             }
             dragStartRef.current = null
+            fitDragRef.current = null
             didPinchRef.current = true
             setIsDragging(false)
           }
@@ -203,6 +268,21 @@ export function ZoomableImageView({
             return
           }
 
+          if (
+            activePointersRef.current.size === 1 &&
+            fitDragRef.current &&
+            scaleRef.current <= FIT_SCALE
+          ) {
+            const drag = fitDragRef.current
+            const dx = point.x - drag.start.x
+            // Damp vertical motion — iOS lets the picture nudge a bit but
+            // never drift far, so the gesture stays primarily horizontal.
+            const dy = (point.y - drag.start.y) * 0.3
+            if (!drag.moved && Math.hypot(dx, dy) > 2) drag.moved = true
+            setFitTransform(dx, dy, 'none')
+            return
+          }
+
           if (activePointersRef.current.size === 1 && dragStartRef.current && scaleRef.current > MIN_SCALE) {
             const start = dragStartRef.current
             applyView(scaleRef.current, {
@@ -216,6 +296,7 @@ export function ZoomableImageView({
           const startPoint = pointerStartsRef.current.get(event.pointerId)
           const wasTap = startPoint ? getDistance(startPoint, endPoint) < 12 : false
           const wasPinching = didPinchRef.current
+          const fitDrag = fitDragRef.current
 
           activePointersRef.current.delete(event.pointerId)
           pointerStartsRef.current.delete(event.pointerId)
@@ -224,6 +305,12 @@ export function ZoomableImageView({
             const [remainingPoint] = Array.from(activePointersRef.current.values())
             dragStartRef.current = { point: remainingPoint, offset: offsetRef.current }
             pinchStartRef.current = null
+            // If the lifted finger was the second of a pinch and we end up
+            // in fit, reseed the fit-drag so the remaining finger keeps
+            // moving the picture without lifting first.
+            if (scaleRef.current <= FIT_SCALE) {
+              fitDragRef.current = { start: remainingPoint, startTime: performance.now(), moved: false }
+            }
             setIsInteracting(true)
           } else {
             dragStartRef.current = null
@@ -244,19 +331,41 @@ export function ZoomableImageView({
             }
           }
 
+          // iOS-album style release: bounce back or swipe out based on
+          // distance + velocity. Replaces the old touch-only horizontal
+          // swipe — works for mouse and touch alike.
           if (
-            event.pointerType === 'touch' &&
-            !wasPinching &&
             activePointersRef.current.size === 0 &&
-            scaleRef.current <= FIT_SCALE &&
-            startPoint
+            !wasPinching &&
+            fitDrag &&
+            fitDrag.moved &&
+            scaleRef.current <= FIT_SCALE
           ) {
-            const deltaX = endPoint.x - startPoint.x
-            const deltaY = endPoint.y - startPoint.y
-            if (Math.abs(deltaX) > 50 && Math.abs(deltaX) > Math.abs(deltaY)) {
-              if (deltaX < 0 && onSwipeLeft) onSwipeLeft()
-              if (deltaX > 0 && onSwipeRight) onSwipeRight()
+            const dx = endPoint.x - fitDrag.start.x
+            const dy = endPoint.y - fitDrag.start.y
+            const elapsed = Math.max(performance.now() - fitDrag.startTime, 1)
+            const velocity = Math.abs(dx) / elapsed
+            const viewport = getViewportSize(containerRef.current)
+            // Match iOS Photos: dragging less than ~half a viewport always
+            // bounces back. Only a clear flick (high velocity + meaningful
+            // distance) escapes the bounce.
+            const distanceThreshold = Math.max(viewport.width * 0.5, 200)
+            const horizontal = Math.abs(dx) > Math.abs(dy) * 1.5
+            const overDistance = Math.abs(dx) > distanceThreshold
+            const flick = velocity > 0.8 && Math.abs(dx) > 60
+            const shouldSwipe = horizontal && (overDistance || flick)
+            fitDragRef.current = null
+            if (shouldSwipe && dx < 0 && onSwipeLeft) {
+              finishFitSwipe('left')
+            } else if (shouldSwipe && dx > 0 && onSwipeRight) {
+              finishFitSwipe('right')
+            } else {
+              bounceFitBack()
             }
+          } else if (activePointersRef.current.size === 0 && fitDrag && !fitDrag.moved) {
+            // No movement — clear stale fit-drag so the next pointer down
+            // starts a fresh gesture.
+            fitDragRef.current = null
           }
 
           if (activePointersRef.current.size < 2) didPinchRef.current = false
@@ -267,6 +376,8 @@ export function ZoomableImageView({
           dragStartRef.current = null
           pinchStartRef.current = null
           didPinchRef.current = false
+          if (fitDragRef.current?.moved) bounceFitBack()
+          fitDragRef.current = null
           setIsDragging(false)
           setIsInteracting(false)
         }}
