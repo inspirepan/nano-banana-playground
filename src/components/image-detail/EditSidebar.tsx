@@ -397,13 +397,20 @@ export function EditSidebar({
     el.style.height = `${Math.max(el.scrollHeight + 2, 96)}px`
   }, [prompt])
 
-  // Cmd+Enter to submit when focused inside the edit panel.
-  useWindowEvent('keydown', (e) => {
-    if (e.metaKey && e.key === 'Enter') {
-      e.preventDefault()
-      if (canSubmit) void handleGenerate()
-    }
-  })
+  // Cmd+Enter to submit. Use capture + stopImmediatePropagation so the
+  // background InputPanels (mobile + desktop) don't also fire their own
+  // window-level Cmd+Enter handlers and trigger duplicate generations.
+  useWindowEvent(
+    'keydown',
+    (e) => {
+      if (e.metaKey && e.key === 'Enter') {
+        e.preventDefault()
+        e.stopImmediatePropagation()
+        if (canSubmit) void handleGenerate()
+      }
+    },
+    { capture: true },
+  )
 
   // Count what actually ships to the provider. Visual annotation references
   // take image slots; OpenAI masks travel through the native mask field.
