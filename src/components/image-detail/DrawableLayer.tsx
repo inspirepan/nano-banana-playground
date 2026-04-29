@@ -1,6 +1,6 @@
-import { forwardRef, useCallback, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { forwardRef, useCallback, useImperativeHandle, useLayoutEffect, useRef, useState } from 'react'
 
-import { clamp, getInsetCenterShift, getViewportSize, type Inset } from './viewGeometry'
+import { clamp, getViewportSize } from './viewGeometry'
 import { useExternalSync, useResizeObserver } from '../../hooks/effects'
 import { dataUrlToBase64 } from '../../lib/blobUtils'
 import {
@@ -41,10 +41,6 @@ type Props = {
   eraseAllModes?: boolean
   readOnly?: boolean
   panEnabled?: boolean
-  // Reserved viewport edges (e.g. floating strip) — fit & clamp avoid
-  // them, and the local-view transform applies a matching visual shift
-  // so the picture sits inside the safe area at 100%.
-  inset?: Inset
   // Fires whenever the items list changes. Breakdown by mode lets the
   // parent drive per-layer indicators without peeking into the cache.
   onItemsChange?: (counts: ItemCounts) => void
@@ -198,7 +194,6 @@ export const DrawableLayer = forwardRef<DrawableLayerHandle, Props>(function Dra
     eraseAllModes = false,
     readOnly = false,
     panEnabled = false,
-    inset,
     onItemsChange,
   },
   ref,
@@ -245,17 +240,6 @@ export const DrawableLayer = forwardRef<DrawableLayerHandle, Props>(function Dra
   })
   const [isPanning, setIsPanning] = useState(false)
   const localViewRef = useRef(localView)
-
-  // Cache shift / safe-area inputs that downstream callbacks need so they
-  // don't have to redo the math each frame.
-  const visualShift = useMemo(() => getInsetCenterShift(inset), [inset])
-  const insetTop = inset?.top ?? 0
-  const insetRight = inset?.right ?? 0
-  const insetBottom = inset?.bottom ?? 0
-  const insetLeft = inset?.left ?? 0
-  // Local view applies the visual shift; an external viewTransform owns
-  // its own positioning, so we don't double-shift in that path.
-  const effectiveShift = viewTransform ? { x: 0, y: 0 } : visualShift
 
   // Persist items to cache whenever they change (write-through), and keep
   // the sync ref fresh so pointer handlers see the current list even if
@@ -312,13 +296,11 @@ export const DrawableLayer = forwardRef<DrawableLayerHandle, Props>(function Dra
     const container = containerRef.current
     const nat = natural
     if (!container || !nat) return
-    const safe = getViewportSize(container, { top: insetTop, right: insetRight, bottom: insetBottom, left: insetLeft })
-    const cw = safe.width
-    const ch = safe.height
+    const { width: cw, height: ch } = getViewportSize(container)
     if (cw <= 0 || ch <= 0) return
     const ratio = Math.min(cw / nat.w, ch / nat.h)
     setStage({ w: Math.round(nat.w * ratio), h: Math.round(nat.h * ratio) })
-  }, [natural, insetTop, insetRight, insetBottom, insetLeft])
+  }, [natural])
 
   useLayoutEffect(() => {
     recomputeStage()
@@ -330,17 +312,12 @@ export const DrawableLayer = forwardRef<DrawableLayerHandle, Props>(function Dra
     (offset: Point, scale: number): Point => {
       const container = containerRef.current
       if (!container) return { x: 0, y: 0 }
-      const safe = getViewportSize(container, {
-        top: insetTop,
-        right: insetRight,
-        bottom: insetBottom,
-        left: insetLeft,
-      })
+      const safe = getViewportSize(container)
       const maxX = Math.max(0, (stage.w * scale - safe.width) / 2)
       const maxY = Math.max(0, (stage.h * scale - safe.height) / 2)
       return { x: clamp(offset.x, -maxX, maxX), y: clamp(offset.y, -maxY, maxY) }
     },
-    [stage, insetTop, insetRight, insetBottom, insetLeft],
+    [stage],
   )
 
   const applyLocalView = useCallback(
@@ -359,11 +336,9 @@ export const DrawableLayer = forwardRef<DrawableLayerHandle, Props>(function Dra
       if (viewTransform || !natural || stage.w === 0 || stage.h === 0 || !container) return
       event.preventDefault()
       const rect = container.getBoundingClientRect()
-      // Anchor zoom around the safe-area-relative pointer position, so
-      // pointer math matches the shifted picture center.
       const anchor = {
-        x: event.clientX - rect.left - rect.width / 2 - effectiveShift.x,
-        y: event.clientY - rect.top - rect.height / 2 - effectiveShift.y,
+        x: event.clientX - rect.left - rect.width / 2,
+        y: event.clientY - rect.top - rect.height / 2,
       }
       const current = localViewRef.current
       const factor = event.ctrlKey ? 0.02 : 0.0015
@@ -374,7 +349,7 @@ export const DrawableLayer = forwardRef<DrawableLayerHandle, Props>(function Dra
         y: anchor.y - ratio * (anchor.y - current.offset.y),
       })
     },
-    [applyLocalView, natural, stage, viewTransform, effectiveShift.x, effectiveShift.y],
+    [applyLocalView, natural, stage, viewTransform],
   )
 
   useExternalSync(() => {
@@ -391,14 +366,14 @@ export const DrawableLayer = forwardRef<DrawableLayerHandle, Props>(function Dra
       event.preventDefault()
       const rect = event.currentTarget.getBoundingClientRect()
       const point = {
-        x: event.clientX - rect.left - rect.width / 2 - effectiveShift.x,
-        y: event.clientY - rect.top - rect.height / 2 - effectiveShift.y,
+        x: event.clientX - rect.left - rect.width / 2,
+        y: event.clientY - rect.top - rect.height / 2,
       }
       event.currentTarget.setPointerCapture(event.pointerId)
       panStateRef.current = { pointerId: event.pointerId, point, offset: localViewRef.current.offset }
       setIsPanning(true)
     },
-    [natural, panEnabled, stage, viewTransform, effectiveShift.x, effectiveShift.y],
+    [natural, panEnabled, stage, viewTransform],
   )
 
   const handlePanPointerMove = useCallback(
@@ -407,15 +382,15 @@ export const DrawableLayer = forwardRef<DrawableLayerHandle, Props>(function Dra
       if (!pan || pan.pointerId !== event.pointerId) return
       const rect = event.currentTarget.getBoundingClientRect()
       const point = {
-        x: event.clientX - rect.left - rect.width / 2 - effectiveShift.x,
-        y: event.clientY - rect.top - rect.height / 2 - effectiveShift.y,
+        x: event.clientX - rect.left - rect.width / 2,
+        y: event.clientY - rect.top - rect.height / 2,
       }
       applyLocalView(localViewRef.current.scale, {
         x: pan.offset.x + point.x - pan.point.x,
         y: pan.offset.y + point.y - pan.point.y,
       })
     },
-    [applyLocalView, effectiveShift.x, effectiveShift.y],
+    [applyLocalView],
   )
 
   const handlePanPointerUp = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
@@ -727,7 +702,7 @@ export const DrawableLayer = forwardRef<DrawableLayerHandle, Props>(function Dra
         className="relative flex-none"
         style={{
           // Keep the wrapper at zero until stage is known so the picture
-          // never fit-to-containers before the safe-area inset is applied.
+          // doesn't briefly fit to the raw container size before stage is set.
           width: ready ? stage.w : 0,
           height: ready ? stage.h : 0,
           maxWidth: '100%',
@@ -736,7 +711,7 @@ export const DrawableLayer = forwardRef<DrawableLayerHandle, Props>(function Dra
           boxShadow: ready
             ? '0 0 0 1px var(--ring-edge-strong), 0 30px 60px -24px rgba(0,0,0,0.3), 0 4px 10px rgba(0,0,0,0.06)'
             : 'none',
-          transform: `translate3d(${transform.offset.x + effectiveShift.x}px, ${transform.offset.y + effectiveShift.y}px, 0) scale(${transform.scale})`,
+          transform: `translate3d(${transform.offset.x}px, ${transform.offset.y}px, 0) scale(${transform.scale})`,
           transformOrigin: 'center center',
         }}
       >

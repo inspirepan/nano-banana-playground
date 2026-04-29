@@ -1,4 +1,4 @@
-import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 
 import { useExternalSync, useResizeObserver, useWindowEvent } from '../../hooks/effects'
 import { Icon } from '../Icon'
@@ -11,10 +11,8 @@ import {
   getCenter,
   getContainedSize,
   getDistance,
-  getInsetCenterShift,
   getRelativePoint,
   getViewportSize,
-  type Inset,
   type Point,
   type Size,
 } from './viewGeometry'
@@ -29,18 +27,12 @@ export function ZoomableImageView({
   label,
   onSwipeLeft,
   onSwipeRight,
-  inset,
 }: {
   src: string
   alt: string
   label?: string
   onSwipeLeft?: () => void
   onSwipeRight?: () => void
-  // Reserved viewport edges (e.g. floating strip) that fit/clamp should
-  // avoid. Visual offset shifts the picture's idle center so 100% sits
-  // entirely within the safe area; pointer math stays anchored to that
-  // shifted center so zoom/pan feels natural.
-  inset?: Inset
 }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const pictureRef = useRef<HTMLImageElement>(null)
@@ -61,20 +53,9 @@ export function ZoomableImageView({
   const [isDragging, setIsDragging] = useState(false)
   const [isInteracting, setIsInteracting] = useState(false)
 
-  // Memoize inset-derived values so transforms can pick up changes (e.g.
-  // strip height resize) without rebuilding the whole pointer pipeline.
-  const visualShift = useMemo(() => getInsetCenterShift(inset), [inset])
-  const visualShiftRef = useRef(visualShift)
-  const insetRef = useRef<Inset | undefined>(inset)
-
-  useLayoutEffect(() => {
-    visualShiftRef.current = visualShift
-    insetRef.current = inset
-  }, [visualShift, inset])
-
   const applyView = useCallback((nextScale: number, nextOffset: Point) => {
     const clampedScale = clamp(nextScale, MIN_SCALE, MAX_SCALE)
-    const viewport = getViewportSize(containerRef.current, insetRef.current)
+    const viewport = getViewportSize(containerRef.current)
     const clampedOffset = clampOffset(nextOffset, clampedScale, viewport, fitSizeRef.current)
 
     scaleRef.current = clampedScale
@@ -84,15 +65,14 @@ export function ZoomableImageView({
     // below keep downstream UI (cursor, etc.) consistent on the next render.
     const picture = pictureRef.current
     if (picture) {
-      const shift = visualShiftRef.current
-      picture.style.transform = `translate3d(${clampedOffset.x + shift.x}px, ${clampedOffset.y + shift.y}px, 0) scale(${clampedScale})`
+      picture.style.transform = `translate3d(${clampedOffset.x}px, ${clampedOffset.y}px, 0) scale(${clampedScale})`
     }
     setScale(clampedScale)
     setOffset(clampedOffset)
   }, [])
 
   const syncFitSize = useCallback(() => {
-    const viewport = getViewportSize(containerRef.current, insetRef.current)
+    const viewport = getViewportSize(containerRef.current)
     const nextFitSize = getContainedSize(viewport, naturalSizeRef.current)
     fitSizeRef.current = nextFitSize
     setFitSize(nextFitSize)
@@ -131,7 +111,7 @@ export function ZoomableImageView({
     if (!element) return
     const handleWheel = (event: WheelEvent) => {
       event.preventDefault()
-      const point = getRelativePoint(containerRef.current, event.clientX, event.clientY, insetRef.current)
+      const point = getRelativePoint(containerRef.current, event.clientX, event.clientY)
       // Chrome reports trackpad pinch gestures as wheel events with ctrlKey
       // set. Their deltaY is small, so a larger coefficient is needed to
       // match the feel of a mouse scroll-wheel zoom.
@@ -143,13 +123,6 @@ export function ZoomableImageView({
     return () => element.removeEventListener('wheel', handleWheel)
   }, [zoomAtPoint])
 
-  // When the safe area changes (e.g. floating strip resizes), re-fit and
-  // repaint the transform so the picture stays inside the new viewport.
-  const safeAreaKey = `${visualShift.x}:${visualShift.y}:${inset?.top ?? 0}:${inset?.right ?? 0}:${inset?.bottom ?? 0}:${inset?.left ?? 0}`
-  useExternalSync(() => {
-    if (safeAreaKey.length === 0) return
-    syncFitSize()
-  }, [safeAreaKey, syncFitSize])
   // Keyboard 0 = reset
   useWindowEvent('keydown', (e) => {
     if (e.key !== '0') return
@@ -167,7 +140,7 @@ export function ZoomableImageView({
         ref={containerRef}
         className="relative flex h-full w-full items-center justify-center overflow-hidden touch-none select-none"
         onDoubleClick={(event) => {
-          const point = getRelativePoint(containerRef.current, event.clientX, event.clientY, insetRef.current)
+          const point = getRelativePoint(containerRef.current, event.clientX, event.clientY)
           if (scaleRef.current > FIT_SCALE) {
             resetView()
             return
@@ -176,7 +149,7 @@ export function ZoomableImageView({
         }}
         onPointerDown={(event) => {
           if (event.pointerType === 'mouse' && event.button !== 0) return
-          const point = getRelativePoint(containerRef.current, event.clientX, event.clientY, insetRef.current)
+          const point = getRelativePoint(containerRef.current, event.clientX, event.clientY)
           event.currentTarget.setPointerCapture(event.pointerId)
           activePointersRef.current.set(event.pointerId, point)
           pointerStartsRef.current.set(event.pointerId, point)
@@ -204,7 +177,7 @@ export function ZoomableImageView({
         }}
         onPointerMove={(event) => {
           if (!activePointersRef.current.has(event.pointerId)) return
-          const point = getRelativePoint(containerRef.current, event.clientX, event.clientY, insetRef.current)
+          const point = getRelativePoint(containerRef.current, event.clientX, event.clientY)
           activePointersRef.current.set(event.pointerId, point)
 
           if (activePointersRef.current.size === 2 && pinchStartRef.current) {
@@ -230,7 +203,7 @@ export function ZoomableImageView({
           }
         }}
         onPointerUp={(event) => {
-          const endPoint = getRelativePoint(containerRef.current, event.clientX, event.clientY, insetRef.current)
+          const endPoint = getRelativePoint(containerRef.current, event.clientX, event.clientY)
           const startPoint = pointerStartsRef.current.get(event.pointerId)
           const wasTap = startPoint ? getDistance(startPoint, endPoint) < 12 : false
           const wasPinching = didPinchRef.current
@@ -308,7 +281,7 @@ export function ZoomableImageView({
             style={{
               width: fitSize.width || undefined,
               height: fitSize.height || undefined,
-              transform: `translate3d(${offset.x + visualShift.x}px, ${offset.y + visualShift.y}px, 0) scale(${scale})`,
+              transform: `translate3d(${offset.x}px, ${offset.y}px, 0) scale(${scale})`,
               transformOrigin: 'center center',
               boxShadow:
                 '0 0 0 1px var(--ring-edge-strong), 0 30px 60px -24px rgba(0,0,0,0.3), 0 4px 10px rgba(0,0,0,0.06)',

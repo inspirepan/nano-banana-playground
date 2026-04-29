@@ -4,7 +4,6 @@ import { DesktopAnnotationToolbar } from './annotationControls'
 import type { BrushPresetId } from './annotationPresets'
 import { DrawableLayer, type DrawableLayerHandle, type DrawMode, type DrawTool } from './DrawableLayer'
 import { SlotHero } from './StackViews'
-import type { Inset } from './viewGeometry'
 import { ZoomableImageView } from './ZoomableImageView'
 import type { ItemCounts } from '../../lib/editStateCache'
 import type { StackItem } from '../../lib/stacks'
@@ -35,7 +34,6 @@ type DetailCanvasProps = {
   drawableReadOnly: boolean
   drawablePanEnabled: boolean
   drawableRef: RefObject<DrawableLayerHandle | null>
-  inset?: Inset
   onGoPrev: () => void
   onGoNext: () => void
   onOpenMobilePreview: () => void
@@ -76,7 +74,6 @@ export function DetailCanvas({
   drawableReadOnly,
   drawablePanEnabled,
   drawableRef,
-  inset,
   onGoPrev,
   onGoNext,
   onOpenMobilePreview,
@@ -141,7 +138,6 @@ export function DetailCanvas({
             alt={displayImage?.alt ?? currentMeta?.prompt ?? ''}
             onSwipeLeft={hasNext ? onGoNext : undefined}
             onSwipeRight={hasPrev ? onGoPrev : undefined}
-            inset={inset}
           />
           {!refDetailId && isMobileLayout && (
             <button
@@ -178,7 +174,6 @@ export function DetailCanvas({
               eraseAllModes
               readOnly={drawableReadOnly}
               panEnabled={drawablePanEnabled}
-              inset={inset}
               onItemsChange={onItemsChange}
             />
           )}

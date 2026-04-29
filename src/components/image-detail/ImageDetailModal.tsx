@@ -13,13 +13,7 @@ import { MobileDrawFullscreen } from './MobileDrawFullscreen'
 import { MobilePreviewFullscreen } from './MobilePreviewFullscreen'
 import { StackGallery, StackStrip } from './StackViews'
 import { MODEL_CONFIGS } from '../../config/models'
-import {
-  useExternalSync,
-  useMediaQuery,
-  useResizeObserver,
-  useVisualViewport,
-  useWindowEvent,
-} from '../../hooks/effects'
+import { useExternalSync, useMediaQuery, useVisualViewport, useWindowEvent } from '../../hooks/effects'
 import { ensureBlobLoaded, useImageSrc } from '../../hooks/useImageSrc'
 import type { GenerationJob } from '../../hooks/usePlayground'
 import { imageDownloadFileName } from '../../lib/downloadFileName'
@@ -154,16 +148,6 @@ export function ImageDetailModal({
   const [copiedPrompt, setCopiedPrompt] = useState(false)
   const [refDetailId, setRefDetailId] = useState<string | null>(null)
   const detailScrollRef = useRef<HTMLDivElement | null>(null)
-  const stripRef = useRef<HTMLDivElement | null>(null)
-  // Tracked height of the floating strip on desktop. Drives the canvas
-  // safe-area inset so a 100% image stays clear of the strip.
-  const [stripHeight, setStripHeight] = useState(120)
-  useResizeObserver(stripRef, (entries) => {
-    const entry = entries[0]
-    if (!entry) return
-    const next = Math.round(entry.contentRect.height)
-    setStripHeight((prev) => (prev === next ? prev : next))
-  })
   const [refSrcMap, setRefSrcMap] = useState<Map<string, string>>(new Map())
   const refDetailSrc = refDetailId ? (refSrcMap.get(refDetailId) ?? null) : null
 
@@ -584,41 +568,38 @@ export function ImageDetailModal({
             className="relative flex-1 min-h-0 overflow-y-auto overflow-x-hidden md:flex md:flex-col md:overflow-hidden"
             style={{ WebkitOverflowScrolling: 'touch' }}
           >
-            <div ref={stripRef} className="md:absolute md:inset-x-0 md:top-0 md:z-20">
-              <StackStrip
-                stack={stack}
-                selectedId={selectedItem?.id ?? null}
-                onSelect={selectStackItem}
-                floating={!isMobileLayout}
-                leadingNode={
-                  <button
-                    type="button"
-                    className="icon-btn"
-                    onClick={onClose}
-                    title="关闭 (Esc)"
-                    style={{ width: 32, height: 32 }}
-                  >
-                    <Icon name="close" size={13} strokeWidth={1.8} />
-                  </button>
-                }
-                trailingNode={
-                  <button
-                    type="button"
-                    className="chip ghost shrink-0 font-normal text-(--color-text-3)"
-                    onClick={() => {
-                      setGalleryInitialMode('manage')
-                      setGalleryReturnTarget('detail')
-                      setViewMode('gallery')
-                    }}
-                    title="打开批量管理"
-                    style={{ height: 24, padding: '0 6px' }}
-                  >
-                    <Icon name="check_circle" size={12} strokeWidth={1.8} />
-                    <span>批量管理</span>
-                  </button>
-                }
-              />
-            </div>
+            <StackStrip
+              stack={stack}
+              selectedId={selectedItem?.id ?? null}
+              onSelect={selectStackItem}
+              leadingNode={
+                <button
+                  type="button"
+                  className="icon-btn"
+                  onClick={onClose}
+                  title="关闭 (Esc)"
+                  style={{ width: 32, height: 32 }}
+                >
+                  <Icon name="close" size={13} strokeWidth={1.8} />
+                </button>
+              }
+              trailingNode={
+                <button
+                  type="button"
+                  className="chip ghost shrink-0 font-normal text-(--color-text-3)"
+                  onClick={() => {
+                    setGalleryInitialMode('manage')
+                    setGalleryReturnTarget('detail')
+                    setViewMode('gallery')
+                  }}
+                  title="打开批量管理"
+                  style={{ height: 24, padding: '0 6px' }}
+                >
+                  <Icon name="check_circle" size={12} strokeWidth={1.8} />
+                  <span>批量管理</span>
+                </button>
+              }
+            />
 
             <div className="flex flex-col md:relative md:flex-1 md:flex-row md:min-h-0">
               <button
@@ -628,12 +609,10 @@ export function ImageDetailModal({
                 aria-pressed={!sidebarCollapsed}
                 className="sidebar-edge-toggle"
                 data-collapsed={sidebarCollapsed || undefined}
-                style={{ top: stripHeight + 12 }}
               >
                 <Icon name={sidebarCollapsed ? 'chevron_left' : 'chevron_right'} size={14} strokeWidth={1.8} />
               </button>
               <DetailCanvas
-                inset={!isMobileLayout ? { top: stripHeight } : undefined}
                 selectedItem={selectedItem}
                 currentImage={currentImage}
                 currentMeta={currentMeta}
@@ -677,7 +656,6 @@ export function ImageDetailModal({
                 editing={editing}
                 isMobileLayout={isMobileLayout}
                 sidebarCollapsed={sidebarCollapsed}
-                safeAreaTop={stripHeight}
                 currentImage={currentImage}
                 currentMeta={currentMeta}
                 currentSlot={currentSlot}

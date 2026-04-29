@@ -192,14 +192,12 @@ export function StackStrip({
   onSelect,
   leadingNode,
   trailingNode,
-  floating = false,
 }: {
   stack: ImageStack
   selectedId: string | null
   onSelect: (item: StackItem) => void
   leadingNode?: ReactNode
   trailingNode?: ReactNode
-  floating?: boolean
 }) {
   const stripScrollRef = useRef<HTMLDivElement | null>(null)
   const selectedItemRef = useRef<HTMLDivElement | null>(null)
@@ -222,22 +220,13 @@ export function StackStrip({
   return (
     <div
       className="shrink-0 overflow-x-auto px-3.5 py-2 shadow-[inset_0_-1px_0_var(--ring-edge-soft)]"
-      style={
-        floating
-          ? {
-              // Translucent so the canvas image bleeds through when zoomed.
-              backgroundColor: 'color-mix(in srgb, var(--color-bg) 62%, transparent)',
-              backdropFilter: 'blur(24px) saturate(150%)',
-              WebkitBackdropFilter: 'blur(24px) saturate(150%)',
-            }
-          : {
-              backgroundColor: 'var(--color-bg-sunken)',
-              backgroundImage: `linear-gradient(color-mix(in srgb, var(--color-surface) 46%, transparent), color-mix(in srgb, var(--color-surface) 46%, transparent)), linear-gradient(var(--color-border) 1px, transparent 1px), linear-gradient(90deg, var(--color-border) 1px, transparent 1px)`,
-              backgroundSize: 'auto, 28px 28px, 28px 28px',
-              backdropFilter: 'blur(10px)',
-              WebkitBackdropFilter: 'blur(10px)',
-            }
-      }
+      style={{
+        backgroundColor: 'var(--color-bg-sunken)',
+        backgroundImage: `linear-gradient(color-mix(in srgb, var(--color-surface) 46%, transparent), color-mix(in srgb, var(--color-surface) 46%, transparent)), linear-gradient(var(--color-border) 1px, transparent 1px), linear-gradient(90deg, var(--color-border) 1px, transparent 1px)`,
+        backgroundSize: 'auto, 28px 28px, 28px 28px',
+        backdropFilter: 'blur(10px)',
+        WebkitBackdropFilter: 'blur(10px)',
+      }}
     >
       <div className="flex items-stretch gap-2">
         {leadingNode && <div className="hidden shrink-0 self-center md:flex">{leadingNode}</div>}
