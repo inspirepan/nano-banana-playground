@@ -220,6 +220,16 @@ export const DrawableLayer = forwardRef<DrawableLayerHandle, Props>(function Dra
   // may batch the state update across pointermove frames).
   const [items, setItems] = useState<DrawItem[]>(() => getEditState(imageId).items)
   const itemsRef = useRef<DrawItem[]>(items)
+  // Reload items from the cache when the active image changes — required
+  // now that callers no longer key us by imageId (avoids unmount-flicker
+  // when paging through images).
+  const lastImageIdRef = useRef(imageId)
+  if (lastImageIdRef.current !== imageId) {
+    lastImageIdRef.current = imageId
+    const next = getEditState(imageId).items
+    itemsRef.current = next
+    setItems(next)
+  }
 
   // Item currently being drawn before pointer-up commits it (rect preview and
   // in-progress paths). Ref mirror avoids StrictMode double-invoke of setState
@@ -699,7 +709,23 @@ export const DrawableLayer = forwardRef<DrawableLayerHandle, Props>(function Dra
     <div
       ref={containerRef}
       className="absolute inset-0 flex items-center justify-center select-none"
-      style={{ touchAction: 'none', cursor, pointerEvents: readOnly && !panEnabled ? 'none' : 'auto' }}
+      style={{
+        touchAction: 'none',
+        cursor,
+        // Opaque grid background so this layer fully occludes whatever is
+        // mounted underneath (e.g. ZoomableImageView base). Otherwise a
+        // scaled-down picture would expose the bottom viewer's untouched
+        // image, doubling the canvas. Fades in together with the picture
+        // so the entry into edit mode is seamless.
+        backgroundColor: 'var(--color-bg-sunken)',
+        backgroundImage: `linear-gradient(var(--color-border) 1px, transparent 1px), linear-gradient(90deg, var(--color-border) 1px, transparent 1px)`,
+        backgroundSize: '28px 28px, 28px 28px',
+        opacity: ready ? 1 : 0,
+        transition: 'opacity 200ms ease-out',
+        // Defer pointer capture until ready so the (visible) layer below
+        // keeps responding to wheel/drag during the brief fade-in.
+        pointerEvents: ready && (!readOnly || panEnabled) ? 'auto' : 'none',
+      }}
       onPointerDown={handlePanPointerDown}
       onPointerMove={handlePanPointerMove}
       onPointerUp={handlePanPointerUp}
@@ -708,14 +734,13 @@ export const DrawableLayer = forwardRef<DrawableLayerHandle, Props>(function Dra
       <div
         className="relative flex-none"
         style={{
-          // Hide the picture wrapper until stage size is known to avoid a
-          // fit-to-container flash before the safe-area inset is applied.
+          // Keep the wrapper at zero until stage is known so the picture
+          // never fit-to-containers before the safe-area inset is applied.
           width: ready ? stage.w : 0,
           height: ready ? stage.h : 0,
           maxWidth: '100%',
           maxHeight: '100%',
           overflow: 'hidden',
-          visibility: ready ? 'visible' : 'hidden',
           boxShadow: ready
             ? '0 0 0 1px var(--ring-edge-strong), 0 30px 60px -24px rgba(0,0,0,0.3), 0 4px 10px rgba(0,0,0,0.06)'
             : 'none',
@@ -758,11 +783,6 @@ export const DrawableLayer = forwardRef<DrawableLayerHandle, Props>(function Dra
           }}
         />
       </div>
-      {!ready && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <span className="spinner" />
-        </div>
-      )}
     </div>
   )
 })

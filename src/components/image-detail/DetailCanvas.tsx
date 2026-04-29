@@ -134,15 +134,17 @@ export function DetailCanvas({
         </div>
       ) : currentImage ? (
         <>
-          {!desktopDrawableLayerVisible && (
-            <ZoomableImageView
-              src={displayImage?.src ?? currentSrc ?? ''}
-              alt={displayImage?.alt ?? currentMeta?.prompt ?? ''}
-              onSwipeLeft={hasNext ? onGoNext : undefined}
-              onSwipeRight={hasPrev ? onGoPrev : undefined}
-              inset={inset}
-            />
-          )}
+          {/* Always-on base layer. Keeping the decoded picture mounted
+              underneath the drawable overlay means entering/exiting
+              annotation never blanks the canvas — the bottom view simply
+              gets re-revealed when the drawable layer unmounts. */}
+          <ZoomableImageView
+            src={displayImage?.src ?? currentSrc ?? ''}
+            alt={displayImage?.alt ?? currentMeta?.prompt ?? ''}
+            onSwipeLeft={hasNext ? onGoNext : undefined}
+            onSwipeRight={hasPrev ? onGoPrev : undefined}
+            inset={inset}
+          />
           {!refDetailId && isMobileLayout && (
             <button
               type="button"
@@ -163,7 +165,12 @@ export function DetailCanvas({
           {drawableLayerVisible && (
             <DrawableLayer
               ref={drawableRef}
-              key={`${currentImage.id}:${drawRevision}`}
+              // Don't include imageId in the key — that would force unmount
+              // on every page through, defeating the previous-decoded-image
+              // placeholder strategy. Internal state syncs via imageId
+              // changes instead. drawRevision still re-keys for explicit
+              // resets (clearAll, etc.).
+              key={drawRevision}
               imageId={currentImage.id}
               src={currentSrc ?? ''}
               mode={activeDrawMode}
