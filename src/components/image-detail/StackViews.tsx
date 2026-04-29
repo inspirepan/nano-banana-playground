@@ -249,7 +249,7 @@ export function StackStrip({
                   <div className="min-w-0 overflow-hidden">
                     <div
                       className="strip-header-content min-w-0 px-0.5"
-                      style={{ maxWidth: 240 }}
+                      style={{ maxWidth: collapsed ? 0 : 240 }}
                       data-collapsed={collapsed || undefined}
                     >
                       <div className="flex items-center gap-1 text-sm leading-[1.3] text-(--color-text-2)">
