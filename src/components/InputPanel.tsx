@@ -8,6 +8,7 @@ import { Icon } from './Icon'
 import { OpenAILogo } from './ModelLabel'
 import { ReferenceImageUpload } from './ReferenceImageUpload'
 import { Tooltip } from './Tooltip'
+import type { AgentChatAttachment } from '../agent'
 import type { AgentModelConfig, AgentThinkingLevel } from '../config/agentModels'
 import {
   MODEL_CONFIGS,
@@ -19,7 +20,6 @@ import {
 import { useMountEffect, useWindowEvent } from '../hooks/effects'
 import type { ApiKeyStatus } from '../hooks/useApiKey'
 import type { InputMode } from '../hooks/usePlayground'
-import type { AgentChatAttachment } from '../lib/agentChat'
 import { isHeifFile } from '../lib/fileToImage'
 import { openAISize } from '../lib/openai'
 import { getPricePerImage } from '../lib/pricing'

@@ -5,6 +5,7 @@ import { useExternalSync, useMountEffect } from './effects'
 import { useApiKey } from './useApiKey'
 import { useGenerationQueue, type GenerationJob } from './useGenerationQueue'
 import { putBlobInCache, getBlobFromCache, removeBlobFromCache } from './useImageSrc'
+import { attachmentToAgentAttachment, type AgentChatAttachment } from '../agent'
 import {
   AGENT_MODEL_CONFIGS,
   DEFAULT_AGENT_MODEL,
@@ -21,7 +22,6 @@ import {
   serializeOptionValue,
   type ModelConfig,
 } from '../config/models'
-import { attachmentToAgentAttachment, type AgentChatAttachment } from '../lib/agentChat'
 import { readFileAsImageData } from '../lib/fileToImage'
 import {
   loadHistoryPage,

@@ -1,9 +1,7 @@
 import type { AppMessage as AgentMessage } from '@mariozechner/pi-agent'
-import { useEffect, useMemo, useRef, useState, type ChangeEvent, type KeyboardEvent, type ReactNode } from 'react'
+import { useLayoutEffect, useMemo, useRef, useState, type ChangeEvent, type KeyboardEvent, type ReactNode } from 'react'
 
 import { Icon } from './Icon'
-import { AGENT_THINKING_OPTIONS, type AgentModelConfig, type AgentThinkingLevel } from '../config/agentModels'
-import type { ApiKeyStatus } from '../hooks/useApiKey'
 import {
   agentMessageError,
   agentMessageImages,
@@ -12,7 +10,10 @@ import {
   agentMessageThinking,
   imageDataUrl,
   type AgentChatAttachment,
-} from '../lib/agentChat'
+} from '../agent'
+import { AGENT_THINKING_OPTIONS, type AgentModelConfig, type AgentThinkingLevel } from '../config/agentModels'
+import { useWindowEvent } from '../hooks/effects'
+import type { ApiKeyStatus } from '../hooks/useApiKey'
 
 type Props = {
   messages: AgentMessage[]
@@ -271,21 +272,22 @@ export function AgentChatPanel({
   const visibleMessages = streamingMessage ? [...messages, streamingMessage] : messages
   const effectiveThinkingLevel = model.supportsThinking ? thinkingLevel : 'off'
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (textareaRef.current) autoResizeComposer(textareaRef.current)
   }, [draft])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
   }, [visibleMessages.length, streamingMessage, isStreaming])
 
-  useEffect(() => {
-    const handlePointerDown = (event: PointerEvent) => {
+  useWindowEvent(
+    'pointerdown',
+    (event) => {
       if (!controlsRef.current?.contains(event.target as Node)) setOpenMenu(null)
-    }
-    window.addEventListener('pointerdown', handlePointerDown)
-    return () => window.removeEventListener('pointerdown', handlePointerDown)
-  }, [])
+    },
+    undefined,
+    true,
+  )
 
   const addFiles = (files: FileList | File[]) => {
     const imageFiles = Array.from(files).filter(isImageFile)
