@@ -72,6 +72,7 @@ type EditSidebarProps = {
   autoFocusPrompt?: boolean
   submitFooterClassName?: string
   showSubmitShortcut?: boolean
+  onSubmitSuccess?: () => void
 }
 
 export function EditSidebar({
@@ -97,6 +98,7 @@ export function EditSidebar({
   autoFocusPrompt = true,
   submitFooterClassName = 'pt-2.5 shadow-[inset_0_1px_0_var(--ring-edge-soft)]',
   showSubmitShortcut = true,
+  onSubmitSuccess,
 }: EditSidebarProps) {
   // Resolve the model / resolution / aspect ratio / options that generated the
   // source. For uploads, fall back to the default model's defaults.
@@ -369,6 +371,7 @@ export function EditSidebar({
       if (batchId) {
         onSetActiveBatchId(batchId, sourceImage.id)
         setPrompt('')
+        onSubmitSuccess?.()
         // Intentionally do NOT clear strokes here — the user usually iterates
         // on the same annotations across multiple generations.
       }
@@ -388,6 +391,7 @@ export function EditSidebar({
     batchCount,
     onSetActiveBatchId,
     setPrompt,
+    onSubmitSuccess,
     drawableRef,
     hasAnnotatedSource,
     hasOpenAIMask,

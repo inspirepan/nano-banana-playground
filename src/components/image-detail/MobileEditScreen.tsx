@@ -27,6 +27,7 @@ type MobileEditScreenProps = {
   onOpenPreview: () => void
   onEditImage: EditImageHandler
   onSetActiveBatchId: (id: string | null, sourceImageId?: string) => void
+  onSubmitSuccess: () => void
   onStartAnnotation: () => void
   onFinishAnnotation: () => void
   onClearAnnotations: () => void
@@ -55,6 +56,7 @@ export function MobileEditScreen({
   onOpenPreview,
   onEditImage,
   onSetActiveBatchId,
+  onSubmitSuccess,
   onStartAnnotation,
   onFinishAnnotation,
   onClearAnnotations,
@@ -143,6 +145,7 @@ export function MobileEditScreen({
             onChangeBrushPreset={onChangeBrushPreset}
             autoFocusPrompt={false}
             showSubmitShortcut={false}
+            onSubmitSuccess={onSubmitSuccess}
             submitFooterClassName="pt-2.5 shadow-[inset_0_1px_0_var(--ring-edge-soft)]"
           />
         </div>

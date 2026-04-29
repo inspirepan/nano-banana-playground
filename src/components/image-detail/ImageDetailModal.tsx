@@ -557,6 +557,7 @@ export function ImageDetailModal({
             onOpenPreview={() => setMobilePreviewOpen(true)}
             onEditImage={onEditImage}
             onSetActiveBatchId={setActiveEditBatch}
+            onSubmitSuccess={exitEdit}
             onStartAnnotation={startAnnotation}
             onFinishAnnotation={finishAnnotation}
             onClearAnnotations={clearAnnotations}
