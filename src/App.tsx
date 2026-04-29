@@ -1,7 +1,6 @@
 import { Agentation } from 'agentation'
 import { useState, useLayoutEffect, useRef, useCallback } from 'react'
 
-import { Icon } from './components/Icon'
 import { InputPanel } from './components/InputPanel'
 import { OutputPanel } from './components/OutputPanel'
 import { SettingsDialog } from './components/SettingsDialog'
@@ -237,25 +236,10 @@ function App() {
     }
   }
 
-  const topbar = (
-    <div className="topbar flex items-center gap-2.5 px-4 shrink-0 sticky top-0 z-30">
-      <div className="flex items-center gap-2 min-w-0">
-        <div className="font-display font-semibold text-lg tracking-[-0.01em]">Imagine Playground</div>
-      </div>
-
-      <div className="flex-1" />
-
-      <button type="button" onClick={() => openSettings()} className="icon-btn" title="设置" aria-label="设置">
-        <Icon name="settings" size={14} />
-      </button>
-    </div>
-  )
-
   return (
     <>
       {/* Mobile layout */}
       <div className="flex flex-col h-[100dvh] md:hidden overflow-y-auto bg-(--color-bg)">
-        {topbar}
         <div className="px-3">
           <InputPanel
             model={pg.model}
@@ -306,7 +290,6 @@ function App() {
 
       {/* Desktop layout */}
       <div className="hidden md:flex flex-col h-screen overflow-hidden bg-(--color-bg)">
-        {topbar}
         <div className="flex flex-1 min-h-0 overflow-hidden">
           {/* Left input panel */}
           <div className="w-[380px] shrink-0 flex flex-col overflow-y-auto [scrollbar-gutter:stable] bg-(--color-bg) shadow-[inset_-1px_0_0_var(--ring-edge-soft)]">

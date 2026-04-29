@@ -466,7 +466,7 @@ export const OutputPanel = memo(function OutputPanel({
       <div className="mb-5 space-y-3">
         <div className="flex items-start gap-3">
           <div className="min-w-0">
-            <div className="font-display text-xl font-semibold tracking-[-0.01em]">结果</div>
+            <div className="font-display text-xl font-semibold tracking-[-0.01em]">图库</div>
             <div className="text-sm text-(--color-text-3) mt-0.5">
               {stacks.length} 组，{generatedImageCount} 张生成图，存储于本地浏览器
             </div>

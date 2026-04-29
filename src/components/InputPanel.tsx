@@ -447,6 +447,16 @@ export function InputPanel({
       onPaste={handlePanelPaste}
       className="relative px-[18px] py-[18px] pb-[120px]"
     >
+      <div className="mb-[22px] flex min-h-[28px] items-center gap-2.5">
+        <div className="min-w-0 font-display text-lg font-semibold tracking-[-0.01em] text-(--color-text)">
+          Imagine Playground
+        </div>
+        <div className="flex-1" />
+        <button type="button" onClick={onOpenApiKeys} className="icon-btn" title="设置" aria-label="设置">
+          <Icon name="settings" size={14} />
+        </button>
+      </div>
+
       {/* Title + meta */}
       <div className="mb-[18px]">
         <div className="font-display text-xl font-semibold tracking-[-0.01em] mb-0.5">新生成任务</div>
