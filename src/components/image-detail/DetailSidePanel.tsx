@@ -26,7 +26,6 @@ type DetailSidePanelProps = {
   canNavigate: boolean
   copiedPrompt: boolean
   refDetailId: string | null
-  editScrollAnchorRef: RefObject<HTMLDivElement | null>
   generationJobs: GenerationJob[]
   activeEditBatchId: string | null
   annotationActive: boolean
@@ -73,7 +72,6 @@ export function DetailSidePanel({
   canNavigate,
   copiedPrompt,
   refDetailId,
-  editScrollAnchorRef,
   generationJobs,
   activeEditBatchId,
   annotationActive,
@@ -156,7 +154,7 @@ export function DetailSidePanel({
           </div>
         )}
         {editing && currentImage ? (
-          <div ref={editScrollAnchorRef}>
+          <div>
             <EditSidebar
               sourceImage={currentImage}
               generationJobs={generationJobs}

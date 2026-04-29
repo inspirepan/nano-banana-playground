@@ -127,6 +127,7 @@ src/
 - **持久化边界**：API Key 和外观设置走 localStorage；提示词编辑态走 URL；图片二进制只存 IndexedDB/blob cache。不要把大对象或 base64 塞进 localStorage。
 - **样式写法**：优先 Tailwind utility + `index.css` 里的复用类。仅在动态几何值、portal 定位、色块预览、计算型 grid size 等少数场景使用 inline style。
 - **`useEffect` 使用原则**：允许用于外部系统同步（localStorage、URL、matchMedia、事件监听、observer、IndexedDB/blob 加载、命令式 DOM）。不要用 effect 镜像派生状态，也不要写“设 flag -> effect 执行 -> 再清 flag”的链路。
+- **图片切换防闪烁**：详情弹窗、全屏预览、图库等图片 viewer 左右切换时，不能用随图片 id 变化的 `key` 强制 unmount 当前 viewer，也不要在下一张未加载/解码完成前清空当前图。应保留上一张已解码图片作为占位，下一张 blob 加载并尽量 `decode()` 后再替换，避免露出空画布或网格背景闪一下。
 - **文本域自动高度**：`InputPanel` 的 textarea 自适应高度必须保留最近的可滚动祖先滚动位置，不能假设滚动容器就是面板根节点。
 - **文案**：界面文字全部中文；代码注释保持英文且简短。
 

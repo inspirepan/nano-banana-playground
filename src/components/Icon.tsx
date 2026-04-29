@@ -15,6 +15,7 @@ import {
   ImageIcon,
   KeyRound,
   Lock,
+  Maximize2,
   MapPin,
   MoreHorizontal,
   Monitor,
@@ -61,6 +62,7 @@ export type IconName =
   | 'keyboard_arrow_up'
   | 'light_mode'
   | 'lock'
+  | 'maximize'
   | 'map_pin'
   | 'more'
   | 'mouse_pointer'
@@ -104,6 +106,7 @@ const ICONS = {
   keyboard_arrow_up: ChevronUp,
   light_mode: Sun,
   lock: Lock,
+  maximize: Maximize2,
   map_pin: MapPin,
   more: MoreHorizontal,
   mouse_pointer: MousePointer2,

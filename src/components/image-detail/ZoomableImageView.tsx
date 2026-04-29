@@ -131,10 +131,13 @@ export function ZoomableImageView({
   // Keyboard 0 = reset
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === '0') {
-        e.preventDefault()
-        resetView()
-      }
+      if (e.key !== '0') return
+      const target = e.target as HTMLElement | null
+      const tag = target?.tagName
+      const isTextInput = tag === 'INPUT' || tag === 'TEXTAREA' || target?.isContentEditable
+      if (isTextInput) return
+      e.preventDefault()
+      resetView()
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)

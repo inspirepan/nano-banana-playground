@@ -16,7 +16,6 @@ type DetailHeaderProps = {
   onClose: () => void
   onBackToDetail: () => void
   onOpenManageGallery: () => void
-  onOpenMobilePreview: () => void
   onAddRef: () => void
   onRegenerate: () => void
   onReroll: () => void
@@ -36,7 +35,6 @@ export function DetailHeader({
   onClose,
   onBackToDetail,
   onOpenManageGallery,
-  onOpenMobilePreview,
   onAddRef,
   onRegenerate,
   onReroll,
@@ -79,32 +77,17 @@ export function DetailHeader({
 
       {viewMode === 'detail' && (
         <button
-          className="chip hidden shrink-0 font-normal md:inline-flex"
+          className="chip shrink-0 text-sm font-normal md:text-[13px]"
           onClick={onOpenManageGallery}
           title="打开批量管理"
         >
-          <Icon name="check_circle" size={12} strokeWidth={1.8} />
-          <span className="hidden md:inline">批量管理</span>
-        </button>
-      )}
-      {viewMode === 'detail' && currentImage && (
-        <button
-          className="chip shrink-0 text-sm font-normal md:hidden"
-          onClick={onOpenMobilePreview}
-          title="全屏预览"
-          style={{ height: 36, padding: '0 12px' }}
-        >
-          <Icon name="image" size={14} strokeWidth={1.8} />
-          全屏
+          <Icon name="check_circle" size={14} strokeWidth={1.8} />
+          <span>批量管理</span>
         </button>
       )}
       {viewMode === 'detail' && currentImage && (
         <>
-          <button
-            className="chip hidden shrink-0 font-normal md:inline-flex"
-            onClick={onAddRef}
-            title="加为参考"
-          >
+          <button className="chip hidden shrink-0 font-normal md:inline-flex" onClick={onAddRef} title="加为参考">
             <Icon name="plus" size={12} strokeWidth={1.8} /> <span className="hidden md:inline">参考</span>
           </button>
           {currentMeta?.prompt && (
@@ -133,11 +116,7 @@ export function DetailHeader({
           >
             <Icon name="download" size={14} strokeWidth={1.8} /> 下载
           </button>
-          <button
-            className="chip hidden shrink-0 font-normal md:inline-flex"
-            onClick={onDownload}
-            title="下载 PNG"
-          >
+          <button className="chip hidden shrink-0 font-normal md:inline-flex" onClick={onDownload} title="下载 PNG">
             <Icon name="download" size={12} strokeWidth={1.8} /> <span className="hidden md:inline">PNG</span>
           </button>
         </>

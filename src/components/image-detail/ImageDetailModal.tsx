@@ -149,7 +149,6 @@ export function ImageDetailModal({
   const [copiedPrompt, setCopiedPrompt] = useState(false)
   const [refDetailId, setRefDetailId] = useState<string | null>(null)
   const detailScrollRef = useRef<HTMLDivElement | null>(null)
-  const editScrollAnchorRef = useRef<HTMLDivElement | null>(null)
   const [refSrcMap, setRefSrcMap] = useState<Map<string, string>>(new Map())
   const refDetailSrc = refDetailId ? (refSrcMap.get(refDetailId) ?? null) : null
 
@@ -192,19 +191,34 @@ export function ImageDetailModal({
       .catch(() => {})
   }, [refDetailId, refSrcMap, findRefImage])
 
+  const resetDetailTab = useCallback(() => {
+    setEditing(false)
+    setEditMode('view')
+    setDrawTool('brush')
+    setDesktopMoveActive(false)
+    setMobileDrawOpen(false)
+  }, [])
+
+  const selectStackItem = useCallback(
+    (item: StackItem | null) => {
+      setSelection(toSelection(item))
+      setRefDetailId(null)
+      resetDetailTab()
+    },
+    [resetDetailTab, toSelection],
+  )
+
   const goToPrev = useCallback(() => {
     const prev = stack.items[Math.max(0, currentIdx - 1)] ?? null
-    setSelection(toSelection(prev))
-    setRefDetailId(null)
+    selectStackItem(prev)
     // No explicit clear — DrawableLayer remounts under the new image's key
     // and restores that image's cached items (empty for never-edited ones).
-  }, [currentIdx, stack.items, toSelection])
+  }, [currentIdx, selectStackItem, stack.items])
 
   const goToNext = useCallback(() => {
     const next = stack.items[Math.min(stack.items.length - 1, currentIdx + 1)] ?? null
-    setSelection(toSelection(next))
-    setRefDetailId(null)
-  }, [currentIdx, stack.items, toSelection])
+    selectStackItem(next)
+  }, [currentIdx, selectStackItem, stack.items])
 
   useEffect(() => {
     if (!currentImage) return
@@ -222,7 +236,12 @@ export function ImageDetailModal({
     const img = new Image()
     img.decoding = 'async'
     img.onload = () => {
-      if (!cancelled) setDisplayImage(next)
+      void img
+        .decode()
+        .catch(() => {})
+        .finally(() => {
+          if (!cancelled) setDisplayImage(next)
+        })
     }
     img.onerror = () => {
       if (!cancelled) setDisplayImage(next)
@@ -250,6 +269,7 @@ export function ImageDetailModal({
           const pre = new Image()
           pre.decoding = 'async'
           pre.src = dataUrl
+          void pre.decode().catch(() => {})
         })
         .catch(() => {})
     }
@@ -259,13 +279,10 @@ export function ImageDetailModal({
   }, [canNavigate, currentIdx, stack.items])
 
   const exitEdit = useCallback(() => {
-    setEditing(false)
-    setEditMode('view')
-    setDrawTool('brush')
-    setDesktopMoveActive(false)
+    resetDetailTab()
     // Keep items — they're cached per-image so reopening the modal restores
     // whatever annotations were in progress. Counts stay for the dots.
-  }, [])
+  }, [resetDetailTab])
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -377,36 +394,6 @@ export function ImageDetailModal({
   useEffect(() => {
     if (!isMobileLayout || !currentImage) setMobilePreviewOpen(false)
   }, [isMobileLayout, currentImage])
-
-  const scrollMobileEditIntoView = useCallback(
-    (behavior: ScrollBehavior = 'smooth') => {
-      if (!isMobileLayout) return
-      const scroller = detailScrollRef.current
-      const anchor = editScrollAnchorRef.current
-      if (!scroller || !anchor) return
-
-      const scrollerRect = scroller.getBoundingClientRect()
-      const anchorRect = anchor.getBoundingClientRect()
-      const targetTop = scroller.scrollTop + anchorRect.top - scrollerRect.top - 10
-      const maxTop = scroller.scrollHeight - scroller.clientHeight
-      const nextTop = Math.max(0, Math.min(targetTop, maxTop))
-      if (Math.abs(nextTop - scroller.scrollTop) < 2) return
-      scroller.scrollTo({ top: nextTop, behavior })
-    },
-    [isMobileLayout],
-  )
-
-  useEffect(() => {
-    if (!isMobileLayout || !editing || !currentImage) return
-
-    const delays = [0, 120, 320]
-    const timers = delays.map((delay) =>
-      window.setTimeout(() => scrollMobileEditIntoView(delay === 0 ? 'auto' : 'smooth'), delay),
-    )
-    return () => {
-      for (const timer of timers) window.clearTimeout(timer)
-    }
-  }, [currentImage, editing, isMobileLayout, scrollMobileEditIntoView])
 
   // Desktop-only: collapse the right metadata sidebar to give the canvas more room.
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
@@ -576,7 +563,6 @@ export function ImageDetailModal({
           setGalleryReturnTarget('detail')
           setViewMode('gallery')
         }}
-        onOpenMobilePreview={() => setMobilePreviewOpen(true)}
         onAddRef={handleAddRef}
         onRegenerate={handleRegenerateAction}
         onReroll={handleRerollAction}
@@ -590,8 +576,7 @@ export function ImageDetailModal({
           initialMode={galleryInitialMode}
           selectedId={selectedItem?.id ?? null}
           onSelect={(item) => {
-            setSelection(toSelection(item))
-            setRefDetailId(null)
+            selectStackItem(item)
             setGalleryReturnTarget('detail')
             setViewMode('detail')
           }}
@@ -607,10 +592,7 @@ export function ImageDetailModal({
             <StackStrip
               stack={stack}
               selectedId={selectedItem?.id ?? null}
-              onSelect={(item) => {
-                setSelection(toSelection(item))
-                setRefDetailId(null)
-              }}
+              onSelect={selectStackItem}
               onCancelActiveJobs={() => {
                 for (const job of stack.jobs) {
                   if (
@@ -652,6 +634,7 @@ export function ImageDetailModal({
                 drawableRef={drawableRef}
                 onGoPrev={goToPrev}
                 onGoNext={goToNext}
+                onOpenMobilePreview={() => setMobilePreviewOpen(true)}
                 onCloseRefDetail={() => setRefDetailId(null)}
                 onChangeDrawTool={setDrawTool}
                 onChangeDesktopMoveActive={setDesktopMoveActive}
@@ -682,7 +665,6 @@ export function ImageDetailModal({
                 canNavigate={canNavigate}
                 copiedPrompt={copiedPrompt}
                 refDetailId={refDetailId}
-                editScrollAnchorRef={editScrollAnchorRef}
                 generationJobs={generationJobs}
                 activeEditBatchId={activeEditBatchId}
                 annotationActive={editMode !== 'view'}
@@ -742,8 +724,8 @@ export function ImageDetailModal({
           )}
           {mobilePreviewOpen && currentImage && (
             <MobilePreviewFullscreen
-              src={currentSrc ?? ''}
-              alt={currentMeta?.prompt ?? ''}
+              src={displayImage?.src ?? currentSrc ?? ''}
+              alt={displayImage?.alt ?? currentMeta?.prompt ?? ''}
               onClose={() => setMobilePreviewOpen(false)}
               onSwipeLeft={hasNext ? goToNext : undefined}
               onSwipeRight={hasPrev ? goToPrev : undefined}

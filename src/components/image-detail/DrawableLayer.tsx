@@ -665,7 +665,7 @@ export const DrawableLayer = forwardRef<DrawableLayerHandle, Props>(function Dra
     <div
       ref={containerRef}
       className="absolute inset-0 flex items-center justify-center select-none"
-      style={{ touchAction: 'none', cursor }}
+      style={{ touchAction: 'none', cursor, pointerEvents: readOnly && !panEnabled ? 'none' : 'auto' }}
       onPointerDown={handlePanPointerDown}
       onPointerMove={handlePanPointerMove}
       onPointerUp={handlePanPointerUp}

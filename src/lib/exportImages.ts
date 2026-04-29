@@ -5,6 +5,55 @@ import { loadImageBlobs } from './history'
 import type { PlaygroundImageMeta } from './types'
 import { ensureBlobLoaded, getBlobFromCache, putBlobInCache } from '../hooks/useImageSrc'
 
+function imageExtension(image: PlaygroundImageMeta): 'png' | 'jpg' {
+  return image.mimeType === 'image/png' ? 'png' : 'jpg'
+}
+
+function base64ToBlob(data: string, mimeType: string): Blob {
+  const binary = window.atob(data)
+  const chunks: ArrayBuffer[] = []
+  for (let offset = 0; offset < binary.length; offset += 8192) {
+    const slice = binary.slice(offset, offset + 8192)
+    const buffer = new ArrayBuffer(slice.length)
+    const bytes = new Uint8Array(buffer)
+    for (let i = 0; i < slice.length; i++) bytes[i] = slice.charCodeAt(i)
+    chunks.push(buffer)
+  }
+  return new Blob(chunks, { type: mimeType })
+}
+
+async function ensureImagesInCache(images: PlaygroundImageMeta[]): Promise<void> {
+  const needLoad = images.filter((img) => !getBlobFromCache(img.id)).map((img) => img.id)
+  if (needLoad.length === 0) return
+
+  const blobs = await loadImageBlobs(needLoad)
+  for (const [id, data] of blobs) putBlobInCache(id, data)
+}
+
+async function shareImages(images: PlaygroundImageMeta[]): Promise<boolean> {
+  if (!navigator.share) return false
+
+  const files = images
+    .map((img) => {
+      const data = getBlobFromCache(img.id)
+      if (!data) return null
+      const ext = imageExtension(img)
+      const mimeType = img.mimeType || (ext === 'png' ? 'image/png' : 'image/jpeg')
+      return new File([base64ToBlob(data, mimeType)], imageDownloadFileName(img, ext), { type: mimeType })
+    })
+    .filter((file): file is File => file !== null)
+
+  if (files.length === 0 || !navigator.canShare?.({ files })) return false
+
+  try {
+    await navigator.share({ files, title: 'Nano Banana 图片' })
+    return true
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') return true
+    return false
+  }
+}
+
 export async function downloadImagePng(image: PlaygroundImageMeta): Promise<void> {
   const src = await ensureBlobLoaded(image.id, image.mimeType)
   if (!src) return
@@ -31,17 +80,15 @@ export async function downloadImagePng(image: PlaygroundImageMeta): Promise<void
 export async function downloadImagesZip(images: PlaygroundImageMeta[], fileName: string): Promise<void> {
   if (images.length === 0) return
 
-  const needLoad = images.filter((img) => !getBlobFromCache(img.id)).map((img) => img.id)
-  if (needLoad.length > 0) {
-    const blobs = await loadImageBlobs(needLoad)
-    for (const [id, data] of blobs) putBlobInCache(id, data)
-  }
+  await ensureImagesInCache(images)
+
+  if (await shareImages(images)) return
 
   const zip = new JSZip()
   for (const img of images) {
     const data = getBlobFromCache(img.id)
     if (!data) continue
-    const ext = img.mimeType === 'image/png' ? 'png' : 'jpg'
+    const ext = imageExtension(img)
     zip.file(imageDownloadFileName(img, ext), data, { base64: true })
   }
 
