@@ -113,13 +113,13 @@
   --font-sans--font-feature-settings: 'calt' 1, 'tnum' 1, 'case' 1;
 }
 
-.font-sans-roboto {
-  --font-sans: 'Roboto', var(--font-cjk-sans);
+.font-sans-roboto-flex {
+  --font-sans: 'Roboto Flex', var(--font-cjk-sans);
   --font-sans--font-feature-settings: 'calt' 1, 'tnum' 1, 'case' 1;
 }
 
-.font-sans-space-grotesk {
-  --font-sans: 'Space Grotesk', var(--font-cjk-sans);
+.font-sans-manrope {
+  --font-sans: 'Manrope', var(--font-cjk-sans);
   --font-sans--font-feature-settings: 'calt' 1, 'tnum' 1, 'case' 1;
 }
 
@@ -128,8 +128,18 @@
   --font-sans--font-feature-settings: 'calt' 1, 'tnum' 1, 'case' 1;
 }
 
-.font-sans-dm-sans {
-  --font-sans: 'DM Sans', var(--font-cjk-sans);
+.font-sans-golos-text {
+  --font-sans: 'Golos Text', var(--font-cjk-sans);
+  --font-sans--font-feature-settings: 'calt' 1, 'tnum' 1, 'case' 1;
+}
+
+.font-sans-source-sans-3 {
+  --font-sans: 'Source Sans 3', var(--font-cjk-sans);
+  --font-sans--font-feature-settings: 'calt' 1, 'tnum' 1, 'case' 1;
+}
+
+.font-sans-work-sans {
+  --font-sans: 'Work Sans', var(--font-cjk-sans);
   --font-sans--font-feature-settings: 'calt' 1, 'tnum' 1, 'case' 1;
 }
 

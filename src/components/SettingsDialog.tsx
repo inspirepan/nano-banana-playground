@@ -182,7 +182,11 @@ export function SettingsDialog({
                   label="正文字体"
                   fonts={SANS_FONT_CHOICES}
                   value={sansFont}
-                  sample="Image2 3:1 4K"
+                  sample={
+                    <>
+                      <span className="font-semibold">Image2</span> 3:1 4K
+                    </>
+                  }
                   onChange={onSansFontChange}
                 />
               </div>
@@ -240,7 +244,7 @@ function FontChoiceGroup<T extends string>({
   label: string
   fonts: { id: T; name: string; cssFamily: string }[]
   value: T
-  sample: string
+  sample: ReactNode
   onChange: (id: T) => void
 }) {
   return (

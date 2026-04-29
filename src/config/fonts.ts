@@ -1,10 +1,12 @@
 export type SansFontId =
   | 'geist'
   | 'inter'
-  | 'roboto'
-  | 'space-grotesk'
+  | 'roboto-flex'
+  | 'manrope'
   | 'google-sans-flex'
-  | 'dm-sans'
+  | 'golos-text'
+  | 'source-sans-3'
+  | 'work-sans'
   | 'ibm-plex-sans'
   | 'outfit'
   | 'onest'
@@ -44,18 +46,18 @@ export const SANS_FONTS: FontOption<SansFontId>[] = [
     googleQuery: 'Inter:wght@100..900',
   },
   {
-    id: 'roboto',
-    name: 'Roboto',
-    className: 'font-sans-roboto',
-    cssFamily: "'Roboto'",
-    googleQuery: 'Roboto:wght@100..900',
+    id: 'roboto-flex',
+    name: 'Roboto Flex',
+    className: 'font-sans-roboto-flex',
+    cssFamily: "'Roboto Flex'",
+    googleQuery: 'Roboto Flex:opsz,wght@8..144,100..1000',
   },
   {
-    id: 'space-grotesk',
-    name: 'Space Grotesk',
-    className: 'font-sans-space-grotesk',
-    cssFamily: "'Space Grotesk'",
-    googleQuery: 'Space Grotesk:wght@300..700',
+    id: 'manrope',
+    name: 'Manrope',
+    className: 'font-sans-manrope',
+    cssFamily: "'Manrope'",
+    googleQuery: 'Manrope:wght@200..800',
   },
   {
     id: 'google-sans-flex',
@@ -65,11 +67,25 @@ export const SANS_FONTS: FontOption<SansFontId>[] = [
     googleQuery: 'Google Sans Flex:opsz,wght@6..144,1..1000',
   },
   {
-    id: 'dm-sans',
-    name: 'DM Sans',
-    className: 'font-sans-dm-sans',
-    cssFamily: "'DM Sans'",
-    googleQuery: 'DM Sans:opsz,wght@9..40,100..1000',
+    id: 'golos-text',
+    name: 'Golos Text',
+    className: 'font-sans-golos-text',
+    cssFamily: "'Golos Text'",
+    googleQuery: 'Golos Text:wght@400..900',
+  },
+  {
+    id: 'source-sans-3',
+    name: 'Source Sans 3',
+    className: 'font-sans-source-sans-3',
+    cssFamily: "'Source Sans 3'",
+    googleQuery: 'Source Sans 3:wght@200..900',
+  },
+  {
+    id: 'work-sans',
+    name: 'Work Sans',
+    className: 'font-sans-work-sans',
+    cssFamily: "'Work Sans'",
+    googleQuery: 'Work Sans:wght@100..900',
   },
   {
     id: 'ibm-plex-sans',
@@ -144,7 +160,7 @@ export const SANS_FONTS: FontOption<SansFontId>[] = [
 
 export const SANS_FONT_IDS = SANS_FONTS.map((font) => font.id)
 
-export const DEFAULT_SANS_FONT: SansFontId = 'geist'
+export const DEFAULT_SANS_FONT: SansFontId = 'onest'
 
 function googleFontsHrefForQueries(queries: string[]) {
   const uniqueQueries = [...new Set(queries)]
