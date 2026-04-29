@@ -607,7 +607,7 @@ export function InputPanel({
             className="block w-full bg-transparent px-3 py-2.5 text-[16px] md:text-base leading-[1.55] resize-none focus:outline-none"
           />
           <div className="flex items-center gap-2 px-2.5 py-1.5 text-sm text-(--color-text-3) shadow-[inset_0_1px_0_var(--ring-edge-soft)]">
-            <span className="mono text-sm text-(--color-text-4)">{prompt.length} 字</span>
+            <span className="text-sm text-(--color-text-4)">{prompt.length} 字</span>
             <div className="flex-1" />
             {prompt.length > 0 && (
               <button
@@ -647,7 +647,7 @@ export function InputPanel({
               data-active={batchCount === n}
               onClick={() => onBatchCountChange(n)}
             >
-              <span className="mono">×{n}</span>
+              <span>×{n}</span>
             </button>
           ))}
         </div>
@@ -659,7 +659,7 @@ export function InputPanel({
           <div className="flex items-baseline justify-between mb-2">
             <span className={INPUT_LABEL_CLASS}>参数概览</span>
             {estimatedCost !== null && (
-              <span className="mono text-base text-(--color-text-2)">≈ ${estimatedCost.toFixed(3)}</span>
+              <span className="text-base text-(--color-text-2)">≈ ${estimatedCost.toFixed(3)}</span>
             )}
           </div>
           <dl className="grid grid-cols-[52px_1fr] gap-x-3 gap-y-[5px] text-sm leading-[1.5]">
@@ -667,19 +667,19 @@ export function InputPanel({
             <dd className="text-(--color-text-2)">{model.name}</dd>
             <dt className="text-(--color-text-4)">尺寸</dt>
             <dd className="text-(--color-text-2)">
-              <span className="mono">{resolution}</span>
+              <span>{resolution}</span>
               <span className="mx-1.5 text-(--color-text-4)">/</span>
-              <span className="mono">{aspectRatio}</span>
+              <span>{aspectRatio}</span>
             </dd>
             <dt className="text-(--color-text-4)">数量</dt>
             <dd className="text-(--color-text-2)">
-              <span className="mono">×{batchCount}</span>
+              <span>×{batchCount}</span>
             </dd>
             {referenceImages.length > 0 && (
               <>
                 <dt className="text-(--color-text-4)">参考图</dt>
                 <dd className="text-(--color-text-2)">
-                  <span className="mono">{referenceImages.length}</span> 张
+                  <span>{referenceImages.length}</span> 张
                 </dd>
               </>
             )}

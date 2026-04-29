@@ -12,7 +12,7 @@ type Props = {
   onChange: (value: string) => void
 }
 
-export function ChipGroup({ label, options, value, mono = true, columns, renderOption, tooltipFor, onChange }: Props) {
+export function ChipGroup({ label, options, value, mono = false, columns, renderOption, tooltipFor, onChange }: Props) {
   const grid = columns
     ? { display: 'grid', gridTemplateColumns: `repeat(${columns}, 1fr)`, gap: 6 }
     : { display: 'flex', gap: 6, flexWrap: 'wrap' as const }

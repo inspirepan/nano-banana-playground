@@ -8,20 +8,12 @@ export type SansFontId =
   | 'ibm-plex-sans'
   | 'outfit'
   | 'onest'
-  | 'albert-sans'
   | 'source-serif-4'
   | 'newsreader'
   | 'literata'
   | 'bitter'
   | 'crimson-pro'
   | 'gelasio'
-export type MonoFontId =
-  | 'geist-mono'
-  | 'google-sans-code'
-  | 'jetbrains-mono'
-  | 'roboto-mono'
-  | 'dm-mono'
-  | 'ibm-plex-mono'
 
 type FontOption<T extends string> = {
   id: T
@@ -34,6 +26,7 @@ type FontOption<T extends string> = {
 
 const CJK_SERIF_FAMILY = "'Noto Serif SC', 'Songti SC', 'STSong', 'SimSun', serif"
 const CJK_SERIF_GOOGLE_QUERY = 'Noto Serif SC:wght@200..900'
+const ROBOTO_MONO_GOOGLE_QUERY = 'Roboto Mono:wght@100..700'
 
 export const SANS_FONTS: FontOption<SansFontId>[] = [
   {
@@ -100,13 +93,6 @@ export const SANS_FONTS: FontOption<SansFontId>[] = [
     googleQuery: 'Onest:wght@100..900',
   },
   {
-    id: 'albert-sans',
-    name: 'Albert Sans',
-    className: 'font-sans-albert-sans',
-    cssFamily: "'Albert Sans'",
-    googleQuery: 'Albert Sans:wght@100..900',
-  },
-  {
     id: 'source-serif-4',
     name: 'Source Serif 4',
     className: 'font-sans-source-serif-4',
@@ -156,56 +142,9 @@ export const SANS_FONTS: FontOption<SansFontId>[] = [
   },
 ]
 
-export const MONO_FONTS: FontOption<MonoFontId>[] = [
-  {
-    id: 'geist-mono',
-    name: 'Geist Mono',
-    className: 'font-mono-geist-mono',
-    cssFamily: "'Geist Mono'",
-    googleQuery: 'Geist Mono:wght@100..900',
-  },
-  {
-    id: 'google-sans-code',
-    name: 'Google Sans Code',
-    className: 'font-mono-google-sans-code',
-    cssFamily: "'Google Sans Code'",
-    googleQuery: 'Google Sans Code:wght@300..800',
-  },
-  {
-    id: 'jetbrains-mono',
-    name: 'JetBrains Mono',
-    className: 'font-mono-jetbrains-mono',
-    cssFamily: "'JetBrains Mono'",
-    googleQuery: 'JetBrains Mono:wght@100..800',
-  },
-  {
-    id: 'roboto-mono',
-    name: 'Roboto Mono',
-    className: 'font-mono-roboto-mono',
-    cssFamily: "'Roboto Mono'",
-    googleQuery: 'Roboto Mono:wght@100..700',
-  },
-  {
-    id: 'dm-mono',
-    name: 'DM Mono',
-    className: 'font-mono-dm-mono',
-    cssFamily: "'DM Mono'",
-    googleQuery: 'DM Mono:wght@300;400;500',
-  },
-  {
-    id: 'ibm-plex-mono',
-    name: 'IBM Plex Mono',
-    className: 'font-mono-ibm-plex-mono',
-    cssFamily: "'IBM Plex Mono'",
-    googleQuery: 'IBM Plex Mono:wght@100;200;300;400;500;600;700',
-  },
-]
-
 export const SANS_FONT_IDS = SANS_FONTS.map((font) => font.id)
-export const MONO_FONT_IDS = MONO_FONTS.map((font) => font.id)
 
 export const DEFAULT_SANS_FONT: SansFontId = 'geist'
-export const DEFAULT_MONO_FONT: MonoFontId = 'geist-mono'
 
 function googleFontsHrefForQueries(queries: string[]) {
   const uniqueQueries = [...new Set(queries)]
@@ -213,16 +152,12 @@ function googleFontsHrefForQueries(queries: string[]) {
   return `https://fonts.googleapis.com/css2?${families}&display=swap`
 }
 
-export function googleFontsHref(sansFont: SansFontId, monoFont: MonoFontId) {
+export function googleFontsHref(sansFont: SansFontId) {
   const sans = SANS_FONTS.find((font) => font.id === sansFont) ?? SANS_FONTS[0]
-  const mono = MONO_FONTS.find((font) => font.id === monoFont) ?? MONO_FONTS[0]
-  return googleFontsHrefForQueries([sans.googleQuery, ...(sans.googleFallbackQueries ?? []), mono.googleQuery])
+  return googleFontsHrefForQueries([sans.googleQuery, ...(sans.googleFallbackQueries ?? []), ROBOTO_MONO_GOOGLE_QUERY])
 }
 
 export function googleFontPreviewsHref() {
-  const queries = [...SANS_FONTS, ...MONO_FONTS].flatMap((font) => [
-    font.googleQuery,
-    ...(font.googleFallbackQueries ?? []),
-  ])
+  const queries = SANS_FONTS.flatMap((font) => [font.googleQuery, ...(font.googleFallbackQueries ?? [])])
   return googleFontsHrefForQueries(queries)
 }

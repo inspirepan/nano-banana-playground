@@ -133,7 +133,7 @@ export function StackItemThumb({
             ) : (
               <span className="spinner" style={{ width: 12, height: 12 }} />
             )}
-            <span className="mono text-sm">#{(slot?.index ?? item.order) + 1}</span>
+            <span className="text-sm">#{(slot?.index ?? item.order) + 1}</span>
             {slotReason && slot && (
               <span
                 className="mt-1 max-w-full text-center text-sm font-normal leading-[1.45]"
@@ -152,7 +152,7 @@ export function StackItemThumb({
         )}
       </div>
       <span
-        className="pointer-events-none absolute z-10 inline-flex h-[18px] min-w-[24px] items-center justify-center rounded-[5px] px-1.5 mono text-base font-normal leading-none"
+        className="pointer-events-none absolute z-10 inline-flex h-[18px] min-w-[24px] items-center justify-center rounded-[5px] px-1.5 text-base font-normal leading-none"
         style={{
           left: numberBadgeInset,
           top: numberBadgeInset,

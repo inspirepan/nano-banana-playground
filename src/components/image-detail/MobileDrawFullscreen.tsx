@@ -288,7 +288,7 @@ export function MobileDrawFullscreen({
           </button>
           <button
             type="button"
-            className="mono pointer-events-auto px-2 text-sm font-medium text-(--color-text-2)"
+            className="pointer-events-auto px-2 text-sm font-medium text-(--color-text-2)"
             onClick={resetView}
             title="重置"
           >

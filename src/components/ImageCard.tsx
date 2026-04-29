@@ -176,7 +176,7 @@ export const ImageCard = memo(function ImageCard({
           <span />
         )}
         {meta && (
-          <span className="mono text-base" style={{ opacity: 0.85 }}>
+          <span style={{ opacity: 0.85 }}>
             {meta.resolution} · {meta.aspectRatio}
           </span>
         )}

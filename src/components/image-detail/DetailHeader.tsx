@@ -65,7 +65,7 @@ export function DetailHeader({
           <span className="truncate text-base font-semibold leading-[1.25] tracking-[-0.01em] text-(--color-text) md:text-base md:font-medium md:tracking-normal">
             {modelName}
           </span>
-          <span className="mono shrink-0 text-sm leading-[1.25] text-(--color-text-4)">{pxDim}</span>
+          <span className="shrink-0 text-sm leading-[1.25] text-(--color-text-4)">{pxDim}</span>
         </div>
       ) : (
         <span className="truncate text-base font-semibold leading-[1.25] tracking-[-0.01em] text-(--color-text) md:text-base md:font-medium md:tracking-normal">

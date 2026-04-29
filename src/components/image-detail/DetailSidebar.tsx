@@ -157,10 +157,10 @@ export function DetailSidebar({
           <>
             <MetaRow label="模型" value={modelName ?? currentMeta.modelId} />
             {modelApiId && <MetaRow label="模型 ID" value={modelApiId} mono />}
-            <MetaRow label="分辨率" value={currentMeta.resolution} mono />
-            <MetaRow label="宽高比" value={currentMeta.aspectRatio} mono />
+            <MetaRow label="分辨率" value={currentMeta.resolution} />
+            <MetaRow label="宽高比" value={currentMeta.aspectRatio} />
             {renderOptionRows(currentMeta, modelConfig)}
-            {actualCost !== null && <MetaRow label="费用" value={<span>${actualCost.toFixed(4)}</span>} mono />}
+            {actualCost !== null && <MetaRow label="费用" value={<span>${actualCost.toFixed(4)}</span>} />}
             {currentMeta.tokenUsage && modelConfig?.provider === 'openai' && (
               <>
                 <MetaRow
@@ -169,35 +169,25 @@ export function DetailSidebar({
                     currentMeta.tokenUsage.inputTextTokens?.toLocaleString() ??
                     currentMeta.tokenUsage.inputTokens.toLocaleString()
                   }
-                  mono
                 />
                 {(currentMeta.tokenUsage.inputImageTokens ?? 0) > 0 && (
                   <MetaRow
                     label="图片输入 Token"
                     value={(currentMeta.tokenUsage.inputImageTokens ?? 0).toLocaleString()}
-                    mono
                   />
                 )}
-                <MetaRow
-                  label="图片输出 Token"
-                  value={currentMeta.tokenUsage.imageOutputTokens.toLocaleString()}
-                  mono
-                />
+                <MetaRow label="图片输出 Token" value={currentMeta.tokenUsage.imageOutputTokens.toLocaleString()} />
                 {currentMeta.tokenUsage.textOutputTokens > 0 && (
-                  <MetaRow
-                    label="文本输出 Token"
-                    value={currentMeta.tokenUsage.textOutputTokens.toLocaleString()}
-                    mono
-                  />
+                  <MetaRow label="文本输出 Token" value={currentMeta.tokenUsage.textOutputTokens.toLocaleString()} />
                 )}
               </>
             )}
             {currentMeta.tokenUsage && modelConfig?.provider === 'google' && (
               <>
-                <MetaRow label="输入 Token" value={currentMeta.tokenUsage.inputTokens.toLocaleString()} mono />
-                <MetaRow label="图片 Token" value={currentMeta.tokenUsage.imageOutputTokens.toLocaleString()} mono />
+                <MetaRow label="输入 Token" value={currentMeta.tokenUsage.inputTokens.toLocaleString()} />
+                <MetaRow label="图片 Token" value={currentMeta.tokenUsage.imageOutputTokens.toLocaleString()} />
                 {currentMeta.tokenUsage.textOutputTokens > 0 && (
-                  <MetaRow label="思考 Token" value={currentMeta.tokenUsage.textOutputTokens.toLocaleString()} mono />
+                  <MetaRow label="思考 Token" value={currentMeta.tokenUsage.textOutputTokens.toLocaleString()} />
                 )}
               </>
             )}
@@ -208,19 +198,18 @@ export function DetailSidebar({
             <MetaRow label="状态" value={slotStatusLabel(currentSlot)} />
             <MetaRow label="模型" value={currentJob.request.model.name} />
             <MetaRow label="模型 ID" value={currentJob.request.model.apiModel} mono />
-            <MetaRow label="分辨率" value={currentJob.request.resolution} mono />
-            <MetaRow label="宽高比" value={currentJob.request.aspectRatio} mono />
+            <MetaRow label="分辨率" value={currentJob.request.resolution} />
+            <MetaRow label="宽高比" value={currentJob.request.aspectRatio} />
             {renderRequestOptionRows(currentJob.request.options, currentJob.request.model)}
-            <MetaRow label="数量" value={`${currentSlot.index + 1}/${currentJob.slots.length}`} mono />
+            <MetaRow label="数量" value={`${currentSlot.index + 1}/${currentJob.slots.length}`} />
             <MetaRow label="参考图" value={`${currentJob.request.referenceImages.length} 张`} />
             {currentJob.request.mask && <MetaRow label="Mask" value="已提供" />}
             <MetaRow
               label="发起时间"
               value={new Date(currentJob.createdAt).toLocaleString('zh-CN', { hour12: false })}
-              mono
             />
             {currentSlot.status === 'retrying' && (
-              <MetaRow label="重试" value={`${currentSlot.attempt}/${currentSlot.maxAttempts}`} mono />
+              <MetaRow label="重试" value={`${currentSlot.attempt}/${currentSlot.maxAttempts}`} />
             )}
             {currentSlot.error && <MetaRow label="错误" value={currentSlot.error} />}
           </>
@@ -232,7 +221,6 @@ export function DetailSidebar({
           <MetaRow
             label="创建时间"
             value={new Date(currentImage.timestamp).toLocaleString('zh-CN', { hour12: false })}
-            mono
           />
         ) : !currentJob ? (
           <MetaRow label="状态" value={currentSlot?.status === 'failed' ? '生成失败' : '等待生成'} />
@@ -243,7 +231,7 @@ export function DetailSidebar({
             value={
               <span>
                 <span className="mono">s_{stackId.slice(0, 6)}</span>
-                <span className="mono text-(--color-text-4) ml-1.5">
+                <span className="text-(--color-text-4) ml-1.5">
                   #{stackInfo.pos}/{stackInfo.total}
                 </span>
               </span>

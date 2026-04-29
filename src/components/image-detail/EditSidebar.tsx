@@ -466,7 +466,7 @@ export function EditSidebar({
             autoFocus
           />
           <div className="flex items-center gap-2 px-2.5 py-1.5 text-sm text-(--color-text-3) shadow-[inset_0_1px_0_var(--ring-edge-soft)]">
-            <span className="mono text-sm text-(--color-text-4)">{prompt.length} 字</span>
+            <span className="text-sm text-(--color-text-4)">{prompt.length} 字</span>
             <div className="flex-1" />
             {prompt.length > 0 && (
               <button
@@ -497,7 +497,7 @@ export function EditSidebar({
             <span className="label">宽高比</span>
           </span>
           <span className="flex-1" />
-          <span className="mono mr-1.5 flex items-center gap-1.5 text-sm text-(--color-text-3)">
+          <span className="mr-1.5 flex items-center gap-1.5 text-sm text-(--color-text-3)">
             <span>{getModelShortLabel(sourceModel)}</span>
             <InlineParamDivider />
             <span>{resolution}</span>
@@ -659,7 +659,7 @@ export function EditSidebar({
               data-active={batchCount === n}
               onClick={() => setBatchCount(n)}
             >
-              <span className="mono">×{n}</span>
+              <span>×{n}</span>
             </button>
           ))}
         </div>
@@ -668,7 +668,7 @@ export function EditSidebar({
       {/* Summary + CTA */}
       <div className="pt-2.5 shadow-[inset_0_1px_0_var(--ring-edge-soft)]">
         {estimatedCost !== null && (
-          <div className="mono mb-2 text-right text-sm text-(--color-text-2)">≈ ${estimatedCost.toFixed(3)}</div>
+          <div className="mb-2 text-right text-sm text-(--color-text-2)">≈ ${estimatedCost.toFixed(3)}</div>
         )}
         {submitError && <div className="mb-2 text-sm text-(--color-danger)">{submitError}</div>}
         <button type="button" onClick={handleGenerate} disabled={!canSubmit} className="cta w-full">

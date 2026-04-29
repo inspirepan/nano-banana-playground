@@ -68,7 +68,7 @@ export function ReferenceImageUpload({
               清空
             </button>
           )}
-          <span className="mono text-sm text-(--color-text-4)">
+          <span className="text-sm text-(--color-text-4)">
             {lockedImages.length + images.length}/{lockedImages.length + maxTotal}
           </span>
         </div>

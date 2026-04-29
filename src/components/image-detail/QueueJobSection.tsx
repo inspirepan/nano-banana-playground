@@ -44,7 +44,7 @@ function StatusCard({ slot, onCancel }: { slot: GenerationSlot; onCancel: (slotI
         ) : (
           <span className="spinner" />
         )}
-        <div className="mono text-sm text-(--color-text-3)">
+        <div className="text-sm text-(--color-text-3)">
           {label} #{slot.index + 1}
         </div>
         <div className="text-sm text-(--color-text-4)">{hint}</div>
@@ -78,11 +78,11 @@ function FailedCard({ index, error }: { index: number; error: string }) {
           >
             ×
           </div>
-          <div className="mono text-base" style={{ color: 'var(--color-danger)' }}>
+          <div className="text-base" style={{ color: 'var(--color-danger)' }}>
             失败 #{index + 1}
           </div>
         </div>
-        <div className="flex-1 min-h-0 overflow-y-auto mono text-sm leading-[1.55] break-words text-(--color-text-2) whitespace-pre-wrap">
+        <div className="flex-1 min-h-0 overflow-y-auto text-sm leading-[1.55] break-words text-(--color-text-2) whitespace-pre-wrap">
           {error}
         </div>
       </div>
@@ -101,7 +101,7 @@ function CanceledCard({ index }: { index: number }) {
     >
       <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-(--color-text-4)">
         <Icon name="close" size={14} strokeWidth={1.8} />
-        <div className="mono text-base">已取消 #{index + 1}</div>
+        <div className="text-base">已取消 #{index + 1}</div>
       </div>
     </div>
   )
@@ -139,17 +139,17 @@ export function QueueJobSection({
     <div>
       <div className="mb-2 grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2">
         <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-          <span className="mono whitespace-nowrap text-sm text-(--color-text-3)">{formatTime(job.createdAt)}</span>
+          <span className="whitespace-nowrap text-sm text-(--color-text-3)">{formatTime(job.createdAt)}</span>
           <span className="text-(--color-text-4)">·</span>
           <span className="whitespace-nowrap text-base font-medium text-(--color-text-2)">
             {job.request.model.name}
           </span>
           <span className="text-(--color-text-4)">·</span>
-          <span className="mono whitespace-nowrap text-sm text-(--color-text-3)">
+          <span className="whitespace-nowrap text-sm text-(--color-text-3)">
             {job.request.resolution} · {job.request.aspectRatio} · {job.slots.length}
           </span>
           <span className="text-(--color-text-4)">·</span>
-          <span className="mono whitespace-nowrap text-base" style={{ color: statusColor }}>
+          <span className="whitespace-nowrap text-base" style={{ color: statusColor }}>
             {jobStatusLabel(counts)}
           </span>
         </div>

@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 
 import { ApiKeysSettings, type KeyHook } from './ApiKeysDialog'
 import { Icon, type IconName } from './Icon'
-import { MONO_FONTS, SANS_FONTS, type MonoFontId, type SansFontId } from '../config/fonts'
+import { SANS_FONTS, type SansFontId } from '../config/fonts'
 import { COLOR_THEMES, type ColorThemeId, type Theme } from '../config/theme'
 
 const BRIGHTNESS: { value: Theme; icon: IconName; label: string }[] = [
@@ -37,13 +37,11 @@ type Props = {
   theme: Theme
   colorTheme: ColorThemeId
   sansFont: SansFontId
-  monoFont: MonoFontId
   generationConcurrency: number
   focusSection?: 'generationConcurrency' | null
   onThemeChange: (theme: Theme) => void
   onColorThemeChange: (id: ColorThemeId) => void
   onSansFontChange: (id: SansFontId) => void
-  onMonoFontChange: (id: MonoFontId) => void
   onGenerationConcurrencyChange: (value: number) => void
   onClose: () => void
 }
@@ -55,13 +53,11 @@ export function SettingsDialog({
   theme,
   colorTheme,
   sansFont,
-  monoFont,
   generationConcurrency,
   focusSection,
   onThemeChange,
   onColorThemeChange,
   onSansFontChange,
-  onMonoFontChange,
   onGenerationConcurrencyChange,
   onClose,
 }: Props) {
@@ -186,16 +182,8 @@ export function SettingsDialog({
                   label="正文字体"
                   fonts={SANS_FONT_CHOICES}
                   value={sansFont}
-                  sample="Imagine 生成任务"
+                  sample="Image2 3:1 4K"
                   onChange={onSansFontChange}
-                />
-
-                <FontChoiceGroup
-                  label="等宽字体"
-                  fonts={MONO_FONTS}
-                  value={monoFont}
-                  sample="4K · 1:1 · #A12B"
-                  onChange={onMonoFontChange}
                 />
               </div>
             </SettingsSection>
@@ -226,7 +214,7 @@ export function SettingsDialog({
                       data-active={generationConcurrency === choice.value}
                     >
                       <span>
-                        <span className="mono text-base">{choice.label}</span>
+                        <span className="text-base">{choice.label}</span>
                         {choice.suffix ? ` ${choice.suffix}` : null}
                       </span>
                     </button>
