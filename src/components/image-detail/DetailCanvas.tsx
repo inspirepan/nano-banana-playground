@@ -173,6 +173,7 @@ export function DetailCanvas({
               eraseAllModes
               readOnly={drawableReadOnly}
               panEnabled={drawablePanEnabled}
+              inset={inset}
               onItemsChange={onItemsChange}
             />
           )}
