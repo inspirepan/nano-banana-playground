@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type ReactNode } from 'react'
+import { Fragment, useMemo, useRef, useState, type ReactNode } from 'react'
 
 import { MODEL_CONFIGS } from '../../config/models'
 import { useExternalSync } from '../../hooks/effects'
@@ -239,45 +239,63 @@ export function StackStrip({
     >
       <div className="flex items-center gap-2">
         {leadingNode && <div className="hidden shrink-0 md:flex">{leadingNode}</div>}
-        <div ref={stripScrollRef} className="-m-1 flex min-w-0 flex-1 items-stretch gap-5 overflow-x-auto p-1 pr-2">
-          {batches.map((batch) => {
-            const previousBatches = batches.slice(0, batches.indexOf(batch))
+        <div
+          ref={stripScrollRef}
+          className="-m-1 flex min-w-0 flex-1 items-stretch gap-2.5 overflow-x-auto py-1 pl-3 pr-3"
+          style={{
+            maskImage:
+              'linear-gradient(to right, transparent 0, black 12px, black calc(100% - 12px), transparent 100%)',
+            WebkitMaskImage:
+              'linear-gradient(to right, transparent 0, black 12px, black calc(100% - 12px), transparent 100%)',
+          }}
+        >
+          {batches.map((batch, batchIndex) => {
+            const previousBatches = batches.slice(0, batchIndex)
             const initialIndex = previousBatches.filter((item) => item.kind === 'initial').length + 1
             const editIndex = previousBatches.filter((item) => item.kind === 'edit').length + 1
             const headline =
               batch.kind === 'initial' ? (initialIndex === 1 ? '初始' : `初始 ${initialIndex}`) : `编辑 ${editIndex}`
             return (
-              <div key={batch.id} className="flex shrink-0 flex-col gap-1.5 md:flex-row md:items-center md:gap-2.5">
-                <div className="min-w-0 px-0.5 md:max-w-[200px] md:shrink-0">
-                  <div className="flex items-center gap-1 text-sm leading-[1.3] text-(--color-text-2)">
-                    <span className="font-medium">{headline}</span>
-                    <span className="text-(--color-text-4)">·</span>
-                    <span className="text-(--color-text-3)">{formatHourMinute(batch.createdAt)}</span>
-                  </div>
+              <Fragment key={batch.id}>
+                {batchIndex > 0 && (
                   <div
-                    className="mt-0.5 truncate text-sm leading-[1.35] text-(--color-text-4)"
-                    title={batch.prompt ?? undefined}
-                  >
-                    {batch.prompt ?? '—'}
+                    aria-hidden
+                    className="hidden w-px shrink-0 self-stretch md:block"
+                    style={{ background: 'var(--ring-edge-soft)' }}
+                  />
+                )}
+                <div className="flex shrink-0 flex-col gap-1.5 md:flex-row md:items-center md:gap-2">
+                  <div className="min-w-0 max-w-[160px] px-0.5 md:max-w-[120px] md:shrink-0">
+                    <div className="flex items-center gap-1 text-sm leading-[1.3] text-(--color-text-2)">
+                      <span className="font-medium">{headline}</span>
+                      <span className="text-(--color-text-4)">·</span>
+                      <span className="text-(--color-text-3)">{formatHourMinute(batch.createdAt)}</span>
+                    </div>
+                    <div
+                      className="mt-0.5 truncate text-sm leading-[1.35] text-(--color-text-4)"
+                      title={batch.prompt ?? undefined}
+                    >
+                      {batch.prompt ?? '—'}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {batch.items.map((item) => {
+                      const active = selectedId === item.id
+                      return (
+                        <div key={item.id} ref={active ? selectedItemRef : undefined} className="shrink-0">
+                          <StackItemThumb
+                            item={item}
+                            number={itemNumberById.get(item.id)}
+                            active={active}
+                            outerRing
+                            onSelect={onSelect}
+                          />
+                        </div>
+                      )
+                    })}
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  {batch.items.map((item) => {
-                    const active = selectedId === item.id
-                    return (
-                      <div key={item.id} ref={active ? selectedItemRef : undefined} className="shrink-0">
-                        <StackItemThumb
-                          item={item}
-                          number={itemNumberById.get(item.id)}
-                          active={active}
-                          outerRing
-                          onSelect={onSelect}
-                        />
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
+              </Fragment>
             )
           })}
           <div className="w-1 shrink-0" aria-hidden />
