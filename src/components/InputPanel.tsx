@@ -50,6 +50,7 @@ function Section({
 
 // --- Auto-resize textarea ---
 const TEXTAREA_MIN_HEIGHT = 120
+const TEXTAREA_MAX_HEIGHT = 360
 
 function findScrollableAncestor(el: HTMLElement): HTMLElement | null {
   let current = el.parentElement
@@ -68,7 +69,10 @@ function autoResizeTextarea(el: HTMLTextAreaElement) {
   const prevScroll = scrollContainer?.scrollTop
   const borderHeight = el.offsetHeight - el.clientHeight
   el.style.height = 'auto'
-  el.style.height = `${Math.max(el.scrollHeight + borderHeight + 1, TEXTAREA_MIN_HEIGHT)}px`
+  const target = Math.max(el.scrollHeight + borderHeight + 1, TEXTAREA_MIN_HEIGHT)
+  const capped = Math.min(target, TEXTAREA_MAX_HEIGHT)
+  el.style.height = `${capped}px`
+  el.style.overflowY = target > TEXTAREA_MAX_HEIGHT ? 'auto' : 'hidden'
   if (scrollContainer && prevScroll !== undefined) scrollContainer.scrollTop = prevScroll
 }
 
@@ -507,68 +511,6 @@ export function InputPanel({
         </div>
       </Section>
 
-      {/* Resolution chips */}
-      <Section label="分辨率">
-        <ChipGroup
-          options={model.resolutions}
-          value={resolution}
-          onChange={onResolutionChange}
-          mono={false}
-          columns={model.resolutions.length}
-        />
-      </Section>
-
-      {/* Aspect ratio grid */}
-      <AspectRatioSelector
-        options={model.aspectRatios}
-        value={aspectRatio}
-        resolution={resolution}
-        onChange={onAspectRatioChange}
-        labelClassName={INPUT_LABEL_CLASS}
-        pixelLabel={model.provider === 'openai' ? (ratio, res) => openAISize(res, ratio).replace('x', '×') : undefined}
-      />
-
-      <div className="h-[18px] " />
-
-      {/* Model-declared options (quality, search tools, thinking level, ...) */}
-      {optionBlocks.map((block, idx) => {
-        if (block.kind === 'single') {
-          return (
-            <OptionSection
-              key={block.option.id}
-              option={block.option}
-              value={options[block.option.id]}
-              onChange={(v) => onOptionChange(block.option.id, v)}
-            />
-          )
-        }
-        return (
-          <ToggleGroupSection
-            key={`group-${idx}`}
-            label={block.label}
-            hint={block.hint}
-            options={block.options}
-            values={options}
-            onChange={onOptionChange}
-          />
-        )
-      })}
-
-      {/* Reference images */}
-      <div className="mb-[18px]">
-        <ReferenceImageUpload
-          images={referenceImages}
-          maxTotal={maxRef}
-          dragOver={dragOver}
-          error={referenceImageError}
-          labelClassName={INPUT_LABEL_CLASS}
-          onAdd={onAddReferenceImages}
-          onRemove={onRemoveReferenceImage}
-          onClearAll={onClearAllReferences}
-          onClearError={onClearReferenceImageError}
-        />
-      </div>
-
       {/* Prompt */}
       <Section
         label="提示词"
@@ -637,6 +579,68 @@ export function InputPanel({
           </div>
         </div>
       </Section>
+
+      {/* Resolution chips */}
+      <Section label="分辨率">
+        <ChipGroup
+          options={model.resolutions}
+          value={resolution}
+          onChange={onResolutionChange}
+          mono={false}
+          columns={model.resolutions.length}
+        />
+      </Section>
+
+      {/* Aspect ratio grid */}
+      <AspectRatioSelector
+        options={model.aspectRatios}
+        value={aspectRatio}
+        resolution={resolution}
+        onChange={onAspectRatioChange}
+        labelClassName={INPUT_LABEL_CLASS}
+        pixelLabel={model.provider === 'openai' ? (ratio, res) => openAISize(res, ratio).replace('x', '×') : undefined}
+      />
+
+      <div className="h-[18px] " />
+
+      {/* Model-declared options (quality, search tools, thinking level, ...) */}
+      {optionBlocks.map((block, idx) => {
+        if (block.kind === 'single') {
+          return (
+            <OptionSection
+              key={block.option.id}
+              option={block.option}
+              value={options[block.option.id]}
+              onChange={(v) => onOptionChange(block.option.id, v)}
+            />
+          )
+        }
+        return (
+          <ToggleGroupSection
+            key={`group-${idx}`}
+            label={block.label}
+            hint={block.hint}
+            options={block.options}
+            values={options}
+            onChange={onOptionChange}
+          />
+        )
+      })}
+
+      {/* Reference images */}
+      <div className="mb-[18px]">
+        <ReferenceImageUpload
+          images={referenceImages}
+          maxTotal={maxRef}
+          dragOver={dragOver}
+          error={referenceImageError}
+          labelClassName={INPUT_LABEL_CLASS}
+          onAdd={onAddReferenceImages}
+          onRemove={onRemoveReferenceImage}
+          onClearAll={onClearAllReferences}
+          onClearError={onClearReferenceImageError}
+        />
+      </div>
 
       {/* Batch count */}
       <Section label="数量">
