@@ -1170,6 +1170,52 @@
     }
   }
 
+  /* New stack row enters: first expands vertical space (pushing existing rows
+     down), then fades the slot content in. Uses Ionic drawer curve for the
+     space-making motion and a strong ease-out for the content reveal. */
+  @keyframes stack-row-expand {
+    from {
+      grid-template-rows: 0fr;
+    }
+    to {
+      grid-template-rows: 1fr;
+    }
+  }
+  @keyframes stack-row-content-in {
+    from {
+      opacity: 0;
+      transform: translateY(-4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .stack-row-reveal {
+    display: grid;
+    grid-template-rows: 0fr;
+    animation: stack-row-expand 360ms cubic-bezier(0.32, 0.72, 0, 1) forwards;
+  }
+  .stack-row-reveal > * {
+    overflow: hidden;
+    min-height: 0;
+    opacity: 0;
+    animation: stack-row-content-in 240ms cubic-bezier(0.23, 1, 0.32, 1) 200ms forwards;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .stack-row-reveal,
+    .stack-row-reveal > * {
+      animation: none;
+    }
+    .stack-row-reveal {
+      grid-template-rows: 1fr;
+    }
+    .stack-row-reveal > * {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
   @keyframes spin {
     to {
       transform: rotate(360deg);
