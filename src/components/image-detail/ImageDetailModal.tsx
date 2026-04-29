@@ -497,7 +497,6 @@ export function ImageDetailModal({
   const hasDrawableMarks = drawableCounts.annotate > 0 || drawableCounts.mask > 0
   const desktopAnnotationActive = editing && editMode !== 'view' && !isMobileLayout && !mobileDrawOpen
   const drawableLayerVisible = (editMode !== 'view' || hasDrawableMarks) && !mobileDrawOpen
-  const desktopDrawableLayerVisible = drawableLayerVisible && !isMobileLayout
 
   const startAnnotation = () => {
     if (!currentImage) return
@@ -676,7 +675,6 @@ export function ImageDetailModal({
                 desktopMoveActive={desktopMoveActive}
                 hasDrawableMarks={hasDrawableMarks}
                 drawableLayerVisible={drawableLayerVisible}
-                desktopDrawableLayerVisible={desktopDrawableLayerVisible}
                 desktopAnnotationActive={desktopAnnotationActive}
                 drawableReadOnly={editMode === 'view' || desktopMoveActive}
                 drawablePanEnabled={desktopMoveActive || (editMode === 'view' && hasDrawableMarks && !isMobileLayout)}

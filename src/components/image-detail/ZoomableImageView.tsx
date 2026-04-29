@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 
 import { Icon } from '../Icon'
 import {
@@ -68,9 +68,12 @@ export function ZoomableImageView({
   // strip height resize) without rebuilding the whole pointer pipeline.
   const visualShift = useMemo(() => getInsetCenterShift(inset), [inset])
   const visualShiftRef = useRef(visualShift)
-  visualShiftRef.current = visualShift
   const insetRef = useRef<Inset | undefined>(inset)
-  insetRef.current = inset
+
+  useLayoutEffect(() => {
+    visualShiftRef.current = visualShift
+    insetRef.current = inset
+  }, [visualShift, inset])
 
   const applyView = useCallback((nextScale: number, nextOffset: Point) => {
     const clampedScale = clamp(nextScale, MIN_SCALE, MAX_SCALE)

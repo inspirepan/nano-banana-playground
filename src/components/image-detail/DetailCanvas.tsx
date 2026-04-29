@@ -4,8 +4,8 @@ import { DesktopAnnotationToolbar } from './annotationControls'
 import type { BrushPresetId } from './annotationPresets'
 import { DrawableLayer, type DrawableLayerHandle, type DrawMode, type DrawTool } from './DrawableLayer'
 import { SlotHero } from './StackViews'
-import { ZoomableImageView } from './ZoomableImageView'
 import type { Inset } from './viewGeometry'
+import { ZoomableImageView } from './ZoomableImageView'
 import type { ItemCounts } from '../../lib/editStateCache'
 import type { StackItem } from '../../lib/stacks'
 import type { GeneratedSource, PlaygroundImageMeta } from '../../lib/types'
@@ -31,7 +31,6 @@ type DetailCanvasProps = {
   desktopMoveActive: boolean
   hasDrawableMarks: boolean
   drawableLayerVisible: boolean
-  desktopDrawableLayerVisible: boolean
   desktopAnnotationActive: boolean
   drawableReadOnly: boolean
   drawablePanEnabled: boolean
@@ -73,7 +72,6 @@ export function DetailCanvas({
   desktopMoveActive,
   hasDrawableMarks,
   drawableLayerVisible,
-  desktopDrawableLayerVisible,
   desktopAnnotationActive,
   drawableReadOnly,
   drawablePanEnabled,

@@ -223,6 +223,13 @@ function hashString(value: string): string {
   return `${(a >>> 0).toString(36)}${(b >>> 0).toString(36)}`
 }
 
+function localDateKey(date = new Date()): string {
+  const year = date.getFullYear()
+  const month = (date.getMonth() + 1).toString().padStart(2, '0')
+  const day = date.getDate().toString().padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 function stackIdForGenerationRequest(params: {
   model: ModelConfig
   prompt: string
@@ -234,6 +241,7 @@ function stackIdForGenerationRequest(params: {
 }): string {
   const payload = {
     version: 1,
+    date: localDateKey(),
     modelId: params.model.id,
     prompt: params.prompt,
     resolution: params.resolution,
