@@ -56,6 +56,13 @@ export function StackItemThumb({
 }: Props) {
   const image = item.type === 'image' ? item.image : null
   const slot = item.type === 'slot' ? item.slot : null
+  const imageIdLabel =
+    image?.source.type === 'generated' && image.source.imageIdSource === 'agent'
+      ? image.id
+      : item.type === 'slot'
+        ? item.job.request.outputImageIds?.[item.slot.index]
+        : undefined
+  const imageIdDisplay = imageIdLabel ? Array.from(imageIdLabel).slice(0, 20).join('') : undefined
   const inlineData = image && 'data' in image && typeof image.data === 'string' ? image.data : undefined
   const { ref, src } = useImageSrc(image?.id ?? item.id, image?.mimeType ?? 'image/png', inlineData, {
     variant: 'preview',
@@ -172,6 +179,20 @@ export function StackItemThumb({
       >
         #{number ?? item.order + 1}
       </span>
+      {imageIdLabel && imageIdDisplay && (
+        <span
+          className="pointer-events-none absolute z-10 mono max-w-[calc(100%-16px)] truncate rounded-[5px] px-1.5 py-0.5 text-[10px] leading-none"
+          style={{
+            left: numberBadgeInset,
+            bottom: numberBadgeInset,
+            ...badgeSurface,
+            backdropFilter: 'blur(8px)',
+          }}
+          title={imageIdLabel}
+        >
+          {imageIdDisplay}
+        </span>
+      )}
       {metaBadge && (
         <span
           className="pointer-events-none absolute z-10 flex flex-col items-start rounded-[5px] px-1.5 py-1 text-white"

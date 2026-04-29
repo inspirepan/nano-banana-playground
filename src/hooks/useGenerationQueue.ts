@@ -21,6 +21,7 @@ export type GenerationSlot = {
   error?: string
   retryDelayMs?: number
   retryAt?: number
+  outputImageId?: string
 }
 
 export type GenerationJob = {
@@ -40,6 +41,8 @@ export type GenerationJob = {
     resolution: string
     aspectRatio: string
     options: Record<string, unknown>
+    outputImageIds?: string[]
+    outputImageIdSource?: 'agent'
     // OpenAI-only: alpha-channel mask sent to images.edits. We keep it off the
     // persisted `referenceImageIds` so history metadata doesn't show it as a
     // user-visible reference, but the blob still lives here for retries.
@@ -176,6 +179,8 @@ function generationRequestKey(request: GenerationJob['request']): string {
     mask: request.mask
       ? { id: request.mask.id, mimeType: request.mask.mimeType, dataHash: hashString(request.mask.data) }
       : null,
+    outputImageIds: request.outputImageIds ?? null,
+    outputImageIdSource: request.outputImageIdSource ?? null,
   })
 }
 
@@ -221,7 +226,7 @@ export function useGenerationQueue({
             status,
             finishedAt: inactive ? (job.finishedAt ?? Date.now()) : undefined,
           }
-          if (removeCompleted && status === 'completed') return []
+          if (removeCompleted && status === 'completed' && !job.request.outputImageIds) return []
           return [nextJob]
         }),
       )
@@ -284,6 +289,8 @@ export function useGenerationQueue({
               stackId: job.stackId,
               parentImageId: job.parentImageId,
               slotIndex: slot.index,
+              outputImageId: slot.outputImageId,
+              outputImageIdSource: job.request.outputImageIdSource,
             },
             controller.signal,
             {
@@ -398,6 +405,7 @@ export function useGenerationQueue({
           status: 'queued',
           attempt: 1,
           maxAttempts: GENERATE_MAX_ATTEMPTS,
+          outputImageId: request.outputImageIds?.[index],
         })),
       }
       setGenerationJobs((prev) => [job, ...prev.filter(isActiveJob)])
@@ -409,7 +417,7 @@ export function useGenerationQueue({
   )
 
   const appendGenerationSlot = useCallback(
-    (jobId: string): string | null => {
+    (jobId: string, outputImageId?: string): string | null => {
       const slotId = crypto.randomUUID()
       let appended = false
       setGenerationJobs((prev) =>
@@ -418,7 +426,14 @@ export function useGenerationQueue({
           appended = true
           const slots: GenerationSlot[] = [
             ...job.slots,
-            { id: slotId, index: job.slots.length, status: 'queued', attempt: 1, maxAttempts: GENERATE_MAX_ATTEMPTS },
+            {
+              id: slotId,
+              index: job.slots.length,
+              status: 'queued',
+              attempt: 1,
+              maxAttempts: GENERATE_MAX_ATTEMPTS,
+              outputImageId,
+            },
           ]
           return { ...job, slots, status: deriveJobStatus(slots), finishedAt: undefined }
         }),
@@ -459,10 +474,12 @@ export function useGenerationQueue({
         ...job.request,
         apiKey: credentials.apiKey,
         baseUrl: credentials.baseUrl,
+        outputImageIds: slot.outputImageId ? [slot.outputImageId] : undefined,
+        outputImageIdSource: job.request.outputImageIdSource,
       }
       const activeJob = findActiveGenerationJob({ request, stackId: job.stackId, parentImageId: job.parentImageId })
       if (activeJob) {
-        const nextSlotId = appendGenerationSlot(activeJob.id)
+        const nextSlotId = appendGenerationSlot(activeJob.id, slot.outputImageId)
         if (nextSlotId) return { status: 'queued', batchId: activeJob.id }
       }
 

@@ -14,11 +14,27 @@ export type AgentMessageImage = {
   mimeType: string
 }
 
+export type AgentMessageToolCall = {
+  id: string
+  name: string
+  arguments: Record<string, unknown>
+}
+
+export type AgentMessageToolResult = {
+  toolCallId: string
+  toolName: string
+  text: string
+  isError: boolean
+}
+
 type AgentMessageRole = 'user' | 'assistant' | 'toolResult' | 'unknown'
 type LlmLikeAgentMessage = AgentMessage & {
   role: 'user' | 'assistant' | 'toolResult'
   content?: unknown
   errorMessage?: unknown
+  toolCallId?: unknown
+  toolName?: unknown
+  isError?: unknown
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -64,6 +80,28 @@ export function agentMessageImages(message: AgentMessage): AgentMessageImage[] {
       ? [{ type: 'image' as const, data: part.data, mimeType: part.mimeType }]
       : [],
   )
+}
+
+export function agentMessageToolCalls(message: AgentMessage): AgentMessageToolCall[] {
+  if (!isLlmAgentMessage(message) || message.role !== 'assistant') return []
+  if (!Array.isArray(message.content)) return []
+  return message.content.flatMap((part) => {
+    if (!isRecord(part) || part.type !== 'toolCall') return []
+    if (typeof part.id !== 'string' || typeof part.name !== 'string') return []
+    const args = isRecord(part.arguments) ? part.arguments : {}
+    return [{ id: part.id, name: part.name, arguments: args }]
+  })
+}
+
+export function agentMessageToolResult(message: AgentMessage): AgentMessageToolResult | null {
+  if (!isLlmAgentMessage(message) || message.role !== 'toolResult') return null
+  if (typeof message.toolCallId !== 'string' || typeof message.toolName !== 'string') return null
+  return {
+    toolCallId: message.toolCallId,
+    toolName: message.toolName,
+    text: agentMessageText(message),
+    isError: message.isError === true,
+  }
 }
 
 export function agentMessageError(message: AgentMessage): string | null {

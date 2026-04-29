@@ -24,6 +24,8 @@ export async function generateImageOpenAI(
     stackId,
     parentImageId,
     slotIndex,
+    outputImageId,
+    outputImageIdSource,
     mask,
   } = params
 
@@ -133,7 +135,7 @@ export async function generateImageOpenAI(
       : undefined
 
     return {
-      id: crypto.randomUUID(),
+      id: outputImageId ?? crypto.randomUUID(),
       data: b64,
       mimeType: 'image/png',
       source: {
@@ -148,6 +150,7 @@ export async function generateImageOpenAI(
         stackId,
         ...(parentImageId ? { parentImageId } : {}),
         ...(slotIndex !== undefined ? { slotIndex } : {}),
+        ...(outputImageIdSource ? { imageIdSource: outputImageIdSource } : {}),
         tokenUsage,
         options: { ...options },
         usesMask: Boolean(mask),

@@ -1,6 +1,8 @@
 import type { ThinkingLevel as AgentCoreThinkingLevel } from '@mariozechner/pi-agent'
 import { getModel, type Api, type Model } from '@mariozechner/pi-ai'
 
+import { resolveBaseUrl } from '../lib/validateKey'
+
 export type AgentModelProvider = 'google' | 'openai'
 export type AgentThinkingLevel = Extract<AgentCoreThinkingLevel, 'off' | 'minimal' | 'low' | 'medium' | 'high'>
 
@@ -101,5 +103,9 @@ export function resolveAgentModelConfig(id: string): AgentModelConfig {
 }
 
 export function agentModelWithBaseUrl(config: AgentModelConfig, baseUrl: string): Model<Api> {
-  return baseUrl ? { ...config.model, baseUrl } : config.model
+  const trimmed = baseUrl.trim()
+  if (!trimmed) return config.model
+  if (trimmed.endsWith('#')) return { ...config.model, baseUrl: trimmed.slice(0, -1).replace(/\/+$/, '') }
+  const normalized = resolveBaseUrl(config.provider, trimmed)
+  return { ...config.model, baseUrl: config.provider === 'google' ? `${normalized}/v1beta` : normalized }
 }

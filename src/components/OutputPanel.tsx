@@ -4,6 +4,7 @@ import { Icon } from './Icon'
 import { ImageDetailModal } from './image-detail/ImageDetailModal'
 import { GridCell, ImageGrid } from './ImageGrid'
 import { StackItemThumb } from './StackItemThumb'
+import type { AgentImageTask } from '../agent'
 import { MODEL_CONFIGS, type ModelConfig } from '../config/models'
 import { useExternalSync } from '../hooks/effects'
 import type { GenerationJob } from '../hooks/usePlayground'
@@ -16,6 +17,8 @@ type Props = {
   history: PlaygroundImageMeta[]
   historyHasMore: boolean
   generationJobs: GenerationJob[]
+  agentImageTasks: AgentImageTask[]
+  focusedAgentImageTaskId: string | null
   onCancelGenerationJob: (jobId: string) => void
   onDismissGenerationJob: (jobId: string) => void
   onCancelGenerationSlot: (slotId: string) => void
@@ -38,6 +41,9 @@ type Props = {
   onRemove: (id: string) => void
   onLoadMore: () => void
   onOpenGenerationSettings: () => void
+  onApproveAgentImageTask: (taskId: string) => void
+  onCancelAgentImageTask: (taskId: string) => void
+  onFocusedAgentImageTask: () => void
 }
 
 type DetailTarget = { stackId: string; itemId?: string; viewMode?: 'detail' | 'gallery'; initialEditing?: boolean }
@@ -77,6 +83,143 @@ function hasActiveGenerationSlots(job: GenerationJob): boolean {
 
 function canDismissFailedGenerationJob(job: GenerationJob): boolean {
   return !hasActiveGenerationSlots(job) && job.slots.some((slot) => slot.status === 'failed')
+}
+
+function agentTaskStatusLabel(status: AgentImageTask['status']): string {
+  if (status === 'pending_approval') return '待审批'
+  if (status === 'queued') return '排队中'
+  if (status === 'running') return '生成中'
+  if (status === 'completed') return '已完成'
+  if (status === 'failed') return '失败'
+  if (status === 'rejected') return '已取消'
+  if (status === 'canceled') return '已取消'
+  return '已通过'
+}
+
+function canApproveAgentTask(task: AgentImageTask): boolean {
+  return task.status === 'pending_approval'
+}
+
+function canCancelAgentTask(task: AgentImageTask): boolean {
+  return (
+    task.status === 'pending_approval' ||
+    task.status === 'queued' ||
+    task.status === 'running' ||
+    task.status === 'approved'
+  )
+}
+
+function AgentImageTaskCard({
+  task,
+  highlighted,
+  onApprove,
+  onCancel,
+}: {
+  task: AgentImageTask
+  highlighted: boolean
+  onApprove: (taskId: string) => void
+  onCancel: (taskId: string) => void
+}) {
+  const statusDanger = task.status === 'failed' || task.status === 'rejected' || task.status === 'canceled'
+  const statusActive = task.status === 'queued' || task.status === 'running'
+  const [promptOpen, setPromptOpen] = useState(task.status === 'pending_approval')
+  return (
+    <div
+      data-agent-task-id={task.id}
+      className="rounded-[12px] bg-(--color-surface) px-4 py-3.5 transition-shadow"
+      style={{
+        boxShadow: highlighted
+          ? 'inset 0 0 0 1px var(--color-accent), 0 0 0 3px color-mix(in srgb, var(--color-accent) 18%, transparent)'
+          : 'inset 0 0 0 1px var(--ring-edge-soft)',
+      }}
+    >
+      <div className="flex min-w-0 items-center gap-2">
+        <span className="truncate text-base font-semibold text-(--color-text)">Agent 生图任务</span>
+        <span
+          className="shrink-0 rounded-[5px] px-1.5 py-0.5 text-[11px]"
+          style={{
+            color: statusDanger ? 'var(--color-danger)' : statusActive ? 'var(--color-accent)' : 'var(--color-text-2)',
+            background: statusDanger
+              ? 'var(--color-danger-soft)'
+              : statusActive
+                ? 'var(--color-accent-soft)'
+                : 'var(--color-surface-2)',
+          }}
+        >
+          {agentTaskStatusLabel(task.status)}
+        </span>
+      </div>
+      <div className="mt-2.5 grid gap-1.5 text-sm sm:grid-cols-[auto_1fr]">
+        <div className="text-(--color-text-3)">ID</div>
+        <div className="mono min-w-0 truncate text-(--color-text)" title={task.request.reservedImageIds.join(', ')}>
+          {task.request.reservedImageIds.join(', ')}
+        </div>
+        <div className="text-(--color-text-3)">模型</div>
+        <div className="min-w-0 truncate text-(--color-text)">{task.request.model.name}</div>
+        <div className="text-(--color-text-3)">尺寸</div>
+        <div className="text-(--color-text)">
+          {task.request.resolution} · {task.request.aspectRatio} · {task.request.batchCount} 张
+        </div>
+        {task.request.referenceImageIds.length > 0 && (
+          <>
+            <div className="text-(--color-text-3)">参考</div>
+            <div
+              className="mono min-w-0 truncate text-(--color-text)"
+              title={task.request.referenceImageIds.join(', ')}
+            >
+              {task.request.referenceImageIds.join(', ')}
+            </div>
+          </>
+        )}
+      </div>
+      <button
+        type="button"
+        onClick={() => setPromptOpen((prev) => !prev)}
+        aria-expanded={promptOpen}
+        className="mt-2 flex items-center gap-1 bg-transparent p-0 text-sm text-(--color-text-3) transition-colors hover:text-(--color-text)"
+      >
+        <Icon
+          name="chevron_right"
+          size={13}
+          className={`transition-transform duration-200 ${promptOpen ? 'rotate-90' : ''}`}
+        />
+        提示词
+      </button>
+      <div
+        className="grid"
+        style={{
+          gridTemplateRows: promptOpen ? '1fr' : '0fr',
+          transition: 'grid-template-rows 260ms cubic-bezier(0.22, 0.8, 0.4, 1)',
+        }}
+      >
+        <div className="min-h-0 overflow-hidden">
+          <div
+            className="mt-1 max-h-28 overflow-y-auto whitespace-pre-wrap rounded-[7px] bg-(--color-surface-2) px-2.5 py-2 text-sm leading-[1.55] text-(--color-text-2) opacity-100 shadow-[inset_0_0_0_1px_var(--ring-edge-soft)] transition-[opacity,transform] duration-200"
+            style={{ opacity: promptOpen ? 1 : 0, transform: promptOpen ? 'translateY(0)' : 'translateY(-2px)' }}
+          >
+            {task.request.prompt}
+          </div>
+        </div>
+      </div>
+      {task.error && (
+        <div className="mt-2 text-sm" style={{ color: 'var(--color-danger)' }}>
+          {task.error}
+        </div>
+      )}
+      <div className="mt-2 flex flex-wrap gap-1.5">
+        {canApproveAgentTask(task) && (
+          <button type="button" onClick={() => onApprove(task.id)} className="chip" data-active>
+            生成
+          </button>
+        )}
+        {canCancelAgentTask(task) && (
+          <button type="button" onClick={() => onCancel(task.id)} className="chip danger">
+            取消
+          </button>
+        )}
+      </div>
+    </div>
+  )
 }
 
 function activeStackStatusParts(stack: ImageStack): ActiveStackStatusPart[] {
@@ -322,6 +465,8 @@ export const OutputPanel = memo(function OutputPanel({
   history,
   historyHasMore,
   generationJobs,
+  agentImageTasks,
+  focusedAgentImageTaskId,
   onCancelGenerationJob,
   onDismissGenerationJob,
   onCancelGenerationSlot,
@@ -333,12 +478,16 @@ export const OutputPanel = memo(function OutputPanel({
   onRemove,
   onLoadMore,
   onOpenGenerationSettings,
+  onApproveAgentImageTask,
+  onCancelAgentImageTask,
+  onFocusedAgentImageTask,
 }: Props) {
   const [detailTarget, setDetailTarget] = useState<DetailTarget | null>(null)
   const [exporting, setExporting] = useState(false)
   const [exportingStackId, setExportingStackId] = useState<string | null>(null)
   const [confirmDeleteStackId, setConfirmDeleteStackId] = useState<string | null>(null)
   const [deletingStackId, setDeletingStackId] = useState<string | null>(null)
+  const [highlightedAgentTaskId, setHighlightedAgentTaskId] = useState<string | null>(null)
   const stacks = useMemo(() => buildImageStacks(history, generationJobs), [history, generationJobs])
   const generatedImageCount = useMemo(() => history.filter((img) => img.source.type === 'generated').length, [history])
   const detailStack = detailTarget ? (stacks.find((stack) => stack.id === detailTarget.stackId) ?? null) : null
@@ -432,6 +581,7 @@ export const OutputPanel = memo(function OutputPanel({
 
   const scrollRef = useRef<HTMLDivElement>(null)
   const topStackIdRef = useRef<string | null>(null)
+  const highlightTimerRef = useRef<number | null>(null)
 
   useExternalSync(() => {
     const topStackId = stacks[0]?.id ?? null
@@ -440,6 +590,23 @@ export const OutputPanel = memo(function OutputPanel({
     }
     topStackIdRef.current = topStackId
   }, [stacks])
+
+  useExternalSync(() => {
+    if (!focusedAgentImageTaskId) return
+    const target = scrollRef.current?.querySelector<HTMLElement>(`[data-agent-task-id="${focusedAgentImageTaskId}"]`)
+    target?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    setHighlightedAgentTaskId(focusedAgentImageTaskId)
+    if (highlightTimerRef.current) window.clearTimeout(highlightTimerRef.current)
+    highlightTimerRef.current = window.setTimeout(() => setHighlightedAgentTaskId(null), 1400)
+    onFocusedAgentImageTask()
+  }, [focusedAgentImageTaskId, onFocusedAgentImageTask])
+
+  useExternalSync(
+    () => () => {
+      if (highlightTimerRef.current) window.clearTimeout(highlightTimerRef.current)
+    },
+    [],
+  )
 
   const sentinelRef = useRef<HTMLDivElement>(null)
   const onLoadMoreStable = useCallback(() => {
@@ -481,6 +648,20 @@ export const OutputPanel = memo(function OutputPanel({
           )}
         </div>
       </div>
+
+      {agentImageTasks.length > 0 && (
+        <div className="mb-6 max-w-[520px] space-y-2">
+          {agentImageTasks.map((task) => (
+            <AgentImageTaskCard
+              key={task.id}
+              task={task}
+              highlighted={highlightedAgentTaskId === task.id}
+              onApprove={onApproveAgentImageTask}
+              onCancel={onCancelAgentImageTask}
+            />
+          ))}
+        </div>
+      )}
 
       {stacks.length > 0 ? (
         <div className="space-y-[26px]">

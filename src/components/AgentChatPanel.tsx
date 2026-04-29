@@ -8,12 +8,18 @@ import {
   agentMessageRole,
   agentMessageText,
   agentMessageThinking,
+  agentMessageToolCalls,
+  agentMessageToolResult,
   imageDataUrl,
   type AgentChatAttachment,
+  type AgentImageTask,
+  type AgentMessageToolCall,
+  type AgentMessageToolResult,
 } from '../agent'
 import { AGENT_THINKING_OPTIONS, type AgentModelConfig, type AgentThinkingLevel } from '../config/agentModels'
 import { useWindowEvent } from '../hooks/effects'
 import type { ApiKeyStatus } from '../hooks/useApiKey'
+import type { PlaygroundImage, PlaygroundImageMeta } from '../lib/types'
 
 type Props = {
   messages: AgentMessage[]
@@ -23,6 +29,8 @@ type Props = {
   draft: string
   attachments: AgentChatAttachment[]
   attachmentError: string | null
+  autoApproveImageTasks: boolean
+  imageTasks: AgentImageTask[]
   model: AgentModelConfig
   models: AgentModelConfig[]
   thinkingLevel: AgentThinkingLevel
@@ -31,8 +39,13 @@ type Props = {
   onOpenApiKeys: () => void
   onDraftChange: (value: string) => void
   onAddAttachments: (files: File[]) => void
+  onAddImageAttachment: (image: PlaygroundImage | PlaygroundImageMeta) => void
   onRemoveAttachment: (id: string) => void
   onClearAttachmentError: () => void
+  onToggleAutoApproveImageTasks: (value: boolean) => void
+  onApproveImageTask: (taskId: string) => void
+  onCancelImageTask: (taskId: string) => void
+  onFocusImageTask: (taskId: string) => void
   onModelChange: (id: string) => void
   onThinkingLevelChange: (level: AgentThinkingLevel) => void
   onSend: () => void
@@ -45,10 +58,234 @@ type MarkdownBlock =
   | { type: 'list'; ordered: boolean; items: string[] }
   | { type: 'code'; language: string; code: string }
 
+type ChatRenderItem =
+  | { type: 'message'; key: string; message: AgentMessage; isStreaming: boolean }
+  | {
+      type: 'tools'
+      key: string
+      calls: AgentMessageToolCall[]
+      results: AgentMessageToolResult[]
+      systemEvents: AgentSystemEvent[]
+      isStreaming: boolean
+    }
+
+type AgentSystemEvent = {
+  toolCallId: string
+  status: string
+  requestedImageId?: string
+  reservedImageIds: string[]
+  imageIds: string[]
+  error?: string
+}
+
 const MAX_COMPOSER_HEIGHT = 150
+
+function taskStatusLabel(status: AgentImageTask['status']): string {
+  if (status === 'pending_approval') return '待审批'
+  if (status === 'queued') return '排队中'
+  if (status === 'running') return '生成中'
+  if (status === 'completed') return '已完成'
+  if (status === 'failed') return '失败'
+  if (status === 'rejected') return '已取消'
+  if (status === 'canceled') return '已取消'
+  return '已通过'
+}
+
+function canApproveTask(task: AgentImageTask): boolean {
+  return task.status === 'pending_approval'
+}
+
+function canCancelTask(task: AgentImageTask): boolean {
+  return (
+    task.status === 'pending_approval' ||
+    task.status === 'queued' ||
+    task.status === 'running' ||
+    task.status === 'approved'
+  )
+}
+
+function hasRenderableMessageContent(message: AgentMessage): boolean {
+  return (
+    agentMessageRole(message) === 'user' ||
+    agentMessageText(message).trim() !== '' ||
+    agentMessageThinking(message).trim() !== '' ||
+    agentMessageImages(message).length > 0 ||
+    Boolean(agentMessageError(message))
+  )
+}
+
+function parseAgentSystemEvents(message: AgentMessage): AgentSystemEvent[] {
+  if (agentMessageRole(message) !== 'user') return []
+  const text = agentMessageText(message).trim()
+  if (!text.startsWith('<system>') || !text.endsWith('</system>')) return []
+  const body = text.slice('<system>'.length, -'</system>'.length).trim()
+  if (!body) return []
+
+  return body.split(/\n\s*\n/).flatMap((block) => {
+    const lines = block
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
+    const first = /^tool GenImage call (.+) has been finished\.$/.exec(lines[0] ?? '')
+    if (!first) return []
+    const fields = new Map<string, string>()
+    for (const line of lines.slice(1)) {
+      const index = line.indexOf(':')
+      if (index <= 0) continue
+      fields.set(line.slice(0, index), line.slice(index + 1).trim())
+    }
+    const splitList = (value: string | undefined) =>
+      value
+        ? value
+            .split(',')
+            .map((item) => item.trim())
+            .filter(Boolean)
+        : []
+    return [
+      {
+        toolCallId: first[1],
+        status: fields.get('status') ?? 'completed',
+        requestedImageId: fields.get('requested_image_id'),
+        reservedImageIds: splitList(fields.get('reserved_image_ids')),
+        imageIds: splitList(fields.get('image_ids')),
+        error: fields.get('error'),
+      },
+    ]
+  })
+}
+
+function buildChatRenderItems(messages: AgentMessage[], streamingMessage: AgentMessage | null): ChatRenderItem[] {
+  const items: ChatRenderItem[] = []
+  const systemEventByToolCallId = new Map<string, AgentSystemEvent>()
+  for (const message of messages) {
+    for (const event of parseAgentSystemEvents(message)) systemEventByToolCallId.set(event.toolCallId, event)
+  }
+
+  for (let index = 0; index < messages.length; index++) {
+    const message = messages[index]
+    const role = agentMessageRole(message)
+    const isStreamingMessage = Boolean(streamingMessage && message === streamingMessage)
+    if (parseAgentSystemEvents(message).length > 0) continue
+    if (role === 'assistant') {
+      const calls = agentMessageToolCalls(message)
+      if (hasRenderableMessageContent(message)) {
+        items.push({ type: 'message', key: `message-${index}`, message, isStreaming: isStreamingMessage })
+      }
+      if (calls.length > 0) {
+        const results: AgentMessageToolResult[] = []
+        let nextIndex = index + 1
+        while (nextIndex < messages.length) {
+          const result = agentMessageToolResult(messages[nextIndex])
+          if (!result || !calls.some((call) => call.id === result.toolCallId)) break
+          results.push(result)
+          nextIndex++
+        }
+        items.push({
+          type: 'tools',
+          key: `tools-${calls.map((call) => call.id).join('-')}`,
+          calls,
+          results,
+          systemEvents: calls.flatMap((call) => {
+            const event = systemEventByToolCallId.get(call.id)
+            return event ? [event] : []
+          }),
+          isStreaming: isStreamingMessage,
+        })
+        index = nextIndex - 1
+      }
+      continue
+    }
+    if (role === 'toolResult') {
+      const result = agentMessageToolResult(message)
+      if (result) {
+        items.push({
+          type: 'tools',
+          key: `tool-result-${result.toolCallId}-${index}`,
+          calls: [],
+          results: [result],
+          systemEvents: systemEventByToolCallId.get(result.toolCallId)
+            ? [systemEventByToolCallId.get(result.toolCallId)!]
+            : [],
+          isStreaming: false,
+        })
+      }
+      continue
+    }
+    items.push({ type: 'message', key: `message-${index}`, message, isStreaming: isStreamingMessage })
+  }
+  return items
+}
+
+function toolLabel(name: string): string {
+  if (name === 'GenImage') return '创建生图任务'
+  if (name === 'ReadImage') return '读取图片'
+  return name
+}
+
+function summarizeToolArgs(call: AgentMessageToolCall): string {
+  if (call.name === 'GenImage') {
+    const imageId = typeof call.arguments.image_id === 'string' ? call.arguments.image_id : '未命名'
+    const count = typeof call.arguments.n === 'number' ? call.arguments.n : 1
+    return `${imageId} · ${count} 张`
+  }
+  if (call.name === 'ReadImage') {
+    return typeof call.arguments.image_id === 'string' ? call.arguments.image_id : '图片'
+  }
+  return Object.keys(call.arguments).slice(0, 3).join(' · ')
+}
+
+function summarizeToolResult(result: AgentMessageToolResult): string {
+  if (result.isError) return result.text || '工具调用失败'
+  try {
+    const parsed = JSON.parse(result.text) as Record<string, unknown>
+    if (result.toolName === 'GenImage') {
+      const ids = Array.isArray(parsed.reserved_image_ids)
+        ? parsed.reserved_image_ids.filter((id): id is string => typeof id === 'string')
+        : []
+      const status = typeof parsed.status === 'string' ? parsed.status : 'done'
+      return ids.length > 0 ? `${status} · ${ids.join(', ')}` : status
+    }
+    if (typeof parsed.message === 'string') return parsed.message
+  } catch {
+    // Plain text tool result.
+  }
+  return result.text.trim().slice(0, 120) || '工具调用完成'
+}
+
+function systemEventStatusLabel(status: string): string {
+  if (status === 'completed') return '生成完成'
+  if (status === 'failed') return '生成失败'
+  if (status === 'rejected') return '已取消'
+  if (status === 'canceled') return '已取消'
+  return status
+}
+
+function summarizeSystemEvent(event: AgentSystemEvent): string {
+  if (event.error) return `${systemEventStatusLabel(event.status)} · ${event.error}`
+  const ids = event.imageIds.length > 0 ? event.imageIds : event.reservedImageIds
+  return ids.length > 0
+    ? `${systemEventStatusLabel(event.status)} · ${ids.join(', ')}`
+    : systemEventStatusLabel(event.status)
+}
+
+function isSystemEventError(event: AgentSystemEvent): boolean {
+  return event.status === 'failed' || event.status === 'rejected' || event.status === 'canceled'
+}
 
 function isImageFile(file: File): boolean {
   return file.type.startsWith('image/') || /\.(heic|heif|heics|heifs)$/i.test(file.name)
+}
+
+function parseDraggedPlaygroundImage(value: string): PlaygroundImage | PlaygroundImageMeta | null {
+  if (!value) return null
+  try {
+    const parsed = JSON.parse(value) as Partial<PlaygroundImage>
+    if (!parsed || typeof parsed.id !== 'string' || typeof parsed.mimeType !== 'string' || !parsed.source) return null
+    if (typeof parsed.timestamp !== 'number') return null
+    return parsed as PlaygroundImage | PlaygroundImageMeta
+  } catch {
+    return null
+  }
 }
 
 function autoResizeComposer(el: HTMLTextAreaElement) {
@@ -237,6 +474,198 @@ function MessageBubble({ message, isStreaming }: { message: AgentMessage; isStre
   )
 }
 
+function ToolActivityCard({
+  calls,
+  results,
+  systemEvents,
+  isStreaming,
+}: {
+  calls: AgentMessageToolCall[]
+  results: AgentMessageToolResult[]
+  systemEvents: AgentSystemEvent[]
+  isStreaming: boolean
+}) {
+  const resultByCallId = new Map(results.map((result) => [result.toolCallId, result]))
+  const systemEventByCallId = new Map(systemEvents.map((event) => [event.toolCallId, event]))
+  const standaloneResults = calls.length === 0 ? results : []
+  return (
+    <div className="flex justify-start">
+      <div className="mr-3 max-w-[88%]">
+        <div className="mb-1.5 mono text-[11px] uppercase tracking-[0.12em] text-(--color-text-4)">Agent</div>
+        <div className="rounded-[10px] bg-(--color-surface) px-2.5 py-2 shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
+          <div className="space-y-1.5">
+            {calls.map((call) => {
+              const result = resultByCallId.get(call.id)
+              const systemEvent = systemEventByCallId.get(call.id)
+              const done = Boolean(result || systemEvent)
+              const failed = result?.isError === true || (systemEvent ? isSystemEventError(systemEvent) : false)
+              return (
+                <div key={call.id} className="flex items-start gap-2 rounded-[7px] px-1.5 py-1">
+                  <span
+                    className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-[5px]"
+                    style={{
+                      background: failed ? 'var(--color-danger-soft)' : 'var(--color-surface-2)',
+                      color: failed ? 'var(--color-danger)' : 'var(--color-text-3)',
+                      boxShadow: 'inset 0 0 0 1px var(--ring-edge-soft)',
+                    }}
+                  >
+                    {done ? (
+                      <Icon name={failed ? 'alert_circle' : 'check'} size={11} />
+                    ) : (
+                      <span className="spinner" style={{ width: 10, height: 10 }} />
+                    )}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="flex min-w-0 items-center gap-1.5">
+                      <span className="truncate text-sm font-medium text-(--color-text-2)">{toolLabel(call.name)}</span>
+                      <span className="mono shrink-0 text-[11px] text-(--color-text-4)">{call.name}</span>
+                    </span>
+                    <span className="mt-0.5 block truncate text-sm text-(--color-text-4)">
+                      {summarizeToolArgs(call)}
+                    </span>
+                    {result && (
+                      <span className="mt-1 block truncate text-sm text-(--color-text-3)">
+                        {summarizeToolResult(result)}
+                      </span>
+                    )}
+                    {systemEvent && (
+                      <span
+                        className="mt-1 block truncate text-sm"
+                        style={{ color: failed ? 'var(--color-danger)' : 'var(--color-text-2)' }}
+                      >
+                        {summarizeSystemEvent(systemEvent)}
+                      </span>
+                    )}
+                  </span>
+                </div>
+              )
+            })}
+            {standaloneResults.map((result) => (
+              <div key={result.toolCallId} className="flex items-start gap-2 rounded-[7px] px-1.5 py-1">
+                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-[5px] bg-(--color-surface-2) text-(--color-text-3) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
+                  <Icon name={result.isError ? 'alert_circle' : 'check'} size={11} />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="text-sm font-medium text-(--color-text-2)">{toolLabel(result.toolName)}</span>
+                  <span className="mt-0.5 block truncate text-sm text-(--color-text-3)">
+                    {summarizeToolResult(result)}
+                  </span>
+                </span>
+              </div>
+            ))}
+            {calls.length === 0 &&
+              systemEvents.map((event) => (
+                <div key={event.toolCallId} className="flex items-start gap-2 rounded-[7px] px-1.5 py-1">
+                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-[5px] bg-(--color-surface-2) text-(--color-text-3) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
+                    <Icon name={isSystemEventError(event) ? 'alert_circle' : 'check'} size={11} />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="text-sm font-medium text-(--color-text-2)">生成结果</span>
+                    <span className="mt-0.5 block truncate text-sm text-(--color-text-3)">
+                      {summarizeSystemEvent(event)}
+                    </span>
+                  </span>
+                </div>
+              ))}
+          </div>
+          {isStreaming && <div className="mt-1.5 text-sm text-(--color-text-4)">等待工具结果…</div>}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function AgentImageTaskSummary({
+  task,
+  onApprove,
+  onCancel,
+  onFocus,
+}: {
+  task: AgentImageTask
+  onApprove: (taskId: string) => void
+  onCancel: (taskId: string) => void
+  onFocus: (taskId: string) => void
+}) {
+  const isDanger = task.status === 'failed' || task.status === 'rejected' || task.status === 'canceled'
+  return (
+    <button
+      type="button"
+      onClick={() => onFocus(task.id)}
+      className="w-full rounded-[10px] bg-(--color-surface) p-2.5 text-left shadow-[inset_0_0_0_1px_var(--ring-edge-soft)] transition-colors hover:bg-(--color-surface-2)"
+    >
+      <div className="flex items-start gap-2">
+        <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-[7px] bg-(--color-surface-2) text-(--color-text-3) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
+          <Icon name="image" size={13} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex min-w-0 items-center gap-1.5">
+            <span className="mono truncate text-sm text-(--color-text)">
+              {task.request.reservedImageIds.join(', ')}
+            </span>
+            <span
+              className="shrink-0 rounded-[5px] px-1.5 py-0.5 text-[11px]"
+              style={{
+                color: isDanger ? 'var(--color-danger)' : 'var(--color-text-3)',
+                background: isDanger ? 'var(--color-danger-soft)' : 'var(--color-surface-2)',
+              }}
+            >
+              {taskStatusLabel(task.status)}
+            </span>
+          </div>
+          <div className="mt-1 line-clamp-2 text-sm leading-[1.45] text-(--color-text-3)">{task.request.prompt}</div>
+          {task.error && (
+            <div className="mt-1 line-clamp-2 text-sm" style={{ color: 'var(--color-danger)' }}>
+              {task.error}
+            </div>
+          )}
+          <div className="mt-2 flex gap-1.5">
+            {canApproveTask(task) && (
+              <span
+                role="button"
+                tabIndex={0}
+                onClick={(event) => {
+                  event.stopPropagation()
+                  onApprove(task.id)
+                }}
+                onKeyDown={(event) => {
+                  if (event.key !== 'Enter' && event.key !== ' ') return
+                  event.preventDefault()
+                  event.stopPropagation()
+                  onApprove(task.id)
+                }}
+                className="chip text-sm"
+                style={{ height: 24, padding: '0 8px' }}
+              >
+                生成
+              </span>
+            )}
+            {canCancelTask(task) && (
+              <span
+                role="button"
+                tabIndex={0}
+                onClick={(event) => {
+                  event.stopPropagation()
+                  onCancel(task.id)
+                }}
+                onKeyDown={(event) => {
+                  if (event.key !== 'Enter' && event.key !== ' ') return
+                  event.preventDefault()
+                  event.stopPropagation()
+                  onCancel(task.id)
+                }}
+                className="chip danger text-sm"
+                style={{ height: 24, padding: '0 8px' }}
+              >
+                取消
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+    </button>
+  )
+}
+
 export function AgentChatPanel({
   messages,
   streamingMessage,
@@ -245,6 +674,8 @@ export function AgentChatPanel({
   draft,
   attachments,
   attachmentError,
+  autoApproveImageTasks,
+  imageTasks,
   model,
   models,
   thinkingLevel,
@@ -253,8 +684,13 @@ export function AgentChatPanel({
   onOpenApiKeys,
   onDraftChange,
   onAddAttachments,
+  onAddImageAttachment,
   onRemoveAttachment,
   onClearAttachmentError,
+  onToggleAutoApproveImageTasks,
+  onApproveImageTask,
+  onCancelImageTask,
+  onFocusImageTask,
   onModelChange,
   onThinkingLevelChange,
   onSend,
@@ -269,7 +705,18 @@ export function AgentChatPanel({
   const currentKeyStatus = model.provider === 'google' ? googleKeyStatus : openaiKeyStatus
   const keyMissing = currentKeyStatus === 'empty'
   const canSend = !isStreaming && !keyMissing && (draft.trim() !== '' || attachments.length > 0)
-  const visibleMessages = streamingMessage ? [...messages, streamingMessage] : messages
+  const visibleMessages = useMemo(
+    () => (streamingMessage ? [...messages, streamingMessage] : messages),
+    [messages, streamingMessage],
+  )
+  const renderItems = useMemo(
+    () => buildChatRenderItems(visibleMessages, streamingMessage),
+    [visibleMessages, streamingMessage],
+  )
+  const pendingApprovalTasks = useMemo(
+    () => imageTasks.filter((task) => task.status === 'pending_approval'),
+    [imageTasks],
+  )
   const effectiveThinkingLevel = model.supportsThinking ? thinkingLevel : 'off'
 
   useLayoutEffect(() => {
@@ -294,6 +741,13 @@ export function AgentChatPanel({
     if (imageFiles.length > 0) onAddAttachments(imageFiles)
   }
 
+  const addDraggedImage = (event: React.DragEvent<HTMLDivElement>): boolean => {
+    const image = parseDraggedPlaygroundImage(event.dataTransfer.getData('application/x-playground-image'))
+    if (!image) return false
+    onAddImageAttachment(image)
+    return true
+  }
+
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     addFiles(event.target.files ?? [])
     event.target.value = ''
@@ -313,6 +767,7 @@ export function AgentChatPanel({
       onDragOver={(event) => event.preventDefault()}
       onDrop={(event) => {
         event.preventDefault()
+        if (addDraggedImage(event)) return
         addFiles(event.dataTransfer.files)
       }}
       onPaste={(event) => {
@@ -359,23 +814,31 @@ export function AgentChatPanel({
       )}
 
       <div ref={scrollRef} className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1 pb-4 [scrollbar-gutter:stable]">
-        {visibleMessages.length === 0 ? (
+        {renderItems.length === 0 ? (
           <div className="flex min-h-[300px] flex-col justify-center text-center">
             <div className="font-display text-lg font-semibold tracking-[-0.01em] text-(--color-text)">
               开始和 Agent 聊天
             </div>
             <div className="mx-auto mt-1 max-w-[260px] text-sm leading-[1.5] text-(--color-text-3)">
-              可以讨论提示词、分析附加图片，后面再给它接入生成和编辑工具。
+              可以讨论提示词、分析附加图片，也可以让它创建待审批的生图任务。
             </div>
           </div>
         ) : (
-          visibleMessages.map((message, index) => (
-            <MessageBubble
-              key={`${agentMessageRole(message)}-${isStreaming && index === visibleMessages.length - 1 ? 'stream' : index}`}
-              message={message}
-              isStreaming={isStreaming && index === visibleMessages.length - 1}
-            />
-          ))
+          <>
+            {renderItems.map((item) =>
+              item.type === 'message' ? (
+                <MessageBubble key={item.key} message={item.message} isStreaming={item.isStreaming} />
+              ) : (
+                <ToolActivityCard
+                  key={item.key}
+                  calls={item.calls}
+                  results={item.results}
+                  systemEvents={item.systemEvents}
+                  isStreaming={item.isStreaming}
+                />
+              ),
+            )}
+          </>
         )}
       </div>
 
@@ -400,155 +863,191 @@ export function AgentChatPanel({
         </div>
       )}
 
-      <div className="prompt-wrap relative rounded-[12px] bg-(--color-surface)">
-        <div ref={controlsRef} className="flex items-center gap-1.5 px-2.5 pt-2.5 pb-1.5">
-          <div className="relative min-w-0 flex-1">
-            <button
-              type="button"
-              onClick={() => setOpenMenu((prev) => (prev === 'model' ? null : 'model'))}
-              className="chip w-full justify-between px-2.5"
-              title="切换模型"
-            >
-              <span className="truncate">{model.label}</span>
-              <Icon name="chevron_right" size={13} className={openMenu === 'model' ? '-rotate-90' : 'rotate-90'} />
-            </button>
-
-            {openMenu === 'model' && (
-              <div className="absolute bottom-full left-0 z-50 mb-1.5 w-[280px] rounded-[10px] bg-(--color-surface) p-1 shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-float)]">
-                {models.map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => {
-                      onModelChange(item.id)
-                      setOpenMenu(null)
-                    }}
-                    className="flex w-full items-center gap-2 rounded-[7px] px-2.5 py-2 text-left text-base text-(--color-text-2) transition-colors hover:bg-(--color-surface-2)"
-                    data-active={model.id === item.id}
-                  >
-                    <span className="min-w-0 flex-1 truncate">{item.label}</span>
-                    {model.id === item.id && <Icon name="check" size={13} />}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="relative shrink-0">
-            <button
-              type="button"
-              onClick={() => setOpenMenu((prev) => (prev === 'thinking' ? null : 'thinking'))}
-              className="chip justify-between px-2.5"
-              title={model.supportsThinking ? '切换思考等级' : '当前模型不支持思考等级'}
-            >
-              <span>
-                {AGENT_THINKING_OPTIONS.find((item) => item.value === effectiveThinkingLevel)?.label ??
-                  effectiveThinkingLevel}
-              </span>
-              <Icon name="chevron_right" size={13} className={openMenu === 'thinking' ? '-rotate-90' : 'rotate-90'} />
-            </button>
-
-            {openMenu === 'thinking' && (
-              <div className="absolute bottom-full right-0 z-50 mb-1.5 w-[190px] rounded-[10px] bg-(--color-surface) p-1 shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-float)]">
-                {AGENT_THINKING_OPTIONS.map((item) => {
-                  const disabled = !model.supportsThinking && item.value !== 'off'
-                  return (
-                    <button
-                      key={item.value}
-                      type="button"
-                      onClick={() => {
-                        if (disabled) return
-                        onThinkingLevelChange(item.value)
-                        setOpenMenu(null)
-                      }}
-                      disabled={disabled}
-                      className="flex w-full items-center gap-2 rounded-[7px] px-2.5 py-2 text-left text-base text-(--color-text-2) transition-colors hover:bg-(--color-surface-2) disabled:cursor-not-allowed disabled:opacity-45"
-                    >
-                      <span className="min-w-0 flex-1 truncate">{item.label}</span>
-                      {effectiveThinkingLevel === item.value && <Icon name="check" size={13} />}
-                    </button>
-                  )
-                })}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {attachments.length > 0 && (
-          <div className="flex gap-2 overflow-x-auto px-2.5 pb-2">
-            {attachments.map((attachment) => (
-              <div
-                key={attachment.id}
-                className="group relative h-14 w-14 shrink-0 overflow-hidden rounded-[8px] bg-(--color-surface-2) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]"
-              >
-                <img src={imageDataUrl(attachment)} alt={attachment.fileName} className="h-full w-full object-cover" />
-                <button
-                  type="button"
-                  onClick={() => onRemoveAttachment(attachment.id)}
-                  className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/55 text-white opacity-0 transition-opacity group-hover:opacity-100"
-                  aria-label="移除图片"
-                >
-                  <Icon name="close" size={11} />
-                </button>
-              </div>
-            ))}
+      <div className="relative">
+        {pendingApprovalTasks.length > 0 && (
+          <div className="absolute inset-x-0 bottom-full z-30 mb-2 max-h-[220px] overflow-y-auto rounded-[12px] bg-(--color-surface) p-2 shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-float)]">
+            <div className="mb-1.5 flex items-center justify-between px-1">
+              <div className="label">待审批生图任务</div>
+              <div className="text-sm text-(--color-text-4)">{pendingApprovalTasks.length} 个</div>
+            </div>
+            <div className="space-y-1.5">
+              {pendingApprovalTasks.map((task) => (
+                <AgentImageTaskSummary
+                  key={task.id}
+                  task={task}
+                  onApprove={onApproveImageTask}
+                  onCancel={onCancelImageTask}
+                  onFocus={onFocusImageTask}
+                />
+              ))}
+            </div>
           </div>
         )}
 
-        <textarea
-          ref={textareaRef}
-          value={draft}
-          onChange={(event) => {
-            onDraftChange(event.target.value)
-            autoResizeComposer(event.target)
-          }}
-          onKeyDown={handleKeyDown}
-          placeholder="给 Agent 发送消息…"
-          rows={1}
-          className="block max-h-[150px] min-h-[54px] w-full resize-none bg-transparent px-3 py-2.5 text-[16px] leading-[1.55] text-(--color-text) focus:outline-none md:text-base"
-        />
+        <div className="prompt-wrap relative rounded-[12px] bg-(--color-surface)">
+          <div ref={controlsRef} className="flex items-center gap-1.5 px-2.5 pt-2.5 pb-1.5">
+            <div className="relative min-w-0 flex-1">
+              <button
+                type="button"
+                onClick={() => setOpenMenu((prev) => (prev === 'model' ? null : 'model'))}
+                className="chip w-full justify-between px-2.5"
+                title="切换模型"
+              >
+                <span className="truncate">{model.label}</span>
+                <Icon name="chevron_right" size={13} className={openMenu === 'model' ? '-rotate-90' : 'rotate-90'} />
+              </button>
 
-        <div className="flex items-center gap-1.5 px-2.5 py-2 shadow-[inset_0_1px_0_var(--ring-edge-soft)]">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*,.heic,.heif"
-            multiple
-            className="hidden"
-            onChange={handleFileChange}
-          />
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="icon-btn"
-            title="附加图片"
-            aria-label="附加图片"
-          >
-            <Icon name="paperclip" size={14} />
-          </button>
-          {messages.length > 0 && !isStreaming && (
-            <button type="button" onClick={onClear} className="chip text-sm" style={{ height: 28, padding: '0 9px' }}>
-              清空
-            </button>
+              {openMenu === 'model' && (
+                <div className="absolute bottom-full left-0 z-50 mb-1.5 w-[280px] rounded-[10px] bg-(--color-surface) p-1 shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-float)]">
+                  {models.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => {
+                        onModelChange(item.id)
+                        setOpenMenu(null)
+                      }}
+                      className="flex w-full items-center gap-2 rounded-[7px] px-2.5 py-2 text-left text-base text-(--color-text-2) transition-colors hover:bg-(--color-surface-2)"
+                      data-active={model.id === item.id}
+                    >
+                      <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                      {model.id === item.id && <Icon name="check" size={13} />}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="relative shrink-0">
+              <button
+                type="button"
+                onClick={() => setOpenMenu((prev) => (prev === 'thinking' ? null : 'thinking'))}
+                className="chip justify-between px-2.5"
+                title={model.supportsThinking ? '切换思考等级' : '当前模型不支持思考等级'}
+              >
+                <span>
+                  {AGENT_THINKING_OPTIONS.find((item) => item.value === effectiveThinkingLevel)?.label ??
+                    effectiveThinkingLevel}
+                </span>
+                <Icon name="chevron_right" size={13} className={openMenu === 'thinking' ? '-rotate-90' : 'rotate-90'} />
+              </button>
+
+              {openMenu === 'thinking' && (
+                <div className="absolute bottom-full right-0 z-50 mb-1.5 w-[190px] rounded-[10px] bg-(--color-surface) p-1 shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-float)]">
+                  {AGENT_THINKING_OPTIONS.map((item) => {
+                    const disabled = !model.supportsThinking && item.value !== 'off'
+                    return (
+                      <button
+                        key={item.value}
+                        type="button"
+                        onClick={() => {
+                          if (disabled) return
+                          onThinkingLevelChange(item.value)
+                          setOpenMenu(null)
+                        }}
+                        disabled={disabled}
+                        className="flex w-full items-center gap-2 rounded-[7px] px-2.5 py-2 text-left text-base text-(--color-text-2) transition-colors hover:bg-(--color-surface-2) disabled:cursor-not-allowed disabled:opacity-45"
+                      >
+                        <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                        {effectiveThinkingLevel === item.value && <Icon name="check" size={13} />}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {attachments.length > 0 && (
+            <div className="flex gap-2 overflow-x-auto px-2.5 pb-2">
+              {attachments.map((attachment) => (
+                <div
+                  key={attachment.id}
+                  className="group relative h-14 w-14 shrink-0 overflow-hidden rounded-[8px] bg-(--color-surface-2) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]"
+                >
+                  <img
+                    src={imageDataUrl(attachment)}
+                    alt={attachment.fileName}
+                    className="h-full w-full object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => onRemoveAttachment(attachment.id)}
+                    className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/55 text-white opacity-0 transition-opacity group-hover:opacity-100"
+                    aria-label="移除图片"
+                  >
+                    <Icon name="close" size={11} />
+                  </button>
+                </div>
+              ))}
+            </div>
           )}
-          <div className="flex-1" />
-          {isStreaming ? (
-            <button type="button" onClick={onStop} className="chip text-sm" style={{ height: 28, padding: '0 9px' }}>
-              <Icon name="stop_circle" size={13} />
-              停止
-            </button>
-          ) : (
+
+          <textarea
+            ref={textareaRef}
+            value={draft}
+            onChange={(event) => {
+              onDraftChange(event.target.value)
+              autoResizeComposer(event.target)
+            }}
+            onKeyDown={handleKeyDown}
+            placeholder="给 Agent 发送消息…"
+            rows={1}
+            className="block max-h-[150px] min-h-[54px] w-full resize-none bg-transparent px-3 py-2.5 text-[16px] leading-[1.55] text-(--color-text) focus:outline-none md:text-base"
+          />
+
+          <div className="flex items-center gap-1.5 px-2.5 py-2 shadow-[inset_0_1px_0_var(--ring-edge-soft)]">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*,.heic,.heif"
+              multiple
+              className="hidden"
+              onChange={handleFileChange}
+            />
             <button
               type="button"
-              onClick={onSend}
-              disabled={!canSend}
-              className="cta"
-              style={{ height: 30, padding: '0 11px' }}
+              onClick={() => fileInputRef.current?.click()}
+              className="icon-btn"
+              title="附加图片"
+              aria-label="附加图片"
             >
-              <Icon name="send" size={13} />
-              发送
+              <Icon name="paperclip" size={14} />
             </button>
-          )}
+            <button
+              type="button"
+              onClick={() => onToggleAutoApproveImageTasks(!autoApproveImageTasks)}
+              className="chip text-sm"
+              data-active={autoApproveImageTasks}
+              style={{ height: 28, padding: '0 9px' }}
+              title="Agent 创建的生图任务自动通过审批"
+            >
+              自动通过 {autoApproveImageTasks ? '开' : '关'}
+            </button>
+            {messages.length > 0 && !isStreaming && (
+              <button type="button" onClick={onClear} className="chip text-sm" style={{ height: 28, padding: '0 9px' }}>
+                清空
+              </button>
+            )}
+            <div className="flex-1" />
+            {isStreaming ? (
+              <button type="button" onClick={onStop} className="chip text-sm" style={{ height: 28, padding: '0 9px' }}>
+                <Icon name="stop_circle" size={13} />
+                停止
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={onSend}
+                disabled={!canSend}
+                className="cta"
+                style={{ height: 30, padding: '0 11px' }}
+              >
+                <Icon name="send" size={13} />
+                发送
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

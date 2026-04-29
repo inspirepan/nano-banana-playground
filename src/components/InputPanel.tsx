@@ -8,7 +8,7 @@ import { Icon } from './Icon'
 import { OpenAILogo } from './ModelLabel'
 import { ReferenceImageUpload } from './ReferenceImageUpload'
 import { Tooltip } from './Tooltip'
-import type { AgentChatAttachment } from '../agent'
+import type { AgentChatAttachment, AgentImageTask } from '../agent'
 import type { AgentModelConfig, AgentThinkingLevel } from '../config/agentModels'
 import {
   MODEL_CONFIGS,
@@ -23,7 +23,7 @@ import type { InputMode } from '../hooks/usePlayground'
 import { isHeifFile } from '../lib/fileToImage'
 import { openAISize } from '../lib/openai'
 import { getPricePerImage } from '../lib/pricing'
-import type { PlaygroundImage } from '../lib/types'
+import type { PlaygroundImage, PlaygroundImageMeta } from '../lib/types'
 
 const INPUT_LABEL_CLASS = 'text-base font-semibold tracking-normal text-(--color-text-3)'
 
@@ -250,6 +250,8 @@ type Props = {
   agentDraft: string
   agentAttachments: AgentChatAttachment[]
   agentAttachmentError: string | null
+  autoApproveAgentImageTasks: boolean
+  agentImageTasks: AgentImageTask[]
   referenceImages: PlaygroundImage[]
   referenceImageError: string | null
   apiKey: string
@@ -266,8 +268,13 @@ type Props = {
   onAgentThinkingLevelChange: (level: AgentThinkingLevel) => void
   onAgentDraftChange: (v: string) => void
   onAddAgentAttachments: (files: File[]) => void
+  onAddAgentImageAttachment: (image: PlaygroundImage | PlaygroundImageMeta) => void
   onRemoveAgentAttachment: (id: string) => void
   onClearAgentAttachmentError: () => void
+  onToggleAutoApproveAgentImageTasks: (value: boolean) => void
+  onApproveAgentImageTask: (taskId: string) => void
+  onCancelAgentImageTask: (taskId: string) => void
+  onFocusAgentImageTask: (taskId: string) => void
   onSendAgentMessage: () => void
   onStopAgentMessage: () => void
   onClearAgentChat: () => void
@@ -299,6 +306,8 @@ export function InputPanel({
   agentDraft,
   agentAttachments,
   agentAttachmentError,
+  autoApproveAgentImageTasks,
+  agentImageTasks,
   referenceImages,
   referenceImageError,
   apiKey,
@@ -314,8 +323,13 @@ export function InputPanel({
   onAgentThinkingLevelChange,
   onAgentDraftChange,
   onAddAgentAttachments,
+  onAddAgentImageAttachment,
   onRemoveAgentAttachment,
   onClearAgentAttachmentError,
+  onToggleAutoApproveAgentImageTasks,
+  onApproveAgentImageTask,
+  onCancelAgentImageTask,
+  onFocusAgentImageTask,
   onSendAgentMessage,
   onStopAgentMessage,
   onClearAgentChat,
@@ -539,6 +553,8 @@ export function InputPanel({
           draft={agentDraft}
           attachments={agentAttachments}
           attachmentError={agentAttachmentError}
+          autoApproveImageTasks={autoApproveAgentImageTasks}
+          imageTasks={agentImageTasks}
           model={agentModel}
           models={agentModels}
           thinkingLevel={agentThinkingLevel}
@@ -547,8 +563,13 @@ export function InputPanel({
           onOpenApiKeys={onOpenApiKeys}
           onDraftChange={onAgentDraftChange}
           onAddAttachments={onAddAgentAttachments}
+          onAddImageAttachment={onAddAgentImageAttachment}
           onRemoveAttachment={onRemoveAgentAttachment}
           onClearAttachmentError={onClearAgentAttachmentError}
+          onToggleAutoApproveImageTasks={onToggleAutoApproveAgentImageTasks}
+          onApproveImageTask={onApproveAgentImageTask}
+          onCancelImageTask={onCancelAgentImageTask}
+          onFocusImageTask={onFocusAgentImageTask}
           onModelChange={onAgentModelChange}
           onThinkingLevelChange={onAgentThinkingLevelChange}
           onSend={onSendAgentMessage}

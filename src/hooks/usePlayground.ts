@@ -5,7 +5,23 @@ import { useExternalSync, useMountEffect } from './effects'
 import { useApiKey } from './useApiKey'
 import { useGenerationQueue, type GenerationJob } from './useGenerationQueue'
 import { putBlobInCache, getBlobFromCache, removeBlobFromCache } from './useImageSrc'
-import { attachmentToAgentAttachment, type AgentChatAttachment } from '../agent'
+import {
+  AGENT_PROMPT_DEFAULT_LINE_LIMIT,
+  attachmentToAgentAttachment,
+  createAgentImageTools,
+  formatPromptLines,
+  isTerminalAgentImageTaskStatus,
+  promptLineCount,
+  reserveAgentImageIds,
+  type AgentChatAttachment,
+  type AgentImageRegistryEntry,
+  type AgentImageTask,
+  type AgentImageTaskStatus,
+  type AgentImageToolResult,
+  type AgentTurnCallbackState,
+  type GenImageToolArgs,
+  type ReadImageToolArgs,
+} from '../agent'
 import {
   AGENT_MODEL_CONFIGS,
   DEFAULT_AGENT_MODEL,
@@ -26,6 +42,7 @@ import { readFileAsImageData } from '../lib/fileToImage'
 import {
   loadHistoryPage,
   deleteFromHistory,
+  loadImageBlob,
   loadImageBlobs,
   loadImageMetas,
   saveDraftRefs,
@@ -177,6 +194,44 @@ function getAgentError(agent: Agent): string | null {
   return typeof value === 'string' ? value : null
 }
 
+function activeOptionsForModel(model: ModelConfig, source: Record<string, unknown>): Record<string, unknown> {
+  const activeOptions: Record<string, unknown> = {}
+  for (const opt of model.options ?? []) activeOptions[opt.id] = opt.id in source ? source[opt.id] : opt.default
+  return activeOptions
+}
+
+function agentTaskStatusFromGenerationJob(job: GenerationJob): AgentImageTaskStatus {
+  if (job.status === 'completed') return 'completed'
+  if (job.status === 'canceled') return 'canceled'
+  if (job.status === 'failed' || job.status === 'partial_failed') return 'failed'
+  if (job.slots.some((slot) => slot.status === 'running' || slot.status === 'retrying')) return 'running'
+  return 'queued'
+}
+
+function errorFromGenerationJob(job: GenerationJob): string | undefined {
+  return job.slots.find((slot) => slot.error)?.error
+}
+
+function buildAgentTaskCallbackText(tasks: AgentImageTask[]): string {
+  const lines = ['<system>']
+  for (const task of tasks) {
+    lines.push(`tool GenImage call ${task.toolCallId} has been finished.`)
+    lines.push(`status: ${task.status}`)
+    lines.push(`requested_image_id: ${task.request.requestedImageId}`)
+    lines.push(`reserved_image_ids: ${task.request.reservedImageIds.join(', ')}`)
+    lines.push(`image_ids: ${task.resultImageIds.join(', ')}`)
+    if (task.error) lines.push(`error: ${task.error}`)
+    lines.push('')
+  }
+  if (lines[lines.length - 1] === '') lines.pop()
+  lines.push('</system>')
+  return lines.join('\n')
+}
+
+function toolTextResult(text: string, details: unknown): AgentImageToolResult {
+  return { content: [{ type: 'text', text }], details }
+}
+
 export function usePlayground() {
   const googleKeyHook = useApiKey('google')
   const openaiKeyHook = useApiKey('openai')
@@ -212,6 +267,9 @@ export function usePlayground() {
   const [agentDraft, setAgentDraft] = useState('')
   const [agentAttachments, setAgentAttachments] = useState<AgentChatAttachment[]>([])
   const [agentAttachmentError, setAgentAttachmentError] = useState<string | null>(null)
+  const [autoApproveAgentImageTasks, setAutoApproveAgentImageTasksState] = useState(false)
+  const [agentImageTasks, setAgentImageTasksState] = useState<AgentImageTask[]>([])
+  const [focusedAgentImageTaskId, setFocusedAgentImageTaskId] = useState<string | null>(null)
 
   const [referenceImages, setReferenceImages] = useState<PlaygroundImage[]>([])
   const [referenceImageError, setReferenceImageError] = useState<string | null>(null)
@@ -219,6 +277,15 @@ export function usePlayground() {
   const [historyHasMore, setHistoryHasMore] = useState(true)
   const historyLoadingRef = useRef(false)
   const agentRef = useRef<Agent | null>(null)
+  const agentToolsRef = useRef<Agent['state']['tools']>([])
+  const autoApproveAgentImageTasksRef = useRef(false)
+  const agentImageTasksRef = useRef<AgentImageTask[]>([])
+  const agentImageRegistryRef = useRef<Map<string, AgentImageRegistryEntry>>(new Map())
+  const agentTurnCallbacksRef = useRef<Map<string, AgentTurnCallbackState>>(new Map())
+  const currentAgentTurnIdRef = useRef<string | null>(null)
+  const referenceImagesRef = useRef<PlaygroundImage[]>([])
+  const historyRef = useRef<PlaygroundImageMeta[]>([])
+  const generationJobsRefForAgent = useRef<GenerationJob[]>([])
   const agentCredentialsRef = useRef({
     google: { apiKey: googleKeyHook.apiKey, baseUrl: googleKeyHook.baseUrl },
     openai: { apiKey: openaiKeyHook.apiKey, baseUrl: openaiKeyHook.baseUrl },
@@ -269,6 +336,30 @@ export function usePlayground() {
     invalidateGenerationKey,
     onImageSaved: onGeneratedImageSaved,
   })
+
+  const setAgentImageTasks = useCallback((updater: (prev: AgentImageTask[]) => AgentImageTask[]) => {
+    const next = updater(agentImageTasksRef.current)
+    agentImageTasksRef.current = next
+    setAgentImageTasksState(next)
+    return next
+  }, [])
+
+  const setAutoApproveAgentImageTasks = useCallback((value: boolean) => {
+    autoApproveAgentImageTasksRef.current = value
+    setAutoApproveAgentImageTasksState(value)
+  }, [])
+
+  useExternalSync(() => {
+    referenceImagesRef.current = referenceImages
+  }, [referenceImages])
+
+  useExternalSync(() => {
+    historyRef.current = history
+  }, [history])
+
+  useExternalSync(() => {
+    generationJobsRefForAgent.current = generationJobs
+  }, [generationJobs])
 
   // Load first page of history on mount
   useMountEffect(() => {
@@ -379,7 +470,7 @@ export function usePlayground() {
       agent.state.systemPrompt = AGENT_SYSTEM_PROMPT
       agent.state.model = agentModelWithBaseUrl(config, getAgentBaseUrl(config.provider))
       agent.state.thinkingLevel = config.supportsThinking ? agentThinkingLevel : 'off'
-      agent.state.tools = []
+      agent.state.tools = agentToolsRef.current
     },
     [agentModel, agentThinkingLevel, getAgentBaseUrl],
   )
@@ -399,7 +490,7 @@ export function usePlayground() {
         systemPrompt: AGENT_SYSTEM_PROMPT,
         model: agentModelWithBaseUrl(agentModel, getAgentBaseUrl(agentModel.provider)),
         thinkingLevel: agentModel.supportsThinking ? agentThinkingLevel : 'off',
-        tools: [],
+        tools: agentToolsRef.current,
         messages: [],
       },
     })
@@ -516,6 +607,44 @@ export function usePlayground() {
     [agentAttachments.length],
   )
 
+  const addAgentImageAttachment = useCallback(
+    (image: PlaygroundImage | PlaygroundImageMeta) => {
+      if (agentAttachments.some((item) => item.id === image.id)) return
+      const remaining = AGENT_MAX_ATTACHMENTS - agentAttachments.length
+      if (remaining <= 0) {
+        setAgentAttachmentError(`最多附加 ${AGENT_MAX_ATTACHMENTS} 张图片`)
+        return
+      }
+
+      void (async () => {
+        const data = 'data' in image ? image.data : (getBlobFromCache(image.id) ?? (await loadImageBlob(image.id)))
+        if (!data) {
+          setAgentAttachmentError('无法读取这张图片，请先打开图片或稍后重试。')
+          return
+        }
+        putBlobInCache(image.id, data)
+        const fileName = image.source.type === 'upload' ? image.source.fileName : image.id
+        const attachment: AgentChatAttachment = {
+          id: image.id,
+          data,
+          mimeType: image.mimeType,
+          fileName,
+          size: 0,
+        }
+        agentImageRegistryRef.current.set(image.id, {
+          id: image.id,
+          image: { ...image, data },
+          source: image.source.type === 'generated' ? 'generated' : 'history',
+          status: 'ready',
+          createdAt: image.timestamp,
+        })
+        setAgentAttachments((prev) => (prev.some((item) => item.id === image.id) ? prev : [...prev, attachment]))
+        setAgentAttachmentError(null)
+      })()
+    },
+    [agentAttachments],
+  )
+
   const removeAgentAttachment = useCallback((id: string) => {
     setAgentAttachments((prev) => prev.filter((item) => item.id !== id))
   }, [])
@@ -598,6 +727,461 @@ export function usePlayground() {
     [resolveFullImages, resolveReferenceMetas],
   )
 
+  const imageIdExistsForAgent = useCallback(async (id: string): Promise<boolean> => {
+    if (agentImageRegistryRef.current.has(id)) return true
+    if (referenceImagesRef.current.some((image) => image.id === id)) return true
+    if (historyRef.current.some((image) => image.id === id)) return true
+    if (generationJobsRefForAgent.current.some((job) => job.slots.some((slot) => slot.image?.id === id))) return true
+    const metas = await loadImageMetas([id])
+    return metas.has(id)
+  }, [])
+
+  const resolveAgentImageById = useCallback(
+    async (
+      id: string,
+    ): Promise<
+      | { status: 'ready'; source: AgentImageRegistryEntry['source']; image: PlaygroundImage }
+      | { status: 'not_ready'; source: AgentImageRegistryEntry['source'] }
+      | null
+    > => {
+      const reference = referenceImagesRef.current.find((image) => image.id === id)
+      if (reference) return { status: 'ready', source: 'reference', image: reference }
+
+      const registryEntry = agentImageRegistryRef.current.get(id)
+      if (registryEntry?.source === 'agent_attachment' && registryEntry.image) {
+        const attachment = registryEntry.image as AgentChatAttachment
+        return {
+          status: 'ready',
+          source: 'agent_attachment',
+          image: {
+            id: attachment.id,
+            data: attachment.data,
+            mimeType: attachment.mimeType,
+            source: { type: 'upload', fileName: attachment.fileName },
+            timestamp: registryEntry.createdAt,
+          },
+        }
+      }
+      if (registryEntry?.status === 'ready' && registryEntry.image) {
+        const image = registryEntry.image
+        if ('data' in image && typeof image.data === 'string') {
+          return { status: 'ready', source: registryEntry.source, image: image as PlaygroundImage }
+        }
+        if ('mimeType' in image && 'source' in image && 'timestamp' in image) {
+          const blob = getBlobFromCache(id) ?? (await loadImageBlob(id))
+          if (blob) {
+            putBlobInCache(id, blob)
+            return {
+              status: 'ready',
+              source: registryEntry.source,
+              image: { ...(image as PlaygroundImageMeta), data: blob },
+            }
+          }
+        }
+      }
+      if (registryEntry && registryEntry.status !== 'ready')
+        return { status: 'not_ready', source: registryEntry.source }
+
+      for (const job of generationJobsRefForAgent.current) {
+        const image = job.slots.find((slot) => slot.image?.id === id)?.image
+        if (image) return { status: 'ready', source: 'generated', image }
+      }
+
+      const loaded = historyRef.current.find((image) => image.id === id) ?? (await loadImageMetas([id])).get(id)
+      if (!loaded) return null
+      const blob = getBlobFromCache(id) ?? (await loadImageBlob(id))
+      if (!blob) return null
+      putBlobInCache(id, blob)
+      return {
+        status: 'ready',
+        source: loaded.source.type === 'generated' ? 'generated' : 'history',
+        image: { ...loaded, data: blob },
+      }
+    },
+    [],
+  )
+
+  const resolveAgentReferenceImages = useCallback(
+    async (ids: string[]): Promise<PlaygroundImage[]> => {
+      const images: PlaygroundImage[] = []
+      for (const id of ids) {
+        const result = await resolveAgentImageById(id)
+        if (!result) throw new Error(`Reference image does not exist: ${id}`)
+        if (result.status !== 'ready') throw new Error(`Reference image is not ready: ${id}`)
+        images.push(result.image)
+      }
+      return images
+    },
+    [resolveAgentImageById],
+  )
+
+  const sendAgentSystemEvent = useCallback(
+    async (text: string): Promise<boolean> => {
+      const credentials = agentCredentialsRef.current[agentModel.provider]
+      if (!credentials.apiKey) {
+        setAgentError(`Agent 需要 ${agentModel.providerLabel} API Key 才能接收任务完成回调。`)
+        return false
+      }
+
+      const agent = getOrCreateAgent()
+      applyAgentRuntimeConfig(agent, agentModel)
+      currentAgentTurnIdRef.current = crypto.randomUUID()
+      if (agent.state.isStreaming) {
+        await agent.queueMessage({ role: 'user', content: [{ type: 'text', text }], timestamp: Date.now() })
+      } else {
+        await agent.prompt(text)
+      }
+      syncAgentSnapshot(agent)
+      return true
+    },
+    [agentModel, applyAgentRuntimeConfig, getOrCreateAgent, syncAgentSnapshot],
+  )
+
+  const maybeDispatchAgentImageCallbacks = useCallback(
+    (tasks = agentImageTasksRef.current) => {
+      if (agentRef.current?.state.isStreaming) return
+      for (const callbackState of agentTurnCallbacksRef.current.values()) {
+        if (callbackState.callbackQueued || callbackState.taskIds.length === 0) continue
+        const turnTasks = callbackState.taskIds
+          .map((taskId) => tasks.find((task) => task.id === taskId))
+          .filter((task): task is AgentImageTask => Boolean(task))
+        if (turnTasks.length !== callbackState.taskIds.length) continue
+        if (!turnTasks.every((task) => isTerminalAgentImageTaskStatus(task.status))) continue
+
+        const text = buildAgentTaskCallbackText(turnTasks)
+        callbackState.callbackQueued = true
+        void sendAgentSystemEvent(text)
+          .then((sent) => {
+            if (!sent) callbackState.callbackQueued = false
+          })
+          .catch((error: unknown) => {
+            callbackState.callbackQueued = false
+            const message = error instanceof Error ? error.message : String(error)
+            setAgentError(message)
+          })
+      }
+    },
+    [sendAgentSystemEvent],
+  )
+
+  const startAgentImageTask = useCallback(
+    async (task: AgentImageTask): Promise<{ ok: boolean; message: string }> => {
+      const credentials = getProviderCredentials(task.request.model.provider)
+      if (!credentials.apiKey) {
+        const message = `使用 ${task.request.model.name} 需要先配置 ${task.request.model.provider === 'google' ? 'Gemini' : 'OpenAI'} API Key。`
+        const next = setAgentImageTasks((prev) =>
+          prev.map((item) => (item.id === task.id ? { ...item, status: 'failed', error: message } : item)),
+        )
+        for (const id of task.request.reservedImageIds) {
+          agentImageRegistryRef.current.set(id, { id, source: 'generated', status: 'failed', createdAt: Date.now() })
+        }
+        maybeDispatchAgentImageCallbacks(next)
+        return { ok: false, message }
+      }
+
+      const stackId =
+        task.request.stackId ??
+        stackIdForGenerationRequest({
+          model: task.request.model,
+          prompt: task.request.prompt,
+          referenceImages: task.request.referenceImages,
+          resolution: task.request.resolution,
+          aspectRatio: task.request.aspectRatio,
+          options: task.request.options,
+          batchCount: task.request.batchCount,
+        })
+      const batchId = enqueueGenerationJob(
+        {
+          apiKey: credentials.apiKey,
+          baseUrl: credentials.baseUrl,
+          model: task.request.model,
+          prompt: task.request.prompt,
+          referenceImages: task.request.referenceImages,
+          resolution: task.request.resolution,
+          aspectRatio: task.request.aspectRatio,
+          options: task.request.options,
+          outputImageIds: task.request.reservedImageIds,
+          outputImageIdSource: 'agent',
+        },
+        task.request.batchCount,
+        stackId,
+        task.request.parentImageId,
+      )
+      setAgentImageTasks((prev) =>
+        prev.map((item) =>
+          item.id === task.id ? { ...item, status: 'queued', generationJobId: batchId, error: undefined } : item,
+        ),
+      )
+      return { ok: true, message: '任务已经提交并开始生成。' }
+    },
+    [enqueueGenerationJob, getProviderCredentials, maybeDispatchAgentImageCallbacks, setAgentImageTasks],
+  )
+
+  const approveAgentImageTask = useCallback(
+    (taskId: string) => {
+      const task = agentImageTasksRef.current.find((item) => item.id === taskId)
+      if (!task || task.status !== 'pending_approval') return
+      void startAgentImageTask(task)
+    },
+    [startAgentImageTask],
+  )
+
+  const cancelAgentImageTask = useCallback(
+    (taskId: string) => {
+      const task = agentImageTasksRef.current.find((item) => item.id === taskId)
+      if (!task) return
+      if (task.status === 'pending_approval') {
+        const next = setAgentImageTasks((prev) =>
+          prev.map((item) => (item.id === taskId ? { ...item, status: 'rejected' } : item)),
+        )
+        for (const id of task.request.reservedImageIds) agentImageRegistryRef.current.delete(id)
+        maybeDispatchAgentImageCallbacks(next)
+        return
+      }
+      if (task.generationJobId) cancelGenerationJob(task.generationJobId)
+      const next = setAgentImageTasks((prev) =>
+        prev.map((item) => (item.id === taskId ? { ...item, status: 'canceled' } : item)),
+      )
+      maybeDispatchAgentImageCallbacks(next)
+    },
+    [cancelGenerationJob, maybeDispatchAgentImageCallbacks, setAgentImageTasks],
+  )
+
+  const focusAgentImageTask = useCallback((taskId: string) => {
+    setFocusedAgentImageTaskId(taskId)
+  }, [])
+
+  const clearFocusedAgentImageTask = useCallback(() => {
+    setFocusedAgentImageTaskId(null)
+  }, [])
+
+  const runGenImageTool = useCallback(
+    async (toolCallId: string, args: GenImageToolArgs): Promise<AgentImageToolResult> => {
+      const promptText = args.prompt.trim()
+      if (!promptText) throw new Error('GenImage.prompt is required.')
+      const modelConfig = findModelConfig(args.model)
+      if (!modelConfig) {
+        throw new Error(
+          `Unknown GenImage model: ${args.model}. Available models: ${MODEL_CONFIGS.map((item) => item.id).join(', ')}`,
+        )
+      }
+      const credentials = getProviderCredentials(modelConfig.provider)
+      if (!credentials.apiKey) {
+        throw new Error(
+          `GenImage cannot create a task because ${modelConfig.provider === 'google' ? 'Gemini' : 'OpenAI'} API Key is missing.`,
+        )
+      }
+      const requestedCount = Number.isFinite(args.n) ? Math.floor(args.n) : 1
+      const batchCount = Math.min(Math.max(1, requestedCount), modelConfig.maxBatchCount)
+      const resolution = normalizeResolution(modelConfig, args.resolution)
+      const aspect = normalizeAspectRatio(modelConfig, args.ratio)
+      const referenceImageIds = args.reference_image_ids.filter((id) => id.trim()).map((id) => id.trim())
+      const referenceImages = await resolveAgentReferenceImages(referenceImageIds)
+      const editSource = referenceImages.find((image) => image.source.type === 'generated')
+      const reserved = await reserveAgentImageIds({
+        requestedImageId: args.image_id,
+        count: batchCount,
+        isReserved: (id) => agentImageRegistryRef.current.has(id),
+        exists: imageIdExistsForAgent,
+      })
+      const activeOptions = activeOptionsForModel(modelConfig, defaultOptionsFor(modelConfig))
+      const task: AgentImageTask = {
+        id: crypto.randomUUID(),
+        toolCallId,
+        agentTurnId: currentAgentTurnIdRef.current ?? crypto.randomUUID(),
+        createdAt: Date.now(),
+        status: 'pending_approval',
+        request: {
+          prompt: promptText,
+          requestedImageId: reserved.requestedImageId,
+          reservedImageIds: reserved.reservedImageIds,
+          model: modelConfig,
+          resolution,
+          aspectRatio: aspect,
+          batchCount,
+          referenceImageIds,
+          referenceImages,
+          options: activeOptions,
+          stackId:
+            editSource?.source.type === 'generated'
+              ? (editSource.source.stackId ?? editSource.source.batchId)
+              : undefined,
+          parentImageId: editSource?.source.type === 'generated' ? editSource.id : undefined,
+        },
+        resultImageIds: [],
+        renamedImageIds: reserved.renamed,
+      }
+
+      const callbackState = agentTurnCallbacksRef.current.get(task.agentTurnId) ?? {
+        agentTurnId: task.agentTurnId,
+        taskIds: [],
+        callbackQueued: false,
+      }
+      callbackState.taskIds.push(task.id)
+      agentTurnCallbacksRef.current.set(task.agentTurnId, callbackState)
+      for (const id of reserved.reservedImageIds) {
+        agentImageRegistryRef.current.set(id, {
+          id,
+          source: 'generated',
+          status: 'reserved',
+          createdAt: task.createdAt,
+        })
+      }
+      setAgentImageTasks((prev) => [task, ...prev])
+
+      const autoApprove = autoApproveAgentImageTasksRef.current
+      const startResult = autoApprove ? await startAgentImageTask(task) : null
+      const status = autoApprove ? (startResult?.ok ? 'queued' : 'failed') : 'pending_approval'
+      const message = autoApprove
+        ? (startResult?.message ?? '任务已经提交并自动开始生成。')
+        : reserved.renamed
+          ? `任务已经提交，等待用户审批。image_id 已预留为 ${reserved.reservedImageIds.join('、')}。`
+          : '任务已经提交，等待用户审批。'
+      const result = {
+        status,
+        task_id: task.id,
+        requested_image_id: reserved.requestedImageId,
+        reserved_image_ids: reserved.reservedImageIds,
+        renamed: reserved.renamed,
+        message,
+      }
+      return toolTextResult(JSON.stringify(result, null, 2), result)
+    },
+    [
+      getProviderCredentials,
+      imageIdExistsForAgent,
+      resolveAgentReferenceImages,
+      setAgentImageTasks,
+      startAgentImageTask,
+    ],
+  )
+
+  const runReadImageTool = useCallback(
+    async (_toolCallId: string, args: ReadImageToolArgs): Promise<AgentImageToolResult> => {
+      const imageId = args.image_id.trim()
+      const missing = '<tool_use_error>Image does not exist.</tool_use_error>'
+      if (!imageId) return toolTextResult(missing, { status: 'error', image_id: imageId })
+
+      const result = await resolveAgentImageById(imageId)
+      if (!result) return toolTextResult(missing, { status: 'error', image_id: imageId })
+      if (result.status !== 'ready') {
+        const payload = {
+          image_id: imageId,
+          status: 'not_ready',
+          source: result.source,
+          message: 'Image is not ready.',
+        }
+        return toolTextResult(JSON.stringify(payload, null, 2), payload)
+      }
+
+      const offset = args.offset !== undefined && Number.isFinite(args.offset) ? args.offset : 0
+      const limit =
+        args.limit !== undefined && Number.isFinite(args.limit) ? args.limit : AGENT_PROMPT_DEFAULT_LINE_LIMIT
+      const generated = result.image.source.type === 'generated' ? result.image.source : null
+      if (offset > 0) {
+        if (!generated) {
+          const text = '<tool_use_error>Image prompt is only available for generated images.</tool_use_error>'
+          return toolTextResult(text, { status: 'error', image_id: imageId })
+        }
+        const header = `[prompt] image_id=${imageId} references=${generated.referenceImageIds.join(',')} total_lines=${promptLineCount(generated.prompt)}`
+        const text = `${header}\n${formatPromptLines(generated.prompt, offset, limit)}`
+        return toolTextResult(text, { status: 'ready', image_id: imageId, mode: 'prompt' })
+      }
+
+      const modelForImage = generated ? findModelConfig(generated.modelId) : null
+      const promptOutputText = generated
+        ? formatPromptLines(generated.prompt, 1, AGENT_PROMPT_DEFAULT_LINE_LIMIT)
+        : undefined
+      const payload = {
+        image_id: imageId,
+        status: 'ready',
+        source: result.source,
+        mime_type: result.image.mimeType,
+        generated: generated
+          ? {
+              model_id: generated.modelId,
+              model_name: modelForImage?.name ?? generated.modelId,
+              prompt_preview: generated.prompt.slice(0, 100),
+              prompt_length: generated.prompt.length,
+              prompt_total_lines: promptLineCount(generated.prompt),
+              prompt_truncated: promptOutputText?.includes('more lines truncated') ?? false,
+              prompt_output_text: promptOutputText,
+              reference_image_ids: generated.referenceImageIds,
+              resolution: generated.resolution,
+              ratio: generated.aspectRatio,
+              created_at: result.image.timestamp,
+            }
+          : undefined,
+        message: 'Image is ready.',
+      }
+      return {
+        content: [
+          { type: 'text', text: JSON.stringify(payload, null, 2) },
+          { type: 'image', data: result.image.data, mimeType: result.image.mimeType },
+        ],
+        details: payload,
+      }
+    },
+    [resolveAgentImageById],
+  )
+
+  useExternalSync(() => {
+    agentToolsRef.current = createAgentImageTools({
+      imageModels: MODEL_CONFIGS,
+      genImage: runGenImageTool,
+      readImage: runReadImageTool,
+    })
+    if (agentRef.current) {
+      agentRef.current.state.tools = agentToolsRef.current
+      syncAgentSnapshot(agentRef.current)
+    }
+  }, [runGenImageTool, runReadImageTool, syncAgentSnapshot])
+
+  useExternalSync(() => {
+    void agentModel.id
+    void googleKeyHook.apiKey
+    void openaiKeyHook.apiKey
+    maybeDispatchAgentImageCallbacks()
+  }, [agentModel.id, googleKeyHook.apiKey, maybeDispatchAgentImageCallbacks, openaiKeyHook.apiKey])
+
+  useExternalSync(() => {
+    let changed = false
+    const next = agentImageTasksRef.current.map((task) => {
+      if (!task.generationJobId || isTerminalAgentImageTaskStatus(task.status)) return task
+      const job = generationJobs.find((item) => item.id === task.generationJobId)
+      if (!job) return task
+      const resultImageIds = job.slots.flatMap((slot) => (slot.image ? [slot.image.id] : []))
+      const nextStatus = agentTaskStatusFromGenerationJob(job)
+      const nextError = errorFromGenerationJob(job)
+      if (nextStatus === 'completed') dismissGenerationJob(job.id)
+      for (const slot of job.slots) {
+        if (slot.image) {
+          agentImageRegistryRef.current.set(slot.image.id, {
+            id: slot.image.id,
+            image: slot.image,
+            source: 'generated',
+            status: 'ready',
+            createdAt: slot.image.timestamp,
+          })
+        }
+      }
+      if (
+        nextStatus === task.status &&
+        nextError === task.error &&
+        resultImageIds.length === task.resultImageIds.length &&
+        resultImageIds.every((id, index) => id === task.resultImageIds[index])
+      ) {
+        return task
+      }
+      changed = true
+      return { ...task, status: nextStatus, resultImageIds, error: nextError }
+    })
+    if (!changed) return
+    agentImageTasksRef.current = next
+    setAgentImageTasksState(next)
+    maybeDispatchAgentImageCallbacks(next)
+  }, [dismissGenerationJob, generationJobs, maybeDispatchAgentImageCallbacks])
+
   const sendAgentMessage = useCallback(() => {
     const trimmed = agentDraft.trim()
     if (agentIsStreaming || (!trimmed && agentAttachments.length === 0)) return
@@ -611,7 +1195,20 @@ export function usePlayground() {
     const agent = getOrCreateAgent()
     applyAgentRuntimeConfig(agent, agentModel)
     const images = agentAttachments.map(attachmentToAgentAttachment)
-    const promptText = trimmed || '请分析这些图片。'
+    const attachmentIds = agentAttachments.map((attachment) => attachment.id)
+    const attachmentNote = attachmentIds.length > 0 ? `\n\n可用附件图片 ID：${attachmentIds.join('、')}` : ''
+    const promptText = `${trimmed || '请分析这些图片。'}${attachmentNote}`
+    for (const attachment of agentAttachments) {
+      if (agentImageRegistryRef.current.get(attachment.id)?.status === 'ready') continue
+      agentImageRegistryRef.current.set(attachment.id, {
+        id: attachment.id,
+        image: attachment,
+        source: 'agent_attachment',
+        status: 'ready',
+        createdAt: Date.now(),
+      })
+    }
+    currentAgentTurnIdRef.current = crypto.randomUUID()
     setAgentDraft('')
     setAgentAttachments([])
     setAgentAttachmentError(null)
@@ -624,6 +1221,7 @@ export function usePlayground() {
         if (message && isKeyError(message)) invalidateGenerationKey(agentModel.provider)
       })
       .finally(() => syncAgentSnapshot(agent))
+      .finally(() => maybeDispatchAgentImageCallbacks())
   }, [
     agentAttachments,
     agentDraft,
@@ -632,6 +1230,7 @@ export function usePlayground() {
     applyAgentRuntimeConfig,
     getOrCreateAgent,
     invalidateGenerationKey,
+    maybeDispatchAgentImageCallbacks,
     syncAgentSnapshot,
   ])
 
@@ -853,6 +1452,9 @@ export function usePlayground() {
     agentDraft,
     agentAttachments,
     agentAttachmentError,
+    autoApproveAgentImageTasks,
+    agentImageTasks,
+    focusedAgentImageTaskId,
     referenceImages,
     referenceImageError,
     history,
@@ -864,6 +1466,7 @@ export function usePlayground() {
     setInputMode,
     setAgentModelId,
     setAgentThinkingLevel,
+    setAutoApproveAgentImageTasks,
     setAgentDraft,
     setResolution,
     setAspectRatio,
@@ -872,11 +1475,16 @@ export function usePlayground() {
     setPrompt,
     setGenerationConcurrency,
     addAgentAttachments,
+    addAgentImageAttachment,
     removeAgentAttachment,
     clearAgentAttachmentError,
     sendAgentMessage,
     stopAgentMessage,
     clearAgentChat,
+    approveAgentImageTask,
+    cancelAgentImageTask,
+    focusAgentImageTask,
+    clearFocusedAgentImageTask,
     addReferenceImages,
     removeReferenceImage,
     clearAllReferences,

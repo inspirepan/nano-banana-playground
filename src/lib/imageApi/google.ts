@@ -59,6 +59,8 @@ export async function generateImageGoogle(
     stackId,
     parentImageId,
     slotIndex,
+    outputImageId,
+    outputImageIdSource,
     options,
   } = params
 
@@ -227,7 +229,7 @@ export async function generateImageGoogle(
     }
 
     return {
-      id: crypto.randomUUID(),
+      id: outputImageId ?? crypto.randomUUID(),
       data: base64,
       mimeType,
       source: {
@@ -242,6 +244,7 @@ export async function generateImageGoogle(
         stackId,
         ...(parentImageId ? { parentImageId } : {}),
         ...(slotIndex !== undefined ? { slotIndex } : {}),
+        ...(outputImageIdSource ? { imageIdSource: outputImageIdSource } : {}),
         tokenUsage,
         options: { ...options },
         ...(groundingMetadata ? { groundingMetadata } : {}),
