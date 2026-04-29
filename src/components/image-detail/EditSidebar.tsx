@@ -3,7 +3,13 @@ import { useCallback, useLayoutEffect, useMemo, useRef, useState, type RefObject
 import { BrushPresetDot } from './annotationControls'
 import { BRUSH_PRESETS, type BrushPresetId } from './annotationPresets'
 import type { DrawableLayerHandle, DrawTool } from './DrawableLayer'
-import { MODEL_CONFIGS, DEFAULT_MODEL, defaultOptionsFor, type ModelConfig } from '../../config/models'
+import {
+  MODEL_CONFIGS,
+  DEFAULT_MODEL,
+  defaultOptionsFor,
+  getModelShortLabel,
+  type ModelConfig,
+} from '../../config/models'
 import { useExternalSync, useWindowEvent } from '../../hooks/effects'
 import type { GenerationJob } from '../../hooks/usePlayground'
 import { getEditState, setEditPrompt, type ItemCounts } from '../../lib/editStateCache'
@@ -14,20 +20,8 @@ import type { PlaygroundImage, PlaygroundImageMeta } from '../../lib/types'
 import { AspectRatioSelector } from '../AspectRatioSelector'
 import { ChipGroup } from '../ChipGroup'
 import { Icon } from '../Icon'
+import { OpenAILogo } from '../ModelLabel'
 import { ReferenceImageUpload, type LockedReferenceImage } from '../ReferenceImageUpload'
-
-function OpenAILogo({ size = 11 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" style={{ flexShrink: 0 }}>
-      <path d="M22.28 9.82a5.95 5.95 0 0 0-.51-4.91 6.04 6.04 0 0 0-6.5-2.9A6.06 6.06 0 0 0 4.98 4.18a5.99 5.99 0 0 0-4 2.9 6.05 6.05 0 0 0 .74 7.1 5.98 5.98 0 0 0 .51 4.9 6.05 6.05 0 0 0 6.51 2.9A5.98 5.98 0 0 0 13.26 24a6.06 6.06 0 0 0 5.77-4.2 5.99 5.99 0 0 0 4-2.9 6.06 6.06 0 0 0-.75-7.08Zm-9.02 12.63a4.48 4.48 0 0 1-2.88-1.04l.14-.08 4.78-2.76a.78.78 0 0 0 .39-.68v-6.74L17.7 12.3a.07.07 0 0 1 .04.05v5.58a4.5 4.5 0 0 1-4.48 4.51Zm-9.64-4.12a4.48 4.48 0 0 1-.54-3.03l.14.09 4.78 2.76a.78.78 0 0 0 .78 0l5.84-3.37v2.33a.08.08 0 0 1-.03.06L9.78 20a4.51 4.51 0 0 1-6.16-1.65Zm-1.19-9.9a4.5 4.5 0 0 1 2.35-1.98v5.68a.78.78 0 0 0 .39.67l5.8 3.35-2.2 1.27a.08.08 0 0 1-.08 0l-4.83-2.79a4.51 4.51 0 0 1-1.43-6.2Zm16.6 3.86L13.24 9 15.43 7.73a.07.07 0 0 1 .08 0l4.83 2.79a4.5 4.5 0 0 1-.68 8.12v-5.69a.78.78 0 0 0-.4-.67Zm2.18-3.27-.14-.09-4.77-2.77a.79.79 0 0 0-.79 0L9.57 9.54V7.2a.07.07 0 0 1 .03-.06l4.83-2.79a4.5 4.5 0 0 1 6.68 4.67Zm-12.64 4.5-2.19-1.26a.07.07 0 0 1-.04-.06V6.63a4.5 4.5 0 0 1 7.38-3.47l-.14.08L8.8 6a.78.78 0 0 0-.39.68ZM9.76 11l2.6-1.5 2.6 1.5v3l-2.6 1.5-2.6-1.5Z" />
-    </svg>
-  )
-}
-
-function getModelShortLabel(model: ModelConfig) {
-  if (model.provider === 'openai') return model.name
-  return model.name.replace(/^Nano\s+/, '')
-}
 
 function InlineParamDivider() {
   return <span aria-hidden className="meta-dot text-(--color-text-4)" />

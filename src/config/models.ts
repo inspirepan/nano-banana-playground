@@ -73,6 +73,13 @@ export type OpenAIModelConfig = BaseModelConfig & {
 
 export type ModelConfig = GoogleModelConfig | OpenAIModelConfig
 
+// Trim the "Nano " brand prefix off Google model names so the segmented
+// control reads tighter; OpenAI names stay verbatim.
+export function getModelShortLabel(model: ModelConfig): string {
+  if (model.provider === 'openai') return model.name
+  return model.name.replace(/^Nano\s+/, '')
+}
+
 // --- Option descriptor presets ---
 // Shared so we don't drift between Nano Banana 2 / Pro.
 const SEARCH_WEB_OPTION: ModelToggleOption = {

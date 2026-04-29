@@ -1,7 +1,8 @@
 import { forwardRef, useCallback, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from 'react'
 
-import { getInsetCenterShift, getViewportSize, type Inset } from './viewGeometry'
+import { clamp, getInsetCenterShift, getViewportSize, type Inset } from './viewGeometry'
 import { useExternalSync, useResizeObserver } from '../../hooks/effects'
+import { dataUrlToBase64 } from '../../lib/blobUtils'
 import {
   computeItemCounts,
   getEditState,
@@ -55,15 +56,6 @@ const ERASER_HIT_PADDING = 6 // extra natural-px tolerance around items
 const LOCAL_MIN_SCALE = 0.5
 const LOCAL_FIT_SCALE = 1
 const LOCAL_MAX_SCALE = 6
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, value))
-}
-
-function dataUrlToBase64(url: string): string {
-  const idx = url.indexOf(',')
-  return idx >= 0 ? url.slice(idx + 1) : url
-}
 
 function distanceToSegment(p: Point, a: Point, b: Point): number {
   const dx = b.x - a.x

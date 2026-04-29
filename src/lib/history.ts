@@ -276,12 +276,8 @@ export async function loadDraftRefs(): Promise<PlaygroundImage[]> {
       tx.onerror = () => reject(tx.error)
     })
 
-    // Sort by original order (sessionStorage preserves array order)
-    images.sort((a, b) => {
-      const ai = metas.findIndex((m) => m.id === a.id)
-      const bi = metas.findIndex((m) => m.id === b.id)
-      return ai - bi
-    })
+    const order = new Map(metas.map((m, i) => [m.id, i]))
+    images.sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0))
     return images
   } catch {
     return []

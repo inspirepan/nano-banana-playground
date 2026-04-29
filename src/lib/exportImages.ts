@@ -1,5 +1,6 @@
 import JSZip from 'jszip'
 
+import { base64ToBlob } from './blobUtils'
 import { imageDownloadFileName } from './downloadFileName'
 import { loadImageBlobs } from './history'
 import type { PlaygroundImageMeta } from './types'
@@ -7,19 +8,6 @@ import { ensureBlobLoaded, getBlobFromCache, putBlobInCache } from '../hooks/use
 
 function imageExtension(image: PlaygroundImageMeta): 'png' | 'jpg' {
   return image.mimeType === 'image/png' ? 'png' : 'jpg'
-}
-
-function base64ToBlob(data: string, mimeType: string): Blob {
-  const binary = window.atob(data)
-  const chunks: ArrayBuffer[] = []
-  for (let offset = 0; offset < binary.length; offset += 8192) {
-    const slice = binary.slice(offset, offset + 8192)
-    const buffer = new ArrayBuffer(slice.length)
-    const bytes = new Uint8Array(buffer)
-    for (let i = 0; i < slice.length; i++) bytes[i] = slice.charCodeAt(i)
-    chunks.push(buffer)
-  }
-  return new Blob(chunks, { type: mimeType })
 }
 
 async function ensureImagesInCache(images: PlaygroundImageMeta[]): Promise<void> {

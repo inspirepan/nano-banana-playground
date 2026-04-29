@@ -1,3 +1,4 @@
+import { base64ToBlob } from './blobUtils'
 import { openAISize } from './openai'
 import type { GroundingMetadata, PlaygroundImage, TokenUsage } from './types'
 import { resolveBaseUrl } from './validateKey'
@@ -332,13 +333,6 @@ async function generateImageGoogle(
 }
 
 // --- OpenAI (gpt-image-2) ---
-
-function base64ToBlob(b64: string, mimeType: string): Blob {
-  const bin = atob(b64)
-  const arr = new Uint8Array(bin.length)
-  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i)
-  return new Blob([arr], { type: mimeType })
-}
 
 async function generateImageOpenAI(
   params: GenerateParams,
