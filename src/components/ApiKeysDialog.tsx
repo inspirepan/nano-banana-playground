@@ -56,12 +56,12 @@ export function ApiKeysDialog({ open, googleKey, openaiKey, onClose }: Props) {
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="API Keys"
+        aria-label="接口密钥"
         className="relative w-full max-w-md rounded-[10px] bg-(--color-surface) shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-float)]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-5 pt-4 pb-3 shadow-[inset_0_-1px_0_var(--ring-edge-soft)]">
-          <h2 className="font-display text-lg font-semibold tracking-[-0.01em]">API Keys</h2>
+          <h2 className="font-display text-lg font-semibold tracking-[-0.01em]">接口密钥</h2>
           <button type="button" onClick={onClose} className="icon-btn" aria-label="关闭">
             <Icon name="close" size={13} />
           </button>
@@ -88,8 +88,10 @@ export function ApiKeysSettings({
 }) {
   return (
     <div className="space-y-4">
-      <KeyRow provider="google" hook={googleKey} variant={variant} />
-      <KeyRow provider="openai" hook={openaiKey} variant={variant} />
+      <div className="overflow-hidden rounded-[8px] bg-(--color-surface) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
+        <KeyRow provider="google" hook={googleKey} variant={variant} />
+        <KeyRow provider="openai" hook={openaiKey} variant={variant} last />
+      </div>
       <p className="text-sm leading-relaxed text-(--color-text-3)">
         密钥与 Base URL 仅保存在当前浏览器的 localStorage，不会上传任何服务器。
       </p>
@@ -97,7 +99,17 @@ export function ApiKeysSettings({
   )
 }
 
-function KeyRow({ provider, hook, variant }: { provider: Provider; hook: KeyHook; variant: ApiKeysSettingsVariant }) {
+function KeyRow({
+  provider,
+  hook,
+  variant,
+  last = false,
+}: {
+  provider: Provider
+  hook: KeyHook
+  variant: ApiKeysSettingsVariant
+  last?: boolean
+}) {
   const { label, placeholder, hint } = LABELS[provider]
   const { apiKey, baseUrl, status, error, submit, reset, keepCurrent } = hook
   const [draft, setDraft] = useState('')
@@ -162,38 +174,27 @@ function KeyRow({ provider, hook, variant }: { provider: Provider; hook: KeyHook
   const masked = apiKey ? `${apiKey.slice(0, 6)}******${apiKey.slice(-4)}` : ''
   const baseUrlPlaceholder = DEFAULT_BASE_URL[provider]
 
+  const rowClass = `${variant === 'embedded' ? 'px-3 py-3' : 'px-3.5 py-3.5'} ${
+    last ? '' : 'shadow-[inset_0_-1px_0_var(--ring-edge-soft)]'
+  }`
   const header = (
-    <div className="flex items-baseline justify-between mb-1.5">
+    <div className="flex min-w-0 items-baseline justify-between gap-3">
       <label className="text-base font-medium text-(--color-text)">{label}</label>
-      <span className="text-sm text-(--color-text-4)">{hint}</span>
+      <span className="shrink-0 text-sm text-(--color-text-4)">{hint}</span>
     </div>
   )
 
   if (status === 'valid' && !isEditing) {
-    if (variant === 'embedded') {
-      return (
-        <div>
-          {header}
-          <div className="rounded-[8px] bg-(--color-surface-2) px-3 py-2.5 shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
+    return (
+      <div className={rowClass}>
+        {header}
+        <div className="mt-2 flex min-w-0 items-start justify-between gap-3">
+          <div className="min-w-0 space-y-1">
             <div className="flex min-w-0 items-center gap-2">
               <Icon name="check_circle" size={13} className="shrink-0 text-(--color-success)" strokeWidth={1.9} />
               <span className="mono min-w-0 flex-1 truncate text-base text-(--color-text-2)">{masked}</span>
-              {justValidated ? (
-                <span className="inline-flex shrink-0 items-center gap-1 text-base font-medium text-(--color-success)">
-                  <Icon name="check_circle" size={12} strokeWidth={2.1} />
-                  验证成功
-                </span>
-              ) : (
-                <button
-                  type="button"
-                  onClick={handleEdit}
-                  className="shrink-0 bg-transparent p-0 text-base font-medium text-(--color-text-3) transition-colors hover:text-(--color-text)"
-                >
-                  修改
-                </button>
-              )}
             </div>
-            <div className="mt-1.5 flex min-w-0 items-center gap-2 text-sm text-(--color-text-3)">
+            <div className="flex min-w-0 items-center gap-2 text-sm text-(--color-text-3)">
               <span className="shrink-0 text-(--color-text-4)">Base URL</span>
               <span className="mono min-w-0 flex-1 truncate">
                 {baseUrl || baseUrlPlaceholder}
@@ -201,50 +202,13 @@ function KeyRow({ provider, hook, variant }: { provider: Provider; hook: KeyHook
               </span>
             </div>
           </div>
-        </div>
-      )
-    }
-
-    return (
-      <div>
-        {header}
-        <div className="card px-3 py-2.5 space-y-2">
-          <div className="flex items-center gap-2">
-            <Icon name="check_circle" size={13} className="text-(--color-success)" strokeWidth={1.9} />
-            <span className="mono min-w-0 flex-1 truncate text-base text-(--color-text-2)">{masked}</span>
-          </div>
-
-          <div className="h-px bg-(--color-border)" />
-
-          <div className="flex items-center gap-2">
-            <span className="shrink-0 text-sm text-(--color-text-4)">Base URL</span>
-            <span className="mono min-w-0 flex-1 truncate text-sm text-(--color-text-3)">
-              {baseUrl || baseUrlPlaceholder}
-              {!baseUrl && <span className="ml-1 text-(--color-text-4)">（默认）</span>}
-            </span>
-          </div>
-
           {justValidated ? (
-            <button
-              type="button"
-              disabled
-              className="cta w-full"
-              style={{
-                background: 'var(--color-success)',
-                color: '#fff',
-                boxShadow: '0 0 0 1px color-mix(in srgb, var(--color-success) 55%, #000 10%)',
-              }}
-            >
+            <span className="inline-flex shrink-0 items-center gap-1 text-base font-medium text-(--color-success)">
               <Icon name="check_circle" size={13} strokeWidth={2.1} />
-              <span>验证成功</span>
-            </button>
+              验证成功
+            </span>
           ) : (
-            <button
-              type="button"
-              onClick={handleEdit}
-              className="w-full rounded-md bg-(--color-surface) text-base font-medium text-(--color-text-2) shadow-[inset_0_0_0_1px_var(--ring-edge)] hover:bg-(--color-surface-2) hover:text-(--color-text) hover:shadow-[inset_0_0_0_1px_var(--ring-edge-strong)] transition-colors"
-              style={{ height: 32 }}
-            >
+            <button type="button" onClick={handleEdit} className="action-soft -mr-1 shrink-0 text-base">
               修改
             </button>
           )}
@@ -261,12 +225,9 @@ function KeyRow({ provider, hook, variant }: { provider: Provider; hook: KeyHook
   const hasBaseUrlChange = baseUrlDraft.trim() !== baseUrl
   const canSubmit = !isValidating && (hasDraftKey || (hasExistingKey && hasBaseUrlChange))
   return (
-    <div>
+    <div className={rowClass}>
       {header}
-
-      <div
-        className={`${variant === 'embedded' ? 'rounded-[8px] bg-(--color-surface-2) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]' : 'card'} px-3 py-3 space-y-2.5`}
-      >
+      <div className="mt-3 space-y-2.5">
         {status === 'invalid' && (
           <div className="text-sm leading-relaxed text-(--color-danger) break-words">
             {error ?? '密钥无效或已过期，请重新输入。'}
@@ -316,65 +277,69 @@ function KeyRow({ provider, hook, variant }: { provider: Provider; hook: KeyHook
                        placeholder:text-(--color-text-4)
                        disabled:opacity-60 disabled:cursor-not-allowed"
           />
-          <div
-            className="mt-1 flex items-start gap-1 text-sm leading-[1.5] text-(--color-text-4)"
-            aria-hidden={!hasBaseUrlDraft}
-            style={{ visibility: hasBaseUrlDraft ? 'visible' : 'hidden' }}
-          >
-            <span className="shrink-0">实际调用</span>
-            <span className="mono min-w-0 flex-1 break-all text-(--color-text-3)">
-              {previewEndpoint(provider, baseUrlDraft)}
-            </span>
-          </div>
+          {hasBaseUrlDraft && (
+            <div className="mt-1 flex items-start gap-1 text-sm leading-[1.5] text-(--color-text-4)">
+              <span className="shrink-0">实际调用</span>
+              <span className="mono min-w-0 flex-1 break-all text-(--color-text-3)">
+                {previewEndpoint(provider, baseUrlDraft)}
+              </span>
+            </div>
+          )}
         </div>
 
-        <button
-          type="button"
-          onClick={handleSubmit}
-          disabled={!canSubmit}
-          className="cta w-full"
-          style={{
-            ...(isValidating && {
-              background: 'var(--color-accent)',
-              color: 'var(--color-accent-fg)',
-              opacity: 0.9,
-            }),
-          }}
-        >
-          {isValidating ? (
-            <>
-              <span
-                className="spinner"
-                style={{ borderColor: 'rgba(255,255,255,0.35)', borderTopColor: 'currentColor' }}
-              />
-              <span>验证中…</span>
-            </>
-          ) : (
-            `保存并验证 ${label}`
-          )}
-        </button>
-
-        {hasExistingKey && !isValidating && (
-          <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+          <div className="min-w-0">
+            {hasExistingKey && !isValidating && (
+              <button
+                type="button"
+                onClick={handleReset}
+                className="chip danger text-sm"
+                style={{ height: 28, padding: '0 9px' }}
+              >
+                移除密钥
+              </button>
+            )}
+          </div>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {hasExistingKey && !isValidating && (
+              <button
+                type="button"
+                onClick={handleCancelEdit}
+                className="chip ghost text-sm"
+                style={{ height: 28, padding: '0 9px' }}
+              >
+                取消
+              </button>
+            )}
             <button
               type="button"
-              onClick={handleReset}
-              className="chip danger text-sm"
-              style={{ height: 28, padding: '0 9px' }}
+              onClick={handleSubmit}
+              disabled={!canSubmit}
+              className="chip accent-active"
+              style={{
+                height: 30,
+                padding: '0 11px',
+                ...(isValidating && {
+                  background: 'var(--color-accent)',
+                  color: 'var(--color-accent-fg)',
+                  opacity: 0.9,
+                }),
+              }}
             >
-              移除密钥
-            </button>
-            <div className="flex-1" />
-            <button
-              type="button"
-              onClick={handleCancelEdit}
-              className="chip ghost text-sm"
-              style={{ height: 28, padding: '0 9px' }}
-            >
-              取消
+              {isValidating ? (
+                <>
+                  <span
+                    className="spinner"
+                    style={{ borderColor: 'rgba(255,255,255,0.35)', borderTopColor: 'currentColor' }}
+                  />
+                  <span>验证中…</span>
+                </>
+              ) : (
+                `保存并验证 ${label}`
+              )}
             </button>
           </div>
-        )}
+        </div>
       </div>
     </div>
   )

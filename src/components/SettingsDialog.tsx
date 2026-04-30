@@ -174,8 +174,8 @@ export function SettingsDialog({
           </button>
         </div>
 
-        <div className="min-h-0 overflow-y-auto px-5 py-4">
-          <div className="space-y-5">
+        <div className="min-h-0 overflow-y-auto px-5 py-2">
+          <div>
             <SettingsSection title="接口密钥" description="配置浏览器本地保存的 Gemini 和 OpenAI 访问密钥。">
               <ApiKeysSettings googleKey={googleKey} openaiKey={openaiKey} variant="embedded" />
             </SettingsSection>
@@ -417,8 +417,8 @@ function SettingsSection({
   children: ReactNode
 }) {
   return (
-    <section className="card p-4">
-      <div className="mb-3">
+    <section className="py-4 shadow-[inset_0_-1px_0_var(--ring-edge-soft)] last:shadow-none">
+      <div className="mb-3 max-w-xl">
         <h3 className="font-display text-base font-semibold tracking-[-0.01em] text-(--color-text)">{title}</h3>
         <p className="mt-0.5 text-sm leading-relaxed text-(--color-text-3)">{description}</p>
       </div>
