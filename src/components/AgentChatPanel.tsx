@@ -1,7 +1,7 @@
 import type { AppMessage as AgentMessage } from '@mariozechner/pi-agent'
 import { useLayoutEffect, useMemo, useRef, useState, type ChangeEvent, type KeyboardEvent, type ReactNode } from 'react'
 
-import { Icon } from './Icon'
+import { BrandIcon, Icon } from './Icon'
 import {
   agentMessageError,
   agentMessageImages,
@@ -291,6 +291,16 @@ function parseDraggedPlaygroundImage(value: string): PlaygroundImage | Playgroun
 function autoResizeComposer(el: HTMLTextAreaElement) {
   el.style.height = 'auto'
   el.style.height = `${Math.min(el.scrollHeight + 1, MAX_COMPOSER_HEIGHT)}px`
+}
+
+function AgentModelIcon({ model, size = 13 }: { model: AgentModelConfig; size?: number }) {
+  return (
+    <BrandIcon
+      name={model.provider === 'google' ? 'gemini' : 'openai'}
+      size={size}
+      className="shrink-0 text-(--color-text-3)"
+    />
+  )
 }
 
 function parseMarkdown(text: string): MarkdownBlock[] {
@@ -701,7 +711,7 @@ export function AgentChatPanel({
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const controlsRef = useRef<HTMLDivElement>(null)
-  const [openMenu, setOpenMenu] = useState<'model' | 'thinking' | null>(null)
+  const [openMenu, setOpenMenu] = useState<'agentOptions' | null>(null)
   const currentKeyStatus = model.provider === 'google' ? googleKeyStatus : openaiKeyStatus
   const keyMissing = currentKeyStatus === 'empty'
   const canSend = !isStreaming && !keyMissing && (draft.trim() !== '' || attachments.length > 0)
@@ -718,6 +728,8 @@ export function AgentChatPanel({
     [imageTasks],
   )
   const effectiveThinkingLevel = model.supportsThinking ? thinkingLevel : 'off'
+  const effectiveThinkingLabel =
+    AGENT_THINKING_OPTIONS.find((item) => item.value === effectiveThinkingLevel)?.label ?? effectiveThinkingLevel
 
   useLayoutEffect(() => {
     if (textareaRef.current) autoResizeComposer(textareaRef.current)
@@ -817,10 +829,10 @@ export function AgentChatPanel({
         {renderItems.length === 0 ? (
           <div className="flex min-h-[300px] flex-col justify-center text-center">
             <div className="font-display text-lg font-semibold tracking-[-0.01em] text-(--color-text)">
-              开始和 Agent 聊天
+              从一个想法开始
             </div>
-            <div className="mx-auto mt-1 max-w-[260px] text-sm leading-[1.5] text-(--color-text-3)">
-              可以讨论提示词、分析附加图片，也可以让它创建待审批的生图任务。
+            <div className="mx-auto mt-1 max-w-[250px] text-sm leading-[1.5] text-(--color-text-3)">
+              输入需求、附加图片，或让它准备一组待审批的生图任务。
             </div>
           </div>
         ) : (
@@ -884,86 +896,55 @@ export function AgentChatPanel({
           </div>
         )}
 
-        <div className="prompt-wrap relative rounded-[12px] bg-(--color-surface)">
-          <div ref={controlsRef} className="flex items-center gap-1.5 px-2.5 pt-2.5 pb-1.5">
-            <div className="relative min-w-0 flex-1">
-              <button
-                type="button"
-                onClick={() => setOpenMenu((prev) => (prev === 'model' ? null : 'model'))}
-                className="chip w-full justify-between px-2.5"
-                title="切换模型"
-              >
-                <span className="truncate">{model.label}</span>
-                <Icon name="chevron_right" size={13} className={openMenu === 'model' ? '-rotate-90' : 'rotate-90'} />
-              </button>
-
-              {openMenu === 'model' && (
-                <div className="absolute bottom-full left-0 z-50 mb-1.5 w-[280px] rounded-[10px] bg-(--color-surface) p-1 shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-float)]">
-                  {models.map((item) => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => {
-                        onModelChange(item.id)
-                        setOpenMenu(null)
-                      }}
-                      className="flex w-full items-center gap-2 rounded-[7px] px-2.5 py-2 text-left text-base text-(--color-text-2) transition-colors hover:bg-(--color-surface-2)"
-                      data-active={model.id === item.id}
-                    >
-                      <span className="min-w-0 flex-1 truncate">{item.label}</span>
-                      {model.id === item.id && <Icon name="check" size={13} />}
-                    </button>
-                  ))}
-                </div>
-              )}
+        <div ref={controlsRef} className="prompt-wrap relative rounded-[12px] bg-(--color-surface)">
+          {openMenu === 'agentOptions' && (
+            <div className="absolute right-2 bottom-[46px] z-50 w-[196px] rounded-[10px] bg-(--color-surface) p-1 shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-float)]">
+              <div className="px-2 py-1 text-sm font-medium text-(--color-text-4)">深度思考</div>
+              {AGENT_THINKING_OPTIONS.map((item) => {
+                const disabled = !model.supportsThinking && item.value !== 'off'
+                return (
+                  <button
+                    key={item.value}
+                    type="button"
+                    onClick={() => {
+                      if (disabled) return
+                      onThinkingLevelChange(item.value)
+                      setOpenMenu(null)
+                    }}
+                    disabled={disabled}
+                    className="flex h-7 w-full items-center gap-2 rounded-[6px] px-2 text-left text-sm font-medium text-(--color-text-2) transition-colors hover:bg-(--color-surface-2) disabled:cursor-not-allowed disabled:opacity-45"
+                  >
+                    <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                    {effectiveThinkingLevel === item.value && <Icon name="check" size={13} />}
+                  </button>
+                )
+              })}
+              <div className="my-1 h-px bg-(--ring-edge-soft)" />
+              {models.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => {
+                    onModelChange(item.id)
+                    setOpenMenu(null)
+                  }}
+                  className="flex h-7 w-full items-center gap-2 rounded-[6px] px-2 text-left text-sm font-medium text-(--color-text-2) transition-colors hover:bg-(--color-surface-2)"
+                  data-active={model.id === item.id}
+                >
+                  <AgentModelIcon model={item} />
+                  <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                  {model.id === item.id && <Icon name="check" size={13} />}
+                </button>
+              ))}
             </div>
-
-            <div className="relative shrink-0">
-              <button
-                type="button"
-                onClick={() => setOpenMenu((prev) => (prev === 'thinking' ? null : 'thinking'))}
-                className="chip justify-between px-2.5"
-                title={model.supportsThinking ? '切换思考等级' : '当前模型不支持思考等级'}
-              >
-                <span>
-                  {AGENT_THINKING_OPTIONS.find((item) => item.value === effectiveThinkingLevel)?.label ??
-                    effectiveThinkingLevel}
-                </span>
-                <Icon name="chevron_right" size={13} className={openMenu === 'thinking' ? '-rotate-90' : 'rotate-90'} />
-              </button>
-
-              {openMenu === 'thinking' && (
-                <div className="absolute bottom-full right-0 z-50 mb-1.5 w-[190px] rounded-[10px] bg-(--color-surface) p-1 shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-float)]">
-                  {AGENT_THINKING_OPTIONS.map((item) => {
-                    const disabled = !model.supportsThinking && item.value !== 'off'
-                    return (
-                      <button
-                        key={item.value}
-                        type="button"
-                        onClick={() => {
-                          if (disabled) return
-                          onThinkingLevelChange(item.value)
-                          setOpenMenu(null)
-                        }}
-                        disabled={disabled}
-                        className="flex w-full items-center gap-2 rounded-[7px] px-2.5 py-2 text-left text-base text-(--color-text-2) transition-colors hover:bg-(--color-surface-2) disabled:cursor-not-allowed disabled:opacity-45"
-                      >
-                        <span className="min-w-0 flex-1 truncate">{item.label}</span>
-                        {effectiveThinkingLevel === item.value && <Icon name="check" size={13} />}
-                      </button>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
+          )}
 
           {attachments.length > 0 && (
-            <div className="flex gap-2 overflow-x-auto px-2.5 pb-2">
+            <div className="flex gap-2 overflow-x-auto px-3 pt-3 pb-1">
               {attachments.map((attachment) => (
                 <div
                   key={attachment.id}
-                  className="group relative h-14 w-14 shrink-0 overflow-hidden rounded-[8px] bg-(--color-surface-2) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]"
+                  className="group relative h-14 w-14 shrink-0 overflow-hidden rounded-[8px] bg-(--color-surface-2) shadow-[0_0_0_1px_var(--ring-edge),0_2px_8px_-6px_rgba(0,0,0,0.45),inset_0_0_0_1px_var(--ring-edge-soft)]"
                 >
                   <img
                     src={imageDataUrl(attachment)}
@@ -993,10 +974,10 @@ export function AgentChatPanel({
             onKeyDown={handleKeyDown}
             placeholder="给 Agent 发送消息…"
             rows={1}
-            className="block max-h-[150px] min-h-[54px] w-full resize-none bg-transparent px-3 py-2.5 text-[16px] leading-[1.55] text-(--color-text) focus:outline-none md:text-base"
+            className="block max-h-[150px] min-h-[78px] w-full resize-none bg-transparent px-3 py-3 text-[16px] leading-[1.55] text-(--color-text) focus:outline-none md:text-base"
           />
 
-          <div className="flex items-center gap-1.5 px-2.5 py-2 shadow-[inset_0_1px_0_var(--ring-edge-soft)]">
+          <div className="flex items-center gap-1.5 px-2.5 py-2">
             <input
               ref={fileInputRef}
               type="file"
@@ -1012,7 +993,7 @@ export function AgentChatPanel({
               title="附加图片"
               aria-label="附加图片"
             >
-              <Icon name="paperclip" size={14} />
+              <Icon name="plus" size={17} />
             </button>
             <button
               type="button"
@@ -1030,6 +1011,24 @@ export function AgentChatPanel({
               </button>
             )}
             <div className="flex-1" />
+            <button
+              type="button"
+              onClick={() => setOpenMenu((prev) => (prev === 'agentOptions' ? null : 'agentOptions'))}
+              className="chip ghost max-w-[170px] justify-between px-2.5 text-sm"
+              style={{ height: 28 }}
+              title="切换模型与思考等级"
+            >
+              <AgentModelIcon model={model} />
+              <span className="min-w-0 truncate text-(--color-text-2)">{model.shortLabel}</span>
+              {effectiveThinkingLevel !== 'off' && (
+                <span className="shrink-0 text-(--color-text-4)">{effectiveThinkingLabel}</span>
+              )}
+              <Icon
+                name="chevron_right"
+                size={13}
+                className={openMenu === 'agentOptions' ? '-rotate-90' : 'rotate-90'}
+              />
+            </button>
             {isStreaming ? (
               <button type="button" onClick={onStop} className="chip text-sm" style={{ height: 28, padding: '0 9px' }}>
                 <Icon name="stop_circle" size={13} />

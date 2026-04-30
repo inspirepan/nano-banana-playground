@@ -64,24 +64,24 @@ const GPT_5_4_MINI_MODEL: Model<Api> = {
 export const AGENT_MODEL_CONFIGS: AgentModelConfig[] = [
   {
     id: 'gemini-3-flash-preview',
-    label: 'gemini-3-flash-preview',
-    shortLabel: 'gemini-3-flash-preview',
+    label: 'Gemini 3 Flash',
+    shortLabel: 'Gemini 3 Flash',
     provider: 'google',
     providerLabel: 'Gemini',
     ...asAgentModel(getModel('google', 'gemini-3-flash-preview') as Model<Api>),
   },
   {
     id: 'gpt-5.5',
-    label: 'gpt-5.5',
-    shortLabel: 'gpt-5.5',
+    label: 'GPT 5.5',
+    shortLabel: 'GPT 5.5',
     provider: 'openai',
     providerLabel: 'OpenAI',
     ...asAgentModel(GPT_5_5_MODEL),
   },
   {
     id: 'gpt-5.4-mini',
-    label: 'gpt-5.4-mini',
-    shortLabel: 'gpt-5.4-mini',
+    label: 'GPT 5.4 mini',
+    shortLabel: 'GPT 5.4 mini',
     provider: 'openai',
     providerLabel: 'OpenAI',
     ...asAgentModel(GPT_5_4_MINI_MODEL),
@@ -92,10 +92,10 @@ export const DEFAULT_AGENT_MODEL = AGENT_MODEL_CONFIGS[0]
 
 export const AGENT_THINKING_OPTIONS: Array<{ value: AgentThinkingLevel; label: string }> = [
   { value: 'off', label: '关闭' },
-  { value: 'minimal', label: 'Minimal' },
-  { value: 'low', label: 'Low' },
-  { value: 'medium', label: 'Medium' },
-  { value: 'high', label: 'High' },
+  { value: 'minimal', label: '低' },
+  { value: 'low', label: '中' },
+  { value: 'medium', label: '高' },
+  { value: 'high', label: '超高' },
 ]
 
 export function resolveAgentModelConfig(id: string): AgentModelConfig {

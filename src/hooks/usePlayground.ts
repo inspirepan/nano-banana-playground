@@ -259,7 +259,7 @@ export function usePlayground() {
   const [inputMode, setInputMode] = useState<InputMode>('generate')
   const [agentModelId, setAgentModelId] = useState(DEFAULT_AGENT_MODEL.id)
   const agentModel = resolveAgentModelConfig(agentModelId)
-  const [agentThinkingLevel, setAgentThinkingLevelState] = useState<AgentThinkingLevel>('off')
+  const [agentThinkingLevel, setAgentThinkingLevelState] = useState<AgentThinkingLevel>('low')
   const [agentMessages, setAgentMessages] = useState<AgentMessage[]>([])
   const [agentStreamingMessage, setAgentStreamingMessage] = useState<AgentMessage | null>(null)
   const [agentIsStreaming, setAgentIsStreaming] = useState(false)

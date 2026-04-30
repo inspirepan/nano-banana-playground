@@ -509,38 +509,28 @@ export function InputPanel({
           : 'relative px-[18px] py-[18px] pb-[120px]'
       }
     >
-      <div className="mb-[22px] flex min-h-[28px] items-center gap-2.5">
+      <div className="mb-[18px] flex min-h-[30px] items-center gap-2.5">
         <div className="min-w-0 font-display text-lg font-semibold tracking-[-0.01em] text-(--color-text)">
           Imagine Playground
         </div>
         <div className="flex-1" />
+        <div
+          className="segmented w-[172px] shrink-0"
+          style={{
+            ['--seg-count' as string]: 2,
+            ['--seg-index' as string]: inputMode === 'generate' ? 0 : 1,
+          }}
+          aria-label="输入模式"
+        >
+          <button type="button" data-active={inputMode === 'generate'} onClick={() => onInputModeChange('generate')}>
+            <span>直接生成</span>
+          </button>
+          <button type="button" data-active={inputMode === 'agent'} onClick={() => onInputModeChange('agent')}>
+            <span>Agent</span>
+          </button>
+        </div>
         <button type="button" onClick={onOpenApiKeys} className="icon-btn" title="设置" aria-label="设置">
           <Icon name="settings" size={14} />
-        </button>
-      </div>
-
-      {/* Title + meta */}
-      <div className="mb-[14px] h-[48px]">
-        <div className="font-display h-[26px] text-xl leading-[26px] font-semibold tracking-[-0.01em]">
-          {inputMode === 'agent' ? 'Agent 聊天' : '新生成任务'}
-        </div>
-        <div className="mt-1 h-[18px] text-sm leading-[18px] text-(--color-text-3)">
-          {inputMode === 'agent' ? '讨论提示词、分析图片，逐步接入工具' : '配置参数，撰写提示词'}
-        </div>
-      </div>
-
-      <div
-        className="segmented mb-[18px]"
-        style={{
-          ['--seg-count' as string]: 2,
-          ['--seg-index' as string]: inputMode === 'generate' ? 0 : 1,
-        }}
-      >
-        <button type="button" data-active={inputMode === 'generate'} onClick={() => onInputModeChange('generate')}>
-          <span>直接生成</span>
-        </button>
-        <button type="button" data-active={inputMode === 'agent'} onClick={() => onInputModeChange('agent')}>
-          <span>Agent</span>
         </button>
       </div>
 
