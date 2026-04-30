@@ -17,8 +17,10 @@ import {
   type AgentMessageToolResult,
 } from '../agent'
 import { AGENT_THINKING_OPTIONS, type AgentModelConfig, type AgentThinkingLevel } from '../config/agentModels'
+import { MODEL_CONFIGS } from '../config/models'
 import { useWindowEvent } from '../hooks/effects'
 import type { ApiKeyStatus } from '../hooks/useApiKey'
+import { useImageSrc } from '../hooks/useImageSrc'
 import type { PlaygroundImage, PlaygroundImageMeta } from '../lib/types'
 
 type Props = {
@@ -45,7 +47,6 @@ type Props = {
   onToggleAutoApproveImageTasks: (value: boolean) => void
   onApproveImageTask: (taskId: string) => void
   onCancelImageTask: (taskId: string) => void
-  onFocusImageTask: (taskId: string) => void
   onModelChange: (id: string) => void
   onThinkingLevelChange: (level: AgentThinkingLevel) => void
   onSend: () => void
@@ -65,18 +66,8 @@ type ChatRenderItem =
       key: string
       calls: AgentMessageToolCall[]
       results: AgentMessageToolResult[]
-      systemEvents: AgentSystemEvent[]
       isStreaming: boolean
     }
-
-type AgentSystemEvent = {
-  toolCallId: string
-  status: string
-  requestedImageId?: string
-  reservedImageIds: string[]
-  imageIds: string[]
-  error?: string
-}
 
 const MAX_COMPOSER_HEIGHT = 150
 
@@ -91,19 +82,6 @@ function taskStatusLabel(status: AgentImageTask['status']): string {
   return '已通过'
 }
 
-function canApproveTask(task: AgentImageTask): boolean {
-  return task.status === 'pending_approval'
-}
-
-function canCancelTask(task: AgentImageTask): boolean {
-  return (
-    task.status === 'pending_approval' ||
-    task.status === 'queued' ||
-    task.status === 'running' ||
-    task.status === 'approved'
-  )
-}
-
 function hasRenderableMessageContent(message: AgentMessage): boolean {
   return (
     agentMessageRole(message) === 'user' ||
@@ -114,58 +92,13 @@ function hasRenderableMessageContent(message: AgentMessage): boolean {
   )
 }
 
-function parseAgentSystemEvents(message: AgentMessage): AgentSystemEvent[] {
-  if (agentMessageRole(message) !== 'user') return []
-  const text = agentMessageText(message).trim()
-  if (!text.startsWith('<system>') || !text.endsWith('</system>')) return []
-  const body = text.slice('<system>'.length, -'</system>'.length).trim()
-  if (!body) return []
-
-  return body.split(/\n\s*\n/).flatMap((block) => {
-    const lines = block
-      .split('\n')
-      .map((line) => line.trim())
-      .filter(Boolean)
-    const first = /^tool GenImage call (.+) has been finished\.$/.exec(lines[0] ?? '')
-    if (!first) return []
-    const fields = new Map<string, string>()
-    for (const line of lines.slice(1)) {
-      const index = line.indexOf(':')
-      if (index <= 0) continue
-      fields.set(line.slice(0, index), line.slice(index + 1).trim())
-    }
-    const splitList = (value: string | undefined) =>
-      value
-        ? value
-            .split(',')
-            .map((item) => item.trim())
-            .filter(Boolean)
-        : []
-    return [
-      {
-        toolCallId: first[1],
-        status: fields.get('status') ?? 'completed',
-        requestedImageId: fields.get('requested_image_id'),
-        reservedImageIds: splitList(fields.get('reserved_image_ids')),
-        imageIds: splitList(fields.get('image_ids')),
-        error: fields.get('error'),
-      },
-    ]
-  })
-}
-
 function buildChatRenderItems(messages: AgentMessage[], streamingMessage: AgentMessage | null): ChatRenderItem[] {
   const items: ChatRenderItem[] = []
-  const systemEventByToolCallId = new Map<string, AgentSystemEvent>()
-  for (const message of messages) {
-    for (const event of parseAgentSystemEvents(message)) systemEventByToolCallId.set(event.toolCallId, event)
-  }
 
   for (let index = 0; index < messages.length; index++) {
     const message = messages[index]
     const role = agentMessageRole(message)
     const isStreamingMessage = Boolean(streamingMessage && message === streamingMessage)
-    if (parseAgentSystemEvents(message).length > 0) continue
     if (role === 'assistant') {
       const calls = agentMessageToolCalls(message)
       if (hasRenderableMessageContent(message)) {
@@ -185,10 +118,6 @@ function buildChatRenderItems(messages: AgentMessage[], streamingMessage: AgentM
           key: `tools-${calls.map((call) => call.id).join('-')}`,
           calls,
           results,
-          systemEvents: calls.flatMap((call) => {
-            const event = systemEventByToolCallId.get(call.id)
-            return event ? [event] : []
-          }),
           isStreaming: isStreamingMessage,
         })
         index = nextIndex - 1
@@ -203,9 +132,6 @@ function buildChatRenderItems(messages: AgentMessage[], streamingMessage: AgentM
           key: `tool-result-${result.toolCallId}-${index}`,
           calls: [],
           results: [result],
-          systemEvents: systemEventByToolCallId.get(result.toolCallId)
-            ? [systemEventByToolCallId.get(result.toolCallId)!]
-            : [],
           isStreaming: false,
         })
       }
@@ -250,26 +176,6 @@ function summarizeToolResult(result: AgentMessageToolResult): string {
     // Plain text tool result.
   }
   return result.text.trim().slice(0, 120) || '工具调用完成'
-}
-
-function systemEventStatusLabel(status: string): string {
-  if (status === 'completed') return '生成完成'
-  if (status === 'failed') return '生成失败'
-  if (status === 'rejected') return '已取消'
-  if (status === 'canceled') return '已取消'
-  return status
-}
-
-function summarizeSystemEvent(event: AgentSystemEvent): string {
-  if (event.error) return `${systemEventStatusLabel(event.status)} · ${event.error}`
-  const ids = event.imageIds.length > 0 ? event.imageIds : event.reservedImageIds
-  return ids.length > 0
-    ? `${systemEventStatusLabel(event.status)} · ${ids.join(', ')}`
-    : systemEventStatusLabel(event.status)
-}
-
-function isSystemEventError(event: AgentSystemEvent): boolean {
-  return event.status === 'failed' || event.status === 'rejected' || event.status === 'canceled'
 }
 
 function isImageFile(file: File): boolean {
@@ -484,100 +390,60 @@ function MessageBubble({ message, isStreaming }: { message: AgentMessage; isStre
   )
 }
 
-function ToolActivityCard({
-  calls,
-  results,
-  systemEvents,
-  isStreaming,
-}: {
-  calls: AgentMessageToolCall[]
-  results: AgentMessageToolResult[]
-  systemEvents: AgentSystemEvent[]
-  isStreaming: boolean
-}) {
-  const resultByCallId = new Map(results.map((result) => [result.toolCallId, result]))
-  const systemEventByCallId = new Map(systemEvents.map((event) => [event.toolCallId, event]))
-  const standaloneResults = calls.length === 0 ? results : []
+function ToolCallRow({ call, result }: { call: AgentMessageToolCall; result: AgentMessageToolResult | undefined }) {
+  const failed = result?.isError === true
+  const done = Boolean(result)
+  return (
+    <div className="flex items-start gap-2 rounded-[7px] px-1.5 py-1">
+      <span
+        className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-[5px]"
+        style={{
+          background: failed ? 'var(--color-danger-soft)' : 'var(--color-surface-2)',
+          color: failed ? 'var(--color-danger)' : 'var(--color-text-3)',
+          boxShadow: 'inset 0 0 0 1px var(--ring-edge-soft)',
+        }}
+      >
+        {done ? (
+          <Icon name={failed ? 'alert_circle' : 'check'} size={11} />
+        ) : (
+          <span className="spinner" style={{ width: 10, height: 10 }} />
+        )}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="flex min-w-0 items-center gap-1.5">
+          <span className="truncate text-sm font-medium text-(--color-text-2)">{toolLabel(call.name)}</span>
+          <span className="mono shrink-0 text-[11px] text-(--color-text-4)">{call.name}</span>
+        </span>
+        <span className="mt-0.5 block truncate text-sm text-(--color-text-4)">{summarizeToolArgs(call)}</span>
+        {result && (
+          <span className="mt-1 block truncate text-sm text-(--color-text-3)">{summarizeToolResult(result)}</span>
+        )}
+      </span>
+    </div>
+  )
+}
+
+function StandaloneToolResultRow({ result }: { result: AgentMessageToolResult }) {
+  return (
+    <div className="flex items-start gap-2 rounded-[7px] px-1.5 py-1">
+      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-[5px] bg-(--color-surface-2) text-(--color-text-3) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
+        <Icon name={result.isError ? 'alert_circle' : 'check'} size={11} />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="text-sm font-medium text-(--color-text-2)">{toolLabel(result.toolName)}</span>
+        <span className="mt-0.5 block truncate text-sm text-(--color-text-3)">{summarizeToolResult(result)}</span>
+      </span>
+    </div>
+  )
+}
+
+function CompactToolGroup({ rows, isStreaming }: { rows: ReactNode[]; isStreaming: boolean }) {
   return (
     <div className="flex justify-start">
       <div className="mr-3 max-w-[88%]">
         <div className="mb-1.5 mono text-[11px] uppercase tracking-[0.12em] text-(--color-text-4)">Agent</div>
         <div className="rounded-[10px] bg-(--color-surface) px-2.5 py-2 shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
-          <div className="space-y-1.5">
-            {calls.map((call) => {
-              const result = resultByCallId.get(call.id)
-              const systemEvent = systemEventByCallId.get(call.id)
-              const done = Boolean(result || systemEvent)
-              const failed = result?.isError === true || (systemEvent ? isSystemEventError(systemEvent) : false)
-              return (
-                <div key={call.id} className="flex items-start gap-2 rounded-[7px] px-1.5 py-1">
-                  <span
-                    className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-[5px]"
-                    style={{
-                      background: failed ? 'var(--color-danger-soft)' : 'var(--color-surface-2)',
-                      color: failed ? 'var(--color-danger)' : 'var(--color-text-3)',
-                      boxShadow: 'inset 0 0 0 1px var(--ring-edge-soft)',
-                    }}
-                  >
-                    {done ? (
-                      <Icon name={failed ? 'alert_circle' : 'check'} size={11} />
-                    ) : (
-                      <span className="spinner" style={{ width: 10, height: 10 }} />
-                    )}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="flex min-w-0 items-center gap-1.5">
-                      <span className="truncate text-sm font-medium text-(--color-text-2)">{toolLabel(call.name)}</span>
-                      <span className="mono shrink-0 text-[11px] text-(--color-text-4)">{call.name}</span>
-                    </span>
-                    <span className="mt-0.5 block truncate text-sm text-(--color-text-4)">
-                      {summarizeToolArgs(call)}
-                    </span>
-                    {result && (
-                      <span className="mt-1 block truncate text-sm text-(--color-text-3)">
-                        {summarizeToolResult(result)}
-                      </span>
-                    )}
-                    {systemEvent && (
-                      <span
-                        className="mt-1 block truncate text-sm"
-                        style={{ color: failed ? 'var(--color-danger)' : 'var(--color-text-2)' }}
-                      >
-                        {summarizeSystemEvent(systemEvent)}
-                      </span>
-                    )}
-                  </span>
-                </div>
-              )
-            })}
-            {standaloneResults.map((result) => (
-              <div key={result.toolCallId} className="flex items-start gap-2 rounded-[7px] px-1.5 py-1">
-                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-[5px] bg-(--color-surface-2) text-(--color-text-3) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
-                  <Icon name={result.isError ? 'alert_circle' : 'check'} size={11} />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="text-sm font-medium text-(--color-text-2)">{toolLabel(result.toolName)}</span>
-                  <span className="mt-0.5 block truncate text-sm text-(--color-text-3)">
-                    {summarizeToolResult(result)}
-                  </span>
-                </span>
-              </div>
-            ))}
-            {calls.length === 0 &&
-              systemEvents.map((event) => (
-                <div key={event.toolCallId} className="flex items-start gap-2 rounded-[7px] px-1.5 py-1">
-                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-[5px] bg-(--color-surface-2) text-(--color-text-3) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
-                    <Icon name={isSystemEventError(event) ? 'alert_circle' : 'check'} size={11} />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="text-sm font-medium text-(--color-text-2)">生成结果</span>
-                    <span className="mt-0.5 block truncate text-sm text-(--color-text-3)">
-                      {summarizeSystemEvent(event)}
-                    </span>
-                  </span>
-                </div>
-              ))}
-          </div>
+          <div className="space-y-1.5">{rows}</div>
           {isStreaming && <div className="mt-1.5 text-sm text-(--color-text-4)">等待工具结果…</div>}
         </div>
       </div>
@@ -585,94 +451,233 @@ function ToolActivityCard({
   )
 }
 
-function AgentImageTaskSummary({
+function GenImageResultThumb({ id }: { id: string }) {
+  const { ref, src } = useImageSrc(id, 'image/png', undefined, { variant: 'preview' })
+  return (
+    <div
+      ref={ref}
+      className="relative aspect-square w-full overflow-hidden rounded-[7px] bg-(--color-surface-2) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]"
+    >
+      {src ? (
+        <img src={src} alt={id} className="h-full w-full object-cover" />
+      ) : (
+        <div className="absolute inset-0 flex items-center justify-center text-(--color-text-4)">
+          <span className="spinner" style={{ width: 12, height: 12 }} />
+        </div>
+      )}
+    </div>
+  )
+}
+
+function AgentImageTaskCard({
+  call,
   task,
+  result,
   onApprove,
   onCancel,
-  onFocus,
 }: {
-  task: AgentImageTask
+  call: AgentMessageToolCall
+  task: AgentImageTask | undefined
+  result?: AgentMessageToolResult
   onApprove: (taskId: string) => void
   onCancel: (taskId: string) => void
-  onFocus: (taskId: string) => void
 }) {
-  const isDanger = task.status === 'failed' || task.status === 'rejected' || task.status === 'canceled'
+  const [promptOpen, setPromptOpen] = useState(false)
+  const status: AgentImageTask['status'] = task?.status ?? (result?.isError ? 'failed' : 'pending_approval')
+  const danger = status === 'failed' || status === 'rejected' || status === 'canceled'
+  const active = status === 'queued' || status === 'running'
+  const reservedIds = task?.request.reservedImageIds ?? []
+  const modelName = task ? (MODEL_CONFIGS.find((item) => item.id === task.request.modelId)?.name ?? task.request.modelId) : null
+  const requestedFromArgs = typeof call.arguments.image_id === 'string' ? call.arguments.image_id : undefined
+  const requestedCountFromArgs = typeof call.arguments.n === 'number' ? call.arguments.n : 1
+  const promptFromArgs = typeof call.arguments.prompt === 'string' ? call.arguments.prompt : ''
+  const headerIds = reservedIds.length > 0 ? reservedIds : requestedFromArgs ? [requestedFromArgs] : []
+  const promptText = task?.request.prompt ?? promptFromArgs
+  const referenceIds = task?.request.referenceImageIds ?? []
+  const resultIds = task?.resultImageIds ?? []
+  const showApprove = task ? task.status === 'pending_approval' : false
+  const showCancel = task
+    ? task.status === 'pending_approval' ||
+      task.status === 'queued' ||
+      task.status === 'running' ||
+      task.status === 'approved'
+    : false
+
   return (
-    <button
-      type="button"
-      onClick={() => onFocus(task.id)}
-      className="w-full rounded-[10px] bg-(--color-surface) p-2.5 text-left shadow-[inset_0_0_0_1px_var(--ring-edge-soft)] transition-colors hover:bg-(--color-surface-2)"
-    >
-      <div className="flex items-start gap-2">
-        <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-[7px] bg-(--color-surface-2) text-(--color-text-3) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
-          <Icon name="image" size={13} />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex min-w-0 items-center gap-1.5">
-            <span className="mono truncate text-sm text-(--color-text)">
-              {task.request.reservedImageIds.join(', ')}
-            </span>
-            <span
-              className="shrink-0 rounded-[5px] px-1.5 py-0.5 text-[11px]"
-              style={{
-                color: isDanger ? 'var(--color-danger)' : 'var(--color-text-3)',
-                background: isDanger ? 'var(--color-danger-soft)' : 'var(--color-surface-2)',
-              }}
-            >
-              {taskStatusLabel(task.status)}
-            </span>
+    <div className="rounded-[10px] bg-(--color-surface) px-3 py-2.5 shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
+      <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+        <span className="text-sm font-medium text-(--color-text-2)">生成图片</span>
+        <span
+          className="shrink-0 rounded-[5px] px-1.5 py-0.5 text-[11px]"
+          style={{
+            color: danger ? 'var(--color-danger)' : active ? 'var(--color-accent)' : 'var(--color-text-2)',
+            background: danger
+              ? 'var(--color-danger-soft)'
+              : active
+                ? 'var(--color-accent-soft)'
+                : 'var(--color-surface-2)',
+          }}
+        >
+          {taskStatusLabel(status)}
+        </span>
+        {active && <span className="spinner" style={{ width: 10, height: 10 }} />}
+        {headerIds.length > 0 && (
+          <span className="mono min-w-0 truncate text-sm text-(--color-text-3)" title={headerIds.join(', ')}>
+            {headerIds.join(', ')}
+          </span>
+        )}
+      </div>
+
+      {task && (
+        <div className="mt-2 grid gap-1 text-sm sm:grid-cols-[auto_1fr] sm:gap-x-3">
+          <div className="text-(--color-text-4)">模型</div>
+          <div className="min-w-0 truncate text-(--color-text-2)">{modelName}</div>
+          <div className="text-(--color-text-4)">尺寸</div>
+          <div className="text-(--color-text-2)">
+            {task.request.resolution} · {task.request.aspectRatio} · {task.request.batchCount} 张
           </div>
-          <div className="mt-1 line-clamp-2 text-sm leading-[1.45] text-(--color-text-3)">{task.request.prompt}</div>
-          {task.error && (
-            <div className="mt-1 line-clamp-2 text-sm" style={{ color: 'var(--color-danger)' }}>
-              {task.error}
+          {referenceIds.length > 0 && (
+            <>
+              <div className="text-(--color-text-4)">参考</div>
+              <div className="mono min-w-0 truncate text-(--color-text-2)" title={referenceIds.join(', ')}>
+                {referenceIds.join(', ')}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+      {!task && (
+        <div className="mt-1.5 text-sm text-(--color-text-4)">
+          {requestedFromArgs ? `${requestedFromArgs} · ${requestedCountFromArgs} 张` : `${requestedCountFromArgs} 张`}
+        </div>
+      )}
+
+      {promptText && (
+        <>
+          <button
+            type="button"
+            onClick={() => setPromptOpen((prev) => !prev)}
+            aria-expanded={promptOpen}
+            className="mt-2 flex items-center gap-1 bg-transparent p-0 text-sm text-(--color-text-4) transition-colors hover:text-(--color-text-2)"
+          >
+            <Icon
+              name="chevron_right"
+              size={12}
+              className={`transition-transform duration-200 ${promptOpen ? 'rotate-90' : ''}`}
+            />
+            提示词
+          </button>
+          {promptOpen && (
+            <div className="mt-1 max-h-28 overflow-y-auto whitespace-pre-wrap rounded-[7px] bg-(--color-surface-2) px-2.5 py-2 text-sm leading-[1.55] text-(--color-text-2) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
+              {promptText}
             </div>
           )}
-          <div className="mt-2 flex gap-1.5">
-            {canApproveTask(task) && (
-              <span
-                role="button"
-                tabIndex={0}
-                onClick={(event) => {
-                  event.stopPropagation()
-                  onApprove(task.id)
-                }}
-                onKeyDown={(event) => {
-                  if (event.key !== 'Enter' && event.key !== ' ') return
-                  event.preventDefault()
-                  event.stopPropagation()
-                  onApprove(task.id)
-                }}
-                className="chip text-sm"
-                style={{ height: 24, padding: '0 8px' }}
-              >
-                生成
-              </span>
-            )}
-            {canCancelTask(task) && (
-              <span
-                role="button"
-                tabIndex={0}
-                onClick={(event) => {
-                  event.stopPropagation()
-                  onCancel(task.id)
-                }}
-                onKeyDown={(event) => {
-                  if (event.key !== 'Enter' && event.key !== ' ') return
-                  event.preventDefault()
-                  event.stopPropagation()
-                  onCancel(task.id)
-                }}
-                className="chip danger text-sm"
-                style={{ height: 24, padding: '0 8px' }}
-              >
-                取消
-              </span>
-            )}
-          </div>
+        </>
+      )}
+
+      {resultIds.length > 0 && (
+        <div className="mt-2.5 grid gap-1.5" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(72px, 1fr))' }}>
+          {resultIds.map((id) => (
+            <GenImageResultThumb key={id} id={id} />
+          ))}
         </div>
-      </div>
-    </button>
+      )}
+
+      {task?.error && (
+        <div className="mt-2 text-sm leading-[1.45]" style={{ color: 'var(--color-danger)' }}>
+          {task.error}
+        </div>
+      )}
+      {!task && result?.isError && (
+        <div className="mt-2 text-sm leading-[1.45]" style={{ color: 'var(--color-danger)' }}>
+          {summarizeToolResult(result)}
+        </div>
+      )}
+
+      {(showApprove || showCancel) && task && (
+        <div className="mt-2.5 flex flex-wrap gap-1.5">
+          {showApprove && (
+            <button
+              type="button"
+              onClick={() => onApprove(task.id)}
+              className="chip text-sm"
+              data-active
+              style={{ height: 26, padding: '0 10px' }}
+            >
+              生成
+            </button>
+          )}
+          {showCancel && (
+            <button
+              type="button"
+              onClick={() => onCancel(task.id)}
+              className="chip danger text-sm"
+              style={{ height: 26, padding: '0 10px' }}
+            >
+              取消
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function ToolActivityCard({
+  calls,
+  results,
+  imageTaskByToolCallId,
+  isStreaming,
+  onApproveImageTask,
+  onCancelImageTask,
+}: {
+  calls: AgentMessageToolCall[]
+  results: AgentMessageToolResult[]
+  imageTaskByToolCallId: Map<string, AgentImageTask>
+  isStreaming: boolean
+  onApproveImageTask: (taskId: string) => void
+  onCancelImageTask: (taskId: string) => void
+}) {
+  const resultByCallId = new Map(results.map((result) => [result.toolCallId, result]))
+
+  // GenImage calls render as standalone rich cards; everything else collapses
+  // into the compact tool group above.
+  const compactRows: ReactNode[] = []
+  const richCards: ReactNode[] = []
+
+  for (const call of calls) {
+    if (call.name === 'GenImage') {
+      richCards.push(
+        <AgentImageTaskCard
+          key={call.id}
+          call={call}
+          task={imageTaskByToolCallId.get(call.id)}
+          result={resultByCallId.get(call.id)}
+          onApprove={onApproveImageTask}
+          onCancel={onCancelImageTask}
+        />,
+      )
+      continue
+    }
+    compactRows.push(<ToolCallRow key={call.id} call={call} result={resultByCallId.get(call.id)} />)
+  }
+  if (calls.length === 0) {
+    for (const result of results) {
+      compactRows.push(<StandaloneToolResultRow key={result.toolCallId} result={result} />)
+    }
+  }
+
+  const showCompact = compactRows.length > 0 || (calls.length === 0 && results.length === 0)
+
+  return (
+    <div className="space-y-2">
+      {showCompact && <CompactToolGroup rows={compactRows} isStreaming={isStreaming && richCards.length === 0} />}
+      {richCards.length > 0 && (
+        <div className="flex justify-start">
+          <div className="mr-3 w-full max-w-[94%] space-y-2">{richCards}</div>
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -700,7 +705,6 @@ export function AgentChatPanel({
   onToggleAutoApproveImageTasks,
   onApproveImageTask,
   onCancelImageTask,
-  onFocusImageTask,
   onModelChange,
   onThinkingLevelChange,
   onSend,
@@ -723,10 +727,11 @@ export function AgentChatPanel({
     () => buildChatRenderItems(visibleMessages, streamingMessage),
     [visibleMessages, streamingMessage],
   )
-  const pendingApprovalTasks = useMemo(
-    () => imageTasks.filter((task) => task.status === 'pending_approval'),
-    [imageTasks],
-  )
+  const imageTaskByToolCallId = useMemo(() => {
+    const map = new Map<string, AgentImageTask>()
+    for (const task of imageTasks) map.set(task.toolCallId, task)
+    return map
+  }, [imageTasks])
   const effectiveThinkingLevel = model.supportsThinking ? thinkingLevel : 'off'
   const effectiveThinkingLabel =
     AGENT_THINKING_OPTIONS.find((item) => item.value === effectiveThinkingLevel)?.label ?? effectiveThinkingLevel
@@ -845,8 +850,10 @@ export function AgentChatPanel({
                   key={item.key}
                   calls={item.calls}
                   results={item.results}
-                  systemEvents={item.systemEvents}
+                  imageTaskByToolCallId={imageTaskByToolCallId}
                   isStreaming={item.isStreaming}
+                  onApproveImageTask={onApproveImageTask}
+                  onCancelImageTask={onCancelImageTask}
                 />
               ),
             )}
@@ -876,26 +883,6 @@ export function AgentChatPanel({
       )}
 
       <div className="relative">
-        {pendingApprovalTasks.length > 0 && (
-          <div className="absolute inset-x-0 bottom-full z-30 mb-2 max-h-[220px] overflow-y-auto rounded-[12px] bg-(--color-surface) p-2 shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-float)]">
-            <div className="mb-1.5 flex items-center justify-between px-1">
-              <div className="label">待审批生图任务</div>
-              <div className="text-sm text-(--color-text-4)">{pendingApprovalTasks.length} 个</div>
-            </div>
-            <div className="space-y-1.5">
-              {pendingApprovalTasks.map((task) => (
-                <AgentImageTaskSummary
-                  key={task.id}
-                  task={task}
-                  onApprove={onApproveImageTask}
-                  onCancel={onCancelImageTask}
-                  onFocus={onFocusImageTask}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-
         <div ref={controlsRef} className="prompt-wrap relative rounded-[12px] bg-(--color-surface)">
           {openMenu === 'agentOptions' && (
             <div className="absolute right-2 bottom-[46px] z-50 w-[196px] rounded-[10px] bg-(--color-surface) p-1 shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-float)]">

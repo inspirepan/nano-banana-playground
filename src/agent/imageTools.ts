@@ -29,7 +29,7 @@ export type AgentImageToolResult = {
 
 type CreateAgentImageToolsParams = {
   imageModels: ModelConfig[]
-  genImage: (toolCallId: string, args: GenImageToolArgs) => Promise<AgentImageToolResult>
+  genImage: (toolCallId: string, args: GenImageToolArgs, signal?: AbortSignal) => Promise<AgentImageToolResult>
   readImage: (toolCallId: string, args: ReadImageToolArgs) => Promise<AgentImageToolResult>
 }
 
@@ -76,7 +76,7 @@ export function createAgentImageTools(params: CreateAgentImageToolsParams): Agen
     {
       name: 'GenImage',
       label: '生成图片',
-      description: `Create an image generation task for user approval. The task returns immediately with reserved image IDs; actual image generation continues asynchronously after approval or auto-approval. Use short readable image_id values because they become future image references. Available model IDs: ${modelList}. If you need another model, ask the user instead of inventing a model ID.`,
+      description: `Create an image generation task for user approval. The task returns immediately with reserved image IDs; actual generation continues asynchronously after approval or auto-approval, and the app will notify you when the task reaches a terminal state. Use short readable image_id values because they become future image references. Available model IDs: ${modelList}. If you need another model, ask the user instead of inventing a model ID.`,
       parameters: Type.Object({
         image_id: Type.String({ description: 'Semantic output image ID. Required and non-empty.' }),
         prompt: Type.String({ description: 'Image generation prompt. Required and non-empty.' }),
@@ -89,7 +89,8 @@ export function createAgentImageTools(params: CreateAgentImageToolsParams): Agen
         }),
       }),
       prepareArguments: prepareGenImageArgs,
-      execute: (toolCallId: string, args: GenImageToolArgs) => params.genImage(toolCallId, prepareGenImageArgs(args)),
+      execute: (toolCallId: string, args: GenImageToolArgs, signal?: AbortSignal) =>
+        params.genImage(toolCallId, prepareGenImageArgs(args), signal),
     } as AgentRuntimeTool,
     {
       name: 'ReadImage',

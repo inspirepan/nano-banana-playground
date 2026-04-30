@@ -1,6 +1,6 @@
 # Agent package guidelines
 
-本目录承载本项目的 Agent 领域逻辑。凡是和 Agent 会话、Agent 工具、图片任务审批、Agent 图片 registry、Agent 回调循环相关的代码，都优先放在 `src/agent/`，再由 `usePlayground` 和组件层调用。
+本目录承载本项目的 Agent 领域逻辑。凡是和 Agent 会话、Agent 工具、图片任务审批、Agent 图片 registry 相关的代码，都优先放在 `src/agent/`，再由 `usePlayground` 和组件层调用。
 
 ## 当前依赖语境
 
@@ -21,16 +21,12 @@
 - `agent.abort()`
 - `agent.replaceMessages(messages)` / `agent.appendMessage(message)`
 
-`agent.prompt(...)` 接收字符串和附件，不接收完整 user message object。需要把系统事件作为下一轮 user message 注入时：
-
-- Agent 空闲时，调用 `agent.prompt(systemEventText)`，其中 `systemEventText` 是 `<system>...</system>` 文本。
-- Agent 正在 streaming 时，调用 `agent.queueMessage({ role: 'user', content: [{ type: 'text', text: systemEventText }], timestamp: Date.now() })`，让 queued message 进入后续 turn。
-- 不要为了事件回调修改 `systemPrompt`，也不要假设有 LLM 原生 system role 可插入消息流。
+`agent.prompt(...)` 接收字符串和附件，不接收完整 user message object。当前 `@mariozechner/pi-agent` 内部按顺序执行同一轮 tool call；不要依赖并行 tool dispatch。长耗时、待审批、可恢复的业务流程不要用永不落盘的 Promise resolver 挂住 tool execution。
 
 ## 分层原则
 
-- `@mariozechner/pi-agent` 的 `Agent` 只当作通用 LLM loop：消息、工具、streaming、queued message、事件订阅。
-- 本目录负责项目语义：Agent 会话状态、图片 ID registry、`GenImage` / `ReadImage` 工具、Agent 图片任务审批、任务完成回调。
+- `@mariozechner/pi-agent` 的 `Agent` 只当作通用 LLM loop：消息、工具、streaming、事件订阅。
+- 本目录负责项目语义：Agent 会话状态、图片 ID registry、`GenImage` / `ReadImage` 工具、Agent 图片任务审批。
 - React 组件只渲染状态和触发 handler，不直接实现工具业务逻辑。
 - `usePlayground` 可以暂时持有当前单个 Agent session，但 Agent 相关状态应逐步收敛进 `AgentSession` / `useAgentSession` 或同等抽象，方便未来多会话和持久化。
 - `useGenerationQueue` 只负责真实图片生成队列，不理解 Agent 审批语义。
@@ -47,9 +43,11 @@ type AgentSession = {
   autoApproveImageTasks: boolean
   imageTasks: AgentImageTask[]
   imageRegistry: Map<string, AgentImageRegistryEntry>
-  pendingTurnCallbacks: Map<string, AgentTurnCallbackState>
+  turnCallbacks: Map<string, AgentTurnCallbackState>
 }
 ```
+
+后续持久化按 JSONL / append-only session log 设计。LLM transcript 中的 `toolCall` 保持 provider 原生形状；审批、生成队列、registry 等项目状态作为 sidecar entry 按 `toolCallId` join，不直接塞进 `toolCall` content block。图片二进制继续走 IndexedDB 图片存储，session log 只保存 ID 引用。
 
 ## 工具命名
 
@@ -62,7 +60,7 @@ type AgentSession = {
 
 ## `GenImage` 工具准则
 
-`GenImage` 创建可审批的生图任务，不直接绕过用户控制。
+`GenImage` 是可恢复的非阻塞 workflow 入口：工具调用只创建 `AgentImageTask` sidecar 状态并立即返回，真实生成在用户审批或自动通过后继续进行。任务终结状态包括 `completed`、`failed`、`rejected`、`canceled`。
 
 参数：
 
@@ -82,12 +80,37 @@ type GenImageToolArgs = {
 
 1. 校验并规范化参数。
 2. 根据 `image_id` 和 `n` 预留真实输出图片 ID。
-3. 解析 `reference_image_ids` 为可用于生成的图片对象。
-4. 创建 `AgentImageTask`。
-5. 工具结果立即返回“任务已提交”，并返回真实预留 ID。
-6. 如果 `autoApproveImageTasks` 开启，任务直接进入生成队列；否则停在待审批状态。
+3. 解析 `reference_image_ids`，只把引用 ID 写入 task；运行时需要图片对象时再从 registry / 历史 / IndexedDB 解析。
+4. 创建 `AgentImageTask`，状态为 `pending_approval`；如 `autoApproveImageTasks` 开启则直接进入生成队列。
+5. 工具立即返回一个 text content block，包含 `status` / `task_id` / `requested_image_id` / `reserved_image_ids` / `message`。
+6. 任务终结后通过按 `agentTurnId` 分组的系统事件唤醒 Agent，告知最终 `status` / `image_ids` / `error`。
 
-`GenImage` 的异步边界只到“任务创建成功”。真实图片生成由 `useGenerationQueue` 继续处理，不阻塞工具调用。
+工具结果示例（创建成功）：
+
+```json
+{
+  "status": "pending_approval",
+  "task_id": "task_uuid",
+  "requested_image_id": "苹果",
+  "reserved_image_ids": ["苹果_2", "苹果_3"],
+  "renamed": true,
+  "message": "任务已经提交，等待用户审批。"
+}
+```
+
+完成后 Agent 会收到一条 user-role system event：
+
+```txt
+<system>
+tool GenImage call xxx has been finished.
+status: completed
+requested_image_id: 苹果
+reserved_image_ids: 苹果_2, 苹果_3
+image_ids: 苹果_2, 苹果_3
+</system>
+```
+
+如果未来 `pi-agent` 暴露无新增 user message 的 continue-from-tool-results API，再把终结事件从 system event 升级为 append final `toolResult` + continue turn。
 
 ### 图片 ID 规则
 
@@ -98,20 +121,8 @@ type GenImageToolArgs = {
 - `n > 1` 时使用 `image_id`、`image_id_2`、`image_id_3`。
 - 如果 ID 已存在于 registry / IndexedDB / 当前预留集合中，递增后缀直到可用，例如 `苹果`、`苹果_2`、`苹果_3`。
 - ID 在创建任务时预留；工具结果必须告诉 Agent 最终会保存成哪些 ID。
-- 用户拒绝任务时释放预留 ID。
-- 生成失败时回调 Agent 说明失败原因和未产出的 ID。
-
-工具结果示例：
-
-```json
-{
-  "status": "pending_approval",
-  "requested_image_id": "苹果",
-  "reserved_image_ids": ["苹果_2", "苹果_3"],
-  "renamed": true,
-  "message": "任务已经提交，等待用户审批。image_id 与已有图片冲突，已预留为 苹果_2、苹果_3。"
-}
-```
+- 用户拒绝或部分失败时，未产出图片的预留 ID 释放回 registry，可被后续任务重新使用。
+- 工具创建结果文本里 `reserved_image_ids` 是创建任务时的预留集合；任务终结事件里的 `image_ids` 是真正成功落盘的子集。
 
 ## `ReadImage` 工具准则
 
@@ -229,18 +240,18 @@ type AgentImageTaskStatus =
 type AgentImageTask = {
   id: string
   toolCallId: string
+  agentTurnId: string
   createdAt: number
   status: AgentImageTaskStatus
   request: {
     prompt: string
     requestedImageId: string
     reservedImageIds: string[]
-    model: ModelConfig
+    modelId: ModelConfig['id']
     resolution: string
     aspectRatio: string
     batchCount: number
     referenceImageIds: string[]
-    referenceImages: PlaygroundImage[]
     options: Record<string, unknown>
   }
   generationJobId?: string
@@ -257,88 +268,37 @@ type AgentImageTask = {
 - 用户拒绝任务时，不创建 `GenerationJob`。
 - 用户取消已通过任务时，同时取消对应 `GenerationJob`。
 - `generationJobId` 是 Agent session 和真实生成队列之间的桥。
+- `AgentImageTask` 必须保持可序列化：不要存 `ModelConfig` 对象、`PlaygroundImage.data`、Promise resolver、AbortController。只存 `modelId`、图片 ID、状态、错误和队列 linkage。
 
-## Agent 回调循环
+## 任务并发与 abort
 
-`GenImage` 不是等待图片全部生成后才返回的长阻塞工具。它先创建任务并返回，图片生成结束后再用事件唤醒 Agent。
-
-同一轮 Agent 回复中可以并行调用多个 `GenImage`。需要等待同一个 `agentTurnId` 下所有任务都终结后，再向 Agent 插入一条 User Message。
-
-终结状态包括：
-
-- 用户拒绝
-- 用户取消
-- 生成失败
-- 生成成功
-
-回调消息内容使用 `<system>` XML tag，但消息角色仍是 user：
-
-```txt
-<system>
-tool GenImage call xxx1 has been finished.
-status: completed
-image_ids: img_abc, img_def
-
-tool GenImage call xxx2 has been finished.
-status: rejected
-image_ids:
-
-tool GenImage call xxx3 has been finished.
-status: failed
-error: OpenAI API Key is missing
-image_ids:
-</system>
-```
-
-在 `@mariozechner/pi-agent` 里：
-
-```ts
-const text = '<system>...</system>'
-
-if (agent.state.isStreaming) {
-  await agent.queueMessage({
-    role: 'user',
-    content: [{ type: 'text', text }],
-    timestamp: Date.now(),
-  })
-} else {
-  await agent.prompt(text)
-}
-```
-
-不要把这个事件写入 `systemPrompt`。不要假设可以插入原生 system role。
+- 同一轮 Agent 回复中可能有多个 `GenImage`。因为工具立即返回，即便底层 tool execution 是串行的，也能快速创建所有 task。
+- 用户在审批界面取消 pending task 时，直接把 sidecar task 置为 `rejected` 并释放未产出的预留 ID。
+- 用户取消已进入队列的 task 时，同时取消对应 `GenerationJob`，保留已成功的 `resultImageIds` 子集，并释放未产出的预留 ID。
+- `agent.abort()` 只中断当前 LLM loop；已创建的 `AgentImageTask` 是 session sidecar 状态，不因 abort 自动丢失。需要清空会话时再清理 task 和 turn callback state。
 
 ## UI 行为
 
 ### Agent 对话
 
-Agent chat 只显示轻量任务摘要，不承载完整任务管理。
+`GenImage` 工具调用直接渲染为对话流里的富卡片，是审批和状态展示的唯一入口；不再使用浮层或在 Output Panel 镜像。
 
-摘要卡片展示：
+卡片展示：
 
-- 图片 ID / 任务名
-- 当前状态
-- 操作按钮：`取消`、`生成`
+- 预留图片 ID 列表
+- 模型 / 分辨率 / 比例 / 数量
+- 参考图 ID
+- 当前状态徽章（待审批 / 排队中 / 生成中 / 已完成 / 失败 / 已取消）
+- 提示词（折叠）
+- 完成后展示结果缩略图
+- 错误信息（失败时）
+- `生成` / `取消` 操作按钮（按状态显隐）
 
-交互：
-
-- 点击摘要卡片主体时，滚动到 Output Panel 中对应完整任务卡片。
-- 目标 Output 卡片需要短暂高亮。
-- 如果对应任务已被清理或不存在，对话卡片只保留状态文案。
+其它工具（`ReadImage` 等）仍走紧凑行样式。
 
 ### Output Panel
 
-完整任务卡片放在 Output Panel，展示：
-
-- 提示词
-- 请求图片 ID / 实际预留图片 ID
-- 模型
-- 分辨率
-- 宽高比
-- 数量
-- 参考图 ID 或缩略图
-- 当前状态
-- `取消` / `生成` 操作
+Output Panel 不再单独渲染 `AgentImageTask` 卡片；agent 生成的图片走和直接生成相同的 stack 渲染路径，在图库里出现。
 
 ### 图片 ID 展示
 
@@ -375,7 +335,6 @@ registry 不应该把大对象写入 localStorage。图片二进制继续走 Ind
 
 1. 建立 `AgentImageTask` 状态和审批 UI。
 2. 建立图片 registry 和语义化 `image_id` 预留 / 冲突后缀逻辑。
-3. 接入 `GenImage` 工具，让工具调用创建待审批任务。
-4. 打通审批通过到 `useGenerationQueue.enqueueGenerationJob`。
+3. 接入 `GenImage` 工具：创建可恢复 task sidecar 并立即返回预留 ID。
+4. 打通审批通过到 `useGenerationQueue.enqueueGenerationJob`，并把队列结果回连到 task 状态和终结回调。
 5. 接入 `ReadImage` 工具，让 Agent 能读取用户附件图、生成图和生成提示词。
-6. 实现任务完成后的 Agent 回调消息。

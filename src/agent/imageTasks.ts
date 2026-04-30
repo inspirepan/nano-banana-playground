@@ -22,12 +22,11 @@ export type AgentImageTask = {
     prompt: string
     requestedImageId: string
     reservedImageIds: string[]
-    model: ModelConfig
+    modelId: ModelConfig['id']
     resolution: string
     aspectRatio: string
     batchCount: number
     referenceImageIds: string[]
-    referenceImages: PlaygroundImage[]
     options: Record<string, unknown>
     stackId?: string
     parentImageId?: string

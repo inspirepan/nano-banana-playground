@@ -268,11 +268,6 @@ function App() {
     }
   }
 
-  const handleMobileFocusAgentImageTask = (taskId: string) => {
-    setMobileTab('gallery')
-    pg.focusAgentImageTask(taskId)
-  }
-
   return (
     <>
       {/* Mobile layout */}
@@ -353,7 +348,6 @@ function App() {
                 onToggleAutoApproveAgentImageTasks={pg.setAutoApproveAgentImageTasks}
                 onApproveAgentImageTask={pg.approveAgentImageTask}
                 onCancelAgentImageTask={pg.cancelAgentImageTask}
-                onFocusAgentImageTask={handleMobileFocusAgentImageTask}
                 onSendAgentMessage={pg.sendAgentMessage}
                 onStopAgentMessage={pg.stopAgentMessage}
                 onClearAgentChat={pg.clearAgentChat}
@@ -373,8 +367,6 @@ function App() {
                 history={pg.history}
                 historyHasMore={pg.historyHasMore}
                 generationJobs={pg.generationJobs}
-                agentImageTasks={pg.agentImageTasks}
-                focusedAgentImageTaskId={pg.focusedAgentImageTaskId}
                 onCancelGenerationJob={pg.cancelGenerationJob}
                 onDismissGenerationJob={pg.dismissGenerationJob}
                 onCancelGenerationSlot={pg.cancelGenerationSlot}
@@ -386,9 +378,6 @@ function App() {
                 onRemove={pg.removeFromHistory}
                 onLoadMore={pg.loadMoreHistory}
                 onOpenGenerationSettings={() => openSettings('generationConcurrency')}
-                onApproveAgentImageTask={pg.approveAgentImageTask}
-                onCancelAgentImageTask={pg.cancelAgentImageTask}
-                onFocusedAgentImageTask={pg.clearFocusedAgentImageTask}
               />
             </div>
           )}
@@ -442,7 +431,6 @@ function App() {
               onToggleAutoApproveAgentImageTasks={pg.setAutoApproveAgentImageTasks}
               onApproveAgentImageTask={pg.approveAgentImageTask}
               onCancelAgentImageTask={pg.cancelAgentImageTask}
-              onFocusAgentImageTask={pg.focusAgentImageTask}
               onSendAgentMessage={pg.sendAgentMessage}
               onStopAgentMessage={pg.stopAgentMessage}
               onClearAgentChat={pg.clearAgentChat}
@@ -462,8 +450,6 @@ function App() {
             history={pg.history}
             historyHasMore={pg.historyHasMore}
             generationJobs={pg.generationJobs}
-            agentImageTasks={pg.agentImageTasks}
-            focusedAgentImageTaskId={pg.focusedAgentImageTaskId}
             onCancelGenerationJob={pg.cancelGenerationJob}
             onDismissGenerationJob={pg.dismissGenerationJob}
             onCancelGenerationSlot={pg.cancelGenerationSlot}
@@ -475,9 +461,6 @@ function App() {
             onRemove={pg.removeFromHistory}
             onLoadMore={pg.loadMoreHistory}
             onOpenGenerationSettings={() => openSettings('generationConcurrency')}
-            onApproveAgentImageTask={pg.approveAgentImageTask}
-            onCancelAgentImageTask={pg.cancelAgentImageTask}
-            onFocusedAgentImageTask={pg.clearFocusedAgentImageTask}
           />
           {import.meta.env.DEV && <Agentation />}
         </div>

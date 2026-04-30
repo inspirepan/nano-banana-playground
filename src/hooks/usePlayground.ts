@@ -1,7 +1,7 @@
 import { Agent, ProviderTransport, type AppMessage as AgentMessage } from '@mariozechner/pi-agent'
 import { useState, useCallback, useRef } from 'react'
 
-import { useExternalSync, useMountEffect } from './effects'
+import { useExternalSync, useLatestRef, useMountEffect } from './effects'
 import { useApiKey } from './useApiKey'
 import { useGenerationQueue, type GenerationJob } from './useGenerationQueue'
 import { putBlobInCache, getBlobFromCache, removeBlobFromCache } from './useImageSrc'
@@ -17,8 +17,8 @@ import {
   type AgentImageRegistryEntry,
   type AgentImageTask,
   type AgentImageTaskStatus,
-  type AgentImageToolResult,
   type AgentTurnCallbackState,
+  type AgentImageToolResult,
   type GenImageToolArgs,
   type ReadImageToolArgs,
 } from '../agent'
@@ -269,7 +269,6 @@ export function usePlayground() {
   const [agentAttachmentError, setAgentAttachmentError] = useState<string | null>(null)
   const [autoApproveAgentImageTasks, setAutoApproveAgentImageTasksState] = useState(false)
   const [agentImageTasks, setAgentImageTasksState] = useState<AgentImageTask[]>([])
-  const [focusedAgentImageTaskId, setFocusedAgentImageTaskId] = useState<string | null>(null)
 
   const [referenceImages, setReferenceImages] = useState<PlaygroundImage[]>([])
   const [referenceImageError, setReferenceImageError] = useState<string | null>(null)
@@ -866,25 +865,56 @@ export function usePlayground() {
 
   const startAgentImageTask = useCallback(
     async (task: AgentImageTask): Promise<{ ok: boolean; message: string }> => {
-      const credentials = getProviderCredentials(task.request.model.provider)
-      if (!credentials.apiKey) {
-        const message = `使用 ${task.request.model.name} 需要先配置 ${task.request.model.provider === 'google' ? 'Gemini' : 'OpenAI'} API Key。`
+      setAgentImageTasks((prev) =>
+        prev.map((item) => (item.id === task.id && item.status === 'pending_approval' ? { ...item, status: 'approved' } : item)),
+      )
+
+      const modelConfig = findModelConfig(task.request.modelId)
+      if (!modelConfig) {
+        const message = `Unknown GenImage model: ${task.request.modelId}.`
         const next = setAgentImageTasks((prev) =>
           prev.map((item) => (item.id === task.id ? { ...item, status: 'failed', error: message } : item)),
         )
-        for (const id of task.request.reservedImageIds) {
-          agentImageRegistryRef.current.set(id, { id, source: 'generated', status: 'failed', createdAt: Date.now() })
-        }
+        for (const id of task.request.reservedImageIds) agentImageRegistryRef.current.delete(id)
         maybeDispatchAgentImageCallbacks(next)
         return { ok: false, message }
+      }
+
+      const credentials = getProviderCredentials(modelConfig.provider)
+      if (!credentials.apiKey) {
+        const message = `使用 ${modelConfig.name} 需要先配置 ${modelConfig.provider === 'google' ? 'Gemini' : 'OpenAI'} API Key。`
+        const next = setAgentImageTasks((prev) =>
+          prev.map((item) => (item.id === task.id ? { ...item, status: 'failed', error: message } : item)),
+        )
+        for (const id of task.request.reservedImageIds) agentImageRegistryRef.current.delete(id)
+        maybeDispatchAgentImageCallbacks(next)
+        return { ok: false, message }
+      }
+
+      let referenceImages: PlaygroundImage[]
+      try {
+        referenceImages = await resolveAgentReferenceImages(task.request.referenceImageIds)
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        const next = setAgentImageTasks((prev) =>
+          prev.map((item) => (item.id === task.id ? { ...item, status: 'failed', error: message } : item)),
+        )
+        for (const id of task.request.reservedImageIds) agentImageRegistryRef.current.delete(id)
+        maybeDispatchAgentImageCallbacks(next)
+        return { ok: false, message }
+      }
+
+      const currentTask = agentImageTasksRef.current.find((item) => item.id === task.id)
+      if (!currentTask || isTerminalAgentImageTaskStatus(currentTask.status)) {
+        return { ok: false, message: '任务已经取消。' }
       }
 
       const stackId =
         task.request.stackId ??
         stackIdForGenerationRequest({
-          model: task.request.model,
+          model: modelConfig,
           prompt: task.request.prompt,
-          referenceImages: task.request.referenceImages,
+          referenceImages,
           resolution: task.request.resolution,
           aspectRatio: task.request.aspectRatio,
           options: task.request.options,
@@ -894,9 +924,9 @@ export function usePlayground() {
         {
           apiKey: credentials.apiKey,
           baseUrl: credentials.baseUrl,
-          model: task.request.model,
+          model: modelConfig,
           prompt: task.request.prompt,
-          referenceImages: task.request.referenceImages,
+          referenceImages,
           resolution: task.request.resolution,
           aspectRatio: task.request.aspectRatio,
           options: task.request.options,
@@ -914,7 +944,7 @@ export function usePlayground() {
       )
       return { ok: true, message: '任务已经提交并开始生成。' }
     },
-    [enqueueGenerationJob, getProviderCredentials, maybeDispatchAgentImageCallbacks, setAgentImageTasks],
+    [enqueueGenerationJob, getProviderCredentials, maybeDispatchAgentImageCallbacks, resolveAgentReferenceImages, setAgentImageTasks],
   )
 
   const approveAgentImageTask = useCallback(
@@ -939,24 +969,25 @@ export function usePlayground() {
         return
       }
       if (task.generationJobId) cancelGenerationJob(task.generationJobId)
+      const job = task.generationJobId
+        ? generationJobsRefForAgent.current.find((item) => item.id === task.generationJobId)
+        : undefined
+      const resultImageIds = job?.slots.flatMap((slot) => (slot.image ? [slot.image.id] : [])) ?? task.resultImageIds
+      const fulfilledIds = new Set(resultImageIds)
+      for (const id of task.request.reservedImageIds) {
+        if (!fulfilledIds.has(id)) agentImageRegistryRef.current.delete(id)
+      }
       const next = setAgentImageTasks((prev) =>
-        prev.map((item) => (item.id === taskId ? { ...item, status: 'canceled' } : item)),
+        prev.map((item) => (item.id === taskId ? { ...item, status: 'canceled', resultImageIds } : item)),
       )
       maybeDispatchAgentImageCallbacks(next)
     },
     [cancelGenerationJob, maybeDispatchAgentImageCallbacks, setAgentImageTasks],
   )
 
-  const focusAgentImageTask = useCallback((taskId: string) => {
-    setFocusedAgentImageTaskId(taskId)
-  }, [])
-
-  const clearFocusedAgentImageTask = useCallback(() => {
-    setFocusedAgentImageTaskId(null)
-  }, [])
-
   const runGenImageTool = useCallback(
-    async (toolCallId: string, args: GenImageToolArgs): Promise<AgentImageToolResult> => {
+    async (toolCallId: string, args: GenImageToolArgs, signal?: AbortSignal): Promise<AgentImageToolResult> => {
+      if (signal?.aborted) throw new Error('GenImage was aborted.')
       const promptText = args.prompt.trim()
       if (!promptText) throw new Error('GenImage.prompt is required.')
       const modelConfig = findModelConfig(args.model)
@@ -965,18 +996,13 @@ export function usePlayground() {
           `Unknown GenImage model: ${args.model}. Available models: ${MODEL_CONFIGS.map((item) => item.id).join(', ')}`,
         )
       }
-      const credentials = getProviderCredentials(modelConfig.provider)
-      if (!credentials.apiKey) {
-        throw new Error(
-          `GenImage cannot create a task because ${modelConfig.provider === 'google' ? 'Gemini' : 'OpenAI'} API Key is missing.`,
-        )
-      }
       const requestedCount = Number.isFinite(args.n) ? Math.floor(args.n) : 1
       const batchCount = Math.min(Math.max(1, requestedCount), modelConfig.maxBatchCount)
       const resolution = normalizeResolution(modelConfig, args.resolution)
       const aspect = normalizeAspectRatio(modelConfig, args.ratio)
       const referenceImageIds = args.reference_image_ids.filter((id) => id.trim()).map((id) => id.trim())
       const referenceImages = await resolveAgentReferenceImages(referenceImageIds)
+      if (signal?.aborted) throw new Error('GenImage was aborted.')
       const editSource = referenceImages.find((image) => image.source.type === 'generated')
       const reserved = await reserveAgentImageIds({
         requestedImageId: args.image_id,
@@ -995,12 +1021,11 @@ export function usePlayground() {
           prompt: promptText,
           requestedImageId: reserved.requestedImageId,
           reservedImageIds: reserved.reservedImageIds,
-          model: modelConfig,
+          modelId: modelConfig.id,
           resolution,
           aspectRatio: aspect,
           batchCount,
           referenceImageIds,
-          referenceImages,
           options: activeOptions,
           stackId:
             editSource?.source.type === 'generated'
@@ -1019,6 +1044,7 @@ export function usePlayground() {
       }
       callbackState.taskIds.push(task.id)
       agentTurnCallbacksRef.current.set(task.agentTurnId, callbackState)
+
       for (const id of reserved.reservedImageIds) {
         agentImageRegistryRef.current.set(id, {
           id,
@@ -1029,15 +1055,14 @@ export function usePlayground() {
       }
       setAgentImageTasks((prev) => [task, ...prev])
 
-      const autoApprove = autoApproveAgentImageTasksRef.current
-      const startResult = autoApprove ? await startAgentImageTask(task) : null
-      const status = autoApprove ? (startResult?.ok ? 'queued' : 'failed') : 'pending_approval'
-      const message = autoApprove
+      const startResult = autoApproveAgentImageTasksRef.current ? await startAgentImageTask(task) : null
+      const status = autoApproveAgentImageTasksRef.current ? (startResult?.ok ? 'queued' : 'failed') : 'pending_approval'
+      const message = autoApproveAgentImageTasksRef.current
         ? (startResult?.message ?? '任务已经提交并自动开始生成。')
         : reserved.renamed
           ? `任务已经提交，等待用户审批。image_id 已预留为 ${reserved.reservedImageIds.join('、')}。`
           : '任务已经提交，等待用户审批。'
-      const result = {
+      const payload = {
         status,
         task_id: task.id,
         requested_image_id: reserved.requestedImageId,
@@ -1045,10 +1070,9 @@ export function usePlayground() {
         renamed: reserved.renamed,
         message,
       }
-      return toolTextResult(JSON.stringify(result, null, 2), result)
+      return toolTextResult(JSON.stringify(payload, null, 2), payload)
     },
     [
-      getProviderCredentials,
       imageIdExistsForAgent,
       resolveAgentReferenceImages,
       setAgentImageTasks,
@@ -1125,17 +1149,23 @@ export function usePlayground() {
     [resolveAgentImageById],
   )
 
-  useExternalSync(() => {
+  // useApiKey returns a fresh object each render, so runGenImageTool /
+  // runReadImageTool would change every render too. Register the tools once
+  // with stable wrapper functions that delegate to the latest implementation
+  // via ref — otherwise this effect re-fires on every render and pumps state
+  // updates into the agent, causing infinite re-render once the agent exists.
+  const runGenImageToolRef = useLatestRef(runGenImageTool)
+  const runReadImageToolRef = useLatestRef(runReadImageTool)
+  useMountEffect(() => {
     agentToolsRef.current = createAgentImageTools({
       imageModels: MODEL_CONFIGS,
-      genImage: runGenImageTool,
-      readImage: runReadImageTool,
+      genImage: (toolCallId, args, signal) => runGenImageToolRef.current(toolCallId, args, signal),
+      readImage: (toolCallId, args) => runReadImageToolRef.current(toolCallId, args),
     })
     if (agentRef.current) {
       agentRef.current.state.tools = agentToolsRef.current
-      syncAgentSnapshot(agentRef.current)
     }
-  }, [runGenImageTool, runReadImageTool, syncAgentSnapshot])
+  })
 
   useExternalSync(() => {
     void agentModel.id
@@ -1174,7 +1204,14 @@ export function usePlayground() {
         return task
       }
       changed = true
-      return { ...task, status: nextStatus, resultImageIds, error: nextError }
+      const updated = { ...task, status: nextStatus, resultImageIds, error: nextError }
+      if (isTerminalAgentImageTaskStatus(nextStatus)) {
+        const fulfilledIds = new Set(resultImageIds)
+        for (const id of task.request.reservedImageIds) {
+          if (!fulfilledIds.has(id)) agentImageRegistryRef.current.delete(id)
+        }
+      }
+      return updated
     })
     if (!changed) return
     agentImageTasksRef.current = next
@@ -1242,6 +1279,10 @@ export function usePlayground() {
     const agent = agentRef.current
     if (agent?.state.isStreaming) return
     agent?.reset()
+    agentTurnCallbacksRef.current.clear()
+    currentAgentTurnIdRef.current = null
+    agentImageTasksRef.current = []
+    setAgentImageTasksState([])
     setAgentMessages([])
     setAgentStreamingMessage(null)
     setAgentIsStreaming(false)
@@ -1454,7 +1495,6 @@ export function usePlayground() {
     agentAttachmentError,
     autoApproveAgentImageTasks,
     agentImageTasks,
-    focusedAgentImageTaskId,
     referenceImages,
     referenceImageError,
     history,
@@ -1483,8 +1523,6 @@ export function usePlayground() {
     clearAgentChat,
     approveAgentImageTask,
     cancelAgentImageTask,
-    focusAgentImageTask,
-    clearFocusedAgentImageTask,
     addReferenceImages,
     removeReferenceImage,
     clearAllReferences,

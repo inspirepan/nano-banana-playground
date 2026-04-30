@@ -276,7 +276,6 @@ type Props = {
   onToggleAutoApproveAgentImageTasks: (value: boolean) => void
   onApproveAgentImageTask: (taskId: string) => void
   onCancelAgentImageTask: (taskId: string) => void
-  onFocusAgentImageTask: (taskId: string) => void
   onSendAgentMessage: () => void
   onStopAgentMessage: () => void
   onClearAgentChat: () => void
@@ -333,7 +332,6 @@ export function InputPanel({
   onToggleAutoApproveAgentImageTasks,
   onApproveAgentImageTask,
   onCancelAgentImageTask,
-  onFocusAgentImageTask,
   onSendAgentMessage,
   onStopAgentMessage,
   onClearAgentChat,
@@ -571,7 +569,6 @@ export function InputPanel({
           onToggleAutoApproveImageTasks={onToggleAutoApproveAgentImageTasks}
           onApproveImageTask={onApproveAgentImageTask}
           onCancelImageTask={onCancelAgentImageTask}
-          onFocusImageTask={onFocusAgentImageTask}
           onModelChange={onAgentModelChange}
           onThinkingLevelChange={onAgentThinkingLevelChange}
           onSend={onSendAgentMessage}
