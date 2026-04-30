@@ -6,9 +6,11 @@ import {
   useRef,
   useState,
   type ChangeEvent,
+  type JSX,
   type KeyboardEvent,
   type ReactNode,
 } from 'react'
+import { Streamdown } from 'streamdown'
 
 import { BrandIcon, Icon } from './Icon'
 import {
@@ -69,13 +71,6 @@ type Props = {
   onSend: () => void
   onStop: () => void
 }
-
-type MarkdownListItem = { lead: string; trail: string[] }
-
-type MarkdownBlock =
-  | { type: 'paragraph'; text: string }
-  | { type: 'list'; ordered: boolean; items: MarkdownListItem[] }
-  | { type: 'code'; language: string; code: string }
 
 type ChatRenderItem =
   | { type: 'message'; key: string; message: AgentMessage; isStreaming: boolean }
@@ -240,103 +235,6 @@ function AgentModelIcon({ model, size = 13 }: { model: AgentModelConfig; size?: 
   )
 }
 
-function parseMarkdown(text: string): MarkdownBlock[] {
-  const blocks: MarkdownBlock[] = []
-  const lines = text.split('\n')
-  let i = 0
-
-  while (i < lines.length) {
-    const line = lines[i]
-    const trimmed = line.trim()
-    if (!trimmed) {
-      i++
-      continue
-    }
-
-    if (trimmed.startsWith('```')) {
-      const language = trimmed.slice(3).trim()
-      const code: string[] = []
-      i++
-      while (i < lines.length && !lines[i].trim().startsWith('```')) {
-        code.push(lines[i])
-        i++
-      }
-      if (i < lines.length) i++
-      blocks.push({ type: 'code', language, code: code.join('\n') })
-      continue
-    }
-
-    const unorderedMatch = /^[-*]\s+(.+)$/.exec(trimmed)
-    const orderedMatch = /^\d+[.)]\s+(.+)$/.exec(trimmed)
-    if (unorderedMatch || orderedMatch) {
-      const ordered = Boolean(orderedMatch)
-      const items: MarkdownListItem[] = []
-      const itemRegex = ordered ? /^\d+[.)]\s+(.+)$/ : /^[-*]\s+(.+)$/
-      const otherRegex = ordered ? /^[-*]\s+/ : /^\d+[.)]\s+/
-
-      const startMatch = itemRegex.exec(trimmed)!
-      items.push({ lead: startMatch[1], trail: [] })
-      i++
-
-      while (i < lines.length) {
-        const cursor = lines[i]
-        const cursorTrimmed = cursor.trim()
-        if (!cursorTrimmed) {
-          i++
-          continue
-        }
-        const continueMatch = itemRegex.exec(cursorTrimmed)
-        if (continueMatch) {
-          items.push({ lead: continueMatch[1], trail: [] })
-          i++
-          continue
-        }
-        if (cursorTrimmed.startsWith('```') || otherRegex.test(cursorTrimmed)) break
-
-        const paragraphLines: string[] = [cursorTrimmed]
-        let lookahead = i + 1
-        while (lookahead < lines.length) {
-          const lookTrimmed = lines[lookahead].trim()
-          if (
-            !lookTrimmed ||
-            itemRegex.test(lookTrimmed) ||
-            otherRegex.test(lookTrimmed) ||
-            lookTrimmed.startsWith('```')
-          )
-            break
-          paragraphLines.push(lookTrimmed)
-          lookahead++
-        }
-        let afterBlanks = lookahead
-        while (afterBlanks < lines.length && !lines[afterBlanks].trim()) afterBlanks++
-        const stillInList = afterBlanks < lines.length && itemRegex.test(lines[afterBlanks].trim())
-        const hasContinuationPattern = items.some((item) => item.trail.length > 0)
-        if (!stillInList && !hasContinuationPattern) break
-
-        items[items.length - 1].trail.push(paragraphLines.join(' '))
-        i = lookahead
-        if (!stillInList) break
-      }
-
-      blocks.push({ type: 'list', ordered, items })
-      continue
-    }
-
-    const paragraph: string[] = []
-    while (i < lines.length) {
-      const current = lines[i]
-      const currentTrimmed = current.trim()
-      if (!currentTrimmed || currentTrimmed.startsWith('```')) break
-      if (/^[-*]\s+/.test(currentTrimmed) || /^\d+[.)]\s+/.test(currentTrimmed)) break
-      paragraph.push(currentTrimmed)
-      i++
-    }
-    blocks.push({ type: 'paragraph', text: paragraph.join(' ') })
-  }
-
-  return blocks
-}
-
 function renderInline(text: string): ReactNode[] {
   const nodes: ReactNode[] = []
   const pattern = /(`[^`]+`|\*\*[^*]+\*\*)/g
@@ -422,47 +320,81 @@ function TruncatedText({
   )
 }
 
+const MARKDOWN_COMPONENTS = {
+  p: (props: JSX.IntrinsicElements['p']) => <p {...props} />,
+  strong: (props: JSX.IntrinsicElements['strong']) => <strong className="font-semibold" {...props} />,
+  em: (props: JSX.IntrinsicElements['em']) => <em className="italic" {...props} />,
+  a: (props: JSX.IntrinsicElements['a']) => (
+    <a
+      {...props}
+      target="_blank"
+      rel="noreferrer"
+      className="text-(--color-accent) underline decoration-(--color-accent-ring) underline-offset-2 hover:decoration-(--color-accent)"
+    />
+  ),
+  ul: (props: JSX.IntrinsicElements['ul']) => <ul className="list-disc space-y-1.5 pl-5" {...props} />,
+  ol: (props: JSX.IntrinsicElements['ol']) => <ol className="list-decimal space-y-1.5 pl-5" {...props} />,
+  li: (props: JSX.IntrinsicElements['li']) => <li {...props} />,
+  blockquote: (props: JSX.IntrinsicElements['blockquote']) => (
+    <blockquote
+      className="border-l-2 border-(--ring-edge-strong) pl-3 text-(--color-text-3) italic"
+      {...props}
+    />
+  ),
+  h1: (props: JSX.IntrinsicElements['h1']) => (
+    <h1 className="font-display text-lg font-semibold tracking-[-0.01em] text-(--color-text)" {...props} />
+  ),
+  h2: (props: JSX.IntrinsicElements['h2']) => (
+    <h2 className="font-display text-base font-semibold tracking-[-0.01em] text-(--color-text)" {...props} />
+  ),
+  h3: (props: JSX.IntrinsicElements['h3']) => (
+    <h3 className="font-display text-sm font-semibold text-(--color-text)" {...props} />
+  ),
+  hr: (props: JSX.IntrinsicElements['hr']) => <hr className="border-(--ring-edge-soft)" {...props} />,
+  inlineCode: (props: JSX.IntrinsicElements['code']) => (
+    <code className="rounded-[4px] bg-(--color-surface-2) px-1 py-0.5 mono text-[0.92em]" {...props} />
+  ),
+  pre: ({ children, ...props }: JSX.IntrinsicElements['pre']) => (
+    <div className="overflow-hidden rounded-[8px] bg-(--color-surface-2) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
+      <pre
+        {...props}
+        className="overflow-x-auto px-3 py-2.5 mono text-sm leading-[1.55] text-(--color-text)"
+      >
+        {children}
+      </pre>
+    </div>
+  ),
+  table: (props: JSX.IntrinsicElements['table']) => (
+    <div className="overflow-x-auto rounded-[8px] shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
+      <table className="w-full border-collapse text-sm" {...props} />
+    </div>
+  ),
+  th: (props: JSX.IntrinsicElements['th']) => (
+    <th
+      className="border-b border-(--ring-edge-soft) bg-(--color-surface-2) px-2.5 py-1.5 text-left font-medium text-(--color-text)"
+      {...props}
+    />
+  ),
+  td: (props: JSX.IntrinsicElements['td']) => (
+    <td className="border-b border-(--ring-edge-soft) px-2.5 py-1.5 text-(--color-text-2)" {...props} />
+  ),
+}
+
 function MarkdownText({ text, isStreaming }: { text: string; isStreaming?: boolean }) {
-  const blocks = useMemo(() => parseMarkdown(text), [text])
   if (!text.trim()) {
     return isStreaming ? <span className="text-(--color-text-4)">正在思考…</span> : null
   }
 
   return (
-    <div className="space-y-2.5 text-base leading-[1.62] text-(--color-text-2)">
-      {blocks.map((block, index) => {
-        if (block.type === 'code') {
-          return (
-            <div
-              key={index}
-              className="overflow-hidden rounded-[8px] bg-(--color-surface-2) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]"
-            >
-              {block.language && <div className="mono px-3 py-1.5 text-sm text-(--color-text-4)">{block.language}</div>}
-              <pre className="overflow-x-auto px-3 py-2.5 mono text-sm leading-[1.55] text-(--color-text)">
-                <code>{block.code}</code>
-              </pre>
-            </div>
-          )
-        }
-        if (block.type === 'list') {
-          const ListTag = block.ordered ? 'ol' : 'ul'
-          return (
-            <ListTag key={index} className={`space-y-1.5 pl-5 ${block.ordered ? 'list-decimal' : 'list-disc'}`}>
-              {block.items.map((item, itemIndex) => (
-                <li key={itemIndex}>
-                  <span>{renderInline(item.lead)}</span>
-                  {item.trail.map((paragraph, paragraphIndex) => (
-                    <p key={paragraphIndex} className="mt-1.5">
-                      {renderInline(paragraph)}
-                    </p>
-                  ))}
-                </li>
-              ))}
-            </ListTag>
-          )
-        }
-        return <p key={index}>{renderInline(block.text)}</p>
-      })}
+    <div className="space-y-2.5 text-base leading-[1.62] text-(--color-text-2) [&_>_*]:my-0">
+      <Streamdown
+        parseIncompleteMarkdown={isStreaming ?? false}
+        isAnimating={isStreaming ?? false}
+        animated={{ animation: 'fadeIn', sep: 'word', duration: 220, stagger: 12 }}
+        components={MARKDOWN_COMPONENTS}
+      >
+        {text}
+      </Streamdown>
     </div>
   )
 }
