@@ -505,7 +505,7 @@ function MessageBubble({ message, isStreaming }: { message: AgentMessage; isStre
               >
                 <div className="min-h-0 overflow-hidden">
                   <div
-                    className="pt-3 whitespace-pre-wrap italic leading-[1.55] text-(--color-text-4)"
+                    className="pt-3 whitespace-pre-wrap italic leading-[1.55] text-(--color-text-3)"
                     style={{ fontSynthesis: 'style' }}
                   >
                     {renderInline(thinking.replace(/\n{3,}/g, '\n\n'))}

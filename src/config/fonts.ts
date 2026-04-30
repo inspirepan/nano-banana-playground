@@ -2,32 +2,23 @@ export type SansFontId =
   | 'geist'
   | 'inter'
   | 'roboto-flex'
-  | 'manrope'
   | 'google-sans-flex'
-  | 'golos-text'
   | 'source-sans-3'
   | 'work-sans'
   | 'ibm-plex-sans'
   | 'outfit'
   | 'onest'
-  | 'source-serif-4'
-  | 'newsreader'
-  | 'literata'
-  | 'bitter'
-  | 'crimson-pro'
-  | 'gelasio'
 
 type FontOption<T extends string> = {
   id: T
   name: string
   className: string
   cssFamily: string
-  googleQuery: string
+  /** Omitted when the font is bundled / self-hosted instead of fetched from Google Fonts. */
+  googleQuery?: string
   googleFallbackQueries?: string[]
 }
 
-const CJK_SERIF_FAMILY = "'Noto Serif SC', 'Songti SC', 'STSong', 'SimSun', serif"
-const CJK_SERIF_GOOGLE_QUERY = 'Noto Serif SC:wght@200..900'
 const ROBOTO_MONO_GOOGLE_QUERY = 'Roboto Mono:wght@100..700'
 
 export const SANS_FONTS: FontOption<SansFontId>[] = [
@@ -36,7 +27,6 @@ export const SANS_FONTS: FontOption<SansFontId>[] = [
     name: 'Geist',
     className: 'font-sans-geist',
     cssFamily: "'Geist'",
-    googleQuery: 'Geist:wght@100..900',
   },
   {
     id: 'inter',
@@ -53,25 +43,11 @@ export const SANS_FONTS: FontOption<SansFontId>[] = [
     googleQuery: 'Roboto Flex:opsz,slnt,wght@8..144,-10..0,100..1000',
   },
   {
-    id: 'manrope',
-    name: 'Manrope',
-    className: 'font-sans-manrope',
-    cssFamily: "'Manrope'",
-    googleQuery: 'Manrope:wght@200..800',
-  },
-  {
     id: 'google-sans-flex',
     name: 'Google Sans Flex',
     className: 'font-sans-google-sans-flex',
     cssFamily: "'Google Sans Flex'",
-    googleQuery: 'Google Sans Flex:opsz,wght@6..144,1..1000',
-  },
-  {
-    id: 'golos-text',
-    name: 'Golos Text',
-    className: 'font-sans-golos-text',
-    cssFamily: "'Golos Text'",
-    googleQuery: 'Golos Text:wght@400..900',
+    googleQuery: 'Google Sans Flex:opsz,slnt,wght@6..144,-10..0,1..1000',
   },
   {
     id: 'source-sans-3',
@@ -109,59 +85,11 @@ export const SANS_FONTS: FontOption<SansFontId>[] = [
     cssFamily: "'Onest'",
     googleQuery: 'Onest:wght@100..900',
   },
-  {
-    id: 'source-serif-4',
-    name: 'Source Serif 4',
-    className: 'font-sans-source-serif-4',
-    cssFamily: `'Source Serif 4', ${CJK_SERIF_FAMILY}`,
-    googleQuery: 'Source Serif 4:ital,opsz,wght@0,8..60,200..900;1,8..60,200..900',
-    googleFallbackQueries: [CJK_SERIF_GOOGLE_QUERY],
-  },
-  {
-    id: 'newsreader',
-    name: 'Newsreader',
-    className: 'font-sans-newsreader',
-    cssFamily: `'Newsreader', ${CJK_SERIF_FAMILY}`,
-    googleQuery: 'Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800',
-    googleFallbackQueries: [CJK_SERIF_GOOGLE_QUERY],
-  },
-  {
-    id: 'literata',
-    name: 'Literata',
-    className: 'font-sans-literata',
-    cssFamily: `'Literata', ${CJK_SERIF_FAMILY}`,
-    googleQuery: 'Literata:ital,opsz,wght@0,7..72,200..900;1,7..72,200..900',
-    googleFallbackQueries: [CJK_SERIF_GOOGLE_QUERY],
-  },
-  {
-    id: 'bitter',
-    name: 'Bitter',
-    className: 'font-sans-bitter',
-    cssFamily: `'Bitter', ${CJK_SERIF_FAMILY}`,
-    googleQuery: 'Bitter:ital,wght@0,100..900;1,100..900',
-    googleFallbackQueries: [CJK_SERIF_GOOGLE_QUERY],
-  },
-  {
-    id: 'crimson-pro',
-    name: 'Crimson Pro',
-    className: 'font-sans-crimson-pro',
-    cssFamily: `'Crimson Pro', ${CJK_SERIF_FAMILY}`,
-    googleQuery: 'Crimson Pro:ital,wght@0,200..900;1,200..900',
-    googleFallbackQueries: [CJK_SERIF_GOOGLE_QUERY],
-  },
-  {
-    id: 'gelasio',
-    name: 'Gelasio',
-    className: 'font-sans-gelasio',
-    cssFamily: `'Gelasio', ${CJK_SERIF_FAMILY}`,
-    googleQuery: 'Gelasio:ital,wght@0,400..700;1,400..700',
-    googleFallbackQueries: [CJK_SERIF_GOOGLE_QUERY],
-  },
 ]
 
 export const SANS_FONT_IDS = SANS_FONTS.map((font) => font.id)
 
-export const DEFAULT_SANS_FONT: SansFontId = 'onest'
+export const DEFAULT_SANS_FONT: SansFontId = 'geist'
 
 function googleFontsHrefForQueries(queries: string[]) {
   const uniqueQueries = [...new Set(queries)]
@@ -171,10 +99,18 @@ function googleFontsHrefForQueries(queries: string[]) {
 
 export function googleFontsHref(sansFont: SansFontId) {
   const sans = SANS_FONTS.find((font) => font.id === sansFont) ?? SANS_FONTS[0]
-  return googleFontsHrefForQueries([sans.googleQuery, ...(sans.googleFallbackQueries ?? []), ROBOTO_MONO_GOOGLE_QUERY])
+  const queries = [
+    ...(sans.googleQuery ? [sans.googleQuery] : []),
+    ...(sans.googleFallbackQueries ?? []),
+    ROBOTO_MONO_GOOGLE_QUERY,
+  ]
+  return googleFontsHrefForQueries(queries)
 }
 
 export function googleFontPreviewsHref() {
-  const queries = SANS_FONTS.flatMap((font) => [font.googleQuery, ...(font.googleFallbackQueries ?? [])])
+  const queries = SANS_FONTS.flatMap((font) => [
+    ...(font.googleQuery ? [font.googleQuery] : []),
+    ...(font.googleFallbackQueries ?? []),
+  ])
   return googleFontsHrefForQueries(queries)
 }

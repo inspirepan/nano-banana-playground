@@ -14,15 +14,7 @@ const BRIGHTNESS: { value: Theme; icon: IconName; label: string }[] = [
   { value: 'system', icon: 'contrast', label: '系统' },
 ]
 
-const SERIF_FONT_IDS = new Set<SansFontId>([
-  'source-serif-4',
-  'newsreader',
-  'literata',
-  'bitter',
-  'crimson-pro',
-  'gelasio',
-])
-const SANS_FONT_CHOICES = SANS_FONTS.filter((font) => !SERIF_FONT_IDS.has(font.id))
+const SANS_FONT_CHOICES = SANS_FONTS
 
 const GENERATION_CONCURRENCY_CHOICES = [
   { value: 1, label: '1', suffix: '张' },

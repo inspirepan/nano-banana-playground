@@ -4,12 +4,27 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Self-host Geist (Vercel official npm package). Google Fonts ships only
+   the roman style; the npm package bundles the italic variable file too. */
+@font-face {
+  font-family: 'Geist';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('../node_modules/geist/dist/fonts/geist-sans/Geist-Variable.woff2') format('woff2-variations');
+}
+@font-face {
+  font-family: 'Geist';
+  font-style: italic;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('../node_modules/geist/dist/fonts/geist-sans/Geist-Italic[wght].woff2') format('woff2-variations');
+}
+
 @theme {
   --font-cjk-sans:
     'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei UI', 'Microsoft YaHei', 'Source Han Sans SC',
     'Noto Sans CJK SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-  --font-cjk-serif:
-    'Noto Serif SC', 'Songti SC', 'STSong', 'SimSun', 'Noto Serif CJK SC', Georgia, 'Times New Roman', serif;
   --font-cjk-mono:
     ui-monospace, SFMono-Regular, 'SF Mono', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', monospace;
   --font-sans:
@@ -32,18 +47,18 @@
   --text-xl: 0.9375rem; /* 15px */
   --text-xl--line-height: 1.35;
 
-  /* Neutrals — warm stone à la Linear */
-  --color-bg: #fbfbfa;
-  --color-bg-sunken: #f6f5f3;
+  /* Neutrals — pure grayscale, no temperature tint */
+  --color-bg: #fbfbfb;
+  --color-bg-sunken: #f5f5f5;
   --color-surface: #ffffff;
-  --color-surface-2: #f7f6f4;
-  --color-surface-3: #efeeec;
-  --color-border: #e8e6e1;
-  --color-border-strong: #dcdad4;
-  --color-text: #1f1d1a;
-  --color-text-2: #57544d;
-  --color-text-3: #8a867d;
-  --color-text-4: #b5b1a8;
+  --color-surface-2: #f6f6f6;
+  --color-surface-3: #eeeeee;
+  --color-border: #e5e5e5;
+  --color-border-strong: #d9d9d9;
+  --color-text: #1c1c1c;
+  --color-text-2: #525252;
+  --color-text-3: #848484;
+  --color-text-4: #afafaf;
 
   /* Accent (default: indigo). Themes below override via .theme-* classes. */
   --color-accent: #5e6ad2;
@@ -92,11 +107,11 @@
   /* Edge rings — replace 1px solid borders on elevated/tinted containers so
      shadows stay clean (Schoger). Flip to a light ring in dark mode below. */
   --ring-edge: rgba(0, 0, 0, 0.08);
-  --ring-edge-elevated: rgba(3, 7, 18, 0.1);
+  --ring-edge-elevated: rgba(0, 0, 0, 0.1);
   --ring-edge-strong: rgba(0, 0, 0, 0.14);
   --ring-edge-soft: rgba(0, 0, 0, 0.05);
-  --shadow-lift: 0 12px 28px -18px rgba(30, 27, 20, 0.22), 0 1px 2px rgba(30, 27, 20, 0.04);
-  --shadow-float: 0 16px 36px -24px rgba(30, 27, 20, 0.24), 0 2px 6px rgba(30, 27, 20, 0.06);
+  --shadow-lift: 0 12px 28px -18px rgba(0, 0, 0, 0.22), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-float: 0 16px 36px -24px rgba(0, 0, 0, 0.24), 0 2px 6px rgba(0, 0, 0, 0.06);
 
   --radius-xs: 4px;
   --radius-sm: 6px;
@@ -120,19 +135,39 @@
   --font-sans--font-feature-settings: 'calt' 1, 'tnum' 1, 'case' 1;
 }
 
-.font-sans-manrope {
-  --font-sans: 'Manrope', var(--font-cjk-sans);
-  --font-sans--font-feature-settings: 'calt' 1, 'tnum' 1, 'case' 1;
-}
-
 .font-sans-google-sans-flex {
   --font-sans: 'Google Sans Flex', var(--font-cjk-sans);
   --font-sans--font-feature-settings: 'calt' 1, 'tnum' 1, 'case' 1;
 }
 
-.font-sans-golos-text {
-  --font-sans: 'Golos Text', var(--font-cjk-sans);
-  --font-sans--font-feature-settings: 'calt' 1, 'tnum' 1, 'case' 1;
+/* Roboto Flex / Google Sans Flex have no real italic, only a slnt axis.
+   Map italic to oblique so the browser drives slnt instead of synthesizing. */
+.font-sans-roboto-flex em,
+.font-sans-roboto-flex i,
+.font-sans-roboto-flex cite,
+.font-sans-roboto-flex .italic,
+.font-sans-google-sans-flex em,
+.font-sans-google-sans-flex i,
+.font-sans-google-sans-flex cite,
+.font-sans-google-sans-flex .italic {
+  font-style: oblique 10deg;
+  font-synthesis: none;
+}
+
+/* Outfit / Onest ship no italic and no slnt axis. The global
+   `font-synthesis: none` (set on body for PingFang SC) would otherwise
+   suppress italic entirely — re-enable style synthesis here so italic
+   text at least renders skewed instead of plain upright. Geist is
+   self-hosted with a real italic variable file, so it doesn't need this. */
+.font-sans-outfit em,
+.font-sans-outfit i,
+.font-sans-outfit cite,
+.font-sans-outfit .italic,
+.font-sans-onest em,
+.font-sans-onest i,
+.font-sans-onest cite,
+.font-sans-onest .italic {
+  font-synthesis: style;
 }
 
 .font-sans-source-sans-3 {
@@ -160,49 +195,19 @@
   --font-sans--font-feature-settings: 'calt' 1, 'tnum' 1, 'case' 1;
 }
 
-.font-sans-source-serif-4 {
-  --font-sans: 'Source Serif 4', var(--font-cjk-serif);
-  --font-sans--font-feature-settings: 'calt' 1, 'tnum' 1, 'case' 1;
-}
-
-.font-sans-newsreader {
-  --font-sans: 'Newsreader', var(--font-cjk-serif);
-  --font-sans--font-feature-settings: 'calt' 1, 'tnum' 1, 'case' 1;
-}
-
-.font-sans-literata {
-  --font-sans: 'Literata', var(--font-cjk-serif);
-  --font-sans--font-feature-settings: 'calt' 1, 'tnum' 1, 'case' 1;
-}
-
-.font-sans-bitter {
-  --font-sans: 'Bitter', var(--font-cjk-serif);
-  --font-sans--font-feature-settings: 'calt' 1, 'tnum' 1, 'case' 1;
-}
-
-.font-sans-crimson-pro {
-  --font-sans: 'Crimson Pro', var(--font-cjk-serif);
-  --font-sans--font-feature-settings: 'calt' 1, 'tnum' 1, 'case' 1;
-}
-
-.font-sans-gelasio {
-  --font-sans: 'Gelasio', var(--font-cjk-serif);
-  --font-sans--font-feature-settings: 'calt' 1, 'tnum' 1, 'case' 1;
-}
-
 /* Dark theme */
 .dark {
-  --color-bg: #1a1820;
-  --color-bg-sunken: #1a1820;
-  --color-surface: #23212b;
-  --color-surface-2: #2a2833;
-  --color-surface-3: #34313d;
-  --color-border: #393644;
-  --color-border-strong: #484453;
-  --color-text: #f4f1f7;
-  --color-text-2: #ddd8e4;
-  --color-text-3: #bfb8ca;
-  --color-text-4: #9d96aa;
+  --color-bg: #1b1b1b;
+  --color-bg-sunken: #1b1b1b;
+  --color-surface: #252525;
+  --color-surface-2: #2c2c2c;
+  --color-surface-3: #363636;
+  --color-border: #3c3c3c;
+  --color-border-strong: #4a4a4a;
+  --color-text: #f4f4f4;
+  --color-text-2: #dddddd;
+  --color-text-3: #c0c0c0;
+  --color-text-4: #9f9f9f;
 
   --color-accent: #8088e0;
   --color-accent-hover: #959ce6;
@@ -219,10 +224,10 @@
   --color-danger-soft: color-mix(in srgb, #e07676 14%, transparent);
   --color-success: #52c08a;
 
-  --ring-edge: rgba(207, 213, 255, 0.08);
-  --ring-edge-elevated: rgba(207, 213, 255, 0.1);
-  --ring-edge-strong: rgba(207, 213, 255, 0.14);
-  --ring-edge-soft: rgba(207, 213, 255, 0.05);
+  --ring-edge: rgba(255, 255, 255, 0.08);
+  --ring-edge-elevated: rgba(255, 255, 255, 0.1);
+  --ring-edge-strong: rgba(255, 255, 255, 0.14);
+  --ring-edge-soft: rgba(255, 255, 255, 0.05);
   --shadow-lift: 0 12px 28px -18px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.28);
   --shadow-float: 0 16px 36px -24px rgba(0, 0, 0, 0.62), 0 2px 6px rgba(0, 0, 0, 0.34);
 
@@ -959,7 +964,7 @@
     background: var(--color-accent);
   }
   .dark .aspect-tile .glyph {
-    background: #48484f;
+    background: #4a4a4a;
   }
   .dark .aspect-tile[data-active='true'] .glyph {
     background: var(--color-accent);
@@ -1116,7 +1121,7 @@
     border: 0;
     border-radius: var(--radius-sm);
     padding: 5px 10px;
-    background: rgba(31, 29, 26, 0.82);
+    background: rgba(28, 28, 28, 0.82);
     color: #fff;
     font-size: var(--text-base);
     font-weight: 500;
@@ -1128,7 +1133,7 @@
       transform 60ms;
   }
   .media-action:hover:not(:disabled) {
-    background: rgba(42, 39, 35, 0.92);
+    background: rgba(40, 40, 40, 0.92);
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
   }
   .stack-thumb-actions {
@@ -1175,7 +1180,7 @@
     box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
   }
   .media-action.light:hover:not(:disabled) {
-    background: rgba(244, 243, 241, 0.96);
+    background: rgba(244, 244, 244, 0.96);
     box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
   }
   .media-action.icon-only {
