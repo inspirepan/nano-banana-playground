@@ -35,3 +35,4 @@ export type {
   AgentTurnCallbackState,
   ReserveAgentImageIdsResult,
 } from './imageTasks'
+export type { AgentSessionSummary } from './sessionTypes'

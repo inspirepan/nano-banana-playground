@@ -4,6 +4,7 @@ const KNOWN_INDEXED_DB_NAMES = [
   'nano-banana-playground-v2',
   'nano-banana-playground-v3',
   'nano-banana-playground-v4',
+  'nano-banana-playground-v5',
 ]
 
 type IndexedDBWithDatabases = IDBFactory & {

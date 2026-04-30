@@ -20,9 +20,19 @@ import {
   type AgentImageTaskStatus,
   type AgentTurnCallbackState,
   type AgentImageToolResult,
+  type AgentSessionSummary,
   type GenImageToolArgs,
   type ReadImageToolArgs,
 } from '../agent'
+import {
+  appendAgentSessionMessage,
+  createAgentSession,
+  deleteAgentSession,
+  listAgentSessions,
+  loadAgentSession,
+  saveAgentSessionSidecar,
+  updateAgentSessionConfig,
+} from '../agent/sessionStore'
 import {
   AGENT_MODEL_CONFIGS,
   DEFAULT_AGENT_MODEL,
@@ -257,6 +267,17 @@ function toolTextResult(text: string, details: unknown): AgentImageToolResult {
   return { content: [{ type: 'text', text }], details }
 }
 
+function restoreAgentImageTasks(tasks: AgentImageTask[]): AgentImageTask[] {
+  return tasks.map((task) => {
+    if (task.status !== 'approved' && task.status !== 'queued' && task.status !== 'running') return task
+    return {
+      ...task,
+      status: 'canceled',
+      error: task.error ?? '页面刷新或切换会话中断了这次生成任务。',
+    }
+  })
+}
+
 export function usePlayground() {
   const googleKeyHook = useApiKey('google')
   const openaiKeyHook = useApiKey('openai')
@@ -281,7 +302,7 @@ export function usePlayground() {
     initialOptionsFor(resolveModel(_initial.modelId), _initial.rawParams),
   )
   const [prompt, setPromptRaw] = useState(_initial.prompt ?? '')
-  const [inputMode, setInputMode] = useState<InputMode>('generate')
+  const [inputMode, setInputMode] = useState<InputMode>(() => (_initial.agentSessionId ? 'agent' : 'generate'))
   const [agentModelId, setAgentModelId] = useState(DEFAULT_AGENT_MODEL.id)
   const agentModel = resolveAgentModelConfig(agentModelId)
   const [agentThinkingLevel, setAgentThinkingLevelState] = useState<AgentThinkingLevel>('low')
@@ -294,6 +315,9 @@ export function usePlayground() {
   const [agentAttachmentError, setAgentAttachmentError] = useState<string | null>(null)
   const [autoApproveAgentImageTasks, setAutoApproveAgentImageTasksState] = useState(false)
   const [agentImageTasks, setAgentImageTasksState] = useState<AgentImageTask[]>([])
+  const [agentSessions, setAgentSessions] = useState<AgentSessionSummary[]>([])
+  const [currentAgentSessionId, setCurrentAgentSessionId] = useState<string | null>(null)
+  const [agentSessionsLoading, setAgentSessionsLoading] = useState(true)
 
   const [referenceImages, setReferenceImages] = useState<PlaygroundImage[]>([])
   const [referenceImageError, setReferenceImageError] = useState<string | null>(null)
@@ -307,6 +331,12 @@ export function usePlayground() {
   const agentImageRegistryRef = useRef<Map<string, AgentImageRegistryEntry>>(new Map())
   const agentTurnCallbacksRef = useRef<Map<string, AgentTurnCallbackState>>(new Map())
   const currentAgentTurnIdRef = useRef<string | null>(null)
+  const currentAgentSessionIdRef = useRef<string | null>(null)
+  const currentAgentSessionLeafEntryIdRef = useRef<string | null>(null)
+  const agentSessionPersistQueueRef = useRef<Promise<void>>(Promise.resolve())
+  const agentSessionSidecarPersistQueueRef = useRef<Promise<void>>(Promise.resolve())
+  const agentSessionReadyRef = useRef(false)
+  const agentSessionSidecarDebounceRef = useRef<number>(0)
   const referenceImagesRef = useRef<PlaygroundImage[]>([])
   const historyRef = useRef<PlaygroundImageMeta[]>([])
   const generationJobsRefForAgent = useRef<GenerationJob[]>([])
@@ -371,6 +401,41 @@ export function usePlayground() {
   const setAutoApproveAgentImageTasks = useCallback((value: boolean) => {
     autoApproveAgentImageTasksRef.current = value
     setAutoApproveAgentImageTasksState(value)
+    const sessionId = currentAgentSessionIdRef.current
+    if (sessionId) {
+      void updateAgentSessionConfig(sessionId, { autoApproveImageTasks: value }).then((record) => {
+        if (!record) return
+        setAgentSessions((prev) => [record, ...prev.filter((item) => item.id !== record.id)])
+      })
+    }
+  }, [])
+
+  const upsertAgentSessionSummary = useCallback((record: AgentSessionSummary) => {
+    setAgentSessions((prev) => [record, ...prev.filter((item) => item.id !== record.id)].sort((a, b) => b.updatedAt - a.updatedAt))
+  }, [])
+
+  const persistCurrentAgentSidecar = useCallback(() => {
+    const sessionId = currentAgentSessionIdRef.current
+    if (!sessionId || !agentSessionReadyRef.current) return Promise.resolve()
+    const payload = {
+      sessionId,
+      draft: agentDraft,
+      attachments: agentAttachments,
+      imageTasks: agentImageTasksRef.current,
+      imageRegistry: Array.from(agentImageRegistryRef.current.values()),
+      turnCallbacks: Array.from(agentTurnCallbacksRef.current.values()),
+      currentAgentTurnId: currentAgentTurnIdRef.current,
+    }
+    const write = agentSessionSidecarPersistQueueRef.current.then(() => saveAgentSessionSidecar(payload))
+    agentSessionSidecarPersistQueueRef.current = write.catch(() => undefined)
+    return write.catch(() => undefined)
+  }, [agentAttachments, agentDraft])
+
+  const canLeaveCurrentAgentSession = useCallback(() => {
+    const activeTask = agentImageTasksRef.current.find((task) => !isTerminalAgentImageTaskStatus(task.status))
+    if (!activeTask) return true
+    setAgentError('当前对话还有未完成的 Agent 生图任务，请先审批、取消或等待完成后再切换对话。')
+    return false
   }, [])
 
   useExternalSync(() => {
@@ -384,6 +449,18 @@ export function usePlayground() {
   useExternalSync(() => {
     generationJobsRefForAgent.current = generationJobs
   }, [generationJobs])
+
+  useExternalSync(() => {
+    void agentDraft
+    void agentAttachments
+    void agentImageTasks
+    if (!currentAgentSessionId || !agentSessionReadyRef.current) return
+    window.clearTimeout(agentSessionSidecarDebounceRef.current)
+    agentSessionSidecarDebounceRef.current = window.setTimeout(() => {
+      void persistCurrentAgentSidecar()
+    }, 400)
+    return () => window.clearTimeout(agentSessionSidecarDebounceRef.current)
+  }, [currentAgentSessionId, agentDraft, agentAttachments, agentImageTasks, persistCurrentAgentSidecar])
 
   // Load first page of history on mount
   useMountEffect(() => {
@@ -448,11 +525,12 @@ export function usePlayground() {
         a: aspectRatio !== model.defaultAspectRatio ? aspectRatio : null,
         n: batchCount !== 1 ? String(batchCount) : null,
         p: prompt || null,
+        agent: inputMode === 'agent' ? currentAgentSessionId : null,
         ...optionUpdates,
       })
     }, 300)
     return () => window.clearTimeout(urlDebounceRef.current)
-  }, [model, resolution, aspectRatio, batchCount, prompt, options])
+  }, [model, resolution, aspectRatio, batchCount, prompt, options, inputMode, currentAgentSessionId])
 
   // Persist draft reference images to IndexedDB + sessionStorage on change
   const draftRefsDebounceRef = useRef<number>(0)
@@ -473,9 +551,26 @@ export function usePlayground() {
     setOptionsState((prev) => ({ ...prev, [id]: value }))
   }, [])
 
-  const setAgentThinkingLevel = useCallback((level: AgentThinkingLevel) => {
-    setAgentThinkingLevelState(level)
-  }, [])
+  const setAgentModelIdForSession = useCallback((modelId: string) => {
+    setAgentModelId(modelId)
+    const sessionId = currentAgentSessionIdRef.current
+    if (!sessionId) return
+    void updateAgentSessionConfig(sessionId, { modelId }).then((record) => {
+      if (record) upsertAgentSessionSummary(record)
+    })
+  }, [upsertAgentSessionSummary])
+
+  const setAgentThinkingLevel = useCallback(
+    (level: AgentThinkingLevel) => {
+      setAgentThinkingLevelState(level)
+      const sessionId = currentAgentSessionIdRef.current
+      if (!sessionId) return
+      void updateAgentSessionConfig(sessionId, { thinkingLevel: level }).then((record) => {
+        if (record) upsertAgentSessionSummary(record)
+      })
+    },
+    [upsertAgentSessionSummary],
+  )
 
   const syncAgentSnapshot = useCallback((agent: Agent) => {
     setAgentMessages(agent.state.messages.slice())
@@ -490,10 +585,10 @@ export function usePlayground() {
   )
 
   const applyAgentRuntimeConfig = useCallback(
-    (agent: Agent, config = agentModel) => {
+    (agent: Agent, config = agentModel, thinkingLevel = agentThinkingLevel) => {
       agent.state.systemPrompt = AGENT_SYSTEM_PROMPT
       agent.state.model = agentModelWithBaseUrl(config, getAgentBaseUrl(config.provider))
-      agent.state.thinkingLevel = config.supportsThinking ? agentThinkingLevel : 'off'
+      agent.state.thinkingLevel = config.supportsThinking ? thinkingLevel : 'off'
       agent.state.tools = agentToolsRef.current
     },
     [agentModel, agentThinkingLevel, getAgentBaseUrl],
@@ -518,10 +613,174 @@ export function usePlayground() {
         messages: [],
       },
     })
-    agent.subscribe(() => syncAgentSnapshot(agent))
+    agent.subscribe((event) => {
+      syncAgentSnapshot(agent)
+      if (event.type !== 'message_end') return
+      const sessionId = currentAgentSessionIdRef.current
+      if (!sessionId) return
+      agentSessionPersistQueueRef.current = agentSessionPersistQueueRef.current
+        .then(async () => {
+          const parentId = currentAgentSessionLeafEntryIdRef.current
+          const result = await appendAgentSessionMessage({ sessionId, parentId, message: event.message })
+          if (currentAgentSessionIdRef.current === sessionId) {
+            currentAgentSessionLeafEntryIdRef.current = result.entryId
+          }
+          upsertAgentSessionSummary(result.record)
+        })
+        .catch((error: unknown) => {
+          setAgentError(error instanceof Error ? error.message : String(error))
+        })
+    })
     agentRef.current = agent
     return agent
-  }, [agentModel, agentThinkingLevel, getAgentBaseUrl, syncAgentSnapshot])
+  }, [agentModel, agentThinkingLevel, getAgentBaseUrl, syncAgentSnapshot, upsertAgentSessionSummary])
+
+  const loadAgentSessionIntoRuntime = useCallback(
+    (session: Awaited<ReturnType<typeof loadAgentSession>>) => {
+      if (!session) return
+      agentSessionReadyRef.current = false
+      const config = resolveAgentModelConfig(session.record.modelId)
+      const restoredTasks = restoreAgentImageTasks(session.sidecar.imageTasks)
+      const releasedReservedIds = new Set<string>()
+      for (let index = 0; index < session.sidecar.imageTasks.length; index++) {
+        const original = session.sidecar.imageTasks[index]
+        const restored = restoredTasks[index]
+        if (original.status === restored.status) continue
+        const fulfilledIds = new Set(restored.resultImageIds)
+        for (const id of restored.request.reservedImageIds) {
+          if (!fulfilledIds.has(id)) releasedReservedIds.add(id)
+        }
+      }
+      const restoredRegistry = session.sidecar.imageRegistry.filter((entry) => !releasedReservedIds.has(entry.id))
+
+      currentAgentSessionIdRef.current = session.record.id
+      currentAgentSessionLeafEntryIdRef.current = session.record.leafEntryId
+      currentAgentTurnIdRef.current = session.sidecar.currentAgentTurnId
+      agentImageTasksRef.current = restoredTasks
+      agentImageRegistryRef.current = new Map(restoredRegistry.map((entry) => [entry.id, entry]))
+      agentTurnCallbacksRef.current = new Map(
+        session.sidecar.turnCallbacks.map((callback) => [callback.agentTurnId, callback]),
+      )
+      autoApproveAgentImageTasksRef.current = session.record.autoApproveImageTasks
+
+      setCurrentAgentSessionId(session.record.id)
+      setAgentModelId(session.record.modelId)
+      setAgentThinkingLevelState(session.record.thinkingLevel)
+      setAutoApproveAgentImageTasksState(session.record.autoApproveImageTasks)
+      setAgentDraft(session.sidecar.draft)
+      setAgentAttachments(session.sidecar.attachments)
+      setAgentAttachmentError(null)
+      setAgentImageTasksState(restoredTasks)
+      setAgentError(null)
+
+      const agent = getOrCreateAgent()
+      applyAgentRuntimeConfig(agent, config, session.record.thinkingLevel)
+      agent.state.error = undefined
+      agent.state.streamMessage = null
+      agent.state.pendingToolCalls = new Set()
+      agent.replaceMessages(session.messages)
+      syncAgentSnapshot(agent)
+      agentSessionReadyRef.current = true
+    },
+    [applyAgentRuntimeConfig, getOrCreateAgent, syncAgentSnapshot],
+  )
+
+  const createNewAgentSession = useCallback(async () => {
+    if (agentRef.current?.state.isStreaming) return
+    if (!canLeaveCurrentAgentSession()) return
+    await agentSessionPersistQueueRef.current
+    await persistCurrentAgentSidecar()
+    await agentSessionSidecarPersistQueueRef.current
+    const record = await createAgentSession({
+      modelId: agentModel.id,
+      thinkingLevel: agentThinkingLevel,
+      autoApproveImageTasks: autoApproveAgentImageTasks,
+    })
+    upsertAgentSessionSummary(record)
+    loadAgentSessionIntoRuntime({
+      record,
+      messages: [],
+      sidecar: {
+        draft: '',
+        attachments: [],
+        imageTasks: [],
+        imageRegistry: [],
+        turnCallbacks: [],
+        currentAgentTurnId: null,
+      },
+    })
+  }, [
+    agentModel.id,
+    agentThinkingLevel,
+    autoApproveAgentImageTasks,
+    canLeaveCurrentAgentSession,
+    loadAgentSessionIntoRuntime,
+    persistCurrentAgentSidecar,
+    upsertAgentSessionSummary,
+  ])
+
+  const switchAgentSession = useCallback(
+    (sessionId: string) => {
+      if (sessionId === currentAgentSessionIdRef.current || agentRef.current?.state.isStreaming) return
+      if (!canLeaveCurrentAgentSession()) return
+      void (async () => {
+        await agentSessionPersistQueueRef.current
+        await persistCurrentAgentSidecar()
+        await agentSessionSidecarPersistQueueRef.current
+        const session = await loadAgentSession(sessionId)
+        loadAgentSessionIntoRuntime(session)
+      })().catch((error: unknown) => {
+        setAgentError(error instanceof Error ? error.message : String(error))
+      })
+    },
+    [canLeaveCurrentAgentSession, loadAgentSessionIntoRuntime, persistCurrentAgentSidecar],
+  )
+
+  const removeAgentSession = useCallback(
+    (sessionId: string) => {
+      if (agentRef.current?.state.isStreaming) return
+      if (sessionId === currentAgentSessionIdRef.current && !canLeaveCurrentAgentSession()) return
+      void (async () => {
+        await agentSessionPersistQueueRef.current
+        await deleteAgentSession(sessionId)
+        const nextSessions = (await listAgentSessions()).filter((session) => session.id !== sessionId)
+        setAgentSessions(nextSessions)
+        if (sessionId !== currentAgentSessionIdRef.current) return
+        const next = nextSessions[0]
+        if (next) {
+          loadAgentSessionIntoRuntime(await loadAgentSession(next.id))
+        } else {
+          agentSessionReadyRef.current = false
+          currentAgentSessionIdRef.current = null
+          setCurrentAgentSessionId(null)
+          await createNewAgentSession()
+        }
+      })().catch((error: unknown) => {
+        setAgentError(error instanceof Error ? error.message : String(error))
+      })
+    },
+    [canLeaveCurrentAgentSession, createNewAgentSession, loadAgentSessionIntoRuntime],
+  )
+
+  useMountEffect(() => {
+    void (async () => {
+      setAgentSessionsLoading(true)
+      const sessions = await listAgentSessions()
+      setAgentSessions(sessions)
+      const initialSession = _initial.agentSessionId
+        ? (sessions.find((session) => session.id === _initial.agentSessionId) ?? null)
+        : null
+      if (initialSession || sessions[0]) {
+        loadAgentSessionIntoRuntime(await loadAgentSession((initialSession ?? sessions[0]).id))
+      } else {
+        await createNewAgentSession()
+      }
+      setAgentSessionsLoading(false)
+    })().catch((error: unknown) => {
+      setAgentSessionsLoading(false)
+      setAgentError(error instanceof Error ? error.message : String(error))
+    })
+  })
 
   useExternalSync(() => {
     const agent = agentRef.current
@@ -1262,6 +1521,10 @@ export function usePlayground() {
   const sendAgentMessage = useCallback(() => {
     const trimmed = agentDraft.trim()
     if (agentIsStreaming || (!trimmed && agentAttachments.length === 0)) return
+    if (!currentAgentSessionIdRef.current) {
+      setAgentError('Agent 对话还在加载，请稍后再发送。')
+      return
+    }
 
     const credentials = agentCredentialsRef.current[agentModel.provider]
     if (!credentials.apiKey) {
@@ -1316,21 +1579,8 @@ export function usePlayground() {
   }, [])
 
   const clearAgentChat = useCallback(() => {
-    const agent = agentRef.current
-    if (agent?.state.isStreaming) return
-    agent?.reset()
-    agentTurnCallbacksRef.current.clear()
-    currentAgentTurnIdRef.current = null
-    agentImageTasksRef.current = []
-    setAgentImageTasksState([])
-    setAgentMessages([])
-    setAgentStreamingMessage(null)
-    setAgentIsStreaming(false)
-    setAgentError(null)
-    setAgentDraft('')
-    setAgentAttachments([])
-    setAgentAttachmentError(null)
-  }, [])
+    void createNewAgentSession()
+  }, [createNewAgentSession])
 
   const rerollGeneratedImage = useCallback(
     async (image: PlaygroundImageMeta): Promise<RerollGeneratedImageResult> => {
@@ -1533,6 +1783,9 @@ export function usePlayground() {
     agentDraft,
     agentAttachments,
     agentAttachmentError,
+    agentSessions,
+    currentAgentSessionId,
+    agentSessionsLoading,
     autoApproveAgentImageTasks,
     agentImageTasks,
     referenceImages,
@@ -1544,8 +1797,11 @@ export function usePlayground() {
     generationConcurrency,
     switchModel,
     setInputMode,
-    setAgentModelId,
+    setAgentModelId: setAgentModelIdForSession,
     setAgentThinkingLevel,
+    createAgentSession: createNewAgentSession,
+    switchAgentSession,
+    deleteAgentSession: removeAgentSession,
     setAutoApproveAgentImageTasks,
     setAgentDraft,
     setResolution,

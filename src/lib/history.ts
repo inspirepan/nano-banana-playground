@@ -1,3 +1,4 @@
+import { HISTORY_META_STORE, IMAGE_BLOB_STORE, IMAGE_PREVIEW_STORE, openNanoBananaDB } from './db'
 import type { PlaygroundImage, PlaygroundImageMeta } from './types'
 
 export type ImagePreviewRecord = {
@@ -5,69 +6,10 @@ export type ImagePreviewRecord = {
   mimeType?: string
 }
 
-const DB_NAME = 'nano-banana-playground'
-const DB_VERSION = 4
-const META_STORE = 'history'
-const BLOB_STORE = 'blobs'
-const PREVIEW_STORE = 'previews'
-
-function openDB(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, DB_VERSION)
-    req.onupgradeneeded = (event) => {
-      const db = req.result
-      const tx = req.transaction!
-
-      // v1: create history store
-      if (!db.objectStoreNames.contains(META_STORE)) {
-        const store = db.createObjectStore(META_STORE, { keyPath: 'id' })
-        store.createIndex('timestamp', 'timestamp', { unique: false })
-      }
-
-      // v2: create blobs store + migrate data out of history records
-      if ((event.oldVersion ?? 0) < 2) {
-        if (!db.objectStoreNames.contains(BLOB_STORE)) {
-          db.createObjectStore(BLOB_STORE, { keyPath: 'id' })
-        }
-
-        // Migrate existing records: move `data` field to blobs store
-        if (event.oldVersion >= 1) {
-          const metaStore = tx.objectStore(META_STORE)
-          const blobStore = tx.objectStore(BLOB_STORE)
-          const cursorReq = metaStore.openCursor()
-          cursorReq.onsuccess = () => {
-            const cursor = cursorReq.result
-            if (cursor) {
-              const record = cursor.value
-              if (record.data) {
-                blobStore.put({ id: record.id, data: record.data })
-                const { data: _, ...meta } = record
-                cursor.update(meta)
-              }
-              cursor.continue()
-            }
-          }
-        }
-      }
-
-      // v3: store previews separately from original blobs
-      if ((event.oldVersion ?? 0) < 3) {
-        if (!db.objectStoreNames.contains(PREVIEW_STORE)) {
-          db.createObjectStore(PREVIEW_STORE, { keyPath: 'id' })
-        }
-      }
-
-      // v4: invalidate old low-res previews so they can be regenerated with updated size
-      if ((event.oldVersion ?? 0) < 4) {
-        if (db.objectStoreNames.contains(PREVIEW_STORE)) {
-          tx.objectStore(PREVIEW_STORE).clear()
-        }
-      }
-    }
-    req.onsuccess = () => resolve(req.result)
-    req.onerror = () => reject(req.error)
-  })
-}
+const META_STORE = HISTORY_META_STORE
+const BLOB_STORE = IMAGE_BLOB_STORE
+const PREVIEW_STORE = IMAGE_PREVIEW_STORE
+const openDB = openNanoBananaDB
 
 export async function saveToHistory(image: PlaygroundImage): Promise<void> {
   const db = await openDB()

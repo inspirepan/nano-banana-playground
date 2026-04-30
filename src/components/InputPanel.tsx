@@ -8,7 +8,7 @@ import { Icon } from './Icon'
 import { OpenAILogo } from './ModelLabel'
 import { ReferenceImageUpload } from './ReferenceImageUpload'
 import { Tooltip } from './Tooltip'
-import type { AgentChatAttachment, AgentImageTask } from '../agent'
+import type { AgentChatAttachment, AgentImageTask, AgentSessionSummary } from '../agent'
 import type { AgentModelConfig, AgentThinkingLevel } from '../config/agentModels'
 import {
   MODEL_CONFIGS,
@@ -250,6 +250,9 @@ type Props = {
   agentDraft: string
   agentAttachments: AgentChatAttachment[]
   agentAttachmentError: string | null
+  agentSessions: AgentSessionSummary[]
+  currentAgentSessionId: string | null
+  agentSessionsLoading: boolean
   autoApproveAgentImageTasks: boolean
   agentImageTasks: AgentImageTask[]
   referenceImages: PlaygroundImage[]
@@ -273,13 +276,15 @@ type Props = {
   onAddAgentImageAttachment: (image: PlaygroundImage | PlaygroundImageMeta) => void
   onRemoveAgentAttachment: (id: string) => void
   onClearAgentAttachmentError: () => void
+  onCreateAgentSession: () => void
+  onSwitchAgentSession: (sessionId: string) => void
+  onDeleteAgentSession: (sessionId: string) => void
   onToggleAutoApproveAgentImageTasks: (value: boolean) => void
   onApproveAgentImageTask: (taskId: string) => void
   onCancelAgentImageTask: (taskId: string) => void
   onFocusAgentImageTask?: (task: AgentImageTask) => void
   onSendAgentMessage: () => void
   onStopAgentMessage: () => void
-  onClearAgentChat: () => void
   onBatchCountChange: (v: number) => void
   onOptionChange: (id: string, value: unknown) => void
   onAddReferenceImages: (files: File[]) => void
@@ -308,6 +313,9 @@ export function InputPanel({
   agentDraft,
   agentAttachments,
   agentAttachmentError,
+  agentSessions,
+  currentAgentSessionId,
+  agentSessionsLoading,
   autoApproveAgentImageTasks,
   agentImageTasks,
   referenceImages,
@@ -330,13 +338,15 @@ export function InputPanel({
   onAddAgentImageAttachment,
   onRemoveAgentAttachment,
   onClearAgentAttachmentError,
+  onCreateAgentSession,
+  onSwitchAgentSession,
+  onDeleteAgentSession,
   onToggleAutoApproveAgentImageTasks,
   onApproveAgentImageTask,
   onCancelAgentImageTask,
   onFocusAgentImageTask,
   onSendAgentMessage,
   onStopAgentMessage,
-  onClearAgentChat,
   onBatchCountChange,
   onOptionChange,
   onAddReferenceImages,
@@ -555,6 +565,9 @@ export function InputPanel({
           draft={agentDraft}
           attachments={agentAttachments}
           attachmentError={agentAttachmentError}
+          sessions={agentSessions}
+          currentSessionId={currentAgentSessionId}
+          sessionsLoading={agentSessionsLoading}
           autoApproveImageTasks={autoApproveAgentImageTasks}
           imageTasks={agentImageTasks}
           model={agentModel}
@@ -568,6 +581,9 @@ export function InputPanel({
           onAddImageAttachment={onAddAgentImageAttachment}
           onRemoveAttachment={onRemoveAgentAttachment}
           onClearAttachmentError={onClearAgentAttachmentError}
+          onNewSession={onCreateAgentSession}
+          onSwitchSession={onSwitchAgentSession}
+          onDeleteSession={onDeleteAgentSession}
           onToggleAutoApproveImageTasks={onToggleAutoApproveAgentImageTasks}
           onApproveImageTask={onApproveAgentImageTask}
           onCancelImageTask={onCancelAgentImageTask}
@@ -576,7 +592,6 @@ export function InputPanel({
           onThinkingLevelChange={onAgentThinkingLevelChange}
           onSend={onSendAgentMessage}
           onStop={onStopAgentMessage}
-          onClear={onClearAgentChat}
         />
       ) : (
         <>

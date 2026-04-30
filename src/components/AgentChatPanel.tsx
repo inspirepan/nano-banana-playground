@@ -24,6 +24,7 @@ import {
   type AgentImageTask,
   type AgentMessageToolCall,
   type AgentMessageToolResult,
+  type AgentSessionSummary,
 } from '../agent'
 import { AGENT_THINKING_OPTIONS, type AgentModelConfig, type AgentThinkingLevel } from '../config/agentModels'
 import { MODEL_CONFIGS } from '../config/models'
@@ -40,6 +41,9 @@ type Props = {
   draft: string
   attachments: AgentChatAttachment[]
   attachmentError: string | null
+  sessions: AgentSessionSummary[]
+  currentSessionId: string | null
+  sessionsLoading: boolean
   autoApproveImageTasks: boolean
   imageTasks: AgentImageTask[]
   model: AgentModelConfig
@@ -53,6 +57,9 @@ type Props = {
   onAddImageAttachment: (image: PlaygroundImage | PlaygroundImageMeta) => void
   onRemoveAttachment: (id: string) => void
   onClearAttachmentError: () => void
+  onNewSession: () => void
+  onSwitchSession: (sessionId: string) => void
+  onDeleteSession: (sessionId: string) => void
   onToggleAutoApproveImageTasks: (value: boolean) => void
   onApproveImageTask: (taskId: string) => void
   onCancelImageTask: (taskId: string) => void
@@ -61,7 +68,6 @@ type Props = {
   onThinkingLevelChange: (level: AgentThinkingLevel) => void
   onSend: () => void
   onStop: () => void
-  onClear: () => void
 }
 
 type MarkdownListItem = { lead: string; trail: string[] }
@@ -92,6 +98,19 @@ function taskStatusLabel(status: AgentImageTask['status']): string {
   if (status === 'rejected') return '已取消'
   if (status === 'canceled') return '已取消'
   return '已通过'
+}
+
+function formatSessionTime(timestamp: number): string {
+  const date = new Date(timestamp)
+  const now = new Date()
+  const sameDay =
+    date.getFullYear() === now.getFullYear() &&
+    date.getMonth() === now.getMonth() &&
+    date.getDate() === now.getDate()
+  if (sameDay) {
+    return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
+  }
+  return `${date.getMonth() + 1}/${date.getDate()}`
 }
 
 function hasRenderableMessageContent(message: AgentMessage): boolean {
@@ -922,6 +941,9 @@ export function AgentChatPanel({
   draft,
   attachments,
   attachmentError,
+  sessions,
+  currentSessionId,
+  sessionsLoading,
   autoApproveImageTasks,
   imageTasks,
   model,
@@ -935,6 +957,9 @@ export function AgentChatPanel({
   onAddImageAttachment,
   onRemoveAttachment,
   onClearAttachmentError,
+  onNewSession,
+  onSwitchSession,
+  onDeleteSession,
   onToggleAutoApproveImageTasks,
   onApproveImageTask,
   onCancelImageTask,
@@ -943,16 +968,16 @@ export function AgentChatPanel({
   onThinkingLevelChange,
   onSend,
   onStop,
-  onClear,
 }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const controlsRef = useRef<HTMLDivElement>(null)
-  const [openMenu, setOpenMenu] = useState<'agentOptions' | null>(null)
+  const [openMenu, setOpenMenu] = useState<'agentOptions' | 'sessions' | null>(null)
   const currentKeyStatus = model.provider === 'google' ? googleKeyStatus : openaiKeyStatus
   const keyMissing = currentKeyStatus === 'empty'
   const canSend = !isStreaming && !keyMissing && (draft.trim() !== '' || attachments.length > 0)
+  const currentSession = sessions.find((session) => session.id === currentSessionId)
   const visibleMessages = useMemo(
     () => (streamingMessage ? [...messages, streamingMessage] : messages),
     [messages, streamingMessage],
@@ -961,6 +986,11 @@ export function AgentChatPanel({
     () => buildChatRenderItems(visibleMessages, streamingMessage),
     [visibleMessages, streamingMessage],
   )
+  const showThinkingPlaceholder =
+    isStreaming &&
+    (!streamingMessage ||
+      (!hasRenderableMessageContent(streamingMessage) &&
+        agentMessageToolCalls(streamingMessage).length === 0))
   const imageTaskByToolCallId = useMemo(() => {
     const map = new Map<string, AgentImageTask>()
     for (const task of imageTasks) map.set(task.toolCallId, task)
@@ -1040,6 +1070,7 @@ export function AgentChatPanel({
 
   return (
     <div
+      ref={controlsRef}
       className="flex min-h-[calc(100dvh-126px)] flex-1 flex-col md:min-h-[560px]"
       onDragOver={(event) => event.preventDefault()}
       onDrop={(event) => {
@@ -1066,6 +1097,86 @@ export function AgentChatPanel({
         onAddAttachments(files)
       }}
     >
+      <div className="relative mb-1.5 flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setOpenMenu((prev) => (prev === 'sessions' ? null : 'sessions'))}
+          className="chip ghost min-w-0 max-w-[calc(100%-78px)] shrink justify-start gap-1.5 px-2.5 text-base"
+          style={{ height: 30 }}
+          title="切换 Agent 对话"
+        >
+          <span className="min-w-0 truncate text-left text-(--color-text-2)">
+            {sessionsLoading ? '加载对话…' : (currentSession?.title ?? '新对话')}
+          </span>
+          <Icon name="chevron_right" size={13} className={openMenu === 'sessions' ? '-rotate-90' : 'rotate-90'} />
+        </button>
+        <div className="flex-1" />
+        <button
+          type="button"
+          onClick={onNewSession}
+          disabled={isStreaming}
+          className="chip shrink-0 px-3 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-45"
+          style={{ height: 30, boxShadow: 'inset 0 0 0 1px var(--ring-edge)' }}
+        >
+          新对话
+        </button>
+        {openMenu === 'sessions' && (
+          <div className="absolute top-[36px] left-0 z-50 w-full rounded-[10px] bg-(--color-surface) p-1 shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-float)]">
+            <div className="px-2 py-1.5 text-sm font-medium text-(--color-text-4)">历史对话</div>
+            <div className="max-h-[260px] overflow-y-auto py-0.5">
+              {sessions.length === 0 ? (
+                <div className="px-2 py-4 text-center text-sm text-(--color-text-4)">暂无历史对话</div>
+              ) : (
+                sessions.map((session) => {
+                  const active = session.id === currentSessionId
+                  return (
+                    <button
+                      key={session.id}
+                      type="button"
+                      onClick={() => {
+                        onSwitchSession(session.id)
+                        setOpenMenu(null)
+                      }}
+                      disabled={isStreaming}
+                      className="group flex w-full items-center gap-2 rounded-[7px] px-2 py-1.5 text-left transition-colors hover:bg-(--color-surface-2) disabled:cursor-not-allowed disabled:opacity-55"
+                    >
+                      <span className="min-w-0 flex-1">
+                        <span className="flex min-w-0 items-center gap-1.5">
+                          <span className="truncate text-sm font-medium text-(--color-text-2)">{session.title}</span>
+                          {active && <Icon name="check" size={12} className="shrink-0 text-(--color-accent)" />}
+                        </span>
+                        <span className="mt-0.5 block truncate text-sm text-(--color-text-4)">
+                          {session.previewText || session.firstUserText || '空对话'}
+                        </span>
+                      </span>
+                      <span className="shrink-0 text-sm text-(--color-text-4)">{formatSessionTime(session.updatedAt)}</span>
+                      <span
+                        role="button"
+                        tabIndex={0}
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          onDeleteSession(session.id)
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.key !== 'Enter' && event.key !== ' ') return
+                          event.preventDefault()
+                          event.stopPropagation()
+                          onDeleteSession(session.id)
+                        }}
+                        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-[6px] text-(--color-text-4) opacity-0 transition-opacity hover:bg-(--color-surface-3) hover:text-(--color-danger) group-hover:opacity-100"
+                        aria-label="删除对话"
+                      >
+                        <Icon name="trash" size={12} />
+                      </span>
+                    </button>
+                  )
+                })
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
       {keyMissing && (
         <button
           type="button"
@@ -1090,19 +1201,15 @@ export function AgentChatPanel({
         </button>
       )}
 
-      {messages.length > 0 && !isStreaming && (
-        <div className="mb-1.5 flex justify-end">
-          <button
-            type="button"
-            onClick={onClear}
-            className="bg-transparent p-0 text-sm text-(--color-text-4) transition-colors hover:text-(--color-text-2)"
-          >
-            清空对话
-          </button>
-        </div>
-      )}
-
-      <div ref={scrollRef} className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1 pb-4 [scrollbar-gutter:stable]">
+      <div
+        ref={scrollRef}
+        className="min-h-0 flex-1 space-y-4 overflow-y-auto pt-5 pr-1 pb-8 [scrollbar-gutter:stable]"
+        style={{
+          maskImage: 'linear-gradient(to bottom, transparent 0, black 28px, black calc(100% - 34px), transparent 100%)',
+          WebkitMaskImage:
+            'linear-gradient(to bottom, transparent 0, black 28px, black calc(100% - 34px), transparent 100%)',
+        }}
+      >
         {renderItems.length === 0 ? (
           <div className="flex min-h-[300px] flex-col justify-center text-center">
             <div className="font-display text-lg font-semibold tracking-[-0.01em] text-(--color-text)">
@@ -1129,6 +1236,13 @@ export function AgentChatPanel({
                   onFocusImageTask={onFocusImageTask}
                 />
               ),
+            )}
+            {showThinkingPlaceholder && (
+              <div className="flex justify-start">
+                <div className="mr-3 max-w-[94%]">
+                  <span className="text-(--color-text-4)">正在思考…</span>
+                </div>
+              </div>
             )}
           </>
         )}
@@ -1166,10 +1280,7 @@ export function AgentChatPanel({
             <Icon name="chevron_down" size={15} />
           </button>
         )}
-        <div
-          ref={controlsRef}
-          className="prompt-wrap relative rounded-[12px] bg-(--color-surface) focus-within:shadow-[inset_0_0_0_1px_var(--ring-edge)]"
-        >
+        <div className="prompt-wrap relative rounded-[12px] bg-(--color-surface) focus-within:shadow-[inset_0_0_0_1px_var(--ring-edge)]">
           {openMenu === 'agentOptions' && (
             <div className="absolute right-2 bottom-[46px] z-50 w-[208px] rounded-[10px] bg-(--color-surface) p-1 shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-float)]">
               <button

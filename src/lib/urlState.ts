@@ -9,6 +9,7 @@ export type SimpleUrlParams = {
   aspectRatio: string | null
   batchCount: number | null
   prompt: string | null
+  agentSessionId: string | null
   // Every query param as a raw string, used by callers to look up by option.urlKey.
   rawParams: Record<string, string>
 }
@@ -25,6 +26,7 @@ export function readSimpleUrlParams(): SimpleUrlParams {
     aspectRatio: params.get('a'),
     batchCount: n !== null && !isNaN(n) ? n : null,
     prompt: params.get('p'),
+    agentSessionId: params.get('agent'),
     rawParams,
   }
 }

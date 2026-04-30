@@ -23,6 +23,7 @@ describe('readSimpleUrlParams', () => {
       aspectRatio: '16:9',
       batchCount: 3,
       prompt: 'hello',
+      agentSessionId: null,
       rawParams: {
         m: 'flash-pro',
         r: '2048x2048',
@@ -44,8 +45,14 @@ describe('readSimpleUrlParams', () => {
       aspectRatio: null,
       batchCount: null,
       prompt: null,
+      agentSessionId: null,
       rawParams: {},
     })
+  })
+
+  it('parses active agent session id', () => {
+    mockWindow('?agent=session-123')
+    expect(readSimpleUrlParams().agentSessionId).toBe('session-123')
   })
 
   it('returns null batchCount for non-numeric n', () => {
