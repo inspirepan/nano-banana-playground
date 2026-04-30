@@ -58,7 +58,12 @@ function loadImageElement(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const image = new Image()
     image.decoding = 'async'
-    image.onload = () => resolve(image)
+    image.onload = () => {
+      void image
+        .decode()
+        .catch(() => {})
+        .finally(() => resolve(image))
+    }
     image.onerror = () => reject(new Error('Failed to decode image'))
     image.src = src
   })
@@ -105,6 +110,7 @@ function isCanvasLikelyBrokenPreview(context: CanvasRenderingContext2D, width: n
   let opaqueCount = 0
   let luminanceSum = 0
   let luminanceSquaredSum = 0
+  let minLuminance = 255
   let maxLuminance = 0
 
   for (let i = 0; i < pixels.length; i += 4) {
@@ -114,6 +120,7 @@ function isCanvasLikelyBrokenPreview(context: CanvasRenderingContext2D, width: n
     const luminance = 0.2126 * pixels[i] + 0.7152 * pixels[i + 1] + 0.0722 * pixels[i + 2]
     luminanceSum += luminance
     luminanceSquaredSum += luminance * luminance
+    minLuminance = Math.min(minLuminance, luminance)
     maxLuminance = Math.max(maxLuminance, luminance)
   }
 
@@ -121,7 +128,7 @@ function isCanvasLikelyBrokenPreview(context: CanvasRenderingContext2D, width: n
   const average = luminanceSum / opaqueCount
   const variance = luminanceSquaredSum / opaqueCount - average * average
 
-  return average < 3 && maxLuminance < 12 && variance < 6
+  return (average < 3 && maxLuminance < 12 && variance < 6) || (average > 252 && minLuminance > 244 && variance < 6)
 }
 
 async function isPreviewDataLikelyBroken(preview: PreviewData): Promise<boolean> {

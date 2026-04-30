@@ -130,14 +130,7 @@ export function StackItemThumb({
       <div ref={ref} className="absolute inset-0">
         {image ? (
           src ? (
-            <img
-              src={src}
-              alt=""
-              loading="lazy"
-              decoding="async"
-              draggable={false}
-              className="h-full w-full object-cover"
-            />
+            <img src={src} alt="" decoding="async" draggable={false} className="h-full w-full object-cover" />
           ) : (
             <div className="h-full w-full skeleton-animated" />
           )
