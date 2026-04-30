@@ -1,5 +1,7 @@
 import type { AppMessage as AgentMessage, Attachment } from '@mariozechner/pi-agent'
 
+import { compressImageForAgentInput } from './imageCompression'
+
 export type AgentChatAttachment = {
   id: string
   data: string
@@ -117,6 +119,18 @@ export function attachmentToAgentAttachment(attachment: AgentChatAttachment): At
     mimeType: attachment.mimeType,
     size: attachment.size,
     content: attachment.data,
+  }
+}
+
+export async function compressedAttachmentToAgentAttachment(attachment: AgentChatAttachment): Promise<Attachment> {
+  const image = await compressImageForAgentInput({ data: attachment.data, mimeType: attachment.mimeType })
+  return {
+    id: attachment.id,
+    type: 'image',
+    fileName: attachment.fileName,
+    mimeType: image.mimeType,
+    size: image.size,
+    content: image.data,
   }
 }
 

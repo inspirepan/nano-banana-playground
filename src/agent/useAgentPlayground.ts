@@ -1,7 +1,8 @@
 import { Agent, ProviderTransport, type AppMessage as AgentMessage } from '@mariozechner/pi-agent'
 import { useCallback, useRef, useState } from 'react'
 
-import { attachmentToAgentAttachment, type AgentChatAttachment } from './agentChat'
+import { compressedAttachmentToAgentAttachment, type AgentChatAttachment } from './agentChat'
+import { compressImageForAgentInput } from './imageCompression'
 import {
   AGENT_PROMPT_DEFAULT_LINE_LIMIT,
   formatPromptLines,
@@ -274,6 +275,7 @@ export function useAgentPlayground({
   const agentSessionSidecarPersistQueueRef = useRef<Promise<void>>(Promise.resolve())
   const agentSessionReadyRef = useRef(false)
   const agentSessionSidecarDebounceRef = useRef<number>(0)
+  const agentPromptPreparingRef = useRef(false)
   const referenceImagesRef = useRef<PlaygroundImage[]>([])
   const historyRef = useRef<PlaygroundImageMeta[]>([])
   const generationJobsRefForAgent = useRef<GenerationJob[]>([])
@@ -332,6 +334,10 @@ export function useAgentPlayground({
   }, [agentAttachments, agentDraft])
 
   const canLeaveCurrentAgentSession = useCallback(() => {
+    if (agentPromptPreparingRef.current) {
+      setAgentError('Agent 正在准备发送图片，请稍后再切换对话。')
+      return false
+    }
     const activeTask = agentImageTasksRef.current.find((task) => !isTerminalAgentImageTaskStatus(task.status))
     if (!activeTask) return true
     setAgentError('当前对话还有未完成的 Agent 生图任务，请先审批、取消或等待完成后再切换对话。')
@@ -1096,6 +1102,10 @@ export function useAgentPlayground({
       const promptOutputText = generated
         ? formatPromptLines(generated.prompt, 1, AGENT_PROMPT_DEFAULT_LINE_LIMIT)
         : undefined
+      const imageForAgent = await compressImageForAgentInput({
+        data: result.image.data,
+        mimeType: result.image.mimeType,
+      })
       const payload = {
         image_id: imageId,
         status: 'ready',
@@ -1121,7 +1131,7 @@ export function useAgentPlayground({
       return {
         content: [
           { type: 'text', text: JSON.stringify(payload, null, 2) },
-          { type: 'image', data: result.image.data, mimeType: result.image.mimeType },
+          { type: 'image', data: imageForAgent.data, mimeType: imageForAgent.mimeType },
         ],
         details: payload,
       }
@@ -1201,11 +1211,12 @@ export function useAgentPlayground({
 
   const sendAgentMessage = useCallback(() => {
     const trimmed = agentDraft.trim()
-    if (agentIsStreaming || (!trimmed && agentAttachments.length === 0)) return
+    if (agentIsStreaming || agentPromptPreparingRef.current || (!trimmed && agentAttachments.length === 0)) return
     if (!currentAgentSessionIdRef.current) {
       setAgentError('Agent 对话还在加载，请稍后再发送。')
       return
     }
+    const sessionId = currentAgentSessionIdRef.current
 
     const credentials = agentCredentialsRef.current[agentModel.provider]
     if (!credentials.apiKey) {
@@ -1215,11 +1226,11 @@ export function useAgentPlayground({
 
     const agent = getOrCreateAgent()
     applyAgentRuntimeConfig(agent, agentModel)
-    const images = agentAttachments.map(attachmentToAgentAttachment)
+    const attachmentsToSend = agentAttachments
     const attachmentIds = agentAttachments.map((attachment) => attachment.id)
     const attachmentNote = attachmentIds.length > 0 ? `\n\n可用附件图片 ID：${attachmentIds.join('、')}` : ''
     const promptText = `${trimmed || '请分析这些图片。'}${attachmentNote}`
-    for (const attachment of agentAttachments) {
+    for (const attachment of attachmentsToSend) {
       if (agentImageRegistryRef.current.get(attachment.id)?.status === 'ready') continue
       agentImageRegistryRef.current.set(attachment.id, {
         id: attachment.id,
@@ -1233,16 +1244,27 @@ export function useAgentPlayground({
     setAgentDraft('')
     setAgentAttachments([])
     setAgentAttachmentError(null)
+    agentPromptPreparingRef.current = true
     syncAgentSnapshot(agent)
+    setAgentIsStreaming(true)
 
-    void agent
-      .prompt(promptText, images)
+    void Promise.all(attachmentsToSend.map(compressedAttachmentToAgentAttachment))
+      .then((images) => {
+        if (currentAgentSessionIdRef.current !== sessionId || agentRef.current !== agent) return undefined
+        return agent.prompt(promptText, images)
+      })
       .then(() => {
         const message = getAgentError(agent)
         if (message && isKeyError(message)) invalidateGenerationKey(agentModel.provider)
       })
-      .finally(() => syncAgentSnapshot(agent))
-      .finally(() => maybeDispatchAgentImageCallbacks())
+      .catch((error: unknown) => {
+        setAgentError(error instanceof Error ? error.message : String(error))
+      })
+      .finally(() => {
+        agentPromptPreparingRef.current = false
+        syncAgentSnapshot(agent)
+        maybeDispatchAgentImageCallbacks()
+      })
   }, [
     agentAttachments,
     agentDraft,
