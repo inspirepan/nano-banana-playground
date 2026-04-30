@@ -449,14 +449,14 @@ function MessageBubble({ message, isStreaming }: { message: AgentMessage; isStre
   if (isSystemEvent) {
     return (
       <div className="flex justify-start">
-        <div className="mr-3 max-w-[94%] text-(--color-text-4)">{summarizeSystemEvent(trimmedText)}</div>
+        <div className="mr-3 max-w-[94%] pl-3 text-(--color-text-4)">{summarizeSystemEvent(trimmedText)}</div>
       </div>
     )
   }
 
   return (
     <div className={`flex ${isUser ? '' : 'justify-start'}`}>
-      <div className={isUser ? 'w-full' : 'mr-3 max-w-[94%]'}>
+      <div className={isUser ? 'w-full' : 'mr-3 max-w-[94%] pl-3'}>
         <div
           className={
             isUser
@@ -532,22 +532,25 @@ function MessageBubble({ message, isStreaming }: { message: AgentMessage; isStre
 function ToolCallRow({ call, result }: { call: AgentMessageToolCall; result: AgentMessageToolResult | undefined }) {
   const failed = result?.isError === true
   const done = Boolean(result)
+  const showStatusBadge = !done || failed
   return (
     <div className="flex items-start gap-2 rounded-[7px] px-1.5 py-1">
-      <span
-        className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-[5px]"
-        style={{
-          background: failed ? 'var(--color-danger-soft)' : 'var(--color-surface-2)',
-          color: failed ? 'var(--color-danger)' : 'var(--color-text-3)',
-          boxShadow: 'inset 0 0 0 1px var(--ring-edge-soft)',
-        }}
-      >
-        {done ? (
-          <Icon name={failed ? 'alert_circle' : 'check'} size={11} />
-        ) : (
-          <span className="spinner" style={{ width: 10, height: 10 }} />
-        )}
-      </span>
+      {showStatusBadge && (
+        <span
+          className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-[5px]"
+          style={{
+            background: failed ? 'var(--color-danger-soft)' : 'var(--color-surface-2)',
+            color: failed ? 'var(--color-danger)' : 'var(--color-text-3)',
+            boxShadow: 'inset 0 0 0 1px var(--ring-edge-soft)',
+          }}
+        >
+          {failed ? (
+            <Icon name="alert_circle" size={11} />
+          ) : (
+            <span className="spinner" style={{ width: 10, height: 10 }} />
+          )}
+        </span>
+      )}
       <span className="min-w-0 flex-1">
         <span className="flex min-w-0 items-center gap-1.5">
           <span className="truncate text-sm font-medium text-(--color-text-2)">{toolLabel(call.name)}</span>
@@ -565,9 +568,11 @@ function ToolCallRow({ call, result }: { call: AgentMessageToolCall; result: Age
 function StandaloneToolResultRow({ result }: { result: AgentMessageToolResult }) {
   return (
     <div className="flex items-start gap-2 rounded-[7px] px-1.5 py-1">
-      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-[5px] bg-(--color-surface-2) text-(--color-text-3) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
-        <Icon name={result.isError ? 'alert_circle' : 'check'} size={11} />
-      </span>
+      {result.isError && (
+        <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-[5px] bg-(--color-danger-soft) text-(--color-danger) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
+          <Icon name="alert_circle" size={11} />
+        </span>
+      )}
       <span className="min-w-0 flex-1">
         <span className="text-sm font-medium text-(--color-text-2)">{toolLabel(result.toolName)}</span>
         <span className="mt-0.5 block truncate text-sm text-(--color-text-3)">{summarizeToolResult(result)}</span>
@@ -889,7 +894,7 @@ function AskUserQuestionForm({
               <div className="flex flex-wrap gap-1.5">
                 {question.options.map((option) => {
                   const checked = entry.selected.includes(option.label)
-                  const shapeClass = question.multi_select ? 'rounded-[var(--radius-sm)] px-2.5' : 'rounded-full px-3.5'
+                  const shapeClass = question.multi_select ? 'rounded-[var(--radius-sm)] px-2.5' : 'rounded-full px-5'
                   return (
                     <button
                       key={option.label}
@@ -927,7 +932,7 @@ function AskUserQuestionForm({
                 onChange={(event) => setNote(index, event.target.value)}
                 placeholder="补充说明（可选）"
                 className={`h-7 min-w-[12em] max-w-full bg-(--color-surface) text-sm text-(--color-text) shadow-[inset_0_0_0_1px_var(--ring-edge)] placeholder:text-(--color-text-4) focus:shadow-[inset_0_0_0_1px_var(--color-accent-ring)] focus:outline-none ${
-                  question.multi_select ? 'rounded-[var(--radius-sm)] px-2.5' : 'rounded-full px-3.5'
+                  question.multi_select ? 'rounded-[var(--radius-sm)] px-2.5' : 'rounded-full px-5'
                 }`}
                 style={{ fieldSizing: 'content' } as React.CSSProperties}
               />
@@ -997,12 +1002,14 @@ function AskUserQuestionResultCard({ call, result }: { call: AgentMessageToolCal
                     .slice(answerStart, noteLine ? lines.indexOf(noteLine) : lines.length)
                     .map((line, lineIndex) => (lineIndex === 0 ? line.replace(/^Answer:\s*/, '') : line))
                 : []
+            const answerText = answerLines.join('\n').trim()
+            const isDismissed = /User dismissed the form|dismissed the form/i.test(answerText)
+            const isEmpty = /^\(No (?:answer provided|option selected)\.\)$/i.test(answerText)
+            const displayAnswer = isDismissed ? '已跳过' : isEmpty ? '未作答' : answerText
             return (
               <div key={index} className="space-y-0.5">
                 <div className="text-sm font-semibold text-(--color-text)">{questionText}</div>
-                <div className="whitespace-pre-wrap text-sm leading-[1.55] text-(--color-text-3)">
-                  {answerLines.join('\n').trim()}
-                </div>
+                <div className="whitespace-pre-wrap text-sm leading-[1.55] text-(--color-text-3)">{displayAnswer}</div>
                 {noteLine && (
                   <div className="text-sm leading-[1.55] text-(--color-text-4)">
                     {noteLine.replace(/^Note:\s*/, '补充：')}
@@ -1091,6 +1098,14 @@ function ToolActivityCard({
         inlineNotices.push(<InlineToolNotice key={call.id} label="正在读取图片…" />)
         continue
       }
+      const imageId = typeof call.arguments.image_id === 'string' ? call.arguments.image_id : '图片'
+      if (finished.isError) {
+        const errText = finished.text?.trim() || '读取失败'
+        inlineNotices.push(<InlineToolDone key={call.id} label={`读取图片 ${imageId} 失败：${errText}`} />)
+      } else {
+        inlineNotices.push(<InlineToolDone key={call.id} label={`已读取图片 ${imageId}`} />)
+      }
+      continue
     }
     compactRows.push(<ToolCallRow key={call.id} call={call} result={resultByCallId.get(call.id)} />)
   }
@@ -1124,10 +1139,18 @@ function ToolActivityCard({
 function InlineToolNotice({ label }: { label: string }) {
   return (
     <div className="flex justify-start">
-      <div className="mr-3 flex max-w-[94%] items-center gap-2 text-(--color-text-4)">
+      <div className="mr-3 flex max-w-[94%] items-center gap-2 pl-3 text-(--color-text-4)">
         <span className="spinner" style={{ width: 10, height: 10 }} />
         <span>{label}</span>
       </div>
+    </div>
+  )
+}
+
+function InlineToolDone({ label }: { label: string }) {
+  return (
+    <div className="flex justify-start">
+      <div className="mr-3 max-w-[94%] pl-3 text-(--color-text-4)">{label}</div>
     </div>
   )
 }

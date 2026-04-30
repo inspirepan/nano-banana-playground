@@ -1507,55 +1507,89 @@ export function useAgentPlayground({
     }
 
     // If a question form is awaiting user input, treat the composer message as
-    // "skip the form, here's my freer answer". Cancel each pending question so
-    // the AskUserQuestion tool returns a cancelled toolResult, then the queued
-    // user message picks up the conversation.
+    // "skip the form, here's my freer answer".
     const pendingQuestionsToCancel = agentPendingQuestionsRef.current.slice()
-    for (const question of pendingQuestionsToCancel) cancelAgentQuestion(question.toolCallId)
+    const hasInFlightResolver = pendingQuestionsToCancel.some((question) =>
+      agentQuestionResolversRef.current.has(question.toolCallId),
+    )
+    // In-flight = there's a live agent.prompt() running we can steer via the
+    // message queue. Restored sessions have pending questions but no live
+    // loop, so we append a synthetic toolResult and start a fresh prompt.
+    const inFlight = agentIsStreaming || hasInFlightResolver
 
-    const wasStreaming = agentIsStreaming || pendingQuestionsToCancel.length > 0
     setAgentDraft('')
     setAgentAttachments([])
     setAgentAttachmentError(null)
+    // The prep ref guards only the async attachment-compression window before
+    // prompt()/queueMessage is dispatched. It must NOT remain set for the
+    // entire agent.prompt() lifetime — otherwise the user can never queue a
+    // followup while the agent is mid-stream.
     agentPromptPreparingRef.current = true
-    if (!wasStreaming) {
+    if (!inFlight) {
       currentAgentTurnIdRef.current = crypto.randomUUID()
       setAgentIsStreaming(true)
     }
     syncAgentSnapshot(agent)
 
-    void Promise.all(attachmentsToSend.map(compressedAttachmentToAgentAttachment))
-      .then(async (images) => {
+    void (async () => {
+      try {
+        const images = await Promise.all(attachmentsToSend.map(compressedAttachmentToAgentAttachment))
         if (currentAgentSessionIdRef.current !== sessionId || agentRef.current !== agent) return
-        if (wasStreaming) {
+        if (inFlight) {
           const content: Array<{ type: 'text'; text: string } | { type: 'image'; data: string; mimeType: string }> = [
             { type: 'text', text: promptText },
           ]
           for (const image of images) {
             if (image.type === 'image') content.push({ type: 'image', data: image.content, mimeType: image.mimeType })
           }
+          // 1) Queue the followup BEFORE resolving any AskUserQuestion. This
+          //    matters because pi-agent's loop reads the queue right after the
+          //    tool's Promise resolves, and `agent.queueMessage` itself awaits
+          //    a message-transformer microtask before pushing — so resolving
+          //    first would let `getQueuedMessages` see an empty queue and the
+          //    LLM would respond once for the cancelled tool, then again for
+          //    the followup. Queuing first keeps it to a single turn.
           await agent.queueMessage({
             role: 'user',
             content,
             attachments: images.length > 0 ? images : undefined,
             timestamp: Date.now(),
           })
+          // 2) Now resolve the pending question forms; the in-flight agent
+          //    loop picks up the cancelled toolResult and drains the queue in
+          //    the same iteration.
+          for (const question of pendingQuestionsToCancel) cancelAgentQuestion(question.toolCallId)
           return
         }
-        await agent.prompt(promptText, images)
-      })
-      .then(() => {
-        const message = getAgentError(agent)
-        if (message && isKeyError(message)) invalidateGenerationKey(agentModel.provider)
-      })
-      .catch((error: unknown) => {
+        // Not in-flight (fresh send, or restored session with a pending form).
+        // For restored pending forms we synchronously append a cancelled
+        // toolResult so the next prompt sees a well-formed transcript, then
+        // start a fresh prompt with the user's followup as the user message.
+        for (const question of pendingQuestionsToCancel) cancelAgentQuestion(question.toolCallId)
+        // Fire-and-forget: release the prep lock once prompt() has been
+        // dispatched (state.isStreaming flips inside it synchronously).
+        const promptPromise = agent.prompt(promptText, images)
+        agentPromptPreparingRef.current = false
+        promptPromise
+          .then(() => {
+            const errorMessage = getAgentError(agent)
+            if (errorMessage && isKeyError(errorMessage)) invalidateGenerationKey(agentModel.provider)
+          })
+          .catch((error: unknown) => {
+            setAgentError(error instanceof Error ? error.message : String(error))
+          })
+          .finally(() => {
+            syncAgentSnapshot(agent)
+            maybeDispatchAgentImageCallbacks()
+          })
+      } catch (error) {
         setAgentError(error instanceof Error ? error.message : String(error))
-      })
-      .finally(() => {
+      } finally {
         agentPromptPreparingRef.current = false
         syncAgentSnapshot(agent)
         maybeDispatchAgentImageCallbacks()
-      })
+      }
+    })()
   }, [
     agentAttachments,
     agentDraft,
