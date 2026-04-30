@@ -775,7 +775,7 @@ export function AgentChatPanel({
 
   return (
     <div
-      className="flex min-h-[560px] flex-1 flex-col"
+      className="flex min-h-[calc(100dvh-126px)] flex-1 flex-col md:min-h-[560px]"
       onDragOver={(event) => event.preventDefault()}
       onDrop={(event) => {
         event.preventDefault()

@@ -1,6 +1,7 @@
 import { Agentation } from 'agentation'
 import { useState, useLayoutEffect, useRef, useCallback } from 'react'
 
+import { Icon } from './components/Icon'
 import { InputPanel } from './components/InputPanel'
 import { OutputPanel } from './components/OutputPanel'
 import { SettingsDialog } from './components/SettingsDialog'
@@ -23,6 +24,7 @@ const GOOGLE_FONTS_LINK_ID = 'nano-banana-google-fonts'
 const GOOGLE_FONT_PREVIEWS_LINK_ID = 'nano-banana-google-font-previews'
 
 type SettingsTarget = 'generationConcurrency'
+type MobileTab = 'generate' | 'agent' | 'gallery'
 
 function getInitialTheme(): Theme {
   const stored = localStorage.getItem('nano-banana-theme')
@@ -88,14 +90,14 @@ function App() {
   const [regenToast, setRegenToast] = useState<string | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [settingsTarget, setSettingsTarget] = useState<SettingsTarget | null>(null)
+  const [mobileTab, setMobileTab] = useState<MobileTab>(() => (pg.inputMode === 'agent' ? 'agent' : 'generate'))
   const regenToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const titleResetTimerRef = useRef<number | null>(null)
   const prevActiveQueueRef = useRef(0)
+  const mobilePanelScrollRef = useRef<HTMLDivElement>(null)
   const queueSummary = pg.generationQueueSummary
   const queueActive = queueSummary.queued + queueSummary.running + queueSummary.retrying
   const queueDone = queueSummary.succeeded + queueSummary.failed + queueSummary.canceled
-
-  const mobileOutputAreaRef = useRef<HTMLDivElement>(null)
 
   const handleAddToRef = useCallback(
     (image: PlaygroundImageMeta) => {
@@ -156,6 +158,22 @@ function App() {
     setSettingsOpen(true)
   }, [])
 
+  const switchInputMode = useCallback(
+    (mode: 'generate' | 'agent') => {
+      pg.setInputMode(mode)
+      setMobileTab(mode)
+    },
+    [pg],
+  )
+
+  const switchMobileTab = useCallback(
+    (tab: MobileTab) => {
+      setMobileTab(tab)
+      if (tab === 'generate' || tab === 'agent') pg.setInputMode(tab)
+    },
+    [pg],
+  )
+
   useLayoutEffect(() => {
     const root = document.documentElement
     COLOR_THEME_IDS.forEach((id) => root.classList.remove(`theme-${id}`))
@@ -175,6 +193,10 @@ function App() {
     }
     localStorage.setItem('nano-banana-sans-font', sansFont)
   }, [sansFont, settingsOpen])
+
+  useLayoutEffect(() => {
+    mobilePanelScrollRef.current?.scrollTo({ top: 0 })
+  }, [mobileTab])
 
   useExternalSync(() => {
     const root = document.documentElement
@@ -242,95 +264,134 @@ function App() {
   const handleGenerate = () => {
     pg.generate()
     if (window.innerWidth < 768) {
-      setTimeout(() => {
-        mobileOutputAreaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-      }, 100)
+      setMobileTab('gallery')
     }
+  }
+
+  const handleMobileFocusAgentImageTask = (taskId: string) => {
+    setMobileTab('gallery')
+    pg.focusAgentImageTask(taskId)
   }
 
   return (
     <>
       {/* Mobile layout */}
-      <div className="flex flex-col h-[100dvh] md:hidden overflow-y-auto bg-(--color-bg)">
-        <div className="px-3">
-          <InputPanel
-            inputMode={pg.inputMode}
-            model={pg.model}
-            resolution={pg.resolution}
-            aspectRatio={pg.aspectRatio}
-            batchCount={pg.batchCount}
-            options={pg.options}
-            prompt={pg.prompt}
-            agentModels={pg.agentModels}
-            agentModel={pg.agentModel}
-            agentThinkingLevel={pg.agentThinkingLevel}
-            agentMessages={pg.agentMessages}
-            agentStreamingMessage={pg.agentStreamingMessage}
-            agentIsStreaming={pg.agentIsStreaming}
-            agentError={pg.agentError}
-            agentDraft={pg.agentDraft}
-            agentAttachments={pg.agentAttachments}
-            agentAttachmentError={pg.agentAttachmentError}
-            autoApproveAgentImageTasks={pg.autoApproveAgentImageTasks}
-            agentImageTasks={pg.agentImageTasks}
-            referenceImages={pg.referenceImages}
-            referenceImageError={pg.referenceImageError}
-            apiKey={pg.apiKey}
-            apiKeyStatus={pg.apiKeyStatus}
-            googleKeyStatus={pg.googleKey.status}
-            openaiKeyStatus={pg.openaiKey.status}
-            onOpenApiKeys={() => openSettings()}
-            onInputModeChange={pg.setInputMode}
-            onSwitchModel={pg.switchModel}
-            onResolutionChange={pg.setResolution}
-            onAspectRatioChange={pg.setAspectRatio}
-            onPromptChange={pg.setPrompt}
-            onAgentModelChange={pg.setAgentModelId}
-            onAgentThinkingLevelChange={pg.setAgentThinkingLevel}
-            onAgentDraftChange={pg.setAgentDraft}
-            onAddAgentAttachments={pg.addAgentAttachments}
-            onAddAgentImageAttachment={pg.addAgentImageAttachment}
-            onRemoveAgentAttachment={pg.removeAgentAttachment}
-            onClearAgentAttachmentError={pg.clearAgentAttachmentError}
-            onToggleAutoApproveAgentImageTasks={pg.setAutoApproveAgentImageTasks}
-            onApproveAgentImageTask={pg.approveAgentImageTask}
-            onCancelAgentImageTask={pg.cancelAgentImageTask}
-            onFocusAgentImageTask={pg.focusAgentImageTask}
-            onSendAgentMessage={pg.sendAgentMessage}
-            onStopAgentMessage={pg.stopAgentMessage}
-            onClearAgentChat={pg.clearAgentChat}
-            onBatchCountChange={pg.setBatchCount}
-            onOptionChange={pg.setOption}
-            onAddReferenceImages={pg.addReferenceImages}
-            onAddReferenceImage={pg.addToReferences}
-            onRemoveReferenceImage={pg.removeReferenceImage}
-            onClearAllReferences={pg.clearAllReferences}
-            onClearReferenceImageError={pg.clearReferenceImageError}
-            onGenerate={handleGenerate}
-          />
-          <div ref={mobileOutputAreaRef} className="pt-5 shadow-[inset_0_1px_0_var(--ring-edge-soft)]">
-            <OutputPanel
-              history={pg.history}
-              historyHasMore={pg.historyHasMore}
-              generationJobs={pg.generationJobs}
-              agentImageTasks={pg.agentImageTasks}
-              focusedAgentImageTaskId={pg.focusedAgentImageTaskId}
-              onCancelGenerationJob={pg.cancelGenerationJob}
-              onDismissGenerationJob={pg.dismissGenerationJob}
-              onCancelGenerationSlot={pg.cancelGenerationSlot}
-              onRetryGenerationSlot={handleRetryGenerationSlot}
-              onAddToRef={handleAddToRef}
-              onRegenerate={handleRegenerate}
-              onReroll={handleReroll}
-              onEditImage={pg.editImage}
-              onRemove={pg.removeFromHistory}
-              onLoadMore={pg.loadMoreHistory}
-              onOpenGenerationSettings={() => openSettings('generationConcurrency')}
-              onApproveAgentImageTask={pg.approveAgentImageTask}
-              onCancelAgentImageTask={pg.cancelAgentImageTask}
-              onFocusedAgentImageTask={pg.clearFocusedAgentImageTask}
-            />
+      <div className="flex h-[100dvh] flex-col overflow-hidden bg-(--color-bg) md:hidden">
+        <div className="shrink-0 px-3 pt-3 pb-2">
+          <div className="mb-2 flex min-h-[30px] items-center gap-2.5">
+            <div className="min-w-0 font-display text-lg font-semibold tracking-[-0.01em] text-(--color-text)">
+              Imagine Playground
+            </div>
+            <div className="flex-1" />
+            <button type="button" onClick={() => openSettings()} className="icon-btn" title="设置" aria-label="设置">
+              <Icon name="settings" size={14} />
+            </button>
           </div>
+          <div
+            className="segmented"
+            style={{
+              ['--seg-count' as string]: 3,
+              ['--seg-index' as string]: mobileTab === 'generate' ? 0 : mobileTab === 'agent' ? 1 : 2,
+            }}
+            aria-label="移动端面板"
+          >
+            <button type="button" data-active={mobileTab === 'generate'} onClick={() => switchMobileTab('generate')}>
+              生成
+            </button>
+            <button type="button" data-active={mobileTab === 'agent'} onClick={() => switchMobileTab('agent')}>
+              Agent
+            </button>
+            <button type="button" data-active={mobileTab === 'gallery'} onClick={() => switchMobileTab('gallery')}>
+              图库
+            </button>
+          </div>
+        </div>
+
+        <div ref={mobilePanelScrollRef} className="min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]">
+          {mobileTab !== 'gallery' ? (
+            <div className="px-3">
+              <InputPanel
+                inputMode={mobileTab === 'agent' ? 'agent' : 'generate'}
+                model={pg.model}
+                resolution={pg.resolution}
+                aspectRatio={pg.aspectRatio}
+                batchCount={pg.batchCount}
+                options={pg.options}
+                prompt={pg.prompt}
+                agentModels={pg.agentModels}
+                agentModel={pg.agentModel}
+                agentThinkingLevel={pg.agentThinkingLevel}
+                agentMessages={pg.agentMessages}
+                agentStreamingMessage={pg.agentStreamingMessage}
+                agentIsStreaming={pg.agentIsStreaming}
+                agentError={pg.agentError}
+                agentDraft={pg.agentDraft}
+                agentAttachments={pg.agentAttachments}
+                agentAttachmentError={pg.agentAttachmentError}
+                autoApproveAgentImageTasks={pg.autoApproveAgentImageTasks}
+                agentImageTasks={pg.agentImageTasks}
+                referenceImages={pg.referenceImages}
+                referenceImageError={pg.referenceImageError}
+                apiKey={pg.apiKey}
+                apiKeyStatus={pg.apiKeyStatus}
+                googleKeyStatus={pg.googleKey.status}
+                openaiKeyStatus={pg.openaiKey.status}
+                showHeader={false}
+                onOpenApiKeys={() => openSettings()}
+                onInputModeChange={switchInputMode}
+                onSwitchModel={pg.switchModel}
+                onResolutionChange={pg.setResolution}
+                onAspectRatioChange={pg.setAspectRatio}
+                onPromptChange={pg.setPrompt}
+                onAgentModelChange={pg.setAgentModelId}
+                onAgentThinkingLevelChange={pg.setAgentThinkingLevel}
+                onAgentDraftChange={pg.setAgentDraft}
+                onAddAgentAttachments={pg.addAgentAttachments}
+                onAddAgentImageAttachment={pg.addAgentImageAttachment}
+                onRemoveAgentAttachment={pg.removeAgentAttachment}
+                onClearAgentAttachmentError={pg.clearAgentAttachmentError}
+                onToggleAutoApproveAgentImageTasks={pg.setAutoApproveAgentImageTasks}
+                onApproveAgentImageTask={pg.approveAgentImageTask}
+                onCancelAgentImageTask={pg.cancelAgentImageTask}
+                onFocusAgentImageTask={handleMobileFocusAgentImageTask}
+                onSendAgentMessage={pg.sendAgentMessage}
+                onStopAgentMessage={pg.stopAgentMessage}
+                onClearAgentChat={pg.clearAgentChat}
+                onBatchCountChange={pg.setBatchCount}
+                onOptionChange={pg.setOption}
+                onAddReferenceImages={pg.addReferenceImages}
+                onAddReferenceImage={pg.addToReferences}
+                onRemoveReferenceImage={pg.removeReferenceImage}
+                onClearAllReferences={pg.clearAllReferences}
+                onClearReferenceImageError={pg.clearReferenceImageError}
+                onGenerate={handleGenerate}
+              />
+            </div>
+          ) : (
+            <div className="px-3 py-[18px]">
+              <OutputPanel
+                history={pg.history}
+                historyHasMore={pg.historyHasMore}
+                generationJobs={pg.generationJobs}
+                agentImageTasks={pg.agentImageTasks}
+                focusedAgentImageTaskId={pg.focusedAgentImageTaskId}
+                onCancelGenerationJob={pg.cancelGenerationJob}
+                onDismissGenerationJob={pg.dismissGenerationJob}
+                onCancelGenerationSlot={pg.cancelGenerationSlot}
+                onRetryGenerationSlot={handleRetryGenerationSlot}
+                onAddToRef={handleAddToRef}
+                onRegenerate={handleRegenerate}
+                onReroll={handleReroll}
+                onEditImage={pg.editImage}
+                onRemove={pg.removeFromHistory}
+                onLoadMore={pg.loadMoreHistory}
+                onOpenGenerationSettings={() => openSettings('generationConcurrency')}
+                onApproveAgentImageTask={pg.approveAgentImageTask}
+                onCancelAgentImageTask={pg.cancelAgentImageTask}
+                onFocusedAgentImageTask={pg.clearFocusedAgentImageTask}
+              />
+            </div>
+          )}
         </div>
       </div>
 
@@ -366,7 +427,7 @@ function App() {
               googleKeyStatus={pg.googleKey.status}
               openaiKeyStatus={pg.openaiKey.status}
               onOpenApiKeys={() => openSettings()}
-              onInputModeChange={pg.setInputMode}
+              onInputModeChange={switchInputMode}
               onSwitchModel={pg.switchModel}
               onResolutionChange={pg.setResolution}
               onAspectRatioChange={pg.setAspectRatio}
