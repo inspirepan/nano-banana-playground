@@ -8,7 +8,13 @@ import { Icon } from './Icon'
 import { OpenAILogo } from './ModelLabel'
 import { ReferenceImageUpload } from './ReferenceImageUpload'
 import { Tooltip } from './Tooltip'
-import type { AgentChatAttachment, AgentImageTask, AgentSessionSummary } from '../agent'
+import type {
+  AgentChatAttachment,
+  AgentImageTask,
+  AgentPendingQuestion,
+  AgentSessionSummary,
+  AskUserQuestionAnswer,
+} from '../agent'
 import type { AgentModelConfig, AgentThinkingLevel } from '../config/agentModels'
 import {
   MODEL_CONFIGS,
@@ -255,6 +261,7 @@ type Props = {
   agentSessionsLoading: boolean
   autoApproveAgentImageTasks: boolean
   agentImageTasks: AgentImageTask[]
+  agentPendingQuestions: AgentPendingQuestion[]
   referenceImages: PlaygroundImage[]
   referenceImageError: string | null
   apiKey: string
@@ -282,6 +289,8 @@ type Props = {
   onToggleAutoApproveAgentImageTasks: (value: boolean) => void
   onApproveAgentImageTask: (taskId: string) => void
   onCancelAgentImageTask: (taskId: string) => void
+  onSubmitAgentQuestionAnswers: (toolCallId: string, answers: AskUserQuestionAnswer[]) => void
+  onCancelAgentQuestion: (toolCallId: string) => void
   onFocusAgentImageTask?: (task: AgentImageTask) => void
   onSendAgentMessage: () => void
   onStopAgentMessage: () => void
@@ -318,6 +327,7 @@ export function InputPanel({
   agentSessionsLoading,
   autoApproveAgentImageTasks,
   agentImageTasks,
+  agentPendingQuestions,
   referenceImages,
   referenceImageError,
   apiKey,
@@ -344,6 +354,8 @@ export function InputPanel({
   onToggleAutoApproveAgentImageTasks,
   onApproveAgentImageTask,
   onCancelAgentImageTask,
+  onSubmitAgentQuestionAnswers,
+  onCancelAgentQuestion,
   onFocusAgentImageTask,
   onSendAgentMessage,
   onStopAgentMessage,
@@ -570,6 +582,7 @@ export function InputPanel({
           sessionsLoading={agentSessionsLoading}
           autoApproveImageTasks={autoApproveAgentImageTasks}
           imageTasks={agentImageTasks}
+          pendingQuestions={agentPendingQuestions}
           model={agentModel}
           models={agentModels}
           thinkingLevel={agentThinkingLevel}
@@ -587,6 +600,8 @@ export function InputPanel({
           onToggleAutoApproveImageTasks={onToggleAutoApproveAgentImageTasks}
           onApproveImageTask={onApproveAgentImageTask}
           onCancelImageTask={onCancelAgentImageTask}
+          onSubmitQuestionAnswers={onSubmitAgentQuestionAnswers}
+          onCancelQuestion={onCancelAgentQuestion}
           onFocusImageTask={onFocusAgentImageTask}
           onModelChange={onAgentModelChange}
           onThinkingLevelChange={onAgentThinkingLevelChange}

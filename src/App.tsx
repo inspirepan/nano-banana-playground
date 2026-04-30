@@ -352,6 +352,7 @@ function App() {
                 agentSessionsLoading={pg.agentSessionsLoading}
                 autoApproveAgentImageTasks={pg.autoApproveAgentImageTasks}
                 agentImageTasks={pg.agentImageTasks}
+                agentPendingQuestions={pg.agentPendingQuestions}
                 referenceImages={pg.referenceImages}
                 referenceImageError={pg.referenceImageError}
                 apiKey={pg.apiKey}
@@ -378,6 +379,8 @@ function App() {
                 onToggleAutoApproveAgentImageTasks={pg.setAutoApproveAgentImageTasks}
                 onApproveAgentImageTask={pg.approveAgentImageTask}
                 onCancelAgentImageTask={pg.cancelAgentImageTask}
+                onSubmitAgentQuestionAnswers={pg.submitAgentQuestionAnswers}
+                onCancelAgentQuestion={pg.cancelAgentQuestion}
                 onFocusAgentImageTask={handleFocusAgentImageTask}
                 onSendAgentMessage={pg.sendAgentMessage}
                 onStopAgentMessage={pg.stopAgentMessage}
@@ -443,6 +446,7 @@ function App() {
               agentSessionsLoading={pg.agentSessionsLoading}
               autoApproveAgentImageTasks={pg.autoApproveAgentImageTasks}
               agentImageTasks={pg.agentImageTasks}
+              agentPendingQuestions={pg.agentPendingQuestions}
               referenceImages={pg.referenceImages}
               referenceImageError={pg.referenceImageError}
               apiKey={pg.apiKey}
@@ -468,6 +472,8 @@ function App() {
               onToggleAutoApproveAgentImageTasks={pg.setAutoApproveAgentImageTasks}
               onApproveAgentImageTask={pg.approveAgentImageTask}
               onCancelAgentImageTask={pg.cancelAgentImageTask}
+              onSubmitAgentQuestionAnswers={pg.submitAgentQuestionAnswers}
+              onCancelAgentQuestion={pg.cancelAgentQuestion}
               onFocusAgentImageTask={handleFocusAgentImageTask}
               onSendAgentMessage={pg.sendAgentMessage}
               onStopAgentMessage={pg.stopAgentMessage}

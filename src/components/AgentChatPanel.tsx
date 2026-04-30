@@ -26,7 +26,10 @@ import {
   type AgentImageTask,
   type AgentMessageToolCall,
   type AgentMessageToolResult,
+  type AgentPendingQuestion,
   type AgentSessionSummary,
+  type AskUserQuestionAnswer,
+  type AskUserQuestionItem,
 } from '../agent'
 import { AGENT_THINKING_OPTIONS, type AgentModelConfig, type AgentThinkingLevel } from '../config/agentModels'
 import { MODEL_CONFIGS } from '../config/models'
@@ -48,6 +51,7 @@ type Props = {
   sessionsLoading: boolean
   autoApproveImageTasks: boolean
   imageTasks: AgentImageTask[]
+  pendingQuestions: AgentPendingQuestion[]
   model: AgentModelConfig
   models: AgentModelConfig[]
   thinkingLevel: AgentThinkingLevel
@@ -65,6 +69,8 @@ type Props = {
   onToggleAutoApproveImageTasks: (value: boolean) => void
   onApproveImageTask: (taskId: string) => void
   onCancelImageTask: (taskId: string) => void
+  onSubmitQuestionAnswers: (toolCallId: string, answers: AskUserQuestionAnswer[]) => void
+  onCancelQuestion: (toolCallId: string) => void
   onFocusImageTask?: (task: AgentImageTask) => void
   onModelChange: (id: string) => void
   onThinkingLevelChange: (level: AgentThinkingLevel) => void
@@ -99,9 +105,7 @@ function formatSessionTime(timestamp: number): string {
   const date = new Date(timestamp)
   const now = new Date()
   const sameDay =
-    date.getFullYear() === now.getFullYear() &&
-    date.getMonth() === now.getMonth() &&
-    date.getDate() === now.getDate()
+    date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth() && date.getDate() === now.getDate()
   if (sameDay) {
     return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
   }
@@ -171,6 +175,7 @@ function buildChatRenderItems(messages: AgentMessage[], streamingMessage: AgentM
 function toolLabel(name: string): string {
   if (name === 'GenImage') return '创建生图任务'
   if (name === 'ReadImage') return '读取图片'
+  if (name === 'AskUserQuestion') return '提问用户'
   return name
 }
 
@@ -336,10 +341,7 @@ const MARKDOWN_COMPONENTS = {
   ol: (props: JSX.IntrinsicElements['ol']) => <ol className="list-decimal space-y-1.5 pl-5" {...props} />,
   li: (props: JSX.IntrinsicElements['li']) => <li {...props} />,
   blockquote: (props: JSX.IntrinsicElements['blockquote']) => (
-    <blockquote
-      className="border-l-2 border-(--ring-edge-strong) pl-3 text-(--color-text-3) italic"
-      {...props}
-    />
+    <blockquote className="border-l-2 border-(--ring-edge-strong) pl-3 text-(--color-text-3) italic" {...props} />
   ),
   h1: (props: JSX.IntrinsicElements['h1']) => (
     <h1 className="font-display text-lg font-semibold tracking-[-0.01em] text-(--color-text)" {...props} />
@@ -356,10 +358,7 @@ const MARKDOWN_COMPONENTS = {
   ),
   pre: ({ children, ...props }: JSX.IntrinsicElements['pre']) => (
     <div className="overflow-hidden rounded-[8px] bg-(--color-surface-2) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
-      <pre
-        {...props}
-        className="overflow-x-auto px-3 py-2.5 mono text-sm leading-[1.55] text-(--color-text)"
-      >
+      <pre {...props} className="overflow-x-auto px-3 py-2.5 mono text-sm leading-[1.55] text-(--color-text)">
         {children}
       </pre>
     </div>
@@ -804,29 +803,252 @@ function AgentImageTaskCard({
   )
 }
 
+type QuestionFormState = Record<number, { selected: string[]; note: string }>
+
+function buildInitialQuestionFormState(questions: AskUserQuestionItem[]): QuestionFormState {
+  const state: QuestionFormState = {}
+  for (let index = 0; index < questions.length; index++) {
+    state[index] = { selected: [], note: '' }
+  }
+  return state
+}
+
+function AskUserQuestionForm({
+  toolCallId,
+  questions,
+  onSubmit,
+  onCancel,
+}: {
+  toolCallId: string
+  questions: AskUserQuestionItem[]
+  onSubmit: (toolCallId: string, answers: AskUserQuestionAnswer[]) => void
+  onCancel: (toolCallId: string) => void
+}) {
+  const [form, setForm] = useState<QuestionFormState>(() => buildInitialQuestionFormState(questions))
+
+  const toggleOption = useCallback((questionIndex: number, label: string, multi: boolean) => {
+    setForm((prev) => {
+      const current = prev[questionIndex] ?? { selected: [], note: '' }
+      const exists = current.selected.includes(label)
+      const nextSelected = multi
+        ? exists
+          ? current.selected.filter((item) => item !== label)
+          : [...current.selected, label]
+        : exists
+          ? []
+          : [label]
+      return { ...prev, [questionIndex]: { ...current, selected: nextSelected } }
+    })
+  }, [])
+
+  const setNote = useCallback((questionIndex: number, note: string) => {
+    setForm((prev) => {
+      const current = prev[questionIndex] ?? { selected: [], note: '' }
+      return { ...prev, [questionIndex]: { ...current, note } }
+    })
+  }, [])
+
+  const allAnswered = questions.every((_question, index) => {
+    const entry = form[index]
+    if (!entry) return false
+    return entry.selected.length > 0 || entry.note.trim().length > 0
+  })
+
+  const handleSubmit = () => {
+    const answers: AskUserQuestionAnswer[] = questions.map((question, index) => {
+      const entry = form[index] ?? { selected: [], note: '' }
+      return { question: question.question, selectedLabels: entry.selected, note: entry.note }
+    })
+    onSubmit(toolCallId, answers)
+  }
+
+  return (
+    <div className="rounded-[8px] bg-(--color-surface) px-3.5 py-3 shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
+      <div className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1">
+        <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-(--color-text)">
+          <span className="h-1.5 w-1.5 rounded-full" style={{ background: 'var(--color-accent)' }} />
+          关于
+          {questions
+            .map((q) => q.header)
+            .filter((header): header is string => Boolean(header))
+            .join('、') || '本次需求'}
+          的问题
+        </span>
+        <span className="ml-auto text-sm text-(--color-text-4)">{questions.length} 个问题</span>
+      </div>
+
+      <div className="mt-3 space-y-4">
+        {questions.map((question, index) => {
+          const entry = form[index] ?? { selected: [], note: '' }
+          return (
+            <div key={index} className="space-y-2">
+              <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                <span className="text-sm font-medium text-(--color-text)">{question.question}</span>
+                {question.multi_select && <span className="text-[11px] text-(--color-text-4)">可多选</span>}
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {question.options.map((option) => {
+                  const checked = entry.selected.includes(option.label)
+                  const shapeClass = question.multi_select ? 'rounded-[var(--radius-sm)] px-2.5' : 'rounded-full px-3.5'
+                  return (
+                    <button
+                      key={option.label}
+                      type="button"
+                      onClick={() => toggleOption(index, option.label, question.multi_select)}
+                      data-active={checked || undefined}
+                      className={`group flex items-start gap-2 ${shapeClass} bg-(--color-surface) py-1 text-left shadow-[inset_0_0_0_1px_var(--ring-edge)] transition-colors hover:bg-(--color-surface-2) hover:shadow-[inset_0_0_0_1px_var(--ring-edge-strong)] data-[active]:bg-(--color-accent-wash) data-[active]:shadow-[inset_0_0_0_1px_var(--color-accent-ring)]`}
+                    >
+                      {question.multi_select && (
+                        <span
+                          aria-hidden
+                          className="mt-[3px] inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-[3px] bg-(--color-surface) shadow-[inset_0_0_0_1px_var(--ring-edge-strong)] transition-colors group-data-[active]:bg-(--color-accent) group-data-[active]:shadow-none"
+                        >
+                          <Icon
+                            name="check"
+                            className="h-3 w-3 text-(--color-accent-fg) opacity-0 transition-opacity group-data-[active]:opacity-100"
+                          />
+                        </span>
+                      )}
+                      <span className="flex flex-col items-start">
+                        <span className="text-sm font-medium text-(--color-text-2) group-data-[active]:text-(--color-accent)">
+                          {option.label}
+                        </span>
+                        {option.description && (
+                          <span className="text-[12px] leading-[1.35] text-(--color-text-4)">{option.description}</span>
+                        )}
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+              <input
+                type="text"
+                value={entry.note}
+                onChange={(event) => setNote(index, event.target.value)}
+                placeholder="补充说明（可选）"
+                className={`h-7 min-w-[12em] max-w-full bg-(--color-surface) text-sm text-(--color-text) shadow-[inset_0_0_0_1px_var(--ring-edge)] placeholder:text-(--color-text-4) focus:shadow-[inset_0_0_0_1px_var(--color-accent-ring)] focus:outline-none ${
+                  question.multi_select ? 'rounded-[var(--radius-sm)] px-2.5' : 'rounded-full px-3.5'
+                }`}
+                style={{ fieldSizing: 'content' } as React.CSSProperties}
+              />
+            </div>
+          )
+        })}
+      </div>
+
+      <div className="mt-3 flex items-center justify-end gap-1.5">
+        <button
+          type="button"
+          onClick={() => onCancel(toolCallId)}
+          className="chip ghost text-sm"
+          style={{ height: 28, padding: '0 12px' }}
+        >
+          跳过
+        </button>
+        <button
+          type="button"
+          onClick={handleSubmit}
+          disabled={!allAnswered}
+          className="chip accent-active text-sm disabled:cursor-not-allowed disabled:opacity-45"
+          style={{ height: 28, padding: '0 12px' }}
+        >
+          提交
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function AskUserQuestionResultCard({ call, result }: { call: AgentMessageToolCall; result: AgentMessageToolResult }) {
+  const questions = Array.isArray(call.arguments.questions) ? (call.arguments.questions as AskUserQuestionItem[]) : []
+  const abandoned = result.text.includes('navigated away')
+  const hasFormatted = /\nAnswer:/.test(result.text) || result.text.startsWith('Question:')
+
+  return (
+    <div className="rounded-[8px] bg-(--color-surface) px-3.5 py-3 shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
+      {!hasFormatted ? (
+        <div className="space-y-2">
+          <div className="text-sm leading-[1.55] text-(--color-text-3)">
+            {abandoned ? '页面刷新或切换会话中断了这次问卷，没有作答内容。' : '没有作答内容。'}
+          </div>
+          {questions.length > 0 && (
+            <ul className="space-y-1">
+              {questions.map((question, index) => (
+                <li key={index} className="text-sm text-(--color-text-2)">
+                  {question.question}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {result.text.split(/\n---\n/).map((block, index) => {
+            const trimmed = block.trim()
+            if (!trimmed) return null
+            const lines = trimmed.split('\n')
+            const questionLine = lines.find((line) => line.startsWith('Question:')) ?? ''
+            const answerStart = lines.findIndex((line) => line.startsWith('Answer:'))
+            const noteLine = lines.find((line) => line.startsWith('Note:'))
+            const questionText = questionLine.replace(/^Question:\s*/, '')
+            const answerLines =
+              answerStart >= 0
+                ? lines
+                    .slice(answerStart, noteLine ? lines.indexOf(noteLine) : lines.length)
+                    .map((line, lineIndex) => (lineIndex === 0 ? line.replace(/^Answer:\s*/, '') : line))
+                : []
+            return (
+              <div key={index} className="space-y-0.5">
+                <div className="text-sm font-semibold text-(--color-text)">{questionText}</div>
+                <div className="whitespace-pre-wrap text-sm leading-[1.55] text-(--color-text-3)">
+                  {answerLines.join('\n').trim()}
+                </div>
+                {noteLine && (
+                  <div className="text-sm leading-[1.55] text-(--color-text-4)">
+                    {noteLine.replace(/^Note:\s*/, '补充：')}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function ToolActivityCard({
   calls,
   results,
   imageTaskByToolCallId,
+  pendingQuestionByToolCallId,
   isStreaming,
   onApproveImageTask,
   onCancelImageTask,
+  onSubmitQuestionAnswers,
+  onCancelQuestion,
   onFocusImageTask,
 }: {
   calls: AgentMessageToolCall[]
   results: AgentMessageToolResult[]
   imageTaskByToolCallId: Map<string, AgentImageTask>
+  pendingQuestionByToolCallId: Map<string, AgentPendingQuestion>
   isStreaming: boolean
   onApproveImageTask: (taskId: string) => void
   onCancelImageTask: (taskId: string) => void
+  onSubmitQuestionAnswers: (toolCallId: string, answers: AskUserQuestionAnswer[]) => void
+  onCancelQuestion: (toolCallId: string) => void
   onFocusImageTask?: (task: AgentImageTask) => void
 }) {
   const resultByCallId = new Map(results.map((result) => [result.toolCallId, result]))
 
-  // GenImage calls render as standalone rich cards; everything else collapses
-  // into the compact tool group above.
+  // GenImage calls render as standalone rich cards; AskUserQuestion renders a
+  // form or result card; ReadImage / AskUserQuestion mid-stream collapse into a
+  // single gray "system event" line; everything else falls into the compact
+  // AGENT tool group.
   const compactRows: ReactNode[] = []
   const richCards: ReactNode[] = []
+  const inlineNotices: ReactNode[] = []
 
   for (const call of calls) {
     if (call.name === 'GenImage') {
@@ -843,6 +1065,33 @@ function ToolActivityCard({
       )
       continue
     }
+    if (call.name === 'AskUserQuestion') {
+      const pending = pendingQuestionByToolCallId.get(call.id)
+      const finished = resultByCallId.get(call.id)
+      if (pending) {
+        richCards.push(
+          <AskUserQuestionForm
+            key={call.id}
+            toolCallId={pending.toolCallId}
+            questions={pending.questions}
+            onSubmit={onSubmitQuestionAnswers}
+            onCancel={onCancelQuestion}
+          />,
+        )
+      } else if (finished) {
+        richCards.push(<AskUserQuestionResultCard key={call.id} call={call} result={finished} />)
+      } else {
+        inlineNotices.push(<InlineToolNotice key={call.id} label="正在准备问卷…" />)
+      }
+      continue
+    }
+    if (call.name === 'ReadImage') {
+      const finished = resultByCallId.get(call.id)
+      if (!finished) {
+        inlineNotices.push(<InlineToolNotice key={call.id} label="正在读取图片…" />)
+        continue
+      }
+    }
     compactRows.push(<ToolCallRow key={call.id} call={call} result={resultByCallId.get(call.id)} />)
   }
   if (calls.length === 0) {
@@ -851,16 +1100,34 @@ function ToolActivityCard({
     }
   }
 
-  const showCompact = compactRows.length > 0 || (calls.length === 0 && results.length === 0)
+  const showCompact =
+    compactRows.length > 0 || (calls.length === 0 && results.length === 0 && inlineNotices.length === 0)
 
   return (
     <div className="space-y-2">
-      {showCompact && <CompactToolGroup rows={compactRows} isStreaming={isStreaming && richCards.length === 0} />}
+      {showCompact && (
+        <CompactToolGroup
+          rows={compactRows}
+          isStreaming={isStreaming && richCards.length === 0 && inlineNotices.length === 0}
+        />
+      )}
       {richCards.length > 0 && (
         <div className="flex justify-start">
           <div className="mr-3 w-full max-w-[94%] space-y-2">{richCards}</div>
         </div>
       )}
+      {inlineNotices}
+    </div>
+  )
+}
+
+function InlineToolNotice({ label }: { label: string }) {
+  return (
+    <div className="flex justify-start">
+      <div className="mr-3 flex max-w-[94%] items-center gap-2 text-(--color-text-4)">
+        <span className="spinner" style={{ width: 10, height: 10 }} />
+        <span>{label}</span>
+      </div>
     </div>
   )
 }
@@ -878,6 +1145,7 @@ export function AgentChatPanel({
   sessionsLoading,
   autoApproveImageTasks,
   imageTasks,
+  pendingQuestions,
   model,
   models,
   thinkingLevel,
@@ -895,6 +1163,8 @@ export function AgentChatPanel({
   onToggleAutoApproveImageTasks,
   onApproveImageTask,
   onCancelImageTask,
+  onSubmitQuestionAnswers,
+  onCancelQuestion,
   onFocusImageTask,
   onModelChange,
   onThinkingLevelChange,
@@ -908,7 +1178,9 @@ export function AgentChatPanel({
   const [openMenu, setOpenMenu] = useState<'agentOptions' | 'sessions' | null>(null)
   const currentKeyStatus = model.provider === 'google' ? googleKeyStatus : openaiKeyStatus
   const keyMissing = currentKeyStatus === 'empty'
-  const canSend = !isStreaming && !keyMissing && (draft.trim() !== '' || attachments.length > 0)
+  const hasComposerContent = draft.trim() !== '' || attachments.length > 0
+  const canSend = !keyMissing && hasComposerContent
+  const showStop = isStreaming && !hasComposerContent
   const currentSession = sessions.find((session) => session.id === currentSessionId)
   const visibleMessages = useMemo(
     () => (streamingMessage ? [...messages, streamingMessage] : messages),
@@ -920,14 +1192,19 @@ export function AgentChatPanel({
   )
   const showThinkingPlaceholder =
     isStreaming &&
+    pendingQuestions.length === 0 &&
     (!streamingMessage ||
-      (!hasRenderableMessageContent(streamingMessage) &&
-        agentMessageToolCalls(streamingMessage).length === 0))
+      (!hasRenderableMessageContent(streamingMessage) && agentMessageToolCalls(streamingMessage).length === 0))
   const imageTaskByToolCallId = useMemo(() => {
     const map = new Map<string, AgentImageTask>()
     for (const task of imageTasks) map.set(task.toolCallId, task)
     return map
   }, [imageTasks])
+  const pendingQuestionByToolCallId = useMemo(() => {
+    const map = new Map<string, AgentPendingQuestion>()
+    for (const question of pendingQuestions) map.set(question.toolCallId, question)
+    return map
+  }, [pendingQuestions])
   const effectiveThinkingLevel = model.supportsThinking ? thinkingLevel : 'off'
   const effectiveThinkingLabel =
     AGENT_THINKING_OPTIONS.find((item) => item.value === effectiveThinkingLevel)?.label ?? effectiveThinkingLevel
@@ -1081,7 +1358,9 @@ export function AgentChatPanel({
                           {session.previewText || session.firstUserText || '空对话'}
                         </span>
                       </span>
-                      <span className="shrink-0 text-sm text-(--color-text-4)">{formatSessionTime(session.updatedAt)}</span>
+                      <span className="shrink-0 text-sm text-(--color-text-4)">
+                        {formatSessionTime(session.updatedAt)}
+                      </span>
                       <span
                         role="button"
                         tabIndex={0}
@@ -1162,9 +1441,12 @@ export function AgentChatPanel({
                   calls={item.calls}
                   results={item.results}
                   imageTaskByToolCallId={imageTaskByToolCallId}
+                  pendingQuestionByToolCallId={pendingQuestionByToolCallId}
                   isStreaming={item.isStreaming}
                   onApproveImageTask={onApproveImageTask}
                   onCancelImageTask={onCancelImageTask}
+                  onSubmitQuestionAnswers={onSubmitQuestionAnswers}
+                  onCancelQuestion={onCancelQuestion}
                   onFocusImageTask={onFocusImageTask}
                 />
               ),
@@ -1297,7 +1579,9 @@ export function AgentChatPanel({
               autoResizeComposer(event.target)
             }}
             onKeyDown={handleKeyDown}
-            placeholder="给 Agent 发送消息…"
+            placeholder={
+              pendingQuestions.length > 0 ? '跳过问卷并发送…' : isStreaming ? '追加消息…' : '给 Agent 发送消息…'
+            }
             rows={1}
             className="block max-h-[150px] min-h-[44px] w-full resize-none bg-transparent px-3 pt-2.5 pb-1 text-[16px] leading-[1.55] text-(--color-text) focus:outline-none md:text-base"
           />
@@ -1339,7 +1623,7 @@ export function AgentChatPanel({
                 className={openMenu === 'agentOptions' ? '-rotate-90' : 'rotate-90'}
               />
             </button>
-            {isStreaming ? (
+            {showStop ? (
               <button
                 type="button"
                 onClick={onStop}
@@ -1357,7 +1641,13 @@ export function AgentChatPanel({
                 disabled={!canSend}
                 className="cta flex items-center justify-center rounded-full p-0"
                 style={{ width: 30, height: 30 }}
-                title="发送"
+                title={
+                  isStreaming
+                    ? pendingQuestions.length > 0
+                      ? '跳过问卷并发送'
+                      : '发送（Agent 处理中将作为追加消息）'
+                    : '发送'
+                }
                 aria-label="发送"
               >
                 <Icon name="send" size={14} />

@@ -26,8 +26,12 @@ import {
 import type { AgentSessionSummary } from './sessionTypes'
 import { AGENT_SYSTEM_PROMPT } from './systemPrompt'
 import {
-  createAgentImageTools,
-  type AgentImageToolResult,
+  createAgentTools,
+  formatAskUserQuestionResult,
+  type AgentToolResult,
+  type AskUserQuestionAnswer,
+  type AskUserQuestionItem,
+  type AskUserQuestionToolArgs,
   type GenImageToolArgs,
   type ReadImageToolArgs,
 } from './tools'
@@ -218,8 +222,81 @@ function buildAgentTaskCallbackText(tasks: AgentImageTask[]): string {
   return lines.join('\n')
 }
 
-function toolTextResult(text: string, details: unknown): AgentImageToolResult {
+function toolTextResult(text: string, details: unknown): AgentToolResult {
   return { content: [{ type: 'text', text }], details }
+}
+
+export type AgentPendingQuestion = {
+  toolCallId: string
+  agentTurnId: string
+  questions: AskUserQuestionItem[]
+  createdAt: number
+}
+
+type AgentQuestionResolver = {
+  resolve: (result: AgentToolResult) => void
+  reject: (reason: unknown) => void
+  questions: AskUserQuestionItem[]
+}
+
+function findDanglingToolCallIds(messages: AgentMessage[]): Set<string> {
+  const fulfilled = new Set<string>()
+  const all = new Set<string>()
+  for (const message of messages) {
+    if (typeof message !== 'object' || message === null) continue
+    const record = message as unknown as Record<string, unknown>
+    if (record.role === 'assistant' && Array.isArray(record.content)) {
+      for (const part of record.content) {
+        if (typeof part !== 'object' || part === null) continue
+        const partRecord = part as Record<string, unknown>
+        if (partRecord.type === 'toolCall' && typeof partRecord.id === 'string') all.add(partRecord.id)
+      }
+    }
+    if (record.role === 'toolResult' && typeof record.toolCallId === 'string') fulfilled.add(record.toolCallId)
+  }
+  for (const id of fulfilled) all.delete(id)
+  return all
+}
+
+function buildAbandonedToolResult(toolCallId: string, toolName: string): AgentMessage {
+  return {
+    role: 'toolResult',
+    toolCallId,
+    toolName,
+    content: [
+      {
+        type: 'text',
+        text: '<system>The user navigated away or refreshed before answering. Re-ask if still needed.</system>',
+      },
+    ],
+    isError: false,
+    timestamp: Date.now(),
+  } as unknown as AgentMessage
+}
+
+function injectAbandonedToolResults(messages: AgentMessage[], skipIds?: Set<string>): AgentMessage[] {
+  const dangling = findDanglingToolCallIds(messages)
+  if (skipIds) for (const id of skipIds) dangling.delete(id)
+  if (dangling.size === 0) return messages
+
+  const result: AgentMessage[] = []
+  for (let i = 0; i < messages.length; i++) {
+    const message = messages[i]
+    result.push(message)
+    if (typeof message !== 'object' || message === null) continue
+    const record = message as unknown as Record<string, unknown>
+    if (record.role !== 'assistant' || !Array.isArray(record.content)) continue
+    for (const part of record.content) {
+      if (typeof part !== 'object' || part === null) continue
+      const partRecord = part as Record<string, unknown>
+      if (partRecord.type !== 'toolCall') continue
+      const id = typeof partRecord.id === 'string' ? partRecord.id : null
+      const name = typeof partRecord.name === 'string' ? partRecord.name : null
+      if (!id || !name || !dangling.has(id)) continue
+      result.push(buildAbandonedToolResult(id, name))
+    }
+  }
+  return result
 }
 
 function restoreAgentImageTasks(tasks: AgentImageTask[]): AgentImageTask[] {
@@ -258,6 +335,7 @@ export function useAgentPlayground({
   const [agentAttachmentError, setAgentAttachmentError] = useState<string | null>(null)
   const [autoApproveAgentImageTasks, setAutoApproveAgentImageTasksState] = useState(false)
   const [agentImageTasks, setAgentImageTasksState] = useState<AgentImageTask[]>([])
+  const [agentPendingQuestions, setAgentPendingQuestionsState] = useState<AgentPendingQuestion[]>([])
   const [agentSessions, setAgentSessions] = useState<AgentSessionSummary[]>([])
   const [currentAgentSessionId, setCurrentAgentSessionId] = useState<string | null>(null)
   const [agentSessionsLoading, setAgentSessionsLoading] = useState(true)
@@ -276,6 +354,8 @@ export function useAgentPlayground({
   const agentSessionReadyRef = useRef(false)
   const agentSessionSidecarDebounceRef = useRef<number>(0)
   const agentPromptPreparingRef = useRef(false)
+  const agentPendingQuestionsRef = useRef<AgentPendingQuestion[]>([])
+  const agentQuestionResolversRef = useRef<Map<string, AgentQuestionResolver>>(new Map())
   const referenceImagesRef = useRef<PlaygroundImage[]>([])
   const historyRef = useRef<PlaygroundImageMeta[]>([])
   const generationJobsRefForAgent = useRef<GenerationJob[]>([])
@@ -296,6 +376,33 @@ export function useAgentPlayground({
     agentImageTasksRef.current = next
     setAgentImageTasksState(next)
     return next
+  }, [])
+
+  const setAgentPendingQuestions = useCallback((updater: (prev: AgentPendingQuestion[]) => AgentPendingQuestion[]) => {
+    const next = updater(agentPendingQuestionsRef.current)
+    agentPendingQuestionsRef.current = next
+    setAgentPendingQuestionsState(next)
+    return next
+  }, [])
+
+  const clearAgentQuestionResolvers = useCallback((reason: string) => {
+    const resolvers = agentQuestionResolversRef.current
+    if (resolvers.size === 0) return
+    for (const [, resolver] of resolvers) {
+      try {
+        resolver.resolve(
+          toolTextResult(formatAskUserQuestionResult(resolver.questions, [], { cancelled: true }), {
+            status: 'cancelled',
+            reason,
+          }),
+        )
+      } catch {
+        // Ignore — caller may have moved on.
+      }
+    }
+    resolvers.clear()
+    agentPendingQuestionsRef.current = []
+    setAgentPendingQuestionsState([])
   }, [])
 
   const setAutoApproveAgentImageTasks = useCallback((value: boolean) => {
@@ -327,6 +434,7 @@ export function useAgentPlayground({
       imageRegistry: Array.from(agentImageRegistryRef.current.values()),
       turnCallbacks: Array.from(agentTurnCallbacksRef.current.values()),
       currentAgentTurnId: currentAgentTurnIdRef.current,
+      pendingQuestions: agentPendingQuestionsRef.current,
     }
     const write = agentSessionSidecarPersistQueueRef.current.then(() => saveAgentSessionSidecar(payload))
     agentSessionSidecarPersistQueueRef.current = write.catch(() => undefined)
@@ -360,13 +468,21 @@ export function useAgentPlayground({
     void agentDraft
     void agentAttachments
     void agentImageTasks
+    void agentPendingQuestions
     if (!currentAgentSessionId || !agentSessionReadyRef.current) return
     window.clearTimeout(agentSessionSidecarDebounceRef.current)
     agentSessionSidecarDebounceRef.current = window.setTimeout(() => {
       void persistCurrentAgentSidecar()
     }, 400)
     return () => window.clearTimeout(agentSessionSidecarDebounceRef.current)
-  }, [currentAgentSessionId, agentDraft, agentAttachments, agentImageTasks, persistCurrentAgentSidecar])
+  }, [
+    currentAgentSessionId,
+    agentDraft,
+    agentAttachments,
+    agentImageTasks,
+    agentPendingQuestions,
+    persistCurrentAgentSidecar,
+  ])
 
   const setAgentModelIdForSession = useCallback(
     (modelId: string) => {
@@ -459,6 +575,7 @@ export function useAgentPlayground({
     (session: Awaited<ReturnType<typeof loadAgentSession>>) => {
       if (!session) return
       agentSessionReadyRef.current = false
+      clearAgentQuestionResolvers('session_switched')
       const config = resolveAgentModelConfig(session.record.modelId)
       const restoredTasks = restoreAgentImageTasks(session.sidecar.imageTasks)
       const releasedReservedIds = new Set<string>()
@@ -473,6 +590,9 @@ export function useAgentPlayground({
       }
       const restoredRegistry = session.sidecar.imageRegistry.filter((entry) => !releasedReservedIds.has(entry.id))
 
+      const restoredQuestions = session.sidecar.pendingQuestions ?? []
+      const restoredQuestionIds = new Set(restoredQuestions.map((item) => item.toolCallId))
+
       currentAgentSessionIdRef.current = session.record.id
       currentAgentSessionLeafEntryIdRef.current = session.record.leafEntryId
       currentAgentTurnIdRef.current = session.sidecar.currentAgentTurnId
@@ -481,6 +601,7 @@ export function useAgentPlayground({
       agentTurnCallbacksRef.current = new Map(
         session.sidecar.turnCallbacks.map((callback) => [callback.agentTurnId, callback]),
       )
+      agentPendingQuestionsRef.current = restoredQuestions
       autoApproveAgentImageTasksRef.current = session.record.autoApproveImageTasks
 
       setCurrentAgentSessionId(session.record.id)
@@ -491,6 +612,7 @@ export function useAgentPlayground({
       setAgentAttachments(session.sidecar.attachments)
       setAgentAttachmentError(null)
       setAgentImageTasksState(restoredTasks)
+      setAgentPendingQuestionsState(restoredQuestions)
       setAgentError(null)
 
       const agent = getOrCreateAgent()
@@ -498,11 +620,11 @@ export function useAgentPlayground({
       agent.state.error = undefined
       agent.state.streamMessage = null
       agent.state.pendingToolCalls = new Set()
-      agent.replaceMessages(session.messages)
+      agent.replaceMessages(injectAbandonedToolResults(session.messages, restoredQuestionIds))
       syncAgentSnapshot(agent)
       agentSessionReadyRef.current = true
     },
-    [applyAgentRuntimeConfig, getOrCreateAgent, syncAgentSnapshot],
+    [applyAgentRuntimeConfig, clearAgentQuestionResolvers, getOrCreateAgent, syncAgentSnapshot],
   )
 
   const createNewAgentSession = useCallback(async () => {
@@ -527,6 +649,7 @@ export function useAgentPlayground({
         imageRegistry: [],
         turnCallbacks: [],
         currentAgentTurnId: null,
+        pendingQuestions: [],
       },
     })
   }, [
@@ -973,7 +1096,7 @@ export function useAgentPlayground({
   )
 
   const runGenImageTool = useCallback(
-    async (toolCallId: string, args: GenImageToolArgs, signal?: AbortSignal): Promise<AgentImageToolResult> => {
+    async (toolCallId: string, args: GenImageToolArgs, signal?: AbortSignal): Promise<AgentToolResult> => {
       if (signal?.aborted) throw new Error('GenImage was aborted.')
       const promptText = args.prompt.trim()
       if (!promptText) throw new Error('GenImage.prompt is required.')
@@ -1067,7 +1190,7 @@ export function useAgentPlayground({
   )
 
   const runReadImageTool = useCallback(
-    async (_toolCallId: string, args: ReadImageToolArgs): Promise<AgentImageToolResult> => {
+    async (_toolCallId: string, args: ReadImageToolArgs): Promise<AgentToolResult> => {
       const imageId = args.image_id.trim()
       const missing = '<tool_use_error>Image does not exist.</tool_use_error>'
       if (!imageId) return toolTextResult(missing, { status: 'error', image_id: imageId })
@@ -1139,6 +1262,146 @@ export function useAgentPlayground({
     [resolveAgentImageById],
   )
 
+  const runAskUserQuestionTool = useCallback(
+    (toolCallId: string, args: AskUserQuestionToolArgs, signal?: AbortSignal): Promise<AgentToolResult> => {
+      const questions = args.questions
+      if (questions.length === 0) {
+        return Promise.resolve(
+          toolTextResult('<tool_use_error>AskUserQuestion requires at least one question.</tool_use_error>', {
+            status: 'error',
+          }),
+        )
+      }
+
+      const pending: AgentPendingQuestion = {
+        toolCallId,
+        agentTurnId: currentAgentTurnIdRef.current ?? toolCallId,
+        questions,
+        createdAt: Date.now(),
+      }
+      setAgentPendingQuestions((prev) => [...prev.filter((item) => item.toolCallId !== toolCallId), pending])
+
+      return new Promise<AgentToolResult>((resolve, reject) => {
+        const cleanup = () => {
+          agentQuestionResolversRef.current.delete(toolCallId)
+          setAgentPendingQuestions((prev) => prev.filter((item) => item.toolCallId !== toolCallId))
+        }
+
+        const resolver: AgentQuestionResolver = {
+          questions,
+          resolve: (result) => {
+            cleanup()
+            resolve(result)
+          },
+          reject: (reason) => {
+            cleanup()
+            reject(reason instanceof Error ? reason : new Error(String(reason)))
+          },
+        }
+        agentQuestionResolversRef.current.set(toolCallId, resolver)
+
+        if (signal) {
+          if (signal.aborted) {
+            resolver.reject(new Error('AskUserQuestion was aborted.'))
+            return
+          }
+          signal.addEventListener(
+            'abort',
+            () => {
+              const stillPending = agentQuestionResolversRef.current.get(toolCallId)
+              if (!stillPending) return
+              stillPending.resolve(
+                toolTextResult(formatAskUserQuestionResult(questions, [], { cancelled: true }), {
+                  status: 'cancelled',
+                  reason: 'aborted',
+                }),
+              )
+            },
+            { once: true },
+          )
+        }
+      })
+    },
+    [setAgentPendingQuestions],
+  )
+
+  const finishRestoredAgentQuestion = useCallback(
+    (toolCallId: string, answers: AskUserQuestionAnswer[], options: { cancelled: boolean }) => {
+      const pending = agentPendingQuestionsRef.current.find((item) => item.toolCallId === toolCallId)
+      if (!pending) return
+      const text = formatAskUserQuestionResult(pending.questions, answers, { cancelled: options.cancelled })
+      const toolResultMessage = {
+        role: 'toolResult',
+        toolCallId,
+        toolName: 'AskUserQuestion',
+        content: [{ type: 'text', text }],
+        isError: false,
+        timestamp: Date.now(),
+      } as unknown as AgentMessage
+
+      setAgentPendingQuestions((prev) => prev.filter((item) => item.toolCallId !== toolCallId))
+
+      const agent = getOrCreateAgent()
+      agent.appendMessage(toolResultMessage)
+      syncAgentSnapshot(agent)
+
+      const sessionId = currentAgentSessionIdRef.current
+      if (sessionId) {
+        agentSessionPersistQueueRef.current = agentSessionPersistQueueRef.current
+          .then(async () => {
+            const parentId = currentAgentSessionLeafEntryIdRef.current
+            const result = await appendAgentSessionMessage({
+              sessionId,
+              parentId,
+              message: toolResultMessage,
+            })
+            if (currentAgentSessionIdRef.current === sessionId) {
+              currentAgentSessionLeafEntryIdRef.current = result.entryId
+            }
+            upsertAgentSessionSummary(result.record)
+          })
+          .catch((error: unknown) => {
+            setAgentError(error instanceof Error ? error.message : String(error))
+          })
+      }
+
+      if (options.cancelled) return
+      const eventText = `<system>\ntool AskUserQuestion call ${toolCallId} has been answered.\n</system>`
+      void sendAgentSystemEvent(eventText)
+    },
+    [getOrCreateAgent, sendAgentSystemEvent, setAgentPendingQuestions, syncAgentSnapshot, upsertAgentSessionSummary],
+  )
+
+  const submitAgentQuestionAnswers = useCallback(
+    (toolCallId: string, answers: AskUserQuestionAnswer[]) => {
+      const resolver = agentQuestionResolversRef.current.get(toolCallId)
+      if (resolver) {
+        const text = formatAskUserQuestionResult(resolver.questions, answers)
+        resolver.resolve(toolTextResult(text, { status: 'submitted', answers }))
+        return
+      }
+      finishRestoredAgentQuestion(toolCallId, answers, { cancelled: false })
+    },
+    [finishRestoredAgentQuestion],
+  )
+
+  const cancelAgentQuestion = useCallback(
+    (toolCallId: string) => {
+      const resolver = agentQuestionResolversRef.current.get(toolCallId)
+      if (resolver) {
+        resolver.resolve(
+          toolTextResult(formatAskUserQuestionResult(resolver.questions, [], { cancelled: true }), {
+            status: 'cancelled',
+            reason: 'user_dismissed',
+          }),
+        )
+        return
+      }
+      finishRestoredAgentQuestion(toolCallId, [], { cancelled: true })
+    },
+    [finishRestoredAgentQuestion],
+  )
+
   // useApiKey returns a fresh object each render, so runGenImageTool /
   // runReadImageTool would change every render too. Register the tools once
   // with stable wrapper functions that delegate to the latest implementation
@@ -1146,11 +1409,13 @@ export function useAgentPlayground({
   // updates into the agent, causing infinite re-render once the agent exists.
   const runGenImageToolRef = useLatestRef(runGenImageTool)
   const runReadImageToolRef = useLatestRef(runReadImageTool)
+  const runAskUserQuestionToolRef = useLatestRef(runAskUserQuestionTool)
   useMountEffect(() => {
-    agentToolsRef.current = createAgentImageTools({
+    agentToolsRef.current = createAgentTools({
       imageModels: MODEL_CONFIGS,
       genImage: (toolCallId, args, signal) => runGenImageToolRef.current(toolCallId, args, signal),
       readImage: (toolCallId, args) => runReadImageToolRef.current(toolCallId, args),
+      askUserQuestion: (toolCallId, args, signal) => runAskUserQuestionToolRef.current(toolCallId, args, signal),
     })
     if (agentRef.current) {
       agentRef.current.state.tools = agentToolsRef.current
@@ -1211,7 +1476,7 @@ export function useAgentPlayground({
 
   const sendAgentMessage = useCallback(() => {
     const trimmed = agentDraft.trim()
-    if (agentIsStreaming || agentPromptPreparingRef.current || (!trimmed && agentAttachments.length === 0)) return
+    if (agentPromptPreparingRef.current || (!trimmed && agentAttachments.length === 0)) return
     if (!currentAgentSessionIdRef.current) {
       setAgentError('Agent 对话还在加载，请稍后再发送。')
       return
@@ -1240,18 +1505,44 @@ export function useAgentPlayground({
         createdAt: Date.now(),
       })
     }
-    currentAgentTurnIdRef.current = crypto.randomUUID()
+
+    // If a question form is awaiting user input, treat the composer message as
+    // "skip the form, here's my freer answer". Cancel each pending question so
+    // the AskUserQuestion tool returns a cancelled toolResult, then the queued
+    // user message picks up the conversation.
+    const pendingQuestionsToCancel = agentPendingQuestionsRef.current.slice()
+    for (const question of pendingQuestionsToCancel) cancelAgentQuestion(question.toolCallId)
+
+    const wasStreaming = agentIsStreaming || pendingQuestionsToCancel.length > 0
     setAgentDraft('')
     setAgentAttachments([])
     setAgentAttachmentError(null)
     agentPromptPreparingRef.current = true
+    if (!wasStreaming) {
+      currentAgentTurnIdRef.current = crypto.randomUUID()
+      setAgentIsStreaming(true)
+    }
     syncAgentSnapshot(agent)
-    setAgentIsStreaming(true)
 
     void Promise.all(attachmentsToSend.map(compressedAttachmentToAgentAttachment))
-      .then((images) => {
-        if (currentAgentSessionIdRef.current !== sessionId || agentRef.current !== agent) return undefined
-        return agent.prompt(promptText, images)
+      .then(async (images) => {
+        if (currentAgentSessionIdRef.current !== sessionId || agentRef.current !== agent) return
+        if (wasStreaming) {
+          const content: Array<{ type: 'text'; text: string } | { type: 'image'; data: string; mimeType: string }> = [
+            { type: 'text', text: promptText },
+          ]
+          for (const image of images) {
+            if (image.type === 'image') content.push({ type: 'image', data: image.content, mimeType: image.mimeType })
+          }
+          await agent.queueMessage({
+            role: 'user',
+            content,
+            attachments: images.length > 0 ? images : undefined,
+            timestamp: Date.now(),
+          })
+          return
+        }
+        await agent.prompt(promptText, images)
       })
       .then(() => {
         const message = getAgentError(agent)
@@ -1271,6 +1562,7 @@ export function useAgentPlayground({
     agentIsStreaming,
     agentModel,
     applyAgentRuntimeConfig,
+    cancelAgentQuestion,
     getOrCreateAgent,
     invalidateGenerationKey,
     maybeDispatchAgentImageCallbacks,
@@ -1301,6 +1593,7 @@ export function useAgentPlayground({
     agentSessionsLoading,
     autoApproveAgentImageTasks,
     agentImageTasks,
+    agentPendingQuestions,
     setAgentModelId: setAgentModelIdForSession,
     setAgentThinkingLevel,
     createAgentSession: createNewAgentSession,
@@ -1317,5 +1610,7 @@ export function useAgentPlayground({
     clearAgentChat,
     approveAgentImageTask,
     cancelAgentImageTask,
+    submitAgentQuestionAnswers,
+    cancelAgentQuestion,
   }
 }

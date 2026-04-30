@@ -12,9 +12,21 @@ export {
 } from './agentChat'
 export type { AgentChatAttachment, AgentMessageImage, AgentMessageToolCall, AgentMessageToolResult } from './agentChat'
 export { AGENT_SYSTEM_PROMPT } from './systemPrompt'
-export { createAgentImageTools, createGenImageTool, createReadImageTool } from './tools'
+export {
+  createAgentImageTools,
+  createAgentTools,
+  createAskUserQuestionTool,
+  createGenImageTool,
+  createReadImageTool,
+} from './tools'
 export type {
   AgentImageToolResult,
+  AgentToolResult,
+  AskUserQuestionAnswer,
+  AskUserQuestionExecutor,
+  AskUserQuestionItem,
+  AskUserQuestionOption,
+  AskUserQuestionToolArgs,
   GenImageExecutor,
   GenImageToolArgs,
   ReadImageExecutor,
@@ -37,4 +49,4 @@ export type {
 } from './imageTasks'
 export type { AgentSessionSummary } from './sessionTypes'
 export { useAgentPlayground } from './useAgentPlayground'
-export type { UseAgentPlaygroundParams } from './useAgentPlayground'
+export type { AgentPendingQuestion, UseAgentPlaygroundParams } from './useAgentPlayground'

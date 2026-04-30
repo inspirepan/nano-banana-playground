@@ -26,37 +26,83 @@
 ## 分层原则
 
 - `@mariozechner/pi-agent` 的 `Agent` 只当作通用 LLM loop：消息、工具、streaming、事件订阅。
-- 本目录负责项目语义：Agent 会话状态、图片 ID registry、`GenImage` / `ReadImage` 工具、Agent 图片任务审批。
+- 本目录负责项目语义：Agent 会话状态、图片 ID registry、`GenImage` / `ReadImage` / `AskUserQuestion` 工具、Agent 图片任务审批、Agent 问卷审批。
 - React 组件只渲染状态和触发 handler，不直接实现工具业务逻辑。
-- `usePlayground` 可以暂时持有当前单个 Agent session，但 Agent 相关状态应逐步收敛进 `AgentSession` / `useAgentSession` 或同等抽象，方便未来多会话和持久化。
+- `useAgentPlayground` 持有当前 Agent runtime、当前会话 sidecar、附件、图片 registry、任务审批和工具执行逻辑。
+- `usePlayground` 只负责主编辑器、URL 同步、参考图、历史和真实生成队列，再把必要能力注入 `useAgentPlayground`。
 - `useGenerationQueue` 只负责真实图片生成队列，不理解 Agent 审批语义。
 
-建议目标形态：
+## 当前代码结构
+
+```txt
+src/agent/
+  useAgentPlayground.ts   # Agent orchestration hook: runtime/session/attachments/tasks/tools bridge
+  agentChat.ts            # AppMessage/attachment parsing helpers for UI and runtime inputs
+  imageTasks.ts           # AgentImageTask, registry types, image_id reservation, prompt line formatting
+  sessionStore.ts         # IndexedDB-backed Agent session log + sidecar persistence
+  sessionTypes.ts         # Persisted/hydrated Agent session records and sidecar shapes
+  systemPrompt.ts         # Bundled system prompt loader
+  tools/
+    index.ts              # createAgentTools composition (image + ask-user tools)
+    genImage.ts           # GenImage schema normalization and runtime tool wrapper
+    readImage.ts          # ReadImage schema normalization and runtime tool wrapper
+    askUserQuestion.ts    # AskUserQuestion schema, arg normalization, result formatting
+    shared.ts             # shared runtime tool result/types
+```
+
+### `useAgentPlayground`
+
+`useAgentPlayground` 是 Agent 领域状态机和主 playground 之间的唯一 React hook 边界。它从 `usePlayground` 接收：
+
+- Google / OpenAI API key hooks，用于 Agent LLM 和工具触发的生图模型鉴权。
+- 当前参考图、历史图片 metadata、正在运行的 `GenerationJob[]`。
+- `getProviderCredentials`、`invalidateGenerationKey`。
+- `enqueueGenerationJob`、`cancelGenerationJob`、`dismissGenerationJob`。
+
+它对外返回组件需要的 Agent 状态和 handler：
 
 ```ts
-type AgentSession = {
-  id: string
-  agent: Agent
-  messages: AppMessage[]
-  draft: string
-  attachments: AgentChatAttachment[]
+type UseAgentPlaygroundReturn = {
+  agentModels: AgentModelConfig[]
+  agentModel: AgentModelConfig
+  agentThinkingLevel: AgentThinkingLevel
+  agentMessages: AppMessage[]
+  agentStreamingMessage: AppMessage | null
+  agentIsStreaming: boolean
+  agentError: string | null
+  agentDraft: string
+  agentAttachments: AgentChatAttachment[]
+  agentAttachmentError: string | null
+  agentSessions: AgentSessionSummary[]
+  currentAgentSessionId: string | null
+  agentSessionsLoading: boolean
   autoApproveImageTasks: boolean
-  imageTasks: AgentImageTask[]
-  imageRegistry: Map<string, AgentImageRegistryEntry>
-  turnCallbacks: Map<string, AgentTurnCallbackState>
+  agentImageTasks: AgentImageTask[]
+  // plus setters/session actions/message actions/task actions
 }
 ```
 
-后续持久化按 JSONL / append-only session log 设计。LLM transcript 中的 `toolCall` 保持 provider 原生形状；审批、生成队列、registry 等项目状态作为 sidecar entry 按 `toolCallId` join，不直接塞进 `toolCall` content block。图片二进制继续走 IndexedDB 图片存储，session log 只保存 ID 引用。
+内部保持一个 `Agent` 实例和当前会话 refs：`imageTasks`、`imageRegistry`、`turnCallbacks`、`currentAgentTurnId`、`leafEntryId`。这些运行期结构会通过 `sessionStore` 保存为 session sidecar，页面刷新或切换会话时可恢复；刷新中断的非终结生图任务会恢复为 `canceled`。
+
+### 会话持久化
+
+LLM transcript 中的 `toolCall` 保持 provider 原生形状；审批、生成队列、registry 等项目状态作为 sidecar 按 `toolCallId` / `agentTurnId` join，不直接塞进 `toolCall` content block。图片二进制继续走 IndexedDB 图片存储，session sidecar 只保存 ID 引用或 Agent 附件的 dataRef。
+
+`sessionStore.ts` 负责：
+
+- 创建、删除、列出 Agent session summary。
+- append message entry，并维护当前 leaf entry。
+- 保存 / 加载 sidecar：草稿、附件、任务、registry、turn callbacks、当前 turn id。
 
 ## 工具命名
 
-第一批 Agent 图像工具只有两个：
+当前 Agent 工具集合：
 
 - `GenImage`
 - `ReadImage`
+- `AskUserQuestion`
 
-不要再引入 `image_gen`、`read_image`、`read_image_prompt` 这组旧命名。提示词读取能力并入 `ReadImage`。
+不要再引入 `image_gen`、`read_image`、`read_image_prompt` 这组旧命名。提示词读取能力并入 `ReadImage`；引导用户决策走 `AskUserQuestion`。
 
 ## `GenImage` 工具准则
 
@@ -222,6 +268,51 @@ offset 超界示例：
 <tool_use_error>Image prompt is only available for generated images.</tool_use_error>
 ```
 
+## `AskUserQuestion` 工具准则
+
+`AskUserQuestion` 用于让 Agent 在继续行动之前，向用户用一份小问卷问清关键决策（风格、用途、模型选择等）。和 `GenImage` 不同：它是**阻塞**的，Promise 会一直挂到用户提交或跳过；不要在这里再做长耗时业务，仅用于人机决策。
+
+参数：
+
+```ts
+type AskUserQuestionToolArgs = {
+  questions: {
+    question: string
+    header: string
+    options: { label: string; description: string }[]
+    multi_select: boolean
+  }[]
+}
+```
+
+行为：
+
+1. 校验 `questions`，保留至少有 2 个 option 的题目。
+2. 在 `useAgentPlayground` 里登记一个 `AgentPendingQuestion` sidecar 状态，并把 resolver 存进 `agentQuestionResolversRef`，UI 渲染表单。
+3. 用户提交后，Agent 收到一个 `toolResult`，文本格式按问题逐条展开，每题包含 `Question` / `Answer` / 可选 `Note` 三段，多个问题之间用 `\n---\n` 分隔。
+4. 用户跳过或会话切换中断时，所有未解析的问卷以 `cancelled` 状态 resolve，文本提示用户没有作答。
+5. 页面刷新会丢掉运行期 resolver；`useAgentPlayground` 在 `loadAgentSessionIntoRuntime` 时会扫描 transcript，给所有缺 `toolResult` 的工具调用注入一条系统占位结果，避免下一轮 LLM 请求里出现悬空 toolCall。
+
+UI 规范：
+
+- 全部问题平铺渲染，不使用 tab 分页。
+- 每题展示 header chip、问题、多/单选标记、所有 option（含描述）。
+- 每题底部固定一条自由备注 textarea；不要再让 LLM 自己加“其他”选项，备注就是用户表达自由回答的入口。
+- 至少在每题里勾了一个 option 或写了备注，提交按钮才可用；侧边的“跳过”按钮调用 `cancelAgentQuestion`。
+
+`AgentPendingQuestion`：
+
+```ts
+type AgentPendingQuestion = {
+  toolCallId: string
+  agentTurnId: string
+  questions: AskUserQuestionItem[]
+  createdAt: number
+}
+```
+
+不要把 resolver 存进会话 sidecar 或 `AgentPendingQuestion`；Promise resolver 仅活在内存里。
+
 ## Agent 图片任务
 
 `AgentImageTask` 表示 Agent 工具调用创建的“意图”和审批状态。真实生成仍由 `GenerationJob` 表示。
@@ -253,6 +344,8 @@ type AgentImageTask = {
     batchCount: number
     referenceImageIds: string[]
     options: Record<string, unknown>
+    stackId?: string
+    parentImageId?: string
   }
   generationJobId?: string
   resultImageIds: string[]
@@ -315,7 +408,7 @@ Agent 需要统一图片 ID 语义，维护运行期图片索引：
 ```ts
 type AgentImageRegistryEntry = {
   id: string
-  image: PlaygroundImage | PlaygroundImageMeta | AgentChatAttachment
+  image?: PlaygroundImage | PlaygroundImageMeta | AgentChatAttachment
   source: 'agent_attachment' | 'reference' | 'history' | 'generated'
   status: 'ready' | 'reserved' | 'failed' | 'rejected'
   createdAt: number
@@ -331,10 +424,9 @@ type AgentImageRegistryEntry = {
 
 registry 不应该把大对象写入 localStorage。图片二进制继续走 IndexedDB / blob cache。
 
-## 推荐落地顺序
+## 演进方向
 
-1. 建立 `AgentImageTask` 状态和审批 UI。
-2. 建立图片 registry 和语义化 `image_id` 预留 / 冲突后缀逻辑。
-3. 接入 `GenImage` 工具：创建可恢复 task sidecar 并立即返回预留 ID。
-4. 打通审批通过到 `useGenerationQueue.enqueueGenerationJob`，并把队列结果回连到 task 状态和终结回调。
-5. 接入 `ReadImage` 工具，让 Agent 能读取用户附件图、生成图和生成提示词。
+- `useAgentPlayground.ts` 目前是 Agent 领域 orchestration 的主入口；继续新增 Agent 会话、工具、图片任务或 registry 行为时，优先在这里或本目录的领域模块内落地，不要把逻辑搬回 `usePlayground`。
+- 如果 `useAgentPlayground.ts` 继续膨胀，下一步按真实边界拆成 `useAgentSessions`、`useAgentImageTasks`、`useAgentRuntime` 等内部 hook，但仍保留 `useAgentPlayground` 作为组件层和 `usePlayground` 的单一入口。
+- 工具 schema normalization 保持在 `src/agent/tools/*`；涉及 IndexedDB、generation queue、API key、blob cache 的 orchestration 保持在 `useAgentPlayground`。
+- `useGenerationQueue` 继续只接收真实生成请求和取消请求，不反向依赖 Agent 类型或审批语义。

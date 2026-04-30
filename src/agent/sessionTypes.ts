@@ -2,7 +2,15 @@ import type { AppMessage as AgentMessage } from '@mariozechner/pi-agent'
 
 import type { AgentChatAttachment } from './agentChat'
 import type { AgentImageRegistryEntry, AgentImageTask, AgentTurnCallbackState } from './imageTasks'
+import type { AskUserQuestionItem } from './tools'
 import type { AgentThinkingLevel } from '../config/agentModels'
+
+export type PersistedAgentPendingQuestion = {
+  toolCallId: string
+  agentTurnId: string
+  questions: AskUserQuestionItem[]
+  createdAt: number
+}
 
 export type AgentSessionRecord = {
   id: string
@@ -48,6 +56,7 @@ export type AgentSessionSidecarRecord = {
   imageRegistry: PersistedAgentImageRegistryEntry[]
   turnCallbacks: AgentTurnCallbackState[]
   currentAgentTurnId: string | null
+  pendingQuestions?: PersistedAgentPendingQuestion[]
 }
 
 export type HydratedAgentSessionSidecar = {
@@ -57,6 +66,7 @@ export type HydratedAgentSessionSidecar = {
   imageRegistry: AgentImageRegistryEntry[]
   turnCallbacks: AgentTurnCallbackState[]
   currentAgentTurnId: string | null
+  pendingQuestions: PersistedAgentPendingQuestion[]
 }
 
 export type HydratedAgentSession = {
@@ -79,4 +89,5 @@ export type SaveAgentSessionSidecarParams = {
   imageRegistry: AgentImageRegistryEntry[]
   turnCallbacks: AgentTurnCallbackState[]
   currentAgentTurnId: string | null
+  pendingQuestions: PersistedAgentPendingQuestion[]
 }

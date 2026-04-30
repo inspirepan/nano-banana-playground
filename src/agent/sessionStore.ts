@@ -158,7 +158,8 @@ function registryImageAsAttachment(entry: AgentImageRegistryEntry): AgentChatAtt
   const image = entry.image
   if (!image || entry.source !== 'agent_attachment') return null
   if (!('fileName' in image) || !('size' in image) || !('data' in image)) return null
-  if (typeof image.fileName !== 'string' || typeof image.size !== 'number' || typeof image.data !== 'string') return null
+  if (typeof image.fileName !== 'string' || typeof image.size !== 'number' || typeof image.data !== 'string')
+    return null
   return image as AgentChatAttachment
 }
 
@@ -194,6 +195,7 @@ function emptySidecar(): HydratedAgentSessionSidecar {
     imageRegistry: [],
     turnCallbacks: [],
     currentAgentTurnId: null,
+    pendingQuestions: [],
   }
 }
 
@@ -328,6 +330,7 @@ export async function saveAgentSessionSidecar(params: SaveAgentSessionSidecarPar
     imageRegistry,
     turnCallbacks: params.turnCallbacks,
     currentAgentTurnId: params.currentAgentTurnId,
+    pendingQuestions: params.pendingQuestions,
   }
   const db = await openNanoBananaDB()
   const tx = db.transaction(AGENT_SESSION_SIDECAR_STORE, 'readwrite')
@@ -339,10 +342,9 @@ export async function loadAgentSession(sessionId: string): Promise<HydratedAgent
   const db = await openNanoBananaDB()
   const tx = db.transaction([AGENT_SESSION_STORE, AGENT_SESSION_ENTRY_STORE, AGENT_SESSION_SIDECAR_STORE], 'readonly')
   const recordReq = tx.objectStore(AGENT_SESSION_STORE).get(sessionId) as IDBRequest<AgentSessionRecord | undefined>
-  const entriesReq = tx
-    .objectStore(AGENT_SESSION_ENTRY_STORE)
-    .index('sessionId')
-    .getAll(sessionId) as IDBRequest<AgentSessionMessageEntry[]>
+  const entriesReq = tx.objectStore(AGENT_SESSION_ENTRY_STORE).index('sessionId').getAll(sessionId) as IDBRequest<
+    AgentSessionMessageEntry[]
+  >
   const sidecarReq = tx.objectStore(AGENT_SESSION_SIDECAR_STORE).get(sessionId) as IDBRequest<
     AgentSessionSidecarRecord | undefined
   >
@@ -363,6 +365,7 @@ export async function loadAgentSession(sessionId: string): Promise<HydratedAgent
         imageRegistry: await Promise.all(sidecarRecord.imageRegistry.map((entry) => hydrateRegistryEntry(entry))),
         turnCallbacks: sidecarRecord.turnCallbacks,
         currentAgentTurnId: sidecarRecord.currentAgentTurnId,
+        pendingQuestions: sidecarRecord.pendingQuestions ?? [],
       }
     : emptySidecar()
   return { record, messages, sidecar }
