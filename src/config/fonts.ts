@@ -43,14 +43,14 @@ export const SANS_FONTS: FontOption<SansFontId>[] = [
     name: 'Inter',
     className: 'font-sans-inter',
     cssFamily: "'Inter'",
-    googleQuery: 'Inter:wght@100..900',
+    googleQuery: 'Inter:ital,wght@0,100..900;1,100..900',
   },
   {
     id: 'roboto-flex',
     name: 'Roboto Flex',
     className: 'font-sans-roboto-flex',
     cssFamily: "'Roboto Flex'",
-    googleQuery: 'Roboto Flex:opsz,wght@8..144,100..1000',
+    googleQuery: 'Roboto Flex:opsz,slnt,wght@8..144,-10..0,100..1000',
   },
   {
     id: 'manrope',
@@ -78,21 +78,22 @@ export const SANS_FONTS: FontOption<SansFontId>[] = [
     name: 'Source Sans 3',
     className: 'font-sans-source-sans-3',
     cssFamily: "'Source Sans 3'",
-    googleQuery: 'Source Sans 3:wght@200..900',
+    googleQuery: 'Source Sans 3:ital,wght@0,200..900;1,200..900',
   },
   {
     id: 'work-sans',
     name: 'Work Sans',
     className: 'font-sans-work-sans',
     cssFamily: "'Work Sans'",
-    googleQuery: 'Work Sans:wght@100..900',
+    googleQuery: 'Work Sans:ital,wght@0,100..900;1,100..900',
   },
   {
     id: 'ibm-plex-sans',
     name: 'IBM Plex Sans',
     className: 'font-sans-ibm-plex-sans',
     cssFamily: "'IBM Plex Sans'",
-    googleQuery: 'IBM Plex Sans:wght@100;200;300;400;500;600;700',
+    googleQuery:
+      'IBM Plex Sans:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700',
   },
   {
     id: 'outfit',
@@ -113,7 +114,7 @@ export const SANS_FONTS: FontOption<SansFontId>[] = [
     name: 'Source Serif 4',
     className: 'font-sans-source-serif-4',
     cssFamily: `'Source Serif 4', ${CJK_SERIF_FAMILY}`,
-    googleQuery: 'Source Serif 4:opsz,wght@8..60,200..900',
+    googleQuery: 'Source Serif 4:ital,opsz,wght@0,8..60,200..900;1,8..60,200..900',
     googleFallbackQueries: [CJK_SERIF_GOOGLE_QUERY],
   },
   {
@@ -121,7 +122,7 @@ export const SANS_FONTS: FontOption<SansFontId>[] = [
     name: 'Newsreader',
     className: 'font-sans-newsreader',
     cssFamily: `'Newsreader', ${CJK_SERIF_FAMILY}`,
-    googleQuery: 'Newsreader:opsz,wght@6..72,200..800',
+    googleQuery: 'Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800',
     googleFallbackQueries: [CJK_SERIF_GOOGLE_QUERY],
   },
   {
@@ -129,7 +130,7 @@ export const SANS_FONTS: FontOption<SansFontId>[] = [
     name: 'Literata',
     className: 'font-sans-literata',
     cssFamily: `'Literata', ${CJK_SERIF_FAMILY}`,
-    googleQuery: 'Literata:opsz,wght@7..72,200..900',
+    googleQuery: 'Literata:ital,opsz,wght@0,7..72,200..900;1,7..72,200..900',
     googleFallbackQueries: [CJK_SERIF_GOOGLE_QUERY],
   },
   {
@@ -137,7 +138,7 @@ export const SANS_FONTS: FontOption<SansFontId>[] = [
     name: 'Bitter',
     className: 'font-sans-bitter',
     cssFamily: `'Bitter', ${CJK_SERIF_FAMILY}`,
-    googleQuery: 'Bitter:wght@100..900',
+    googleQuery: 'Bitter:ital,wght@0,100..900;1,100..900',
     googleFallbackQueries: [CJK_SERIF_GOOGLE_QUERY],
   },
   {
@@ -145,7 +146,7 @@ export const SANS_FONTS: FontOption<SansFontId>[] = [
     name: 'Crimson Pro',
     className: 'font-sans-crimson-pro',
     cssFamily: `'Crimson Pro', ${CJK_SERIF_FAMILY}`,
-    googleQuery: 'Crimson Pro:wght@200..900',
+    googleQuery: 'Crimson Pro:ital,wght@0,200..900;1,200..900',
     googleFallbackQueries: [CJK_SERIF_GOOGLE_QUERY],
   },
   {
@@ -153,7 +154,7 @@ export const SANS_FONTS: FontOption<SansFontId>[] = [
     name: 'Gelasio',
     className: 'font-sans-gelasio',
     cssFamily: `'Gelasio', ${CJK_SERIF_FAMILY}`,
-    googleQuery: 'Gelasio:wght@400..700',
+    googleQuery: 'Gelasio:ital,wght@0,400..700;1,400..700',
     googleFallbackQueries: [CJK_SERIF_GOOGLE_QUERY],
   },
 ]

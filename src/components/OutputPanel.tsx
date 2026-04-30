@@ -38,6 +38,7 @@ type Props = {
   onRemove: (id: string) => void
   onLoadMore: () => void
   onOpenGenerationSettings: () => void
+  highlightStackId?: string | null
 }
 
 type DetailTarget = { stackId: string; itemId?: string; viewMode?: 'detail' | 'gallery'; initialEditing?: boolean }
@@ -333,12 +334,14 @@ export const OutputPanel = memo(function OutputPanel({
   onRemove,
   onLoadMore,
   onOpenGenerationSettings,
+  highlightStackId,
 }: Props) {
   const [detailTarget, setDetailTarget] = useState<DetailTarget | null>(null)
   const [exporting, setExporting] = useState(false)
   const [exportingStackId, setExportingStackId] = useState<string | null>(null)
   const [confirmDeleteStackId, setConfirmDeleteStackId] = useState<string | null>(null)
   const [deletingStackId, setDeletingStackId] = useState<string | null>(null)
+  const stackRowRefs = useRef<Map<string, HTMLDivElement>>(new Map())
   const stacks = useMemo(() => buildImageStacks(history, generationJobs), [history, generationJobs])
   const generatedImageCount = useMemo(() => history.filter((img) => img.source.type === 'generated').length, [history])
   const detailStack = detailTarget ? (stacks.find((stack) => stack.id === detailTarget.stackId) ?? null) : null
@@ -441,6 +444,13 @@ export const OutputPanel = memo(function OutputPanel({
     topStackIdRef.current = topStackId
   }, [stacks])
 
+  useExternalSync(() => {
+    if (!highlightStackId) return
+    const el = stackRowRefs.current.get(highlightStackId)
+    if (!el) return
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }, [highlightStackId])
+
   const sentinelRef = useRef<HTMLDivElement>(null)
   const onLoadMoreStable = useCallback(() => {
     onLoadMore()
@@ -485,25 +495,43 @@ export const OutputPanel = memo(function OutputPanel({
       {stacks.length > 0 ? (
         <div className="space-y-[26px]">
           <div className="space-y-2">
-            {stacks.map((stack) => (
-              <StackRow
-                key={stack.id}
-                stack={stack}
-                onOpenItem={openStackItem}
-                onEditItem={editStackItem}
-                onOpenGallery={openStackGallery}
-                onDownloadStack={handleExportStack}
-                onCancelStackGeneration={handleCancelStackGeneration}
-                onDismissStackFailedJobs={handleDismissStackFailedJobs}
-                onOpenGenerationSettings={onOpenGenerationSettings}
-                onDeleteStack={handleDeleteStackClick}
-                downloading={exportingStackId === stack.id}
-                deleteConfirming={confirmDeleteStackId === stack.id}
-                deleting={deletingStackId === stack.id}
-                onRequestDeleteConfirm={handleRequestDeleteStack}
-                onCancelDeleteConfirm={handleCancelDeleteStack}
-              />
-            ))}
+            {stacks.map((stack) => {
+              const isHighlighted = highlightStackId === stack.id
+              return (
+                <div
+                  key={stack.id}
+                  ref={(el) => {
+                    if (el) stackRowRefs.current.set(stack.id, el)
+                    else stackRowRefs.current.delete(stack.id)
+                  }}
+                  className="rounded-[10px] transition-shadow duration-300 ease-out motion-reduce:!transition-none"
+                  style={
+                    isHighlighted
+                      ? {
+                          boxShadow: 'inset 0 0 0 2px var(--color-accent), 0 0 0 4px var(--color-accent-soft)',
+                        }
+                      : undefined
+                  }
+                >
+                  <StackRow
+                    stack={stack}
+                    onOpenItem={openStackItem}
+                    onEditItem={editStackItem}
+                    onOpenGallery={openStackGallery}
+                    onDownloadStack={handleExportStack}
+                    onCancelStackGeneration={handleCancelStackGeneration}
+                    onDismissStackFailedJobs={handleDismissStackFailedJobs}
+                    onOpenGenerationSettings={onOpenGenerationSettings}
+                    onDeleteStack={handleDeleteStackClick}
+                    downloading={exportingStackId === stack.id}
+                    deleteConfirming={confirmDeleteStackId === stack.id}
+                    deleting={deletingStackId === stack.id}
+                    onRequestDeleteConfirm={handleRequestDeleteStack}
+                    onCancelDeleteConfirm={handleCancelDeleteStack}
+                  />
+                </div>
+              )
+            })}
           </div>
 
           {historyHasMore && (

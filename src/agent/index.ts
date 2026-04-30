@@ -11,8 +11,15 @@ export {
   isLlmAgentMessage,
 } from './agentChat'
 export type { AgentChatAttachment, AgentMessageImage, AgentMessageToolCall, AgentMessageToolResult } from './agentChat'
-export { createAgentImageTools } from './imageTools'
-export type { AgentImageToolResult, GenImageToolArgs, ReadImageToolArgs } from './imageTools'
+export { AGENT_SYSTEM_PROMPT } from './systemPrompt'
+export { createAgentImageTools, createGenImageTool, createReadImageTool } from './tools'
+export type {
+  AgentImageToolResult,
+  GenImageExecutor,
+  GenImageToolArgs,
+  ReadImageExecutor,
+  ReadImageToolArgs,
+} from './tools'
 export {
   AGENT_PROMPT_DEFAULT_LINE_LIMIT,
   formatPromptLines,

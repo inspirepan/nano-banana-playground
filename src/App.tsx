@@ -1,6 +1,7 @@
 import { Agentation } from 'agentation'
 import { useState, useLayoutEffect, useRef, useCallback } from 'react'
 
+import type { AgentImageTask } from './agent'
 import { Icon } from './components/Icon'
 import { InputPanel } from './components/InputPanel'
 import { OutputPanel } from './components/OutputPanel'
@@ -91,6 +92,8 @@ function App() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [settingsTarget, setSettingsTarget] = useState<SettingsTarget | null>(null)
   const [mobileTab, setMobileTab] = useState<MobileTab>(() => (pg.inputMode === 'agent' ? 'agent' : 'generate'))
+  const [highlightStackId, setHighlightStackId] = useState<string | null>(null)
+  const highlightTimerRef = useRef<number | null>(null)
   const regenToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const titleResetTimerRef = useRef<number | null>(null)
   const prevActiveQueueRef = useRef(0)
@@ -172,6 +175,27 @@ function App() {
       if (tab === 'generate' || tab === 'agent') pg.setInputMode(tab)
     },
     [pg],
+  )
+
+  const handleFocusAgentImageTask = useCallback(
+    (task: AgentImageTask) => {
+      let stackId = task.request.stackId
+      if (!stackId && task.generationJobId) {
+        const job = pg.generationJobs.find((item) => item.id === task.generationJobId)
+        stackId = job?.stackId ?? undefined
+      }
+      if (!stackId) return
+      if (typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches) {
+        setMobileTab('gallery')
+      }
+      setHighlightStackId(stackId)
+      if (highlightTimerRef.current) window.clearTimeout(highlightTimerRef.current)
+      highlightTimerRef.current = window.setTimeout(() => {
+        setHighlightStackId((prev) => (prev === stackId ? null : prev))
+        highlightTimerRef.current = null
+      }, 1800)
+    },
+    [pg.generationJobs],
   )
 
   useLayoutEffect(() => {
@@ -348,6 +372,7 @@ function App() {
                 onToggleAutoApproveAgentImageTasks={pg.setAutoApproveAgentImageTasks}
                 onApproveAgentImageTask={pg.approveAgentImageTask}
                 onCancelAgentImageTask={pg.cancelAgentImageTask}
+                onFocusAgentImageTask={handleFocusAgentImageTask}
                 onSendAgentMessage={pg.sendAgentMessage}
                 onStopAgentMessage={pg.stopAgentMessage}
                 onClearAgentChat={pg.clearAgentChat}
@@ -377,6 +402,7 @@ function App() {
                 onEditImage={pg.editImage}
                 onRemove={pg.removeFromHistory}
                 onLoadMore={pg.loadMoreHistory}
+                highlightStackId={highlightStackId}
                 onOpenGenerationSettings={() => openSettings('generationConcurrency')}
               />
             </div>
@@ -431,6 +457,7 @@ function App() {
               onToggleAutoApproveAgentImageTasks={pg.setAutoApproveAgentImageTasks}
               onApproveAgentImageTask={pg.approveAgentImageTask}
               onCancelAgentImageTask={pg.cancelAgentImageTask}
+              onFocusAgentImageTask={handleFocusAgentImageTask}
               onSendAgentMessage={pg.sendAgentMessage}
               onStopAgentMessage={pg.stopAgentMessage}
               onClearAgentChat={pg.clearAgentChat}
@@ -461,6 +488,7 @@ function App() {
             onRemove={pg.removeFromHistory}
             onLoadMore={pg.loadMoreHistory}
             onOpenGenerationSettings={() => openSettings('generationConcurrency')}
+            highlightStackId={highlightStackId}
           />
           {import.meta.env.DEV && <Agentation />}
         </div>

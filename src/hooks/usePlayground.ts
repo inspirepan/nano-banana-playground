@@ -7,6 +7,7 @@ import { useGenerationQueue, type GenerationJob } from './useGenerationQueue'
 import { putBlobInCache, getBlobFromCache, removeBlobFromCache } from './useImageSrc'
 import {
   AGENT_PROMPT_DEFAULT_LINE_LIMIT,
+  AGENT_SYSTEM_PROMPT,
   attachmentToAgentAttachment,
   createAgentImageTools,
   formatPromptLines,
@@ -70,8 +71,6 @@ export type InputMode = 'generate' | 'agent'
 
 const HISTORY_PAGE_SIZE = 20
 const AGENT_MAX_ATTACHMENTS = 8
-const AGENT_SYSTEM_PROMPT =
-  '你是 Imagine Playground 里的图像创作助手。用中文回答，帮助用户分析图片、打磨提示词、比较模型选择，并保持回答简洁可执行。'
 
 // Read simple URL params once at module load to safely init useState
 const _initial = readSimpleUrlParams()
@@ -93,8 +92,19 @@ function initialOptionsFor(model: ModelConfig, rawParams: Record<string, string>
   return bag
 }
 
+function normalizeModelLookupKey(id: string): string {
+  return id
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_]+/g, '-')
+}
+
 function findModelConfig(modelId: string): ModelConfig | null {
-  return MODEL_CONFIGS.find((item) => item.id === modelId) ?? null
+  const direct = MODEL_CONFIGS.find((item) => item.id === modelId)
+  if (direct) return direct
+  const normalized = normalizeModelLookupKey(modelId)
+  if (!normalized) return null
+  return MODEL_CONFIGS.find((item) => normalizeModelLookupKey(item.id) === normalized) ?? null
 }
 
 function optionsForGeneratedSource(model: ModelConfig, source: GeneratedSource): Record<string, unknown> {
@@ -212,6 +222,19 @@ function errorFromGenerationJob(job: GenerationJob): string | undefined {
   return job.slots.find((slot) => slot.error)?.error
 }
 
+function noteForAgentTaskStatus(status: AgentImageTask['status']): string | undefined {
+  switch (status) {
+    case 'rejected':
+      return 'The human user manually clicked the Reject button in the approval UI to decline this image task before any generation began. This is purely a user decision — there was NO content policy violation, NO safety filter, and NO system-side rejection. Do not apologize for safety reasons or assume the prompt was problematic. Ask the user what they want to change (subject, style, parameters, etc.) before proposing another task.'
+    case 'canceled':
+      return 'The human user manually canceled this image generation while it was running. Do not retry without explicit user direction; ask what they want to change.'
+    case 'failed':
+      return 'The image generation failed due to a technical or service-side error (network, model API, etc.). The error message is included above. This is not a user rejection.'
+    default:
+      return undefined
+  }
+}
+
 function buildAgentTaskCallbackText(tasks: AgentImageTask[]): string {
   const lines = ['<system>']
   for (const task of tasks) {
@@ -221,6 +244,8 @@ function buildAgentTaskCallbackText(tasks: AgentImageTask[]): string {
     lines.push(`reserved_image_ids: ${task.request.reservedImageIds.join(', ')}`)
     lines.push(`image_ids: ${task.resultImageIds.join(', ')}`)
     if (task.error) lines.push(`error: ${task.error}`)
+    const note = noteForAgentTaskStatus(task.status)
+    if (note) lines.push(`note: ${note}`)
     lines.push('')
   }
   if (lines[lines.length - 1] === '') lines.pop()
@@ -866,7 +891,9 @@ export function usePlayground() {
   const startAgentImageTask = useCallback(
     async (task: AgentImageTask): Promise<{ ok: boolean; message: string }> => {
       setAgentImageTasks((prev) =>
-        prev.map((item) => (item.id === task.id && item.status === 'pending_approval' ? { ...item, status: 'approved' } : item)),
+        prev.map((item) =>
+          item.id === task.id && item.status === 'pending_approval' ? { ...item, status: 'approved' } : item,
+        ),
       )
 
       const modelConfig = findModelConfig(task.request.modelId)
@@ -939,12 +966,26 @@ export function usePlayground() {
       )
       setAgentImageTasks((prev) =>
         prev.map((item) =>
-          item.id === task.id ? { ...item, status: 'queued', generationJobId: batchId, error: undefined } : item,
+          item.id === task.id
+            ? {
+                ...item,
+                status: 'queued',
+                generationJobId: batchId,
+                error: undefined,
+                request: { ...item.request, stackId },
+              }
+            : item,
         ),
       )
       return { ok: true, message: '任务已经提交并开始生成。' }
     },
-    [enqueueGenerationJob, getProviderCredentials, maybeDispatchAgentImageCallbacks, resolveAgentReferenceImages, setAgentImageTasks],
+    [
+      enqueueGenerationJob,
+      getProviderCredentials,
+      maybeDispatchAgentImageCallbacks,
+      resolveAgentReferenceImages,
+      setAgentImageTasks,
+    ],
   )
 
   const approveAgentImageTask = useCallback(
@@ -1056,7 +1097,11 @@ export function usePlayground() {
       setAgentImageTasks((prev) => [task, ...prev])
 
       const startResult = autoApproveAgentImageTasksRef.current ? await startAgentImageTask(task) : null
-      const status = autoApproveAgentImageTasksRef.current ? (startResult?.ok ? 'queued' : 'failed') : 'pending_approval'
+      const status = autoApproveAgentImageTasksRef.current
+        ? startResult?.ok
+          ? 'queued'
+          : 'failed'
+        : 'pending_approval'
       const message = autoApproveAgentImageTasksRef.current
         ? (startResult?.message ?? '任务已经提交并自动开始生成。')
         : reserved.renamed
@@ -1072,12 +1117,7 @@ export function usePlayground() {
       }
       return toolTextResult(JSON.stringify(payload, null, 2), payload)
     },
-    [
-      imageIdExistsForAgent,
-      resolveAgentReferenceImages,
-      setAgentImageTasks,
-      startAgentImageTask,
-    ],
+    [imageIdExistsForAgent, resolveAgentReferenceImages, setAgentImageTasks, startAgentImageTask],
   )
 
   const runReadImageTool = useCallback(

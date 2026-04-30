@@ -88,7 +88,8 @@ export const AGENT_MODEL_CONFIGS: AgentModelConfig[] = [
   },
 ]
 
-export const DEFAULT_AGENT_MODEL = AGENT_MODEL_CONFIGS[0]
+export const DEFAULT_AGENT_MODEL =
+  AGENT_MODEL_CONFIGS.find((item) => item.id === 'gpt-5.4-mini') ?? AGENT_MODEL_CONFIGS[0]
 
 export const AGENT_THINKING_OPTIONS: Array<{ value: AgentThinkingLevel; label: string }> = [
   { value: 'off', label: '关闭' },
