@@ -36,3 +36,5 @@ export type {
   ReserveAgentImageIdsResult,
 } from './imageTasks'
 export type { AgentSessionSummary } from './sessionTypes'
+export { useAgentPlayground } from './useAgentPlayground'
+export type { UseAgentPlaygroundParams } from './useAgentPlayground'
