@@ -190,17 +190,17 @@
 
 /* Dark theme */
 .dark {
-  --color-bg: #1a1a1d;
-  --color-bg-sunken: #141416;
-  --color-surface: #222226;
-  --color-surface-2: #27272b;
-  --color-surface-3: #2e2e33;
-  --color-border: #32323a;
-  --color-border-strong: #3f3f48;
-  --color-text: #f2f1ef;
-  --color-text-2: #d6d4ce;
-  --color-text-3: #b8b6ae;
-  --color-text-4: #97958c;
+  --color-bg: #1a1820;
+  --color-bg-sunken: #1a1820;
+  --color-surface: #23212b;
+  --color-surface-2: #2a2833;
+  --color-surface-3: #34313d;
+  --color-border: #393644;
+  --color-border-strong: #484453;
+  --color-text: #f4f1f7;
+  --color-text-2: #ddd8e4;
+  --color-text-3: #bfb8ca;
+  --color-text-4: #9d96aa;
 
   --color-accent: #8088e0;
   --color-accent-hover: #959ce6;
@@ -217,10 +217,10 @@
   --color-danger-soft: color-mix(in srgb, #e07676 14%, transparent);
   --color-success: #52c08a;
 
-  --ring-edge: rgba(255, 255, 255, 0.06);
-  --ring-edge-elevated: rgba(255, 255, 255, 0.08);
-  --ring-edge-strong: rgba(255, 255, 255, 0.11);
-  --ring-edge-soft: rgba(255, 255, 255, 0.04);
+  --ring-edge: rgba(207, 213, 255, 0.08);
+  --ring-edge-elevated: rgba(207, 213, 255, 0.1);
+  --ring-edge-strong: rgba(207, 213, 255, 0.14);
+  --ring-edge-soft: rgba(207, 213, 255, 0.05);
   --shadow-lift: 0 12px 28px -18px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.28);
   --shadow-float: 0 16px 36px -24px rgba(0, 0, 0, 0.62), 0 2px 6px rgba(0, 0, 0, 0.34);
 
@@ -875,7 +875,7 @@
     z-index: 0;
   }
   .dark .segmented {
-    background: var(--color-bg-sunken);
+    background: var(--color-bg);
   }
   .dark .segmented::before {
     background: var(--color-surface-3);
