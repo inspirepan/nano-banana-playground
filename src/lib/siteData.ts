@@ -1,3 +1,5 @@
+import { translate } from '../i18n'
+
 const KNOWN_INDEXED_DB_NAMES = [
   'nano-banana-playground',
   'nano-banana-playground-v1',
@@ -216,7 +218,8 @@ function deleteIndexedDB(name: string): Promise<void> {
     }
 
     req.onsuccess = () => resolveOnce()
-    req.onerror = () => rejectOnce(req.error ?? new Error(`无法删除 IndexedDB: ${name}`))
+    req.onerror = () =>
+      rejectOnce(req.error ?? new Error(translate('configLib.siteData.indexedDbDeleteFailed', { name })))
     req.onblocked = () => {
       blockedTimer = window.setTimeout(() => resolveOnce(), 500)
     }
@@ -273,24 +276,24 @@ export async function getCurrentSiteDataUsage(): Promise<SiteDataUsage> {
   const sections: SiteDataUsageSection[] = [
     {
       id: 'indexedDB',
-      label: 'IndexedDB',
+      label: translate('configLib.siteData.indexedDB.label'),
       bytes: idb.bytes,
-      detail: idb.databases > 0 ? `${idb.databases} 个数据库` : undefined,
+      detail: idb.databases > 0 ? translate('configLib.siteData.databaseCount', { count: idb.databases }) : undefined,
     },
     {
       id: 'localStorage',
-      label: 'localStorage',
+      label: translate('configLib.siteData.localStorage.label'),
       bytes: storageBytes(localStorage),
-      detail: `${localStorage.length} 项`,
+      detail: translate('configLib.siteData.itemCount', { count: localStorage.length }),
     },
     {
       id: 'sessionStorage',
-      label: 'sessionStorage',
+      label: translate('configLib.siteData.sessionStorage.label'),
       bytes: storageBytes(sessionStorage),
-      detail: `${sessionStorage.length} 项`,
+      detail: translate('configLib.siteData.itemCount', { count: sessionStorage.length }),
     },
-    { id: 'cacheStorage', label: 'Cache Storage', bytes: cacheBytes },
-    { id: 'cookies', label: 'Cookie', bytes: cookieBytes() },
+    { id: 'cacheStorage', label: translate('configLib.siteData.cacheStorage.label'), bytes: cacheBytes },
+    { id: 'cookies', label: translate('configLib.siteData.cookies.label'), bytes: cookieBytes() },
   ]
 
   return {

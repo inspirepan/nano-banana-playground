@@ -3,6 +3,7 @@ import type { Dispatch, SetStateAction } from 'react'
 import { AgentModelIcon } from './AgentModelIcon'
 import type { AgentChatMenu } from './types'
 import { AGENT_THINKING_OPTIONS, type AgentModelConfig, type AgentThinkingLevel } from '../../config/agentModels'
+import { useI18n } from '../../i18n'
 import { Icon } from '../Icon'
 
 export function AgentOptionsMenu({
@@ -26,6 +27,8 @@ export function AgentOptionsMenu({
   onModelChange: (id: string) => void
   onThinkingLevelChange: (level: AgentThinkingLevel) => void
 }) {
+  const { t } = useI18n()
+
   if (openMenu !== 'agentOptions') return null
 
   return (
@@ -35,11 +38,11 @@ export function AgentOptionsMenu({
         onClick={() => onToggleAutoApproveImageTasks(!autoApproveImageTasks)}
         className="flex h-7 w-full items-center gap-2 rounded-[var(--radius-sm)] px-2 text-left text-sm font-medium text-(--color-text-2) transition-colors hover:bg-(--color-surface-2)"
       >
-        <span className="min-w-0 flex-1 truncate">自动通过生图任务</span>
+        <span className="min-w-0 flex-1 truncate">{t('agentChat.options.autoApproveImageTasks')}</span>
         {autoApproveImageTasks && <Icon name="check" size={13} />}
       </button>
       <div className="my-1 h-px bg-(--ring-edge-soft)" />
-      <div className="px-2 py-1 text-sm font-medium text-(--color-text-4)">深度思考</div>
+      <div className="px-2 py-1 text-sm font-medium text-(--color-text-4)">{t('agentChat.options.thinking')}</div>
       {AGENT_THINKING_OPTIONS.map((item) => {
         const disabled = !model.supportsThinking && item.value !== 'off'
         return (
@@ -54,7 +57,7 @@ export function AgentOptionsMenu({
             disabled={disabled}
             className="flex h-7 w-full items-center gap-2 rounded-[var(--radius-sm)] px-2 text-left text-sm font-medium text-(--color-text-2) transition-colors hover:bg-(--color-surface-2) disabled:cursor-not-allowed disabled:opacity-45"
           >
-            <span className="min-w-0 flex-1 truncate">{item.label}</span>
+            <span className="min-w-0 flex-1 truncate">{t(`agentChat.thinking.${item.value}`)}</span>
             {effectiveThinkingLevel === item.value && <Icon name="check" size={13} />}
           </button>
         )

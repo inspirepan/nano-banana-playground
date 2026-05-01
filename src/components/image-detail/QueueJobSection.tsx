@@ -1,4 +1,5 @@
 import type { GenerationJob, GenerationSlot } from '../../hooks/usePlayground'
+import { useI18n } from '../../i18n'
 import { countSlots, formatTime, jobStatusLabel } from '../../lib/queueJobDisplay'
 import type { PlaygroundImageMeta } from '../../lib/types'
 import { Icon } from '../Icon'
@@ -6,17 +7,23 @@ import { ImageCard } from '../ImageCard'
 import { ImageGrid, GridCell } from '../ImageGrid'
 
 function StatusCard({ slot, onCancel }: { slot: GenerationSlot; onCancel: (slotId: string) => void }) {
-  if (slot.status === 'failed') return <FailedCard index={slot.index} error={slot.error ?? '生成失败'} />
+  const { t } = useI18n()
+  if (slot.status === 'failed')
+    return <FailedCard index={slot.index} error={slot.error ?? t('imageDetail.queue.status.failed')} />
   if (slot.status === 'canceled') return <CanceledCard index={slot.index} />
 
   const retrying = slot.status === 'retrying'
   const running = slot.status === 'running'
-  const label = retrying ? '重试中' : running ? '生成中' : '排队中'
-  const hint = retrying
-    ? `第 ${slot.attempt}/${slot.maxAttempts} 次尝试`
+  const label = retrying
+    ? t('imageDetail.queue.status.retrying')
     : running
-      ? '正在请求模型'
-      : '前面的图片完成后自动开始'
+      ? t('imageDetail.queue.status.generating')
+      : t('imageDetail.queue.status.queued')
+  const hint = retrying
+    ? t('imageDetail.queue.attempt', { attempt: slot.attempt, max: slot.maxAttempts })
+    : running
+      ? t('imageDetail.queue.requestingModel')
+      : t('imageDetail.queue.autoStart')
 
   return (
     <div
@@ -36,7 +43,7 @@ function StatusCard({ slot, onCancel }: { slot: GenerationSlot; onCancel: (slotI
           boxShadow: 'inset 0 0 0 1px var(--ring-edge)',
         }}
       >
-        取消
+        {t('common.cancel')}
       </button>
       <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-4 text-center text-(--color-text-3)">
         {slot.status === 'queued' ? (
@@ -59,6 +66,8 @@ function StatusCard({ slot, onCancel }: { slot: GenerationSlot; onCancel: (slotI
 }
 
 function FailedCard({ index, error }: { index: number; error: string }) {
+  const { t } = useI18n()
+
   return (
     <div
       className="w-full h-full rounded-[var(--radius-md)] overflow-hidden relative"
@@ -79,7 +88,7 @@ function FailedCard({ index, error }: { index: number; error: string }) {
             ×
           </div>
           <div className="text-base" style={{ color: 'var(--color-danger)' }}>
-            失败 #{index + 1}
+            {t('imageDetail.queue.failedIndexed', { index: index + 1 })}
           </div>
         </div>
         <div className="flex-1 min-h-0 overflow-y-auto text-sm leading-[1.55] break-words text-(--color-text-2) whitespace-pre-wrap">
@@ -91,6 +100,8 @@ function FailedCard({ index, error }: { index: number; error: string }) {
 }
 
 function CanceledCard({ index }: { index: number }) {
+  const { t } = useI18n()
+
   return (
     <div
       className="w-full h-full rounded-[var(--radius-md)] overflow-hidden relative"
@@ -101,7 +112,7 @@ function CanceledCard({ index }: { index: number }) {
     >
       <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-(--color-text-4)">
         <Icon name="close" size={14} strokeWidth={1.8} />
-        <div className="text-base">已取消 #{index + 1}</div>
+        <div className="text-base">{t('imageDetail.queue.status.canceledIndexed', { index: index + 1 })}</div>
       </div>
     </div>
   )
@@ -130,6 +141,7 @@ export function QueueJobSection({
   onOpen: (image: PlaygroundImageMeta) => void
   maxRowHeight?: number
 }) {
+  const { t } = useI18n()
   const counts = countSlots(job.slots)
   const active = counts.active > 0
   const dismissible = !active && (counts.failed > 0 || counts.canceled > 0)
@@ -139,7 +151,7 @@ export function QueueJobSection({
     <div>
       <div className="mb-2 grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2">
         <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-          <span className="whitespace-nowrap text-sm text-(--color-text-3)">{formatTime(job.createdAt)}</span>
+          <span className="whitespace-nowrap text-sm text-(--color-text-3)">{formatTime(job.createdAt, t)}</span>
           <span className="text-(--color-text-4)">·</span>
           <span className="whitespace-nowrap text-base font-medium text-(--color-text-2)">
             {job.request.model.name}
@@ -150,7 +162,7 @@ export function QueueJobSection({
           </span>
           <span className="text-(--color-text-4)">·</span>
           <span className="whitespace-nowrap text-base" style={{ color: statusColor }}>
-            {jobStatusLabel(counts)}
+            {jobStatusLabel(counts, t)}
           </span>
         </div>
         {active && (
@@ -160,7 +172,7 @@ export function QueueJobSection({
             className="chip danger text-sm"
             style={{ height: 24, padding: '0 8px' }}
           >
-            取消全部
+            {t('imageDetail.queue.cancelAll')}
           </button>
         )}
         {dismissible && (
@@ -170,7 +182,7 @@ export function QueueJobSection({
             className="chip ghost text-sm"
             style={{ height: 24, padding: '0 8px' }}
           >
-            关闭
+            {t('common.close')}
           </button>
         )}
       </div>

@@ -2,6 +2,7 @@ import { Type } from '@mariozechner/pi-ai'
 
 import description from './readImage.md?raw'
 import { type AgentImageToolResult, type AgentRuntimeTool } from './shared'
+import { translate } from '../../i18n'
 
 export type ReadImageToolArgs = {
   image_id: string
@@ -29,7 +30,7 @@ export function prepareReadImageArgs(args: unknown): ReadImageToolArgs {
 export function createReadImageTool({ readImage }: { readImage: ReadImageExecutor }): AgentRuntimeTool {
   return {
     name: 'ReadImage',
-    label: '读取图片',
+    label: translate('configLib.agent.tool.readImage'),
     description: description.trim(),
     parameters: Type.Object({
       image_id: Type.String({ description: 'Image ID to read.' }),

@@ -3,6 +3,7 @@ import { useCallback, useRef, useState } from 'react'
 import { useExternalSync, useMountEffect } from './effects'
 import { putBlobInCache, removeBlobFromCache } from './useImageSrc'
 import type { ModelConfig } from '../config/models'
+import { translate } from '../i18n'
 import { GENERATE_MAX_ATTEMPTS, generateImage } from '../lib/api'
 import { deleteFromHistory, saveToHistory } from '../lib/history'
 import type { PlaygroundImage } from '../lib/types'
@@ -135,7 +136,7 @@ function summarizeGenerationQueue(jobs: GenerationJob[]): GenerationQueueSummary
 
 function toDisplayError(e: unknown): string {
   const err = e instanceof Error ? e : new Error(String(e))
-  if (err.name === 'TimeoutError') return '请求超时（5min），请检查网络连接或代理配置后重试'
+  if (err.name === 'TimeoutError') return translate('configLib.generationQueue.timeout')
   return err.message
 }
 

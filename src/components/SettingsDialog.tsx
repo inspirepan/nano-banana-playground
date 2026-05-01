@@ -4,24 +4,26 @@ import { createPortal } from 'react-dom'
 import { ApiKeysSettings, type KeyHook } from './ApiKeysDialog'
 import { Icon, type IconName } from './Icon'
 import { SANS_FONTS, type SansFontId } from '../config/fonts'
+import { LANGUAGE_PREFERENCES, type LanguagePreference } from '../config/languages'
 import { COLOR_THEMES, type ColorThemeId, type Theme } from '../config/theme'
 import { useExternalSync, useWindowEvent } from '../hooks/effects'
+import { useI18n } from '../i18n'
 import { clearCurrentSiteData, getCurrentSiteDataUsage, type SiteDataUsage } from '../lib/siteData'
 
-const BRIGHTNESS: { value: Theme; icon: IconName; label: string }[] = [
-  { value: 'light', icon: 'light_mode', label: '浅色' },
-  { value: 'dark', icon: 'dark_mode', label: '深色' },
-  { value: 'system', icon: 'contrast', label: '系统' },
+const BRIGHTNESS: { value: Theme; icon: IconName; labelKey: string }[] = [
+  { value: 'light', icon: 'light_mode', labelKey: 'settings.theme.light' },
+  { value: 'dark', icon: 'dark_mode', labelKey: 'settings.theme.dark' },
+  { value: 'system', icon: 'contrast', labelKey: 'settings.theme.system' },
 ]
 
 const SANS_FONT_CHOICES = SANS_FONTS
 
 const GENERATION_CONCURRENCY_CHOICES = [
-  { value: 1, label: '1', suffix: '张' },
-  { value: 2, label: '2', suffix: '张' },
-  { value: 3, label: '3', suffix: '张' },
-  { value: 4, label: '4', suffix: '张' },
-  { value: 999, label: '不限' },
+  { value: 1, label: '1', suffixKey: 'settings.generationConcurrency.imageSuffix' },
+  { value: 2, label: '2', suffixKey: 'settings.generationConcurrency.imageSuffix' },
+  { value: 3, label: '3', suffixKey: 'settings.generationConcurrency.imageSuffix' },
+  { value: 4, label: '4', suffixKey: 'settings.generationConcurrency.imageSuffix' },
+  { value: 999, labelKey: 'settings.generationConcurrency.unlimited' },
 ]
 
 function formatBytes(bytes: number): string {
@@ -37,11 +39,13 @@ type Props = {
   theme: Theme
   colorTheme: ColorThemeId
   sansFont: SansFontId
+  language: LanguagePreference
   generationConcurrency: number
   focusSection?: 'generationConcurrency' | null
   onThemeChange: (theme: Theme) => void
   onColorThemeChange: (id: ColorThemeId) => void
   onSansFontChange: (id: SansFontId) => void
+  onLanguageChange: (id: LanguagePreference) => void
   onGenerationConcurrencyChange: (value: number) => void
   onClose: () => void
 }
@@ -53,14 +57,17 @@ export function SettingsDialog({
   theme,
   colorTheme,
   sansFont,
+  language,
   generationConcurrency,
   focusSection,
   onThemeChange,
   onColorThemeChange,
   onSansFontChange,
+  onLanguageChange,
   onGenerationConcurrencyChange,
   onClose,
 }: Props) {
+  const { t, language: resolvedLanguage } = useI18n()
   const generationConcurrencyRef = useRef<HTMLDivElement>(null)
   const [clearDataConfirm, setClearDataConfirm] = useState(false)
   const [clearDataBusy, setClearDataBusy] = useState(false)
@@ -75,11 +82,11 @@ export function SettingsDialog({
     try {
       setSiteDataUsage(await getCurrentSiteDataUsage())
     } catch (error) {
-      setSiteDataUsageError(error instanceof Error ? error.message : '无法读取当前数据大小。')
+      setSiteDataUsageError(error instanceof Error ? error.message : t('settings.error.readSiteDataUsage'))
     } finally {
       setSiteDataUsageLoading(false)
     }
-  }, [])
+  }, [t])
 
   const handleClose = useCallback(() => {
     setClearDataConfirm(false)
@@ -115,12 +122,13 @@ export function SettingsDialog({
         if (!cancelled) setSiteDataUsage(usage)
       })
       .catch((error) => {
-        if (!cancelled) setSiteDataUsageError(error instanceof Error ? error.message : '无法读取当前数据大小。')
+        if (!cancelled)
+          setSiteDataUsageError(error instanceof Error ? error.message : t('settings.error.readSiteDataUsage'))
       })
     return () => {
       cancelled = true
     }
-  }, [open])
+  }, [open, t])
 
   const handleClearSiteData = async () => {
     if (clearDataBusy) return
@@ -130,7 +138,7 @@ export function SettingsDialog({
       await clearCurrentSiteData()
       window.location.replace(`${window.location.origin}${window.location.pathname}`)
     } catch (error) {
-      setClearDataError(error instanceof Error ? error.message : '清空失败，请刷新后重试。')
+      setClearDataError(error instanceof Error ? error.message : t('settings.error.clearSiteData'))
       setClearDataBusy(false)
     }
   }
@@ -152,30 +160,52 @@ export function SettingsDialog({
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="设置"
+        aria-label={t('settings.title')}
         className="relative flex max-h-[min(760px,calc(100dvh-32px))] w-full max-w-2xl flex-col overflow-hidden rounded-[var(--radius-lg)] bg-(--color-surface) shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-float)]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-5 py-4 shadow-[inset_0_-1px_0_var(--ring-edge-soft)]">
           <div>
-            <h2 className="font-display text-lg font-semibold tracking-[-0.01em]">设置</h2>
-            <p className="mt-0.5 text-sm text-(--color-text-3)">管理密钥、外观和生成队列行为</p>
+            <h2 className="font-display text-lg font-semibold tracking-[-0.01em]">{t('settings.title')}</h2>
+            <p className="mt-0.5 text-sm text-(--color-text-3)">{t('settings.description')}</p>
           </div>
-          <button type="button" onClick={handleClose} className="icon-btn" aria-label="关闭">
+          <button type="button" onClick={handleClose} className="icon-btn" aria-label={t('common.close')}>
             <Icon name="close" size={13} />
           </button>
         </div>
 
         <div className="min-h-0 overflow-y-auto px-5 py-2">
           <div>
-            <SettingsSection title="接口密钥" description="配置浏览器本地保存的 Gemini 和 OpenAI 访问密钥。">
+            <SettingsSection title={t('settings.apiKeys.title')} description={t('settings.apiKeys.description')}>
               <ApiKeysSettings googleKey={googleKey} openaiKey={openaiKey} variant="embedded" />
             </SettingsSection>
 
-            <SettingsSection title="外观" description="选择明暗模式和界面主色。">
+            <SettingsSection title={t('settings.appearance.title')} description={t('settings.appearance.description')}>
               <div className="space-y-3">
                 <div>
-                  <div className="label mb-1.5 px-1">模式</div>
+                  <div className="label mb-1.5 px-1">{t('settings.language.label')}</div>
+                  <div
+                    className="segmented"
+                    style={{
+                      ['--seg-count' as string]: LANGUAGE_PREFERENCES.length,
+                      ['--seg-index' as string]: LANGUAGE_PREFERENCES.findIndex((item) => item.id === language),
+                    }}
+                  >
+                    {LANGUAGE_PREFERENCES.map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => onLanguageChange(item.id)}
+                        data-active={language === item.id}
+                      >
+                        <span>{item.label[resolvedLanguage]}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="label mb-1.5 px-1">{t('settings.theme.label')}</div>
                   <div
                     className="segmented"
                     style={{
@@ -183,7 +213,7 @@ export function SettingsDialog({
                       ['--seg-index' as string]: BRIGHTNESS.findIndex((item) => item.value === theme),
                     }}
                   >
-                    {BRIGHTNESS.map(({ value, icon, label }) => (
+                    {BRIGHTNESS.map(({ value, icon, labelKey }) => (
                       <button
                         key={value}
                         type="button"
@@ -191,14 +221,14 @@ export function SettingsDialog({
                         data-active={theme === value}
                       >
                         <Icon name={icon} size={12} />
-                        <span>{label}</span>
+                        <span>{t(labelKey)}</span>
                       </button>
                     ))}
                   </div>
                 </div>
 
                 <div>
-                  <div className="label mb-1.5 px-1">主色</div>
+                  <div className="label mb-1.5 px-1">{t('settings.colorTheme.label')}</div>
                   <div className="grid grid-cols-9 gap-2 sm:w-[316px]">
                     {COLOR_THEMES.map((ct) => {
                       const swatch = ct.id === 'mono' ? (isDark ? '#f2f1ef' : '#1f1d1a') : ct.color
@@ -224,7 +254,7 @@ export function SettingsDialog({
                 </div>
 
                 <FontChoiceGroup
-                  label="正文字体"
+                  label={t('settings.font.label')}
                   fonts={SANS_FONT_CHOICES}
                   value={sansFont}
                   sample={
@@ -242,11 +272,11 @@ export function SettingsDialog({
               className={open && focusSection === 'generationConcurrency' ? 'settings-focus-pulse' : undefined}
             >
               <SettingsSection
-                title="同时生成的最大并发数"
-                description="控制一次最多同时生成几张图。数字越大，排队更少，但更容易遇到接口限流。"
+                title={t('settings.generationConcurrency.title')}
+                description={t('settings.generationConcurrency.description')}
               >
                 <div
-                  className="segmented sm:w-[292px]"
+                  className="segmented w-fit"
                   style={{
                     ['--seg-count' as string]: GENERATION_CONCURRENCY_CHOICES.length,
                     ['--seg-index' as string]: Math.max(
@@ -263,8 +293,8 @@ export function SettingsDialog({
                       data-active={generationConcurrency === choice.value}
                     >
                       <span>
-                        <span className="text-base">{choice.label}</span>
-                        {choice.suffix ? ` ${choice.suffix}` : null}
+                        <span className="text-base">{choice.labelKey ? t(choice.labelKey) : choice.label}</span>
+                        {choice.suffixKey ? ` ${t(choice.suffixKey)}` : null}
                       </span>
                     </button>
                   ))}
@@ -272,16 +302,16 @@ export function SettingsDialog({
               </SettingsSection>
             </div>
 
-            <SettingsSection title="数据" description="清空当前站点保存在此浏览器里的所有数据。">
+            <SettingsSection title={t('settings.data.title')} description={t('settings.data.description')}>
               <div className="flex items-baseline justify-between gap-3">
                 <div>
-                  <div className="label mb-1">当前占用</div>
+                  <div className="label mb-1">{t('settings.data.currentUsage')}</div>
                   <div className="text-lg font-semibold tracking-[-0.01em] text-(--color-text)">
                     {siteDataUsage
                       ? formatBytes(siteDataUsage.totalBytes)
                       : effectiveSiteDataUsageLoading
-                        ? '计算中…'
-                        : '未知'}
+                        ? t('settings.data.calculating')
+                        : t('common.unknown')}
                   </div>
                 </div>
                 <button
@@ -292,13 +322,16 @@ export function SettingsDialog({
                   disabled={effectiveSiteDataUsageLoading || clearDataBusy}
                   className="chip shrink-0"
                 >
-                  <Icon name="refresh" size={12} /> {effectiveSiteDataUsageLoading ? '计算中' : '刷新'}
+                  <Icon name="refresh" size={12} />{' '}
+                  {effectiveSiteDataUsageLoading ? t('settings.data.calculatingShort') : t('common.refresh')}
                 </button>
               </div>
               {siteDataUsage?.browserEstimateBytes !== null && siteDataUsage?.browserEstimateBytes !== undefined && (
                 <div className="mt-1 text-sm text-(--color-text-4)">
-                  浏览器估算 {formatBytes(siteDataUsage.browserEstimateBytes)}
-                  {siteDataUsage.quotaBytes ? ` / 可用 ${formatBytes(siteDataUsage.quotaBytes)}` : ''}
+                  {t('settings.data.browserEstimate', { size: formatBytes(siteDataUsage.browserEstimateBytes) })}
+                  {siteDataUsage.quotaBytes
+                    ? t('settings.data.quota', { size: formatBytes(siteDataUsage.quotaBytes) })
+                    : ''}
                 </div>
               )}
               {siteDataUsageError && (
@@ -307,8 +340,7 @@ export function SettingsDialog({
                 </div>
               )}
               <p className="mt-4 text-sm leading-relaxed text-(--color-text-3)">
-                会删除 API Key、外观设置、生成历史、参考图、缓存、当前 URL 编辑态，以及旧版 IndexedDB
-                数据。清空后页面会重新加载。
+                {t('settings.data.clearDescription')}
               </p>
               {clearDataError && (
                 <p className="mt-2 text-sm leading-relaxed" style={{ color: 'var(--color-danger)' }}>
@@ -324,7 +356,8 @@ export function SettingsDialog({
                       disabled={clearDataBusy}
                       className="chip danger"
                     >
-                      <Icon name="trash" size={12} /> {clearDataBusy ? '清空中…' : '确认清空'}
+                      <Icon name="trash" size={12} />{' '}
+                      {clearDataBusy ? t('settings.data.clearing') : t('settings.data.confirmClear')}
                     </button>
                     <button
                       type="button"
@@ -335,7 +368,7 @@ export function SettingsDialog({
                       disabled={clearDataBusy}
                       className="chip"
                     >
-                      取消
+                      {t('common.cancel')}
                     </button>
                   </>
                 ) : (
@@ -345,7 +378,7 @@ export function SettingsDialog({
                     disabled={clearDataBusy}
                     className="chip danger"
                   >
-                    <Icon name="trash" size={12} /> 清空数据
+                    <Icon name="trash" size={12} /> {t('settings.data.clear')}
                   </button>
                 )}
               </div>

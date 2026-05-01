@@ -6,6 +6,7 @@ import type { DrawableLayerHandle, DrawTool } from './DrawableLayer'
 import { EditSidebar, type EditImageHandler } from './EditSidebar'
 import type { ModelConfig } from '../../config/models'
 import type { GenerationJob, GenerationSlot } from '../../hooks/usePlayground'
+import { useI18n } from '../../i18n'
 import type { ItemCounts } from '../../lib/editStateCache'
 import type { GeneratedSource, PlaygroundImageMeta } from '../../lib/types'
 
@@ -102,6 +103,8 @@ export function DetailSidePanel({
   onRemove,
   onClose,
 }: DetailSidePanelProps) {
+  const { t } = useI18n()
+
   return (
     <div
       className="w-full shadow-[inset_0_1px_0_var(--ring-edge-soft)] md:h-auto md:overflow-y-auto md:overflow-x-hidden md:shadow-[inset_1px_0_0_var(--ring-edge-soft)]"
@@ -140,7 +143,7 @@ export function DetailSidePanel({
                 }}
                 data-active={!editing}
               >
-                <span>详情</span>
+                <span>{t('imageDetail.section.details')}</span>
               </button>
               <button
                 type="button"
@@ -150,7 +153,7 @@ export function DetailSidePanel({
                 }}
                 data-active={editing}
               >
-                <span>编辑</span>
+                <span>{t('imageDetail.section.edit')}</span>
               </button>
             </div>
           </div>

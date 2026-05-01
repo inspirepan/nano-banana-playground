@@ -16,6 +16,7 @@ import type {
   AgentPendingQuestion,
   AskUserQuestionAnswer,
 } from '../../agent'
+import { useI18n } from '../../i18n'
 
 export function ToolActivityCard({
   calls,
@@ -40,6 +41,7 @@ export function ToolActivityCard({
   onCancelQuestion: (toolCallId: string) => void
   onFocusImageTask?: (task: AgentImageTask) => void
 }) {
+  const { t } = useI18n()
   const resultByCallId = new Map(results.map((result) => [result.toolCallId, result]))
 
   // GenImage calls render as standalone rich cards; AskUserQuestion renders a
@@ -81,22 +83,28 @@ export function ToolActivityCard({
       } else if (finished) {
         richCards.push(<AskUserQuestionResultCard key={call.id} call={call} result={finished} />)
       } else {
-        inlineNotices.push(<InlineToolNotice key={call.id} label="正在准备问卷…" />)
+        inlineNotices.push(<InlineToolNotice key={call.id} label={t('agentChat.tool.askUserQuestion.preparing')} />)
       }
       continue
     }
     if (call.name === 'ReadImage') {
       const finished = resultByCallId.get(call.id)
       if (!finished) {
-        inlineNotices.push(<InlineToolNotice key={call.id} label="正在读取图片…" />)
+        inlineNotices.push(<InlineToolNotice key={call.id} label={t('agentChat.tool.readImage.reading')} />)
         continue
       }
-      const imageId = typeof call.arguments.image_id === 'string' ? call.arguments.image_id : '图片'
+      const imageId =
+        typeof call.arguments.image_id === 'string' ? call.arguments.image_id : t('agentChat.tool.args.image')
       if (finished.isError) {
-        const errText = finished.text?.trim() || '读取失败'
-        inlineNotices.push(<InlineToolDone key={call.id} label={`读取图片 ${imageId} 失败：${errText}`} />)
+        const errText = finished.text?.trim() || t('agentChat.tool.result.failed')
+        inlineNotices.push(
+          <InlineToolDone
+            key={call.id}
+            label={t('agentChat.tool.readImage.failed', { id: imageId, error: errText })}
+          />,
+        )
       } else {
-        inlineNotices.push(<InlineToolDone key={call.id} label={`已读取图片 ${imageId}`} />)
+        inlineNotices.push(<InlineToolDone key={call.id} label={t('agentChat.tool.readImage.done', { id: imageId })} />)
       }
       continue
     }

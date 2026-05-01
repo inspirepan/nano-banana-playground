@@ -3,6 +3,7 @@ import { Type } from '@mariozechner/pi-ai'
 import descriptionTemplate from './genImage.md?raw'
 import { type AgentImageToolResult, type AgentRuntimeTool, toStringArray } from './shared'
 import type { ModelConfig } from '../../config/models'
+import { translate } from '../../i18n'
 
 export type GenImageToolArgs = {
   image_id: string
@@ -52,7 +53,7 @@ export function createGenImageTool({
   const description = descriptionTemplate.replace('{{models}}', buildModelList(imageModels)).trim()
   return {
     name: 'GenImage',
-    label: '生成图片',
+    label: translate('configLib.agent.tool.genImage'),
     description,
     parameters: Type.Object({
       image_id: Type.String({ description: 'Semantic output image ID. Required and non-empty.' }),

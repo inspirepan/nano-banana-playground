@@ -2,6 +2,7 @@ import type { CSSProperties, ReactNode } from 'react'
 
 import { Icon } from './Icon'
 import { getBlobFromCache, useImageSrc } from '../hooks/useImageSrc'
+import { useI18n, type Translate } from '../i18n'
 import type { StackItem } from '../lib/stacks'
 
 type Props = {
@@ -23,14 +24,18 @@ type Props = {
 type Slot = Extract<StackItem, { type: 'slot' }>['slot']
 type StackThumbStyle = CSSProperties & { '--stack-thumb-action-bg'?: string }
 
-function slotReasonText(slot: Slot): string | null {
-  if (slot.status === 'queued') return '排队中'
-  if (slot.status === 'failed') return slot.error ? `失败：${slot.error}` : '失败：未知错误'
+function slotReasonText(slot: Slot, t: Translate): string | null {
+  if (slot.status === 'queued') return t('input.stack.status.queued')
+  if (slot.status === 'failed') {
+    return slot.error
+      ? t('input.stack.status.failedWithError', { error: slot.error })
+      : t('input.stack.status.failedUnknown')
+  }
   if (slot.status !== 'retrying') return null
 
-  const parts = [`重试中 ${slot.attempt}/${slot.maxAttempts}`]
-  if (slot.error) parts.push(slot.error)
-  return parts.join(' · ')
+  return slot.error
+    ? t('input.stack.status.retryingWithError', { attempt: slot.attempt, max: slot.maxAttempts, error: slot.error })
+    : t('input.stack.status.retrying', { attempt: slot.attempt, max: slot.maxAttempts })
 }
 
 function slotReasonColor(slot: Slot): string {
@@ -54,6 +59,7 @@ export function StackItemThumb({
   metaBadgeTitle,
   onSelect,
 }: Props) {
+  const { t } = useI18n()
   const image = item.type === 'image' ? item.image : null
   const slot = item.type === 'slot' ? item.slot : null
   const imageIdLabel =
@@ -68,8 +74,12 @@ export function StackItemThumb({
     variant: 'preview',
   })
   const highlighted = selected || active
-  const slotReason = showSlotReason && slot ? slotReasonText(slot) : null
+  const itemNumber = number ?? item.order + 1
+  const slotReason = showSlotReason && slot ? slotReasonText(slot, t) : null
   const title = image?.source.type === 'generated' ? image.source.prompt : (slotReason ?? undefined)
+  const ariaLabel = image
+    ? t('input.stack.selectImage', { number: itemNumber })
+    : t('input.stack.selectSlot', { number: itemNumber })
   const outerRingShadow = slot ? '' : ', var(--shadow-lift)'
   const boxShadow = outerRing
     ? highlighted
@@ -130,6 +140,7 @@ export function StackItemThumb({
         onSelect(item)
       }}
       aria-pressed={selectable ? selected : undefined}
+      aria-label={ariaLabel}
       className={`group relative shrink-0 overflow-hidden rounded-[var(--radius-md)] transition-transform ${selectable ? '' : 'hover:-translate-y-0.5'} ${className}`}
       style={{ background, boxShadow }}
       title={title}
@@ -137,7 +148,7 @@ export function StackItemThumb({
       <div ref={ref} className="absolute inset-0">
         {image ? (
           src ? (
-            <img src={src} alt="" decoding="async" draggable={false} className="h-full w-full object-cover" />
+            <img src={src} alt={ariaLabel} decoding="async" draggable={false} className="h-full w-full object-cover" />
           ) : (
             <div className="h-full w-full skeleton-animated" />
           )
@@ -177,7 +188,7 @@ export function StackItemThumb({
           backdropFilter: 'blur(8px)',
         }}
       >
-        #{number ?? item.order + 1}
+        #{itemNumber}
       </span>
       {imageIdLabel && imageIdDisplay && (
         <span

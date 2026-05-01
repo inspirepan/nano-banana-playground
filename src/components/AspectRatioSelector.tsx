@@ -1,3 +1,5 @@
+import { useI18n } from '../i18n'
+
 type Props = {
   options: string[]
   value: string
@@ -5,7 +7,7 @@ type Props = {
   onChange: (value: string) => void
   pixelLabel?: (ratio: string, resolution: string) => string
   labelClassName?: string
-  // When false, the "宽高比" header row is omitted. Useful when rendered
+  // When false, the aspect ratio header row is omitted. Useful when rendered
   // under an enclosing section that already labels the control.
   showLabel?: boolean
 }
@@ -46,11 +48,13 @@ export function AspectRatioSelector({
   labelClassName = 'label',
   showLabel = true,
 }: Props) {
+  const { t } = useI18n()
+
   return (
     <div>
       {showLabel ? (
         <div className="flex items-center justify-between mb-1.5">
-          <span className={labelClassName}>宽高比</span>
+          <span className={labelClassName}>{t('input.aspectRatio.label')}</span>
           <span className="text-sm text-(--color-text-4) tabular-nums">{pixelLabel(value, resolution)}</span>
         </div>
       ) : (
@@ -63,6 +67,7 @@ export function AspectRatioSelector({
           const { w, h } = glyphSize(option)
           const [left, right] = option.split(':')
           const isActive = value === option
+          const pixelText = pixelLabel(option, resolution)
           const isBottomRow = Math.floor(idx / 4) === Math.floor((options.length - 1) / 4)
           return (
             <div key={option} className="relative group">
@@ -71,6 +76,8 @@ export function AspectRatioSelector({
                 onClick={() => onChange(option)}
                 className="aspect-tile w-full"
                 data-active={isActive}
+                aria-label={t('input.aspectRatio.optionAria', { ratio: option, pixels: pixelText })}
+                title={pixelText}
               >
                 {/* fixed 14x14 glyph slot — center the rectangle inside */}
                 <span className="inline-flex items-center justify-center shrink-0" style={{ width: 14, height: 14 }}>
@@ -96,7 +103,7 @@ export function AspectRatioSelector({
                   boxShadow: '0 6px 16px -6px rgba(15,17,21,0.24), 0 2px 4px rgba(15,17,21,0.08)',
                 }}
               >
-                {pixelLabel(option, resolution)}
+                {pixelText}
               </div>
             </div>
           )

@@ -1,3 +1,4 @@
+import { useI18n } from '../../i18n'
 import type { StackItem } from '../../lib/stacks'
 import type { PlaygroundImageMeta } from '../../lib/types'
 
@@ -9,6 +10,8 @@ type DetailFooterProps = {
 }
 
 export function DetailFooter({ editing, currentImage, selectedItem, stackId }: DetailFooterProps) {
+  const { t } = useI18n()
+
   return (
     <div
       className="hidden shrink-0 items-center gap-3.5 px-3.5 text-sm text-(--color-text-4) md:flex"
@@ -22,22 +25,22 @@ export function DetailFooter({ editing, currentImage, selectedItem, stackId }: D
         <>
           <span className="inline-flex items-center gap-1.5">
             <kbd>←</kbd>
-            <kbd>→</kbd> 切换
+            <kbd>→</kbd> {t('imageDetail.footer.switch')}
           </span>
-          <span className="inline-flex items-center gap-1.5">滚轮 缩放</span>
+          <span className="inline-flex items-center gap-1.5">{t('imageDetail.footer.wheelZoom')}</span>
           <span className="inline-flex items-center gap-1.5">
-            <kbd>0</kbd> / 双击 重置
+            <kbd>0</kbd> / {t('imageDetail.footer.doubleClickReset')}
           </span>
         </>
       )}
       {editing && (
         <span className="inline-flex items-center gap-1.5">
           <kbd>⌘</kbd>
-          <kbd>Z</kbd> 撤销
+          <kbd>Z</kbd> {t('imageDetail.footer.undo')}
         </span>
       )}
       <span className="inline-flex items-center gap-1.5">
-        <kbd>Esc</kbd> 关闭
+        <kbd>Esc</kbd> {t('imageDetail.footer.close')}
       </span>
       <div className="flex-1" />
       <span className="mono">#{(currentImage?.id ?? selectedItem?.id ?? stackId).slice(0, 8)}</span>

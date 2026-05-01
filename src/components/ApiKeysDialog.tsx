@@ -1,10 +1,11 @@
-import { useRef, useState } from 'react'
+import { useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 
 import { Icon } from './Icon'
 import type { Provider } from '../config/models'
 import { useExternalSync, useWindowEvent } from '../hooks/effects'
 import type { ApiKeyStatus } from '../hooks/useApiKey'
+import { useI18n } from '../i18n'
 import { DEFAULT_BASE_URL, previewEndpoint } from '../lib/validateKey'
 
 export type KeyHook = {
@@ -25,20 +26,22 @@ type Props = {
   onClose: () => void
 }
 
-const LABELS: Record<Provider, { label: string; placeholder: string; hint: string }> = {
+const LABELS: Record<Provider, { labelKey: string; placeholderKey: string; hintKey: string }> = {
   google: {
-    label: 'Gemini API Key',
-    placeholder: '粘贴你的 Gemini API Key',
-    hint: '用于 Nano Banana 系列',
+    labelKey: 'apiKeys.provider.google.label',
+    placeholderKey: 'apiKeys.provider.google.placeholder',
+    hintKey: 'apiKeys.provider.google.hint',
   },
   openai: {
-    label: 'OpenAI API Key',
-    placeholder: '粘贴你的 OpenAI API Key',
-    hint: '用于 GPT Image 系列',
+    labelKey: 'apiKeys.provider.openai.label',
+    placeholderKey: 'apiKeys.provider.openai.placeholder',
+    hintKey: 'apiKeys.provider.openai.hint',
   },
 }
 
 export function ApiKeysDialog({ open, googleKey, openaiKey, onClose }: Props) {
+  const { t } = useI18n()
+
   useWindowEvent(
     'keydown',
     (event) => {
@@ -56,13 +59,13 @@ export function ApiKeysDialog({ open, googleKey, openaiKey, onClose }: Props) {
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="接口密钥"
+        aria-label={t('apiKeys.title')}
         className="relative w-full max-w-md rounded-[var(--radius-lg)] bg-(--color-surface) shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-float)]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-5 pt-4 pb-3 shadow-[inset_0_-1px_0_var(--ring-edge-soft)]">
-          <h2 className="font-display text-lg font-semibold tracking-[-0.01em]">接口密钥</h2>
-          <button type="button" onClick={onClose} className="icon-btn" aria-label="关闭">
+          <h2 className="font-display text-lg font-semibold tracking-[-0.01em]">{t('apiKeys.title')}</h2>
+          <button type="button" onClick={onClose} className="icon-btn" aria-label={t('common.close')}>
             <Icon name="close" size={13} />
           </button>
         </div>
@@ -86,15 +89,15 @@ export function ApiKeysSettings({
   openaiKey: KeyHook
   variant?: ApiKeysSettingsVariant
 }) {
+  const { t } = useI18n()
+
   return (
     <div className="space-y-4">
       <div className="overflow-hidden rounded-[var(--radius-md)] bg-(--color-surface) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
         <KeyRow provider="google" hook={googleKey} variant={variant} />
         <KeyRow provider="openai" hook={openaiKey} variant={variant} last />
       </div>
-      <p className="text-sm leading-relaxed text-(--color-text-3)">
-        密钥与 Base URL 仅保存在当前浏览器的 localStorage，不会上传任何服务器。
-      </p>
+      <p className="text-sm leading-relaxed text-(--color-text-3)">{t('apiKeys.storageNote')}</p>
     </div>
   )
 }
@@ -110,7 +113,14 @@ function KeyRow({
   variant: ApiKeysSettingsVariant
   last?: boolean
 }) {
-  const { label, placeholder, hint } = LABELS[provider]
+  const { t } = useI18n()
+  const id = useId()
+  const { labelKey, placeholderKey, hintKey } = LABELS[provider]
+  const label = t(labelKey)
+  const placeholder = t(placeholderKey)
+  const hint = t(hintKey)
+  const apiKeyInputId = `${id}-api-key`
+  const baseUrlInputId = `${id}-base-url`
   const { apiKey, baseUrl, status, error, submit, reset, keepCurrent } = hook
   const [draft, setDraft] = useState('')
   const [baseUrlDraft, setBaseUrlDraft] = useState(baseUrl)
@@ -124,7 +134,7 @@ function KeyRow({
   const prevStatusRef = useRef(status)
   const suppressValidFlashRef = useRef(false)
 
-  // Detect the valid transition to briefly flash a "验证成功" state on the primary button.
+  // Detect the valid transition to briefly flash a success state on the primary button.
   useExternalSync(() => {
     const prev = prevStatusRef.current
     prevStatusRef.current = status
@@ -195,21 +205,26 @@ function KeyRow({
               <span className="mono min-w-0 flex-1 truncate text-base text-(--color-text-2)">{masked}</span>
             </div>
             <div className="flex min-w-0 items-center gap-2 text-sm text-(--color-text-3)">
-              <span className="shrink-0 text-(--color-text-4)">Base URL</span>
+              <span className="shrink-0 text-(--color-text-4)">{t('apiKeys.baseUrl.label')}</span>
               <span className="mono min-w-0 flex-1 truncate">
                 {baseUrl || baseUrlPlaceholder}
-                {!baseUrl && <span className="ml-1 text-(--color-text-4)">（默认）</span>}
+                {!baseUrl && <span className="ml-1 text-(--color-text-4)">{t('apiKeys.baseUrl.defaultSuffix')}</span>}
               </span>
             </div>
           </div>
           {justValidated ? (
             <span className="inline-flex shrink-0 items-center gap-1 text-base font-medium text-(--color-success)">
               <Icon name="check_circle" size={13} strokeWidth={2.1} />
-              验证成功
+              {t('apiKeys.status.validated')}
             </span>
           ) : (
-            <button type="button" onClick={handleEdit} className="action-soft -mr-1 shrink-0 text-base">
-              修改
+            <button
+              type="button"
+              onClick={handleEdit}
+              className="action-soft -mr-1 shrink-0 text-base"
+              aria-label={t('apiKeys.action.editProvider', { label })}
+            >
+              {t('apiKeys.action.edit')}
             </button>
           )}
         </div>
@@ -230,20 +245,24 @@ function KeyRow({
       <div className="mt-3 space-y-2.5">
         {status === 'invalid' && (
           <div className="text-sm leading-relaxed text-(--color-danger) break-words">
-            {error ?? '密钥无效或已过期，请重新输入。'}
+            {error ?? t('apiKeys.error.invalidOrExpired')}
           </div>
         )}
 
         <div>
-          <label className="mb-1 block text-base font-medium text-(--color-text-2)">API Key</label>
+          <label className="mb-1 block text-base font-medium text-(--color-text-2)" htmlFor={apiKeyInputId}>
+            {t('apiKeys.apiKey.label')}
+          </label>
           <input
+            id={apiKeyInputId}
             type="password"
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter') handleSubmit()
             }}
-            placeholder={hasExistingKey ? '粘贴新密钥；留空则继续使用当前密钥' : placeholder}
+            placeholder={hasExistingKey ? t('apiKeys.apiKey.placeholder.replaceExisting') : placeholder}
+            aria-label={t('apiKeys.apiKey.ariaLabel', { label })}
             disabled={isValidating}
             className="w-full rounded-[var(--radius-sm)] bg-(--color-surface) px-2.5 py-1.5 text-base
                        shadow-[inset_0_0_0_1px_var(--ring-edge)]
@@ -256,10 +275,13 @@ function KeyRow({
 
         <div>
           <div className="flex items-baseline justify-between mb-1">
-            <label className="text-base font-medium text-(--color-text-2)">Base URL</label>
-            <span className="text-sm text-(--color-text-4)">可选，留空使用原生 API</span>
+            <label className="text-base font-medium text-(--color-text-2)" htmlFor={baseUrlInputId}>
+              {t('apiKeys.baseUrl.label')}
+            </label>
+            <span className="text-sm text-(--color-text-4)">{t('apiKeys.baseUrl.hint')}</span>
           </div>
           <input
+            id={baseUrlInputId}
             type="url"
             value={baseUrlDraft}
             onChange={(e) => setBaseUrlDraft(e.target.value)}
@@ -267,6 +289,7 @@ function KeyRow({
               if (e.key === 'Enter') handleSubmit()
             }}
             placeholder={baseUrlPlaceholder}
+            aria-label={t('apiKeys.baseUrl.ariaLabel', { label })}
             spellCheck={false}
             autoComplete="off"
             disabled={isValidating}
@@ -279,7 +302,7 @@ function KeyRow({
           />
           {hasBaseUrlDraft && (
             <div className="mt-1 flex items-start gap-1 text-sm leading-[1.5] text-(--color-text-4)">
-              <span className="shrink-0">实际调用</span>
+              <span className="shrink-0">{t('apiKeys.baseUrl.previewLabel')}</span>
               <span className="mono min-w-0 flex-1 break-all text-(--color-text-3)">
                 {previewEndpoint(provider, baseUrlDraft)}
               </span>
@@ -293,10 +316,11 @@ function KeyRow({
               <button
                 type="button"
                 onClick={handleReset}
+                aria-label={t('apiKeys.action.removeProviderKey', { label })}
                 className="chip danger text-sm"
                 style={{ height: 28, padding: '0 9px' }}
               >
-                移除密钥
+                {t('apiKeys.action.removeKey')}
               </button>
             )}
           </div>
@@ -305,15 +329,17 @@ function KeyRow({
               <button
                 type="button"
                 onClick={handleCancelEdit}
+                aria-label={t('apiKeys.action.cancelEditingProvider', { label })}
                 className="chip ghost text-sm"
                 style={{ height: 28, padding: '0 9px' }}
               >
-                取消
+                {t('common.cancel')}
               </button>
             )}
             <button
               type="button"
               onClick={handleSubmit}
+              aria-label={t('apiKeys.action.saveAndValidate', { label })}
               disabled={!canSubmit}
               className="chip accent-active"
               style={{
@@ -332,10 +358,10 @@ function KeyRow({
                     className="spinner"
                     style={{ borderColor: 'rgba(255,255,255,0.35)', borderTopColor: 'currentColor' }}
                   />
-                  <span>验证中…</span>
+                  <span>{t('apiKeys.status.validating')}</span>
                 </>
               ) : (
-                `保存并验证 ${label}`
+                t('apiKeys.action.saveAndValidate', { label })
               )}
             </button>
           </div>

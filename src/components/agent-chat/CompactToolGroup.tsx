@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 
 import { summarizeToolArgs, summarizeToolResult, toolLabel } from './utils'
 import type { AgentMessageToolCall, AgentMessageToolResult } from '../../agent'
+import { useI18n } from '../../i18n'
 import { Icon } from '../Icon'
 
 export function ToolCallRow({
@@ -63,13 +64,19 @@ export function StandaloneToolResultRow({ result }: { result: AgentMessageToolRe
 }
 
 export function CompactToolGroup({ rows, isStreaming }: { rows: ReactNode[]; isStreaming: boolean }) {
+  const { t } = useI18n()
+
   return (
     <div className="flex justify-start">
       <div className="mr-3 max-w-[88%]">
-        <div className="mb-1.5 mono text-[11px] uppercase tracking-[0.12em] text-(--color-text-4)">Agent</div>
+        <div className="mb-1.5 mono text-[11px] uppercase tracking-[0.12em] text-(--color-text-4)">
+          {t('common.agent')}
+        </div>
         <div className="rounded-[var(--radius-lg)] bg-(--color-surface) px-2.5 py-2 shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
           <div className="space-y-1.5">{rows}</div>
-          {isStreaming && <div className="mt-1.5 text-sm text-(--color-text-4)">等待工具结果…</div>}
+          {isStreaming && (
+            <div className="mt-1.5 text-sm text-(--color-text-4)">{t('agentChat.tool.waitingResult')}</div>
+          )}
         </div>
       </div>
     </div>

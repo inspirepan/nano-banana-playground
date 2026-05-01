@@ -1,3 +1,4 @@
+import { translate } from '../i18n'
 import { base64ToBlob } from '../lib/blobUtils'
 
 export type AgentImageInput = {
@@ -51,7 +52,7 @@ function drawImageBitmap(bitmap: ImageBitmap, width: number, height: number, fla
   canvas.width = width
   canvas.height = height
   const ctx = canvas.getContext('2d')
-  if (!ctx) throw new Error('无法创建图片压缩画布')
+  if (!ctx) throw new Error(translate('configLib.agent.imageCompressionCanvasFailed'))
   if (flatten) {
     ctx.fillStyle = '#fff'
     ctx.fillRect(0, 0, width, height)

@@ -3,6 +3,7 @@ import type { ChangeEvent, Dispatch, RefObject, SetStateAction } from 'react'
 import { AgentModelIcon } from './AgentModelIcon'
 import type { AgentChatMenu } from './types'
 import type { AgentModelConfig, AgentThinkingLevel } from '../../config/agentModels'
+import { useI18n } from '../../i18n'
 import { Icon } from '../Icon'
 
 export function ComposerActions({
@@ -34,6 +35,8 @@ export function ComposerActions({
   onSend: () => void
   onStop: () => void
 }) {
+  const { t } = useI18n()
+
   return (
     <div className="flex items-center gap-1.5 px-2 pt-0.5 pb-2">
       <input
@@ -48,8 +51,8 @@ export function ComposerActions({
         type="button"
         onClick={() => fileInputRef.current?.click()}
         className="icon-btn"
-        title="附加图片"
-        aria-label="附加图片"
+        title={t('agentChat.composer.attachImage')}
+        aria-label={t('agentChat.composer.attachImage')}
       >
         <Icon name="plus" size={17} />
       </button>
@@ -59,7 +62,7 @@ export function ComposerActions({
         onClick={() => setOpenMenu((prev) => (prev === 'agentOptions' ? null : 'agentOptions'))}
         className="chip ghost max-w-[170px] justify-between px-2.5 text-sm"
         style={{ height: 28 }}
-        title="切换模型与思考等级"
+        title={t('agentChat.composer.optionsTitle')}
       >
         <AgentModelIcon model={model} />
         <span className="min-w-0 truncate text-(--color-text-2)">{model.shortLabel}</span>
@@ -74,8 +77,8 @@ export function ComposerActions({
           onClick={onStop}
           className="chip flex items-center justify-center rounded-full p-0"
           style={{ width: 30, height: 30 }}
-          title="停止"
-          aria-label="停止"
+          title={t('agentChat.composer.stop')}
+          aria-label={t('agentChat.composer.stop')}
         >
           <Icon name="stop_circle" size={14} />
         </button>
@@ -87,9 +90,13 @@ export function ComposerActions({
           className="cta flex items-center justify-center rounded-full p-0"
           style={{ width: 30, height: 30 }}
           title={
-            isStreaming ? (pendingQuestionCount > 0 ? '跳过问卷并发送' : '发送（Agent 处理中将作为追加消息）') : '发送'
+            isStreaming
+              ? pendingQuestionCount > 0
+                ? t('agentChat.composer.skipQuestionsAndSend')
+                : t('agentChat.composer.sendWhileStreaming')
+              : t('agentChat.composer.send')
           }
-          aria-label="发送"
+          aria-label={t('agentChat.composer.send')}
         >
           <Icon name="send" size={14} />
         </button>

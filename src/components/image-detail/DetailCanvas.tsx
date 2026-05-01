@@ -5,6 +5,7 @@ import type { BrushPresetId } from './annotationPresets'
 import { DrawableLayer, type DrawableLayerHandle, type DrawMode, type DrawTool } from './DrawableLayer'
 import { SlotHero } from './StackViews'
 import { ZoomableImageView } from './ZoomableImageView'
+import { useI18n } from '../../i18n'
 import type { ItemCounts } from '../../lib/editStateCache'
 import type { StackItem } from '../../lib/stacks'
 import type { GeneratedSource, PlaygroundImageMeta } from '../../lib/types'
@@ -91,6 +92,8 @@ export function DetailCanvas({
   onDismissGenerationJob,
   onRetryGenerationSlot,
 }: DetailCanvasProps) {
+  const { t } = useI18n()
+
   return (
     <div
       className="relative min-h-0 min-w-0 overflow-hidden md:flex-1"
@@ -106,14 +109,19 @@ export function DetailCanvas({
       {refDetailId && refDetailSrc && currentImage ? (
         <div className="relative flex flex-row h-full gap-px">
           <div className="h-full flex-1 min-w-0 relative">
-            <ZoomableImageView key={refDetailId ?? 'ref'} src={refDetailSrc} alt="" label="左 · 参考图" />
+            <ZoomableImageView
+              key={refDetailId ?? 'ref'}
+              src={refDetailSrc}
+              alt=""
+              label={t('imageDetail.canvas.referenceImageLabel')}
+            />
           </div>
           <div className="h-full flex-1 min-w-0 relative">
             <ZoomableImageView
               key={currentImage.id}
               src={currentSrc ?? ''}
               alt={currentMeta?.prompt ?? ''}
-              label="右 · 生成图"
+              label={t('imageDetail.canvas.generatedImageLabel')}
             />
           </div>
           <button
@@ -121,12 +129,12 @@ export function DetailCanvas({
             onClick={onCloseRefDetail}
             className="absolute top-3 right-3 z-30 chip"
             style={{ height: 26 }}
-            title="退出对比"
-            aria-label="退出对比"
+            title={t('imageDetail.action.exitCompare')}
+            aria-label={t('imageDetail.action.exitCompare')}
           >
             <Icon name="close" size={12} />
-            <span className="hidden sm:inline">退出对比</span>
-            <span className="sm:hidden">退出</span>
+            <span className="hidden sm:inline">{t('imageDetail.action.exitCompare')}</span>
+            <span className="sm:hidden">{t('imageDetail.action.exitShort')}</span>
           </button>
         </div>
       ) : currentImage ? (
@@ -145,8 +153,8 @@ export function DetailCanvas({
             <button
               type="button"
               onClick={onOpenMobilePreview}
-              aria-label="全屏预览"
-              title="全屏预览"
+              aria-label={t('imageDetail.action.fullscreenPreview')}
+              title={t('imageDetail.action.fullscreenPreview')}
               className="absolute right-3 top-3 z-20 flex h-8 w-8 items-center justify-center rounded-full transition-colors md:hidden"
               style={{
                 background: 'color-mix(in srgb, var(--color-surface) 92%, transparent)',
@@ -210,7 +218,7 @@ export function DetailCanvas({
       {!refDetailId && hasPrev && (
         <button
           onClick={onGoPrev}
-          aria-label="上一张"
+          aria-label={t('imageDetail.action.previousImage')}
           className="absolute left-4 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full flex items-center justify-center transition-colors"
           style={{
             background: 'color-mix(in srgb, var(--color-surface) 90%, transparent)',
@@ -225,7 +233,7 @@ export function DetailCanvas({
       {!refDetailId && hasNext && (
         <button
           onClick={onGoNext}
-          aria-label="下一张"
+          aria-label={t('imageDetail.action.nextImage')}
           className="absolute right-4 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full flex items-center justify-center transition-colors"
           style={{
             background: 'color-mix(in srgb, var(--color-surface) 90%, transparent)',

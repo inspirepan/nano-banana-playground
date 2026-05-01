@@ -1,4 +1,5 @@
 import type { Provider } from '../config/models'
+import { translate } from '../i18n'
 
 // Default API base URLs shown as placeholder text. Both are the canonical
 // entry points used when the user leaves the field blank.
@@ -75,7 +76,7 @@ export async function validateApiKey(
     // this origin, which is indistinguishable from a network error at the
     // browser layer.
     const msg = e instanceof Error ? e.message : String(e)
-    return { valid: false, error: `网络或 CORS 错误：${msg}。若 curl 能通但浏览器失败，通常是网关未允许跨域。` }
+    return { valid: false, error: translate('configLib.validateKey.networkCorsError', { message: msg }) }
   }
 }
 

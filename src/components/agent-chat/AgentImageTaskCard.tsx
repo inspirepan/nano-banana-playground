@@ -3,6 +3,7 @@ import { summarizeToolResult, taskStatusLabel } from './utils'
 import type { AgentImageTask, AgentMessageToolCall, AgentMessageToolResult } from '../../agent'
 import { MODEL_CONFIGS } from '../../config/models'
 import { useImageSrc } from '../../hooks/useImageSrc'
+import { useI18n } from '../../i18n'
 
 function GenImageResultThumb({ id }: { id: string }) {
   const { ref, src } = useImageSrc(id, 'image/png', undefined, { variant: 'preview' })
@@ -37,6 +38,7 @@ export function AgentImageTaskCard({
   onCancel: (taskId: string) => void
   onFocus?: (task: AgentImageTask) => void
 }) {
+  const { t } = useI18n()
   const status: AgentImageTask['status'] = task?.status ?? (result?.isError ? 'failed' : 'pending_approval')
   const danger = status === 'failed' || status === 'rejected' || status === 'canceled'
   const active = status === 'queued' || status === 'running'
@@ -88,7 +90,7 @@ export function AgentImageTaskCard({
       className={`rounded-[var(--radius-md)] bg-(--color-surface) px-3.5 py-3 shadow-[inset_0_0_0_1px_var(--ring-edge-soft)] ${canFocus ? 'cursor-pointer transition-colors duration-150 hover:bg-(--color-surface-2)' : ''}`}
     >
       <div className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1">
-        <span className="text-sm font-semibold text-(--color-text)">生成图片</span>
+        <span className="text-sm font-semibold text-(--color-text)">{t('agentChat.imageTask.title')}</span>
         <span className="inline-flex items-center gap-1.5 text-sm" style={{ color: statusColor }}>
           <span className="h-1.5 w-1.5 rounded-full" style={{ background: 'currentColor' }} />
           {taskStatusLabel(status)}
@@ -114,21 +116,23 @@ export function AgentImageTaskCard({
         <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm">
           {modelName && (
             <span className="min-w-0">
-              <span className="text-(--color-text-3)">模型 </span>
+              <span className="text-(--color-text-3)">{t('agentChat.imageTask.model')}</span>
               <span className="text-(--color-text)">{modelName}</span>
             </span>
           )}
           {task && (
             <>
               <span>
-                <span className="text-(--color-text-3)">尺寸 </span>
+                <span className="text-(--color-text-3)">{t('agentChat.imageTask.size')}</span>
                 <span className="text-(--color-text) tabular-nums">
                   {task.request.resolution} · {task.request.aspectRatio}
                 </span>
               </span>
               <span>
-                <span className="text-(--color-text-3)">数量 </span>
-                <span className="text-(--color-text) tabular-nums">{task.request.batchCount} 张</span>
+                <span className="text-(--color-text-3)">{t('agentChat.imageTask.count')}</span>
+                <span className="text-(--color-text) tabular-nums">
+                  {t('agentChat.imageTask.countValue', { count: task.request.batchCount })}
+                </span>
               </span>
             </>
           )}
@@ -136,19 +140,21 @@ export function AgentImageTaskCard({
             <>
               {requestedFromArgs && (
                 <span className="min-w-0 truncate" title={requestedFromArgs}>
-                  <span className="text-(--color-text-3)">目标 </span>
+                  <span className="text-(--color-text-3)">{t('agentChat.imageTask.target')}</span>
                   <span className="mono text-(--color-text)">{requestedFromArgs}</span>
                 </span>
               )}
               <span>
-                <span className="text-(--color-text-3)">数量 </span>
-                <span className="text-(--color-text)">{requestedCountFromArgs} 张</span>
+                <span className="text-(--color-text-3)">{t('agentChat.imageTask.count')}</span>
+                <span className="text-(--color-text)">
+                  {t('agentChat.imageTask.countValue', { count: requestedCountFromArgs })}
+                </span>
               </span>
             </>
           )}
           {referenceIds.length > 0 && (
             <span className="min-w-0 truncate" title={referenceIds.join(', ')}>
-              <span className="text-(--color-text-3)">参考 </span>
+              <span className="text-(--color-text-3)">{t('agentChat.imageTask.reference')}</span>
               <span className="mono text-(--color-text)">{referenceIds.join(', ')}</span>
             </span>
           )}
@@ -195,7 +201,7 @@ export function AgentImageTaskCard({
               data-active
               style={{ height: 28, padding: '0 12px' }}
             >
-              生成
+              {t('common.generate')}
             </button>
           )}
           {showCancel && (
@@ -208,7 +214,7 @@ export function AgentImageTaskCard({
               className="chip danger text-sm"
               style={{ height: 28, padding: '0 12px' }}
             >
-              取消
+              {t('common.cancel')}
             </button>
           )}
         </div>

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 
 import type { Provider } from '../config/models'
+import { translate } from '../i18n'
 import { validateApiKey } from '../lib/validateKey'
 
 export type ApiKeyStatus = 'empty' | 'validating' | 'valid' | 'invalid'
@@ -56,7 +57,7 @@ export function useApiKey(provider: Provider) {
       }
       setStatus('valid')
     } else {
-      setError(result.error ?? '校验失败')
+      setError(result.error ?? translate('configLib.useApiKey.validationFailed'))
       setStatus('invalid')
     }
   }

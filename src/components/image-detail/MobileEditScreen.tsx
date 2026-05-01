@@ -4,6 +4,7 @@ import type { BrushPresetId } from './annotationPresets'
 import { DrawableLayer, type DrawableLayerHandle, type DrawMode, type DrawTool } from './DrawableLayer'
 import { EditSidebar, type EditImageHandler } from './EditSidebar'
 import type { GenerationJob } from '../../hooks/usePlayground'
+import { useI18n } from '../../i18n'
 import type { ItemCounts } from '../../lib/editStateCache'
 import type { PlaygroundImageMeta } from '../../lib/types'
 import { Icon } from '../Icon'
@@ -65,16 +66,24 @@ export function MobileEditScreen({
   onChangeBrushPreset,
   onItemsChange,
 }: MobileEditScreenProps) {
+  const { t } = useI18n()
+
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-(--color-bg)">
       <div className="flex h-12 shrink-0 items-center gap-2 px-3 shadow-[inset_0_-1px_0_var(--ring-edge-soft)]">
-        <button type="button" className="icon-btn" onClick={onClose} aria-label="返回详情" title="返回详情">
+        <button
+          type="button"
+          className="icon-btn"
+          onClick={onClose}
+          aria-label={t('imageDetail.action.backToDetail')}
+          title={t('imageDetail.action.backToDetail')}
+        >
           <Icon name="chevron_left" size={15} strokeWidth={1.8} />
         </button>
         <div className="min-w-0 flex-1">
-          <div className="truncate text-sm font-semibold text-(--color-text)">编辑图片</div>
+          <div className="truncate text-sm font-semibold text-(--color-text)">{t('imageDetail.action.editImage')}</div>
           <div className="flex min-w-0 items-center gap-1.5 text-sm text-(--color-text-4)">
-            <span className="truncate">{modelName ?? '图片'}</span>
+            <span className="truncate">{modelName ?? t('imageDetail.mobile.editFallbackImage')}</span>
             {pxDim && (
               <>
                 <span aria-hidden className="meta-dot" />
@@ -91,7 +100,12 @@ export function MobileEditScreen({
       >
         <div className="relative h-[156px] overflow-hidden rounded-[var(--radius-md)] bg-(--color-bg-sunken) shadow-[inset_0_0_0_1px_var(--ring-edge)]">
           {currentSrc ? (
-            <img src={currentSrc} alt="待编辑图片" className="h-full w-full object-contain" draggable={false} />
+            <img
+              src={currentSrc}
+              alt={t('imageDetail.mobile.editImageAlt')}
+              className="h-full w-full object-contain"
+              draggable={false}
+            />
           ) : (
             <div className="absolute inset-0 skeleton-animated" />
           )}
@@ -114,8 +128,8 @@ export function MobileEditScreen({
             type="button"
             className="icon-btn absolute right-2 top-2"
             onClick={onOpenPreview}
-            aria-label="全屏预览"
-            title="全屏预览"
+            aria-label={t('imageDetail.action.fullscreenPreview')}
+            title={t('imageDetail.action.fullscreenPreview')}
             style={{ width: 30, height: 30, background: 'color-mix(in srgb, var(--color-surface) 90%, transparent)' }}
           >
             <Icon name="maximize" size={13} strokeWidth={1.8} />

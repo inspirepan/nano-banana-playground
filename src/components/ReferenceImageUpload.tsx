@@ -2,6 +2,7 @@ import { useCallback, useRef } from 'react'
 
 import { Icon } from './Icon'
 import { useImageSrc } from '../hooks/useImageSrc'
+import { useI18n } from '../i18n'
 import type { PlaygroundImage, PlaygroundImageMeta } from '../lib/types'
 
 export type LockedReferenceImage = {
@@ -28,7 +29,7 @@ type Props = {
 export function ReferenceImageUpload({
   images,
   lockedImages = [],
-  hint = '可拖入本地图片，或按 ⌘/Ctrl+V 粘贴；也可拖入右侧历史图',
+  hint,
   labelClassName = 'label',
   maxTotal,
   dragOver,
@@ -38,7 +39,9 @@ export function ReferenceImageUpload({
   onClearAll,
   onClearError,
 }: Props) {
+  const { t } = useI18n()
   const inputRef = useRef<HTMLInputElement>(null)
+  const displayHint = hint ?? t('input.reference.hint')
 
   const handleFileSelect = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -57,7 +60,7 @@ export function ReferenceImageUpload({
   return (
     <div>
       <div className="flex items-center justify-between mb-1.5 min-h-[20px]">
-        <span className={labelClassName}>参考图</span>
+        <span className={labelClassName}>{t('input.reference.label')}</span>
         <div className="flex items-center gap-2">
           {images.length > 0 && (
             <button
@@ -65,7 +68,7 @@ export function ReferenceImageUpload({
               onClick={onClearAll}
               className="text-sm text-(--color-text-4) hover:text-(--color-text-2) transition-colors"
             >
-              清空
+              {t('common.clear')}
             </button>
           )}
           <span className="text-sm text-(--color-text-4)">
@@ -85,7 +88,12 @@ export function ReferenceImageUpload({
               className="absolute inset-0 w-full h-full object-cover"
               draggable={false}
             />
-            <button type="button" onClick={() => onRemove(img.id)} aria-label="移除参考图" className="ref-thumb-close">
+            <button
+              type="button"
+              onClick={() => onRemove(img.id)}
+              aria-label={t('input.reference.remove')}
+              className="ref-thumb-close"
+            >
               <Icon name="close" size={9} strokeWidth={2.4} />
             </button>
           </div>
@@ -96,9 +104,10 @@ export function ReferenceImageUpload({
             onClick={() => inputRef.current?.click()}
             className="dropzone aspect-square flex flex-col items-center justify-center gap-1 text-base font-medium text-(--color-text-3)"
             data-drag-active={dragOver}
+            aria-label={t('input.reference.upload')}
           >
             <Icon name="plus" size={14} />
-            上传
+            {t('input.reference.upload')}
           </button>
         )}
       </div>
@@ -114,13 +123,13 @@ export function ReferenceImageUpload({
             onClick={onClearError}
             className="flex-shrink-0 p-0 bg-transparent border-0 cursor-pointer"
             style={{ color: 'var(--color-danger)', opacity: 0.6 }}
-            aria-label="关闭"
+            aria-label={t('common.close')}
           >
             <Icon name="close" size={11} strokeWidth={2} />
           </button>
         </div>
       )}
-      <div className="text-sm text-(--color-text-4) mt-1.5">{hint}</div>
+      <div className="text-sm text-(--color-text-4) mt-1.5">{displayHint}</div>
       <input
         ref={inputRef}
         type="file"
@@ -134,6 +143,7 @@ export function ReferenceImageUpload({
 }
 
 function LockedReferenceThumb({ item }: { item: LockedReferenceImage }) {
+  const { t } = useI18n()
   const { ref, src } = useImageSrc(item.image.id, item.image.mimeType, undefined, { variant: 'preview' })
   const previewSrc = item.preview ? `data:${item.preview.mimeType};base64,${item.preview.data}` : null
   return (
@@ -141,7 +151,7 @@ function LockedReferenceThumb({ item }: { item: LockedReferenceImage }) {
       {previewSrc || src ? (
         <img
           src={previewSrc ?? src ?? undefined}
-          alt={item.label ?? '锁定参考图'}
+          alt={item.label ?? t('input.reference.lockedAlt')}
           className="absolute inset-0 w-full h-full object-cover"
           draggable={false}
         />
@@ -149,11 +159,15 @@ function LockedReferenceThumb({ item }: { item: LockedReferenceImage }) {
         <div className="absolute inset-0 skeleton-animated" />
       )}
       {item.label && (
-        <span className="absolute bottom-1 left-1 rounded-[var(--radius-xs)] bg-black/55 px-1.5 py-0.5 text-base font-medium leading-none text-white backdrop-blur-[4px]">
+        <span className="absolute bottom-1 left-1 max-w-[calc(100%-8px)] truncate rounded-[var(--radius-xs)] bg-black/55 px-1 py-0.5 text-xs font-medium leading-none text-white backdrop-blur-[4px]">
           {item.label}
         </span>
       )}
-      <span className="ref-thumb-close" style={{ opacity: 1, cursor: 'default' }} aria-label="系统锁定参考图">
+      <span
+        className="ref-thumb-close"
+        style={{ opacity: 1, cursor: 'default' }}
+        aria-label={t('input.reference.lockedAria')}
+      >
         <Icon name="lock" size={9} strokeWidth={2.4} />
       </span>
     </div>

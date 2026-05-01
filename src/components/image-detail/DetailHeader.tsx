@@ -1,4 +1,5 @@
 import type { GenerationSlot } from '../../hooks/usePlayground'
+import { useI18n } from '../../i18n'
 import type { GeneratedSource, PlaygroundImageMeta } from '../../lib/types'
 import { Icon } from '../Icon'
 
@@ -43,6 +44,7 @@ export function DetailHeader({
   onDownload,
   onToggleSidebar,
 }: DetailHeaderProps) {
+  const { t } = useI18n()
   const pxDimParts = pxDim.split(' · ')
 
   return (
@@ -57,7 +59,7 @@ export function DetailHeader({
       <button
         className="icon-btn shrink-0"
         onClick={galleryBacksToDetail ? onBackToDetail : onClose}
-        title={galleryBacksToDetail ? '回到预览' : '关闭 (Esc)'}
+        title={galleryBacksToDetail ? t('imageDetail.action.backToPreview') : t('imageDetail.action.closeEsc')}
         style={{ width: 32, height: 32 }}
       >
         <Icon name={galleryBacksToDetail ? 'chevron_left' : 'close'} size={13} strokeWidth={1.8} />
@@ -83,7 +85,7 @@ export function DetailHeader({
         </div>
       ) : (
         <span className="truncate text-base font-semibold leading-[1.25] tracking-[-0.01em] text-(--color-text) md:text-base md:font-medium md:tracking-normal">
-          {currentSlot ? '生成任务' : '图片组'}
+          {currentSlot ? t('imageDetail.header.generationTask') : t('imageDetail.header.imageGroup')}
         </span>
       )}
 
@@ -93,36 +95,47 @@ export function DetailHeader({
         <button
           className="chip ghost shrink-0 text-sm font-normal text-(--color-text-3) md:text-[13px]"
           onClick={onOpenManageGallery}
-          title="打开批量管理"
+          title={t('imageDetail.action.openBatchManage')}
         >
           <Icon name="check_circle" size={14} strokeWidth={1.8} />
-          <span>批量管理</span>
+          <span>{t('imageDetail.action.manageBatch')}</span>
         </button>
       )}
       {viewMode === 'detail' && currentImage && (
         <>
-          <button className="chip hidden shrink-0 font-normal md:inline-flex" onClick={onAddRef} title="加为参考">
-            <Icon name="plus" size={12} strokeWidth={1.8} /> <span className="hidden md:inline">参考</span>
+          <button
+            className="chip hidden shrink-0 font-normal md:inline-flex"
+            onClick={onAddRef}
+            title={t('imageDetail.action.addReferenceTitle')}
+          >
+            <Icon name="plus" size={12} strokeWidth={1.8} />
+            <span className="hidden md:inline">{t('imageDetail.action.addReference')}</span>
           </button>
           {currentMeta?.prompt && (
             <>
               <button
                 className="chip hidden shrink-0 font-normal md:inline-flex"
                 onClick={onRegenerate}
-                title="还原参数"
+                title={t('imageDetail.action.restoreParams')}
               >
-                <Icon name="undo" size={12} strokeWidth={1.8} /> <span className="hidden md:inline">还原参数</span>
+                <Icon name="undo" size={12} strokeWidth={1.8} />
+                <span className="hidden md:inline">{t('imageDetail.action.restoreParams')}</span>
               </button>
               <button
                 className="chip hidden shrink-0 font-normal md:inline-flex"
                 onClick={onReroll}
-                title="按原参数重新生成"
+                title={t('imageDetail.action.regenerateOriginal')}
               >
-                <Icon name="refresh" size={12} strokeWidth={1.8} /> <span className="hidden md:inline">重抽</span>
+                <Icon name="refresh" size={12} strokeWidth={1.8} />
+                <span className="hidden md:inline">{t('imageDetail.action.redoOriginal')}</span>
               </button>
             </>
           )}
-          <button className="chip hidden shrink-0 font-normal md:inline-flex" onClick={onDownload} title="下载 PNG">
+          <button
+            className="chip hidden shrink-0 font-normal md:inline-flex"
+            onClick={onDownload}
+            title={t('imageDetail.action.downloadPng')}
+          >
             <Icon name="download" size={12} strokeWidth={1.8} /> <span className="hidden md:inline">PNG</span>
           </button>
         </>
@@ -131,11 +144,13 @@ export function DetailHeader({
         <button
           className="chip hidden shrink-0 font-normal md:inline-flex"
           onClick={onToggleSidebar}
-          title={sidebarCollapsed ? '展开详情面板' : '收起详情面板'}
+          title={
+            sidebarCollapsed ? t('imageDetail.action.expandDetailsPanel') : t('imageDetail.action.collapseDetailsPanel')
+          }
           aria-pressed={!sidebarCollapsed}
         >
           <Icon name={sidebarCollapsed ? 'chevron_left' : 'chevron_right'} size={12} strokeWidth={1.8} />
-          {sidebarCollapsed ? '展开详情' : '收起详情'}
+          {sidebarCollapsed ? t('imageDetail.action.expandDetails') : t('imageDetail.action.collapseDetails')}
         </button>
       )}
     </div>

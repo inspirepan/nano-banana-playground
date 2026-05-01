@@ -17,6 +17,7 @@ import {
   type Size,
 } from './viewGeometry'
 import { useExternalSync, useResizeObserver } from '../../hooks/effects'
+import { useI18n } from '../../i18n'
 import type { ItemCounts } from '../../lib/editStateCache'
 import { Icon, type IconName } from '../Icon'
 
@@ -51,6 +52,7 @@ export function MobileDrawFullscreen({
   onClear: () => void
   onClose: () => void
 }) {
+  const { t } = useI18n()
   const viewportRef = useRef<HTMLDivElement>(null)
   const activePointersRef = useRef(new Map<number, Point>())
   const dragStartRef = useRef<{ point: Point; offset: Point } | null>(null)
@@ -69,10 +71,10 @@ export function MobileDrawFullscreen({
   const layerHasItems = counts.mask > 0 || counts.annotate > 0
   const isMoveTool = mobileTool === 'move'
   const toolOptions: Array<{ id: DrawTool | 'move'; label: string; icon: IconName }> = [
-    { id: 'move', label: '拖动', icon: 'mouse_pointer' },
-    { id: 'brush', label: '涂抹', icon: 'brush' },
-    { id: 'step', label: '编号', icon: 'map_pin' },
-    { id: 'eraser', label: '橡皮', icon: 'eraser' },
+    { id: 'move', label: t('imageDetail.annotation.tool.move'), icon: 'mouse_pointer' },
+    { id: 'brush', label: t('imageDetail.annotation.tool.brush'), icon: 'brush' },
+    { id: 'step', label: t('imageDetail.annotation.tool.step'), icon: 'map_pin' },
+    { id: 'eraser', label: t('imageDetail.annotation.tool.eraser'), icon: 'eraser' },
   ]
 
   const applyView = useCallback(
@@ -200,17 +202,17 @@ export function MobileDrawFullscreen({
   return (
     <div className="fixed inset-0 z-[140] flex flex-col bg-(--color-bg)">
       <div className="flex h-12 shrink-0 items-center gap-2 px-3 shadow-[inset_0_-1px_0_var(--ring-edge-soft)]">
-        <button type="button" className="icon-btn" onClick={onClose} title="完成">
+        <button type="button" className="icon-btn" onClick={onClose} title={t('imageDetail.action.done')}>
           <Icon name="chevron_left" size={15} strokeWidth={1.8} />
         </button>
         <div className="min-w-0 flex-1">
-          <div className="truncate text-sm font-semibold text-(--color-text)">标注</div>
+          <div className="truncate text-sm font-semibold text-(--color-text)">{t('imageDetail.annotation.label')}</div>
           <div className="text-sm text-(--color-text-4)">
-            {isMoveTool ? '单指拖动，双指缩放' : '涂抹编辑区域，或用编号补充说明'}
+            {isMoveTool ? t('imageDetail.annotation.hint.move') : t('imageDetail.annotation.hint.draw')}
           </div>
         </div>
         <button type="button" className="chip text-sm" onClick={onClose} style={{ height: 28 }}>
-          完成
+          {t('imageDetail.action.done')}
         </button>
       </div>
 
@@ -273,7 +275,7 @@ export function MobileDrawFullscreen({
             type="button"
             className="icon-btn pointer-events-auto"
             onClick={() => zoomCenter(0.8)}
-            title="缩小"
+            title={t('imageDetail.zoom.out')}
             style={{ width: 28, height: 26 }}
           >
             <Icon name="zoom_out_map" size={12} strokeWidth={1.8} />
@@ -282,7 +284,7 @@ export function MobileDrawFullscreen({
             type="button"
             className="pointer-events-auto px-2 text-sm font-medium text-(--color-text-2)"
             onClick={resetView}
-            title="重置"
+            title={t('imageDetail.zoom.reset')}
           >
             {Math.round(scale * 100)}%
           </button>
@@ -290,7 +292,7 @@ export function MobileDrawFullscreen({
             type="button"
             className="icon-btn pointer-events-auto"
             onClick={() => zoomCenter(1.25)}
-            title="放大"
+            title={t('imageDetail.zoom.in')}
             style={{ width: 28, height: 26 }}
           >
             <Icon name="zoom_in" size={12} strokeWidth={1.8} />
@@ -331,8 +333,8 @@ export function MobileDrawFullscreen({
                   onClick={() => onChangeBrushPreset(item.id)}
                   className="chip shrink-0 text-sm"
                   data-active={brushPreset === item.id}
-                  title={item.label}
-                  aria-label={item.label}
+                  title={t(item.labelKey)}
+                  aria-label={t(item.labelKey)}
                   style={{ height: 36 }}
                 >
                   <BrushPresetDot preset={item} />
@@ -347,7 +349,7 @@ export function MobileDrawFullscreen({
               style={{ height: 36 }}
             >
               <Icon name="undo" size={14} strokeWidth={1.8} />
-              撤销
+              {t('imageDetail.footer.undo')}
             </button>
             <button
               type="button"
@@ -356,7 +358,7 @@ export function MobileDrawFullscreen({
               disabled={!layerHasItems}
               style={{ height: 36 }}
             >
-              清空
+              {t('common.clear')}
             </button>
           </div>
         </div>

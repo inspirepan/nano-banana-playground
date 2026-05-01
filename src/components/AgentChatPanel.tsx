@@ -12,6 +12,7 @@ import {
 import type { AgentModelConfig, AgentThinkingLevel } from '../config/agentModels'
 import { useExternalSync, useWindowEvent } from '../hooks/effects'
 import type { ApiKeyStatus } from '../hooks/useApiKey'
+import { useI18n } from '../i18n'
 import type { PlaygroundImage, PlaygroundImageMeta } from '../lib/types'
 import { AgentChatComposer } from './agent-chat/AgentChatComposer'
 import { AgentChatHeader } from './agent-chat/AgentChatHeader'
@@ -105,6 +106,7 @@ export function AgentChatPanel({
   onSend,
   onStop,
 }: Props) {
+  const { t } = useI18n()
   const scrollRef = useRef<HTMLDivElement>(null)
   const controlsRef = useRef<HTMLDivElement>(null)
   const [openMenu, setOpenMenu] = useState<AgentChatMenu>(null)
@@ -240,13 +242,13 @@ export function AgentChatPanel({
         >
           <Icon name="alert_circle" size={14} style={{ marginTop: 1, flexShrink: 0 }} />
           <span className="flex-1">
-            <span className="block text-base font-medium">Agent 模型未配置 API 密钥</span>
+            <span className="block text-base font-medium">{t('agentChat.apiKeyMissing.title')}</span>
             <span className="mt-0.5 block text-sm leading-[1.45] opacity-80">
-              使用 {model.label} 需要先配置 {model.providerLabel} API Key。
+              {t('agentChat.apiKeyMissing.description', { model: model.label, provider: model.providerLabel })}
             </span>
           </span>
           <span className="chip danger shrink-0 text-sm" style={{ height: 22, padding: '0 7px' }}>
-            去配置
+            {t('agentChat.apiKeyMissing.action')}
           </span>
         </button>
       )}
@@ -263,10 +265,10 @@ export function AgentChatPanel({
         {renderItems.length === 0 ? (
           <div className="flex min-h-[300px] flex-col justify-center text-center">
             <div className="font-display text-lg font-semibold tracking-[-0.01em] text-(--color-text)">
-              从一个想法开始
+              {t('agentChat.empty.title')}
             </div>
             <div className="mx-auto mt-1 max-w-[250px] text-sm leading-[1.5] text-(--color-text-3)">
-              输入需求、附加图片，或让它准备一组待审批的生图任务。
+              {t('agentChat.empty.description')}
             </div>
           </div>
         ) : (
@@ -293,7 +295,7 @@ export function AgentChatPanel({
             {showThinkingPlaceholder && (
               <div className="flex justify-start">
                 <div className="mr-3 max-w-[94%]">
-                  <span className="text-(--color-text-4)">正在思考…</span>
+                  <span className="text-(--color-text-4)">{t('agentChat.status.thinking')}</span>
                 </div>
               </div>
             )}

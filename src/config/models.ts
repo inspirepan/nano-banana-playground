@@ -1,3 +1,5 @@
+import { translate } from '../i18n'
+
 export type Provider = 'google' | 'openai'
 
 // --- Option descriptors ---
@@ -23,7 +25,7 @@ export type ModelToggleOption = {
   // Detailed description shown in a hover tooltip on the toggle chip.
   tooltip?: string
   // Adjacent options sharing the same `group` render inside one Section using
-  // `groupLabel` (first occurrence wins). Used for e.g. the "搜索增强" pair.
+  // `groupLabel` (first occurrence wins). Used for e.g. the search tools pair.
   group?: string
   groupLabel?: string
 }
@@ -85,58 +87,114 @@ export function getModelShortLabel(model: ModelConfig): string {
 const SEARCH_WEB_OPTION: ModelToggleOption = {
   id: 'webSearch',
   type: 'toggle',
-  label: 'Web 搜索',
+  get label() {
+    return translate('configLib.models.webSearch.label')
+  },
   default: false,
   urlKey: 'ws',
   group: 'searchTools',
-  groupLabel: '搜索增强',
-  tooltip: '启用 Google 搜索接地，让模型基于实时网页信息生成图片，如当前天气、股市、近期事件等。响应会附带来源链接。',
+  get groupLabel() {
+    return translate('configLib.models.searchTools.groupLabel')
+  },
+  get tooltip() {
+    return translate('configLib.models.webSearch.tooltip')
+  },
 }
 
 const SEARCH_IMAGE_OPTION: ModelToggleOption = {
   id: 'imageSearch',
   type: 'toggle',
-  label: '图片搜索',
+  get label() {
+    return translate('configLib.models.imageSearch.label')
+  },
   default: false,
   urlKey: 'is',
   group: 'searchTools',
-  groupLabel: '搜索增强',
-  tooltip:
-    '启用 Google 图片搜索接地，模型会使用检索到的网络图片作为视觉上下文。可单独使用或与 Web 搜索叠加，生成结果需展示来源网页链接（仅 Nano Banana 2 支持）。',
+  get groupLabel() {
+    return translate('configLib.models.searchTools.groupLabel')
+  },
+  get tooltip() {
+    return translate('configLib.models.imageSearch.tooltip')
+  },
 }
 
 const THINKING_LEVEL_OPTION: ModelSelectOption = {
   id: 'thinkingLevel',
   type: 'select',
-  label: '思考等级',
+  get label() {
+    return translate('configLib.models.thinking.label')
+  },
   default: 'minimal',
   choices: [
     {
       value: 'minimal',
-      label: 'Minimal',
-      tooltip: '默认等级。模型仍会进行推理，但大幅精简思考步骤以换取更低的响应延迟。',
+      get label() {
+        return translate('configLib.models.thinking.minimal.label')
+      },
+      get tooltip() {
+        return translate('configLib.models.thinking.minimal.tooltip')
+      },
     },
     {
       value: 'high',
-      label: 'High',
-      tooltip:
-        '启用完整推理流程，适合复杂提示和高保真输出。延迟显著增加，思考 token 会被计费（无论是否返回思考内容）。',
+      get label() {
+        return translate('configLib.models.thinking.high.label')
+      },
+      get tooltip() {
+        return translate('configLib.models.thinking.high.tooltip')
+      },
     },
   ],
   urlKey: 'tl',
-  hint: '平衡生成质量与延迟',
+  get hint() {
+    return translate('configLib.models.thinking.hint')
+  },
 }
 
 const QUALITY_OPTION: ModelSelectOption = {
   id: 'quality',
   type: 'select',
-  label: '质量',
+  get label() {
+    return translate('configLib.models.quality.label')
+  },
   default: 'auto',
   choices: [
-    { value: 'auto', label: 'Auto', tooltip: '由模型根据提示自动选择质量等级。' },
-    { value: 'low', label: 'Low', tooltip: '最低渲染质量。成本最低，延迟最短。' },
-    { value: 'medium', label: 'Medium', tooltip: '中等渲染质量。成本与细节的折中点。' },
-    { value: 'high', label: 'High', tooltip: '最高渲染质量。细节最丰富，单张成本也最高。' },
+    {
+      value: 'auto',
+      get label() {
+        return translate('configLib.models.quality.auto.label')
+      },
+      get tooltip() {
+        return translate('configLib.models.quality.auto.tooltip')
+      },
+    },
+    {
+      value: 'low',
+      get label() {
+        return translate('configLib.models.quality.low.label')
+      },
+      get tooltip() {
+        return translate('configLib.models.quality.low.tooltip')
+      },
+    },
+    {
+      value: 'medium',
+      get label() {
+        return translate('configLib.models.quality.medium.label')
+      },
+      get tooltip() {
+        return translate('configLib.models.quality.medium.tooltip')
+      },
+    },
+    {
+      value: 'high',
+      get label() {
+        return translate('configLib.models.quality.high.label')
+      },
+      get tooltip() {
+        return translate('configLib.models.quality.high.tooltip')
+      },
+    },
   ],
   urlKey: 'q',
 }

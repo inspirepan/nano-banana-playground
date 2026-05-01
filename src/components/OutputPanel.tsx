@@ -7,6 +7,7 @@ import { StackItemThumb } from './StackItemThumb'
 import { MODEL_CONFIGS, type ModelConfig } from '../config/models'
 import { useExternalSync } from '../hooks/effects'
 import type { GenerationJob } from '../hooks/usePlayground'
+import { useI18n, type Translate } from '../i18n'
 import { downloadImagePng, downloadImagesZip } from '../lib/exportImages'
 import { countSlots, formatTime } from '../lib/queueJobDisplay'
 import { buildImageStacks, type ImageStack, type StackItem } from '../lib/stacks'
@@ -80,12 +81,14 @@ function canDismissFailedGenerationJob(job: GenerationJob): boolean {
   return !hasActiveGenerationSlots(job) && job.slots.some((slot) => slot.status === 'failed')
 }
 
-function activeStackStatusParts(stack: ImageStack): ActiveStackStatusPart[] {
+function activeStackStatusParts(stack: ImageStack, t: Translate): ActiveStackStatusPart[] {
   const counts = countSlots(stack.jobs.flatMap((job) => job.slots))
   const parts: ActiveStackStatusPart[] = []
-  if (counts.running > 0) parts.push({ kind: 'running', label: `${counts.running} 项生成中` })
-  if (counts.retrying > 0) parts.push({ kind: 'retrying', label: `${counts.retrying} 项重试中` })
-  if (counts.queued > 0) parts.push({ kind: 'queued', label: `${counts.queued} 项排队中` })
+  if (counts.running > 0)
+    parts.push({ kind: 'running', label: t('output.status.generatingCount', { count: counts.running }) })
+  if (counts.retrying > 0)
+    parts.push({ kind: 'retrying', label: t('output.status.retryingCount', { count: counts.retrying }) })
+  if (counts.queued > 0) parts.push({ kind: 'queued', label: t('output.status.queuedCount', { count: counts.queued }) })
   return parts
 }
 
@@ -104,6 +107,7 @@ function StackRow({
   deleting,
   onRequestDeleteConfirm,
   onCancelDeleteConfirm,
+  t,
 }: {
   stack: ImageStack
   onOpenItem: (stack: ImageStack, item: StackItem) => void
@@ -119,9 +123,10 @@ function StackRow({
   deleting: boolean
   onRequestDeleteConfirm: (stackId: string) => void
   onCancelDeleteConfirm: () => void
+  t: Translate
 }) {
   const totalItems = stack.images.length + stack.activeSlotCount + stack.failedSlotCount
-  const activeStatusParts = activeStackStatusParts(stack)
+  const activeStatusParts = activeStackStatusParts(stack, t)
   const hasDismissibleFailures = stack.jobs.some(canDismissFailedGenerationJob)
   const stackItemNumberById = new Map(stack.items.map((item, index) => [item.id, index + 1]))
   const previewItems = stack.items
@@ -131,16 +136,16 @@ function StackRow({
     <div className="min-w-0">
       <div className="min-w-0 px-3 py-2">
         <div className="mb-2 flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1 text-base">
-          <span className="shrink-0 font-normal text-(--color-text-3)">{formatTime(stack.updatedAt)}</span>
+          <span className="shrink-0 font-normal text-(--color-text-3)">{formatTime(stack.updatedAt, t)}</span>
           <span className="meta-dot text-(--color-text-4)" aria-hidden />
-          <span className="font-normal text-(--color-text-3)">{totalItems} 张</span>
+          <span className="font-normal text-(--color-text-3)">{t('output.imageCount', { count: totalItems })}</span>
           <span className="meta-dot text-(--color-text-4)" aria-hidden />
           <button
             type="button"
             onClick={() => onOpenGallery(stack)}
             className="bg-transparent p-0 text-base font-medium text-(--color-text-3) transition-colors hover:text-(--color-text-2)"
           >
-            查看全部
+            {t('output.viewAll')}
           </button>
           {stack.images.length > 1 && (
             <>
@@ -151,7 +156,7 @@ function StackRow({
                 disabled={downloading}
                 className="bg-transparent p-0 text-base font-medium text-(--color-text-3) transition-colors hover:text-(--color-text-2) disabled:cursor-not-allowed disabled:opacity-45"
               >
-                {downloading ? '打包中…' : '下载 ZIP'}
+                {downloading ? t('output.packaging') : t('output.downloadZip')}
               </button>
             </>
           )}
@@ -171,7 +176,7 @@ function StackRow({
                             onClick={onOpenGenerationSettings}
                             className="bg-transparent p-0 font-normal text-(--color-text-4) transition-colors hover:text-(--color-text-2)"
                           >
-                            （调整）
+                            {t('output.adjustParenthetical')}
                           </button>
                         )}
                       </span>
@@ -185,7 +190,7 @@ function StackRow({
                   className="bg-transparent p-0 text-base font-semibold transition-colors hover:brightness-110"
                   style={{ color: 'var(--color-danger)' }}
                 >
-                  取消生成
+                  {t('output.cancelGeneration')}
                 </button>
               </span>
             </>
@@ -194,7 +199,7 @@ function StackRow({
             <>
               <span className="meta-dot text-(--color-text-4)" aria-hidden />
               <span className="text-base" style={{ color: 'var(--color-danger)' }}>
-                失败 {stack.failedSlotCount}
+                {t('output.failedCount', { count: stack.failedSlotCount })}
               </span>
               {hasDismissibleFailures && (
                 <>
@@ -205,7 +210,7 @@ function StackRow({
                     className="bg-transparent p-0 text-base font-semibold transition-colors hover:brightness-110"
                     style={{ color: 'var(--color-danger)' }}
                   >
-                    清空失败
+                    {t('output.clearFailed')}
                   </button>
                 </>
               )}
@@ -223,7 +228,7 @@ function StackRow({
                     className="bg-transparent p-0 text-base font-semibold transition-colors hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
                     style={{ color: 'var(--color-danger)' }}
                   >
-                    {deleting ? '删除中…' : '确认删除'}
+                    {deleting ? t('common.deleting') : t('common.confirmDelete')}
                   </button>
                   <span className="meta-dot text-(--color-text-4)" aria-hidden />
                   <button
@@ -232,7 +237,7 @@ function StackRow({
                     disabled={deleting}
                     className="bg-transparent p-0 text-base font-medium text-(--color-text-3) transition-colors hover:text-(--color-text-2) disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    取消
+                    {t('common.cancel')}
                   </button>
                 </>
               ) : (
@@ -242,7 +247,7 @@ function StackRow({
                   className="bg-transparent p-0 text-base font-medium transition-colors hover:brightness-110"
                   style={{ color: 'var(--color-danger)' }}
                 >
-                  删除
+                  {t('common.delete')}
                 </button>
               )}
             </>
@@ -280,7 +285,7 @@ function StackRow({
                               className="media-action flex-1"
                             >
                               <Icon name="wand" size={11} strokeWidth={1.8} />
-                              编辑
+                              {t('common.edit')}
                             </button>
                             <button
                               type="button"
@@ -308,7 +313,7 @@ function StackRow({
                   className="h-full w-full rounded-[var(--radius-md)] text-sm text-(--color-text-4)"
                   style={{ background: 'var(--color-surface-2)', boxShadow: 'inset 0 0 0 1px var(--ring-edge)' }}
                 >
-                  暂无图片
+                  {t('output.noImages')}
                 </button>
               </GridCell>
             )}
@@ -336,6 +341,7 @@ export const OutputPanel = memo(function OutputPanel({
   onOpenGenerationSettings,
   highlightStackId,
 }: Props) {
+  const { t } = useI18n()
   const [detailTarget, setDetailTarget] = useState<DetailTarget | null>(null)
   const [exporting, setExporting] = useState(false)
   const [exportingStackId, setExportingStackId] = useState<string | null>(null)
@@ -478,15 +484,15 @@ export const OutputPanel = memo(function OutputPanel({
       <div className="mb-5 space-y-3">
         <div className="flex items-start gap-3">
           <div className="min-w-0">
-            <div className="font-display text-xl font-semibold tracking-[-0.01em]">图库</div>
+            <div className="font-display text-xl font-semibold tracking-[-0.01em]">{t('common.gallery')}</div>
             <div className="text-sm text-(--color-text-3) mt-0.5">
-              {stacks.length} 组，{generatedImageCount} 张生成图，存储于本地浏览器
+              {t('output.gallerySummary', { groups: stacks.length, count: generatedImageCount })}
             </div>
           </div>
           <div className="flex-1" />
           {history.length > 0 && (
             <button type="button" onClick={handleExportAll} disabled={exporting} className="chip shrink-0">
-              <Icon name="download" size={12} /> {exporting ? '导出中…' : '导出 ZIP'}
+              <Icon name="download" size={12} /> {exporting ? t('output.exporting') : t('output.exportZip')}
             </button>
           )}
         </div>
@@ -528,6 +534,7 @@ export const OutputPanel = memo(function OutputPanel({
                     deleting={deletingStackId === stack.id}
                     onRequestDeleteConfirm={handleRequestDeleteStack}
                     onCancelDeleteConfirm={handleCancelDeleteStack}
+                    t={t}
                   />
                 </div>
               )
@@ -536,15 +543,15 @@ export const OutputPanel = memo(function OutputPanel({
 
           {historyHasMore && (
             <div ref={sentinelRef} className="flex justify-center py-4">
-              <div className="text-sm text-(--color-text-4)">加载更多…</div>
+              <div className="text-sm text-(--color-text-4)">{t('common.loadingMore')}</div>
             </div>
           )}
         </div>
       ) : (
         <div className="card px-4 py-5 text-(--color-text-3)">
-          <div className="label mb-2">空历史</div>
-          <div className="text-base font-medium text-(--color-text-2)">生成结果会出现在这里</div>
-          <div className="mt-1 text-sm leading-[1.7] text-(--color-text-4)">配置左侧参数并点击「生成」开始。</div>
+          <div className="label mb-2">{t('output.emptyHistory')}</div>
+          <div className="text-base font-medium text-(--color-text-2)">{t('output.emptyTitle')}</div>
+          <div className="mt-1 text-sm leading-[1.7] text-(--color-text-4)">{t('output.emptyDescription')}</div>
         </div>
       )}
 

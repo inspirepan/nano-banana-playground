@@ -1,6 +1,7 @@
 import type { ThinkingLevel as AgentCoreThinkingLevel } from '@mariozechner/pi-agent'
 import { getModel, type Api, type Model } from '@mariozechner/pi-ai'
 
+import { translate } from '../i18n'
 import { resolveBaseUrl } from '../lib/validateKey'
 
 export type AgentModelProvider = 'google' | 'openai'
@@ -92,11 +93,36 @@ export const DEFAULT_AGENT_MODEL =
   AGENT_MODEL_CONFIGS.find((item) => item.id === 'gpt-5.4-mini') ?? AGENT_MODEL_CONFIGS[0]
 
 export const AGENT_THINKING_OPTIONS: Array<{ value: AgentThinkingLevel; label: string }> = [
-  { value: 'off', label: '关闭' },
-  { value: 'minimal', label: '低' },
-  { value: 'low', label: '中' },
-  { value: 'medium', label: '高' },
-  { value: 'high', label: '超高' },
+  {
+    value: 'off',
+    get label() {
+      return translate('configLib.agentModels.thinking.off')
+    },
+  },
+  {
+    value: 'minimal',
+    get label() {
+      return translate('configLib.agentModels.thinking.minimal')
+    },
+  },
+  {
+    value: 'low',
+    get label() {
+      return translate('configLib.agentModels.thinking.low')
+    },
+  },
+  {
+    value: 'medium',
+    get label() {
+      return translate('configLib.agentModels.thinking.medium')
+    },
+  },
+  {
+    value: 'high',
+    get label() {
+      return translate('configLib.agentModels.thinking.high')
+    },
+  },
 ]
 
 export function resolveAgentModelConfig(id: string): AgentModelConfig {

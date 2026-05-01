@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import type { ModelConfig } from '../../config/models'
 import { useImageSrc } from '../../hooks/useImageSrc'
 import type { GenerationJob, GenerationSlot } from '../../hooks/usePlayground'
+import { useI18n, type Translate } from '../../i18n'
 import type { GeneratedSource, GroundingMetadata, PlaygroundImageMeta } from '../../lib/types'
 import { Icon } from '../Icon'
 
@@ -74,6 +75,7 @@ export function DetailSidebar({
   onRemove,
   onClose,
 }: DetailSidebarProps) {
+  const { language, t } = useI18n()
   const prompt = currentMeta?.prompt ?? currentJob?.request.prompt ?? null
 
   return (
@@ -86,29 +88,29 @@ export function DetailSidebar({
               className="action-soft detail-mobile-action flex-1"
               onClick={onAddRef}
               disabled={!currentImage}
-              title="加为参考"
+              title={t('imageDetail.action.addReferenceTitle')}
             >
               <Icon name="plus" size={13} strokeWidth={1.8} className="action-soft-icon" />
-              参考
+              {t('imageDetail.action.addReference')}
             </button>
             <button
               type="button"
               className="action-soft detail-mobile-action flex-1"
               onClick={onDownload}
-              title="下载 PNG"
+              title={t('imageDetail.action.downloadPng')}
             >
               <Icon name="download" size={13} strokeWidth={1.8} className="action-soft-icon" />
-              下载
+              {t('common.download')}
             </button>
             {onStartEdit ? (
               <button
                 type="button"
                 className="action-soft detail-mobile-action flex-1"
                 onClick={onStartEdit}
-                title="编辑图片"
+                title={t('imageDetail.action.editImage')}
               >
                 <Icon name="wand" size={13} strokeWidth={1.8} className="action-soft-icon" />
-                编辑
+                {t('common.edit')}
               </button>
             ) : (
               <button
@@ -116,10 +118,10 @@ export function DetailSidebar({
                 className="action-soft detail-mobile-action flex-1"
                 onClick={onRegenerate}
                 disabled={!currentMeta?.prompt}
-                title="还原参数"
+                title={t('imageDetail.action.restoreParams')}
               >
                 <Icon name="undo" size={13} strokeWidth={1.8} className="action-soft-icon" />
-                还原参数
+                {t('imageDetail.action.restoreParams')}
               </button>
             )}
             <button
@@ -127,10 +129,10 @@ export function DetailSidebar({
               className="action-soft detail-mobile-action flex-1"
               onClick={onReroll}
               disabled={!currentMeta?.prompt}
-              title="按原参数重抽"
+              title={t('imageDetail.action.regenerateOriginal')}
             >
               <Icon name="refresh" size={13} strokeWidth={1.8} className="action-soft-icon" />
-              重抽
+              {t('imageDetail.action.redoOriginal')}
             </button>
           </div>
         </div>
@@ -139,14 +141,14 @@ export function DetailSidebar({
       {prompt && (
         <div className="mb-[18px]">
           <div className="flex items-center mb-1.5">
-            <span className="label">提示词</span>
+            <span className="label">{t('imageDetail.section.prompt')}</span>
             <div className="flex-1" />
             <button
               type="button"
               className="action-soft shrink-0"
               style={{ height: 26 }}
               onClick={onCopyPrompt}
-              title="复制提示词"
+              title={t('imageDetail.action.copyPrompt')}
             >
               {/* Safari ignores flex layout on <button>; nesting fixes it. */}
               <span className="inline-flex items-center gap-1.5">
@@ -156,7 +158,7 @@ export function DetailSidebar({
                   strokeWidth={copiedPrompt ? 2.2 : 1.8}
                   className="action-soft-icon"
                 />
-                {copiedPrompt ? '已复制' : '复制'}
+                {copiedPrompt ? t('imageDetail.status.copied') : t('imageDetail.action.copy')}
               </span>
             </button>
           </div>
@@ -177,9 +179,9 @@ export function DetailSidebar({
       {currentMeta && currentMeta.referenceImageIds.length > 0 && (
         <div className="mb-[18px]">
           <div className="flex items-center mb-1.5">
-            <span className="label">参考图</span>
+            <span className="label">{t('imageDetail.meta.referenceImages')}</span>
             <span className="ml-1.5 text-sm text-(--color-text-4) tabular-nums">
-              {currentMeta.referenceImageIds.length} 张
+              {t('imageDetail.reference.count', { count: currentMeta.referenceImageIds.length })}
             </span>
           </div>
           <div className="grid grid-cols-4 gap-1.5">
@@ -210,19 +212,21 @@ export function DetailSidebar({
       )}
 
       <div className="mb-[18px] tabular-nums">
-        <div className="label mb-1">元数据</div>
+        <div className="label mb-1">{t('imageDetail.meta.metadata')}</div>
         {currentMeta && (
           <>
-            <MetaRow label="模型" value={modelName ?? currentMeta.modelId} />
-            {modelApiId && <MetaRow label="模型 ID" value={modelApiId} mono />}
-            <MetaRow label="分辨率" value={currentMeta.resolution} />
-            <MetaRow label="宽高比" value={currentMeta.aspectRatio} />
-            {renderOptionRows(currentMeta, modelConfig)}
-            {actualCost !== null && <MetaRow label="费用" value={<span>${actualCost.toFixed(4)}</span>} />}
+            <MetaRow label={t('common.model')} value={modelName ?? currentMeta.modelId} />
+            {modelApiId && <MetaRow label={t('imageDetail.meta.modelId')} value={modelApiId} mono />}
+            <MetaRow label={t('imageDetail.meta.resolution')} value={currentMeta.resolution} />
+            <MetaRow label={t('imageDetail.meta.aspectRatio')} value={currentMeta.aspectRatio} />
+            {renderOptionRows(currentMeta, modelConfig, t)}
+            {actualCost !== null && (
+              <MetaRow label={t('imageDetail.meta.cost')} value={<span>${actualCost.toFixed(4)}</span>} />
+            )}
             {currentMeta.tokenUsage && modelConfig?.provider === 'openai' && (
               <>
                 <MetaRow
-                  label="文本输入 Token"
+                  label={t('imageDetail.meta.textInputTokens')}
                   value={
                     currentMeta.tokenUsage.inputTextTokens?.toLocaleString() ??
                     currentMeta.tokenUsage.inputTokens.toLocaleString()
@@ -230,22 +234,37 @@ export function DetailSidebar({
                 />
                 {(currentMeta.tokenUsage.inputImageTokens ?? 0) > 0 && (
                   <MetaRow
-                    label="图片输入 Token"
+                    label={t('imageDetail.meta.imageInputTokens')}
                     value={(currentMeta.tokenUsage.inputImageTokens ?? 0).toLocaleString()}
                   />
                 )}
-                <MetaRow label="图片输出 Token" value={currentMeta.tokenUsage.imageOutputTokens.toLocaleString()} />
+                <MetaRow
+                  label={t('imageDetail.meta.imageOutputTokens')}
+                  value={currentMeta.tokenUsage.imageOutputTokens.toLocaleString()}
+                />
                 {currentMeta.tokenUsage.textOutputTokens > 0 && (
-                  <MetaRow label="文本输出 Token" value={currentMeta.tokenUsage.textOutputTokens.toLocaleString()} />
+                  <MetaRow
+                    label={t('imageDetail.meta.textOutputTokens')}
+                    value={currentMeta.tokenUsage.textOutputTokens.toLocaleString()}
+                  />
                 )}
               </>
             )}
             {currentMeta.tokenUsage && modelConfig?.provider === 'google' && (
               <>
-                <MetaRow label="输入 Token" value={currentMeta.tokenUsage.inputTokens.toLocaleString()} />
-                <MetaRow label="图片 Token" value={currentMeta.tokenUsage.imageOutputTokens.toLocaleString()} />
+                <MetaRow
+                  label={t('imageDetail.meta.inputTokens')}
+                  value={currentMeta.tokenUsage.inputTokens.toLocaleString()}
+                />
+                <MetaRow
+                  label={t('imageDetail.meta.imageTokens')}
+                  value={currentMeta.tokenUsage.imageOutputTokens.toLocaleString()}
+                />
                 {currentMeta.tokenUsage.textOutputTokens > 0 && (
-                  <MetaRow label="思考 Token" value={currentMeta.tokenUsage.textOutputTokens.toLocaleString()} />
+                  <MetaRow
+                    label={t('imageDetail.meta.thinkingTokens')}
+                    value={currentMeta.tokenUsage.textOutputTokens.toLocaleString()}
+                  />
                 )}
               </>
             )}
@@ -253,39 +272,58 @@ export function DetailSidebar({
         )}
         {!currentMeta && currentSlot && currentJob && (
           <>
-            <MetaRow label="状态" value={slotStatusLabel(currentSlot)} />
-            <MetaRow label="模型" value={currentJob.request.model.name} />
-            <MetaRow label="模型 ID" value={currentJob.request.model.apiModel} mono />
-            <MetaRow label="分辨率" value={currentJob.request.resolution} />
-            <MetaRow label="宽高比" value={currentJob.request.aspectRatio} />
-            {renderRequestOptionRows(currentJob.request.options, currentJob.request.model)}
-            <MetaRow label="数量" value={`${currentSlot.index + 1}/${currentJob.slots.length}`} />
-            <MetaRow label="参考图" value={`${currentJob.request.referenceImages.length} 张`} />
-            {currentJob.request.mask && <MetaRow label="Mask" value="已提供" />}
+            <MetaRow label={t('imageDetail.meta.status')} value={slotStatusLabel(currentSlot, t)} />
+            <MetaRow label={t('common.model')} value={currentJob.request.model.name} />
+            <MetaRow label={t('imageDetail.meta.modelId')} value={currentJob.request.model.apiModel} mono />
+            <MetaRow label={t('imageDetail.meta.resolution')} value={currentJob.request.resolution} />
+            <MetaRow label={t('imageDetail.meta.aspectRatio')} value={currentJob.request.aspectRatio} />
+            {renderRequestOptionRows(currentJob.request.options, currentJob.request.model, t)}
             <MetaRow
-              label="发起时间"
-              value={new Date(currentJob.createdAt).toLocaleString('zh-CN', { hour12: false })}
+              label={t('imageDetail.meta.quantity')}
+              value={`${currentSlot.index + 1}/${currentJob.slots.length}`}
+            />
+            <MetaRow
+              label={t('imageDetail.meta.referenceImages')}
+              value={t('imageDetail.reference.count', { count: currentJob.request.referenceImages.length })}
+            />
+            {currentJob.request.mask && <MetaRow label="Mask" value={t('imageDetail.meta.maskProvided')} />}
+            <MetaRow
+              label={t('imageDetail.meta.startedAt')}
+              value={new Date(currentJob.createdAt).toLocaleString(language, { hour12: false })}
             />
             {currentSlot.status === 'retrying' && (
-              <MetaRow label="重试" value={`${currentSlot.attempt}/${currentSlot.maxAttempts}`} />
+              <MetaRow
+                label={t('imageDetail.meta.retry')}
+                value={`${currentSlot.attempt}/${currentSlot.maxAttempts}`}
+              />
             )}
-            {currentSlot.error && <MetaRow label="错误" value={currentSlot.error} />}
+            {currentSlot.error && <MetaRow label={t('imageDetail.meta.error')} value={currentSlot.error} />}
           </>
         )}
         {currentImage?.source.type === 'upload' && (
-          <MetaRow label="来源" value={`上传: ${currentImage.source.fileName}`} />
+          <MetaRow
+            label={t('imageDetail.meta.source')}
+            value={t('imageDetail.meta.sourceUpload', { fileName: currentImage.source.fileName })}
+          />
         )}
         {currentImage ? (
           <MetaRow
-            label="创建时间"
-            value={new Date(currentImage.timestamp).toLocaleString('zh-CN', { hour12: false })}
+            label={t('imageDetail.meta.createdAt')}
+            value={new Date(currentImage.timestamp).toLocaleString(language, { hour12: false })}
           />
         ) : !currentJob ? (
-          <MetaRow label="状态" value={currentSlot?.status === 'failed' ? '生成失败' : '等待生成'} />
+          <MetaRow
+            label={t('imageDetail.meta.status')}
+            value={
+              currentSlot?.status === 'failed'
+                ? t('imageDetail.queue.status.failed')
+                : t('imageDetail.queue.status.waiting')
+            }
+          />
         ) : null}
         {currentMeta && stackInfo && (
           <MetaRow
-            label="Stack"
+            label={t('imageDetail.meta.stack')}
             value={
               <span>
                 <span className="mono">s_{stackId.slice(0, 6)}</span>
@@ -324,29 +362,29 @@ export function DetailSidebar({
             onClose()
           }}
         >
-          <Icon name="trash" size={12} strokeWidth={1.8} /> 从历史中删除
+          <Icon name="trash" size={12} strokeWidth={1.8} /> {t('imageDetail.action.deleteFromHistory')}
         </button>
       )}
     </>
   )
 }
 
-function renderOptionRows(source: GeneratedSource, model: ModelConfig | null | undefined) {
+function renderOptionRows(source: GeneratedSource, model: ModelConfig | null | undefined, t: Translate) {
   const bag = effectiveOptions(source)
-  return renderOptionBagRows(bag, model)
+  return renderOptionBagRows(bag, model, t)
 }
 
-function renderRequestOptionRows(options: Record<string, unknown>, model: ModelConfig) {
-  return renderOptionBagRows(options, model)
+function renderRequestOptionRows(options: Record<string, unknown>, model: ModelConfig, t: Translate) {
+  return renderOptionBagRows(options, model, t)
 }
 
-function renderOptionBagRows(bag: Record<string, unknown>, model: ModelConfig | null | undefined) {
+function renderOptionBagRows(bag: Record<string, unknown>, model: ModelConfig | null | undefined, t: Translate) {
   const declaredIds = model?.options?.map((o) => o.id) ?? []
   const leftover = Object.keys(bag).filter((id) => !declaredIds.includes(id))
   return [...declaredIds, ...leftover].map((id) => {
-    const formatted = formatOptionValue(model, id, bag[id])
+    const formatted = formatOptionValue(model, id, bag[id], t)
     if (formatted === null) return null
-    return <MetaRow key={id} label={optionLabel(model, id)} value={formatted} />
+    return <MetaRow key={id} label={optionLabel(model, id, t)} value={formatted} />
   })
 }
 
@@ -360,34 +398,43 @@ function effectiveOptions(source: GeneratedSource): Record<string, unknown> {
   return bag
 }
 
-function slotStatusLabel(slot: GenerationSlot): string {
-  if (slot.status === 'queued') return '排队中'
-  if (slot.status === 'running') return '生成中'
-  if (slot.status === 'retrying') return '重试中'
-  if (slot.status === 'failed') return '生成失败'
-  if (slot.status === 'canceled') return '已取消'
-  return '已完成'
+function slotStatusLabel(slot: GenerationSlot, t: Translate): string {
+  if (slot.status === 'queued') return t('imageDetail.queue.status.queued')
+  if (slot.status === 'running') return t('imageDetail.queue.status.generating')
+  if (slot.status === 'retrying') return t('imageDetail.queue.status.retrying')
+  if (slot.status === 'failed') return t('imageDetail.queue.status.failed')
+  if (slot.status === 'canceled') return t('imageDetail.queue.status.canceled')
+  return t('imageDetail.queue.status.completed')
 }
 
-function formatOptionValue(model: ModelConfig | null | undefined, optionId: string, value: unknown): string | null {
+function formatOptionValue(
+  model: ModelConfig | null | undefined,
+  optionId: string,
+  value: unknown,
+  t: Translate,
+): string | null {
   if (value === undefined || value === null || value === '' || value === false) return null
   const opt = model?.options?.find((o) => o.id === optionId)
   if (opt?.type === 'select' && typeof value === 'string')
     return opt.choices.find((c) => c.value === value)?.label ?? value
-  if (opt?.type === 'toggle') return value === true ? '已启用' : null
-  if (typeof value === 'boolean') return value ? '是' : null
+  if (opt?.type === 'toggle') return value === true ? t('imageDetail.option.enabled') : null
+  if (typeof value === 'boolean') return value ? t('imageDetail.option.yes') : null
   return String(value)
 }
 
-function optionLabel(model: ModelConfig | null | undefined, optionId: string): string {
+function optionLabel(model: ModelConfig | null | undefined, optionId: string, t: Translate): string {
   const opt = model?.options?.find((o) => o.id === optionId)
-  if (opt) return opt.label
-  if (optionId === 'quality') return '质量'
-  if (optionId === 'webSearch') return 'Web 搜索'
-  if (optionId === 'imageSearch') return '图片搜索'
-  if (optionId === 'background') return '背景'
-  if (optionId === 'thinkingLevel') return '思考等级'
-  return optionId
+  if (opt) return optionLabelById(optionId, t) ?? opt.label
+  return optionLabelById(optionId, t) ?? optionId
+}
+
+function optionLabelById(optionId: string, t: Translate): string | null {
+  if (optionId === 'quality') return t('imageDetail.option.quality')
+  if (optionId === 'webSearch') return t('imageDetail.option.webSearch')
+  if (optionId === 'imageSearch') return t('imageDetail.option.imageSearch')
+  if (optionId === 'background') return t('imageDetail.option.background')
+  if (optionId === 'thinkingLevel') return t('imageDetail.option.thinkingLevel')
+  return null
 }
 
 function renderPromptLines(text: string): ReactNode[] {
@@ -425,6 +472,7 @@ function MetaRow({ label, value, mono, last }: { label: string; value: ReactNode
 }
 
 function GroundingSection({ metadata }: { metadata: GroundingMetadata }) {
+  const { t } = useI18n()
   const chunks = metadata.groundingChunks ?? []
   const sources: Array<{ uri: string; title: string; isImage: boolean }> = []
   for (const chunk of chunks) {
@@ -439,7 +487,7 @@ function GroundingSection({ metadata }: { metadata: GroundingMetadata }) {
 
   return (
     <div className="mb-[18px]">
-      <div className="label mb-1">搜索来源</div>
+      <div className="label mb-1">{t('imageDetail.meta.searchSources')}</div>
       {metadata.searchEntryPoint?.renderedContent && (
         <div
           className="mb-2"

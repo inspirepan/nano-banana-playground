@@ -17,6 +17,7 @@ import { MODEL_CONFIGS } from '../../config/models'
 import { useExternalSync, useMediaQuery, useVisualViewport, useWindowEvent } from '../../hooks/effects'
 import { ensureBlobLoaded, useImageSrc } from '../../hooks/useImageSrc'
 import type { GenerationJob } from '../../hooks/usePlayground'
+import { useI18n } from '../../i18n'
 import { imageDownloadFileName } from '../../lib/downloadFileName'
 import { computeItemCounts, copyEditState, getEditState, setEditItems, type ItemCounts } from '../../lib/editStateCache'
 import { loadImageMetas } from '../../lib/history'
@@ -66,6 +67,7 @@ export function ImageDetailModal({
   onRetryGenerationSlot,
   onRemove,
 }: Props) {
+  const { t } = useI18n()
   const initialItem = useMemo(
     () => stack.items.find((item) => item.id === initialItemId) ?? stack.items[stack.items.length - 1] ?? null,
     [initialItemId, stack.items],
@@ -419,7 +421,7 @@ export function ImageDetailModal({
     anchor.href = currentSrc
     anchor.download = fileName
     anchor.click()
-    flash('开始下载 PNG')
+    flash(t('imageDetail.toast.downloadPngStarted'))
   }
 
   const handleCopyPrompt = () => {
@@ -433,7 +435,7 @@ export function ImageDetailModal({
   const handleAddRef = () => {
     if (!currentImage) return
     onAddToRef(currentImage)
-    flash('已加为参考图')
+    flash(t('imageDetail.toast.addedReference'))
   }
 
   const handleRegenerateAction = () => {
@@ -445,14 +447,14 @@ export function ImageDetailModal({
   const handleRerollAction = () => {
     if (!currentImage) return
     void onReroll(currentImage).then((result) => {
-      flash(result.ok ? '已加入重新生成队列' : result.message)
+      flash(result.ok ? t('imageDetail.toast.rerollQueued') : result.message)
     })
   }
 
   const handleRetrySlotAction = () => {
     if (!currentJob || !currentSlot) return
     const result = onRetryGenerationSlot(currentJob.id, currentSlot.id)
-    flash(result.ok ? '已加入重试队列' : result.message)
+    flash(result.ok ? t('imageDetail.toast.retryQueued') : result.message)
   }
 
   const hasPrev = canNavigate && currentIdx > 0
@@ -626,7 +628,7 @@ export function ImageDetailModal({
                         type="button"
                         className="icon-btn"
                         onClick={onClose}
-                        title="关闭 (Esc)"
+                        title={t('imageDetail.action.closeEsc')}
                         style={{ width: 32, height: 32 }}
                       >
                         <Icon name="close" size={13} strokeWidth={1.8} />
@@ -641,11 +643,11 @@ export function ImageDetailModal({
                           setGalleryReturnTarget('detail')
                           setViewMode('gallery')
                         }}
-                        title="打开批量管理"
+                        title={t('imageDetail.action.openBatchManage')}
                         style={{ height: 24, padding: '0 6px' }}
                       >
                         <Icon name="check_circle" size={12} strokeWidth={1.8} />
-                        <span>批量管理</span>
+                        <span>{t('imageDetail.action.manageBatch')}</span>
                       </button>
                     }
                   />
@@ -654,7 +656,11 @@ export function ImageDetailModal({
                     <button
                       type="button"
                       onClick={toggleSidebar}
-                      title={sidebarCollapsed ? '展开详情面板' : '收起详情面板'}
+                      title={
+                        sidebarCollapsed
+                          ? t('imageDetail.action.expandDetailsPanel')
+                          : t('imageDetail.action.collapseDetailsPanel')
+                      }
                       aria-pressed={!sidebarCollapsed}
                       className="sidebar-edge-toggle"
                       data-collapsed={sidebarCollapsed || undefined}

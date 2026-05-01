@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom'
 import { Icon } from './Icon'
 import { useWindowEvent } from '../hooks/effects'
 import { ensureBlobLoaded, useImageSrc, getBlobFromCache } from '../hooks/useImageSrc'
+import { useI18n } from '../i18n'
 import { imageDownloadFileName } from '../lib/downloadFileName'
 import type { PlaygroundImageMeta } from '../lib/types'
 
@@ -30,6 +31,7 @@ export const ImageCard = memo(function ImageCard({
   onRemove,
   onOpen,
 }: Props) {
+  const { t } = useI18n()
   const CONTEXT_MENU_WIDTH = 160
   const CONTEXT_MENU_ITEM_HEIGHT = 32
   const CONTEXT_MENU_PADDING = 8
@@ -108,20 +110,23 @@ export const ImageCard = memo(function ImageCard({
     Boolean(menu),
   )
 
-  const actionItems: Array<{ label: string; onClick: () => void; danger?: boolean }> = downloadOnly
-    ? [{ label: '下载', onClick: handleDownload }]
+  const actionItems: Array<{ id: string; label: string; onClick: () => void; danger?: boolean }> = downloadOnly
+    ? [{ id: 'download', label: t('common.download'), onClick: handleDownload }]
     : [
-        { label: '加为参考', onClick: () => onAddToRef(image) },
-        { label: '下载', onClick: handleDownload },
-        { label: '复制', onClick: handleCopyImage },
-        ...(meta?.prompt ? [{ label: '还原参数', onClick: handleRegenerate }] : []),
-        ...(queueMode ? [] : [{ label: '删除', onClick: handleDelete, danger: true }]),
+        { id: 'add-reference', label: t('input.imageCard.addToReference'), onClick: () => onAddToRef(image) },
+        { id: 'download', label: t('common.download'), onClick: handleDownload },
+        { id: 'copy', label: t('input.imageCard.copy'), onClick: handleCopyImage },
+        ...(meta?.prompt
+          ? [{ id: 'restore', label: t('input.imageCard.restoreParams'), onClick: handleRegenerate }]
+          : []),
+        ...(queueMode ? [] : [{ id: 'delete', label: t('common.delete'), onClick: handleDelete, danger: true }]),
       ]
 
   return (
     <div
       ref={ref}
       role={downloadOnly ? undefined : 'button'}
+      aria-label={downloadOnly ? undefined : t('input.imageCard.open')}
       tabIndex={downloadOnly ? undefined : 0}
       draggable={!downloadOnly}
       onContextMenu={(event) => {
@@ -185,7 +190,7 @@ export const ImageCard = memo(function ImageCard({
           className="rounded-[var(--radius-sm)] px-3 py-1.5 text-base font-medium"
           style={{ background: 'rgba(0,0,0,0.7)', color: '#fff', backdropFilter: 'blur(8px)' }}
         >
-          已复制
+          {t('input.imageCard.copied')}
         </div>
       </div>
 
@@ -199,6 +204,8 @@ export const ImageCard = memo(function ImageCard({
               void handleDownload()
             }}
             className="media-action light"
+            title={t('input.imageCard.downloadPng')}
+            aria-label={t('input.imageCard.downloadPng')}
           >
             <Icon name="download" size={12} strokeWidth={1.6} /> PNG
           </button>
@@ -211,13 +218,15 @@ export const ImageCard = memo(function ImageCard({
                     e.stopPropagation()
                     onEdit(image)
                   }}
+                  ariaLabel={t('common.edit')}
                 >
-                  编辑
+                  {t('common.edit')}
                 </OverlayButton>
               )}
               <span className="flex-1" />
               <OverlayButton
                 icon="more"
+                ariaLabel={t('input.imageCard.moreActions')}
                 onClick={(e) => {
                   e.stopPropagation()
                   const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
@@ -246,7 +255,7 @@ export const ImageCard = memo(function ImageCard({
           >
             {actionItems.map((item) => (
               <button
-                key={item.label}
+                key={item.id}
                 type="button"
                 onClick={(event) => {
                   event.stopPropagation()
@@ -271,11 +280,13 @@ function OverlayButton({
   onClick,
   children,
   danger,
+  ariaLabel,
 }: {
   icon: 'plus' | 'refresh' | 'copy' | 'trash' | 'more' | 'wand'
   onClick: (e: React.MouseEvent) => void
   children?: React.ReactNode
   danger?: boolean
+  ariaLabel?: string
 }) {
   const hasText = Boolean(children)
   return (
@@ -283,6 +294,8 @@ function OverlayButton({
       type="button"
       onClick={onClick}
       className={`media-action ${hasText ? '' : 'icon-only'} ${danger ? 'danger' : ''}`}
+      title={ariaLabel}
+      aria-label={ariaLabel}
     >
       <Icon name={icon} size={12} strokeWidth={1.6} />
       {children}

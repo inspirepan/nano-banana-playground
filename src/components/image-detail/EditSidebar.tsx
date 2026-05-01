@@ -12,6 +12,7 @@ import {
 } from '../../config/models'
 import { useExternalSync, useWindowEvent } from '../../hooks/effects'
 import type { GenerationJob } from '../../hooks/usePlayground'
+import { useI18n } from '../../i18n'
 import { getEditState, setEditPrompt, type ItemCounts } from '../../lib/editStateCache'
 import { readFileAsImageData } from '../../lib/fileToImage'
 import { openAISize } from '../../lib/openai'
@@ -28,12 +29,12 @@ function InlineParamDivider() {
 }
 
 // Rotating example prompts for the edit textarea.
-const EDIT_PROMPT_EXAMPLES = [
-  '把背景换成日落海边',
-  '将外套改成米色风衣',
-  '去掉桌上的杯子',
-  '整体色调调成复古胶片感',
-  '人物改成侧面视角',
+const EDIT_PROMPT_EXAMPLE_KEYS = [
+  'imageDetail.editPrompt.example.background',
+  'imageDetail.editPrompt.example.coat',
+  'imageDetail.editPrompt.example.cup',
+  'imageDetail.editPrompt.example.film',
+  'imageDetail.editPrompt.example.sideView',
 ]
 
 export type EditImageHandler = (params: {
@@ -100,6 +101,8 @@ export function EditSidebar({
   showSubmitShortcut = true,
   onSubmitSuccess,
 }: EditSidebarProps) {
+  const { t } = useI18n()
+
   // Resolve the model / resolution / aspect ratio / options that generated the
   // source. For uploads, fall back to the default model's defaults.
   const sourceDefaultModel = useMemo(() => {
@@ -157,8 +160,9 @@ export function EditSidebar({
   // Pick a stable placeholder example per source image.
   const placeholder = useMemo(() => {
     const hash = Array.from(sourceImage.id).reduce((a, c) => (a + c.charCodeAt(0)) | 0, 0)
-    return `例：${EDIT_PROMPT_EXAMPLES[Math.abs(hash) % EDIT_PROMPT_EXAMPLES.length]}`
-  }, [sourceImage.id])
+    const exampleKey = EDIT_PROMPT_EXAMPLE_KEYS[Math.abs(hash) % EDIT_PROMPT_EXAMPLE_KEYS.length]
+    return t('imageDetail.editPrompt.placeholder', { example: t(exampleKey) })
+  }, [sourceImage.id, t])
 
   const hasAnnotationStrokes = drawableCounts.annotate > 0
   const hasMaskStrokes = drawableCounts.mask > 0
@@ -168,9 +172,7 @@ export function EditSidebar({
   const maxReferenceImages = sourceModel.maxReferenceImages + sourceModel.maxCharacterImages
   const maxExtraRefs = Math.max(0, maxReferenceImages - 1 - (hasAnnotatedSource ? 1 : 0))
   const referenceLimitExceeded = extraRefs.length > maxExtraRefs
-  const effectiveRefsError = referenceLimitExceeded
-    ? '当前标注会占用一个参考图名额，请移除一张参考图后再提交'
-    : refsError
+  const effectiveRefsError = referenceLimitExceeded ? t('imageDetail.error.referenceLimitWithAnnotation') : refsError
 
   const handleAddFiles = useCallback(
     async (files: File[]) => {
@@ -322,13 +324,13 @@ export function EditSidebar({
       const drawable = drawableRef.current
       const needsDrawableExport = hasAnnotatedSource || hasOpenAIMask
       if (needsDrawableExport && (!drawable || !drawable.isReady())) {
-        setSubmitError('图片仍在加载，请稍后再提交')
+        setSubmitError(t('imageDetail.error.imageStillLoading'))
         return
       }
       if (drawable && hasAnnotatedSource) {
         const out = isOpenAI ? await drawable.exportAnnotated() : await drawable.exportMarkedComposite()
         if (!out) {
-          setSubmitError('标注导出失败，请稍后再试')
+          setSubmitError(t('imageDetail.error.annotationExportFailed'))
           return
         }
         annotatedSource = {
@@ -343,7 +345,7 @@ export function EditSidebar({
         if (sourceModel.provider === 'openai') {
           const out = await drawable.exportMaskAlpha()
           if (!out) {
-            setSubmitError('Mask 导出失败，请稍后再试')
+            setSubmitError(t('imageDetail.error.maskExportFailed'))
             return
           }
           mask = {
@@ -396,6 +398,7 @@ export function EditSidebar({
     hasAnnotatedSource,
     hasOpenAIMask,
     isOpenAI,
+    t,
   ])
 
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -426,13 +429,13 @@ export function EditSidebar({
   // take image slots; OpenAI masks travel through the native mask field.
   const visibleDrawablePreview = hasAnnotatedSource || hasOpenAIMask ? drawablePreview : {}
   const lockedReferenceImages: LockedReferenceImage[] = [
-    { id: `${sourceImage.id}:source`, image: sourceImage, label: '原图' },
+    { id: `${sourceImage.id}:source`, image: sourceImage, label: t('imageDetail.lockedReference.source') },
   ]
   if (hasAnnotatedSource)
     lockedReferenceImages.push({
       id: `${sourceImage.id}:annotate`,
       image: sourceImage,
-      label: '标注',
+      label: t('imageDetail.lockedReference.annotation'),
       preview: visibleDrawablePreview.annotated,
     })
   if (hasOpenAIMask)
@@ -447,7 +450,7 @@ export function EditSidebar({
     <div>
       {/* Prompt */}
       <div className="mb-[18px]">
-        <div className="label mb-1.5">编辑指令</div>
+        <div className="label mb-1.5">{t('imageDetail.editPrompt.label')}</div>
         <div className="prompt-wrap">
           <textarea
             ref={textareaRef}
@@ -459,7 +462,9 @@ export function EditSidebar({
             autoFocus={autoFocusPrompt}
           />
           <div className="flex items-center gap-2 px-2.5 py-1.5 text-sm text-(--color-text-3) shadow-[inset_0_1px_0_var(--ring-edge-soft)]">
-            <span className="text-sm text-(--color-text-4)">{prompt.length} 字</span>
+            <span className="text-sm text-(--color-text-4)">
+              {t('imageDetail.editPrompt.charCount', { count: prompt.length })}
+            </span>
             <div className="flex-1" />
             {prompt.length > 0 && (
               <button
@@ -467,7 +472,7 @@ export function EditSidebar({
                 onClick={() => setPrompt('')}
                 className="inline-flex items-center gap-1 border-0 bg-transparent p-0 text-sm text-(--color-text-4) transition-colors hover:text-(--color-text-2)"
               >
-                <Icon name="close" size={11} /> 清空
+                <Icon name="close" size={11} /> {t('common.clear')}
               </button>
             )}
           </div>
@@ -483,11 +488,7 @@ export function EditSidebar({
           className="flex items-center w-full bg-transparent border-0 p-0 cursor-pointer min-h-[20px]"
         >
           <span className="flex items-center gap-1.5">
-            <span className="label">模型</span>
-            <InlineParamDivider />
-            <span className="label">分辨率</span>
-            <InlineParamDivider />
-            <span className="label">宽高比</span>
+            <span className="label">{t('imageDetail.parameters')}</span>
           </span>
           <span className="flex-1" />
           <span className="mr-1.5 flex items-center gap-1.5 text-sm text-(--color-text-3)">
@@ -560,7 +561,7 @@ export function EditSidebar({
       </div>
 
       <div className="mb-[18px]">
-        <div className="label mb-1.5">标注</div>
+        <div className="label mb-1.5">{t('imageDetail.annotation.label')}</div>
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -568,11 +569,11 @@ export function EditSidebar({
             onClick={annotationActive ? onFinishAnnotation : onStartAnnotation}
           >
             <Icon name={annotationActive ? 'check' : 'brush'} size={13} strokeWidth={1.8} />
-            {annotationActive ? '完成标注' : '标注'}
+            {annotationActive ? t('imageDetail.action.finishAnnotation') : t('imageDetail.action.startAnnotation')}
           </button>
           {hasAnnotations && (
             <button type="button" className="chip ghost shrink-0" onClick={onClearAnnotations}>
-              清空标注
+              {t('imageDetail.action.clearAnnotations')}
             </button>
           )}
         </div>
@@ -580,10 +581,10 @@ export function EditSidebar({
           <div className="mt-2 space-y-2">
             <div className="flex gap-1.5 overflow-x-auto pb-0.5">
               {[
-                { id: 'move' as const, label: '拖动', icon: 'mouse_pointer' as const },
-                { id: 'brush' as const, label: '涂抹', icon: 'brush' as const },
-                { id: 'step' as const, label: '编号', icon: 'map_pin' as const },
-                { id: 'eraser' as const, label: '橡皮', icon: 'eraser' as const },
+                { id: 'move' as const, label: t('imageDetail.annotation.tool.move'), icon: 'mouse_pointer' as const },
+                { id: 'brush' as const, label: t('imageDetail.annotation.tool.brush'), icon: 'brush' as const },
+                { id: 'step' as const, label: t('imageDetail.annotation.tool.step'), icon: 'map_pin' as const },
+                { id: 'eraser' as const, label: t('imageDetail.annotation.tool.eraser'), icon: 'eraser' as const },
               ].map((item) => (
                 <button
                   key={item.id}
@@ -612,8 +613,8 @@ export function EditSidebar({
                     className="chip justify-center"
                     data-active={brushPreset === item.id}
                     onClick={() => onChangeBrushPreset(item.id)}
-                    title={item.label}
-                    aria-label={item.label}
+                    title={t(item.labelKey)}
+                    aria-label={t(item.labelKey)}
                   >
                     <BrushPresetDot preset={item} />
                   </button>
@@ -629,7 +630,7 @@ export function EditSidebar({
         <ReferenceImageUpload
           images={extraRefs}
           lockedImages={lockedReferenceImages}
-          hint="可拖入本地图片，或按 ⌘/Ctrl+V 粘贴"
+          hint={t('imageDetail.reference.uploadHint')}
           maxTotal={maxExtraRefs}
           dragOver={false}
           error={effectiveRefsError}
@@ -642,7 +643,7 @@ export function EditSidebar({
 
       {/* Batch count */}
       <div className="mb-[18px]">
-        <div className="label mb-1.5">数量</div>
+        <div className="label mb-1.5">{t('imageDetail.meta.quantity')}</div>
         <div
           className="grid gap-1.5 tabular-nums"
           style={{ gridTemplateColumns: `repeat(${sourceModel.maxBatchCount}, 1fr)` }}
@@ -671,7 +672,11 @@ export function EditSidebar({
         {submitError && <div className="mb-2 text-sm text-(--color-danger)">{submitError}</div>}
         <button type="button" onClick={handleGenerate} disabled={!canSubmit} className="cta w-full">
           <Icon name="wand" size={13} strokeWidth={1.8} />
-          <span>{submitting ? '提交中…' : `生成编辑 ×${batchCount}`}</span>
+          <span>
+            {submitting
+              ? t('imageDetail.editPrompt.submitting')
+              : t('imageDetail.editPrompt.submit', { count: batchCount })}
+          </span>
           <span className="flex-1" />
           {showSubmitShortcut && (
             <span className="flex gap-0.5">

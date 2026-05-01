@@ -48,12 +48,20 @@ import { useExternalSync, useMountEffect } from '../hooks/effects'
 import type { useApiKey } from '../hooks/useApiKey'
 import type { GenerationJob } from '../hooks/useGenerationQueue'
 import { putBlobInCache, getBlobFromCache } from '../hooks/useImageSrc'
+import { translate } from '../i18n'
 import { readFileAsImageData } from '../lib/fileToImage'
 import { loadImageBlob, loadImageMetas } from '../lib/history'
 import type { PlaygroundImage, PlaygroundImageMeta } from '../lib/types'
 import { isKeyError } from '../lib/validateKey'
 
 const AGENT_MAX_ATTACHMENTS = 8
+const AGENT_TASK_PROTOCOL_MESSAGES = {
+  autoStarted: 'The task has been submitted and automatically started generation.',
+  failedToStart: 'The task was submitted but could not start generation.',
+  pending: 'The task has been submitted and is waiting for user approval.',
+  pendingWithReserved: (ids: string[]) =>
+    `The task has been submitted and is waiting for user approval. image_id has been reserved as ${ids.join(', ')}.`,
+} as const
 
 type ApiKeyHook = ReturnType<typeof useApiKey>
 type ProviderCredentials = { apiKey: string; baseUrl?: string }
@@ -332,7 +340,7 @@ function restoreAgentImageTasks(tasks: AgentImageTask[]): AgentImageTask[] {
     return {
       ...task,
       status: 'canceled',
-      error: task.error ?? '页面刷新或切换会话中断了这次生成任务。',
+      error: task.error ?? translate('configLib.agent.taskInterrupted'),
     }
   })
 }
@@ -863,8 +871,9 @@ export function useAgentPlayground({
       if (!runtime) return
       const remaining = AGENT_MAX_ATTACHMENTS - runtime.attachments.length
       if (remaining <= 0) {
-        runtime.attachmentError = `最多附加 ${AGENT_MAX_ATTACHMENTS} 张图片`
-        setAgentAttachmentError(`最多附加 ${AGENT_MAX_ATTACHMENTS} 张图片`)
+        const message = translate('configLib.agent.maxAttachments', { count: AGENT_MAX_ATTACHMENTS })
+        runtime.attachmentError = message
+        setAgentAttachmentError(message)
         return
       }
 
@@ -916,15 +925,16 @@ export function useAgentPlayground({
       if (!runtime || runtime.attachments.some((item) => item.id === image.id)) return
       const remaining = AGENT_MAX_ATTACHMENTS - runtime.attachments.length
       if (remaining <= 0) {
-        runtime.attachmentError = `最多附加 ${AGENT_MAX_ATTACHMENTS} 张图片`
-        setAgentAttachmentError(`最多附加 ${AGENT_MAX_ATTACHMENTS} 张图片`)
+        const message = translate('configLib.agent.maxAttachments', { count: AGENT_MAX_ATTACHMENTS })
+        runtime.attachmentError = message
+        setAgentAttachmentError(message)
         return
       }
 
       void (async () => {
         const data = 'data' in image ? image.data : (getBlobFromCache(image.id) ?? (await loadImageBlob(image.id)))
         if (!data) {
-          runtime.attachmentError = '无法读取这张图片，请先打开图片或稍后重试。'
+          runtime.attachmentError = translate('configLib.agent.readAttachmentFailed')
           if (isCurrentRuntime(runtime)) setAgentAttachmentError(runtime.attachmentError)
           return
         }
@@ -1082,8 +1092,8 @@ export function useAgentPlayground({
       const images: PlaygroundImage[] = []
       for (const id of ids) {
         const result = await resolveAgentImageById(runtime, id)
-        if (!result) throw new Error(`Reference image does not exist: ${id}`)
-        if (result.status !== 'ready') throw new Error(`Reference image is not ready: ${id}`)
+        if (!result) throw new Error(translate('configLib.agent.referenceMissing', { id }))
+        if (result.status !== 'ready') throw new Error(translate('configLib.agent.referenceNotReady', { id }))
         images.push(result.image)
       }
       return images
@@ -1096,7 +1106,7 @@ export function useAgentPlayground({
       const config = resolveAgentModelConfig(runtime.modelId)
       const credentials = agentCredentialsRef.current[config.provider]
       if (!credentials.apiKey) {
-        setRuntimeError(runtime, `Agent 需要 ${config.providerLabel} API Key 才能接收任务完成回调。`)
+        setRuntimeError(runtime, translate('configLib.agent.callbackMissingKey', { provider: config.providerLabel }))
         return false
       }
 
@@ -1151,7 +1161,7 @@ export function useAgentPlayground({
 
       const modelConfig = findModelConfig(task.request.modelId)
       if (!modelConfig) {
-        const message = `Unknown GenImage model: ${task.request.modelId}.`
+        const message = translate('configLib.agent.unknownGenImageModel', { model: task.request.modelId })
         const next = setRuntimeImageTasks(runtime, (prev) =>
           prev.map((item) => (item.id === task.id ? { ...item, status: 'failed', error: message } : item)),
         )
@@ -1162,7 +1172,10 @@ export function useAgentPlayground({
 
       const credentials = getProviderCredentials(modelConfig.provider)
       if (!credentials.apiKey) {
-        const message = `使用 ${modelConfig.name} 需要先配置 ${modelConfig.provider === 'google' ? 'Gemini' : 'OpenAI'} API Key。`
+        const message = translate('configLib.agent.modelMissingKey', {
+          model: modelConfig.name,
+          provider: modelConfig.provider === 'google' ? 'Gemini' : 'OpenAI',
+        })
         const next = setRuntimeImageTasks(runtime, (prev) =>
           prev.map((item) => (item.id === task.id ? { ...item, status: 'failed', error: message } : item)),
         )
@@ -1185,12 +1198,12 @@ export function useAgentPlayground({
       }
 
       if (!runtime.ready || agentRuntimesRef.current.get(runtime.sessionId) !== runtime) {
-        return { ok: false, message: '任务所属对话已经删除。' }
+        return { ok: false, message: translate('configLib.agent.sessionDeleted') }
       }
 
       const currentTask = runtime.imageTasks.find((item) => item.id === task.id)
       if (!currentTask || isTerminalAgentImageTaskStatus(currentTask.status)) {
-        return { ok: false, message: '任务已经取消。' }
+        return { ok: false, message: translate('configLib.agent.taskCanceled') }
       }
 
       const stackId =
@@ -1234,7 +1247,7 @@ export function useAgentPlayground({
             : item,
         ),
       )
-      return { ok: true, message: '任务已经提交并开始生成。' }
+      return { ok: true, message: translate('configLib.agent.taskStarted') }
     },
     [
       enqueueGenerationJob,
@@ -1361,10 +1374,12 @@ export function useAgentPlayground({
         const startResult = runtime.autoApproveImageTasks ? await startAgentImageTask(runtime, task) : null
         const status = runtime.autoApproveImageTasks ? (startResult?.ok ? 'queued' : 'failed') : 'pending_approval'
         const message = runtime.autoApproveImageTasks
-          ? (startResult?.message ?? '任务已经提交并自动开始生成。')
+          ? startResult?.ok
+            ? AGENT_TASK_PROTOCOL_MESSAGES.autoStarted
+            : AGENT_TASK_PROTOCOL_MESSAGES.failedToStart
           : reserved.renamed
-            ? `任务已经提交，等待用户审批。image_id 已预留为 ${reserved.reservedImageIds.join('、')}。`
-            : '任务已经提交，等待用户审批。'
+            ? AGENT_TASK_PROTOCOL_MESSAGES.pendingWithReserved(reserved.reservedImageIds)
+            : AGENT_TASK_PROTOCOL_MESSAGES.pending
         const payload = {
           status,
           task_id: task.id,
@@ -1687,7 +1702,10 @@ export function useAgentPlayground({
     const config = resolveAgentModelConfig(runtime.modelId)
     const credentials = agentCredentialsRef.current[config.provider]
     if (!credentials.apiKey) {
-      setRuntimeError(runtime, `使用 ${config.label} 需要先配置 ${config.providerLabel} API Key。`)
+      setRuntimeError(
+        runtime,
+        translate('configLib.agent.modelMissingKey', { model: config.label, provider: config.providerLabel }),
+      )
       return
     }
 

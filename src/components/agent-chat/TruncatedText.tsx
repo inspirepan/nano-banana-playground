@@ -1,5 +1,7 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 
+import { useI18n } from '../../i18n'
+
 export function TruncatedText({
   text,
   className,
@@ -11,6 +13,7 @@ export function TruncatedText({
   fadeColor: string
   maxHeight?: number
 }) {
+  const { t } = useI18n()
   const [expanded, setExpanded] = useState(false)
   const [overflowing, setOverflowing] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -46,7 +49,7 @@ export function TruncatedText({
           }}
           className="relative z-10 mt-1.5 bg-transparent p-0 text-sm text-(--color-text-3) transition-colors hover:text-(--color-text)"
         >
-          {expanded ? '收起' : '展开'}
+          {expanded ? t('agentChat.truncated.collapse') : t('agentChat.truncated.expand')}
         </button>
       )}
     </div>

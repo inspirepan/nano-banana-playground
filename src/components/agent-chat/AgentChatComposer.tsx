@@ -15,7 +15,8 @@ import { ComposerScrollButton } from './ComposerScrollButton'
 import type { AgentChatMenu } from './types'
 import { isImageFile } from './utils'
 import type { AgentChatAttachment } from '../../agent'
-import { AGENT_THINKING_OPTIONS, type AgentModelConfig, type AgentThinkingLevel } from '../../config/agentModels'
+import type { AgentModelConfig, AgentThinkingLevel } from '../../config/agentModels'
+import { useI18n } from '../../i18n'
 
 const MAX_COMPOSER_HEIGHT = 150
 
@@ -81,11 +82,11 @@ export function AgentChatComposer({
   onStop,
   scrollToBottom,
 }: AgentChatComposerProps) {
+  const { t } = useI18n()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const effectiveThinkingLevel = model.supportsThinking ? thinkingLevel : 'off'
-  const effectiveThinkingLabel =
-    AGENT_THINKING_OPTIONS.find((item) => item.value === effectiveThinkingLevel)?.label ?? effectiveThinkingLevel
+  const effectiveThinkingLabel = t(`agentChat.thinking.${effectiveThinkingLevel}`)
 
   useLayoutEffect(() => {
     if (textareaRef.current) autoResizeComposer(textareaRef.current)
@@ -143,7 +144,11 @@ export function AgentChatComposer({
             }}
             onKeyDown={handleKeyDown}
             placeholder={
-              pendingQuestionCount > 0 ? '跳过问卷并发送…' : isStreaming ? '追加消息…' : '给 Agent 发送消息…'
+              pendingQuestionCount > 0
+                ? t('agentChat.composer.placeholder.questionPending')
+                : isStreaming
+                  ? t('agentChat.composer.placeholder.streaming')
+                  : t('agentChat.composer.placeholder.default')
             }
             rows={1}
             className="block max-h-[150px] min-h-[44px] w-full resize-none bg-transparent px-3 pt-2.5 pb-1 text-[16px] leading-[1.55] text-(--color-text) focus:outline-none md:text-base"

@@ -6,6 +6,7 @@ import type {
   AskUserQuestionAnswer,
   AskUserQuestionItem,
 } from '../../agent'
+import { useI18n } from '../../i18n'
 import { Icon } from '../Icon'
 
 type QuestionFormState = Record<number, { selected: string[]; note: string }>
@@ -29,6 +30,7 @@ export function AskUserQuestionForm({
   onSubmit: (toolCallId: string, answers: AskUserQuestionAnswer[]) => void
   onCancel: (toolCallId: string) => void
 }) {
+  const { t } = useI18n()
   const [form, setForm] = useState<QuestionFormState>(() => buildInitialQuestionFormState(questions))
 
   const toggleOption = useCallback((questionIndex: number, label: string, multi: boolean) => {
@@ -68,6 +70,7 @@ export function AskUserQuestionForm({
   }
 
   const topics = questions.map((q) => q.header).filter((header): header is string => Boolean(header))
+  const topicText = topics.join(t('agentChat.question.topicSeparator'))
 
   return (
     <div
@@ -82,16 +85,20 @@ export function AskUserQuestionForm({
         >
           <Icon name="help_circle" className="h-3.5 w-3.5" strokeWidth={2.2} />
         </span>
-        <span className="text-base font-semibold text-(--color-accent)">Agent 想先和你确认几个问题</span>
+        <span className="text-base font-semibold text-(--color-accent)">{t('agentChat.question.title')}</span>
         <span
           className="ml-auto rounded-full bg-(--color-surface) px-2 py-0.5 text-[11px] font-medium text-(--color-text-3) shadow-[inset_0_0_0_1px_var(--ring-edge)]"
           style={{ fontVariantNumeric: 'tabular-nums' }}
         >
-          {questions.length} 个
+          {t('agentChat.question.count', { count: questions.length })}
         </span>
       </div>
 
-      {topics.length > 0 && <div className="mt-1 text-[12px] text-(--color-text-3)">关于{topics.join('、')}</div>}
+      {topics.length > 0 && (
+        <div className="mt-1 text-[12px] text-(--color-text-3)">
+          {t('agentChat.question.topics', { topics: topicText })}
+        </div>
+      )}
 
       <div className="mt-3">
         {questions.map((question, index) => {
@@ -107,7 +114,11 @@ export function AskUserQuestionForm({
                   {index + 1}
                 </span>
                 <span className="text-sm font-medium text-(--color-text)">{question.question}</span>
-                {question.multi_select && <span className="ml-auto text-[11px] text-(--color-text-4)">可多选</span>}
+                {question.multi_select && (
+                  <span className="ml-auto text-[11px] text-(--color-text-4)">
+                    {t('agentChat.question.multiSelect')}
+                  </span>
+                )}
               </div>
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {question.options.map((option) => {
@@ -150,7 +161,7 @@ export function AskUserQuestionForm({
                 type="text"
                 value={entry.note}
                 onChange={(event) => setNote(index, event.target.value)}
-                placeholder="补充说明（可选）"
+                placeholder={t('agentChat.question.notePlaceholder')}
                 data-active={entry.note.trim().length > 0 || undefined}
                 className={`mt-2 h-7 min-w-[12em] max-w-full bg-(--color-surface) text-sm font-medium text-(--color-text) shadow-[inset_0_0_0_1px_var(--ring-edge)] transition-[box-shadow,color] placeholder:font-normal placeholder:text-(--color-text-4) focus:shadow-[inset_0_0_0_1px_var(--color-accent)] focus:outline-none data-[active]:text-(--color-accent) data-[active]:shadow-[inset_0_0_0_1px_var(--color-accent)] ${
                   question.multi_select ? 'rounded-[var(--radius-sm)] px-2.5' : 'rounded-full px-5'
@@ -169,7 +180,7 @@ export function AskUserQuestionForm({
           className="chip ghost text-sm"
           style={{ height: 28, padding: '0 12px' }}
         >
-          跳过
+          {t('agentChat.question.skip')}
         </button>
         <button
           type="button"
@@ -178,7 +189,7 @@ export function AskUserQuestionForm({
           className="chip accent-active text-sm disabled:cursor-not-allowed disabled:opacity-45"
           style={{ height: 28, padding: '0 12px' }}
         >
-          提交
+          {t('agentChat.question.submit')}
         </button>
       </div>
     </div>
@@ -192,6 +203,7 @@ export function AskUserQuestionResultCard({
   call: AgentMessageToolCall
   result: AgentMessageToolResult
 }) {
+  const { t } = useI18n()
   const questions = Array.isArray(call.arguments.questions) ? (call.arguments.questions as AskUserQuestionItem[]) : []
   const abandoned = result.text.includes('navigated away')
   const hasFormatted = /\nAnswer:/.test(result.text) || result.text.startsWith('Question:')
@@ -201,7 +213,7 @@ export function AskUserQuestionResultCard({
       {!hasFormatted ? (
         <div className="space-y-2">
           <div className="text-sm leading-[1.55] text-(--color-text-3)">
-            {abandoned ? '页面刷新或切换会话中断了这次问卷，没有作答内容。' : '没有作答内容。'}
+            {abandoned ? t('agentChat.question.noAnswerAfterNavigation') : t('agentChat.question.noAnswer')}
           </div>
           {questions.length > 0 && (
             <ul className="space-y-1">
@@ -232,14 +244,18 @@ export function AskUserQuestionResultCard({
             const answerText = answerLines.join('\n').trim()
             const isDismissed = /User dismissed the form|dismissed the form/i.test(answerText)
             const isEmpty = /^\(No (?:answer provided|option selected)\.\)$/i.test(answerText)
-            const displayAnswer = isDismissed ? '已跳过' : isEmpty ? '未作答' : answerText
+            const displayAnswer = isDismissed
+              ? t('agentChat.question.dismissed')
+              : isEmpty
+                ? t('agentChat.question.emptyAnswer')
+                : answerText
             return (
               <div key={index} className="space-y-0.5">
                 <div className="text-sm font-semibold text-(--color-text)">{questionText}</div>
                 <div className="whitespace-pre-wrap text-sm leading-[1.55] text-(--color-text-3)">{displayAnswer}</div>
                 {noteLine && (
                   <div className="text-sm leading-[1.55] text-(--color-text-4)">
-                    {noteLine.replace(/^Note:\s*/, '补充：')}
+                    {t('agentChat.question.notePrefix', { note: noteLine.replace(/^Note:\s*/, '') })}
                   </div>
                 )}
               </div>

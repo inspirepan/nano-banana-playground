@@ -1,5 +1,6 @@
 import { Icon } from '../Icon'
 import { ZoomableImageView } from './ZoomableImageView'
+import { useI18n } from '../../i18n'
 
 export function MobilePreviewFullscreen({
   src,
@@ -14,6 +15,8 @@ export function MobilePreviewFullscreen({
   onSwipeLeft?: () => void
   onSwipeRight?: () => void
 }) {
+  const { t } = useI18n()
+
   return (
     <div
       className="fixed inset-0 z-[130]"
@@ -33,8 +36,8 @@ export function MobilePreviewFullscreen({
       <button
         type="button"
         onClick={onClose}
-        title="退出全屏预览"
-        aria-label="退出全屏预览"
+        title={t('imageDetail.action.closeFullscreenPreview')}
+        aria-label={t('imageDetail.action.closeFullscreenPreview')}
         className="fixed left-3 top-3 z-[2] flex h-9 w-9 items-center justify-center rounded-full transition-colors"
         style={{
           background: 'color-mix(in srgb, var(--color-surface) 92%, transparent)',

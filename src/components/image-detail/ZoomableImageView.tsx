@@ -1,7 +1,5 @@
 import { useCallback, useRef, useState } from 'react'
 
-import { useExternalSync, useResizeObserver, useWindowEvent } from '../../hooks/effects'
-import { Icon } from '../Icon'
 import {
   FIT_SCALE,
   MAX_SCALE,
@@ -16,6 +14,9 @@ import {
   type Point,
   type Size,
 } from './viewGeometry'
+import { useExternalSync, useResizeObserver, useWindowEvent } from '../../hooks/effects'
+import { useI18n } from '../../i18n'
+import { Icon } from '../Icon'
 
 /* ========================================================================
    ZoomableImageView — wheel/drag/pinch zoom, with Linear-style Zoom HUD
@@ -34,6 +35,7 @@ export function ZoomableImageView({
   onSwipeLeft?: () => void
   onSwipeRight?: () => void
 }) {
+  const { t } = useI18n()
   const containerRef = useRef<HTMLDivElement>(null)
   const pictureRef = useRef<HTMLImageElement>(null)
   const activePointersRef = useRef(new Map<number, Point>())
@@ -319,14 +321,14 @@ export function ZoomableImageView({
           className="icon-btn"
           onClick={() => zoomAtPoint(scaleRef.current * 0.8, { x: 0, y: 0 })}
           style={{ width: 24, height: 22 }}
-          title="缩小"
+          title={t('imageDetail.zoom.out')}
         >
           <Icon name="zoom_out_map" size={11} strokeWidth={1.8} />
         </button>
         <button
           onClick={resetView}
           className="text-sm font-medium"
-          title="双击画布可重置 · 快捷键 0"
+          title={t('imageDetail.zoom.resetHint')}
           style={{
             background: 'none',
             border: 0,
@@ -343,7 +345,7 @@ export function ZoomableImageView({
           className="icon-btn"
           onClick={() => zoomAtPoint(scaleRef.current * 1.25, { x: 0, y: 0 })}
           style={{ width: 24, height: 22 }}
-          title="放大"
+          title={t('imageDetail.zoom.in')}
         >
           <Icon name="zoom_in" size={11} strokeWidth={1.8} />
         </button>

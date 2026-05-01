@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react'
 
+import { useI18n } from '../../i18n'
 import { Icon } from '../Icon'
 
 function renderInline(text: string): ReactNode[] {
@@ -35,6 +36,7 @@ function renderInline(text: string): ReactNode[] {
 }
 
 export function AgentThinking({ thinking }: { thinking: string }) {
+  const { t } = useI18n()
   const [thinkingOpen, setThinkingOpen] = useState(true)
 
   return (
@@ -45,7 +47,7 @@ export function AgentThinking({ thinking }: { thinking: string }) {
         aria-expanded={thinkingOpen}
         className="inline-flex cursor-pointer items-center gap-1.5 bg-transparent p-0 py-0.5 text-(--color-text-4) transition-colors duration-150 hover:text-(--color-text-3)"
       >
-        <span>Thinking</span>
+        <span>{t('agentChat.thinking.label')}</span>
         <Icon
           name="chevron_right"
           size={13}

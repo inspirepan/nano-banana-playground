@@ -2,6 +2,7 @@ import { Type } from '@mariozechner/pi-ai'
 
 import description from './askUserQuestion.md?raw'
 import { type AgentToolResult, type AgentRuntimeTool } from './shared'
+import { translate } from '../../i18n'
 
 export type AskUserQuestionOption = {
   label: string
@@ -67,7 +68,7 @@ export function createAskUserQuestionTool({
 }): AgentRuntimeTool {
   return {
     name: 'AskUserQuestion',
-    label: '提问用户',
+    label: translate('configLib.agent.tool.askUserQuestion'),
     description: description.trim(),
     parameters: Type.Object({
       questions: Type.Array(

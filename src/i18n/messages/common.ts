@@ -1,0 +1,58 @@
+import type { MessageDictionary } from '../types'
+
+export const commonMessages: MessageDictionary = {
+  'app.name': { 'zh-CN': 'Imagine Playground', en: 'Imagine Playground' },
+  'app.mobilePanel': { 'zh-CN': '移动端面板', en: 'Mobile panel' },
+  'app.title.generatingProgress': {
+    'zh-CN': '〔{done}/{total}〕生成中 · {app}',
+    en: '[{done}/{total}] Generating · {app}',
+  },
+  'app.title.generating': { 'zh-CN': '生成中 · {app}', en: 'Generating · {app}' },
+  'app.title.failed': { 'zh-CN': '生成失败 · {app}', en: 'Generation failed · {app}' },
+  'app.title.completed': { 'zh-CN': '已完成 · {app}', en: 'Completed · {app}' },
+  'app.toast.restoredPromptParamsRefs': {
+    'zh-CN': '已还原提示词、参数和 {count} 张参考图',
+    en: 'Restored prompt, settings, and {count} reference images',
+  },
+  'app.toast.restoredPromptParams': { 'zh-CN': '已还原提示词和参数', en: 'Restored prompt and settings' },
+  'app.toast.restoredUnavailableModelPromptRefs': {
+    'zh-CN': '原模型已不可用，已还原提示词和 {count} 张参考图',
+    en: 'The original model is unavailable. Restored the prompt and {count} reference images',
+  },
+  'app.toast.restoredUnavailableModelPrompt': {
+    'zh-CN': '原模型已不可用，已还原提示词',
+    en: 'The original model is unavailable. Restored the prompt',
+  },
+  'app.toast.rerollQueued': { 'zh-CN': '已按原参数加入生成队列', en: 'Queued with the original settings' },
+  'app.toast.rerollUnsupportedMask': {
+    'zh-CN': '暂不支持重抽带遮罩的 OpenAI 编辑图',
+    en: 'Rerolling masked OpenAI edits is not supported yet',
+  },
+  'app.toast.rerollFailed': {
+    'zh-CN': '无法重新生成：请检查 API Key 或参考图',
+    en: 'Could not regenerate. Check the API key or reference images',
+  },
+  'app.toast.retryQueued': { 'zh-CN': '已加入重试队列', en: 'Added to the retry queue' },
+  'app.toast.retryFailed': {
+    'zh-CN': '无法重试：请检查 API Key 或任务状态',
+    en: 'Could not retry. Check the API key or task status',
+  },
+  'common.agent': { 'zh-CN': 'Agent', en: 'Agent' },
+  'common.apiKey': { 'zh-CN': 'API Key', en: 'API key' },
+  'common.cancel': { 'zh-CN': '取消', en: 'Cancel' },
+  'common.clear': { 'zh-CN': '清空', en: 'Clear' },
+  'common.close': { 'zh-CN': '关闭', en: 'Close' },
+  'common.confirmDelete': { 'zh-CN': '确认删除', en: 'Confirm delete' },
+  'common.delete': { 'zh-CN': '删除', en: 'Delete' },
+  'common.deleting': { 'zh-CN': '删除中…', en: 'Deleting…' },
+  'common.download': { 'zh-CN': '下载', en: 'Download' },
+  'common.edit': { 'zh-CN': '编辑', en: 'Edit' },
+  'common.gallery': { 'zh-CN': '图库', en: 'Gallery' },
+  'common.generate': { 'zh-CN': '生成', en: 'Generate' },
+  'common.loadingMore': { 'zh-CN': '加载更多…', en: 'Loading more…' },
+  'common.model': { 'zh-CN': '模型', en: 'Model' },
+  'common.refresh': { 'zh-CN': '刷新', en: 'Refresh' },
+  'common.retry': { 'zh-CN': '重试', en: 'Retry' },
+  'common.settings': { 'zh-CN': '设置', en: 'Settings' },
+  'common.unknown': { 'zh-CN': '未知', en: 'Unknown' },
+}

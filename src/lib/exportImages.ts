@@ -3,6 +3,7 @@ import { imageDownloadFileName } from './downloadFileName'
 import { loadImageBlobs } from './history'
 import type { PlaygroundImageMeta } from './types'
 import { ensureBlobLoaded, getBlobFromCache, putBlobInCache } from '../hooks/useImageSrc'
+import { translate } from '../i18n'
 
 function imageExtension(image: PlaygroundImageMeta): 'png' | 'jpg' {
   return image.mimeType === 'image/png' ? 'png' : 'jpg'
@@ -32,7 +33,7 @@ async function shareImages(images: PlaygroundImageMeta[]): Promise<boolean> {
   if (files.length === 0 || !navigator.canShare?.({ files })) return false
 
   try {
-    await navigator.share({ files, title: 'Nano Banana 图片' })
+    await navigator.share({ files, title: translate('configLib.exportImages.shareTitle') })
     return true
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') return true

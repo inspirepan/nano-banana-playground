@@ -1,4 +1,5 @@
 import type { GenerationSlot } from '../hooks/usePlayground'
+import { translate, type Translate } from '../i18n'
 
 type SlotCounts = {
   queued: number
@@ -36,30 +37,32 @@ export function countSlots(slots: GenerationSlot[]): SlotCounts {
   return counts
 }
 
-export function jobStatusLabel(counts: SlotCounts): string {
+export function jobStatusLabel(counts: SlotCounts, t: Translate = translate): string {
   if (counts.active > 0) {
-    const parts = [`运行 ${counts.done}/${counts.total}`]
-    if (counts.running > 0) parts.push(`生成 ${counts.running}`)
-    if (counts.retrying > 0) parts.push(`重试 ${counts.retrying}`)
-    if (counts.queued > 0) parts.push(`排队 ${counts.queued}`)
+    const parts = [t('configLib.queue.runningProgress', { done: counts.done, total: counts.total })]
+    if (counts.running > 0) parts.push(t('configLib.queue.generatingCount', { count: counts.running }))
+    if (counts.retrying > 0) parts.push(t('configLib.queue.retryingCount', { count: counts.retrying }))
+    if (counts.queued > 0) parts.push(t('configLib.queue.queuedCount', { count: counts.queued }))
     return parts.join(' · ')
   }
-  if (counts.succeeded === counts.total) return `完成 ${counts.succeeded}/${counts.total}`
+  if (counts.succeeded === counts.total) {
+    return t('configLib.queue.completedProgress', { done: counts.succeeded, total: counts.total })
+  }
   if (counts.succeeded > 0) {
-    const parts = [`完成 ${counts.succeeded}/${counts.total}`]
-    if (counts.failed > 0) parts.push(`失败 ${counts.failed}`)
-    if (counts.canceled > 0) parts.push(`取消 ${counts.canceled}`)
+    const parts = [t('configLib.queue.completedProgress', { done: counts.succeeded, total: counts.total })]
+    if (counts.failed > 0) parts.push(t('configLib.queue.failedCount', { count: counts.failed }))
+    if (counts.canceled > 0) parts.push(t('configLib.queue.canceledCount', { count: counts.canceled }))
     return parts.join(' · ')
   }
-  if (counts.failed > 0) return `失败 ${counts.failed}/${counts.total}`
-  return `已取消 ${counts.canceled}/${counts.total}`
+  if (counts.failed > 0) return t('configLib.queue.failedProgress', { failed: counts.failed, total: counts.total })
+  return t('configLib.queue.canceledProgress', { canceled: counts.canceled, total: counts.total })
 }
 
-export function formatTime(ts: number): string {
+export function formatTime(ts: number, t: Translate = translate): string {
   const now = Date.now()
   const diff = now - ts
-  if (diff < 60_000) return '刚刚'
-  if (diff < 3600_000) return `${Math.floor(diff / 60_000)} 分钟前`
-  if (diff < 86400_000) return `${Math.floor(diff / 3600_000)} 小时前`
+  if (diff < 60_000) return t('configLib.queue.justNow')
+  if (diff < 3600_000) return t('configLib.queue.minutesAgo', { count: Math.floor(diff / 60_000) })
+  if (diff < 86400_000) return t('configLib.queue.hoursAgo', { count: Math.floor(diff / 3600_000) })
   return new Date(ts).toLocaleDateString()
 }

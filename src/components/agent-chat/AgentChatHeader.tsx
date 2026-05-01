@@ -1,9 +1,10 @@
 import type { Dispatch, SetStateAction } from 'react'
 
-import type { AgentSessionSummary } from '../../agent'
-import { Icon } from '../Icon'
 import type { AgentChatMenu } from './types'
 import { formatSessionTime } from './utils'
+import type { AgentSessionSummary } from '../../agent'
+import { useI18n } from '../../i18n'
+import { Icon } from '../Icon'
 
 type AgentChatHeaderProps = {
   sessions: AgentSessionSummary[]
@@ -26,6 +27,7 @@ export function AgentChatHeader({
   onSwitchSession,
   onDeleteSession,
 }: AgentChatHeaderProps) {
+  const { t } = useI18n()
   const currentSession = sessions.find((session) => session.id === currentSessionId)
 
   return (
@@ -35,10 +37,12 @@ export function AgentChatHeader({
         onClick={() => setOpenMenu((prev) => (prev === 'sessions' ? null : 'sessions'))}
         className="chip ghost min-w-0 max-w-[calc(100%-78px)] shrink justify-start gap-1.5 px-2.5 text-base"
         style={{ height: 30 }}
-        title="切换 Agent 对话"
+        title={t('agentChat.header.switchTitle')}
       >
         <span className="min-w-0 truncate text-left text-(--color-text-2)">
-          {sessionsLoading ? '加载对话…' : (currentSession?.title ?? '新对话')}
+          {sessionsLoading
+            ? t('agentChat.header.loadingSessions')
+            : (currentSession?.title ?? t('agentChat.header.newConversation'))}
         </span>
         <Icon name="chevron_right" size={13} className={openMenu === 'sessions' ? '-rotate-90' : 'rotate-90'} />
       </button>
@@ -49,14 +53,16 @@ export function AgentChatHeader({
         className="chip shrink-0 px-3 text-sm font-medium"
         style={{ height: 30, boxShadow: 'inset 0 0 0 1px var(--ring-edge)' }}
       >
-        新对话
+        {t('agentChat.header.newConversation')}
       </button>
       {openMenu === 'sessions' && (
         <div className="absolute top-[36px] left-0 z-50 w-full rounded-[var(--radius-lg)] bg-(--color-surface) p-1 shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-float)]">
-          <div className="px-2 py-1.5 text-sm font-medium text-(--color-text-4)">历史对话</div>
+          <div className="px-2 py-1.5 text-sm font-medium text-(--color-text-4)">{t('agentChat.header.history')}</div>
           <div className="max-h-[260px] overflow-y-auto py-0.5">
             {sessions.length === 0 ? (
-              <div className="px-2 py-4 text-center text-sm text-(--color-text-4)">暂无历史对话</div>
+              <div className="px-2 py-4 text-center text-sm text-(--color-text-4)">
+                {t('agentChat.header.emptyHistory')}
+              </div>
             ) : (
               sessions.map((session) => {
                 const active = session.id === currentSessionId
@@ -76,7 +82,7 @@ export function AgentChatHeader({
                         {active && <Icon name="check" size={12} className="shrink-0 text-(--color-accent)" />}
                       </span>
                       <span className="mt-0.5 block truncate text-sm text-(--color-text-4)">
-                        {session.previewText || session.firstUserText || '空对话'}
+                        {session.previewText || session.firstUserText || t('agentChat.header.emptyConversation')}
                       </span>
                     </span>
                     <span className="shrink-0 text-sm text-(--color-text-4)">
@@ -96,7 +102,7 @@ export function AgentChatHeader({
                         onDeleteSession(session.id)
                       }}
                       className="flex h-6 w-6 shrink-0 items-center justify-center rounded-[var(--radius-sm)] text-(--color-text-4) opacity-0 transition-opacity hover:bg-(--color-surface-3) hover:text-(--color-danger) group-hover:opacity-100"
-                      aria-label="删除对话"
+                      aria-label={t('agentChat.header.deleteConversation')}
                     >
                       <Icon name="trash" size={12} />
                     </span>

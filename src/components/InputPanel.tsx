@@ -26,6 +26,7 @@ import {
 import { useMountEffect, useWindowEvent } from '../hooks/effects'
 import type { ApiKeyStatus } from '../hooks/useApiKey'
 import type { InputMode } from '../hooks/usePlayground'
+import { useI18n } from '../i18n'
 import { isHeifFile } from '../lib/fileToImage'
 import { openAISize } from '../lib/openai'
 import { getPricePerImage } from '../lib/pricing'
@@ -152,6 +153,8 @@ function OptionSection({
   value: unknown
   onChange: (v: unknown) => void
 }) {
+  const { t } = useI18n()
+
   if (option.type === 'select') {
     const current = typeof value === 'string' ? value : option.default
     const values = option.choices.map((c) => c.value)
@@ -175,7 +178,7 @@ function OptionSection({
   const active = value === true
   const button = (
     <button type="button" className="chip justify-center w-full" data-active={active} onClick={() => onChange(!active)}>
-      <span>{active ? '已启用' : '未启用'}</span>
+      <span>{active ? t('input.option.enabled') : t('input.option.disabled')}</span>
     </button>
   )
   return (
@@ -368,6 +371,7 @@ export function InputPanel({
   onClearReferenceImageError,
   onGenerate,
 }: Props) {
+  const { t } = useI18n()
   const maxRef = model.maxReferenceImages + model.maxCharacterImages
   const pricePerImage = getPricePerImage(model, resolution, aspectRatio, options)
   const optionBlocks = buildOptionBlocks(model.options ?? [])
@@ -516,6 +520,7 @@ export function InputPanel({
 
   const estimatedCost = pricePerImage !== null ? pricePerImage * batchCount : null
   const optionSummaryLabels = getOptionSummaryLabels(model, options)
+  const optionSummary = optionSummaryLabels.join(t('input.summary.optionSeparator'))
 
   const currentKeyStatus = model.provider === 'google' ? googleKeyStatus : openaiKeyStatus
   const isCurrentKeyMissing = currentKeyStatus === 'empty' || apiKey.trim() === ''
@@ -538,7 +543,7 @@ export function InputPanel({
       {showHeader && (
         <div className="mb-[18px] flex min-h-[30px] items-center gap-2.5">
           <div className="min-w-0 font-display text-lg font-semibold tracking-[-0.01em] text-(--color-text)">
-            Imagine Playground
+            {t('app.name')}
           </div>
           <div className="flex-1" />
           {showInputModeSwitcher && (
@@ -548,21 +553,27 @@ export function InputPanel({
                 ['--seg-count' as string]: 2,
                 ['--seg-index' as string]: inputMode === 'generate' ? 0 : 1,
               }}
-              aria-label="输入模式"
+              aria-label={t('input.mode.aria')}
             >
               <button
                 type="button"
                 data-active={inputMode === 'generate'}
                 onClick={() => onInputModeChange('generate')}
               >
-                <span>直接生成</span>
+                <span>{t('input.mode.generate')}</span>
               </button>
               <button type="button" data-active={inputMode === 'agent'} onClick={() => onInputModeChange('agent')}>
-                <span>Agent</span>
+                <span>{t('common.agent')}</span>
               </button>
             </div>
           )}
-          <button type="button" onClick={onOpenApiKeys} className="icon-btn" title="设置" aria-label="设置">
+          <button
+            type="button"
+            onClick={onOpenApiKeys}
+            className="icon-btn"
+            title={t('common.settings')}
+            aria-label={t('common.settings')}
+          >
             <Icon name="settings" size={14} />
           </button>
         </div>
@@ -623,19 +634,22 @@ export function InputPanel({
             >
               <Icon name="alert_circle" size={14} style={{ marginTop: 1, flexShrink: 0 }} />
               <span className="flex-1">
-                <span className="block text-base font-medium">当前模型未配置 API 密钥</span>
+                <span className="block text-base font-medium">{t('input.apiKey.missingTitle')}</span>
                 <span className="mt-0.5 block text-sm leading-[1.45] opacity-80">
-                  使用 {model.name} 需要先配置 {providerLabel} API Key。
+                  {t('input.apiKey.missingBody', { model: model.name, provider: providerLabel })}
                 </span>
               </span>
               <span className="chip danger shrink-0 text-sm" style={{ height: 22, padding: '0 7px' }}>
-                去配置
+                {t('input.apiKey.configure')}
               </span>
             </button>
           )}
 
           {/* MODEL segmented */}
-          <Section label="模型" right={<span className="mono text-sm text-(--color-text-4)">{model.apiModel}</span>}>
+          <Section
+            label={t('common.model')}
+            right={<span className="mono text-sm text-(--color-text-4)">{model.apiModel}</span>}
+          >
             <div
               className="segmented"
               style={{
@@ -663,14 +677,15 @@ export function InputPanel({
 
           {/* Prompt */}
           <Section
-            label="提示词"
+            label={t('input.prompt.label')}
             right={
               <div className="flex gap-0.5">
                 <button
                   type="button"
                   onClick={handleHistoryUndo}
                   disabled={!historyState.canUndo}
-                  title="撤销"
+                  title={t('input.prompt.undo')}
+                  aria-label={t('input.prompt.undo')}
                   className="icon-btn"
                 >
                   <Icon name="undo" size={13} />
@@ -679,7 +694,8 @@ export function InputPanel({
                   type="button"
                   onClick={handleHistoryRedo}
                   disabled={!historyState.canRedo}
-                  title="重做"
+                  title={t('input.prompt.redo')}
+                  aria-label={t('input.prompt.redo')}
                   className="icon-btn"
                 >
                   <Icon name="redo" size={13} />
@@ -696,12 +712,14 @@ export function InputPanel({
                   pushHistory(e.target.value)
                   autoResizeTextarea(e.target)
                 }}
-                placeholder="描述你想生成的图片…  例：一只在霓虹雨夜里啃香蕉的机械猫"
+                placeholder={t('input.prompt.placeholder')}
                 rows={1}
                 className="block w-full bg-transparent px-3 py-2.5 text-[16px] md:text-base leading-[1.55] resize-none focus:outline-none"
               />
               <div className="flex items-center gap-2 px-2.5 py-1.5 text-sm text-(--color-text-3) shadow-[inset_0_1px_0_var(--ring-edge-soft)]">
-                <span className="text-sm text-(--color-text-4)">{prompt.length} 字</span>
+                <span className="text-sm text-(--color-text-4)">
+                  {t('input.prompt.charCount', { count: prompt.length })}
+                </span>
                 <div className="flex-1" />
                 {prompt.length > 0 && (
                   <button
@@ -718,12 +736,12 @@ export function InputPanel({
                         el.scrollIntoView({ behavior: 'smooth', block: 'center' })
                       })
                     }}
-                    title="清空提示词"
-                    aria-label="清空提示词"
+                    title={t('input.prompt.clear')}
+                    aria-label={t('input.prompt.clear')}
                     className="inline-flex items-center gap-1 bg-transparent border-0 p-0 text-sm text-(--color-text-4) hover:text-(--color-text-2) transition-colors"
                   >
                     <Icon name="close" size={11} />
-                    清空
+                    {t('common.clear')}
                   </button>
                 )}
               </div>
@@ -731,7 +749,7 @@ export function InputPanel({
           </Section>
 
           {/* Resolution chips */}
-          <Section label="分辨率">
+          <Section label={t('input.resolution.label')}>
             <div className="tabular-nums">
               <ChipGroup
                 options={model.resolutions}
@@ -797,7 +815,7 @@ export function InputPanel({
           </div>
 
           {/* Batch count */}
-          <Section label="数量">
+          <Section label={t('input.count.label')}>
             <div
               className="grid gap-1.5 tabular-nums"
               style={{ gridTemplateColumns: `repeat(${model.maxBatchCount}, 1fr)` }}
@@ -820,52 +838,52 @@ export function InputPanel({
           <div className="relative">
             <div className="mb-2.5 pt-2.5 shadow-[inset_0_1px_0_var(--ring-edge-soft)]">
               <div className="flex items-baseline justify-between mb-2">
-                <span className={INPUT_LABEL_CLASS}>参数概览</span>
+                <span className={INPUT_LABEL_CLASS}>{t('input.summary.title')}</span>
                 {estimatedCost !== null && (
                   <span className="text-base text-(--color-text-2) tabular-nums">≈ ${estimatedCost.toFixed(3)}</span>
                 )}
               </div>
               <dl className="grid grid-cols-[52px_1fr] gap-x-3 gap-y-[5px] text-sm leading-[1.5]">
-                <dt className="text-(--color-text-4)">模型</dt>
+                <dt className="text-(--color-text-4)">{t('common.model')}</dt>
                 <dd className="text-(--color-text-2)">{model.name}</dd>
-                <dt className="text-(--color-text-4)">尺寸</dt>
+                <dt className="text-(--color-text-4)">{t('input.summary.size')}</dt>
                 <dd className="text-(--color-text-2) tabular-nums">
                   <span>{resolution}</span>
                   <span className="mx-1.5 text-(--color-text-4)">/</span>
                   <span>{aspectRatio}</span>
                 </dd>
-                <dt className="text-(--color-text-4)">数量</dt>
+                <dt className="text-(--color-text-4)">{t('input.count.label')}</dt>
                 <dd className="text-(--color-text-2) tabular-nums">
                   <span>×{batchCount}</span>
                 </dd>
                 {referenceImages.length > 0 && (
                   <>
-                    <dt className="text-(--color-text-4)">参考图</dt>
+                    <dt className="text-(--color-text-4)">{t('input.summary.referenceImages')}</dt>
                     <dd className="text-(--color-text-2) tabular-nums">
-                      <span>{referenceImages.length}</span> 张
+                      {t('input.summary.referenceImageCount', { count: referenceImages.length })}
                     </dd>
                   </>
                 )}
                 {optionSummaryLabels.length > 0 && (
                   <>
-                    <dt className="text-(--color-text-4)">选项</dt>
-                    <dd className="text-(--color-text-2)">{optionSummaryLabels.join('、')}</dd>
+                    <dt className="text-(--color-text-4)">{t('input.summary.options')}</dt>
+                    <dd className="text-(--color-text-2)">{optionSummary}</dd>
                   </>
                 )}
               </dl>
             </div>
             <button type="button" onClick={() => onGenerate()} disabled={!canGenerate} className="cta w-full">
               <Icon name="wand" size={13} strokeWidth={1.8} />
-              <span>
-                使用 {model.name} 生成 {batchCount} 张
-              </span>
+              <span>{t('input.generateWithModel', { model: model.name, count: batchCount })}</span>
               <span className="flex-1" />
               <span className="flex gap-0.5">
                 <kbd>⌘</kbd>
                 <kbd>⏎</kbd>
               </span>
             </button>
-            {!apiKey.trim() && <div className="mt-1.5 text-sm text-(--color-text-4) text-center">请先配置 API Key</div>}
+            {!apiKey.trim() && (
+              <div className="mt-1.5 text-sm text-(--color-text-4) text-center">{t('input.apiKey.required')}</div>
+            )}
           </div>
         </>
       )}

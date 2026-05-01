@@ -14,6 +14,7 @@ import type {
   PersistedAgentMessage,
   SaveAgentSessionSidecarParams,
 } from './sessionTypes'
+import { translate } from '../i18n'
 import {
   AGENT_SESSION_ENTRY_STORE,
   AGENT_SESSION_SIDECAR_STORE,
@@ -22,7 +23,9 @@ import {
   openNanoBananaDB,
 } from '../lib/db'
 
-const DEFAULT_SESSION_TITLE = '新对话'
+function defaultSessionTitle() {
+  return translate('configLib.agent.defaultSessionTitle')
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
@@ -72,7 +75,7 @@ function extractMessageText(message: AgentMessage): string {
 
 function titleFromText(text: string): string {
   const normalized = text.replace(/\s+/g, ' ').trim()
-  if (!normalized) return DEFAULT_SESSION_TITLE
+  if (!normalized) return defaultSessionTitle()
   return normalized.length > 28 ? `${normalized.slice(0, 28)}…` : normalized
 }
 
@@ -203,7 +206,7 @@ export async function createAgentSession(params: CreateAgentSessionParams): Prom
   const now = Date.now()
   const record: AgentSessionRecord = {
     id: crypto.randomUUID(),
-    title: DEFAULT_SESSION_TITLE,
+    title: defaultSessionTitle(),
     createdAt: now,
     updatedAt: now,
     modelId: params.modelId,
@@ -264,7 +267,7 @@ export async function appendAgentSessionMessage(params: {
       const isUser = isRecord(params.message) && params.message.role === 'user'
       nextRecord = {
         ...record,
-        title: record.title === DEFAULT_SESSION_TITLE && isUser ? titleFromText(text) : record.title,
+        title: !record.firstUserText && isUser ? titleFromText(text) : record.title,
         firstUserText: record.firstUserText || (isUser ? text : ''),
         previewText: text || record.previewText,
         updatedAt: now,

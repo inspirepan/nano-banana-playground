@@ -1,6 +1,7 @@
 import { Icon, type IconName } from '../Icon'
 import { BRUSH_PRESETS, type BrushPresetId } from './annotationPresets'
 import type { DrawTool } from './DrawableLayer'
+import { useI18n } from '../../i18n'
 
 export function BrushPresetDot({ preset }: { preset: (typeof BRUSH_PRESETS)[number] }) {
   return (
@@ -33,11 +34,12 @@ export function DesktopAnnotationToolbar({
   onClear: () => void
   onFinish: () => void
 }) {
+  const { t } = useI18n()
   const toolOptions: Array<{ id: DrawTool | 'move'; label: string; icon: IconName }> = [
-    { id: 'move', label: '拖动', icon: 'mouse_pointer' },
-    { id: 'brush', label: '涂抹', icon: 'brush' },
-    { id: 'step', label: '编号', icon: 'map_pin' },
-    { id: 'eraser', label: '橡皮', icon: 'eraser' },
+    { id: 'move', label: t('imageDetail.annotation.tool.move'), icon: 'mouse_pointer' },
+    { id: 'brush', label: t('imageDetail.annotation.tool.brush'), icon: 'brush' },
+    { id: 'step', label: t('imageDetail.annotation.tool.step'), icon: 'map_pin' },
+    { id: 'eraser', label: t('imageDetail.annotation.tool.eraser'), icon: 'eraser' },
   ]
 
   return (
@@ -71,8 +73,8 @@ export function DesktopAnnotationToolbar({
                   className="annotation-dot-btn shrink-0"
                   data-active={brushPreset === item.id}
                   onClick={() => onChangeBrushPreset(item.id)}
-                  title={item.label}
-                  aria-label={item.label}
+                  title={t(item.labelKey)}
+                  aria-label={t(item.labelKey)}
                 >
                   <BrushPresetDot preset={item} />
                 </button>
@@ -82,7 +84,7 @@ export function DesktopAnnotationToolbar({
           )}
           <button type="button" className="annotation-tool-btn shrink-0" onClick={onUndo} disabled={!layerHasItems}>
             <Icon name="undo" size={13} strokeWidth={1.8} />
-            撤销
+            {t('imageDetail.footer.undo')}
           </button>
           <button
             type="button"
@@ -91,11 +93,11 @@ export function DesktopAnnotationToolbar({
             onClick={onClear}
             disabled={!layerHasItems}
           >
-            清空
+            {t('common.clear')}
           </button>
           <button type="button" className="annotation-finish-btn shrink-0" onClick={onFinish}>
             <Icon name="check" size={13} strokeWidth={1.8} />
-            完成
+            {t('imageDetail.action.done')}
           </button>
         </div>
       </div>

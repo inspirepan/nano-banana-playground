@@ -2,6 +2,7 @@ import { Fragment, useMemo, useRef, useState, type ReactNode } from 'react'
 
 import { MODEL_CONFIGS } from '../../config/models'
 import { useExternalSync } from '../../hooks/effects'
+import { useI18n } from '../../i18n'
 import { downloadImagesZip } from '../../lib/exportImages'
 import { formatTime } from '../../lib/queueJobDisplay'
 import type { ImageStack, StackItem } from '../../lib/stacks'
@@ -97,18 +98,19 @@ export function SlotHero({
   onDismissJob: (jobId: string) => void
   onRetry: () => void
 }) {
+  const { t } = useI18n()
   const slot = item?.type === 'slot' ? item.slot : null
   const job = item?.type === 'slot' ? item.job : null
   const label =
     slot?.status === 'failed'
-      ? '生成失败'
+      ? t('imageDetail.queue.status.failed')
       : slot?.status === 'canceled'
-        ? '已取消'
+        ? t('imageDetail.queue.status.canceled')
         : slot?.status === 'retrying'
-          ? '重试中'
+          ? t('imageDetail.queue.status.retrying')
           : slot?.status === 'running'
-            ? '生成中'
-            : '排队中'
+            ? t('imageDetail.queue.status.generating')
+            : t('imageDetail.queue.status.queued')
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-8 text-center text-(--color-text-3)">
       {slot?.status === 'failed' || slot?.status === 'canceled' ? (
@@ -123,28 +125,28 @@ export function SlotHero({
         (slot.status === 'queued' || slot.status === 'running' || slot.status === 'retrying') &&
         (job.slots.length === 1 ? (
           <button type="button" className="chip danger mt-2" onClick={() => onCancelSlot(slot.id)}>
-            取消
+            {t('common.cancel')}
           </button>
         ) : (
           <div className="mt-2 flex items-center gap-2">
             <button type="button" className="chip danger" onClick={() => onCancelSlot(slot.id)}>
-              取消当前
+              {t('imageDetail.queue.cancelCurrent')}
             </button>
             <button type="button" className="chip ghost" onClick={() => onCancelJob(job.id)}>
-              取消全部
+              {t('imageDetail.queue.cancelAll')}
             </button>
           </div>
         ))}
       {slot && job && (slot.status === 'failed' || slot.status === 'canceled') && (
         <div className="mt-2 flex items-center gap-2">
           {slot.status === 'failed' && (
-            <button type="button" className="chip" onClick={onRetry} title="按原参数重试">
+            <button type="button" className="chip" onClick={onRetry} title={t('imageDetail.action.retryOriginal')}>
               <Icon name="refresh" size={12} strokeWidth={1.8} />
-              重试
+              {t('common.retry')}
             </button>
           )}
           <button type="button" className="chip ghost" onClick={() => onDismissJob(job.id)}>
-            关闭任务
+            {t('imageDetail.action.closeTask')}
           </button>
         </div>
       )}
@@ -209,6 +211,7 @@ export function StackStrip({
   leadingNode?: ReactNode
   trailingNode?: ReactNode
 }) {
+  const { t } = useI18n()
   const stripScrollRef = useRef<HTMLDivElement | null>(null)
   const selectedItemRef = useRef<HTMLDivElement | null>(null)
   const itemNumberById = useMemo(() => new Map(stack.items.map((item, index) => [item.id, index + 1])), [stack.items])
@@ -254,7 +257,11 @@ export function StackStrip({
             const initialIndex = previousBatches.filter((item) => item.kind === 'initial').length + 1
             const editIndex = previousBatches.filter((item) => item.kind === 'edit').length + 1
             const headline =
-              batch.kind === 'initial' ? (initialIndex === 1 ? '初始' : `初始 ${initialIndex}`) : `编辑 ${editIndex}`
+              batch.kind === 'initial'
+                ? initialIndex === 1
+                  ? t('imageDetail.batch.initial')
+                  : t('imageDetail.batch.initialIndexed', { index: initialIndex })
+                : t('imageDetail.batch.edit', { index: editIndex })
             return (
               <Fragment key={batch.id}>
                 {batchIndex > 0 && (
@@ -321,6 +328,7 @@ export function StackGallery({
   onSelect: (item: StackItem) => void
   onRemove: (id: string) => void | Promise<void>
 }) {
+  const { t } = useI18n()
   const [mode, setMode] = useState<GalleryMode>(initialMode)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
   const [exporting, setExporting] = useState(false)
@@ -386,11 +394,16 @@ export function StackGallery({
       <div className="mb-4 flex flex-wrap items-end gap-3">
         <div className="min-w-0">
           <div className="font-display text-base font-semibold tracking-[-0.01em]">
-            {mode === 'manage' ? '批量管理' : '全部图片'}
+            {mode === 'manage' ? t('imageDetail.action.manageBatch') : t('imageDetail.gallery.allImages')}
           </div>
           <div className="mt-0.5 text-sm text-(--color-text-3)">
-            {stack.images.length} 张图片，{stack.activeSlotCount} 个生成中
-            {mode === 'manage' && selectedCount > 0 ? `，已选 ${selectedCount} 张` : ''}
+            {mode === 'manage' && selectedCount > 0
+              ? t('imageDetail.gallery.summarySelected', {
+                  images: stack.images.length,
+                  active: stack.activeSlotCount,
+                  selected: selectedCount,
+                })
+              : t('imageDetail.gallery.summary', { images: stack.images.length, active: stack.activeSlotCount })}
           </div>
         </div>
         <div className="flex-1" />
@@ -403,7 +416,7 @@ export function StackGallery({
                 disabled={selectableImages.length === 0}
                 className="chip shrink-0"
               >
-                {allSelected ? '取消全选' : '全选'}
+                {allSelected ? t('imageDetail.action.deselectAll') : t('imageDetail.action.selectAll')}
               </button>
               <button
                 type="button"
@@ -412,7 +425,7 @@ export function StackGallery({
                 className="chip shrink-0"
               >
                 <Icon name="download" size={12} strokeWidth={1.8} />
-                {exporting ? '打包中…' : '下载 ZIP'}
+                {exporting ? t('imageDetail.gallery.exportingZip') : t('imageDetail.gallery.downloadZip')}
               </button>
               <button
                 type="button"
@@ -421,10 +434,10 @@ export function StackGallery({
                 className="chip danger shrink-0"
               >
                 <Icon name="trash" size={12} strokeWidth={1.8} />
-                {confirmDelete ? `确认删除 ${selectedCount} 张` : '删除'}
+                {confirmDelete ? t('imageDetail.gallery.confirmDelete', { count: selectedCount }) : t('common.delete')}
               </button>
               <button type="button" onClick={exitManageMode} className="chip ghost shrink-0">
-                完成
+                {t('imageDetail.action.done')}
               </button>
             </>
           ) : (
@@ -434,7 +447,7 @@ export function StackGallery({
               disabled={selectableImages.length === 0}
               className="chip shrink-0"
             >
-              批量管理
+              {t('imageDetail.action.manageBatch')}
             </button>
           )}
         </div>
@@ -444,7 +457,9 @@ export function StackGallery({
           <section key={batch.id} className="min-w-0">
             <div className="mb-2.5 min-w-0 px-0.5 py-1">
               <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-                <span className="whitespace-nowrap text-sm text-(--color-text-3)">{formatTime(batch.createdAt)}</span>
+                <span className="whitespace-nowrap text-sm text-(--color-text-3)">
+                  {formatTime(batch.createdAt, t)}
+                </span>
                 {batch.modelName && (
                   <span className="whitespace-nowrap text-sm font-medium text-(--color-text-2)">{batch.modelName}</span>
                 )}
@@ -454,16 +469,16 @@ export function StackGallery({
                   </span>
                 )}
                 <span className="whitespace-nowrap text-sm text-(--color-text-3) tabular-nums">
-                  {batch.imageCount} 张
+                  {t('imageDetail.batch.imageCount', { count: batch.imageCount })}
                 </span>
                 {batch.activeSlotCount > 0 && (
                   <span className="whitespace-nowrap text-sm text-(--color-accent)">
-                    生成中 {batch.activeSlotCount}
+                    {t('imageDetail.batch.generatingCount', { count: batch.activeSlotCount })}
                   </span>
                 )}
                 {batch.failedSlotCount > 0 && (
                   <span className="whitespace-nowrap text-sm" style={{ color: 'var(--color-danger)' }}>
-                    失败 {batch.failedSlotCount}
+                    {t('imageDetail.batch.failedCount', { count: batch.failedSlotCount })}
                   </span>
                 )}
               </div>

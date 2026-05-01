@@ -1,3 +1,5 @@
+import { translate } from '../i18n'
+
 type ImageDataResult = { base64: string; mimeType: string; fileName: string }
 
 const HEIF_MIME_TYPES = new Set([
@@ -48,7 +50,7 @@ function canvasToPngBlob(canvas: HTMLCanvasElement, fileName: string): Promise<B
   return new Promise((resolve, reject) => {
     canvas.toBlob((blob) => {
       if (blob) resolve(blob)
-      else reject(new Error(`无法转换 ${fileName}：canvas toBlob 失败`))
+      else reject(new Error(translate('configLib.fileToImage.canvasToBlobFailed', { fileName })))
     }, 'image/png')
   })
 }
@@ -60,7 +62,7 @@ async function convertWithCanvas(file: File): Promise<Blob> {
     canvas.width = bitmap.width
     canvas.height = bitmap.height
     const ctx = canvas.getContext('2d')
-    if (!ctx) throw new Error('无法创建图片转换画布')
+    if (!ctx) throw new Error(translate('configLib.fileToImage.canvasContextFailed'))
     ctx.drawImage(bitmap, 0, 0)
     return await canvasToPngBlob(canvas, file.name)
   } finally {
@@ -75,7 +77,7 @@ async function convertHeifToPng(file: File): Promise<Blob> {
     const { default: heic2any } = await import('heic2any')
     const converted = await heic2any({ blob: file, toType: 'image/png' })
     const blob = Array.isArray(converted) ? converted[0] : converted
-    if (!blob) throw new Error(`无法转换 ${file.name}`)
+    if (!blob) throw new Error(translate('configLib.fileToImage.convertFailed', { fileName: file.name }))
     return blob
   }
 }
@@ -99,6 +101,6 @@ export async function readFileAsImageData(file: File): Promise<ImageDataResult |
       fileName: pngFileName(file.name),
     }
   } catch {
-    throw new Error(`${file.name}：无法转换 HEIC/HEIF 图片，请改用 JPEG 或 PNG 后重试。`)
+    throw new Error(translate('configLib.fileToImage.heifConvertFailed', { fileName: file.name }))
   }
 }

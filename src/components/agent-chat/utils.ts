@@ -12,6 +12,7 @@ import {
   type AgentMessageToolCall,
   type AgentMessageToolResult,
 } from '../../agent'
+import { translate } from '../../i18n'
 import type { PlaygroundImage, PlaygroundImageMeta } from '../../lib/types'
 
 export type ChatRenderItem =
@@ -25,14 +26,14 @@ export type ChatRenderItem =
     }
 
 export function taskStatusLabel(status: AgentImageTask['status']): string {
-  if (status === 'pending_approval') return '待审批'
-  if (status === 'queued') return '排队中'
-  if (status === 'running') return '生成中'
-  if (status === 'completed') return '已完成'
-  if (status === 'failed') return '失败'
-  if (status === 'rejected') return '已取消'
-  if (status === 'canceled') return '已取消'
-  return '已通过'
+  if (status === 'pending_approval') return translate('agentChat.taskStatus.pendingApproval')
+  if (status === 'queued') return translate('agentChat.taskStatus.queued')
+  if (status === 'running') return translate('agentChat.taskStatus.running')
+  if (status === 'completed') return translate('agentChat.taskStatus.completed')
+  if (status === 'failed') return translate('agentChat.taskStatus.failed')
+  if (status === 'rejected') return translate('agentChat.taskStatus.canceled')
+  if (status === 'canceled') return translate('agentChat.taskStatus.canceled')
+  return translate('agentChat.taskStatus.approved')
 }
 
 export function formatSessionTime(timestamp: number): string {
@@ -110,40 +111,55 @@ export function buildChatRenderItems(
 }
 
 export function toolLabel(name: string): string {
-  if (name === 'GenImage') return '创建生图任务'
-  if (name === 'ReadImage') return '读取图片'
-  if (name === 'AskUserQuestion') return '提问用户'
+  if (name === 'GenImage') return translate('agentChat.tool.label.genImage')
+  if (name === 'ReadImage') return translate('agentChat.tool.label.readImage')
+  if (name === 'AskUserQuestion') return translate('agentChat.tool.label.askUserQuestion')
   return name
 }
 
 export function summarizeToolArgs(call: AgentMessageToolCall): string {
   if (call.name === 'GenImage') {
-    const imageId = typeof call.arguments.image_id === 'string' ? call.arguments.image_id : '未命名'
+    const imageId =
+      typeof call.arguments.image_id === 'string' ? call.arguments.image_id : translate('agentChat.tool.args.unnamed')
     const count = typeof call.arguments.n === 'number' ? call.arguments.n : 1
-    return `${imageId} · ${count} 张`
+    return translate('agentChat.tool.args.imageCount', { id: imageId, count })
   }
   if (call.name === 'ReadImage') {
-    return typeof call.arguments.image_id === 'string' ? call.arguments.image_id : '图片'
+    return typeof call.arguments.image_id === 'string'
+      ? call.arguments.image_id
+      : translate('agentChat.tool.args.image')
   }
   return Object.keys(call.arguments).slice(0, 3).join(' · ')
 }
 
+function toolResultStatusLabel(status: string): string {
+  if (status === 'pending_approval') return translate('agentChat.taskStatus.pendingApproval')
+  if (status === 'queued') return translate('agentChat.taskStatus.queued')
+  if (status === 'running') return translate('agentChat.taskStatus.running')
+  if (status === 'completed') return translate('agentChat.taskStatus.completed')
+  if (status === 'failed') return translate('agentChat.taskStatus.failed')
+  if (status === 'rejected' || status === 'canceled') return translate('agentChat.taskStatus.canceled')
+  if (status === 'approved') return translate('agentChat.taskStatus.approved')
+  if (status === 'done') return translate('agentChat.tool.result.status.done')
+  return status
+}
+
 export function summarizeToolResult(result: AgentMessageToolResult): string {
-  if (result.isError) return result.text || '工具调用失败'
+  if (result.isError) return result.text || translate('agentChat.tool.result.failed')
   try {
     const parsed = JSON.parse(result.text) as Record<string, unknown>
     if (result.toolName === 'GenImage') {
       const ids = Array.isArray(parsed.reserved_image_ids)
         ? parsed.reserved_image_ids.filter((id): id is string => typeof id === 'string')
         : []
-      const status = typeof parsed.status === 'string' ? parsed.status : 'done'
+      const status = toolResultStatusLabel(typeof parsed.status === 'string' ? parsed.status : 'done')
       return ids.length > 0 ? `${status} · ${ids.join(', ')}` : status
     }
     if (typeof parsed.message === 'string') return parsed.message
   } catch {
     // Plain text tool result.
   }
-  return result.text.trim().slice(0, 120) || '工具调用完成'
+  return result.text.trim().slice(0, 120) || translate('agentChat.tool.result.completed')
 }
 
 export function isImageFile(file: File): boolean {

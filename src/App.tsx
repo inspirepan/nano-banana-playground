@@ -1,5 +1,5 @@
 import { Agentation } from 'agentation'
-import { useState, useLayoutEffect, useRef, useCallback } from 'react'
+import { useState, useLayoutEffect, useRef, useCallback, useMemo } from 'react'
 
 import type { AgentImageTask } from './agent'
 import { Icon } from './components/Icon'
@@ -14,9 +14,16 @@ import {
   googleFontsHref,
   type SansFontId,
 } from './config/fonts'
+import {
+  isLanguagePreference,
+  LANGUAGE_STORAGE_KEY,
+  resolveLanguagePreference,
+  type LanguagePreference,
+} from './config/languages'
 import { COLOR_THEME_IDS, type ColorThemeId, type Theme } from './config/theme'
 import { useExternalSync, useMountEffect } from './hooks/effects'
 import { usePlayground } from './hooks/usePlayground'
+import { createTranslator, I18nProvider } from './i18n'
 import type { PlaygroundImageMeta } from './lib/types'
 
 const BASE_TITLE = 'Imagine Playground'
@@ -47,6 +54,11 @@ function getInitialSansFont(): SansFontId {
     SANS_FONTS.find((font) => font.id === id)?.className ?? SANS_FONTS[0].className,
   )
   return id
+}
+
+function getInitialLanguagePreference(): LanguagePreference {
+  const stored = localStorage.getItem(LANGUAGE_STORAGE_KEY)
+  return isLanguagePreference(stored) ? stored : 'auto'
 }
 
 function ensureGoogleFontsPreconnect() {
@@ -88,6 +100,8 @@ function App() {
   const [theme, setTheme] = useState<Theme>(getInitialTheme)
   const [colorTheme, setColorTheme] = useState<ColorThemeId>(getInitialColorTheme)
   const [sansFont, setSansFont] = useState<SansFontId>(getInitialSansFont)
+  const [languagePreference, setLanguagePreference] = useState<LanguagePreference>(getInitialLanguagePreference)
+  const [browserLanguages, setBrowserLanguages] = useState<readonly string[]>(() => navigator.languages)
   const [regenToast, setRegenToast] = useState<string | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [settingsTarget, setSettingsTarget] = useState<SettingsTarget | null>(null)
@@ -101,6 +115,8 @@ function App() {
   const queueSummary = pg.generationQueueSummary
   const queueActive = queueSummary.queued + queueSummary.running + queueSummary.retrying
   const queueDone = queueSummary.succeeded + queueSummary.failed + queueSummary.canceled
+  const language = resolveLanguagePreference(languagePreference, browserLanguages)
+  const t = useMemo(() => createTranslator(language), [language])
 
   const handleAddToRef = useCallback(
     (image: PlaygroundImageMeta) => {
@@ -115,16 +131,16 @@ function App() {
       if (result === null) return
       const message = result.restoredModel
         ? result.refCount > 0
-          ? `已还原提示词、参数和 ${result.refCount} 张参考图`
-          : '已还原提示词和参数'
+          ? t('app.toast.restoredPromptParamsRefs', { count: result.refCount })
+          : t('app.toast.restoredPromptParams')
         : result.refCount > 0
-          ? `原模型已不可用，已还原提示词和 ${result.refCount} 张参考图`
-          : '原模型已不可用，已还原提示词'
+          ? t('app.toast.restoredUnavailableModelPromptRefs', { count: result.refCount })
+          : t('app.toast.restoredUnavailableModelPrompt')
       if (regenToastTimer.current) clearTimeout(regenToastTimer.current)
       setRegenToast(message)
       regenToastTimer.current = setTimeout(() => setRegenToast(null), 2500)
     },
-    [restoreGeneratedImageParams],
+    [restoreGeneratedImageParams, t],
   )
 
   const handleReroll = useCallback(
@@ -132,28 +148,28 @@ function App() {
       const result = await rerollGeneratedImage(image).catch(() => ({ status: 'unavailable' as const }))
       const message =
         result.status === 'queued'
-          ? '已按原参数加入生成队列'
+          ? t('app.toast.rerollQueued')
           : result.status === 'unsupported-mask'
-            ? '暂不支持重抽带遮罩的 OpenAI 编辑图'
-            : '无法重新生成：请检查 API Key 或参考图'
+            ? t('app.toast.rerollUnsupportedMask')
+            : t('app.toast.rerollFailed')
       if (regenToastTimer.current) clearTimeout(regenToastTimer.current)
       setRegenToast(message)
       regenToastTimer.current = setTimeout(() => setRegenToast(null), 2500)
       return { ok: result.status === 'queued', message }
     },
-    [rerollGeneratedImage],
+    [rerollGeneratedImage, t],
   )
 
   const handleRetryGenerationSlot = useCallback(
     (jobId: string, slotId: string) => {
       const result = retryGenerationSlot(jobId, slotId)
-      const message = result.status === 'queued' ? '已加入重试队列' : '无法重试：请检查 API Key 或任务状态'
+      const message = result.status === 'queued' ? t('app.toast.retryQueued') : t('app.toast.retryFailed')
       if (regenToastTimer.current) clearTimeout(regenToastTimer.current)
       setRegenToast(message)
       regenToastTimer.current = setTimeout(() => setRegenToast(null), 2500)
       return { ok: result.status === 'queued', message }
     },
-    [retryGenerationSlot],
+    [retryGenerationSlot, t],
   )
 
   const openSettings = useCallback((target: SettingsTarget | null = null) => {
@@ -219,6 +235,17 @@ function App() {
   }, [sansFont, settingsOpen])
 
   useLayoutEffect(() => {
+    localStorage.setItem(LANGUAGE_STORAGE_KEY, languagePreference)
+    document.documentElement.lang = language
+  }, [language, languagePreference])
+
+  useExternalSync(() => {
+    const updateBrowserLanguages = () => setBrowserLanguages(navigator.languages)
+    window.addEventListener('languagechange', updateBrowserLanguages)
+    return () => window.removeEventListener('languagechange', updateBrowserLanguages)
+  }, [])
+
+  useLayoutEffect(() => {
     mobilePanelScrollRef.current?.scrollTo({ top: 0 })
   }, [mobileTab])
 
@@ -251,18 +278,18 @@ function App() {
       clearTitleResetTimer()
       document.title =
         queueSummary.total > 0
-          ? `〔${queueDone}/${queueSummary.total}〕生成中 · ${BASE_TITLE}`
-          : `生成中 · ${BASE_TITLE}`
+          ? t('app.title.generatingProgress', { done: queueDone, total: queueSummary.total, app: BASE_TITLE })
+          : t('app.title.generating', { app: BASE_TITLE })
     } else if (prevActiveQueueRef.current > 0) {
       clearTitleResetTimer()
       if (queueSummary.failed > 0 && queueSummary.succeeded === 0) {
-        document.title = `生成失败 · ${BASE_TITLE}`
+        document.title = t('app.title.failed', { app: BASE_TITLE })
         titleResetTimerRef.current = window.setTimeout(() => {
           document.title = BASE_TITLE
           titleResetTimerRef.current = null
         }, TITLE_RESET_DELAY_MS)
       } else if (queueSummary.total > 0 && queueDone === queueSummary.total) {
-        document.title = `已完成 · ${BASE_TITLE}`
+        document.title = t('app.title.completed', { app: BASE_TITLE })
         titleResetTimerRef.current = window.setTimeout(() => {
           document.title = BASE_TITLE
           titleResetTimerRef.current = null
@@ -276,7 +303,7 @@ function App() {
     }
 
     prevActiveQueueRef.current = queueActive
-  }, [queueActive, queueDone, queueSummary.failed, queueSummary.succeeded, queueSummary.total])
+  }, [queueActive, queueDone, queueSummary.failed, queueSummary.succeeded, queueSummary.total, t])
 
   useMountEffect(() => {
     return () => {
@@ -293,16 +320,22 @@ function App() {
   }
 
   return (
-    <>
+    <I18nProvider preference={languagePreference} browserLanguages={browserLanguages}>
       {/* Mobile layout */}
       <div className="flex h-[100dvh] flex-col overflow-hidden bg-(--color-bg) md:hidden">
         <div className="shrink-0 px-3 pt-3 pb-2">
           <div className="mb-2 flex min-h-[30px] items-center gap-2.5">
             <div className="min-w-0 font-display text-lg font-semibold tracking-[-0.01em] text-(--color-text)">
-              Imagine Playground
+              {t('app.name')}
             </div>
             <div className="flex-1" />
-            <button type="button" onClick={() => openSettings()} className="icon-btn" title="设置" aria-label="设置">
+            <button
+              type="button"
+              onClick={() => openSettings()}
+              className="icon-btn"
+              title={t('common.settings')}
+              aria-label={t('common.settings')}
+            >
               <Icon name="settings" size={14} />
             </button>
           </div>
@@ -312,16 +345,16 @@ function App() {
               ['--seg-count' as string]: 3,
               ['--seg-index' as string]: mobileTab === 'generate' ? 0 : mobileTab === 'agent' ? 1 : 2,
             }}
-            aria-label="移动端面板"
+            aria-label={t('app.mobilePanel')}
           >
             <button type="button" data-active={mobileTab === 'generate'} onClick={() => switchMobileTab('generate')}>
-              生成
+              {t('common.generate')}
             </button>
             <button type="button" data-active={mobileTab === 'agent'} onClick={() => switchMobileTab('agent')}>
-              Agent
+              {t('common.agent')}
             </button>
             <button type="button" data-active={mobileTab === 'gallery'} onClick={() => switchMobileTab('gallery')}>
-              图库
+              {t('common.gallery')}
             </button>
           </div>
         </div>
@@ -527,15 +560,17 @@ function App() {
         theme={theme}
         colorTheme={colorTheme}
         sansFont={sansFont}
+        language={languagePreference}
         generationConcurrency={pg.generationConcurrency}
         focusSection={settingsTarget}
         onThemeChange={setTheme}
         onColorThemeChange={setColorTheme}
         onSansFontChange={setSansFont}
+        onLanguageChange={setLanguagePreference}
         onGenerationConcurrencyChange={pg.setGenerationConcurrency}
         onClose={() => setSettingsOpen(false)}
       />
-    </>
+    </I18nProvider>
   )
 }
 

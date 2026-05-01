@@ -12,8 +12,10 @@ import {
   agentMessageThinking,
   imageDataUrl,
 } from '../../agent'
+import { useI18n } from '../../i18n'
 
 export function MessageBubble({ message, isStreaming }: { message: AgentMessage; isStreaming: boolean }) {
+  const { t } = useI18n()
   const role = agentMessageRole(message)
   const text = agentMessageText(message)
   const thinking = agentMessageThinking(message)
@@ -47,7 +49,7 @@ export function MessageBubble({ message, isStreaming }: { message: AgentMessage;
                 <img
                   key={index}
                   src={imageDataUrl(image)}
-                  alt="消息图片"
+                  alt={t('agentChat.imageAlt.message', { index: index + 1 })}
                   className="aspect-square rounded-[var(--radius-sm)] object-cover shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]"
                 />
               ))}

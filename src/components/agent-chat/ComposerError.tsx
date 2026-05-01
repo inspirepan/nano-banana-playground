@@ -1,3 +1,4 @@
+import { useI18n } from '../../i18n'
 import { Icon } from '../Icon'
 
 export function ComposerError({
@@ -9,6 +10,8 @@ export function ComposerError({
   attachmentError: string | null
   onClearAttachmentError: () => void
 }) {
+  const { t } = useI18n()
+
   if (!error && !attachmentError) return null
 
   return (
@@ -25,7 +28,7 @@ export function ComposerError({
             onClick={onClearAttachmentError}
             className="text-sm opacity-75 transition-opacity hover:opacity-100"
           >
-            关闭
+            {t('common.close')}
           </button>
         )}
       </div>
