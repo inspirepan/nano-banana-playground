@@ -5,7 +5,7 @@ import { Icon } from './Icon'
 import { useWindowEvent } from '../hooks/effects'
 import { ensureBlobLoaded, useImageSrc, getBlobFromCache } from '../hooks/useImageSrc'
 import { useI18n } from '../i18n'
-import { imageDownloadFileName } from '../lib/downloadFileName'
+import { downloadImagePng } from '../lib/exportImages'
 import type { PlaygroundImageMeta } from '../lib/types'
 
 type Props = {
@@ -53,12 +53,7 @@ export const ImageCard = memo(function ImageCard({
   }
 
   const handleDownload = async () => {
-    const fullSrc = await resolveFullSrc()
-    if (!fullSrc) return
-    const anchor = document.createElement('a')
-    anchor.href = fullSrc
-    anchor.download = imageDownloadFileName(image, 'png')
-    anchor.click()
+    await downloadImagePng(image, { inlineData })
   }
 
   const handleCopyImage = async () => {

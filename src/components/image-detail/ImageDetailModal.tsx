@@ -18,8 +18,8 @@ import { useExternalSync, useMediaQuery, useVisualViewport, useWindowEvent } fro
 import { ensureBlobLoaded, useImageSrc } from '../../hooks/useImageSrc'
 import type { GenerationJob } from '../../hooks/usePlayground'
 import { useI18n } from '../../i18n'
-import { imageDownloadFileName } from '../../lib/downloadFileName'
 import { computeItemCounts, copyEditState, getEditState, setEditItems, type ItemCounts } from '../../lib/editStateCache'
+import { downloadImagePng } from '../../lib/exportImages'
 import { loadImageMetas } from '../../lib/history'
 import { getActualCost } from '../../lib/pricing'
 import type { ImageStack, StackItem } from '../../lib/stacks'
@@ -405,23 +405,8 @@ export function ImageDetailModal({
 
   const handleDownload = async () => {
     if (!currentImage || !currentSrc) return
-    const fileName = imageDownloadFileName(currentImage, 'png')
-    try {
-      const res = await fetch(currentSrc)
-      const blob = await res.blob()
-      const file = new File([blob], fileName, { type: blob.type || currentImage.mimeType || 'image/png' })
-      if (navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], title: fileName })
-        return
-      }
-    } catch (error) {
-      if (error instanceof DOMException && error.name === 'AbortError') return
-    }
-    const anchor = document.createElement('a')
-    anchor.href = currentSrc
-    anchor.download = fileName
-    anchor.click()
-    flash(t('imageDetail.toast.downloadPngStarted'))
+    const result = await downloadImagePng(currentImage, { src: currentSrc })
+    if (result === 'downloaded') flash(t('imageDetail.toast.downloadPngStarted'))
   }
 
   const handleCopyPrompt = () => {
