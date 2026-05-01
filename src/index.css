@@ -488,7 +488,7 @@
   .annotation-tool-btn,
   .annotation-dot-btn,
   .annotation-finish-btn {
-    height: 28px;
+    height: 30px;
     border: 0;
     border-radius: 6px;
     background: transparent;
@@ -502,32 +502,47 @@
     font-size: var(--text-base);
     font-weight: 400;
     white-space: nowrap;
+    box-shadow: inset 0 0 0 1px transparent;
     transition:
       background 120ms,
       color 120ms,
-      box-shadow 120ms;
+      box-shadow 120ms,
+      transform 120ms;
   }
   .annotation-tool-btn {
-    padding: 0 9px;
+    padding: 0 8px;
   }
   .annotation-dot-btn {
-    width: 26px;
+    width: 30px;
     padding: 0;
   }
   .annotation-tool-btn:hover:not(:disabled),
   .annotation-dot-btn:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--color-text) 6%, transparent);
+    background: color-mix(in srgb, var(--color-text) 5%, transparent);
     color: var(--color-text);
   }
   .annotation-tool-btn[data-active='true'],
   .annotation-dot-btn[data-active='true'] {
-    background: color-mix(in srgb, var(--color-text) 8%, transparent);
+    background: color-mix(in srgb, var(--color-text) 7%, transparent);
     color: var(--color-text);
+    box-shadow: inset 0 0 0 1px var(--ring-edge-soft);
   }
   .annotation-tool-btn[data-active='true']:hover:not(:disabled),
   .annotation-dot-btn[data-active='true']:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--color-text) 11%, transparent);
+    background: color-mix(in srgb, var(--color-text) 9%, transparent);
     color: var(--color-text);
+  }
+  .annotation-tool-btn[data-variant='danger'] {
+    color: var(--color-text-3);
+  }
+  .annotation-tool-btn[data-variant='danger']:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--color-danger) 9%, transparent);
+    color: var(--color-danger);
+  }
+  .annotation-tool-btn:active:not(:disabled),
+  .annotation-dot-btn:active:not(:disabled),
+  .annotation-finish-btn:active:not(:disabled) {
+    transform: scale(0.97);
   }
   .annotation-tool-btn:disabled,
   .annotation-dot-btn:disabled,
@@ -543,13 +558,15 @@
     flex-wrap: nowrap;
     align-items: center;
     justify-content: center;
-    gap: 2px 6px;
-    border-radius: 10px;
-    background: var(--color-surface);
-    padding: 4px;
+    gap: 3px 6px;
+    border-radius: 11px;
+    background: color-mix(in srgb, var(--color-surface) 92%, transparent);
+    padding: 5px;
     box-shadow:
-      0 0 0 2px var(--ring-edge-strong),
-      0 14px 30px -22px rgba(0, 0, 0, 0.32);
+      inset 0 0 0 1px var(--ring-edge-soft),
+      0 16px 36px -28px rgba(0, 0, 0, 0.42),
+      0 1px 2px rgba(0, 0, 0, 0.05);
+    backdrop-filter: blur(14px) saturate(1.15);
   }
   .annotation-toolbar-row {
     display: inline-flex;
@@ -557,7 +574,7 @@
     flex-wrap: nowrap;
     align-items: center;
     justify-content: center;
-    gap: 2px;
+    gap: 3px;
     overflow-x: auto;
     scrollbar-width: none;
   }
@@ -565,29 +582,20 @@
     display: none;
   }
   .annotation-toolbar-divider {
-    background: var(--ring-edge-strong);
+    background: var(--ring-edge-soft);
   }
 
-  /* Primary CTA inside the annotation toolbar. Solid accent pill keeps it
-     visually separate from the neutral tool buttons so only one element
-     in the bar carries the accent color. */
   .annotation-finish-btn {
-    padding: 0 11px;
-    background: var(--color-accent);
-    color: var(--color-accent-fg);
-    font-weight: 400;
-    box-shadow:
-      inset 0 0 0 1px color-mix(in srgb, var(--color-accent) 55%, #000 10%),
-      inset 0 1px 0 rgba(255, 255, 255, 0.12),
-      0 1px 2px rgba(0, 0, 0, 0.08);
+    padding: 0 10px;
+    background: var(--color-accent-wash);
+    color: var(--color-accent);
+    font-weight: 500;
+    box-shadow: inset 0 0 0 1px var(--color-accent-ring);
   }
   .annotation-finish-btn:hover:not(:disabled) {
-    filter: brightness(1.06);
-    background: var(--color-accent);
-    color: var(--color-accent-fg);
-  }
-  .annotation-finish-btn:active:not(:disabled) {
-    transform: translateY(0.5px);
+    background: var(--color-accent-wash-2);
+    color: var(--color-accent);
+    box-shadow: inset 0 0 0 1px var(--color-accent-ring-hover);
   }
   .chip.ghost {
     background: transparent;

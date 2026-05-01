@@ -84,10 +84,15 @@ export function DesktopAnnotationToolbar({
             <Icon name="undo" size={13} strokeWidth={1.8} />
             撤销
           </button>
-          <button type="button" className="annotation-tool-btn shrink-0" onClick={onClear} disabled={!layerHasItems}>
+          <button
+            type="button"
+            className="annotation-tool-btn shrink-0"
+            data-variant="danger"
+            onClick={onClear}
+            disabled={!layerHasItems}
+          >
             清空
           </button>
-          <div className="annotation-toolbar-divider mx-1 h-4 w-px shrink-0" />
           <button type="button" className="annotation-finish-btn shrink-0" onClick={onFinish}>
             <Icon name="check" size={13} strokeWidth={1.8} />
             完成
