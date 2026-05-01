@@ -9,7 +9,7 @@ function GenImageResultThumb({ id }: { id: string }) {
   return (
     <div
       ref={ref}
-      className="relative aspect-square w-full overflow-hidden rounded-[7px] bg-(--color-surface-2) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]"
+      className="relative aspect-square w-full overflow-hidden rounded-[var(--radius-md)] bg-(--color-surface-2) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]"
     >
       {src ? (
         <img src={src} alt={id} className="h-full w-full object-cover" />
@@ -85,7 +85,7 @@ export function AgentImageTaskCard({
             }
           : undefined
       }
-      className={`rounded-[8px] bg-(--color-surface) px-3.5 py-3 shadow-[inset_0_0_0_1px_var(--ring-edge-soft)] ${canFocus ? 'cursor-pointer transition-colors duration-150 hover:bg-(--color-surface-2)' : ''}`}
+      className={`rounded-[var(--radius-md)] bg-(--color-surface) px-3.5 py-3 shadow-[inset_0_0_0_1px_var(--ring-edge-soft)] ${canFocus ? 'cursor-pointer transition-colors duration-150 hover:bg-(--color-surface-2)' : ''}`}
     >
       <div className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1">
         <span className="text-sm font-semibold text-(--color-text)">生成图片</span>

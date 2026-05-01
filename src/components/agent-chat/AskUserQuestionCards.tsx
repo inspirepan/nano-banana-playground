@@ -71,7 +71,7 @@ export function AskUserQuestionForm({
 
   return (
     <div
-      className="rounded-[12px] p-3 shadow-[inset_0_0_0_1px_var(--color-accent-ring-hover),0_1px_2px_rgba(0,0,0,0.04)]"
+      className="rounded-[var(--radius-lg)] p-3 shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]"
       style={{ background: 'var(--color-accent-soft)' }}
     >
       <div className="flex min-w-0 items-center gap-2">
@@ -97,11 +97,11 @@ export function AskUserQuestionForm({
         {questions.map((question, index) => {
           const entry = form[index] ?? { selected: [], note: '' }
           return (
-            <div key={index} className={index > 0 ? 'mt-3 border-t border-[var(--color-accent-ring)] pt-3' : ''}>
+            <div key={index} className={index > 0 ? 'mt-3 pt-3 shadow-[inset_0_1px_0_var(--ring-edge-soft)]' : ''}>
               <div className="flex min-w-0 items-baseline gap-2">
                 <span
                   aria-hidden
-                  className="inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-[4px] px-1 text-[11px] font-semibold text-(--color-accent)"
+                  className="inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-[var(--radius-xs)] px-1 text-[11px] font-semibold text-(--color-accent)"
                   style={{ background: 'var(--color-accent-wash-2)', fontVariantNumeric: 'tabular-nums' }}
                 >
                   {index + 1}
@@ -119,7 +119,7 @@ export function AskUserQuestionForm({
                       type="button"
                       onClick={() => toggleOption(index, option.label, question.multi_select)}
                       data-active={checked || undefined}
-                      className={`group flex items-start gap-2 ${shapeClass} bg-(--color-surface) py-1 text-left shadow-[inset_0_0_0_1px_var(--ring-edge),0_1px_2px_rgba(0,0,0,0.04)] transition-shadow hover:shadow-[inset_0_0_0_1px_var(--ring-edge-strong),0_2px_4px_-1px_rgba(0,0,0,0.08)] data-[active]:bg-(--color-accent-wash-2) data-[active]:shadow-[inset_0_0_0_1px_var(--color-accent-ring-hover),0_1px_2px_rgba(0,0,0,0.04)]`}
+                      className={`group flex items-start gap-2 ${shapeClass} bg-(--color-surface) py-1 text-left shadow-[inset_0_0_0_1px_var(--ring-edge)] transition-[box-shadow,color] hover:shadow-[inset_0_0_0_1px_var(--ring-edge-strong)] data-[active]:shadow-[0_0_0_1px_var(--color-accent),0_0_0_3px_var(--color-accent-wash)]`}
                     >
                       {question.multi_select && (
                         <span
@@ -152,7 +152,7 @@ export function AskUserQuestionForm({
                 onChange={(event) => setNote(index, event.target.value)}
                 placeholder="补充说明（可选）"
                 data-active={entry.note.trim().length > 0 || undefined}
-                className={`mt-2 h-7 min-w-[12em] max-w-full bg-(--color-surface) text-sm font-medium text-(--color-text) shadow-[inset_0_0_0_1px_var(--ring-edge),0_1px_2px_rgba(0,0,0,0.04)] placeholder:font-normal placeholder:text-(--color-text-4) focus:shadow-[inset_0_0_0_1px_var(--color-accent-ring-hover),0_1px_2px_rgba(0,0,0,0.04)] focus:outline-none data-[active]:bg-(--color-accent-wash-2) data-[active]:text-(--color-accent) data-[active]:shadow-[inset_0_0_0_1px_var(--color-accent-ring-hover),0_1px_2px_rgba(0,0,0,0.04)] ${
+                className={`mt-2 h-7 min-w-[12em] max-w-full bg-(--color-surface) text-sm font-medium text-(--color-text) shadow-[inset_0_0_0_1px_var(--ring-edge)] transition-[box-shadow,color] placeholder:font-normal placeholder:text-(--color-text-4) focus:shadow-[inset_0_0_0_1px_var(--color-accent)] focus:outline-none data-[active]:text-(--color-accent) data-[active]:shadow-[inset_0_0_0_1px_var(--color-accent)] ${
                   question.multi_select ? 'rounded-[var(--radius-sm)] px-2.5' : 'rounded-full px-5'
                 }`}
                 style={{ fieldSizing: 'content' } as CSSProperties}
@@ -197,7 +197,7 @@ export function AskUserQuestionResultCard({
   const hasFormatted = /\nAnswer:/.test(result.text) || result.text.startsWith('Question:')
 
   return (
-    <div className="rounded-[8px] bg-(--color-surface) px-3.5 py-3 shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
+    <div className="rounded-[var(--radius-md)] bg-(--color-surface) px-3.5 py-3 shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
       {!hasFormatted ? (
         <div className="space-y-2">
           <div className="text-sm leading-[1.55] text-(--color-text-3)">

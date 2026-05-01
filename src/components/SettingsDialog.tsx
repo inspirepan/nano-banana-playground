@@ -153,7 +153,7 @@ export function SettingsDialog({
         role="dialog"
         aria-modal="true"
         aria-label="设置"
-        className="relative flex max-h-[min(760px,calc(100dvh-32px))] w-full max-w-2xl flex-col overflow-hidden rounded-[10px] bg-(--color-surface) shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-float)]"
+        className="relative flex max-h-[min(760px,calc(100dvh-32px))] w-full max-w-2xl flex-col overflow-hidden rounded-[var(--radius-lg)] bg-(--color-surface) shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-float)]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-5 py-4 shadow-[inset_0_-1px_0_var(--ring-edge-soft)]">
@@ -209,7 +209,7 @@ export function SettingsDialog({
                           title={ct.name}
                           aria-label={ct.name}
                           onClick={() => onColorThemeChange(ct.id)}
-                          className="aspect-square rounded-[6px] transition-all"
+                          className="aspect-square rounded-[var(--radius-sm)] transition-all"
                           style={{
                             background: swatch,
                             boxShadow:
@@ -380,7 +380,7 @@ function FontChoiceGroup<T extends string>({
             key={font.id}
             type="button"
             onClick={() => onChange(font.id)}
-            className="rounded-[6px] bg-(--color-surface) px-3 py-2 text-left transition-colors hover:bg-(--color-surface-2)"
+            className="rounded-[var(--radius-sm)] bg-(--color-surface) px-3 py-2 text-left transition-colors hover:bg-(--color-surface-2)"
             style={{
               boxShadow:
                 value === font.id ? 'inset 0 0 0 1.5px var(--color-accent)' : 'inset 0 0 0 1px var(--ring-edge-soft)',

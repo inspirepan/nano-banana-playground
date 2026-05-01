@@ -162,7 +162,7 @@ export const ImageCard = memo(function ImageCard({
       >
         {index !== undefined ? (
           <span
-            className="rounded-[4px] px-1.5 py-0.5 text-base font-medium"
+            className="rounded-[var(--radius-xs)] px-1.5 py-0.5 text-base font-medium"
             style={{ background: 'rgba(0,0,0,0.42)', backdropFilter: 'blur(6px)' }}
           >
             #{index + 1}
@@ -182,7 +182,7 @@ export const ImageCard = memo(function ImageCard({
         className={`pointer-events-none absolute inset-x-0 top-1/2 z-10 flex -translate-y-1/2 justify-center transition-all duration-300 ${toast ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}`}
       >
         <div
-          className="rounded-[6px] px-3 py-1.5 text-base font-medium"
+          className="rounded-[var(--radius-sm)] px-3 py-1.5 text-base font-medium"
           style={{ background: 'rgba(0,0,0,0.7)', color: '#fff', backdropFilter: 'blur(8px)' }}
         >
           已复制
@@ -242,7 +242,7 @@ export const ImageCard = memo(function ImageCard({
           <div
             style={{ top: menu.y, left: menu.x }}
             onMouseDown={(e) => e.stopPropagation()}
-            className="fixed z-[120] min-w-[140px] rounded-[8px] bg-(--color-surface) p-1 shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-float)]"
+            className="fixed z-[120] min-w-[140px] rounded-[var(--radius-md)] bg-(--color-surface) p-1 shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-float)]"
           >
             {actionItems.map((item) => (
               <button
@@ -253,7 +253,7 @@ export const ImageCard = memo(function ImageCard({
                   setMenu(null)
                   item.onClick()
                 }}
-                className={`flex w-full items-center rounded-[5px] px-2.5 py-1.5 text-left text-base transition-colors
+                className={`flex w-full items-center rounded-[var(--radius-sm)] px-2.5 py-1.5 text-left text-base transition-colors
                 ${item.danger ? 'text-(--color-danger) hover:bg-(--color-danger-soft)' : 'text-(--color-text) hover:bg-(--color-surface-2)'}`}
               >
                 {item.label}

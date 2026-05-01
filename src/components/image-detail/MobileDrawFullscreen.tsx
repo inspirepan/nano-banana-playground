@@ -262,7 +262,7 @@ export function MobileDrawFullscreen({
         />
 
         <div
-          className="pointer-events-none absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-0.5 rounded-[8px] p-1"
+          className="pointer-events-none absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-0.5 rounded-[var(--radius-md)] p-1"
           style={{
             background: 'color-mix(in srgb, var(--color-surface) 92%, transparent)',
             boxShadow: '0 0 0 1px var(--ring-edge), 0 1px 2px rgba(0,0,0,0.04)',

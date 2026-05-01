@@ -305,7 +305,7 @@ function StackRow({
                 <button
                   type="button"
                   onClick={() => onOpenGallery(stack)}
-                  className="h-full w-full rounded-[8px] text-sm text-(--color-text-4)"
+                  className="h-full w-full rounded-[var(--radius-md)] text-sm text-(--color-text-4)"
                   style={{ background: 'var(--color-surface-2)', boxShadow: 'inset 0 0 0 1px var(--ring-edge)' }}
                 >
                   暂无图片
@@ -504,7 +504,7 @@ export const OutputPanel = memo(function OutputPanel({
                     if (el) stackRowRefs.current.set(stack.id, el)
                     else stackRowRefs.current.delete(stack.id)
                   }}
-                  className="rounded-[10px] transition-shadow duration-300 ease-out motion-reduce:!transition-none"
+                  className="rounded-[var(--radius-lg)] transition-shadow duration-300 ease-out motion-reduce:!transition-none"
                   style={
                     isHighlighted
                       ? {

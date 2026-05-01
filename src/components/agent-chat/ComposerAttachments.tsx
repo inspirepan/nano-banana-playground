@@ -15,7 +15,7 @@ export function ComposerAttachments({
       {attachments.map((attachment) => (
         <div
           key={attachment.id}
-          className="group relative h-14 w-14 shrink-0 overflow-hidden rounded-[8px] bg-(--color-surface-2) shadow-[0_0_0_1px_var(--ring-edge),0_2px_8px_-6px_rgba(0,0,0,0.45),inset_0_0_0_1px_var(--ring-edge-soft)]"
+          className="group relative h-14 w-14 shrink-0 overflow-hidden rounded-[var(--radius-md)] bg-(--color-surface-2) shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-lift)]"
         >
           <img src={imageDataUrl(attachment)} alt={attachment.fileName} className="h-full w-full object-cover" />
           <button

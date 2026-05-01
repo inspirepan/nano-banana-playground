@@ -52,7 +52,7 @@ export function AgentChatHeader({
         新对话
       </button>
       {openMenu === 'sessions' && (
-        <div className="absolute top-[36px] left-0 z-50 w-full rounded-[10px] bg-(--color-surface) p-1 shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-float)]">
+        <div className="absolute top-[36px] left-0 z-50 w-full rounded-[var(--radius-lg)] bg-(--color-surface) p-1 shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-float)]">
           <div className="px-2 py-1.5 text-sm font-medium text-(--color-text-4)">历史对话</div>
           <div className="max-h-[260px] overflow-y-auto py-0.5">
             {sessions.length === 0 ? (
@@ -68,7 +68,7 @@ export function AgentChatHeader({
                       onSwitchSession(session.id)
                       setOpenMenu(null)
                     }}
-                    className="group flex w-full items-center gap-2 rounded-[7px] px-2 py-1.5 text-left transition-colors hover:bg-(--color-surface-2)"
+                    className="group flex w-full items-center gap-2 rounded-[var(--radius-md)] px-2 py-1.5 text-left transition-colors hover:bg-(--color-surface-2)"
                   >
                     <span className="min-w-0 flex-1">
                       <span className="flex min-w-0 items-center gap-1.5">
@@ -95,7 +95,7 @@ export function AgentChatHeader({
                         event.stopPropagation()
                         onDeleteSession(session.id)
                       }}
-                      className="flex h-6 w-6 shrink-0 items-center justify-center rounded-[6px] text-(--color-text-4) opacity-0 transition-opacity hover:bg-(--color-surface-3) hover:text-(--color-danger) group-hover:opacity-100"
+                      className="flex h-6 w-6 shrink-0 items-center justify-center rounded-[var(--radius-sm)] text-(--color-text-4) opacity-0 transition-opacity hover:bg-(--color-surface-3) hover:text-(--color-danger) group-hover:opacity-100"
                       aria-label="删除对话"
                     >
                       <Icon name="trash" size={12} />

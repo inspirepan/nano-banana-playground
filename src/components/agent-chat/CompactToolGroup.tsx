@@ -15,10 +15,10 @@ export function ToolCallRow({
   const done = Boolean(result)
   const showStatusBadge = !done || failed
   return (
-    <div className="flex items-start gap-2 rounded-[7px] px-1.5 py-1">
+    <div className="flex items-start gap-2 rounded-[var(--radius-md)] px-1.5 py-1">
       {showStatusBadge && (
         <span
-          className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-[5px]"
+          className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-[var(--radius-xs)]"
           style={{
             background: failed ? 'var(--color-danger-soft)' : 'var(--color-surface-2)',
             color: failed ? 'var(--color-danger)' : 'var(--color-text-3)',
@@ -48,9 +48,9 @@ export function ToolCallRow({
 
 export function StandaloneToolResultRow({ result }: { result: AgentMessageToolResult }) {
   return (
-    <div className="flex items-start gap-2 rounded-[7px] px-1.5 py-1">
+    <div className="flex items-start gap-2 rounded-[var(--radius-md)] px-1.5 py-1">
       {result.isError && (
-        <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-[5px] bg-(--color-danger-soft) text-(--color-danger) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
+        <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-[var(--radius-xs)] bg-(--color-danger-soft) text-(--color-danger) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
           <Icon name="alert_circle" size={11} />
         </span>
       )}
@@ -67,7 +67,7 @@ export function CompactToolGroup({ rows, isStreaming }: { rows: ReactNode[]; isS
     <div className="flex justify-start">
       <div className="mr-3 max-w-[88%]">
         <div className="mb-1.5 mono text-[11px] uppercase tracking-[0.12em] text-(--color-text-4)">Agent</div>
-        <div className="rounded-[10px] bg-(--color-surface) px-2.5 py-2 shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
+        <div className="rounded-[var(--radius-lg)] bg-(--color-surface) px-2.5 py-2 shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
           <div className="space-y-1.5">{rows}</div>
           {isStreaming && <div className="mt-1.5 text-sm text-(--color-text-4)">等待工具结果…</div>}
         </div>

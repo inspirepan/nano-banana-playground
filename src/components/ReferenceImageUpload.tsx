@@ -104,7 +104,7 @@ export function ReferenceImageUpload({
       </div>
       {error && (
         <div
-          className="mt-1.5 flex items-start gap-1.5 text-sm leading-[1.45] rounded-[6px] px-2 py-1.5"
+          className="mt-1.5 flex items-start gap-1.5 text-sm leading-[1.45] rounded-[var(--radius-sm)] px-2 py-1.5"
           style={{ color: 'var(--color-danger)', background: 'var(--color-danger-soft)' }}
         >
           <Icon name="alert_circle" size={12} style={{ marginTop: 1, flexShrink: 0 }} />
@@ -149,7 +149,7 @@ function LockedReferenceThumb({ item }: { item: LockedReferenceImage }) {
         <div className="absolute inset-0 skeleton-animated" />
       )}
       {item.label && (
-        <span className="absolute bottom-1 left-1 rounded-[4px] bg-black/55 px-1.5 py-0.5 text-base font-medium leading-none text-white backdrop-blur-[4px]">
+        <span className="absolute bottom-1 left-1 rounded-[var(--radius-xs)] bg-black/55 px-1.5 py-0.5 text-base font-medium leading-none text-white backdrop-blur-[4px]">
           {item.label}
         </span>
       )}

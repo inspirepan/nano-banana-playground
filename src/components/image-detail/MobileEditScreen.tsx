@@ -89,7 +89,7 @@ export function MobileEditScreen({
         className="min-h-0 flex-1 overflow-y-auto px-3.5 pb-[calc(18px+env(safe-area-inset-bottom))] pt-3"
         style={{ WebkitOverflowScrolling: 'touch' }}
       >
-        <div className="relative h-[156px] overflow-hidden rounded-[8px] bg-(--color-bg-sunken) shadow-[inset_0_0_0_1px_var(--ring-edge)]">
+        <div className="relative h-[156px] overflow-hidden rounded-[var(--radius-md)] bg-(--color-bg-sunken) shadow-[inset_0_0_0_1px_var(--ring-edge)]">
           {currentSrc ? (
             <img src={currentSrc} alt="待编辑图片" className="h-full w-full object-contain" draggable={false} />
           ) : (

@@ -57,7 +57,7 @@ export function ApiKeysDialog({ open, googleKey, openaiKey, onClose }: Props) {
         role="dialog"
         aria-modal="true"
         aria-label="接口密钥"
-        className="relative w-full max-w-md rounded-[10px] bg-(--color-surface) shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-float)]"
+        className="relative w-full max-w-md rounded-[var(--radius-lg)] bg-(--color-surface) shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-float)]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-5 pt-4 pb-3 shadow-[inset_0_-1px_0_var(--ring-edge-soft)]">
@@ -88,7 +88,7 @@ export function ApiKeysSettings({
 }) {
   return (
     <div className="space-y-4">
-      <div className="overflow-hidden rounded-[8px] bg-(--color-surface) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
+      <div className="overflow-hidden rounded-[var(--radius-md)] bg-(--color-surface) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
         <KeyRow provider="google" hook={googleKey} variant={variant} />
         <KeyRow provider="openai" hook={openaiKey} variant={variant} last />
       </div>
@@ -245,7 +245,7 @@ function KeyRow({
             }}
             placeholder={hasExistingKey ? '粘贴新密钥；留空则继续使用当前密钥' : placeholder}
             disabled={isValidating}
-            className="w-full rounded-[6px] bg-(--color-surface) px-2.5 py-1.5 text-base
+            className="w-full rounded-[var(--radius-sm)] bg-(--color-surface) px-2.5 py-1.5 text-base
                        shadow-[inset_0_0_0_1px_var(--ring-edge)]
                        focus:shadow-[inset_0_0_0_1px_var(--color-accent),0_0_0_3px_var(--color-accent-wash)]
                        transition-[box-shadow,background]
@@ -270,7 +270,7 @@ function KeyRow({
             spellCheck={false}
             autoComplete="off"
             disabled={isValidating}
-            className="mono w-full rounded-[6px] bg-(--color-surface) px-2.5 py-1.5 text-base
+            className="mono w-full rounded-[var(--radius-sm)] bg-(--color-surface) px-2.5 py-1.5 text-base
                        shadow-[inset_0_0_0_1px_var(--ring-edge)]
                        focus:shadow-[inset_0_0_0_1px_var(--color-accent),0_0_0_3px_var(--color-accent-wash)]
                        transition-[box-shadow,background]

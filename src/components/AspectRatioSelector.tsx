@@ -89,7 +89,7 @@ export function AspectRatioSelector({
               </button>
               {/* Notion-style pixel tooltip */}
               <div
-                className={`pointer-events-none absolute left-1/2 -translate-x-1/2 z-20 px-2 py-1 rounded-[5px] text-base whitespace-nowrap tabular-nums opacity-0 translate-y-0.5 transition-[opacity,translate] duration-150 delay-100 group-hover:opacity-100 group-hover:translate-y-0 ${isBottomRow ? 'bottom-full mb-1.5' : 'top-full mt-1.5'}`}
+                className={`pointer-events-none absolute left-1/2 -translate-x-1/2 z-20 px-2 py-1 rounded-[var(--radius-sm)] text-base whitespace-nowrap tabular-nums opacity-0 translate-y-0.5 transition-[opacity,translate] duration-150 delay-100 group-hover:opacity-100 group-hover:translate-y-0 ${isBottomRow ? 'bottom-full mb-1.5' : 'top-full mt-1.5'}`}
                 style={{
                   background: 'var(--color-text)',
                   color: 'var(--color-bg)',

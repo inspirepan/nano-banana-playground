@@ -13,7 +13,7 @@ export function ComposerError({
 
   return (
     <div
-      className="mb-2 rounded-[8px] px-3 py-2 text-sm leading-[1.45]"
+      className="mb-2 rounded-[var(--radius-md)] px-3 py-2 text-sm leading-[1.45]"
       style={{ color: 'var(--color-danger)', background: 'var(--color-danger-soft)' }}
     >
       <div className="flex items-start gap-2">

@@ -214,7 +214,7 @@ function ToggleGroupSection({
             >
               <span
                 aria-hidden
-                className="inline-flex items-center justify-center w-[13px] h-[13px] rounded-[3px] transition-colors"
+                className="inline-flex items-center justify-center w-[13px] h-[13px] rounded-[var(--radius-xs)] transition-colors"
                 style={{
                   background: active ? 'var(--color-accent)' : 'var(--color-surface)',
                   boxShadow: active ? 'inset 0 0 0 1px var(--color-accent)' : 'inset 0 0 0 1px var(--ring-edge)',
@@ -872,7 +872,7 @@ export function InputPanel({
 
       {dragOver && (
         <div
-          className="absolute inset-0 z-40 rounded-[8px] pointer-events-none"
+          className="absolute inset-0 z-40 rounded-[var(--radius-md)] pointer-events-none"
           style={{ background: 'var(--color-accent-wash)', boxShadow: 'inset 0 0 0 2px var(--color-accent)' }}
         />
       )}

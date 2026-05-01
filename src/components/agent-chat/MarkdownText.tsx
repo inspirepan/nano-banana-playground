@@ -30,17 +30,17 @@ const MARKDOWN_COMPONENTS = {
   ),
   hr: (props: JSX.IntrinsicElements['hr']) => <hr className="border-(--ring-edge-soft)" {...props} />,
   inlineCode: (props: JSX.IntrinsicElements['code']) => (
-    <code className="rounded-[4px] bg-(--color-surface-2) px-1 py-0.5 mono text-[0.92em]" {...props} />
+    <code className="rounded-[var(--radius-xs)] bg-(--color-surface-2) px-1 py-0.5 mono text-[0.92em]" {...props} />
   ),
   pre: ({ children, ...props }: JSX.IntrinsicElements['pre']) => (
-    <div className="overflow-hidden rounded-[8px] bg-(--color-surface-2) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
+    <div className="overflow-hidden rounded-[var(--radius-md)] bg-(--color-surface-2) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
       <pre {...props} className="overflow-x-auto px-3 py-2.5 mono text-sm leading-[1.55] text-(--color-text)">
         {children}
       </pre>
     </div>
   ),
   table: (props: JSX.IntrinsicElements['table']) => (
-    <div className="overflow-x-auto rounded-[8px] shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
+    <div className="overflow-x-auto rounded-[var(--radius-md)] shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
       <table className="w-full border-collapse text-sm" {...props} />
     </div>
   ),

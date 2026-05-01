@@ -29,11 +29,11 @@ export function AgentOptionsMenu({
   if (openMenu !== 'agentOptions') return null
 
   return (
-    <div className="absolute right-2 bottom-[46px] z-50 w-[208px] rounded-[10px] bg-(--color-surface) p-1 shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-float)]">
+    <div className="absolute right-2 bottom-[46px] z-50 w-[208px] rounded-[var(--radius-lg)] bg-(--color-surface) p-1 shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-float)]">
       <button
         type="button"
         onClick={() => onToggleAutoApproveImageTasks(!autoApproveImageTasks)}
-        className="flex h-7 w-full items-center gap-2 rounded-[6px] px-2 text-left text-sm font-medium text-(--color-text-2) transition-colors hover:bg-(--color-surface-2)"
+        className="flex h-7 w-full items-center gap-2 rounded-[var(--radius-sm)] px-2 text-left text-sm font-medium text-(--color-text-2) transition-colors hover:bg-(--color-surface-2)"
       >
         <span className="min-w-0 flex-1 truncate">自动通过生图任务</span>
         {autoApproveImageTasks && <Icon name="check" size={13} />}
@@ -52,7 +52,7 @@ export function AgentOptionsMenu({
               setOpenMenu(null)
             }}
             disabled={disabled}
-            className="flex h-7 w-full items-center gap-2 rounded-[6px] px-2 text-left text-sm font-medium text-(--color-text-2) transition-colors hover:bg-(--color-surface-2) disabled:cursor-not-allowed disabled:opacity-45"
+            className="flex h-7 w-full items-center gap-2 rounded-[var(--radius-sm)] px-2 text-left text-sm font-medium text-(--color-text-2) transition-colors hover:bg-(--color-surface-2) disabled:cursor-not-allowed disabled:opacity-45"
           >
             <span className="min-w-0 flex-1 truncate">{item.label}</span>
             {effectiveThinkingLevel === item.value && <Icon name="check" size={13} />}
@@ -68,7 +68,7 @@ export function AgentOptionsMenu({
             onModelChange(item.id)
             setOpenMenu(null)
           }}
-          className="flex h-7 w-full items-center gap-2 rounded-[6px] px-2 text-left text-sm font-medium text-(--color-text-2) transition-colors hover:bg-(--color-surface-2)"
+          className="flex h-7 w-full items-center gap-2 rounded-[var(--radius-sm)] px-2 text-left text-sm font-medium text-(--color-text-2) transition-colors hover:bg-(--color-surface-2)"
           data-active={model.id === item.id}
         >
           <AgentModelIcon model={item} />

@@ -15,7 +15,7 @@ function renderInline(text: string): ReactNode[] {
       nodes.push(
         <code
           key={`${match.index}-code`}
-          className="rounded-[4px] bg-(--color-surface-2) px-1 py-0.5 mono text-[0.92em]"
+          className="rounded-[var(--radius-xs)] bg-(--color-surface-2) px-1 py-0.5 mono text-[0.92em]"
         >
           {token.slice(1, -1)}
         </code>,

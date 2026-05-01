@@ -48,7 +48,7 @@ export function MessageBubble({ message, isStreaming }: { message: AgentMessage;
                   key={index}
                   src={imageDataUrl(image)}
                   alt="消息图片"
-                  className="aspect-square rounded-[7px] object-cover shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]"
+                  className="aspect-square rounded-[var(--radius-sm)] object-cover shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]"
                 />
               ))}
             </div>

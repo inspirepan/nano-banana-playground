@@ -161,7 +161,7 @@ export function DetailSidebar({
             </button>
           </div>
           <div
-            className="rounded-[8px] p-3 text-sm leading-[1.6] text-(--color-text-2)"
+            className="rounded-[var(--radius-md)] p-3 text-sm leading-[1.6] text-(--color-text-2)"
             style={{
               background: 'var(--color-surface)',
               boxShadow: 'inset 0 0 0 1px var(--ring-edge)',
@@ -189,7 +189,7 @@ export function DetailSidebar({
                 return (
                   <div
                     key={refId}
-                    className="aspect-square rounded-[6px] flex items-center justify-center text-(--color-text-4)"
+                    className="aspect-square rounded-[var(--radius-sm)] flex items-center justify-center text-(--color-text-4)"
                     style={{ boxShadow: 'inset 0 0 0 1px var(--ring-edge)', background: 'var(--color-surface-2)' }}
                   >
                     ?
@@ -398,7 +398,7 @@ function renderPromptLines(text: string): ReactNode[] {
         return (
           <div key={i}>
             <span
-              className="rounded-[3px] px-[3px] font-medium"
+              className="rounded-[var(--radius-xs)] px-[3px] font-medium"
               style={{ background: 'var(--color-accent-wash)', color: 'var(--color-accent)' }}
             >
               {lbl}
@@ -492,7 +492,7 @@ function RefThumbnail({
     <div
       ref={ref}
       onClick={onClick}
-      className="aspect-square rounded-[6px] overflow-hidden cursor-pointer transition-colors"
+      className="aspect-square rounded-[var(--radius-sm)] overflow-hidden cursor-pointer transition-colors"
       style={{
         boxShadow: isActive ? 'inset 0 0 0 1px var(--color-accent)' : 'inset 0 0 0 1px var(--ring-edge)',
         background: 'var(--color-surface-2)',

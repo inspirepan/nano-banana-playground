@@ -20,7 +20,7 @@ function StatusCard({ slot, onCancel }: { slot: GenerationSlot; onCancel: (slotI
 
   return (
     <div
-      className="w-full h-full rounded-[8px] overflow-hidden relative"
+      className="w-full h-full rounded-[var(--radius-md)] overflow-hidden relative"
       style={{
         boxShadow: 'inset 0 0 0 1px var(--ring-edge)',
         background: 'var(--color-surface-2)',
@@ -29,7 +29,7 @@ function StatusCard({ slot, onCancel }: { slot: GenerationSlot; onCancel: (slotI
       <button
         type="button"
         onClick={() => onCancel(slot.id)}
-        className="absolute right-2 top-2 z-10 rounded-[5px] px-2 py-1 text-base font-medium transition-colors"
+        className="absolute right-2 top-2 z-10 rounded-[var(--radius-sm)] px-2 py-1 text-base font-medium transition-colors"
         style={{
           color: 'var(--color-text-2)',
           background: 'color-mix(in srgb, var(--color-surface) 86%, transparent)',
@@ -61,7 +61,7 @@ function StatusCard({ slot, onCancel }: { slot: GenerationSlot; onCancel: (slotI
 function FailedCard({ index, error }: { index: number; error: string }) {
   return (
     <div
-      className="w-full h-full rounded-[8px] overflow-hidden relative"
+      className="w-full h-full rounded-[var(--radius-md)] overflow-hidden relative"
       style={{
         boxShadow: 'inset 0 0 0 1px color-mix(in srgb, var(--color-danger) 24%, transparent)',
         background: 'color-mix(in srgb, var(--color-danger) 6%, transparent)',
@@ -93,7 +93,7 @@ function FailedCard({ index, error }: { index: number; error: string }) {
 function CanceledCard({ index }: { index: number }) {
   return (
     <div
-      className="w-full h-full rounded-[8px] overflow-hidden relative"
+      className="w-full h-full rounded-[var(--radius-md)] overflow-hidden relative"
       style={{
         boxShadow: 'inset 0 0 0 1px var(--ring-edge)',
         background: 'var(--color-surface-2)',

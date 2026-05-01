@@ -107,8 +107,17 @@ src/
 - **色彩系统**：基础盘是 warm-stone 中性色，强调色默认 indigo，可通过 `.theme-*` 类切到 blue / green / yellow / pink / orange / purple。优先复用 `--color-bg`、`--color-surface*`、`--color-border*`、`--color-text*`、`--color-accent*`，不要到处写裸十六进制。
 - **排版**：正文 `Geist Variable`（`--font-sans`），标题（品牌名 / 弹窗标题 / 面板 header）挂 `.font-display` 使用 `--font-display`（当前别名到 `--font-sans`，保留入口便于未来单独切换 display 字体）。数字、分辨率、费用、时间、计数等常规信息使用 sans；`.mono` 固定为 Roboto Mono，只用于模型 API ID、stack / image 短 ID、API Key 等机器字符串。全局基线是 **13px**，不是 14/16px 默认网页节奏。
 - **中文字体回退**：保持 `PingFang SC -> Hiragino Sans GB -> Microsoft YaHei -> Source Han Sans / Noto Sans CJK` 的顺序。Geist 相关 `font-feature-settings` 只使用 `kern`、`liga`、`calt`、`tnum`、`zero` 等安全特性，不要加回会切换 CJK 字形的 `ss*` / `cv*` 变体 tag。
-- **边缘定义**：优先用 ring / inset ring 表达 1px 边缘，而不是 solid border。浮层、卡片、按钮、图片容器、topbar、分栏分隔线等不要同时叠加实色 border 和 shadow；优先复用 `--ring-edge`、`--ring-edge-soft`、`--ring-edge-strong`、`--shadow-lift`、`--shadow-float`。
-- **同心圆角**：嵌套圆角必须按“外层 radius - padding = 内层 radius”处理。当前常用层级是外层 `8 / 10px`、内层 `6px`、小 glyph / badge `2 / 4px`，不要让内外层使用同一个 radius 造成视觉别扭。
+- **边缘定义（Schoger ring，强约束）**：1px 边缘一律用 `box-shadow` 的 ring 表达，**禁止 `border: 1px solid` 与 shadow 共存**——border 会让 shadow 在边线处出现 "muddy" 浊边。原则与可粘贴模式：
+  - **扁平 surface**（chip / button / card / option / aspect-tile / 输入框）：只写 `shadow-[inset_0_0_0_1px_var(--ring-edge)]`，hover 提到 `--ring-edge-strong`，淡色或带主色调容器降到 `--ring-edge-soft`（≈5% 黑/白）。**不要再叠 drop shadow**，扁平就是扁平。
+  - **真正浮起的层级**（弹窗、context menu、tooltip、`.img-card`、悬浮按钮）：用 `shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-lift)]` 或 `var(--shadow-float)`——外环 + token 阴影**一次性写完**，不要拼 `0_1px_2px_rgba(0,0,0,0.04)` 这类自造 close shadow。
+  - **分隔线**：一律用 `shadow-[inset_0_1px_0_var(--ring-edge-soft)]`（顶分隔）或 `inset_0_-1px_0_…`（底分隔），不写 `border-t/b`。**唯一例外**是 markdown 表格 `<th>/<td>`，因为 `border-collapse` 必须用 `border-b`。
+  - **选中态——主色填充版**：`bg-(--color-accent)` + `shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-accent)_55%,#000_10%)]`（沿用 `.chip.accent-active` 配方），不要再叠主色 drop shadow 或 outer ring。适合中性容器内的单一强调动作（提交按钮、单点 CTA）。
+  - **选中态——外环 + 光晕版（depth）**：保持原本 `bg-(--color-surface)`，把激活描边写成 `shadow-[0_0_0_1px_var(--color-accent),0_0_0_3px_var(--color-accent-wash)]`——1px 实心主色外环 + 3px wash 光晕——配合主色文字（标签 `--color-accent`，描述 `--color-text-2`）。这是 `.prompt-wrap:focus-within` 的同源配方。**当外层是 `--color-accent-soft` 等带主色调的容器、或选中可能多个并存（multi-select / 过滤器组）时优先用这套**，避免主色填充叠加变成"色块墙"。如果光晕在浅色容器上太淡，可升到 `--color-accent-wash-2`。
+  - **禁止清单**：① 任意 `rgba(0,0,0,…)` 字面值出现在 `shadow-[...]` 里；② `border-*` 与 `shadow-*` 在同一元素混写；③ 用 `--color-accent-ring*` 当通用 surface 边（accent-ring 仅在强调主色调容器内部使用）；④ 用 `inset` ring 来表达"已选"——`inset` 只用于平态/默认边，所有需要层次感的激活态请走 outer ring + 光晕。
+- **圆角 token（强约束）**：`index.css` 定义了 `--radius-xs(4) / sm(6) / md(8) / lg(10) / xl(14)` 五档，**所有 `rounded-[...]` 必须引用 token**，不写裸 px：
+  - ✅ `rounded-[var(--radius-md)]` / ❌ `rounded-[8px]` / ❌ `rounded-[5px]`、`rounded-[7px]`、`rounded-[12px]` 等偏离 token 的字面值。
+  - **同心圆角**按"外层 radius - padding = 内层 radius"，常见组合：外层 `lg(10)` / 内层 `sm(6)` / badge `xs(4)` / 强调小标签 `xs(4)`，不要让内外层使用同一个 radius 造成视觉别扭。
+  - **已知例外**（改前先确认）：`MessageBubble.tsx` 用户气泡 + `AgentChatComposer.tsx` 输入区都是 `rounded-[12px]` 并配带底层次自调阴影，是聊天序列精调过的视觉例外；`AskUserQuestionCards.tsx` 内部 14×14 多选指示器保留 `rounded-[3px]`。
 - **按钮形态**：主 CTA 维持 `36px` 左右高度和 pill 形态；普通 chip / segmented / icon button 维持紧凑工具型尺寸。不要把所有按钮都改成大胶囊，也不要随手给按钮塞装饰图标。
 - **容器层级**：大多数控件保持 flat surface；只有图库图片、弹窗、toast、上下文菜单等真正需要浮起的层级才使用轻量阴影。淡色容器边缘用低透明度 inset ring 定义，不用重边框抢内容焦点。
 - **排版细节**：`.label` 是 eyebrow 语义但使用 sans；只有模型 API ID、stack / image 短 ID、API Key 等机器字符串用 `.mono`。标题使用 `.font-display` 并保持轻微负 tracking；长说明优先控制行高和宽度，不做大段居中文案。

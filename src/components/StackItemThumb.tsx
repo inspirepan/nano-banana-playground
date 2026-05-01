@@ -130,7 +130,7 @@ export function StackItemThumb({
         onSelect(item)
       }}
       aria-pressed={selectable ? selected : undefined}
-      className={`group relative shrink-0 overflow-hidden rounded-[7px] transition-transform ${selectable ? '' : 'hover:-translate-y-0.5'} ${className}`}
+      className={`group relative shrink-0 overflow-hidden rounded-[var(--radius-md)] transition-transform ${selectable ? '' : 'hover:-translate-y-0.5'} ${className}`}
       style={{ background, boxShadow }}
       title={title}
     >
@@ -169,7 +169,7 @@ export function StackItemThumb({
         )}
       </div>
       <span
-        className="pointer-events-none absolute z-10 inline-flex h-[18px] min-w-[24px] items-center justify-center rounded-[5px] px-1.5 text-base font-normal leading-none"
+        className="pointer-events-none absolute z-10 inline-flex h-[18px] min-w-[24px] items-center justify-center rounded-[var(--radius-xs)] px-1.5 text-base font-normal leading-none"
         style={{
           left: numberBadgeInset,
           top: numberBadgeInset,
@@ -181,7 +181,7 @@ export function StackItemThumb({
       </span>
       {imageIdLabel && imageIdDisplay && (
         <span
-          className="pointer-events-none absolute z-10 mono max-w-[calc(100%-16px)] truncate rounded-[5px] px-1.5 py-0.5 text-[10px] leading-none"
+          className="pointer-events-none absolute z-10 mono max-w-[calc(100%-16px)] truncate rounded-[var(--radius-xs)] px-1.5 py-0.5 text-[10px] leading-none"
           style={{
             left: numberBadgeInset,
             bottom: numberBadgeInset,
@@ -195,7 +195,7 @@ export function StackItemThumb({
       )}
       {metaBadge && (
         <span
-          className="pointer-events-none absolute z-10 flex flex-col items-start rounded-[5px] px-1.5 py-1 text-white"
+          className="pointer-events-none absolute z-10 flex flex-col items-start rounded-[var(--radius-xs)] px-1.5 py-1 text-white"
           style={metaBadgeStyle}
           title={metaBadgeTitle ?? metaBadge}
         >
@@ -215,7 +215,7 @@ export function StackItemThumb({
       )}
       {selectable && (
         <span
-          className="pointer-events-none absolute right-1.5 top-1.5 flex h-[18px] w-[18px] items-center justify-center rounded-[5px] transition-colors"
+          className="pointer-events-none absolute right-1.5 top-1.5 flex h-[18px] w-[18px] items-center justify-center rounded-[var(--radius-xs)] transition-colors"
           style={{
             background: selected ? 'var(--color-accent)' : 'color-mix(in srgb, var(--color-surface) 86%, transparent)',
             color: selected ? 'var(--color-accent-fg)' : 'var(--color-text-4)',
