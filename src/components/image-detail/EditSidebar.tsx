@@ -493,9 +493,9 @@ export function EditSidebar({
           <span className="mr-1.5 flex items-center gap-1.5 text-sm text-(--color-text-3)">
             <span>{getModelShortLabel(sourceModel)}</span>
             <InlineParamDivider />
-            <span>{resolution}</span>
+            <span className="tabular-nums">{resolution}</span>
             <InlineParamDivider />
-            <span>{aspectRatio}</span>
+            <span className="tabular-nums">{aspectRatio}</span>
           </span>
           <Icon name={paramsCollapsed ? 'chevron_right' : 'chevron_down'} size={12} className="text-(--color-text-4)" />
         </button>
@@ -533,7 +533,7 @@ export function EditSidebar({
                   ))}
                 </div>
               </div>
-              <div className="mb-[14px]">
+              <div className="mb-[14px] tabular-nums">
                 <ChipGroup
                   options={sourceModel.resolutions}
                   value={resolution}
@@ -643,7 +643,10 @@ export function EditSidebar({
       {/* Batch count */}
       <div className="mb-[18px]">
         <div className="label mb-1.5">数量</div>
-        <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${sourceModel.maxBatchCount}, 1fr)` }}>
+        <div
+          className="grid gap-1.5 tabular-nums"
+          style={{ gridTemplateColumns: `repeat(${sourceModel.maxBatchCount}, 1fr)` }}
+        >
           {Array.from({ length: sourceModel.maxBatchCount }, (_, i) => i + 1).map((n) => (
             <button
               key={n}
@@ -661,7 +664,9 @@ export function EditSidebar({
       {/* Summary + CTA */}
       <div className={submitFooterClassName}>
         {estimatedCost !== null && (
-          <div className="mb-2 text-right text-sm text-(--color-text-2)">≈ ${estimatedCost.toFixed(3)}</div>
+          <div className="mb-2 text-right text-sm text-(--color-text-2) tabular-nums">
+            ≈ ${estimatedCost.toFixed(3)}
+          </div>
         )}
         {submitError && <div className="mb-2 text-sm text-(--color-danger)">{submitError}</div>}
         <button type="button" onClick={handleGenerate} disabled={!canSubmit} className="cta w-full">

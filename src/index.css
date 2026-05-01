@@ -30,7 +30,8 @@
   --font-sans:
     'Geist', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei UI', 'Microsoft YaHei', 'Source Han Sans SC',
     'Noto Sans CJK SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-  --font-sans--font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1, 'tnum' 1, 'case' 1;
+  /* tnum is opt-in via `tabular-nums` — only ratio / resolution / dimension UI needs it. */
+  --font-sans--font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1, 'case' 1;
   --font-mono: 'Roboto Mono', var(--font-cjk-mono);
   --font-mono--font-feature-settings: 'liga' 0, 'calt' 0, 'tnum' 1, 'zero' 1;
   --font-display: var(--font-sans);
@@ -122,22 +123,22 @@
 
 .font-sans-geist {
   --font-sans: 'Geist', var(--font-cjk-sans);
-  --font-sans--font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1, 'tnum' 1, 'case' 1;
+  --font-sans--font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1, 'case' 1;
 }
 
 .font-sans-inter {
   --font-sans: 'Inter', var(--font-cjk-sans);
-  --font-sans--font-feature-settings: 'calt' 1, 'tnum' 1, 'case' 1;
+  --font-sans--font-feature-settings: 'calt' 1, 'case' 1;
 }
 
 .font-sans-roboto-flex {
   --font-sans: 'Roboto Flex', var(--font-cjk-sans);
-  --font-sans--font-feature-settings: 'calt' 1, 'tnum' 1, 'case' 1;
+  --font-sans--font-feature-settings: 'calt' 1, 'case' 1;
 }
 
 .font-sans-google-sans-flex {
   --font-sans: 'Google Sans Flex', var(--font-cjk-sans);
-  --font-sans--font-feature-settings: 'calt' 1, 'tnum' 1, 'case' 1;
+  --font-sans--font-feature-settings: 'calt' 1, 'case' 1;
 }
 
 /* Roboto Flex / Google Sans Flex have no real italic, only a slnt axis.
@@ -172,27 +173,27 @@
 
 .font-sans-source-sans-3 {
   --font-sans: 'Source Sans 3', var(--font-cjk-sans);
-  --font-sans--font-feature-settings: 'calt' 1, 'tnum' 1, 'case' 1;
+  --font-sans--font-feature-settings: 'calt' 1, 'case' 1;
 }
 
 .font-sans-work-sans {
   --font-sans: 'Work Sans', var(--font-cjk-sans);
-  --font-sans--font-feature-settings: 'calt' 1, 'tnum' 1, 'case' 1;
+  --font-sans--font-feature-settings: 'calt' 1, 'case' 1;
 }
 
 .font-sans-ibm-plex-sans {
   --font-sans: 'IBM Plex Sans', var(--font-cjk-sans);
-  --font-sans--font-feature-settings: 'calt' 1, 'tnum' 1, 'case' 1;
+  --font-sans--font-feature-settings: 'calt' 1, 'case' 1;
 }
 
 .font-sans-outfit {
   --font-sans: 'Outfit', var(--font-cjk-sans);
-  --font-sans--font-feature-settings: 'calt' 1, 'tnum' 1, 'case' 1;
+  --font-sans--font-feature-settings: 'calt' 1, 'case' 1;
 }
 
 .font-sans-onest {
   --font-sans: 'Onest', var(--font-cjk-sans);
-  --font-sans--font-feature-settings: 'calt' 1, 'tnum' 1, 'case' 1;
+  --font-sans--font-feature-settings: 'calt' 1, 'case' 1;
 }
 
 /* Dark theme */
@@ -382,9 +383,8 @@
     background: var(--color-bg);
     color: var(--color-text);
     font-family: var(--font-sans);
-    /* Geist keeps kern/liga/calt/tnum; other sans choices override this to safe tnum only. */
+    /* tnum is opt-in: add `tabular-nums` only on ratio / resolution / dimension UI. */
     font-feature-settings: var(--font-sans--font-feature-settings);
-    font-variant-numeric: tabular-nums;
     /* Disable synthetic bold/italic — forces the browser to use real glyphs from PingFang SC
        (native Semibold at weight 600) instead of thickening Regular strokes mechanically. */
     font-synthesis: none;

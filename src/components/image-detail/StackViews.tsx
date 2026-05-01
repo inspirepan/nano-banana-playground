@@ -449,11 +449,13 @@ export function StackGallery({
                   <span className="whitespace-nowrap text-sm font-medium text-(--color-text-2)">{batch.modelName}</span>
                 )}
                 {batch.resolution && batch.aspectRatio && (
-                  <span className="whitespace-nowrap text-sm text-(--color-text-3)">
+                  <span className="whitespace-nowrap text-sm text-(--color-text-3) tabular-nums">
                     {batch.resolution} · {batch.aspectRatio}
                   </span>
                 )}
-                <span className="whitespace-nowrap text-sm text-(--color-text-3)">{batch.imageCount} 张</span>
+                <span className="whitespace-nowrap text-sm text-(--color-text-3) tabular-nums">
+                  {batch.imageCount} 张
+                </span>
                 {batch.activeSlotCount > 0 && (
                   <span className="whitespace-nowrap text-sm text-(--color-accent)">
                     生成中 {batch.activeSlotCount}

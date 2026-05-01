@@ -203,13 +203,13 @@ export function StackItemThumb({
             <>
               <span className="max-w-full truncate text-[11px] font-medium leading-[12px]">{splitMetaBadge.title}</span>
               <span
-                className={`mt-0.5 max-w-full truncate text-[10px] font-normal leading-[11px] ${slot ? 'text-(--color-text-3)' : 'text-white/85'}`}
+                className={`mt-0.5 max-w-full truncate text-[10px] font-normal leading-[11px] tabular-nums ${slot ? 'text-(--color-text-3)' : 'text-white/85'}`}
               >
                 {splitMetaBadge.detail}
               </span>
             </>
           ) : (
-            <span className="max-w-full truncate text-[11px] font-medium leading-none">{metaBadge}</span>
+            <span className="max-w-full truncate text-[11px] font-medium leading-none tabular-nums">{metaBadge}</span>
           )}
         </span>
       )}

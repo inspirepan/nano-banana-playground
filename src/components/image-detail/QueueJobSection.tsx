@@ -145,7 +145,7 @@ export function QueueJobSection({
             {job.request.model.name}
           </span>
           <span className="text-(--color-text-4)">·</span>
-          <span className="whitespace-nowrap text-sm text-(--color-text-3)">
+          <span className="whitespace-nowrap text-sm text-(--color-text-3) tabular-nums">
             {job.request.resolution} · {job.request.aspectRatio} · {job.slots.length}
           </span>
           <span className="text-(--color-text-4)">·</span>

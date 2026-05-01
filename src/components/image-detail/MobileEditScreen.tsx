@@ -78,7 +78,7 @@ export function MobileEditScreen({
             {pxDim && (
               <>
                 <span aria-hidden className="meta-dot" />
-                <span className="shrink-0">{pxDim}</span>
+                <span className="shrink-0 tabular-nums">{pxDim}</span>
               </>
             )}
           </div>

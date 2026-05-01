@@ -178,7 +178,9 @@ export function DetailSidebar({
         <div className="mb-[18px]">
           <div className="flex items-center mb-1.5">
             <span className="label">参考图</span>
-            <span className="ml-1.5 text-sm text-(--color-text-4)">{currentMeta.referenceImageIds.length} 张</span>
+            <span className="ml-1.5 text-sm text-(--color-text-4) tabular-nums">
+              {currentMeta.referenceImageIds.length} 张
+            </span>
           </div>
           <div className="grid grid-cols-4 gap-1.5">
             {currentMeta.referenceImageIds.map((refId) => {
@@ -207,7 +209,7 @@ export function DetailSidebar({
         </div>
       )}
 
-      <div className="mb-[18px]">
+      <div className="mb-[18px] tabular-nums">
         <div className="label mb-1">元数据</div>
         {currentMeta && (
           <>

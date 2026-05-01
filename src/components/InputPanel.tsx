@@ -732,13 +732,15 @@ export function InputPanel({
 
           {/* Resolution chips */}
           <Section label="分辨率">
-            <ChipGroup
-              options={model.resolutions}
-              value={resolution}
-              onChange={onResolutionChange}
-              mono={false}
-              columns={model.resolutions.length}
-            />
+            <div className="tabular-nums">
+              <ChipGroup
+                options={model.resolutions}
+                value={resolution}
+                onChange={onResolutionChange}
+                mono={false}
+                columns={model.resolutions.length}
+              />
+            </div>
           </Section>
 
           {/* Aspect ratio grid */}
@@ -796,7 +798,10 @@ export function InputPanel({
 
           {/* Batch count */}
           <Section label="数量">
-            <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${model.maxBatchCount}, 1fr)` }}>
+            <div
+              className="grid gap-1.5 tabular-nums"
+              style={{ gridTemplateColumns: `repeat(${model.maxBatchCount}, 1fr)` }}
+            >
               {Array.from({ length: model.maxBatchCount }, (_, i) => i + 1).map((n) => (
                 <button
                   key={n}
@@ -817,26 +822,26 @@ export function InputPanel({
               <div className="flex items-baseline justify-between mb-2">
                 <span className={INPUT_LABEL_CLASS}>参数概览</span>
                 {estimatedCost !== null && (
-                  <span className="text-base text-(--color-text-2)">≈ ${estimatedCost.toFixed(3)}</span>
+                  <span className="text-base text-(--color-text-2) tabular-nums">≈ ${estimatedCost.toFixed(3)}</span>
                 )}
               </div>
               <dl className="grid grid-cols-[52px_1fr] gap-x-3 gap-y-[5px] text-sm leading-[1.5]">
                 <dt className="text-(--color-text-4)">模型</dt>
                 <dd className="text-(--color-text-2)">{model.name}</dd>
                 <dt className="text-(--color-text-4)">尺寸</dt>
-                <dd className="text-(--color-text-2)">
+                <dd className="text-(--color-text-2) tabular-nums">
                   <span>{resolution}</span>
                   <span className="mx-1.5 text-(--color-text-4)">/</span>
                   <span>{aspectRatio}</span>
                 </dd>
                 <dt className="text-(--color-text-4)">数量</dt>
-                <dd className="text-(--color-text-2)">
+                <dd className="text-(--color-text-2) tabular-nums">
                   <span>×{batchCount}</span>
                 </dd>
                 {referenceImages.length > 0 && (
                   <>
                     <dt className="text-(--color-text-4)">参考图</dt>
-                    <dd className="text-(--color-text-2)">
+                    <dd className="text-(--color-text-2) tabular-nums">
                       <span>{referenceImages.length}</span> 张
                     </dd>
                   </>

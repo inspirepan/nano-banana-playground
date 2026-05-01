@@ -122,13 +122,13 @@ export function AgentImageTaskCard({
             <>
               <span>
                 <span className="text-(--color-text-3)">尺寸 </span>
-                <span className="text-(--color-text)">
+                <span className="text-(--color-text) tabular-nums">
                   {task.request.resolution} · {task.request.aspectRatio}
                 </span>
               </span>
               <span>
                 <span className="text-(--color-text-3)">数量 </span>
-                <span className="text-(--color-text)">{task.request.batchCount} 张</span>
+                <span className="text-(--color-text) tabular-nums">{task.request.batchCount} 张</span>
               </span>
             </>
           )}

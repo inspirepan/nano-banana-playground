@@ -69,7 +69,7 @@ export function DetailHeader({
           <span className="truncate text-base font-semibold leading-[1.25] tracking-[-0.01em] text-(--color-text) md:text-base md:font-medium md:tracking-normal">
             {modelName}
           </span>
-          <span className="flex shrink-0 items-center gap-1.5 text-sm leading-[1.25] text-(--color-text-4)">
+          <span className="flex shrink-0 items-center gap-1.5 text-sm leading-[1.25] text-(--color-text-4) tabular-nums">
             {pxDimParts.length >= 2 ? (
               <>
                 <span>{pxDimParts[0]}</span>

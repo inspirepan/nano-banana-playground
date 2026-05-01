@@ -171,7 +171,7 @@ export const ImageCard = memo(function ImageCard({
           <span />
         )}
         {meta && (
-          <span style={{ opacity: 0.85 }}>
+          <span className="tabular-nums" style={{ opacity: 0.85 }}>
             {meta.resolution} · {meta.aspectRatio}
           </span>
         )}
