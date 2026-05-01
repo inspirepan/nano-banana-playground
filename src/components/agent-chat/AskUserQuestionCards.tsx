@@ -67,31 +67,49 @@ export function AskUserQuestionForm({
     onSubmit(toolCallId, answers)
   }
 
+  const topics = questions.map((q) => q.header).filter((header): header is string => Boolean(header))
+
   return (
-    <div className="rounded-[8px] bg-(--color-surface) px-3.5 py-3 shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
-      <div className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1">
-        <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-(--color-text)">
-          <span className="h-1.5 w-1.5 rounded-full" style={{ background: 'var(--color-accent)' }} />
-          关于
-          {questions
-            .map((q) => q.header)
-            .filter((header): header is string => Boolean(header))
-            .join('、') || '本次需求'}
-          的问题
+    <div
+      className="rounded-[12px] p-3 shadow-[inset_0_0_0_1px_var(--color-accent-ring-hover),0_1px_2px_rgba(0,0,0,0.04)]"
+      style={{ background: 'var(--color-accent-soft)' }}
+    >
+      <div className="flex min-w-0 items-center gap-2">
+        <span
+          aria-hidden
+          className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-(--color-accent-fg)"
+          style={{ background: 'var(--color-accent)' }}
+        >
+          <Icon name="help_circle" className="h-3.5 w-3.5" strokeWidth={2.2} />
         </span>
-        <span className="ml-auto text-sm text-(--color-text-4)">{questions.length} 个问题</span>
+        <span className="text-base font-semibold text-(--color-accent)">Agent 想先和你确认几个问题</span>
+        <span
+          className="ml-auto rounded-full bg-(--color-surface) px-2 py-0.5 text-[11px] font-medium text-(--color-text-3) shadow-[inset_0_0_0_1px_var(--ring-edge)]"
+          style={{ fontVariantNumeric: 'tabular-nums' }}
+        >
+          {questions.length} 个
+        </span>
       </div>
 
-      <div className="mt-3 space-y-4">
+      {topics.length > 0 && <div className="mt-1 text-[12px] text-(--color-text-3)">关于{topics.join('、')}</div>}
+
+      <div className="mt-3">
         {questions.map((question, index) => {
           const entry = form[index] ?? { selected: [], note: '' }
           return (
-            <div key={index} className="space-y-2">
-              <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
+            <div key={index} className={index > 0 ? 'mt-3 border-t border-[var(--color-accent-ring)] pt-3' : ''}>
+              <div className="flex min-w-0 items-baseline gap-2">
+                <span
+                  aria-hidden
+                  className="inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-[4px] px-1 text-[11px] font-semibold text-(--color-accent)"
+                  style={{ background: 'var(--color-accent-wash-2)', fontVariantNumeric: 'tabular-nums' }}
+                >
+                  {index + 1}
+                </span>
                 <span className="text-sm font-medium text-(--color-text)">{question.question}</span>
-                {question.multi_select && <span className="text-[11px] text-(--color-text-4)">可多选</span>}
+                {question.multi_select && <span className="ml-auto text-[11px] text-(--color-text-4)">可多选</span>}
               </div>
-              <div className="flex flex-wrap gap-1.5">
+              <div className="mt-2 flex flex-wrap gap-1.5">
                 {question.options.map((option) => {
                   const checked = entry.selected.includes(option.label)
                   const shapeClass = question.multi_select ? 'rounded-[var(--radius-sm)] px-2.5' : 'rounded-full px-5'
@@ -101,7 +119,7 @@ export function AskUserQuestionForm({
                       type="button"
                       onClick={() => toggleOption(index, option.label, question.multi_select)}
                       data-active={checked || undefined}
-                      className={`group flex items-start gap-2 ${shapeClass} bg-(--color-surface) py-1 text-left shadow-[inset_0_0_0_1px_var(--ring-edge)] transition-colors hover:bg-(--color-surface-2) hover:shadow-[inset_0_0_0_1px_var(--ring-edge-strong)] data-[active]:bg-(--color-accent-wash) data-[active]:shadow-[inset_0_0_0_1px_var(--color-accent-ring)]`}
+                      className={`group flex items-start gap-2 ${shapeClass} bg-(--color-surface) py-1 text-left shadow-[inset_0_0_0_1px_var(--ring-edge),0_1px_2px_rgba(0,0,0,0.04)] transition-shadow hover:shadow-[inset_0_0_0_1px_var(--ring-edge-strong),0_2px_4px_-1px_rgba(0,0,0,0.08)] data-[active]:bg-(--color-accent-wash-2) data-[active]:shadow-[inset_0_0_0_1px_var(--color-accent-ring-hover),0_1px_2px_rgba(0,0,0,0.04)]`}
                     >
                       {question.multi_select && (
                         <span
@@ -119,7 +137,9 @@ export function AskUserQuestionForm({
                           {option.label}
                         </span>
                         {option.description && (
-                          <span className="text-[12px] leading-[1.35] text-(--color-text-4)">{option.description}</span>
+                          <span className="text-[12px] leading-[1.35] text-(--color-text-4) group-data-[active]:text-(--color-text-2)">
+                            {option.description}
+                          </span>
                         )}
                       </span>
                     </button>
@@ -131,7 +151,8 @@ export function AskUserQuestionForm({
                 value={entry.note}
                 onChange={(event) => setNote(index, event.target.value)}
                 placeholder="补充说明（可选）"
-                className={`h-7 min-w-[12em] max-w-full bg-(--color-surface) text-sm text-(--color-text) shadow-[inset_0_0_0_1px_var(--ring-edge)] placeholder:text-(--color-text-4) focus:shadow-[inset_0_0_0_1px_var(--color-accent-ring)] focus:outline-none ${
+                data-active={entry.note.trim().length > 0 || undefined}
+                className={`mt-2 h-7 min-w-[12em] max-w-full bg-(--color-surface) text-sm font-medium text-(--color-text) shadow-[inset_0_0_0_1px_var(--ring-edge),0_1px_2px_rgba(0,0,0,0.04)] placeholder:font-normal placeholder:text-(--color-text-4) focus:shadow-[inset_0_0_0_1px_var(--color-accent-ring-hover),0_1px_2px_rgba(0,0,0,0.04)] focus:outline-none data-[active]:bg-(--color-accent-wash-2) data-[active]:text-(--color-accent) data-[active]:shadow-[inset_0_0_0_1px_var(--color-accent-ring-hover),0_1px_2px_rgba(0,0,0,0.04)] ${
                   question.multi_select ? 'rounded-[var(--radius-sm)] px-2.5' : 'rounded-full px-5'
                 }`}
                 style={{ fieldSizing: 'content' } as CSSProperties}

@@ -11,6 +11,7 @@ import {
   Download,
   Eraser,
   GripVertical,
+  HelpCircle,
   ImagePlus,
   ImageIcon,
   KeyRound,
@@ -61,6 +62,7 @@ export type IconName =
   | 'drag'
   | 'eraser'
   | 'expand_more'
+  | 'help_circle'
   | 'image'
   | 'key'
   | 'keyboard_arrow_up'
@@ -115,6 +117,7 @@ const ICONS = {
   drag: GripVertical,
   eraser: Eraser,
   expand_more: ChevronDown,
+  help_circle: HelpCircle,
   image: ImageIcon,
   key: KeyRound,
   keyboard_arrow_up: ChevronUp,
