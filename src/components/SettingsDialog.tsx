@@ -199,7 +199,7 @@ export function SettingsDialog({
 
                 <div>
                   <div className="label mb-1.5 px-1">主色</div>
-                  <div className="grid grid-cols-7 gap-2 sm:w-[244px]">
+                  <div className="grid grid-cols-9 gap-2 sm:w-[316px]">
                     {COLOR_THEMES.map((ct) => {
                       const swatch = ct.id === 'mono' ? (isDark ? '#f2f1ef' : '#1f1d1a') : ct.color
                       return (
