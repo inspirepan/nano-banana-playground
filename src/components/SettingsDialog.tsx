@@ -229,7 +229,7 @@ export function SettingsDialog({
                   value={sansFont}
                   sample={
                     <>
-                      <span className="font-semibold">Image2</span> 3:1 4K
+                      <span className="font-semibold">Image2</span> Render 3:1 · 4K
                     </>
                   }
                   onChange={onSansFontChange}

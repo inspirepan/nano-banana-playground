@@ -1,13 +1,4 @@
-export type SansFontId =
-  | 'geist'
-  | 'inter'
-  | 'roboto-flex'
-  | 'google-sans-flex'
-  | 'source-sans-3'
-  | 'work-sans'
-  | 'ibm-plex-sans'
-  | 'outfit'
-  | 'onest'
+export type SansFontId = 'geist' | 'inter' | 'google-sans-flex' | 'onest'
 
 type FontOption<T extends string> = {
   id: T
@@ -36,47 +27,11 @@ export const SANS_FONTS: FontOption<SansFontId>[] = [
     googleQuery: 'Inter:ital,wght@0,100..900;1,100..900',
   },
   {
-    id: 'roboto-flex',
-    name: 'Roboto Flex',
-    className: 'font-sans-roboto-flex',
-    cssFamily: "'Roboto Flex'",
-    googleQuery: 'Roboto Flex:opsz,slnt,wght@8..144,-10..0,100..1000',
-  },
-  {
     id: 'google-sans-flex',
     name: 'Google Sans Flex',
     className: 'font-sans-google-sans-flex',
     cssFamily: "'Google Sans Flex'",
     googleQuery: 'Google Sans Flex:opsz,slnt,wght@6..144,-10..0,1..1000',
-  },
-  {
-    id: 'source-sans-3',
-    name: 'Source Sans 3',
-    className: 'font-sans-source-sans-3',
-    cssFamily: "'Source Sans 3'",
-    googleQuery: 'Source Sans 3:ital,wght@0,200..900;1,200..900',
-  },
-  {
-    id: 'work-sans',
-    name: 'Work Sans',
-    className: 'font-sans-work-sans',
-    cssFamily: "'Work Sans'",
-    googleQuery: 'Work Sans:ital,wght@0,100..900;1,100..900',
-  },
-  {
-    id: 'ibm-plex-sans',
-    name: 'IBM Plex Sans',
-    className: 'font-sans-ibm-plex-sans',
-    cssFamily: "'IBM Plex Sans'",
-    googleQuery:
-      'IBM Plex Sans:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700',
-  },
-  {
-    id: 'outfit',
-    name: 'Outfit',
-    className: 'font-sans-outfit',
-    cssFamily: "'Outfit'",
-    googleQuery: 'Outfit:wght@100..900',
   },
   {
     id: 'onest',

@@ -131,22 +131,13 @@
   --font-sans--font-feature-settings: 'calt' 1, 'case' 1;
 }
 
-.font-sans-roboto-flex {
-  --font-sans: 'Roboto Flex', var(--font-cjk-sans);
-  --font-sans--font-feature-settings: 'calt' 1, 'case' 1;
-}
-
 .font-sans-google-sans-flex {
   --font-sans: 'Google Sans Flex', var(--font-cjk-sans);
   --font-sans--font-feature-settings: 'calt' 1, 'case' 1;
 }
 
-/* Roboto Flex / Google Sans Flex have no real italic, only a slnt axis.
+/* Google Sans Flex has no real italic, only a slnt axis.
    Map italic to oblique so the browser drives slnt instead of synthesizing. */
-.font-sans-roboto-flex em,
-.font-sans-roboto-flex i,
-.font-sans-roboto-flex cite,
-.font-sans-roboto-flex .italic,
 .font-sans-google-sans-flex em,
 .font-sans-google-sans-flex i,
 .font-sans-google-sans-flex cite,
@@ -155,40 +146,16 @@
   font-synthesis: none;
 }
 
-/* Outfit / Onest ship no italic and no slnt axis. The global
+/* Onest ships no italic and no slnt axis. The global
    `font-synthesis: none` (set on body for PingFang SC) would otherwise
    suppress italic entirely — re-enable style synthesis here so italic
    text at least renders skewed instead of plain upright. Geist is
    self-hosted with a real italic variable file, so it doesn't need this. */
-.font-sans-outfit em,
-.font-sans-outfit i,
-.font-sans-outfit cite,
-.font-sans-outfit .italic,
 .font-sans-onest em,
 .font-sans-onest i,
 .font-sans-onest cite,
 .font-sans-onest .italic {
   font-synthesis: style;
-}
-
-.font-sans-source-sans-3 {
-  --font-sans: 'Source Sans 3', var(--font-cjk-sans);
-  --font-sans--font-feature-settings: 'calt' 1, 'case' 1;
-}
-
-.font-sans-work-sans {
-  --font-sans: 'Work Sans', var(--font-cjk-sans);
-  --font-sans--font-feature-settings: 'calt' 1, 'case' 1;
-}
-
-.font-sans-ibm-plex-sans {
-  --font-sans: 'IBM Plex Sans', var(--font-cjk-sans);
-  --font-sans--font-feature-settings: 'calt' 1, 'case' 1;
-}
-
-.font-sans-outfit {
-  --font-sans: 'Outfit', var(--font-cjk-sans);
-  --font-sans--font-feature-settings: 'calt' 1, 'case' 1;
 }
 
 .font-sans-onest {
