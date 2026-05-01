@@ -44,7 +44,7 @@ import {
   type AgentThinkingLevel,
 } from '../config/agentModels'
 import { MODEL_CONFIGS, defaultOptionsFor, type ModelConfig } from '../config/models'
-import { useExternalSync, useLatestRef, useMountEffect } from '../hooks/effects'
+import { useExternalSync, useMountEffect } from '../hooks/effects'
 import type { useApiKey } from '../hooks/useApiKey'
 import type { GenerationJob } from '../hooks/useGenerationQueue'
 import { putBlobInCache, getBlobFromCache } from '../hooks/useImageSrc'
@@ -239,6 +239,33 @@ type AgentQuestionResolver = {
   questions: AskUserQuestionItem[]
 }
 
+type AgentSessionRuntime = {
+  sessionId: string
+  agent: Agent
+  ready: boolean
+  modelId: string
+  thinkingLevel: AgentThinkingLevel
+  autoApproveImageTasks: boolean
+  messages: AgentMessage[]
+  streamingMessage: AgentMessage | null
+  isStreaming: boolean
+  error: string | null
+  draft: string
+  attachments: AgentChatAttachment[]
+  attachmentError: string | null
+  imageTasks: AgentImageTask[]
+  imageRegistry: Map<string, AgentImageRegistryEntry>
+  turnCallbacks: Map<string, AgentTurnCallbackState>
+  currentAgentTurnId: string | null
+  leafEntryId: string | null
+  pendingQuestions: AgentPendingQuestion[]
+  questionResolvers: Map<string, AgentQuestionResolver>
+  persistQueue: Promise<void>
+  sidecarPersistQueue: Promise<void>
+  sidecarDebounce: number
+  promptPreparing: boolean
+}
+
 function findDanglingToolCallIds(messages: AgentMessage[]): Set<string> {
   const fulfilled = new Set<string>()
   const all = new Set<string>()
@@ -340,28 +367,40 @@ export function useAgentPlayground({
   const [currentAgentSessionId, setCurrentAgentSessionId] = useState<string | null>(null)
   const [agentSessionsLoading, setAgentSessionsLoading] = useState(true)
 
-  const agentRef = useRef<Agent | null>(null)
-  const agentToolsRef = useRef<Agent['state']['tools']>([])
-  const autoApproveAgentImageTasksRef = useRef(false)
-  const agentImageTasksRef = useRef<AgentImageTask[]>([])
-  const agentImageRegistryRef = useRef<Map<string, AgentImageRegistryEntry>>(new Map())
-  const agentTurnCallbacksRef = useRef<Map<string, AgentTurnCallbackState>>(new Map())
-  const currentAgentTurnIdRef = useRef<string | null>(null)
+  const agentRuntimesRef = useRef<Map<string, AgentSessionRuntime>>(new Map())
+  const agentImageReservationQueueRef = useRef<Promise<void>>(Promise.resolve())
+  const agentPendingReservedImageIdsRef = useRef<Set<string>>(new Set())
   const currentAgentSessionIdRef = useRef<string | null>(null)
-  const currentAgentSessionLeafEntryIdRef = useRef<string | null>(null)
-  const agentSessionPersistQueueRef = useRef<Promise<void>>(Promise.resolve())
-  const agentSessionSidecarPersistQueueRef = useRef<Promise<void>>(Promise.resolve())
-  const agentSessionReadyRef = useRef(false)
-  const agentSessionSidecarDebounceRef = useRef<number>(0)
-  const agentPromptPreparingRef = useRef(false)
-  const agentPendingQuestionsRef = useRef<AgentPendingQuestion[]>([])
-  const agentQuestionResolversRef = useRef<Map<string, AgentQuestionResolver>>(new Map())
   const referenceImagesRef = useRef<PlaygroundImage[]>([])
   const historyRef = useRef<PlaygroundImageMeta[]>([])
   const generationJobsRefForAgent = useRef<GenerationJob[]>([])
   const agentCredentialsRef = useRef({
     google: { apiKey: googleKeyHook.apiKey, baseUrl: googleKeyHook.baseUrl },
     openai: { apiKey: openaiKeyHook.apiKey, baseUrl: openaiKeyHook.baseUrl },
+  })
+  const agentToolHandlersRef = useRef<{
+    genImage: (
+      sessionId: string,
+      toolCallId: string,
+      args: GenImageToolArgs,
+      signal?: AbortSignal,
+    ) => Promise<AgentToolResult>
+    readImage: (sessionId: string, toolCallId: string, args: ReadImageToolArgs) => Promise<AgentToolResult>
+    askUserQuestion: (
+      sessionId: string,
+      toolCallId: string,
+      args: AskUserQuestionToolArgs,
+      signal?: AbortSignal,
+    ) => Promise<AgentToolResult>
+  }>({
+    genImage: async (_sessionId: string, _toolCallId: string, _args: GenImageToolArgs, _signal?: AbortSignal) => {
+      throw new Error('Agent tools are not ready yet.')
+    },
+    readImage: async (_sessionId: string, _toolCallId: string, _args: ReadImageToolArgs) => {
+      throw new Error('Agent tools are not ready yet.')
+    },
+    askUserQuestion: (_sessionId: string, _toolCallId: string, _args: AskUserQuestionToolArgs, _signal?: AbortSignal) =>
+      Promise.reject(new Error('Agent tools are not ready yet.')),
   })
 
   useExternalSync(() => {
@@ -371,86 +410,127 @@ export function useAgentPlayground({
     }
   }, [googleKeyHook.apiKey, googleKeyHook.baseUrl, openaiKeyHook.apiKey, openaiKeyHook.baseUrl])
 
-  const setAgentImageTasks = useCallback((updater: (prev: AgentImageTask[]) => AgentImageTask[]) => {
-    const next = updater(agentImageTasksRef.current)
-    agentImageTasksRef.current = next
-    setAgentImageTasksState(next)
-    return next
-  }, [])
-
-  const setAgentPendingQuestions = useCallback((updater: (prev: AgentPendingQuestion[]) => AgentPendingQuestion[]) => {
-    const next = updater(agentPendingQuestionsRef.current)
-    agentPendingQuestionsRef.current = next
-    setAgentPendingQuestionsState(next)
-    return next
-  }, [])
-
-  const clearAgentQuestionResolvers = useCallback((reason: string) => {
-    const resolvers = agentQuestionResolversRef.current
-    if (resolvers.size === 0) return
-    for (const [, resolver] of resolvers) {
-      try {
-        resolver.resolve(
-          toolTextResult(formatAskUserQuestionResult(resolver.questions, [], { cancelled: true }), {
-            status: 'cancelled',
-            reason,
-          }),
-        )
-      } catch {
-        // Ignore — caller may have moved on.
-      }
-    }
-    resolvers.clear()
-    agentPendingQuestionsRef.current = []
-    setAgentPendingQuestionsState([])
-  }, [])
-
-  const setAutoApproveAgentImageTasks = useCallback((value: boolean) => {
-    autoApproveAgentImageTasksRef.current = value
-    setAutoApproveAgentImageTasksState(value)
-    const sessionId = currentAgentSessionIdRef.current
-    if (sessionId) {
-      void updateAgentSessionConfig(sessionId, { autoApproveImageTasks: value }).then((record) => {
-        if (!record) return
-        setAgentSessions((prev) => [record, ...prev.filter((item) => item.id !== record.id)])
-      })
-    }
-  }, [])
-
   const upsertAgentSessionSummary = useCallback((record: AgentSessionSummary) => {
     setAgentSessions((prev) =>
       [record, ...prev.filter((item) => item.id !== record.id)].sort((a, b) => b.updatedAt - a.updatedAt),
     )
   }, [])
 
-  const persistCurrentAgentSidecar = useCallback(() => {
+  const getCurrentRuntime = useCallback((): AgentSessionRuntime | null => {
     const sessionId = currentAgentSessionIdRef.current
-    if (!sessionId || !agentSessionReadyRef.current) return Promise.resolve()
-    const payload = {
-      sessionId,
-      draft: agentDraft,
-      attachments: agentAttachments,
-      imageTasks: agentImageTasksRef.current,
-      imageRegistry: Array.from(agentImageRegistryRef.current.values()),
-      turnCallbacks: Array.from(agentTurnCallbacksRef.current.values()),
-      currentAgentTurnId: currentAgentTurnIdRef.current,
-      pendingQuestions: agentPendingQuestionsRef.current,
-    }
-    const write = agentSessionSidecarPersistQueueRef.current.then(() => saveAgentSessionSidecar(payload))
-    agentSessionSidecarPersistQueueRef.current = write.catch(() => undefined)
-    return write.catch(() => undefined)
-  }, [agentAttachments, agentDraft])
-
-  const canLeaveCurrentAgentSession = useCallback(() => {
-    if (agentPromptPreparingRef.current) {
-      setAgentError('Agent 正在准备发送图片，请稍后再切换对话。')
-      return false
-    }
-    const activeTask = agentImageTasksRef.current.find((task) => !isTerminalAgentImageTaskStatus(task.status))
-    if (!activeTask) return true
-    setAgentError('当前对话还有未完成的 Agent 生图任务，请先审批、取消或等待完成后再切换对话。')
-    return false
+    return sessionId ? (agentRuntimesRef.current.get(sessionId) ?? null) : null
   }, [])
+
+  const isCurrentRuntime = useCallback((runtime: AgentSessionRuntime) => {
+    return runtime.sessionId === currentAgentSessionIdRef.current
+  }, [])
+
+  const projectRuntimeToUi = useCallback((runtime: AgentSessionRuntime) => {
+    currentAgentSessionIdRef.current = runtime.sessionId
+    setCurrentAgentSessionId(runtime.sessionId)
+    setAgentModelId(runtime.modelId)
+    setAgentThinkingLevelState(runtime.thinkingLevel)
+    setAutoApproveAgentImageTasksState(runtime.autoApproveImageTasks)
+    setAgentMessages(runtime.messages)
+    setAgentStreamingMessage(runtime.streamingMessage)
+    setAgentIsStreaming(runtime.isStreaming)
+    setAgentError(runtime.error)
+    setAgentDraft(runtime.draft)
+    setAgentAttachments(runtime.attachments)
+    setAgentAttachmentError(runtime.attachmentError)
+    setAgentImageTasksState(runtime.imageTasks)
+    setAgentPendingQuestionsState(runtime.pendingQuestions)
+  }, [])
+
+  const setRuntimeError = useCallback(
+    (runtime: AgentSessionRuntime, message: string | null) => {
+      runtime.error = message
+      if (isCurrentRuntime(runtime)) setAgentError(message)
+    },
+    [isCurrentRuntime],
+  )
+
+  const persistRuntimeSidecar = useCallback((runtime: AgentSessionRuntime) => {
+    if (!runtime.ready) return Promise.resolve()
+    const payload = {
+      sessionId: runtime.sessionId,
+      draft: runtime.draft,
+      attachments: runtime.attachments,
+      imageTasks: runtime.imageTasks,
+      imageRegistry: Array.from(runtime.imageRegistry.values()),
+      turnCallbacks: Array.from(runtime.turnCallbacks.values()),
+      currentAgentTurnId: runtime.currentAgentTurnId,
+      pendingQuestions: runtime.pendingQuestions,
+    }
+    const write = runtime.sidecarPersistQueue.then(() => saveAgentSessionSidecar(payload))
+    runtime.sidecarPersistQueue = write.catch(() => undefined)
+    return write.catch(() => undefined)
+  }, [])
+
+  const scheduleRuntimeSidecarPersist = useCallback(
+    (runtime: AgentSessionRuntime) => {
+      if (!runtime.ready) return
+      window.clearTimeout(runtime.sidecarDebounce)
+      runtime.sidecarDebounce = window.setTimeout(() => {
+        void persistRuntimeSidecar(runtime)
+      }, 400)
+    },
+    [persistRuntimeSidecar],
+  )
+
+  const flushRuntime = useCallback(
+    async (runtime: AgentSessionRuntime | null) => {
+      if (!runtime) return
+      window.clearTimeout(runtime.sidecarDebounce)
+      await runtime.persistQueue
+      await persistRuntimeSidecar(runtime)
+      await runtime.sidecarPersistQueue
+    },
+    [persistRuntimeSidecar],
+  )
+
+  const setRuntimeImageTasks = useCallback(
+    (runtime: AgentSessionRuntime, updater: (prev: AgentImageTask[]) => AgentImageTask[]) => {
+      const next = updater(runtime.imageTasks)
+      runtime.imageTasks = next
+      if (isCurrentRuntime(runtime)) setAgentImageTasksState(next)
+      scheduleRuntimeSidecarPersist(runtime)
+      return next
+    },
+    [isCurrentRuntime, scheduleRuntimeSidecarPersist],
+  )
+
+  const setRuntimePendingQuestions = useCallback(
+    (runtime: AgentSessionRuntime, updater: (prev: AgentPendingQuestion[]) => AgentPendingQuestion[]) => {
+      const next = updater(runtime.pendingQuestions)
+      runtime.pendingQuestions = next
+      if (isCurrentRuntime(runtime)) setAgentPendingQuestionsState(next)
+      scheduleRuntimeSidecarPersist(runtime)
+      return next
+    },
+    [isCurrentRuntime, scheduleRuntimeSidecarPersist],
+  )
+
+  const clearRuntimeQuestionResolvers = useCallback(
+    (runtime: AgentSessionRuntime, reason: string) => {
+      if (runtime.questionResolvers.size === 0) return
+      for (const [, resolver] of runtime.questionResolvers) {
+        try {
+          resolver.resolve(
+            toolTextResult(formatAskUserQuestionResult(resolver.questions, [], { cancelled: true }), {
+              status: 'cancelled',
+              reason,
+            }),
+          )
+        } catch {
+          // Ignore — caller may have moved on.
+        }
+      }
+      runtime.questionResolvers.clear()
+      setRuntimePendingQuestions(runtime, () => [])
+    },
+    [setRuntimePendingQuestions],
+  )
 
   useExternalSync(() => {
     referenceImagesRef.current = referenceImages
@@ -464,119 +544,169 @@ export function useAgentPlayground({
     generationJobsRefForAgent.current = generationJobs
   }, [generationJobs])
 
-  useExternalSync(() => {
-    void agentDraft
-    void agentAttachments
-    void agentImageTasks
-    void agentPendingQuestions
-    if (!currentAgentSessionId || !agentSessionReadyRef.current) return
-    window.clearTimeout(agentSessionSidecarDebounceRef.current)
-    agentSessionSidecarDebounceRef.current = window.setTimeout(() => {
-      void persistCurrentAgentSidecar()
-    }, 400)
-    return () => window.clearTimeout(agentSessionSidecarDebounceRef.current)
-  }, [
-    currentAgentSessionId,
-    agentDraft,
-    agentAttachments,
-    agentImageTasks,
-    agentPendingQuestions,
-    persistCurrentAgentSidecar,
-  ])
-
-  const setAgentModelIdForSession = useCallback(
-    (modelId: string) => {
-      setAgentModelId(modelId)
-      const sessionId = currentAgentSessionIdRef.current
-      if (!sessionId) return
-      void updateAgentSessionConfig(sessionId, { modelId }).then((record) => {
-        if (record) upsertAgentSessionSummary(record)
-      })
-    },
-    [upsertAgentSessionSummary],
-  )
-
-  const setAgentThinkingLevel = useCallback(
-    (level: AgentThinkingLevel) => {
-      setAgentThinkingLevelState(level)
-      const sessionId = currentAgentSessionIdRef.current
-      if (!sessionId) return
-      void updateAgentSessionConfig(sessionId, { thinkingLevel: level }).then((record) => {
-        if (record) upsertAgentSessionSummary(record)
-      })
-    },
-    [upsertAgentSessionSummary],
-  )
-
-  const syncAgentSnapshot = useCallback((agent: Agent) => {
-    setAgentMessages(agent.state.messages.slice())
-    setAgentStreamingMessage(getAgentStreamingMessage(agent))
-    setAgentIsStreaming(agent.state.isStreaming)
-    setAgentError(getAgentError(agent))
-  }, [])
-
   const getAgentBaseUrl = useCallback(
     (provider: AgentModelProvider) => agentCredentialsRef.current[provider].baseUrl,
     [],
   )
 
-  const applyAgentRuntimeConfig = useCallback(
-    (agent: Agent, config = agentModel, thinkingLevel = agentThinkingLevel) => {
-      agent.state.systemPrompt = AGENT_SYSTEM_PROMPT
-      agent.state.model = agentModelWithBaseUrl(config, getAgentBaseUrl(config.provider))
-      agent.state.thinkingLevel = config.supportsThinking ? thinkingLevel : 'off'
-      agent.state.tools = agentToolsRef.current
+  const setAgentModelIdForSession = useCallback(
+    (modelId: string) => {
+      const runtime = getCurrentRuntime()
+      if (!runtime) return
+      runtime.modelId = modelId
+      setAgentModelId(modelId)
+      const config = resolveAgentModelConfig(modelId)
+      runtime.agent.state.model = agentModelWithBaseUrl(config, getAgentBaseUrl(config.provider))
+      runtime.agent.state.thinkingLevel = config.supportsThinking ? runtime.thinkingLevel : 'off'
+      void updateAgentSessionConfig(runtime.sessionId, { modelId }).then((record) => {
+        if (record) upsertAgentSessionSummary(record)
+      })
     },
-    [agentModel, agentThinkingLevel, getAgentBaseUrl],
+    [getAgentBaseUrl, getCurrentRuntime, upsertAgentSessionSummary],
   )
 
-  const getOrCreateAgent = useCallback(() => {
-    if (agentRef.current) return agentRef.current
-    const agent = new Agent({
-      transport: new ProviderTransport({
-        getApiKey: (provider) => {
-          if (provider === 'google' || provider === 'openai') {
-            return agentCredentialsRef.current[provider].apiKey || undefined
-          }
-          return undefined
+  const setAgentThinkingLevel = useCallback(
+    (level: AgentThinkingLevel) => {
+      const runtime = getCurrentRuntime()
+      if (!runtime) return
+      runtime.thinkingLevel = level
+      setAgentThinkingLevelState(level)
+      const config = resolveAgentModelConfig(runtime.modelId)
+      runtime.agent.state.thinkingLevel = config.supportsThinking ? level : 'off'
+      void updateAgentSessionConfig(runtime.sessionId, { thinkingLevel: level }).then((record) => {
+        if (record) upsertAgentSessionSummary(record)
+      })
+    },
+    [getCurrentRuntime, upsertAgentSessionSummary],
+  )
+
+  const syncRuntimeSnapshot = useCallback(
+    (runtime: AgentSessionRuntime) => {
+      runtime.messages = runtime.agent.state.messages.slice()
+      runtime.streamingMessage = getAgentStreamingMessage(runtime.agent)
+      runtime.isStreaming = runtime.agent.state.isStreaming
+      runtime.error = getAgentError(runtime.agent)
+      if (!isCurrentRuntime(runtime)) return
+      setAgentMessages(runtime.messages)
+      setAgentStreamingMessage(runtime.streamingMessage)
+      setAgentIsStreaming(runtime.isStreaming)
+      setAgentError(runtime.error)
+    },
+    [isCurrentRuntime],
+  )
+
+  const applyAgentRuntimeConfig = useCallback(
+    (runtime: AgentSessionRuntime) => {
+      const config = resolveAgentModelConfig(runtime.modelId)
+      runtime.agent.state.systemPrompt = AGENT_SYSTEM_PROMPT
+      runtime.agent.state.model = agentModelWithBaseUrl(config, getAgentBaseUrl(config.provider))
+      runtime.agent.state.thinkingLevel = config.supportsThinking ? runtime.thinkingLevel : 'off'
+      runtime.agent.state.tools = createAgentTools({
+        imageModels: MODEL_CONFIGS,
+        genImage: (toolCallId, args, signal) =>
+          agentToolHandlersRef.current.genImage(runtime.sessionId, toolCallId, args, signal),
+        readImage: (toolCallId, args) => agentToolHandlersRef.current.readImage(runtime.sessionId, toolCallId, args),
+        askUserQuestion: (toolCallId, args, signal) =>
+          agentToolHandlersRef.current.askUserQuestion(runtime.sessionId, toolCallId, args, signal),
+      })
+    },
+    [getAgentBaseUrl],
+  )
+
+  const createRuntime = useCallback(
+    (params: {
+      sessionId: string
+      modelId: string
+      thinkingLevel: AgentThinkingLevel
+      autoApproveImageTasks: boolean
+      leafEntryId: string | null
+      messages: AgentMessage[]
+      draft: string
+      attachments: AgentChatAttachment[]
+      imageTasks: AgentImageTask[]
+      imageRegistry: AgentImageRegistryEntry[]
+      turnCallbacks: AgentTurnCallbackState[]
+      currentAgentTurnId: string | null
+      pendingQuestions: AgentPendingQuestion[]
+    }): AgentSessionRuntime => {
+      const config = resolveAgentModelConfig(params.modelId)
+      const agent = new Agent({
+        transport: new ProviderTransport({
+          getApiKey: (provider) => {
+            if (provider === 'google' || provider === 'openai') {
+              return agentCredentialsRef.current[provider].apiKey || undefined
+            }
+            return undefined
+          },
+        }),
+        initialState: {
+          systemPrompt: AGENT_SYSTEM_PROMPT,
+          model: agentModelWithBaseUrl(config, getAgentBaseUrl(config.provider)),
+          thinkingLevel: config.supportsThinking ? params.thinkingLevel : 'off',
+          tools: [],
+          messages: params.messages,
         },
-      }),
-      initialState: {
-        systemPrompt: AGENT_SYSTEM_PROMPT,
-        model: agentModelWithBaseUrl(agentModel, getAgentBaseUrl(agentModel.provider)),
-        thinkingLevel: agentModel.supportsThinking ? agentThinkingLevel : 'off',
-        tools: agentToolsRef.current,
-        messages: [],
-      },
-    })
-    agent.subscribe((event) => {
-      syncAgentSnapshot(agent)
-      if (event.type !== 'message_end') return
-      const sessionId = currentAgentSessionIdRef.current
-      if (!sessionId) return
-      agentSessionPersistQueueRef.current = agentSessionPersistQueueRef.current
-        .then(async () => {
-          const parentId = currentAgentSessionLeafEntryIdRef.current
-          const result = await appendAgentSessionMessage({ sessionId, parentId, message: event.message })
-          if (currentAgentSessionIdRef.current === sessionId) {
-            currentAgentSessionLeafEntryIdRef.current = result.entryId
-          }
-          upsertAgentSessionSummary(result.record)
-        })
-        .catch((error: unknown) => {
-          setAgentError(error instanceof Error ? error.message : String(error))
-        })
-    })
-    agentRef.current = agent
-    return agent
-  }, [agentModel, agentThinkingLevel, getAgentBaseUrl, syncAgentSnapshot, upsertAgentSessionSummary])
+      })
+      const runtime: AgentSessionRuntime = {
+        sessionId: params.sessionId,
+        agent,
+        ready: false,
+        modelId: params.modelId,
+        thinkingLevel: params.thinkingLevel,
+        autoApproveImageTasks: params.autoApproveImageTasks,
+        messages: params.messages,
+        streamingMessage: null,
+        isStreaming: false,
+        error: null,
+        draft: params.draft,
+        attachments: params.attachments,
+        attachmentError: null,
+        imageTasks: params.imageTasks,
+        imageRegistry: new Map(params.imageRegistry.map((entry) => [entry.id, entry])),
+        turnCallbacks: new Map(params.turnCallbacks.map((callback) => [callback.agentTurnId, callback])),
+        currentAgentTurnId: params.currentAgentTurnId,
+        leafEntryId: params.leafEntryId,
+        pendingQuestions: params.pendingQuestions,
+        questionResolvers: new Map(),
+        persistQueue: Promise.resolve(),
+        sidecarPersistQueue: Promise.resolve(),
+        sidecarDebounce: 0,
+        promptPreparing: false,
+      }
+      agent.subscribe((event) => {
+        syncRuntimeSnapshot(runtime)
+        if (event.type !== 'message_end') return
+        runtime.persistQueue = runtime.persistQueue
+          .then(async () => {
+            const result = await appendAgentSessionMessage({
+              sessionId: runtime.sessionId,
+              parentId: runtime.leafEntryId,
+              message: event.message,
+            })
+            runtime.leafEntryId = result.entryId
+            upsertAgentSessionSummary(result.record)
+          })
+          .catch((error: unknown) => {
+            setRuntimeError(runtime, error instanceof Error ? error.message : String(error))
+          })
+      })
+      agentRuntimesRef.current.set(runtime.sessionId, runtime)
+      applyAgentRuntimeConfig(runtime)
+      syncRuntimeSnapshot(runtime)
+      runtime.ready = true
+      return runtime
+    },
+    [applyAgentRuntimeConfig, getAgentBaseUrl, setRuntimeError, syncRuntimeSnapshot, upsertAgentSessionSummary],
+  )
 
   const loadAgentSessionIntoRuntime = useCallback(
     (session: Awaited<ReturnType<typeof loadAgentSession>>) => {
       if (!session) return
-      agentSessionReadyRef.current = false
-      clearAgentQuestionResolvers('session_switched')
-      const config = resolveAgentModelConfig(session.record.modelId)
+      const existing = agentRuntimesRef.current.get(session.record.id)
+      if (existing) {
+        projectRuntimeToUi(existing)
+        return
+      }
       const restoredTasks = restoreAgentImageTasks(session.sidecar.imageTasks)
       const releasedReservedIds = new Set<string>()
       for (let index = 0; index < session.sidecar.imageTasks.length; index++) {
@@ -593,46 +723,33 @@ export function useAgentPlayground({
       const restoredQuestions = session.sidecar.pendingQuestions ?? []
       const restoredQuestionIds = new Set(restoredQuestions.map((item) => item.toolCallId))
 
-      currentAgentSessionIdRef.current = session.record.id
-      currentAgentSessionLeafEntryIdRef.current = session.record.leafEntryId
-      currentAgentTurnIdRef.current = session.sidecar.currentAgentTurnId
-      agentImageTasksRef.current = restoredTasks
-      agentImageRegistryRef.current = new Map(restoredRegistry.map((entry) => [entry.id, entry]))
-      agentTurnCallbacksRef.current = new Map(
-        session.sidecar.turnCallbacks.map((callback) => [callback.agentTurnId, callback]),
-      )
-      agentPendingQuestionsRef.current = restoredQuestions
-      autoApproveAgentImageTasksRef.current = session.record.autoApproveImageTasks
-
-      setCurrentAgentSessionId(session.record.id)
-      setAgentModelId(session.record.modelId)
-      setAgentThinkingLevelState(session.record.thinkingLevel)
-      setAutoApproveAgentImageTasksState(session.record.autoApproveImageTasks)
-      setAgentDraft(session.sidecar.draft)
-      setAgentAttachments(session.sidecar.attachments)
-      setAgentAttachmentError(null)
-      setAgentImageTasksState(restoredTasks)
-      setAgentPendingQuestionsState(restoredQuestions)
-      setAgentError(null)
-
-      const agent = getOrCreateAgent()
-      applyAgentRuntimeConfig(agent, config, session.record.thinkingLevel)
-      agent.state.error = undefined
-      agent.state.streamMessage = null
-      agent.state.pendingToolCalls = new Set()
-      agent.replaceMessages(injectAbandonedToolResults(session.messages, restoredQuestionIds))
-      syncAgentSnapshot(agent)
-      agentSessionReadyRef.current = true
+      const runtime = createRuntime({
+        sessionId: session.record.id,
+        modelId: session.record.modelId,
+        thinkingLevel: session.record.thinkingLevel,
+        autoApproveImageTasks: session.record.autoApproveImageTasks,
+        leafEntryId: session.record.leafEntryId,
+        messages: injectAbandonedToolResults(session.messages, restoredQuestionIds),
+        draft: session.sidecar.draft,
+        attachments: session.sidecar.attachments,
+        imageTasks: restoredTasks,
+        imageRegistry: restoredRegistry,
+        turnCallbacks: session.sidecar.turnCallbacks,
+        currentAgentTurnId: session.sidecar.currentAgentTurnId,
+        pendingQuestions: restoredQuestions,
+      })
+      runtime.agent.state.error = undefined
+      runtime.agent.state.streamMessage = null
+      runtime.agent.state.pendingToolCalls = new Set()
+      runtime.agent.replaceMessages(runtime.messages)
+      syncRuntimeSnapshot(runtime)
+      projectRuntimeToUi(runtime)
     },
-    [applyAgentRuntimeConfig, clearAgentQuestionResolvers, getOrCreateAgent, syncAgentSnapshot],
+    [createRuntime, projectRuntimeToUi, syncRuntimeSnapshot],
   )
 
   const createNewAgentSession = useCallback(async () => {
-    if (agentRef.current?.state.isStreaming) return
-    if (!canLeaveCurrentAgentSession()) return
-    await agentSessionPersistQueueRef.current
-    await persistCurrentAgentSidecar()
-    await agentSessionSidecarPersistQueueRef.current
+    await flushRuntime(getCurrentRuntime())
     const record = await createAgentSession({
       modelId: agentModel.id,
       thinkingLevel: agentThinkingLevel,
@@ -656,35 +773,44 @@ export function useAgentPlayground({
     agentModel.id,
     agentThinkingLevel,
     autoApproveAgentImageTasks,
-    canLeaveCurrentAgentSession,
+    flushRuntime,
+    getCurrentRuntime,
     loadAgentSessionIntoRuntime,
-    persistCurrentAgentSidecar,
     upsertAgentSessionSummary,
   ])
 
   const switchAgentSession = useCallback(
     (sessionId: string) => {
-      if (sessionId === currentAgentSessionIdRef.current || agentRef.current?.state.isStreaming) return
-      if (!canLeaveCurrentAgentSession()) return
+      if (sessionId === currentAgentSessionIdRef.current) return
       void (async () => {
-        await agentSessionPersistQueueRef.current
-        await persistCurrentAgentSidecar()
-        await agentSessionSidecarPersistQueueRef.current
-        const session = await loadAgentSession(sessionId)
-        loadAgentSessionIntoRuntime(session)
+        await flushRuntime(getCurrentRuntime())
+        const runtime = agentRuntimesRef.current.get(sessionId)
+        if (runtime) {
+          projectRuntimeToUi(runtime)
+          return
+        }
+        loadAgentSessionIntoRuntime(await loadAgentSession(sessionId))
       })().catch((error: unknown) => {
         setAgentError(error instanceof Error ? error.message : String(error))
       })
     },
-    [canLeaveCurrentAgentSession, loadAgentSessionIntoRuntime, persistCurrentAgentSidecar],
+    [flushRuntime, getCurrentRuntime, loadAgentSessionIntoRuntime, projectRuntimeToUi],
   )
 
   const removeAgentSession = useCallback(
     (sessionId: string) => {
-      if (agentRef.current?.state.isStreaming) return
-      if (sessionId === currentAgentSessionIdRef.current && !canLeaveCurrentAgentSession()) return
       void (async () => {
-        await agentSessionPersistQueueRef.current
+        const runtime = agentRuntimesRef.current.get(sessionId)
+        if (runtime) {
+          runtime.ready = false
+          clearRuntimeQuestionResolvers(runtime, 'session_deleted')
+          runtime.agent.abort()
+          for (const task of runtime.imageTasks) {
+            if (task.generationJobId && !isTerminalAgentImageTaskStatus(task.status))
+              cancelGenerationJob(task.generationJobId)
+          }
+          agentRuntimesRef.current.delete(sessionId)
+        }
         await deleteAgentSession(sessionId)
         const nextSessions = (await listAgentSessions()).filter((session) => session.id !== sessionId)
         setAgentSessions(nextSessions)
@@ -693,7 +819,6 @@ export function useAgentPlayground({
         if (next) {
           loadAgentSessionIntoRuntime(await loadAgentSession(next.id))
         } else {
-          agentSessionReadyRef.current = false
           currentAgentSessionIdRef.current = null
           setCurrentAgentSessionId(null)
           await createNewAgentSession()
@@ -702,7 +827,7 @@ export function useAgentPlayground({
         setAgentError(error instanceof Error ? error.message : String(error))
       })
     },
-    [canLeaveCurrentAgentSession, createNewAgentSession, loadAgentSessionIntoRuntime],
+    [cancelGenerationJob, clearRuntimeQuestionResolvers, createNewAgentSession, loadAgentSessionIntoRuntime],
   )
 
   useMountEffect(() => {
@@ -726,16 +851,19 @@ export function useAgentPlayground({
   })
 
   useExternalSync(() => {
-    const agent = agentRef.current
-    if (!agent) return
-    applyAgentRuntimeConfig(agent)
-    syncAgentSnapshot(agent)
-  }, [applyAgentRuntimeConfig, syncAgentSnapshot])
+    for (const runtime of agentRuntimesRef.current.values()) {
+      applyAgentRuntimeConfig(runtime)
+      syncRuntimeSnapshot(runtime)
+    }
+  }, [applyAgentRuntimeConfig, syncRuntimeSnapshot])
 
   const addAgentAttachments = useCallback(
     (files: File[]) => {
-      const remaining = AGENT_MAX_ATTACHMENTS - agentAttachments.length
+      const runtime = getCurrentRuntime()
+      if (!runtime) return
+      const remaining = AGENT_MAX_ATTACHMENTS - runtime.attachments.length
       if (remaining <= 0) {
+        runtime.attachmentError = `最多附加 ${AGENT_MAX_ATTACHMENTS} 张图片`
         setAgentAttachmentError(`最多附加 ${AGENT_MAX_ATTACHMENTS} 张图片`)
         return
       }
@@ -765,20 +893,30 @@ export function useAgentPlayground({
           }
         }
         if (attachments.length > 0) {
-          setAgentAttachments((prev) => [...prev, ...attachments].slice(0, AGENT_MAX_ATTACHMENTS))
-          setAgentAttachmentError(null)
+          runtime.attachments = [...runtime.attachments, ...attachments].slice(0, AGENT_MAX_ATTACHMENTS)
+          runtime.attachmentError = null
+          if (isCurrentRuntime(runtime)) {
+            setAgentAttachments(runtime.attachments)
+            setAgentAttachmentError(null)
+          }
+          scheduleRuntimeSidecarPersist(runtime)
         }
-        if (errors.length > 0) setAgentAttachmentError(errors.join('\n'))
+        if (errors.length > 0) {
+          runtime.attachmentError = errors.join('\n')
+          if (isCurrentRuntime(runtime)) setAgentAttachmentError(runtime.attachmentError)
+        }
       })
     },
-    [agentAttachments.length],
+    [getCurrentRuntime, isCurrentRuntime, scheduleRuntimeSidecarPersist],
   )
 
   const addAgentImageAttachment = useCallback(
     (image: PlaygroundImage | PlaygroundImageMeta) => {
-      if (agentAttachments.some((item) => item.id === image.id)) return
-      const remaining = AGENT_MAX_ATTACHMENTS - agentAttachments.length
+      const runtime = getCurrentRuntime()
+      if (!runtime || runtime.attachments.some((item) => item.id === image.id)) return
+      const remaining = AGENT_MAX_ATTACHMENTS - runtime.attachments.length
       if (remaining <= 0) {
+        runtime.attachmentError = `最多附加 ${AGENT_MAX_ATTACHMENTS} 张图片`
         setAgentAttachmentError(`最多附加 ${AGENT_MAX_ATTACHMENTS} 张图片`)
         return
       }
@@ -786,7 +924,8 @@ export function useAgentPlayground({
       void (async () => {
         const data = 'data' in image ? image.data : (getBlobFromCache(image.id) ?? (await loadImageBlob(image.id)))
         if (!data) {
-          setAgentAttachmentError('无法读取这张图片，请先打开图片或稍后重试。')
+          runtime.attachmentError = '无法读取这张图片，请先打开图片或稍后重试。'
+          if (isCurrentRuntime(runtime)) setAgentAttachmentError(runtime.attachmentError)
           return
         }
         putBlobInCache(image.id, data)
@@ -798,30 +937,48 @@ export function useAgentPlayground({
           fileName,
           size: 0,
         }
-        agentImageRegistryRef.current.set(image.id, {
+        runtime.imageRegistry.set(image.id, {
           id: image.id,
           image: { ...image, data },
           source: image.source.type === 'generated' ? 'generated' : 'history',
           status: 'ready',
           createdAt: image.timestamp,
         })
-        setAgentAttachments((prev) => (prev.some((item) => item.id === image.id) ? prev : [...prev, attachment]))
-        setAgentAttachmentError(null)
+        if (!runtime.attachments.some((item) => item.id === image.id))
+          runtime.attachments = [...runtime.attachments, attachment]
+        runtime.attachmentError = null
+        if (isCurrentRuntime(runtime)) {
+          setAgentAttachments(runtime.attachments)
+          setAgentAttachmentError(null)
+        }
+        scheduleRuntimeSidecarPersist(runtime)
       })()
     },
-    [agentAttachments],
+    [getCurrentRuntime, isCurrentRuntime, scheduleRuntimeSidecarPersist],
   )
 
-  const removeAgentAttachment = useCallback((id: string) => {
-    setAgentAttachments((prev) => prev.filter((item) => item.id !== id))
-  }, [])
+  const removeAgentAttachment = useCallback(
+    (id: string) => {
+      const runtime = getCurrentRuntime()
+      if (!runtime) return
+      runtime.attachments = runtime.attachments.filter((item) => item.id !== id)
+      if (isCurrentRuntime(runtime)) setAgentAttachments(runtime.attachments)
+      scheduleRuntimeSidecarPersist(runtime)
+    },
+    [getCurrentRuntime, isCurrentRuntime, scheduleRuntimeSidecarPersist],
+  )
 
   const clearAgentAttachmentError = useCallback(() => {
+    const runtime = getCurrentRuntime()
+    if (runtime) runtime.attachmentError = null
     setAgentAttachmentError(null)
-  }, [])
+  }, [getCurrentRuntime])
 
-  const imageIdExistsForAgent = useCallback(async (id: string): Promise<boolean> => {
-    if (agentImageRegistryRef.current.has(id)) return true
+  const imageIdExistsForAgent = useCallback(async (runtime: AgentSessionRuntime, id: string): Promise<boolean> => {
+    if (runtime.imageRegistry.has(id)) return true
+    for (const otherRuntime of agentRuntimesRef.current.values()) {
+      if (otherRuntime.sessionId !== runtime.sessionId && otherRuntime.imageRegistry.has(id)) return true
+    }
     if (referenceImagesRef.current.some((image) => image.id === id)) return true
     if (historyRef.current.some((image) => image.id === id)) return true
     if (generationJobsRefForAgent.current.some((job) => job.slots.some((slot) => slot.image?.id === id))) return true
@@ -829,8 +986,34 @@ export function useAgentPlayground({
     return metas.has(id)
   }, [])
 
+  const reserveAgentImageIdsForRuntime = useCallback(
+    async (runtime: AgentSessionRuntime, requestedImageId: string, count: number) => {
+      const reserve = agentImageReservationQueueRef.current.then(async () => {
+        const result = await reserveAgentImageIds({
+          requestedImageId,
+          count,
+          isReserved: (id) => agentPendingReservedImageIdsRef.current.has(id) || runtime.imageRegistry.has(id),
+          exists: (id) => imageIdExistsForAgent(runtime, id),
+        })
+        for (const id of result.reservedImageIds) agentPendingReservedImageIdsRef.current.add(id)
+        return result
+      })
+      agentImageReservationQueueRef.current = reserve.then(
+        () => undefined,
+        () => undefined,
+      )
+      return reserve
+    },
+    [imageIdExistsForAgent],
+  )
+
+  const releasePendingAgentImageIds = useCallback((ids: string[]) => {
+    for (const id of ids) agentPendingReservedImageIdsRef.current.delete(id)
+  }, [])
+
   const resolveAgentImageById = useCallback(
     async (
+      runtime: AgentSessionRuntime,
       id: string,
     ): Promise<
       | { status: 'ready'; source: AgentImageRegistryEntry['source']; image: PlaygroundImage }
@@ -840,7 +1023,7 @@ export function useAgentPlayground({
       const reference = referenceImagesRef.current.find((image) => image.id === id)
       if (reference) return { status: 'ready', source: 'reference', image: reference }
 
-      const registryEntry = agentImageRegistryRef.current.get(id)
+      const registryEntry = runtime.imageRegistry.get(id)
       if (registryEntry?.source === 'agent_attachment' && registryEntry.image) {
         const attachment = registryEntry.image as AgentChatAttachment
         return {
@@ -895,10 +1078,10 @@ export function useAgentPlayground({
   )
 
   const resolveAgentReferenceImages = useCallback(
-    async (ids: string[]): Promise<PlaygroundImage[]> => {
+    async (runtime: AgentSessionRuntime, ids: string[]): Promise<PlaygroundImage[]> => {
       const images: PlaygroundImage[] = []
       for (const id of ids) {
-        const result = await resolveAgentImageById(id)
+        const result = await resolveAgentImageById(runtime, id)
         if (!result) throw new Error(`Reference image does not exist: ${id}`)
         if (result.status !== 'ready') throw new Error(`Reference image is not ready: ${id}`)
         images.push(result.image)
@@ -909,31 +1092,31 @@ export function useAgentPlayground({
   )
 
   const sendAgentSystemEvent = useCallback(
-    async (text: string): Promise<boolean> => {
-      const credentials = agentCredentialsRef.current[agentModel.provider]
+    async (runtime: AgentSessionRuntime, text: string): Promise<boolean> => {
+      const config = resolveAgentModelConfig(runtime.modelId)
+      const credentials = agentCredentialsRef.current[config.provider]
       if (!credentials.apiKey) {
-        setAgentError(`Agent 需要 ${agentModel.providerLabel} API Key 才能接收任务完成回调。`)
+        setRuntimeError(runtime, `Agent 需要 ${config.providerLabel} API Key 才能接收任务完成回调。`)
         return false
       }
 
-      const agent = getOrCreateAgent()
-      applyAgentRuntimeConfig(agent, agentModel)
-      currentAgentTurnIdRef.current = crypto.randomUUID()
-      if (agent.state.isStreaming) {
-        await agent.queueMessage({ role: 'user', content: [{ type: 'text', text }], timestamp: Date.now() })
+      applyAgentRuntimeConfig(runtime)
+      runtime.currentAgentTurnId = crypto.randomUUID()
+      if (runtime.agent.state.isStreaming) {
+        await runtime.agent.queueMessage({ role: 'user', content: [{ type: 'text', text }], timestamp: Date.now() })
       } else {
-        await agent.prompt(text)
+        await runtime.agent.prompt(text)
       }
-      syncAgentSnapshot(agent)
+      syncRuntimeSnapshot(runtime)
       return true
     },
-    [agentModel, applyAgentRuntimeConfig, getOrCreateAgent, syncAgentSnapshot],
+    [applyAgentRuntimeConfig, setRuntimeError, syncRuntimeSnapshot],
   )
 
   const maybeDispatchAgentImageCallbacks = useCallback(
-    (tasks = agentImageTasksRef.current) => {
-      if (agentRef.current?.state.isStreaming) return
-      for (const callbackState of agentTurnCallbacksRef.current.values()) {
+    (runtime: AgentSessionRuntime, tasks = runtime.imageTasks) => {
+      if (runtime.agent.state.isStreaming) return
+      for (const callbackState of runtime.turnCallbacks.values()) {
         if (callbackState.callbackQueued || callbackState.taskIds.length === 0) continue
         const turnTasks = callbackState.taskIds
           .map((taskId) => tasks.find((task) => task.id === taskId))
@@ -943,23 +1126,24 @@ export function useAgentPlayground({
 
         const text = buildAgentTaskCallbackText(turnTasks)
         callbackState.callbackQueued = true
-        void sendAgentSystemEvent(text)
+        scheduleRuntimeSidecarPersist(runtime)
+        void sendAgentSystemEvent(runtime, text)
           .then((sent) => {
             if (!sent) callbackState.callbackQueued = false
           })
           .catch((error: unknown) => {
             callbackState.callbackQueued = false
             const message = error instanceof Error ? error.message : String(error)
-            setAgentError(message)
+            setRuntimeError(runtime, message)
           })
       }
     },
-    [sendAgentSystemEvent],
+    [scheduleRuntimeSidecarPersist, sendAgentSystemEvent, setRuntimeError],
   )
 
   const startAgentImageTask = useCallback(
-    async (task: AgentImageTask): Promise<{ ok: boolean; message: string }> => {
-      setAgentImageTasks((prev) =>
+    async (runtime: AgentSessionRuntime, task: AgentImageTask): Promise<{ ok: boolean; message: string }> => {
+      setRuntimeImageTasks(runtime, (prev) =>
         prev.map((item) =>
           item.id === task.id && item.status === 'pending_approval' ? { ...item, status: 'approved' } : item,
         ),
@@ -968,39 +1152,43 @@ export function useAgentPlayground({
       const modelConfig = findModelConfig(task.request.modelId)
       if (!modelConfig) {
         const message = `Unknown GenImage model: ${task.request.modelId}.`
-        const next = setAgentImageTasks((prev) =>
+        const next = setRuntimeImageTasks(runtime, (prev) =>
           prev.map((item) => (item.id === task.id ? { ...item, status: 'failed', error: message } : item)),
         )
-        for (const id of task.request.reservedImageIds) agentImageRegistryRef.current.delete(id)
-        maybeDispatchAgentImageCallbacks(next)
+        for (const id of task.request.reservedImageIds) runtime.imageRegistry.delete(id)
+        maybeDispatchAgentImageCallbacks(runtime, next)
         return { ok: false, message }
       }
 
       const credentials = getProviderCredentials(modelConfig.provider)
       if (!credentials.apiKey) {
         const message = `使用 ${modelConfig.name} 需要先配置 ${modelConfig.provider === 'google' ? 'Gemini' : 'OpenAI'} API Key。`
-        const next = setAgentImageTasks((prev) =>
+        const next = setRuntimeImageTasks(runtime, (prev) =>
           prev.map((item) => (item.id === task.id ? { ...item, status: 'failed', error: message } : item)),
         )
-        for (const id of task.request.reservedImageIds) agentImageRegistryRef.current.delete(id)
-        maybeDispatchAgentImageCallbacks(next)
+        for (const id of task.request.reservedImageIds) runtime.imageRegistry.delete(id)
+        maybeDispatchAgentImageCallbacks(runtime, next)
         return { ok: false, message }
       }
 
       let referenceImages: PlaygroundImage[]
       try {
-        referenceImages = await resolveAgentReferenceImages(task.request.referenceImageIds)
+        referenceImages = await resolveAgentReferenceImages(runtime, task.request.referenceImageIds)
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
-        const next = setAgentImageTasks((prev) =>
+        const next = setRuntimeImageTasks(runtime, (prev) =>
           prev.map((item) => (item.id === task.id ? { ...item, status: 'failed', error: message } : item)),
         )
-        for (const id of task.request.reservedImageIds) agentImageRegistryRef.current.delete(id)
-        maybeDispatchAgentImageCallbacks(next)
+        for (const id of task.request.reservedImageIds) runtime.imageRegistry.delete(id)
+        maybeDispatchAgentImageCallbacks(runtime, next)
         return { ok: false, message }
       }
 
-      const currentTask = agentImageTasksRef.current.find((item) => item.id === task.id)
+      if (!runtime.ready || agentRuntimesRef.current.get(runtime.sessionId) !== runtime) {
+        return { ok: false, message: '任务所属对话已经删除。' }
+      }
+
+      const currentTask = runtime.imageTasks.find((item) => item.id === task.id)
       if (!currentTask || isTerminalAgentImageTaskStatus(currentTask.status)) {
         return { ok: false, message: '任务已经取消。' }
       }
@@ -1033,7 +1221,7 @@ export function useAgentPlayground({
         stackId,
         task.request.parentImageId,
       )
-      setAgentImageTasks((prev) =>
+      setRuntimeImageTasks(runtime, (prev) =>
         prev.map((item) =>
           item.id === task.id
             ? {
@@ -1053,29 +1241,31 @@ export function useAgentPlayground({
       getProviderCredentials,
       maybeDispatchAgentImageCallbacks,
       resolveAgentReferenceImages,
-      setAgentImageTasks,
+      setRuntimeImageTasks,
     ],
   )
 
   const approveAgentImageTask = useCallback(
     (taskId: string) => {
-      const task = agentImageTasksRef.current.find((item) => item.id === taskId)
-      if (!task || task.status !== 'pending_approval') return
-      void startAgentImageTask(task)
+      const runtime = getCurrentRuntime()
+      const task = runtime?.imageTasks.find((item) => item.id === taskId)
+      if (!runtime || !task || task.status !== 'pending_approval') return
+      void startAgentImageTask(runtime, task)
     },
-    [startAgentImageTask],
+    [getCurrentRuntime, startAgentImageTask],
   )
 
   const cancelAgentImageTask = useCallback(
     (taskId: string) => {
-      const task = agentImageTasksRef.current.find((item) => item.id === taskId)
-      if (!task) return
+      const runtime = getCurrentRuntime()
+      const task = runtime?.imageTasks.find((item) => item.id === taskId)
+      if (!runtime || !task) return
       if (task.status === 'pending_approval') {
-        const next = setAgentImageTasks((prev) =>
+        const next = setRuntimeImageTasks(runtime, (prev) =>
           prev.map((item) => (item.id === taskId ? { ...item, status: 'rejected' } : item)),
         )
-        for (const id of task.request.reservedImageIds) agentImageRegistryRef.current.delete(id)
-        maybeDispatchAgentImageCallbacks(next)
+        for (const id of task.request.reservedImageIds) runtime.imageRegistry.delete(id)
+        maybeDispatchAgentImageCallbacks(runtime, next)
         return
       }
       if (task.generationJobId) cancelGenerationJob(task.generationJobId)
@@ -1085,18 +1275,25 @@ export function useAgentPlayground({
       const resultImageIds = job?.slots.flatMap((slot) => (slot.image ? [slot.image.id] : [])) ?? task.resultImageIds
       const fulfilledIds = new Set(resultImageIds)
       for (const id of task.request.reservedImageIds) {
-        if (!fulfilledIds.has(id)) agentImageRegistryRef.current.delete(id)
+        if (!fulfilledIds.has(id)) runtime.imageRegistry.delete(id)
       }
-      const next = setAgentImageTasks((prev) =>
+      const next = setRuntimeImageTasks(runtime, (prev) =>
         prev.map((item) => (item.id === taskId ? { ...item, status: 'canceled', resultImageIds } : item)),
       )
-      maybeDispatchAgentImageCallbacks(next)
+      maybeDispatchAgentImageCallbacks(runtime, next)
     },
-    [cancelGenerationJob, maybeDispatchAgentImageCallbacks, setAgentImageTasks],
+    [cancelGenerationJob, getCurrentRuntime, maybeDispatchAgentImageCallbacks, setRuntimeImageTasks],
   )
 
   const runGenImageTool = useCallback(
-    async (toolCallId: string, args: GenImageToolArgs, signal?: AbortSignal): Promise<AgentToolResult> => {
+    async (
+      sessionId: string,
+      toolCallId: string,
+      args: GenImageToolArgs,
+      signal?: AbortSignal,
+    ): Promise<AgentToolResult> => {
+      const runtime = agentRuntimesRef.current.get(sessionId)
+      if (!runtime) throw new Error('Agent session is no longer available.')
       if (signal?.aborted) throw new Error('GenImage was aborted.')
       const promptText = args.prompt.trim()
       if (!promptText) throw new Error('GenImage.prompt is required.')
@@ -1111,91 +1308,94 @@ export function useAgentPlayground({
       const resolution = normalizeResolution(modelConfig, args.resolution)
       const aspect = normalizeAspectRatio(modelConfig, args.ratio)
       const referenceImageIds = args.reference_image_ids.filter((id) => id.trim()).map((id) => id.trim())
-      const referenceImages = await resolveAgentReferenceImages(referenceImageIds)
+      const referenceImages = await resolveAgentReferenceImages(runtime, referenceImageIds)
       if (signal?.aborted) throw new Error('GenImage was aborted.')
       const editSource = referenceImages.find((image) => image.source.type === 'generated')
-      const reserved = await reserveAgentImageIds({
-        requestedImageId: args.image_id,
-        count: batchCount,
-        isReserved: (id) => agentImageRegistryRef.current.has(id),
-        exists: imageIdExistsForAgent,
-      })
-      const activeOptions = activeOptionsForModel(modelConfig, defaultOptionsFor(modelConfig))
-      const task: AgentImageTask = {
-        id: crypto.randomUUID(),
-        toolCallId,
-        agentTurnId: currentAgentTurnIdRef.current ?? crypto.randomUUID(),
-        createdAt: Date.now(),
-        status: 'pending_approval',
-        request: {
-          prompt: promptText,
-          requestedImageId: reserved.requestedImageId,
-          reservedImageIds: reserved.reservedImageIds,
-          modelId: modelConfig.id,
-          resolution,
-          aspectRatio: aspect,
-          batchCount,
-          referenceImageIds,
-          options: activeOptions,
-          stackId:
-            editSource?.source.type === 'generated'
-              ? (editSource.source.stackId ?? editSource.source.batchId)
-              : undefined,
-          parentImageId: editSource?.source.type === 'generated' ? editSource.id : undefined,
-        },
-        resultImageIds: [],
-        renamedImageIds: reserved.renamed,
-      }
+      const reserved = await reserveAgentImageIdsForRuntime(runtime, args.image_id, batchCount)
+      try {
+        const activeOptions = activeOptionsForModel(modelConfig, defaultOptionsFor(modelConfig))
+        const task: AgentImageTask = {
+          id: crypto.randomUUID(),
+          toolCallId,
+          agentTurnId: runtime.currentAgentTurnId ?? crypto.randomUUID(),
+          createdAt: Date.now(),
+          status: 'pending_approval',
+          request: {
+            prompt: promptText,
+            requestedImageId: reserved.requestedImageId,
+            reservedImageIds: reserved.reservedImageIds,
+            modelId: modelConfig.id,
+            resolution,
+            aspectRatio: aspect,
+            batchCount,
+            referenceImageIds,
+            options: activeOptions,
+            stackId:
+              editSource?.source.type === 'generated'
+                ? (editSource.source.stackId ?? editSource.source.batchId)
+                : undefined,
+            parentImageId: editSource?.source.type === 'generated' ? editSource.id : undefined,
+          },
+          resultImageIds: [],
+          renamedImageIds: reserved.renamed,
+        }
 
-      const callbackState = agentTurnCallbacksRef.current.get(task.agentTurnId) ?? {
-        agentTurnId: task.agentTurnId,
-        taskIds: [],
-        callbackQueued: false,
-      }
-      callbackState.taskIds.push(task.id)
-      agentTurnCallbacksRef.current.set(task.agentTurnId, callbackState)
+        const callbackState = runtime.turnCallbacks.get(task.agentTurnId) ?? {
+          agentTurnId: task.agentTurnId,
+          taskIds: [],
+          callbackQueued: false,
+        }
+        callbackState.taskIds.push(task.id)
+        runtime.turnCallbacks.set(task.agentTurnId, callbackState)
 
-      for (const id of reserved.reservedImageIds) {
-        agentImageRegistryRef.current.set(id, {
-          id,
-          source: 'generated',
-          status: 'reserved',
-          createdAt: task.createdAt,
-        })
-      }
-      setAgentImageTasks((prev) => [task, ...prev])
+        for (const id of reserved.reservedImageIds) {
+          runtime.imageRegistry.set(id, {
+            id,
+            source: 'generated',
+            status: 'reserved',
+            createdAt: task.createdAt,
+          })
+        }
+        setRuntimeImageTasks(runtime, (prev) => [task, ...prev])
 
-      const startResult = autoApproveAgentImageTasksRef.current ? await startAgentImageTask(task) : null
-      const status = autoApproveAgentImageTasksRef.current
-        ? startResult?.ok
-          ? 'queued'
-          : 'failed'
-        : 'pending_approval'
-      const message = autoApproveAgentImageTasksRef.current
-        ? (startResult?.message ?? '任务已经提交并自动开始生成。')
-        : reserved.renamed
-          ? `任务已经提交，等待用户审批。image_id 已预留为 ${reserved.reservedImageIds.join('、')}。`
-          : '任务已经提交，等待用户审批。'
-      const payload = {
-        status,
-        task_id: task.id,
-        requested_image_id: reserved.requestedImageId,
-        reserved_image_ids: reserved.reservedImageIds,
-        renamed: reserved.renamed,
-        message,
+        const startResult = runtime.autoApproveImageTasks ? await startAgentImageTask(runtime, task) : null
+        const status = runtime.autoApproveImageTasks ? (startResult?.ok ? 'queued' : 'failed') : 'pending_approval'
+        const message = runtime.autoApproveImageTasks
+          ? (startResult?.message ?? '任务已经提交并自动开始生成。')
+          : reserved.renamed
+            ? `任务已经提交，等待用户审批。image_id 已预留为 ${reserved.reservedImageIds.join('、')}。`
+            : '任务已经提交，等待用户审批。'
+        const payload = {
+          status,
+          task_id: task.id,
+          requested_image_id: reserved.requestedImageId,
+          reserved_image_ids: reserved.reservedImageIds,
+          renamed: reserved.renamed,
+          message,
+        }
+        return toolTextResult(JSON.stringify(payload, null, 2), payload)
+      } finally {
+        releasePendingAgentImageIds(reserved.reservedImageIds)
       }
-      return toolTextResult(JSON.stringify(payload, null, 2), payload)
     },
-    [imageIdExistsForAgent, resolveAgentReferenceImages, setAgentImageTasks, startAgentImageTask],
+    [
+      releasePendingAgentImageIds,
+      reserveAgentImageIdsForRuntime,
+      resolveAgentReferenceImages,
+      setRuntimeImageTasks,
+      startAgentImageTask,
+    ],
   )
 
   const runReadImageTool = useCallback(
-    async (_toolCallId: string, args: ReadImageToolArgs): Promise<AgentToolResult> => {
+    async (sessionId: string, _toolCallId: string, args: ReadImageToolArgs): Promise<AgentToolResult> => {
+      const runtime = agentRuntimesRef.current.get(sessionId)
+      if (!runtime) throw new Error('Agent session is no longer available.')
       const imageId = args.image_id.trim()
       const missing = '<tool_use_error>Image does not exist.</tool_use_error>'
       if (!imageId) return toolTextResult(missing, { status: 'error', image_id: imageId })
 
-      const result = await resolveAgentImageById(imageId)
+      const result = await resolveAgentImageById(runtime, imageId)
       if (!result) return toolTextResult(missing, { status: 'error', image_id: imageId })
       if (result.status !== 'ready') {
         const payload = {
@@ -1263,7 +1463,14 @@ export function useAgentPlayground({
   )
 
   const runAskUserQuestionTool = useCallback(
-    (toolCallId: string, args: AskUserQuestionToolArgs, signal?: AbortSignal): Promise<AgentToolResult> => {
+    (
+      sessionId: string,
+      toolCallId: string,
+      args: AskUserQuestionToolArgs,
+      signal?: AbortSignal,
+    ): Promise<AgentToolResult> => {
+      const runtime = agentRuntimesRef.current.get(sessionId)
+      if (!runtime) return Promise.reject(new Error('Agent session is no longer available.'))
       const questions = args.questions
       if (questions.length === 0) {
         return Promise.resolve(
@@ -1275,16 +1482,16 @@ export function useAgentPlayground({
 
       const pending: AgentPendingQuestion = {
         toolCallId,
-        agentTurnId: currentAgentTurnIdRef.current ?? toolCallId,
+        agentTurnId: runtime.currentAgentTurnId ?? toolCallId,
         questions,
         createdAt: Date.now(),
       }
-      setAgentPendingQuestions((prev) => [...prev.filter((item) => item.toolCallId !== toolCallId), pending])
+      setRuntimePendingQuestions(runtime, (prev) => [...prev.filter((item) => item.toolCallId !== toolCallId), pending])
 
       return new Promise<AgentToolResult>((resolve, reject) => {
         const cleanup = () => {
-          agentQuestionResolversRef.current.delete(toolCallId)
-          setAgentPendingQuestions((prev) => prev.filter((item) => item.toolCallId !== toolCallId))
+          runtime.questionResolvers.delete(toolCallId)
+          setRuntimePendingQuestions(runtime, (prev) => prev.filter((item) => item.toolCallId !== toolCallId))
         }
 
         const resolver: AgentQuestionResolver = {
@@ -1298,7 +1505,7 @@ export function useAgentPlayground({
             reject(reason instanceof Error ? reason : new Error(String(reason)))
           },
         }
-        agentQuestionResolversRef.current.set(toolCallId, resolver)
+        runtime.questionResolvers.set(toolCallId, resolver)
 
         if (signal) {
           if (signal.aborted) {
@@ -1308,7 +1515,7 @@ export function useAgentPlayground({
           signal.addEventListener(
             'abort',
             () => {
-              const stillPending = agentQuestionResolversRef.current.get(toolCallId)
+              const stillPending = runtime.questionResolvers.get(toolCallId)
               if (!stillPending) return
               stillPending.resolve(
                 toolTextResult(formatAskUserQuestionResult(questions, [], { cancelled: true }), {
@@ -1322,12 +1529,17 @@ export function useAgentPlayground({
         }
       })
     },
-    [setAgentPendingQuestions],
+    [setRuntimePendingQuestions],
   )
 
   const finishRestoredAgentQuestion = useCallback(
-    (toolCallId: string, answers: AskUserQuestionAnswer[], options: { cancelled: boolean }) => {
-      const pending = agentPendingQuestionsRef.current.find((item) => item.toolCallId === toolCallId)
+    (
+      runtime: AgentSessionRuntime,
+      toolCallId: string,
+      answers: AskUserQuestionAnswer[],
+      options: { cancelled: boolean },
+    ) => {
+      const pending = runtime.pendingQuestions.find((item) => item.toolCallId === toolCallId)
       if (!pending) return
       const text = formatAskUserQuestionResult(pending.questions, answers, { cancelled: options.cancelled })
       const toolResultMessage = {
@@ -1339,55 +1551,52 @@ export function useAgentPlayground({
         timestamp: Date.now(),
       } as unknown as AgentMessage
 
-      setAgentPendingQuestions((prev) => prev.filter((item) => item.toolCallId !== toolCallId))
+      setRuntimePendingQuestions(runtime, (prev) => prev.filter((item) => item.toolCallId !== toolCallId))
 
-      const agent = getOrCreateAgent()
-      agent.appendMessage(toolResultMessage)
-      syncAgentSnapshot(agent)
+      runtime.agent.appendMessage(toolResultMessage)
+      syncRuntimeSnapshot(runtime)
 
-      const sessionId = currentAgentSessionIdRef.current
-      if (sessionId) {
-        agentSessionPersistQueueRef.current = agentSessionPersistQueueRef.current
-          .then(async () => {
-            const parentId = currentAgentSessionLeafEntryIdRef.current
-            const result = await appendAgentSessionMessage({
-              sessionId,
-              parentId,
-              message: toolResultMessage,
-            })
-            if (currentAgentSessionIdRef.current === sessionId) {
-              currentAgentSessionLeafEntryIdRef.current = result.entryId
-            }
-            upsertAgentSessionSummary(result.record)
+      runtime.persistQueue = runtime.persistQueue
+        .then(async () => {
+          const result = await appendAgentSessionMessage({
+            sessionId: runtime.sessionId,
+            parentId: runtime.leafEntryId,
+            message: toolResultMessage,
           })
-          .catch((error: unknown) => {
-            setAgentError(error instanceof Error ? error.message : String(error))
-          })
-      }
+          runtime.leafEntryId = result.entryId
+          upsertAgentSessionSummary(result.record)
+        })
+        .catch((error: unknown) => {
+          setRuntimeError(runtime, error instanceof Error ? error.message : String(error))
+        })
 
       if (options.cancelled) return
       const eventText = `<system>\ntool AskUserQuestion call ${toolCallId} has been answered.\n</system>`
-      void sendAgentSystemEvent(eventText)
+      void sendAgentSystemEvent(runtime, eventText)
     },
-    [getOrCreateAgent, sendAgentSystemEvent, setAgentPendingQuestions, syncAgentSnapshot, upsertAgentSessionSummary],
+    [sendAgentSystemEvent, setRuntimeError, setRuntimePendingQuestions, syncRuntimeSnapshot, upsertAgentSessionSummary],
   )
 
   const submitAgentQuestionAnswers = useCallback(
     (toolCallId: string, answers: AskUserQuestionAnswer[]) => {
-      const resolver = agentQuestionResolversRef.current.get(toolCallId)
+      const runtime = getCurrentRuntime()
+      if (!runtime) return
+      const resolver = runtime.questionResolvers.get(toolCallId)
       if (resolver) {
         const text = formatAskUserQuestionResult(resolver.questions, answers)
         resolver.resolve(toolTextResult(text, { status: 'submitted', answers }))
         return
       }
-      finishRestoredAgentQuestion(toolCallId, answers, { cancelled: false })
+      finishRestoredAgentQuestion(runtime, toolCallId, answers, { cancelled: false })
     },
-    [finishRestoredAgentQuestion],
+    [finishRestoredAgentQuestion, getCurrentRuntime],
   )
 
   const cancelAgentQuestion = useCallback(
     (toolCallId: string) => {
-      const resolver = agentQuestionResolversRef.current.get(toolCallId)
+      const runtime = getCurrentRuntime()
+      if (!runtime) return
+      const resolver = runtime.questionResolvers.get(toolCallId)
       if (resolver) {
         resolver.resolve(
           toolTextResult(formatAskUserQuestionResult(resolver.questions, [], { cancelled: true }), {
@@ -1397,107 +1606,99 @@ export function useAgentPlayground({
         )
         return
       }
-      finishRestoredAgentQuestion(toolCallId, [], { cancelled: true })
+      finishRestoredAgentQuestion(runtime, toolCallId, [], { cancelled: true })
     },
-    [finishRestoredAgentQuestion],
+    [finishRestoredAgentQuestion, getCurrentRuntime],
   )
 
-  // useApiKey returns a fresh object each render, so runGenImageTool /
-  // runReadImageTool would change every render too. Register the tools once
-  // with stable wrapper functions that delegate to the latest implementation
-  // via ref — otherwise this effect re-fires on every render and pumps state
-  // updates into the agent, causing infinite re-render once the agent exists.
-  const runGenImageToolRef = useLatestRef(runGenImageTool)
-  const runReadImageToolRef = useLatestRef(runReadImageTool)
-  const runAskUserQuestionToolRef = useLatestRef(runAskUserQuestionTool)
-  useMountEffect(() => {
-    agentToolsRef.current = createAgentTools({
-      imageModels: MODEL_CONFIGS,
-      genImage: (toolCallId, args, signal) => runGenImageToolRef.current(toolCallId, args, signal),
-      readImage: (toolCallId, args) => runReadImageToolRef.current(toolCallId, args),
-      askUserQuestion: (toolCallId, args, signal) => runAskUserQuestionToolRef.current(toolCallId, args, signal),
-    })
-    if (agentRef.current) {
-      agentRef.current.state.tools = agentToolsRef.current
+  useExternalSync(() => {
+    agentToolHandlersRef.current = {
+      genImage: runGenImageTool,
+      readImage: runReadImageTool,
+      askUserQuestion: runAskUserQuestionTool,
     }
-  })
+  }, [runAskUserQuestionTool, runGenImageTool, runReadImageTool])
 
   useExternalSync(() => {
-    void agentModel.id
     void googleKeyHook.apiKey
     void openaiKeyHook.apiKey
-    maybeDispatchAgentImageCallbacks()
-  }, [agentModel.id, googleKeyHook.apiKey, maybeDispatchAgentImageCallbacks, openaiKeyHook.apiKey])
+    for (const runtime of agentRuntimesRef.current.values()) maybeDispatchAgentImageCallbacks(runtime)
+  }, [googleKeyHook.apiKey, maybeDispatchAgentImageCallbacks, openaiKeyHook.apiKey])
 
   useExternalSync(() => {
-    let changed = false
-    const next = agentImageTasksRef.current.map((task) => {
-      if (!task.generationJobId || isTerminalAgentImageTaskStatus(task.status)) return task
-      const job = generationJobs.find((item) => item.id === task.generationJobId)
-      if (!job) return task
-      const resultImageIds = job.slots.flatMap((slot) => (slot.image ? [slot.image.id] : []))
-      const nextStatus = agentTaskStatusFromGenerationJob(job)
-      const nextError = errorFromGenerationJob(job)
-      if (nextStatus === 'completed') dismissGenerationJob(job.id)
-      for (const slot of job.slots) {
-        if (slot.image) {
-          agentImageRegistryRef.current.set(slot.image.id, {
-            id: slot.image.id,
-            image: slot.image,
-            source: 'generated',
-            status: 'ready',
-            createdAt: slot.image.timestamp,
-          })
+    for (const runtime of agentRuntimesRef.current.values()) {
+      let changed = false
+      const next = runtime.imageTasks.map((task) => {
+        if (!task.generationJobId || isTerminalAgentImageTaskStatus(task.status)) return task
+        const job = generationJobs.find((item) => item.id === task.generationJobId)
+        if (!job) return task
+        const resultImageIds = job.slots.flatMap((slot) => (slot.image ? [slot.image.id] : []))
+        const nextStatus = agentTaskStatusFromGenerationJob(job)
+        const nextError = errorFromGenerationJob(job)
+        if (nextStatus === 'completed') dismissGenerationJob(job.id)
+        for (const slot of job.slots) {
+          if (slot.image) {
+            runtime.imageRegistry.set(slot.image.id, {
+              id: slot.image.id,
+              image: slot.image,
+              source: 'generated',
+              status: 'ready',
+              createdAt: slot.image.timestamp,
+            })
+          }
         }
-      }
-      if (
-        nextStatus === task.status &&
-        nextError === task.error &&
-        resultImageIds.length === task.resultImageIds.length &&
-        resultImageIds.every((id, index) => id === task.resultImageIds[index])
-      ) {
-        return task
-      }
-      changed = true
-      const updated = { ...task, status: nextStatus, resultImageIds, error: nextError }
-      if (isTerminalAgentImageTaskStatus(nextStatus)) {
-        const fulfilledIds = new Set(resultImageIds)
-        for (const id of task.request.reservedImageIds) {
-          if (!fulfilledIds.has(id)) agentImageRegistryRef.current.delete(id)
+        if (
+          nextStatus === task.status &&
+          nextError === task.error &&
+          resultImageIds.length === task.resultImageIds.length &&
+          resultImageIds.every((id, index) => id === task.resultImageIds[index])
+        ) {
+          return task
         }
-      }
-      return updated
-    })
-    if (!changed) return
-    agentImageTasksRef.current = next
-    setAgentImageTasksState(next)
-    maybeDispatchAgentImageCallbacks(next)
-  }, [dismissGenerationJob, generationJobs, maybeDispatchAgentImageCallbacks])
+        changed = true
+        const updated = { ...task, status: nextStatus, resultImageIds, error: nextError }
+        if (isTerminalAgentImageTaskStatus(nextStatus)) {
+          const fulfilledIds = new Set(resultImageIds)
+          for (const id of task.request.reservedImageIds) {
+            if (!fulfilledIds.has(id)) runtime.imageRegistry.delete(id)
+          }
+        }
+        return updated
+      })
+      if (!changed) continue
+      runtime.imageTasks = next
+      if (isCurrentRuntime(runtime)) setAgentImageTasksState(next)
+      scheduleRuntimeSidecarPersist(runtime)
+      maybeDispatchAgentImageCallbacks(runtime, next)
+    }
+  }, [
+    dismissGenerationJob,
+    generationJobs,
+    isCurrentRuntime,
+    maybeDispatchAgentImageCallbacks,
+    scheduleRuntimeSidecarPersist,
+  ])
 
   const sendAgentMessage = useCallback(() => {
-    const trimmed = agentDraft.trim()
-    if (agentPromptPreparingRef.current || (!trimmed && agentAttachments.length === 0)) return
-    if (!currentAgentSessionIdRef.current) {
-      setAgentError('Agent 对话还在加载，请稍后再发送。')
-      return
-    }
-    const sessionId = currentAgentSessionIdRef.current
+    const runtime = getCurrentRuntime()
+    const trimmed = runtime?.draft.trim() ?? ''
+    if (!runtime || runtime.promptPreparing || (!trimmed && runtime.attachments.length === 0)) return
 
-    const credentials = agentCredentialsRef.current[agentModel.provider]
+    const config = resolveAgentModelConfig(runtime.modelId)
+    const credentials = agentCredentialsRef.current[config.provider]
     if (!credentials.apiKey) {
-      setAgentError(`使用 ${agentModel.label} 需要先配置 ${agentModel.providerLabel} API Key。`)
+      setRuntimeError(runtime, `使用 ${config.label} 需要先配置 ${config.providerLabel} API Key。`)
       return
     }
 
-    const agent = getOrCreateAgent()
-    applyAgentRuntimeConfig(agent, agentModel)
-    const attachmentsToSend = agentAttachments
-    const attachmentIds = agentAttachments.map((attachment) => attachment.id)
+    applyAgentRuntimeConfig(runtime)
+    const attachmentsToSend = runtime.attachments
+    const attachmentIds = attachmentsToSend.map((attachment) => attachment.id)
     const attachmentNote = attachmentIds.length > 0 ? `\n\n可用附件图片 ID：${attachmentIds.join('、')}` : ''
     const promptText = `${trimmed || '请分析这些图片。'}${attachmentNote}`
     for (const attachment of attachmentsToSend) {
-      if (agentImageRegistryRef.current.get(attachment.id)?.status === 'ready') continue
-      agentImageRegistryRef.current.set(attachment.id, {
+      if (runtime.imageRegistry.get(attachment.id)?.status === 'ready') continue
+      runtime.imageRegistry.set(attachment.id, {
         id: attachment.id,
         image: attachment,
         source: 'agent_attachment',
@@ -1506,35 +1707,46 @@ export function useAgentPlayground({
       })
     }
 
-    // If a question form is awaiting user input, treat the composer message as
-    // "skip the form, here's my freer answer".
-    const pendingQuestionsToCancel = agentPendingQuestionsRef.current.slice()
+    const pendingQuestionsToCancel = runtime.pendingQuestions.slice()
     const hasInFlightResolver = pendingQuestionsToCancel.some((question) =>
-      agentQuestionResolversRef.current.has(question.toolCallId),
+      runtime.questionResolvers.has(question.toolCallId),
     )
-    // In-flight = there's a live agent.prompt() running we can steer via the
-    // message queue. Restored sessions have pending questions but no live
-    // loop, so we append a synthetic toolResult and start a fresh prompt.
-    const inFlight = agentIsStreaming || hasInFlightResolver
+    const inFlight = runtime.isStreaming || hasInFlightResolver
 
-    setAgentDraft('')
-    setAgentAttachments([])
-    setAgentAttachmentError(null)
-    // The prep ref guards only the async attachment-compression window before
-    // prompt()/queueMessage is dispatched. It must NOT remain set for the
-    // entire agent.prompt() lifetime — otherwise the user can never queue a
-    // followup while the agent is mid-stream.
-    agentPromptPreparingRef.current = true
+    runtime.draft = ''
+    runtime.attachments = []
+    runtime.attachmentError = null
+    runtime.promptPreparing = true
     if (!inFlight) {
-      currentAgentTurnIdRef.current = crypto.randomUUID()
-      setAgentIsStreaming(true)
+      runtime.currentAgentTurnId = crypto.randomUUID()
+      runtime.isStreaming = true
     }
-    syncAgentSnapshot(agent)
+    if (isCurrentRuntime(runtime)) {
+      setAgentDraft('')
+      setAgentAttachments([])
+      setAgentAttachmentError(null)
+      setAgentIsStreaming(runtime.isStreaming)
+    }
+    syncRuntimeSnapshot(runtime)
+    scheduleRuntimeSidecarPersist(runtime)
+
+    const cancelRuntimeQuestion = (question: AgentPendingQuestion) => {
+      const resolver = runtime.questionResolvers.get(question.toolCallId)
+      if (resolver) {
+        resolver.resolve(
+          toolTextResult(formatAskUserQuestionResult(resolver.questions, [], { cancelled: true }), {
+            status: 'cancelled',
+            reason: 'user_dismissed',
+          }),
+        )
+        return
+      }
+      finishRestoredAgentQuestion(runtime, question.toolCallId, [], { cancelled: true })
+    }
 
     void (async () => {
       try {
         const images = await Promise.all(attachmentsToSend.map(compressedAttachmentToAgentAttachment))
-        if (currentAgentSessionIdRef.current !== sessionId || agentRef.current !== agent) return
         if (inFlight) {
           const content: Array<{ type: 'text'; text: string } | { type: 'image'; data: string; mimeType: string }> = [
             { type: 'text', text: promptText },
@@ -1542,74 +1754,84 @@ export function useAgentPlayground({
           for (const image of images) {
             if (image.type === 'image') content.push({ type: 'image', data: image.content, mimeType: image.mimeType })
           }
-          // 1) Queue the followup BEFORE resolving any AskUserQuestion. This
-          //    matters because pi-agent's loop reads the queue right after the
-          //    tool's Promise resolves, and `agent.queueMessage` itself awaits
-          //    a message-transformer microtask before pushing — so resolving
-          //    first would let `getQueuedMessages` see an empty queue and the
-          //    LLM would respond once for the cancelled tool, then again for
-          //    the followup. Queuing first keeps it to a single turn.
-          await agent.queueMessage({
+          await runtime.agent.queueMessage({
             role: 'user',
             content,
             attachments: images.length > 0 ? images : undefined,
             timestamp: Date.now(),
           })
-          // 2) Now resolve the pending question forms; the in-flight agent
-          //    loop picks up the cancelled toolResult and drains the queue in
-          //    the same iteration.
-          for (const question of pendingQuestionsToCancel) cancelAgentQuestion(question.toolCallId)
+          for (const question of pendingQuestionsToCancel) cancelRuntimeQuestion(question)
           return
         }
-        // Not in-flight (fresh send, or restored session with a pending form).
-        // For restored pending forms we synchronously append a cancelled
-        // toolResult so the next prompt sees a well-formed transcript, then
-        // start a fresh prompt with the user's followup as the user message.
-        for (const question of pendingQuestionsToCancel) cancelAgentQuestion(question.toolCallId)
-        // Fire-and-forget: release the prep lock once prompt() has been
-        // dispatched (state.isStreaming flips inside it synchronously).
-        const promptPromise = agent.prompt(promptText, images)
-        agentPromptPreparingRef.current = false
+
+        for (const question of pendingQuestionsToCancel) cancelRuntimeQuestion(question)
+        const promptPromise = runtime.agent.prompt(promptText, images)
+        runtime.promptPreparing = false
         promptPromise
           .then(() => {
-            const errorMessage = getAgentError(agent)
-            if (errorMessage && isKeyError(errorMessage)) invalidateGenerationKey(agentModel.provider)
+            const errorMessage = getAgentError(runtime.agent)
+            if (errorMessage && isKeyError(errorMessage)) invalidateGenerationKey(config.provider)
           })
           .catch((error: unknown) => {
-            setAgentError(error instanceof Error ? error.message : String(error))
+            setRuntimeError(runtime, error instanceof Error ? error.message : String(error))
           })
           .finally(() => {
-            syncAgentSnapshot(agent)
-            maybeDispatchAgentImageCallbacks()
+            syncRuntimeSnapshot(runtime)
+            maybeDispatchAgentImageCallbacks(runtime)
           })
       } catch (error) {
-        setAgentError(error instanceof Error ? error.message : String(error))
+        setRuntimeError(runtime, error instanceof Error ? error.message : String(error))
       } finally {
-        agentPromptPreparingRef.current = false
-        syncAgentSnapshot(agent)
-        maybeDispatchAgentImageCallbacks()
+        runtime.promptPreparing = false
+        syncRuntimeSnapshot(runtime)
+        maybeDispatchAgentImageCallbacks(runtime)
       }
     })()
   }, [
-    agentAttachments,
-    agentDraft,
-    agentIsStreaming,
-    agentModel,
     applyAgentRuntimeConfig,
-    cancelAgentQuestion,
-    getOrCreateAgent,
+    finishRestoredAgentQuestion,
+    getCurrentRuntime,
     invalidateGenerationKey,
+    isCurrentRuntime,
     maybeDispatchAgentImageCallbacks,
-    syncAgentSnapshot,
+    scheduleRuntimeSidecarPersist,
+    setRuntimeError,
+    syncRuntimeSnapshot,
   ])
 
   const stopAgentMessage = useCallback(() => {
-    agentRef.current?.abort()
-  }, [])
+    getCurrentRuntime()?.agent.abort()
+  }, [getCurrentRuntime])
 
   const clearAgentChat = useCallback(() => {
     void createNewAgentSession()
   }, [createNewAgentSession])
+
+  const setCurrentAgentDraft = useCallback(
+    (value: string) => {
+      const runtime = getCurrentRuntime()
+      if (runtime) {
+        runtime.draft = value
+        scheduleRuntimeSidecarPersist(runtime)
+      }
+      setAgentDraft(value)
+    },
+    [getCurrentRuntime, scheduleRuntimeSidecarPersist],
+  )
+
+  const setAutoApproveAgentImageTasks = useCallback(
+    (value: boolean) => {
+      const runtime = getCurrentRuntime()
+      if (!runtime) return
+      runtime.autoApproveImageTasks = value
+      setAutoApproveAgentImageTasksState(value)
+      scheduleRuntimeSidecarPersist(runtime)
+      void updateAgentSessionConfig(runtime.sessionId, { autoApproveImageTasks: value }).then((record) => {
+        if (record) upsertAgentSessionSummary(record)
+      })
+    },
+    [getCurrentRuntime, scheduleRuntimeSidecarPersist, upsertAgentSessionSummary],
+  )
 
   return {
     agentModels: AGENT_MODEL_CONFIGS,
@@ -1634,7 +1856,7 @@ export function useAgentPlayground({
     switchAgentSession,
     deleteAgentSession: removeAgentSession,
     setAutoApproveAgentImageTasks,
-    setAgentDraft,
+    setAgentDraft: setCurrentAgentDraft,
     addAgentAttachments,
     addAgentImageAttachment,
     removeAgentAttachment,

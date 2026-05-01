@@ -220,7 +220,6 @@ export function AgentChatPanel({
         sessions={sessions}
         currentSessionId={currentSessionId}
         sessionsLoading={sessionsLoading}
-        isStreaming={isStreaming}
         openMenu={openMenu}
         setOpenMenu={setOpenMenu}
         onNewSession={onNewSession}

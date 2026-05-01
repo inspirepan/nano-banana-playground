@@ -9,7 +9,6 @@ type AgentChatHeaderProps = {
   sessions: AgentSessionSummary[]
   currentSessionId: string | null
   sessionsLoading: boolean
-  isStreaming: boolean
   openMenu: AgentChatMenu
   setOpenMenu: Dispatch<SetStateAction<AgentChatMenu>>
   onNewSession: () => void
@@ -21,7 +20,6 @@ export function AgentChatHeader({
   sessions,
   currentSessionId,
   sessionsLoading,
-  isStreaming,
   openMenu,
   setOpenMenu,
   onNewSession,
@@ -48,8 +46,7 @@ export function AgentChatHeader({
       <button
         type="button"
         onClick={onNewSession}
-        disabled={isStreaming}
-        className="chip shrink-0 px-3 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-45"
+        className="chip shrink-0 px-3 text-sm font-medium"
         style={{ height: 30, boxShadow: 'inset 0 0 0 1px var(--ring-edge)' }}
       >
         新对话
@@ -71,8 +68,7 @@ export function AgentChatHeader({
                       onSwitchSession(session.id)
                       setOpenMenu(null)
                     }}
-                    disabled={isStreaming}
-                    className="group flex w-full items-center gap-2 rounded-[7px] px-2 py-1.5 text-left transition-colors hover:bg-(--color-surface-2) disabled:cursor-not-allowed disabled:opacity-55"
+                    className="group flex w-full items-center gap-2 rounded-[7px] px-2 py-1.5 text-left transition-colors hover:bg-(--color-surface-2)"
                   >
                     <span className="min-w-0 flex-1">
                       <span className="flex min-w-0 items-center gap-1.5">
