@@ -1,0 +1,54 @@
+import { useLayoutEffect, useRef, useState } from 'react'
+
+export function TruncatedText({
+  text,
+  className,
+  fadeColor,
+  maxHeight = 200,
+}: {
+  text: string
+  className?: string
+  fadeColor: string
+  maxHeight?: number
+}) {
+  const [expanded, setExpanded] = useState(false)
+  const [overflowing, setOverflowing] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!el) return
+    setOverflowing(el.scrollHeight > maxHeight + 4)
+  }, [text, maxHeight])
+
+  const collapsed = overflowing && !expanded
+
+  return (
+    <div>
+      <div className="relative">
+        <div ref={ref} className={className} style={collapsed ? { maxHeight, overflow: 'hidden' } : undefined}>
+          {text}
+        </div>
+        {collapsed && (
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-12"
+            style={{ background: `linear-gradient(to bottom, transparent, ${fadeColor})` }}
+          />
+        )}
+      </div>
+      {overflowing && (
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation()
+            setExpanded((prev) => !prev)
+          }}
+          className="relative z-10 mt-1.5 bg-transparent p-0 text-sm text-(--color-text-3) transition-colors hover:text-(--color-text)"
+        >
+          {expanded ? '收起' : '展开'}
+        </button>
+      )}
+    </div>
+  )
+}
