@@ -119,11 +119,7 @@ export function ToolActivityCard({
           isStreaming={isStreaming && richCards.length === 0 && inlineNotices.length === 0}
         />
       )}
-      {richCards.length > 0 && (
-        <div className="flex justify-start">
-          <div className="mr-3 w-full max-w-[94%] space-y-2">{richCards}</div>
-        </div>
-      )}
+      {richCards.length > 0 && <div className="space-y-2">{richCards}</div>}
       {inlineNotices}
     </div>
   )

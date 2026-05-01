@@ -33,7 +33,7 @@ export function MessageBubble({ message, isStreaming }: { message: AgentMessage;
 
   return (
     <div className={`flex ${isUser ? '' : 'justify-start'}`}>
-      <div className={isUser ? 'w-full' : 'mr-3 max-w-[94%] pl-3'}>
+      <div className={isUser ? 'w-full' : 'w-full pl-3'}>
         <div
           className={
             isUser
