@@ -113,6 +113,9 @@ function CanceledCard({ index }: { index: number }) {
       <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-(--color-text-3)">
         <Icon name="close" size={14} strokeWidth={1.8} />
         <div className="text-base">{t('imageDetail.queue.status.canceledIndexed', { index: index + 1 })}</div>
+        <div className="max-h-[44px] max-w-[80%] overflow-y-auto text-center text-sm leading-[1.45] text-(--color-text-3)">
+          {t('imageDetail.queue.canceledDetail')}
+        </div>
       </div>
     </div>
   )

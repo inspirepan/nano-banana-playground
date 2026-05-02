@@ -137,6 +137,7 @@ function summarizeGenerationQueue(jobs: GenerationJob[]): GenerationQueueSummary
 function toDisplayError(e: unknown): string {
   const err = e instanceof Error ? e : new Error(String(e))
   if (err.name === 'TimeoutError') return translate('configLib.generationQueue.timeout')
+  if (err.name === 'AbortError') return translate('configLib.generationQueue.requestAborted')
   return err.message
 }
 
@@ -337,14 +338,18 @@ export function useGenerationQueue({
           )
         } catch (e) {
           const err = e instanceof Error ? e : new Error(String(e))
-          if (controller.signal.aborted || err.name === 'AbortError') {
-            updateGenerationSlot(job.id, slot.id, (current) => ({
-              ...current,
-              status: 'canceled',
-              error: undefined,
-              retryDelayMs: undefined,
-              retryAt: undefined,
-            }))
+          if (controller.signal.aborted) {
+            const msg = toDisplayError(err)
+            updateGenerationSlot(job.id, slot.id, (current) => {
+              if (!isActiveSlot(current)) return current
+              return {
+                ...current,
+                status: 'failed',
+                error: msg,
+                retryDelayMs: undefined,
+                retryAt: undefined,
+              }
+            })
             return
           }
 

@@ -49,6 +49,7 @@ export const inputMessages: MessageDictionary = {
   'input.imageCard.copied': { 'zh-CN': '已复制', en: 'Copied' },
   'input.imageCard.moreActions': { 'zh-CN': '更多操作', en: 'More actions' },
   'input.stack.status.queued': { 'zh-CN': '排队中', en: 'Queued' },
+  'input.stack.status.canceled': { 'zh-CN': '已中断', en: 'Interrupted' },
   'input.stack.status.failedUnknown': { 'zh-CN': '失败：未知错误', en: 'Failed: unknown error' },
   'input.stack.status.failedWithError': { 'zh-CN': '失败：{error}', en: 'Failed: {error}' },
   'input.stack.status.retrying': { 'zh-CN': '重试中 {attempt}/{max}', en: 'Retrying {attempt}/{max}' },

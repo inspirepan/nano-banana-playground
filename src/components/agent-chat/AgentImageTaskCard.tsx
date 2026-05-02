@@ -108,6 +108,13 @@ export function AgentImageTaskCard({
   const promptText = task?.request.prompt ?? promptFromArgs
   const referenceIds = task?.request.referenceImageIds ?? []
   const resultIds = task?.resultImageIds ?? []
+  const taskDetail = task?.error
+    ? task.error
+    : task?.status === 'rejected'
+      ? t('agentChat.imageTask.rejectedDetail')
+      : task?.status === 'canceled'
+        ? t('agentChat.imageTask.canceledDetail')
+        : undefined
   const showApprove = task ? task.status === 'pending_approval' : false
   const showCancel = task
     ? task.status === 'pending_approval' ||
@@ -253,9 +260,9 @@ export function AgentImageTaskCard({
         </div>
       )}
 
-      {task?.error && (
+      {taskDetail && (
         <div className="mt-2.5 text-sm leading-[1.45]" style={{ color: 'var(--color-danger)' }}>
-          {task.error}
+          {taskDetail}
         </div>
       )}
       {!task && result?.isError && (

@@ -271,7 +271,7 @@ function noteForAgentTaskStatus(status: AgentImageTask['status']): string | unde
     case 'rejected':
       return 'The human user manually clicked the Reject button in the approval UI to decline this image task before any generation began. This is purely a user decision — there was NO content policy violation, NO safety filter, and NO system-side rejection. Do not apologize for safety reasons or assume the prompt was problematic. Ask the user what they want to change (subject, style, parameters, etc.) before proposing another task.'
     case 'canceled':
-      return 'The human user manually canceled this image generation while it was running. Do not retry without explicit user direction; ask what they want to change.'
+      return 'The image generation was interrupted or canceled before all requested images were produced. This does NOT necessarily mean the human user clicked Cancel. If an error line is present, use it as the reason. Do not ask why the user canceled unless the error explicitly says it was a manual cancellation.'
     case 'failed':
       return 'The image generation failed due to a technical or service-side error (network, model API, etc.). The error message is included above. This is not a user rejection.'
     default:
@@ -439,7 +439,7 @@ function restoreAgentImageTasks(tasks: AgentImageTask[]): AgentImageTask[] {
     if (task.status !== 'approved' && task.status !== 'queued' && task.status !== 'running') return task
     return {
       ...task,
-      status: 'canceled',
+      status: 'failed',
       error: task.error ?? translate('configLib.agent.taskInterrupted'),
     }
   })

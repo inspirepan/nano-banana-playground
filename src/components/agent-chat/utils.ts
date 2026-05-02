@@ -31,7 +31,7 @@ export function taskStatusLabel(status: AgentImageTask['status']): string {
   if (status === 'running') return translate('agentChat.taskStatus.running')
   if (status === 'completed') return translate('agentChat.taskStatus.completed')
   if (status === 'failed') return translate('agentChat.taskStatus.failed')
-  if (status === 'rejected') return translate('agentChat.taskStatus.canceled')
+  if (status === 'rejected') return translate('agentChat.taskStatus.rejected')
   if (status === 'canceled') return translate('agentChat.taskStatus.canceled')
   return translate('agentChat.taskStatus.approved')
 }
@@ -164,7 +164,8 @@ function toolResultStatusLabel(status: string): string {
   if (status === 'running') return translate('agentChat.taskStatus.running')
   if (status === 'completed') return translate('agentChat.taskStatus.completed')
   if (status === 'failed') return translate('agentChat.taskStatus.failed')
-  if (status === 'rejected' || status === 'canceled') return translate('agentChat.taskStatus.canceled')
+  if (status === 'rejected') return translate('agentChat.taskStatus.rejected')
+  if (status === 'canceled') return translate('agentChat.taskStatus.canceled')
   if (status === 'approved') return translate('agentChat.taskStatus.approved')
   if (status === 'done') return translate('agentChat.tool.result.status.done')
   return status

@@ -111,6 +111,7 @@ export function SlotHero({
           : slot?.status === 'running'
             ? t('imageDetail.queue.status.generating')
             : t('imageDetail.queue.status.queued')
+  const detail = slot?.error ?? (slot?.status === 'canceled' ? t('imageDetail.queue.canceledDetail') : null)
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-8 text-center text-(--color-text-3)">
       {slot?.status === 'failed' || slot?.status === 'canceled' ? (
@@ -119,7 +120,7 @@ export function SlotHero({
         <span className="spinner" />
       )}
       <div className="text-sm text-(--color-text-2)">{label}</div>
-      {slot?.error && <div className="max-w-[420px] text-sm leading-[1.5] text-(--color-text-2)">{slot.error}</div>}
+      {detail && <div className="max-w-[420px] text-sm leading-[1.5] text-(--color-text-2)">{detail}</div>}
       {slot &&
         job &&
         (slot.status === 'queued' || slot.status === 'running' || slot.status === 'retrying') &&

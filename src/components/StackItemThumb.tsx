@@ -29,6 +29,7 @@ type StackThumbStyle = CSSProperties & { '--stack-thumb-action-bg'?: string }
 
 function slotReasonText(slot: Slot, t: Translate): string | null {
   if (slot.status === 'queued') return t('input.stack.status.queued')
+  if (slot.status === 'canceled') return t('input.stack.status.canceled')
   if (slot.status === 'failed') {
     return slot.error
       ? t('input.stack.status.failedWithError', { error: slot.error })

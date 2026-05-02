@@ -58,6 +58,10 @@ export const configLibMessages: MessageDictionary = {
     'zh-CN': '请求超时（5min），请检查网络连接或代理配置后重试',
     en: 'Request timed out (5 min). Check your network connection or proxy settings, then try again.',
   },
+  'configLib.generationQueue.requestAborted': {
+    'zh-CN': '请求被浏览器或网络中断，请检查网络连接或代理配置后重试',
+    en: 'The request was interrupted by the browser or network. Check your connection or proxy settings, then try again.',
+  },
 
   'configLib.exportImages.shareTitle': { 'zh-CN': 'Nano Banana 图片', en: 'Nano Banana images' },
 
@@ -101,9 +105,9 @@ export const configLibMessages: MessageDictionary = {
   'configLib.queue.queuedCount': { 'zh-CN': '排队 {count}', en: 'Queued {count}' },
   'configLib.queue.completedProgress': { 'zh-CN': '完成 {done}/{total}', en: 'Completed {done}/{total}' },
   'configLib.queue.failedCount': { 'zh-CN': '失败 {count}', en: 'Failed {count}' },
-  'configLib.queue.canceledCount': { 'zh-CN': '取消 {count}', en: 'Canceled {count}' },
+  'configLib.queue.canceledCount': { 'zh-CN': '中断 {count}', en: 'Interrupted {count}' },
   'configLib.queue.failedProgress': { 'zh-CN': '失败 {failed}/{total}', en: 'Failed {failed}/{total}' },
-  'configLib.queue.canceledProgress': { 'zh-CN': '已取消 {canceled}/{total}', en: 'Canceled {canceled}/{total}' },
+  'configLib.queue.canceledProgress': { 'zh-CN': '已中断 {canceled}/{total}', en: 'Interrupted {canceled}/{total}' },
   'configLib.queue.justNow': { 'zh-CN': '刚刚', en: 'Just now' },
   'configLib.queue.minutesAgo': { 'zh-CN': '{count} 分钟前', en: '{count} min ago' },
   'configLib.queue.hoursAgo': { 'zh-CN': '{count} 小时前', en: '{count} hr ago' },
@@ -142,7 +146,7 @@ export const configLibMessages: MessageDictionary = {
     en: 'Unknown GenImage model: {model}.',
   },
   'configLib.agent.sessionDeleted': { 'zh-CN': '任务所属对话已经删除。', en: 'The task session has been deleted.' },
-  'configLib.agent.taskCanceled': { 'zh-CN': '任务已经取消。', en: 'The task has been canceled.' },
+  'configLib.agent.taskCanceled': { 'zh-CN': '任务已经结束，无法启动。', en: 'The task has already ended.' },
   'configLib.agent.taskStarted': {
     'zh-CN': '任务已经提交并开始生成。',
     en: 'The task has been submitted and generation has started.',
