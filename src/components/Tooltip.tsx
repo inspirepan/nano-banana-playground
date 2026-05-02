@@ -69,7 +69,12 @@ export function Tooltip({ text, children, className, placement = 'bottom', maxWi
   useMountEffect(() => () => window.clearTimeout(showTimerRef.current))
 
   return (
-    <div ref={wrapperRef} className={`relative ${className ?? ''}`} onMouseEnter={handleEnter} onMouseLeave={handleLeave}>
+    <div
+      ref={wrapperRef}
+      className={`relative ${className ?? ''}`}
+      onMouseEnter={handleEnter}
+      onMouseLeave={handleLeave}
+    >
       {children}
       {visible &&
         createPortal(

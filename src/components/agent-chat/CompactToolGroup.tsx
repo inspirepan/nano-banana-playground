@@ -49,7 +49,9 @@ export function ToolCallRow({
       )}
       <span className="min-w-0 flex-1">
         <span className="flex min-w-0 items-baseline gap-1.5 text-sm">
-          <span className="max-w-[55%] shrink-0 truncate font-medium text-(--color-text-2)">{toolLabel(call.name)}</span>
+          <span className="max-w-[55%] shrink-0 truncate font-medium text-(--color-text-2)">
+            {toolLabel(call.name)}
+          </span>
           {argsTooltip ? (
             <Tooltip text={argsTooltip} placement="top" maxWidth={420} className="min-w-0 flex-1">
               <span className="block min-w-0 truncate text-(--color-text-3)">{args}</span>

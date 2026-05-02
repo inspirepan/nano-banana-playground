@@ -84,60 +84,64 @@ export function useAgentImageRegistry({
     for (const id of ids) agentPendingReservedImageIdsRef.current.delete(id)
   }, [])
 
-  const resolveAgentImageById = useCallback(async (runtime: AgentSessionRuntime, id: string): Promise<AgentResolvedImage> => {
-    const reference = referenceImagesRef.current.find((image) => image.id === id)
-    if (reference) return { status: 'ready', source: 'reference', image: reference }
+  const resolveAgentImageById = useCallback(
+    async (runtime: AgentSessionRuntime, id: string): Promise<AgentResolvedImage> => {
+      const reference = referenceImagesRef.current.find((image) => image.id === id)
+      if (reference) return { status: 'ready', source: 'reference', image: reference }
 
-    const registryEntry = runtime.imageRegistry.get(id)
-    if (registryEntry?.source === 'agent_attachment' && registryEntry.image) {
-      const attachment = registryEntry.image as AgentChatAttachment
-      return {
-        status: 'ready',
-        source: 'agent_attachment',
-        image: {
-          id: attachment.id,
-          data: attachment.data,
-          mimeType: attachment.mimeType,
-          source: { type: 'upload', fileName: attachment.fileName },
-          timestamp: registryEntry.createdAt,
-        },
+      const registryEntry = runtime.imageRegistry.get(id)
+      if (registryEntry?.source === 'agent_attachment' && registryEntry.image) {
+        const attachment = registryEntry.image as AgentChatAttachment
+        return {
+          status: 'ready',
+          source: 'agent_attachment',
+          image: {
+            id: attachment.id,
+            data: attachment.data,
+            mimeType: attachment.mimeType,
+            source: { type: 'upload', fileName: attachment.fileName },
+            timestamp: registryEntry.createdAt,
+          },
+        }
       }
-    }
-    if (registryEntry?.status === 'ready' && registryEntry.image) {
-      const image = registryEntry.image
-      if ('data' in image && typeof image.data === 'string') {
-        return { status: 'ready', source: registryEntry.source, image: image as PlaygroundImage }
-      }
-      if ('mimeType' in image && 'source' in image && 'timestamp' in image) {
-        const blob = getBlobFromCache(id) ?? (await loadImageBlob(id))
-        if (blob) {
-          putBlobInCache(id, blob)
-          return {
-            status: 'ready',
-            source: registryEntry.source,
-            image: { ...(image as PlaygroundImageMeta), data: blob },
+      if (registryEntry?.status === 'ready' && registryEntry.image) {
+        const image = registryEntry.image
+        if ('data' in image && typeof image.data === 'string') {
+          return { status: 'ready', source: registryEntry.source, image: image as PlaygroundImage }
+        }
+        if ('mimeType' in image && 'source' in image && 'timestamp' in image) {
+          const blob = getBlobFromCache(id) ?? (await loadImageBlob(id))
+          if (blob) {
+            putBlobInCache(id, blob)
+            return {
+              status: 'ready',
+              source: registryEntry.source,
+              image: { ...(image as PlaygroundImageMeta), data: blob },
+            }
           }
         }
       }
-    }
-    if (registryEntry && registryEntry.status !== 'ready') return { status: 'not_ready', source: registryEntry.source }
+      if (registryEntry && registryEntry.status !== 'ready')
+        return { status: 'not_ready', source: registryEntry.source }
 
-    for (const job of generationJobsRefForAgent.current) {
-      const image = job.slots.find((slot) => slot.image?.id === id)?.image
-      if (image) return { status: 'ready', source: 'generated', image }
-    }
+      for (const job of generationJobsRefForAgent.current) {
+        const image = job.slots.find((slot) => slot.image?.id === id)?.image
+        if (image) return { status: 'ready', source: 'generated', image }
+      }
 
-    const loaded = historyRef.current.find((image) => image.id === id) ?? (await loadImageMetas([id])).get(id)
-    if (!loaded) return null
-    const blob = getBlobFromCache(id) ?? (await loadImageBlob(id))
-    if (!blob) return null
-    putBlobInCache(id, blob)
-    return {
-      status: 'ready',
-      source: loaded.source.type === 'generated' ? 'generated' : 'history',
-      image: { ...loaded, data: blob },
-    }
-  }, [])
+      const loaded = historyRef.current.find((image) => image.id === id) ?? (await loadImageMetas([id])).get(id)
+      if (!loaded) return null
+      const blob = getBlobFromCache(id) ?? (await loadImageBlob(id))
+      if (!blob) return null
+      putBlobInCache(id, blob)
+      return {
+        status: 'ready',
+        source: loaded.source.type === 'generated' ? 'generated' : 'history',
+        image: { ...loaded, data: blob },
+      }
+    },
+    [],
+  )
 
   const resolveAgentReferenceImages = useCallback(
     async (runtime: AgentSessionRuntime, ids: string[]): Promise<PlaygroundImage[]> => {
