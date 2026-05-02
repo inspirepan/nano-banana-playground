@@ -2,13 +2,7 @@ import { Agent, ProviderTransport, type AppMessage as AgentMessage } from '@mari
 import { useCallback, useRef, useState } from 'react'
 
 import { compressedAttachmentToAgentAttachment, type AgentChatAttachment } from './agentChat'
-import {
-  buildCompactionSummaryMessage,
-  compact,
-  DEFAULT_COMPACTION_SETTINGS,
-  estimateContextTokens,
-  shouldCompact,
-} from './compaction'
+import { buildCompactionSummaryMessage } from './compaction'
 import { compressImageForAgentInput } from './imageCompression'
 import {
   AGENT_PROMPT_DEFAULT_LINE_LIMIT,
@@ -72,6 +66,7 @@ import {
   type WebFetchToolArgs,
 } from './tools'
 import { useAgentAttachments } from './useAgentAttachments'
+import { useAgentCompaction } from './useAgentCompaction'
 import { useAgentImageRegistry } from './useAgentImageRegistry'
 import { useAgentQuestions } from './useAgentQuestions'
 import { useAgentSkills } from './useAgentSkills'
@@ -286,7 +281,6 @@ export function useAgentPlayground({
     [isCurrentRuntime],
   )
 
-  const maybeRunRuntimeCompactionRef = useRef<(runtime: AgentSessionRuntime) => void>(() => {})
   const maybeDispatchAgentImageCallbacksRef = useRef<(runtime: AgentSessionRuntime) => void>(() => {})
 
   const persistRuntimeSidecar = useCallback((runtime: AgentSessionRuntime) => {
@@ -456,151 +450,14 @@ export function useAgentPlayground({
     [getAgentBaseUrl],
   )
 
-  const runRuntimeCompaction = useCallback(
-    async (runtime: AgentSessionRuntime) => {
-      if (runtime.isCompacting || runtime.agent.state.isStreaming) return
-      if (!runtime.ready) return
-      if (agentRuntimesRef.current.get(runtime.sessionId) !== runtime) return
-
-      const config = resolveAgentModelConfig(runtime.modelId)
-      const credentials = agentCredentialsRef.current[config.provider]
-      if (!credentials.apiKey) return
-
-      const model = agentModelWithBaseUrl(config, credentials.baseUrl)
-      const contextWindow = model.contextWindow ?? 0
-      if (contextWindow <= 0) return
-
-      // Trust assistant usage only when its timestamp is later than the last
-      // compaction — otherwise the message still carries pre-compaction
-      // usage.totalTokens and would falsely re-trigger compaction every turn.
-      const minUsageTimestamp = runtime.lastCompaction?.createdAt ?? 0
-      const settings = DEFAULT_COMPACTION_SETTINGS
-      const preflightMessages = runtime.agent.state.messages
-      if (preflightMessages.length === 0) return
-      const preflightTokens = estimateContextTokens(preflightMessages, { minUsageTimestamp }).tokens
-      if (!shouldCompact(preflightTokens, contextWindow, settings)) return
-
-      // Acquire the compaction lock BEFORE awaiting persistence so that
-      // sendAgentMessage / image callbacks / system events that all guard on
-      // `isCompacting` cannot start a new prompt during the await window.
-      runtime.isCompacting = true
-      const abortController = new AbortController()
-      runtime.compactionAbort = abortController
-      // Use syncRuntimeSnapshot (not just setAgentIsStreaming) so runtime.isStreaming
-      // also reflects the lock — otherwise the next sendAgentMessage would read the
-      // stale runtime field and take the in-flight queueMessage path instead of prompt.
-      syncRuntimeSnapshot(runtime)
-
-      let compactionErrorMessage: string | null = null
-      try {
-        await runtime.persistQueue.catch(() => undefined)
-
-        // Re-confirm runtime is still alive and idle. The await above can yield
-        // long enough for the session to be deleted, swapped, or for some path
-        // we did not lock to push the agent into a new turn.
-        if (!runtime.ready) return
-        if (agentRuntimesRef.current.get(runtime.sessionId) !== runtime) return
-        if (runtime.agent.state.isStreaming) return
-
-        const messages = runtime.agent.state.messages.slice()
-        if (messages.length === 0) return
-        // If nothing changed during the await, the preflight estimate is still valid;
-        // otherwise recompute on the latest snapshot.
-        const sameAsPreflight =
-          messages.length === preflightMessages.length &&
-          messages[messages.length - 1] === preflightMessages[preflightMessages.length - 1]
-        const contextTokens = sameAsPreflight
-          ? preflightTokens
-          : estimateContextTokens(messages, { minUsageTimestamp }).tokens
-        if (!shouldCompact(contextTokens, contextWindow, settings)) return
-
-        const previousSummary = runtime.lastCompaction?.summary
-        const ignoreLeadingCount = previousSummary && messages.length > 0 ? 1 : 0
-
-        const result = await compact({
-          messages,
-          settings,
-          model,
-          apiKey: credentials.apiKey,
-          previousSummary,
-          ignoreLeadingCount,
-          tokensBefore: contextTokens,
-          signal: abortController.signal,
-        })
-        if (!result) return
-        if (!runtime.ready) return
-        if (agentRuntimesRef.current.get(runtime.sessionId) !== runtime) return
-
-        // If user has appended new messages while we were summarizing, snap firstKeptIndex
-        // forward proportionally so we don't drop those new messages.
-        const liveMessages = runtime.agent.state.messages
-        const drift = liveMessages.length - messages.length
-        if (drift < 0) return // messages got truncated externally; bail
-        const liveFirstKeptIndex = Math.min(result.firstKeptIndex, liveMessages.length)
-        if (liveFirstKeptIndex <= 0) return
-
-        const firstKeptMessage = liveMessages[liveFirstKeptIndex]
-        if (!firstKeptMessage) return
-        let firstKeptEntryId: string | undefined
-        for (let i = liveFirstKeptIndex; i < liveMessages.length; i++) {
-          const candidate = liveMessages[i]
-          const id = runtime.messageEntryIds.get(candidate)
-          if (id) {
-            firstKeptEntryId = id
-            break
-          }
-        }
-        if (!firstKeptEntryId) return // nothing reliably persisted; skip this round
-
-        const summaryMessage = buildCompactionSummaryMessage(result.summary)
-        const keptMessages = liveMessages.slice(liveFirstKeptIndex)
-        const nextMessages = [summaryMessage, ...keptMessages]
-
-        runtime.agent.replaceMessages(nextMessages)
-        runtime.lastCompaction = {
-          summary: result.summary,
-          firstKeptEntryId,
-          tokensBefore: result.tokensBefore,
-          createdAt: Date.now(),
-        }
-
-        // syncRuntimeSnapshot will copy agent.state.messages into runtime.messages
-        // and push it to React state — no need to assign runtime.messages manually.
-        syncRuntimeSnapshot(runtime)
-        await persistRuntimeSidecar(runtime)
-      } catch (error) {
-        if (abortController.signal.aborted) return
-        // Compaction failure should not break the user's session — log via runtime error
-        // surface but keep messages intact. Stash the message and apply it AFTER
-        // syncRuntimeSnapshot in finally so the snapshot does not overwrite it
-        // with agent.state.error (which is unrelated to the summarization call).
-        compactionErrorMessage = error instanceof Error ? error.message : String(error)
-      } finally {
-        runtime.isCompacting = false
-        runtime.compactionAbort = null
-        // Re-sync so runtime.isStreaming returns to agent.state.isStreaming.
-        // setAgentIsStreaming alone would only update React state, leaving
-        // runtime.isStreaming stuck at true and breaking the next sendAgentMessage.
-        syncRuntimeSnapshot(runtime)
-        if (compactionErrorMessage !== null) setRuntimeError(runtime, compactionErrorMessage)
-        // Image task callbacks that arrived during compaction are skipped at
-        // dispatch time; drain once now so the agent receives any deferred
-        // "image finished" system events even if no further job updates fire.
-        // Skip if the runtime was deleted or replaced — otherwise we could
-        // dispatch onto a torn-down session.
-        if (runtime.ready && agentRuntimesRef.current.get(runtime.sessionId) === runtime) {
-          maybeDispatchAgentImageCallbacksRef.current(runtime)
-        }
-      }
-    },
-    [persistRuntimeSidecar, setRuntimeError, syncRuntimeSnapshot],
-  )
-
-  useExternalSync(() => {
-    maybeRunRuntimeCompactionRef.current = (runtime) => {
-      void runRuntimeCompaction(runtime)
-    }
-  }, [runRuntimeCompaction])
+  const { maybeRunRuntimeCompactionRef } = useAgentCompaction({
+    agentRuntimesRef,
+    agentCredentialsRef,
+    maybeDispatchAgentImageCallbacksRef,
+    persistRuntimeSidecar,
+    setRuntimeError,
+    syncRuntimeSnapshot,
+  })
 
   const createRuntime = useCallback(
     (params: {
@@ -741,6 +598,7 @@ export function useAgentPlayground({
       applyAgentRuntimeConfig,
       getAgentBaseUrl,
       isCurrentRuntime,
+      maybeRunRuntimeCompactionRef,
       persistRuntimeSidecar,
       setRuntimeError,
       syncRuntimeSnapshot,
