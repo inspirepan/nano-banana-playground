@@ -140,12 +140,10 @@ export function SlotHero({
         ))}
       {slot && job && (slot.status === 'failed' || slot.status === 'canceled') && (
         <div className="mt-2 flex items-center gap-2">
-          {slot.status === 'failed' && (
-            <button type="button" className="chip" onClick={onRetry} title={t('imageDetail.action.retryOriginal')}>
-              <Icon name="refresh" size={12} strokeWidth={1.8} />
-              {t('common.retry')}
-            </button>
-          )}
+          <button type="button" className="chip" onClick={onRetry} title={t('imageDetail.action.retryOriginal')}>
+            <Icon name="refresh" size={12} strokeWidth={1.8} />
+            {t('common.retry')}
+          </button>
           <button type="button" className="chip ghost" onClick={() => onDismissJob(job.id)}>
             {t('imageDetail.action.closeTask')}
           </button>

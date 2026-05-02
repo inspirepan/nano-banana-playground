@@ -471,7 +471,7 @@ export function useGenerationQueue({
     (jobId: string, slotId: string): RetryGenerationSlotResult => {
       const job = generationJobsRef.current.find((item) => item.id === jobId)
       const slot = job?.slots.find((item) => item.id === slotId)
-      if (!job || !slot || slot.status !== 'failed') return { status: 'unavailable' }
+      if (!job || !slot || (slot.status !== 'failed' && slot.status !== 'canceled')) return { status: 'unavailable' }
 
       const credentials = getProviderCredentials(job.request.model.provider)
       if (!credentials.apiKey) return { status: 'unavailable' }
