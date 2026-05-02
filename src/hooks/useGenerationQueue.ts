@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 
 import { useExternalSync, useMountEffect } from './effects'
 import { putBlobInCache, removeBlobFromCache } from './useImageSrc'
@@ -559,9 +559,11 @@ export function useGenerationQueue({
     [setGenerationJobs],
   )
 
+  const generationQueueSummary = useMemo(() => summarizeGenerationQueue(generationJobs), [generationJobs])
+
   return {
     generationJobs,
-    generationQueueSummary: summarizeGenerationQueue(generationJobs),
+    generationQueueSummary,
     generationConcurrency,
     setGenerationConcurrency,
     enqueueGenerationJob,

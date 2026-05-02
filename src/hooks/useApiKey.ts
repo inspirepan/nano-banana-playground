@@ -28,10 +28,13 @@ function readStoredBaseUrl(provider: Provider): string {
 }
 
 export function useApiKey(provider: Provider) {
-  const stored = readStoredKey(provider)
-  const [apiKey, setApiKeyRaw] = useState(stored)
+  const [[initialApiKey, initialStatus]] = useState<[string, ApiKeyStatus]>(() => {
+    const key = readStoredKey(provider)
+    return [key, key ? 'valid' : 'empty']
+  })
+  const [apiKey, setApiKeyRaw] = useState(initialApiKey)
   const [baseUrl, setBaseUrlRaw] = useState(() => readStoredBaseUrl(provider))
-  const [status, setStatus] = useState<ApiKeyStatus>(stored ? 'valid' : 'empty')
+  const [status, setStatus] = useState<ApiKeyStatus>(initialStatus)
   const [error, setError] = useState<string | null>(null)
 
   const submit = useCallback(

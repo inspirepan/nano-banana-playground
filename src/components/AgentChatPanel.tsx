@@ -334,7 +334,7 @@ export function AgentChatPanel({
         onAddAttachments(files)
       }}
     >
-      {showSessionSidebar && (
+      {showSessionSidebar ? (
         <AgentSessionSidebar
           sessions={sessions}
           currentSessionId={currentSessionId}
@@ -345,7 +345,7 @@ export function AgentChatPanel({
           onSwitchToGenerate={onSwitchToGenerate}
           onOpenSettings={onOpenApiKeys}
         />
-      )}
+      ) : null}
 
       <div className={`flex min-h-0 min-w-0 flex-1 flex-col ${showSessionSidebar ? 'pt-8 pb-[18px]' : ''}`}>
         <div className={contentRightPaddingClass}>
@@ -361,7 +361,7 @@ export function AgentChatPanel({
             onDeleteSession={onDeleteSession}
           />
 
-          {keyMissing && (
+          {keyMissing ? (
             <button
               type="button"
               onClick={onOpenApiKeys}
@@ -383,7 +383,7 @@ export function AgentChatPanel({
                 {t('agentChat.apiKeyMissing.action')}
               </span>
             </button>
-          )}
+          ) : null}
         </div>
 
         <div
@@ -449,13 +449,13 @@ export function AgentChatPanel({
                 {queuedMessages.map((queued) => (
                   <MessageBubble key={queued.id} message={queued.message} isStreaming={false} isQueued />
                 ))}
-                {showThinkingPlaceholder && (
+                {showThinkingPlaceholder ? (
                   <div className="flex justify-start">
                     <div className="mr-3 max-w-[94%] pl-3">
                       <span className="text-(--color-text-4)">{t('agentChat.status.thinking')}</span>
                     </div>
                   </div>
-                )}
+                ) : null}
               </>
             )}
           </div>

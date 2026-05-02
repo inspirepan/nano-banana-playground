@@ -105,7 +105,7 @@ export function MessageBubble({
               {assistantTitle}
             </div>
           )}
-          {images.length > 0 && (
+          {images.length > 0 ? (
             <div className="mb-2 grid max-w-[360px] grid-cols-3 gap-1.5">
               {images.map((image, index) => (
                 <img
@@ -116,14 +116,14 @@ export function MessageBubble({
                 />
               ))}
             </div>
-          )}
-          {thinking && !isUser && (
+          ) : null}
+          {thinking && !isUser ? (
             <AgentThinking
               thinking={thinking}
               isStreaming={isStreaming}
               hasTrailingContent={hasAssistantTrailingContent}
             />
-          )}
+          ) : null}
           {isUser ? (
             <div className={isQueued ? 'flex items-start gap-3' : undefined}>
               <div className={isQueued ? 'min-w-0 flex-1' : undefined}>

@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useMemo, type ReactNode } from 'react'
 
 import { AgentImageTaskCard } from './AgentImageTaskCard'
 import { AskUserQuestionForm, AskUserQuestionResultCard } from './AskUserQuestionCards'
@@ -49,7 +49,10 @@ export function ToolActivityCard({
   onFocusImageTask?: (task: AgentImageTask) => void
 }) {
   const { t } = useI18n()
-  const resultByCallId = new Map(results.map((result) => [result.toolCallId, result]))
+  const resultByCallId = useMemo(
+    () => new Map(results.map((result) => [result.toolCallId, result])),
+    [results],
+  )
 
   // GenImage calls render as standalone rich cards; AskUserQuestion renders a
   // form or result card; ReadImage / AskUserQuestion mid-stream collapse into a
@@ -138,7 +141,7 @@ export function ToolActivityCard({
           isStreaming={isStreaming && richCards.length === 0 && inlineNotices.length === 0}
         />
       )}
-      {richCards.length > 0 && <div className="space-y-2">{richCards}</div>}
+      {richCards.length > 0 ? <div className="space-y-2">{richCards}</div> : null}
       {inlineNotices}
     </div>
   )

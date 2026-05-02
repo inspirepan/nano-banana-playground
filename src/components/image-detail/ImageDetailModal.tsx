@@ -391,35 +391,35 @@ export function ImageDetailModal({
   const modelName = modelConfig?.name ?? currentMeta?.modelId ?? null
   const modelApiId = modelConfig?.apiModel ?? null
 
-  const actualCost = (() => {
+  const actualCost = useMemo(() => {
     if (!currentMeta || !modelConfig) return null
     return getActualCost(modelConfig, currentMeta.tokenUsage)
-  })()
+  }, [currentMeta, modelConfig])
 
-  const flash = (msg: string) => {
+  const flash = useCallback((msg: string) => {
     setToast(msg)
     setTimeout(() => setToast(null), 1500)
-  }
+  }, [])
 
-  const handleDownload = async () => {
+  const handleDownload = useCallback(async () => {
     if (!currentImage || !currentSrc) return
     const result = await downloadImagePng(currentImage, { src: currentSrc })
     if (result === 'downloaded') flash(t('imageDetail.toast.downloadPngStarted'))
-  }
+  }, [currentImage, currentSrc, flash, t])
 
-  const handleCopyPrompt = () => {
+  const handleCopyPrompt = useCallback(() => {
     const promptToCopy = currentMeta?.prompt ?? currentJob?.request.prompt
     if (!promptToCopy) return
     void navigator.clipboard?.writeText(promptToCopy).catch(() => {})
     setCopiedPrompt(true)
     setTimeout(() => setCopiedPrompt(false), 1400)
-  }
+  }, [currentMeta?.prompt, currentJob?.request.prompt])
 
-  const handleAddRef = () => {
+  const handleAddRef = useCallback(() => {
     if (!currentImage) return
     onAddToRef(currentImage)
     flash(t('imageDetail.toast.addedReference'))
-  }
+  }, [currentImage, onAddToRef, flash, t])
 
   const openMobilePreview = useCallback(
     (initialView: ZoomableImageViewState | null = null) => {
@@ -513,12 +513,16 @@ export function ImageDetailModal({
   // Size helper — show approximate px
   const pxDim = currentMeta ? `${currentMeta.resolution} · ${currentMeta.aspectRatio}` : ''
 
-  const stackInfo =
-    currentImage &&
-    (() => {
-      const posInStack = stack.images.findIndex((img) => img.id === currentImage.id)
-      return { pos: posInStack + 1, total: stack.images.length }
-    })()
+  const stackInfo = useMemo(
+    () =>
+      currentImage
+        ? (() => {
+            const posInStack = stack.images.findIndex((img) => img.id === currentImage.id)
+            return { pos: posInStack + 1, total: stack.images.length }
+          })()
+        : null,
+    [currentImage, stack.images],
+  )
   const galleryBacksToDetail = viewMode === 'gallery' && galleryReturnTarget === 'detail'
 
   // Keep the backdrop covering the full layout viewport. iOS Safari shrinks

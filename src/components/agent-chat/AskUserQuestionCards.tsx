@@ -218,7 +218,7 @@ export function AskUserQuestionResultCard({
           <div className="text-sm leading-[1.55] text-(--color-text-3)">
             {abandoned ? t('agentChat.question.noAnswerAfterNavigation') : t('agentChat.question.noAnswer')}
           </div>
-          {questions.length > 0 && (
+          {questions.length > 0 ? (
             <ul className="space-y-1">
               {questions.map((question, index) => (
                 <li key={index} className="text-sm text-(--color-text-2)">
@@ -226,7 +226,7 @@ export function AskUserQuestionResultCard({
                 </li>
               ))}
             </ul>
-          )}
+          ) : null}
         </div>
       ) : (
         <div className="space-y-2">

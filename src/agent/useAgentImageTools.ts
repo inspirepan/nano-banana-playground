@@ -118,10 +118,7 @@ export function useAgentImageTools({
       return true
     },
     [
-      agentCredentialsRef,
-      agentRuntimesRef,
       applyAgentRuntimeConfig,
-      maybeDispatchAgentImageCallbacksRef,
       setRuntimeError,
       syncRuntimeSnapshot,
     ],
@@ -177,10 +174,7 @@ export function useAgentImageTools({
         })
     },
     [
-      agentCredentialsRef,
-      agentRuntimesRef,
       applyAgentRuntimeConfig,
-      maybeDispatchAgentImageCallbacksRef,
       scheduleRuntimeSidecarPersist,
       setRuntimeError,
       syncRuntimeSnapshot,
@@ -189,7 +183,7 @@ export function useAgentImageTools({
 
   useExternalSync(() => {
     maybeDispatchAgentImageCallbacksRef.current = maybeDispatchAgentImageCallbacks
-  }, [maybeDispatchAgentImageCallbacks, maybeDispatchAgentImageCallbacksRef])
+  }, [maybeDispatchAgentImageCallbacks])
 
   const startAgentImageTask = useCallback(
     async (runtime: AgentSessionRuntime, task: AgentImageTask): Promise<{ ok: boolean; message: string }> => {
@@ -290,7 +284,6 @@ export function useAgentImageTools({
       return { ok: true, message: translate('configLib.agent.taskStarted') }
     },
     [
-      agentRuntimesRef,
       enqueueGenerationJob,
       getProviderCredentials,
       maybeDispatchAgentImageCallbacks,
@@ -372,10 +365,12 @@ export function useAgentImageTools({
       const resolution = normalizeResolution(modelConfig, args.resolution)
       const aspect = normalizeAspectRatio(modelConfig, args.ratio)
       const referenceImageIds = args.reference_image_ids.filter((id) => id.trim()).map((id) => id.trim())
-      const referenceImages = await resolveAgentReferenceImages(runtime, referenceImageIds)
+      const [referenceImages, reserved] = await Promise.all([
+        resolveAgentReferenceImages(runtime, referenceImageIds),
+        reserveAgentImageIdsForRuntime(runtime, args.image_id, batchCount),
+      ])
       if (signal?.aborted) throw new Error('GenImage was aborted.')
       const editSource = referenceImages.find((image) => image.source.type === 'generated')
-      const reserved = await reserveAgentImageIdsForRuntime(runtime, args.image_id, batchCount)
       try {
         const activeOptions = activeOptionsForModel(modelConfig, defaultOptionsFor(modelConfig))
         const task: AgentImageTask = {
@@ -445,7 +440,6 @@ export function useAgentImageTools({
       }
     },
     [
-      agentRuntimesRef,
       releasePendingAgentImageIds,
       reserveAgentImageIdsForRuntime,
       resolveAgentReferenceImages,
@@ -526,7 +520,7 @@ export function useAgentImageTools({
         details: payload,
       }
     },
-    [agentRuntimesRef, resolveAgentImageById],
+    [resolveAgentImageById],
   )
 
   useExternalSync(() => {
@@ -589,7 +583,6 @@ export function useAgentImageTools({
       maybeDispatchAgentImageCallbacks(runtime, next)
     }
   }, [
-    agentRuntimesRef,
     dismissGenerationJob,
     generationJobs,
     isCurrentRuntime,

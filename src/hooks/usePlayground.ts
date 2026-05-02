@@ -118,9 +118,18 @@ export function usePlayground() {
   const [inputMode, setInputMode] = useState<InputMode>(() => (_initial.agentMode ? 'agent' : 'generate'))
   const [referenceImages, setReferenceImages] = useState<PlaygroundImage[]>([])
   const [referenceImageError, setReferenceImageError] = useState<string | null>(null)
-  const [history, setHistory] = useState<PlaygroundImageMeta[]>([])
+  const [history, setHistoryRaw] = useState<PlaygroundImageMeta[]>([])
   const [historyHasMore, setHistoryHasMore] = useState(true)
   const historyLoadingRef = useRef(false)
+  const historyLengthRef = useRef(0)
+
+  const setHistory = useCallback((updater: PlaygroundImageMeta[] | ((prev: PlaygroundImageMeta[]) => PlaygroundImageMeta[])) => {
+    setHistoryRaw((prev) => {
+      const next = typeof updater === 'function' ? updater(prev) : updater
+      historyLengthRef.current = next.length
+      return next
+    })
+  }, [])
   const getProviderCredentials = useCallback(
     (provider: ModelConfig['provider']) => {
       const keyHook = keyHooks[provider]
@@ -205,13 +214,13 @@ export function usePlayground() {
     if (!historyHasMore || historyLoadingRef.current) return
     historyLoadingRef.current = true
     try {
-      const { items, hasMore } = await loadHistoryPage(history.length, HISTORY_PAGE_SIZE)
+      const { items, hasMore } = await loadHistoryPage(historyLengthRef.current, HISTORY_PAGE_SIZE)
       setHistory((prev) => [...prev, ...items])
       setHistoryHasMore(hasMore)
     } finally {
       historyLoadingRef.current = false
     }
-  }, [history.length, historyHasMore])
+  }, [historyHasMore, setHistory])
 
   // --- Debounced URL sync ---
   const urlDebounceRef = useRef<number>(0)
@@ -279,9 +288,12 @@ export function usePlayground() {
     })
   }, [])
 
+  const modelMaxReferenceImages = model.maxReferenceImages
+  const modelMaxCharacterImages = model.maxCharacterImages
+
   const addReferenceImages = useCallback(
     (files: File[]) => {
-      const maxTotal = model.maxReferenceImages + model.maxCharacterImages
+      const maxTotal = modelMaxReferenceImages + modelMaxCharacterImages
       const remaining = maxTotal - referenceImages.length
       const toAdd = files.slice(0, remaining)
 
@@ -317,7 +329,7 @@ export function usePlayground() {
         }
       })
     },
-    [model, referenceImages.length],
+    [modelMaxReferenceImages, modelMaxCharacterImages, referenceImages.length],
   )
 
   const removeReferenceImage = useCallback((id: string) => {
@@ -448,8 +460,11 @@ export function usePlayground() {
     ],
   )
 
+  const currentApiKey = apiKeyHook.apiKey
+  const currentBaseUrl = apiKeyHook.baseUrl
+
   const generate = useCallback(() => {
-    if (!apiKeyHook.apiKey) return
+    if (!currentApiKey) return
     const trimmed = prompt.trim()
     if (!trimmed) return
 
@@ -467,8 +482,8 @@ export function usePlayground() {
     })
     enqueueGenerationJob(
       {
-        apiKey: apiKeyHook.apiKey,
-        baseUrl: apiKeyHook.baseUrl,
+        apiKey: currentApiKey,
+        baseUrl: currentBaseUrl,
         model,
         prompt: trimmed,
         referenceImages: [...referenceImages],
@@ -479,7 +494,7 @@ export function usePlayground() {
       batchCount,
       stackId,
     )
-  }, [apiKeyHook, prompt, model, referenceImages, resolution, aspectRatio, options, batchCount, enqueueGenerationJob])
+  }, [currentApiKey, currentBaseUrl, prompt, model, referenceImages, resolution, aspectRatio, options, batchCount, enqueueGenerationJob])
 
   // Edit an existing image: prepends the source as the first reference and
   // enqueues a generation job independent of InputPanel state.
@@ -552,14 +567,14 @@ export function usePlayground() {
 
   const addToReferences = useCallback(
     async (image: PlaygroundImageMeta) => {
-      const maxTotal = model.maxReferenceImages + model.maxCharacterImages
+      const maxTotal = modelMaxReferenceImages + modelMaxCharacterImages
       if (referenceImages.length >= maxTotal) return
       const [full] = await resolveFullImages([image])
       if (full) {
         setReferenceImages((prev) => [...prev, full])
       }
     },
-    [model, referenceImages.length, resolveFullImages],
+    [modelMaxReferenceImages, modelMaxCharacterImages, referenceImages.length, resolveFullImages],
   )
 
   const removeFromHistory = useCallback(async (id: string) => {

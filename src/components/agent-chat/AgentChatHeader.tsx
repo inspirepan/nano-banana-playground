@@ -1,4 +1,4 @@
-import type { Dispatch, SetStateAction } from 'react'
+import { useMemo, type Dispatch, type SetStateAction } from 'react'
 
 import type { AgentChatMenu } from './types'
 import { formatSessionTime } from './utils'
@@ -30,7 +30,10 @@ export function AgentChatHeader({
   onDeleteSession,
 }: AgentChatHeaderProps) {
   const { t } = useI18n()
-  const currentSession = sessions.find((session) => session.id === currentSessionId)
+  const currentSession = useMemo(
+    () => sessions.find((s) => s.id === currentSessionId),
+    [sessions, currentSessionId],
+  )
 
   return (
     <div className="relative mb-1.5 flex items-center gap-2">

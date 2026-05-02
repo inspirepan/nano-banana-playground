@@ -318,6 +318,28 @@ export function InputPanel({
     [onAddReferenceImages],
   )
 
+  const handlePromptChange = useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      onPromptChange(e.target.value)
+      pushHistory(e.target.value)
+      autoResizeTextarea(e.target)
+    },
+    [onPromptChange, pushHistory],
+  )
+
+  const handlePromptClear = useCallback(() => {
+    onPromptChange('')
+    pushHistory('')
+    // Defer until after the textarea has shrunk so the scroll
+    // target reflects the final layout, not the pre-clear size.
+    requestAnimationFrame(() => {
+      const el = textareaRef.current
+      if (!el) return
+      el.focus({ preventScroll: true })
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    })
+  }, [onPromptChange, pushHistory, textareaRef])
+
   const estimatedCost = pricePerImage !== null ? pricePerImage * batchCount : null
   const optionSummaryLabels = getOptionSummaryLabels(model, options)
   const optionSummary = optionSummaryLabels.join(t('input.summary.optionSeparator'))
@@ -516,11 +538,7 @@ export function InputPanel({
               <textarea
                 ref={textareaRef}
                 value={prompt}
-                onChange={(e) => {
-                  onPromptChange(e.target.value)
-                  pushHistory(e.target.value)
-                  autoResizeTextarea(e.target)
-                }}
+                onChange={handlePromptChange}
                 placeholder={t('input.prompt.placeholder')}
                 rows={1}
                 className="block w-full bg-transparent px-3 py-2.5 text-[16px] md:text-base leading-[1.55] resize-none focus:outline-none"
@@ -533,18 +551,7 @@ export function InputPanel({
                 {prompt.length > 0 && (
                   <button
                     type="button"
-                    onClick={() => {
-                      onPromptChange('')
-                      pushHistory('')
-                      // Defer until after the textarea has shrunk so the scroll
-                      // target reflects the final layout, not the pre-clear size.
-                      requestAnimationFrame(() => {
-                        const el = textareaRef.current
-                        if (!el) return
-                        el.focus({ preventScroll: true })
-                        el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-                      })
-                    }}
+                    onClick={handlePromptClear}
                     title={t('input.prompt.clear')}
                     aria-label={t('input.prompt.clear')}
                     className="inline-flex items-center gap-1 bg-transparent border-0 p-0 text-sm text-(--color-text-4) hover:text-(--color-text-2) transition-colors"
@@ -681,7 +688,7 @@ export function InputPanel({
                 )}
               </dl>
             </div>
-            <button type="button" onClick={() => onGenerate()} disabled={!canGenerate} className="cta w-full">
+            <button type="button" onClick={onGenerate} disabled={!canGenerate} className="cta w-full">
               <Icon name="wand" size={13} strokeWidth={1.8} />
               <span>{t('input.generateWithModel', { model: model.name, count: batchCount })}</span>
               <span className="flex-1" />

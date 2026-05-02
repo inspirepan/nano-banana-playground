@@ -1,5 +1,5 @@
 import { Agentation } from 'agentation'
-import { useState, useLayoutEffect, useRef, useCallback, useMemo } from 'react'
+import { useState, useLayoutEffect, useRef, useCallback, useMemo, startTransition } from 'react'
 
 import type { AgentImageTask } from './agent'
 import {
@@ -101,10 +101,10 @@ function App() {
   const agentPanelSideSpace = `${Math.round(agentWideLayout.sideSpace)}px`
 
   const allStacks = useMemo(() => buildImageStacks(pg.history, pg.generationJobs), [pg.history, pg.generationJobs])
-  const mobileDetailStack = mobileDetailState
-    ? (allStacks.find((stack) => stack.id === mobileDetailState.stackId) ?? null)
-    : null
-  const mobileStackIndex = mobileDetailStack ? allStacks.findIndex((stack) => stack.id === mobileDetailStack.id) : -1
+  const mobileStackIndex = mobileDetailState
+    ? allStacks.findIndex((stack) => stack.id === mobileDetailState.stackId)
+    : -1
+  const mobileDetailStack = mobileStackIndex >= 0 ? allStacks[mobileStackIndex] : null
   const mobilePrevStackTarget: MobileDetailNavTarget | null =
     mobileStackIndex > 0
       ? (() => {
@@ -130,7 +130,9 @@ function App() {
     [allStacks],
   )
 
-  useWindowEvent('resize', () => setViewportWidth(window.innerWidth))
+  useWindowEvent('resize', () => {
+    startTransition(() => setViewportWidth(window.innerWidth))
+  })
 
   const dismissAgentWideTip = useCallback(() => {
     setAgentWideTipDismissed(true)
@@ -216,6 +218,11 @@ function App() {
     setSettingsOpen(true)
   }, [])
 
+  const handleOpenGenerationSettings = useCallback(
+    () => openSettings('generationConcurrency'),
+    [openSettings],
+  )
+
   const switchInputMode = useCallback(
     (mode: 'generate' | 'agent') => {
       pg.setInputMode(mode)
@@ -243,7 +250,7 @@ function App() {
       if (typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches) {
         const stack = allStacks.find((s) => s.id === stackId)
         if (!stack) return
-        const newestImage = [...stack.images].sort((a, b) => b.timestamp - a.timestamp)[0]
+        const newestImage = stack.images.toSorted((a, b) => b.timestamp - a.timestamp)[0]
         const fallbackItem = stack.items[stack.items.length - 1]
         setMobileDetailState({
           stackId: stack.id,
@@ -441,7 +448,7 @@ function App() {
                 onRemove={pg.removeFromHistory}
                 onLoadMore={pg.loadMoreHistory}
                 highlightStackId={highlightStackId}
-                onOpenGenerationSettings={() => openSettings('generationConcurrency')}
+                onOpenGenerationSettings={handleOpenGenerationSettings}
               />
             </div>
           )}
@@ -604,7 +611,7 @@ function App() {
             onEditImage={pg.editImage}
             onRemove={pg.removeFromHistory}
             onLoadMore={pg.loadMoreHistory}
-            onOpenGenerationSettings={() => openSettings('generationConcurrency')}
+            onOpenGenerationSettings={handleOpenGenerationSettings}
             highlightStackId={highlightStackId}
           />
           {import.meta.env.DEV && <Agentation />}

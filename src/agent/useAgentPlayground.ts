@@ -1,5 +1,5 @@
 import { Agent, ProviderTransport, type AppMessage as AgentMessage } from '@mariozechner/pi-agent'
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 
 import { agentMessageRole, type AgentChatAttachment } from './agentChat'
 import { buildCompactionSummaryMessage } from './compaction'
@@ -296,15 +296,27 @@ export function useAgentPlayground({
     [setRuntimePendingQuestions],
   )
 
+  const providerCredentials = useMemo(
+    () => ({
+      google: { apiKey: keyHooks.google.apiKey, baseUrl: keyHooks.google.baseUrl },
+      openai: { apiKey: keyHooks.openai.apiKey, baseUrl: keyHooks.openai.baseUrl },
+      anthropic: { apiKey: keyHooks.anthropic.apiKey, baseUrl: keyHooks.anthropic.baseUrl },
+    }),
+    [
+      keyHooks.google.apiKey,
+      keyHooks.google.baseUrl,
+      keyHooks.openai.apiKey,
+      keyHooks.openai.baseUrl,
+      keyHooks.anthropic.apiKey,
+      keyHooks.anthropic.baseUrl,
+    ],
+  )
+
   const { getAgentBaseUrl, setAgentModelIdForSession, setAgentThinkingLevel, applyAgentRuntimeConfig } =
     useAgentRuntimeConfig({
       agentCredentialsRef,
       agentToolHandlersRef,
-      providerCredentials: {
-        google: { apiKey: keyHooks.google.apiKey, baseUrl: keyHooks.google.baseUrl },
-        openai: { apiKey: keyHooks.openai.apiKey, baseUrl: keyHooks.openai.baseUrl },
-        anthropic: { apiKey: keyHooks.anthropic.apiKey, baseUrl: keyHooks.anthropic.baseUrl },
-      },
+      providerCredentials,
       getCurrentRuntime,
       upsertAgentSessionSummary,
       setAgentModelId,
@@ -725,6 +737,15 @@ export function useAgentPlayground({
       setAgentAttachmentError,
     })
 
+  const providerApiKeys = useMemo(
+    () => ({
+      google: keyHooks.google.apiKey,
+      openai: keyHooks.openai.apiKey,
+      anthropic: keyHooks.anthropic.apiKey,
+    }),
+    [keyHooks.google.apiKey, keyHooks.openai.apiKey, keyHooks.anthropic.apiKey],
+  )
+
   const {
     sendAgentSystemEvent,
     maybeDispatchAgentImageCallbacks,
@@ -738,11 +759,7 @@ export function useAgentPlayground({
     maybeDispatchAgentImageCallbacksRef,
     generationJobsRefForAgent,
     generationJobs,
-    providerApiKeys: {
-      google: keyHooks.google.apiKey,
-      openai: keyHooks.openai.apiKey,
-      anthropic: keyHooks.anthropic.apiKey,
-    },
+    providerApiKeys,
     getCurrentRuntime,
     getProviderCredentials,
     enqueueGenerationJob,

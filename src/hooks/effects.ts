@@ -37,7 +37,7 @@ export function useWindowEvent<K extends keyof WindowEventMap>(
     const handler = (event: WindowEventMap[K]) => listenerRef.current(event)
     window.addEventListener(type, handler as EventListener, options)
     return () => window.removeEventListener(type, handler as EventListener, options)
-  }, [capture, enabled, listenerRef, options, passive, type])
+  }, [capture, enabled, listenerRef, passive, type])
 }
 
 export function useWindowResize(listener: () => void, enabled = true): void {

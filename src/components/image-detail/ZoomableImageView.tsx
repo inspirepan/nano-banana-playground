@@ -376,8 +376,8 @@ export function ZoomableImageView({
             touchPinchStartDistanceRef.current = distance
             return
           }
+          // touch-none CSS already prevents default scroll; no preventDefault() needed
           if (distance > startDistance * PINCH_HANDOFF_THRESHOLD) {
-            event.preventDefault()
             if (scaleRef.current >= PINCH_FULLSCREEN_SCALE) pinchHandoffPendingRef.current = true
           }
         }}

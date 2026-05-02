@@ -20,6 +20,10 @@ type Props = {
   onOpen: (image: PlaygroundImageMeta) => void
 }
 
+const CONTEXT_MENU_WIDTH = 160
+const CONTEXT_MENU_ITEM_HEIGHT = 32
+const CONTEXT_MENU_PADDING = 8
+
 export const ImageCard = memo(function ImageCard({
   image,
   inlineData,
@@ -32,9 +36,6 @@ export const ImageCard = memo(function ImageCard({
   onOpen,
 }: Props) {
   const { t } = useI18n()
-  const CONTEXT_MENU_WIDTH = 160
-  const CONTEXT_MENU_ITEM_HEIGHT = 32
-  const CONTEXT_MENU_PADDING = 8
   const { ref, src } = useImageSrc(image.id, image.mimeType, inlineData, { variant: 'preview' })
   const meta = image.source.type === 'generated' ? image.source : null
   const [toast, setToast] = useState(false)

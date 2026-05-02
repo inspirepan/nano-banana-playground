@@ -104,6 +104,8 @@ export const DrawableLayer = forwardRef<DrawableLayerHandle, Props>(function Dra
 
   const [natural, setNatural] = useState<{ w: number; h: number } | null>(null)
   const [stage, setStage] = useState<{ w: number; h: number }>({ w: 0, h: 0 })
+  const stageRef = useRef(stage)
+  stageRef.current = stage
   const [localView, setLocalView] = useState<{ scale: number; offset: Point }>({
     scale: LOCAL_FIT_SCALE,
     offset: { x: 0, y: 0 },
@@ -203,7 +205,7 @@ export const DrawableLayer = forwardRef<DrawableLayerHandle, Props>(function Dra
   const handleWheel = useCallback(
     (event: WheelEvent) => {
       const container = containerRef.current
-      if (viewTransform || !natural || stage.w === 0 || stage.h === 0 || !container) return
+      if (viewTransform || !natural || stageRef.current.w === 0 || stageRef.current.h === 0 || !container) return
       event.preventDefault()
       const rect = container.getBoundingClientRect()
       const anchor = {
@@ -219,7 +221,7 @@ export const DrawableLayer = forwardRef<DrawableLayerHandle, Props>(function Dra
         y: anchor.y - ratio * (anchor.y - current.offset.y),
       })
     },
-    [applyLocalView, natural, stage, viewTransform],
+    [applyLocalView, natural, viewTransform],
   )
 
   useExternalSync(() => {
@@ -332,106 +334,115 @@ export const DrawableLayer = forwardRef<DrawableLayerHandle, Props>(function Dra
     [eraseAllModes, pushItems, mode],
   )
 
-  const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    if (readOnly) return
-    if (e.pointerType === 'mouse' && e.button !== 0) return
-    const pt = toNatural(e.clientX, e.clientY)
-    if (!pt) return
+  const handlePointerDown = useCallback(
+    (e: React.PointerEvent<HTMLCanvasElement>) => {
+      if (readOnly) return
+      if (e.pointerType === 'mouse' && e.button !== 0) return
+      const pt = toNatural(e.clientX, e.clientY)
+      if (!pt) return
 
-    if (tool === 'step') {
-      // Pins drop on click (no drag/capture). Radius is clamped so large
-      // brush presets don't produce oversized pins.
-      const size = Math.min(22, Math.max(12, brushSize * 1.1))
-      const n = nextStepNumber(itemsRef.current)
-      pushItems([
-        ...itemsRef.current,
-        {
+      if (tool === 'step') {
+        // Pins drop on click (no drag/capture). Radius is clamped so large
+        // brush presets don't produce oversized pins.
+        const size = Math.min(22, Math.max(12, brushSize * 1.1))
+        const n = nextStepNumber(itemsRef.current)
+        pushItems([
+          ...itemsRef.current,
+          {
+            id: crypto.randomUUID(),
+            kind: 'step',
+            mode,
+            color: annotateColor,
+            size,
+            anchor: pt,
+            n,
+          },
+        ])
+        return
+      }
+
+      // Path / rect / eraser all need pointer move/up delivered even if the
+      // pointer leaves canvas bounds mid-gesture, so we capture for those.
+      e.currentTarget.setPointerCapture(e.pointerId)
+
+      if (tool === 'eraser') {
+        pointerStateRef.current = { pointerId: e.pointerId, kind: 'eraser' }
+        eraseAt(pt)
+        return
+      }
+
+      if (tool === 'rect') {
+        pointerStateRef.current = { pointerId: e.pointerId, kind: 'rect' }
+        writeDraft({
           id: crypto.randomUUID(),
-          kind: 'step',
+          kind: 'rect',
           mode,
           color: annotateColor,
-          size,
-          anchor: pt,
-          n,
-        },
-      ])
-      return
-    }
+          size: brushSize,
+          start: pt,
+          end: pt,
+        })
+        return
+      }
 
-    // Path / rect / eraser all need pointer move/up delivered even if the
-    // pointer leaves canvas bounds mid-gesture, so we capture for those.
-    e.currentTarget.setPointerCapture(e.pointerId)
-
-    if (tool === 'eraser') {
-      pointerStateRef.current = { pointerId: e.pointerId, kind: 'eraser' }
-      eraseAt(pt)
-      return
-    }
-
-    if (tool === 'rect') {
-      pointerStateRef.current = { pointerId: e.pointerId, kind: 'rect' }
+      // brush
+      pointerStateRef.current = { pointerId: e.pointerId, kind: 'path' }
       writeDraft({
         id: crypto.randomUUID(),
-        kind: 'rect',
+        kind: 'path',
         mode,
         color: annotateColor,
         size: brushSize,
-        start: pt,
-        end: pt,
+        points: [pt],
       })
-      return
-    }
+    },
+    [readOnly, toNatural, tool, brushSize, mode, annotateColor, pushItems, eraseAt, writeDraft],
+  )
 
-    // brush
-    pointerStateRef.current = { pointerId: e.pointerId, kind: 'path' }
-    writeDraft({
-      id: crypto.randomUUID(),
-      kind: 'path',
-      mode,
-      color: annotateColor,
-      size: brushSize,
-      points: [pt],
-    })
-  }
+  const handlePointerMove = useCallback(
+    (e: React.PointerEvent<HTMLCanvasElement>) => {
+      const state = pointerStateRef.current
+      if (!state || state.pointerId !== e.pointerId) return
+      const pt = toNatural(e.clientX, e.clientY)
+      if (!pt) return
+      if (state.kind === 'eraser') {
+        eraseAt(pt)
+        return
+      }
+      // Read the draft through the ref so we don't have to rely on setState
+      // functional updaters — in StrictMode dev those run twice and any side
+      // effect inside fires twice, which we explicitly want to avoid here.
+      const prev = draftRef.current
+      if (state.kind === 'rect') {
+        if (prev?.kind === 'rect') writeDraft({ ...prev, end: pt })
+        return
+      }
+      // path
+      if (prev?.kind === 'path') {
+        const last = prev.points[prev.points.length - 1]
+        if (last && Math.hypot(pt.x - last.x, pt.y - last.y) < 1) return
+        writeDraft({ ...prev, points: [...prev.points, pt] })
+      }
+    },
+    [toNatural, eraseAt, writeDraft],
+  )
 
-  const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    const state = pointerStateRef.current
-    if (!state || state.pointerId !== e.pointerId) return
-    const pt = toNatural(e.clientX, e.clientY)
-    if (!pt) return
-    if (state.kind === 'eraser') {
-      eraseAt(pt)
-      return
-    }
-    // Read the draft through the ref so we don't have to rely on setState
-    // functional updaters — in StrictMode dev those run twice and any side
-    // effect inside fires twice, which we explicitly want to avoid here.
-    const prev = draftRef.current
-    if (state.kind === 'rect') {
-      if (prev?.kind === 'rect') writeDraft({ ...prev, end: pt })
-      return
-    }
-    // path
-    if (prev?.kind === 'path') {
-      const last = prev.points[prev.points.length - 1]
-      if (last && Math.hypot(pt.x - last.x, pt.y - last.y) < 1) return
-      writeDraft({ ...prev, points: [...prev.points, pt] })
-    }
-  }
-
-  const handlePointerUp = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    const state = pointerStateRef.current
-    if (!state || state.pointerId !== e.pointerId) return
-    pointerStateRef.current = null
-    const d = draftRef.current
-    writeDraft(null)
-    if (!d) return
-    // Drop zero-size rects so a stray click in rect mode doesn't leave a point.
-    if (d.kind === 'rect' && Math.abs(d.end.x - d.start.x) < 2 && Math.abs(d.end.y - d.start.y) < 2) {
-      return
-    }
-    pushItems([...itemsRef.current, d])
-  }
+  const handlePointerUp = useCallback(
+    (e: React.PointerEvent<HTMLCanvasElement>) => {
+      const state = pointerStateRef.current
+      if (!state || state.pointerId !== e.pointerId) return
+      pointerStateRef.current = null
+      const d = draftRef.current
+      writeDraft(null)
+      if (!d) return
+      // Drop zero-size rects so a stray click in rect mode doesn't leave a point.
+      if (d.kind === 'rect' && Math.abs(d.end.x - d.start.x) < 2 && Math.abs(d.end.y - d.start.y) < 2) {
+        return
+      }
+      pushItems([...itemsRef.current, d])
+    },
+    [writeDraft, pushItems],
+  )
 
   // Handle methods read items through `itemsRef` rather than the `items`
   // closure — `drawableRef.current.undo()` is fired from a window keydown

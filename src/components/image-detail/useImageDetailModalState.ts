@@ -35,9 +35,9 @@ export function useImageDetailModalState({
   })
   const [drawTool, setDrawTool] = useState<DrawTool>('brush')
   const [desktopMoveActive, setDesktopMoveActive] = useState(false)
-  if (drawTool === 'rect') {
-    setDrawTool('brush')
-  }
+  const setDrawToolSafe = useCallback((tool: DrawTool) => {
+    setDrawTool(tool === 'rect' ? 'brush' : tool)
+  }, [])
   const [brushPreset, setBrushPreset] = useState<BrushPresetId>('M')
   const brushSize = BRUSH_PRESETS.find((p) => p.id === brushPreset)?.size ?? 56
   const activeDrawMode: DrawMode = drawTool === 'step' ? 'annotate' : 'mask'
@@ -88,7 +88,7 @@ export function useImageDetailModalState({
     editMode,
     setEditMode,
     drawTool,
-    setDrawTool,
+    setDrawTool: setDrawToolSafe,
     desktopMoveActive,
     setDesktopMoveActive,
     brushPreset,

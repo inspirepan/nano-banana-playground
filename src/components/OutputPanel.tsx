@@ -5,6 +5,8 @@ import { ImageDetailModal } from './image-detail/ImageDetailModal'
 import { GridCell, ImageGrid } from './ImageGrid'
 import { StackItemThumb } from './StackItemThumb'
 import { MODEL_CONFIGS, type ModelConfig } from '../config/models'
+
+const MODEL_CONFIG_BY_ID = new Map(MODEL_CONFIGS.map((m) => [m.id, m]))
 import { useExternalSync } from '../hooks/effects'
 import type { GenerationJob } from '../hooks/usePlayground'
 import { useI18n, type Translate } from '../i18n'
@@ -48,7 +50,7 @@ type ActiveStackStatusPart = { kind: 'running' | 'retrying' | 'queued'; label: s
 type ItemGenerationSummary = { modelName: string; aspectRatio: string; resolution: string }
 
 function latestImages(stack: ImageStack): PlaygroundImageMeta[] {
-  return [...stack.images].sort((a, b) => b.timestamp - a.timestamp)
+  return stack.images.toSorted((a, b) => b.timestamp - a.timestamp)
 }
 
 function firstStackItemTarget(stack: ImageStack | undefined): DetailNavigationTarget | null {
@@ -78,7 +80,7 @@ function stackItemGenerationSummary(item: StackItem): ItemGenerationSummary | nu
   const source = item.image.source
   if (source.type !== 'generated') return null
   return {
-    modelName: MODEL_CONFIGS.find((model) => model.id === source.modelId)?.name ?? source.modelId,
+    modelName: MODEL_CONFIG_BY_ID.get(source.modelId)?.name ?? source.modelId,
     aspectRatio: source.aspectRatio,
     resolution: source.resolution,
   }
@@ -360,9 +362,9 @@ export const OutputPanel = memo(function OutputPanel({
   const [deletingStackId, setDeletingStackId] = useState<string | null>(null)
   const stackRowRefs = useRef<Map<string, HTMLDivElement>>(new Map())
   const stacks = useMemo(() => buildImageStacks(history, generationJobs), [history, generationJobs])
-  const generatedImageCount = useMemo(() => history.filter((img) => img.source.type === 'generated').length, [history])
-  const detailStack = detailTarget ? (stacks.find((stack) => stack.id === detailTarget.stackId) ?? null) : null
-  const detailStackIndex = detailStack ? stacks.findIndex((stack) => stack.id === detailStack.id) : -1
+  const generatedImageCount = history.filter((img) => img.source.type === 'generated').length
+  const detailStackIndex = detailTarget ? stacks.findIndex((stack) => stack.id === detailTarget.stackId) : -1
+  const detailStack = detailStackIndex >= 0 ? stacks[detailStackIndex] : null
   const previousStackTarget = detailStackIndex > 0 ? lastStackItemTarget(stacks[detailStackIndex - 1]) : null
   const nextStackTarget =
     detailStackIndex >= 0 && detailStackIndex < stacks.length - 1
