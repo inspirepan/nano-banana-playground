@@ -29,6 +29,7 @@ import { ToolActivityCard } from './agent-chat/ToolActivityCard'
 import type { AgentChatMenu } from './agent-chat/types'
 import {
   buildChatRenderItems,
+  formatSessionTime,
   hasRenderableMessageContent,
   isImageFile,
   parseDraggedPlaygroundImage,
@@ -56,6 +57,7 @@ type Props = {
   models: AgentModelConfig[]
   thinkingLevel: AgentThinkingLevel
   keyStatuses: Record<Provider, ApiKeyStatus>
+  showSessionSidebar?: boolean
   onOpenApiKeys: () => void
   onDraftChange: (value: string) => void
   onAddAttachments: (files: File[]) => void
@@ -65,6 +67,7 @@ type Props = {
   onNewSession: () => void
   onSwitchSession: (sessionId: string) => void
   onDeleteSession: (sessionId: string) => void
+  onSwitchToGenerate?: () => void
   onToggleAutoApproveImageTasks: (value: boolean) => void
   onApproveImageTask: (taskId: string) => void
   onCancelImageTask: (taskId: string) => void
@@ -98,6 +101,7 @@ export function AgentChatPanel({
   models,
   thinkingLevel,
   keyStatuses,
+  showSessionSidebar = false,
   onOpenApiKeys,
   onDraftChange,
   onAddAttachments,
@@ -107,6 +111,7 @@ export function AgentChatPanel({
   onNewSession,
   onSwitchSession,
   onDeleteSession,
+  onSwitchToGenerate,
   onToggleAutoApproveImageTasks,
   onApproveImageTask,
   onCancelImageTask,
@@ -259,7 +264,7 @@ export function AgentChatPanel({
   return (
     <div
       ref={controlsRef}
-      className="flex min-h-[calc(100dvh-126px)] flex-1 flex-col md:min-h-[560px]"
+      className={`flex min-h-[calc(100dvh-126px)] flex-1 md:min-h-[560px] ${showSessionSidebar ? 'min-h-0 flex-row gap-[168px]' : 'flex-col'}`}
       onDragOver={(event) => event.preventDefault()}
       onDrop={(event) => {
         event.preventDefault()
@@ -285,127 +290,272 @@ export function AgentChatPanel({
         onAddAttachments(files)
       }}
     >
-      <AgentChatHeader
-        sessions={sessions}
-        currentSessionId={currentSessionId}
-        sessionsLoading={sessionsLoading}
-        openMenu={openMenu}
-        setOpenMenu={setOpenMenu}
-        onNewSession={onNewSession}
-        onSwitchSession={onSwitchSession}
-        onDeleteSession={onDeleteSession}
-      />
-
-      {keyMissing && (
-        <button
-          type="button"
-          onClick={onOpenApiKeys}
-          className="card mb-3 flex w-full items-start gap-2.5 px-3 py-2.5 text-left transition-colors"
-          style={{
-            color: 'var(--color-danger)',
-            background: 'var(--color-danger-soft)',
-            boxShadow: 'inset 0 0 0 1px color-mix(in srgb, var(--color-danger) 24%, transparent)',
-          }}
-        >
-          <Icon name="alert_circle" size={14} style={{ marginTop: 1, flexShrink: 0 }} />
-          <span className="flex-1">
-            <span className="block text-base font-medium">{t('agentChat.apiKeyMissing.title')}</span>
-            <span className="mt-0.5 block text-sm leading-[1.45] opacity-80">
-              {t('agentChat.apiKeyMissing.description', { model: model.label, provider: model.providerLabel })}
-            </span>
-          </span>
-          <span className="chip danger shrink-0 text-sm" style={{ height: 22, padding: '0 7px' }}>
-            {t('agentChat.apiKeyMissing.action')}
-          </span>
-        </button>
+      {showSessionSidebar && (
+        <AgentSessionSidebar
+          sessions={sessions}
+          currentSessionId={currentSessionId}
+          sessionsLoading={sessionsLoading}
+          onNewSession={onNewSession}
+          onSwitchSession={onSwitchSession}
+          onDeleteSession={onDeleteSession}
+          onSwitchToGenerate={onSwitchToGenerate}
+          onOpenSettings={onOpenApiKeys}
+        />
       )}
 
-      <div
-        ref={scrollRef}
-        className="min-h-0 flex-1 space-y-4 overflow-y-auto pt-5 pr-1 pb-8 [scrollbar-gutter:stable]"
-        style={{
-          maskImage: 'linear-gradient(to bottom, transparent 0, black 28px, black calc(100% - 34px), transparent 100%)',
-          WebkitMaskImage:
-            'linear-gradient(to bottom, transparent 0, black 28px, black calc(100% - 34px), transparent 100%)',
-        }}
-      >
-        {renderItems.length === 0 ? (
-          <div className="flex min-h-[300px] flex-col justify-center text-center">
-            <div className="font-display text-lg font-semibold tracking-[-0.01em] text-(--color-text)">
-              {t('agentChat.empty.title')}
-            </div>
-            <div className="mx-auto mt-1 max-w-[250px] text-sm leading-[1.5] text-(--color-text-3)">
-              {t('agentChat.empty.description')}
-            </div>
-          </div>
-        ) : (
-          <>
-            {renderItems.map((item) =>
-              item.type === 'message' ? (
-                <MessageBubble
-                  key={item.key}
-                  message={item.message}
-                  isStreaming={item.isStreaming}
-                  assistantTitle={assistantTitleFor(item.message, item.isStreaming)}
-                />
-              ) : (
-                <ToolActivityCard
-                  key={item.key}
-                  calls={item.calls}
-                  results={item.results}
-                  imageTaskByToolCallId={imageTaskByToolCallId}
-                  stackItemByImageId={stackItemByImageId}
-                  pendingQuestionByToolCallId={pendingQuestionByToolCallId}
-                  isStreaming={item.isStreaming}
-                  onApproveImageTask={onApproveImageTask}
-                  onCancelImageTask={onCancelImageTask}
-                  onSubmitQuestionAnswers={onSubmitQuestionAnswers}
-                  onCancelQuestion={onCancelQuestion}
-                  onFocusImageTask={onFocusImageTask}
-                />
-              ),
-            )}
-            {showThinkingPlaceholder && (
-              <div className="flex justify-start">
-                <div className="mr-3 max-w-[94%] pl-3">
-                  <span className="text-(--color-text-4)">{t('agentChat.status.thinking')}</span>
-                </div>
-              </div>
-            )}
-          </>
+      <div className={`flex min-h-0 min-w-0 flex-1 flex-col ${showSessionSidebar ? 'pt-8 pr-[192px] pb-[18px]' : ''}`}>
+        <AgentChatHeader
+          sessions={sessions}
+          currentSessionId={currentSessionId}
+          sessionsLoading={sessionsLoading}
+          compactSessionControls={showSessionSidebar}
+          openMenu={openMenu}
+          setOpenMenu={setOpenMenu}
+          onNewSession={onNewSession}
+          onSwitchSession={onSwitchSession}
+          onDeleteSession={onDeleteSession}
+        />
+
+        {keyMissing && (
+          <button
+            type="button"
+            onClick={onOpenApiKeys}
+            className="card mb-3 flex w-full items-start gap-2.5 px-3 py-2.5 text-left transition-colors"
+            style={{
+              color: 'var(--color-danger)',
+              background: 'var(--color-danger-soft)',
+              boxShadow: 'inset 0 0 0 1px color-mix(in srgb, var(--color-danger) 24%, transparent)',
+            }}
+          >
+            <Icon name="alert_circle" size={14} style={{ marginTop: 1, flexShrink: 0 }} />
+            <span className="flex-1">
+              <span className="block text-base font-medium">{t('agentChat.apiKeyMissing.title')}</span>
+              <span className="mt-0.5 block text-sm leading-[1.45] opacity-80">
+                {t('agentChat.apiKeyMissing.description', { model: model.label, provider: model.providerLabel })}
+              </span>
+            </span>
+            <span className="chip danger shrink-0 text-sm" style={{ height: 22, padding: '0 7px' }}>
+              {t('agentChat.apiKeyMissing.action')}
+            </span>
+          </button>
         )}
+
+        <div
+          ref={scrollRef}
+          className="min-h-0 flex-1 space-y-4 overflow-y-auto pt-5 pr-1 pb-8 [scrollbar-gutter:stable]"
+          style={{
+            maskImage:
+              'linear-gradient(to bottom, transparent 0, black 28px, black calc(100% - 34px), transparent 100%)',
+            WebkitMaskImage:
+              'linear-gradient(to bottom, transparent 0, black 28px, black calc(100% - 34px), transparent 100%)',
+          }}
+        >
+          {renderItems.length === 0 ? (
+            <div className="flex min-h-[300px] flex-col justify-center text-center">
+              <div className="font-display text-lg font-semibold tracking-[-0.01em] text-(--color-text)">
+                {t('agentChat.empty.title')}
+              </div>
+              <div className="mx-auto mt-1 max-w-[250px] text-sm leading-[1.5] text-(--color-text-3)">
+                {t('agentChat.empty.description')}
+              </div>
+            </div>
+          ) : (
+            <>
+              {renderItems.map((item) =>
+                item.type === 'message' ? (
+                  <MessageBubble
+                    key={item.key}
+                    message={item.message}
+                    isStreaming={item.isStreaming}
+                    assistantTitle={assistantTitleFor(item.message, item.isStreaming)}
+                  />
+                ) : (
+                  <ToolActivityCard
+                    key={item.key}
+                    calls={item.calls}
+                    results={item.results}
+                    imageTaskByToolCallId={imageTaskByToolCallId}
+                    stackItemByImageId={stackItemByImageId}
+                    pendingQuestionByToolCallId={pendingQuestionByToolCallId}
+                    isStreaming={item.isStreaming}
+                    onApproveImageTask={onApproveImageTask}
+                    onCancelImageTask={onCancelImageTask}
+                    onSubmitQuestionAnswers={onSubmitQuestionAnswers}
+                    onCancelQuestion={onCancelQuestion}
+                    onFocusImageTask={onFocusImageTask}
+                  />
+                ),
+              )}
+              {showThinkingPlaceholder && (
+                <div className="flex justify-start">
+                  <div className="mr-3 max-w-[94%] pl-3">
+                    <span className="text-(--color-text-4)">{t('agentChat.status.thinking')}</span>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        <AgentChatComposer
+          error={composerError}
+          attachmentError={attachmentError}
+          draft={draft}
+          attachments={attachments}
+          pendingQuestionCount={pendingQuestions.length}
+          renderItemCount={renderItems.length}
+          nearBottom={nearBottom}
+          openMenu={openMenu}
+          setOpenMenu={setOpenMenu}
+          autoApproveImageTasks={autoApproveImageTasks}
+          model={model}
+          models={models}
+          thinkingLevel={thinkingLevel}
+          keyStatuses={keyStatuses}
+          canSend={canSend}
+          showStop={showStop}
+          isStreaming={isStreaming}
+          onDraftChange={onDraftChange}
+          onAddAttachments={onAddAttachments}
+          onRemoveAttachment={onRemoveAttachment}
+          onClearAttachmentError={onClearAttachmentError}
+          onToggleAutoApproveImageTasks={onToggleAutoApproveImageTasks}
+          onModelChange={onModelChange}
+          onThinkingLevelChange={onThinkingLevelChange}
+          onOpenApiKeys={onOpenApiKeys}
+          onSend={handleSend}
+          onStop={onStop}
+          scrollToBottom={scrollToBottom}
+        />
+      </div>
+    </div>
+  )
+}
+
+function AgentSessionSidebar({
+  sessions,
+  currentSessionId,
+  sessionsLoading,
+  onNewSession,
+  onSwitchSession,
+  onDeleteSession,
+  onSwitchToGenerate,
+  onOpenSettings,
+}: {
+  sessions: AgentSessionSummary[]
+  currentSessionId: string | null
+  sessionsLoading: boolean
+  onNewSession: () => void
+  onSwitchSession: (sessionId: string) => void
+  onDeleteSession: (sessionId: string) => void
+  onSwitchToGenerate?: () => void
+  onOpenSettings: () => void
+}) {
+  const { t } = useI18n()
+
+  return (
+    <aside className="hidden w-[264px] shrink-0 flex-col bg-(--color-bg-sunken) px-4 py-6 shadow-[inset_-1px_0_0_var(--ring-edge-soft)] md:flex">
+      <div className="mb-5 flex items-center gap-2">
+        <div className="min-w-0 flex-1 truncate font-display text-lg font-semibold tracking-[-0.01em] text-(--color-text)">
+          {t('app.name')}
+        </div>
+        <button
+          type="button"
+          onClick={onOpenSettings}
+          className="icon-btn"
+          title={t('common.settings')}
+          aria-label={t('common.settings')}
+        >
+          <Icon name="settings" size={14} />
+        </button>
       </div>
 
-      <AgentChatComposer
-        error={composerError}
-        attachmentError={attachmentError}
-        draft={draft}
-        attachments={attachments}
-        pendingQuestionCount={pendingQuestions.length}
-        renderItemCount={renderItems.length}
-        nearBottom={nearBottom}
-        openMenu={openMenu}
-        setOpenMenu={setOpenMenu}
-        autoApproveImageTasks={autoApproveImageTasks}
-        model={model}
-        models={models}
-        thinkingLevel={thinkingLevel}
-        keyStatuses={keyStatuses}
-        canSend={canSend}
-        showStop={showStop}
-        isStreaming={isStreaming}
-        onDraftChange={onDraftChange}
-        onAddAttachments={onAddAttachments}
-        onRemoveAttachment={onRemoveAttachment}
-        onClearAttachmentError={onClearAttachmentError}
-        onToggleAutoApproveImageTasks={onToggleAutoApproveImageTasks}
-        onModelChange={onModelChange}
-        onThinkingLevelChange={onThinkingLevelChange}
-        onOpenApiKeys={onOpenApiKeys}
-        onSend={handleSend}
-        onStop={onStop}
-        scrollToBottom={scrollToBottom}
-      />
-    </div>
+      <div
+        className="segmented mb-4 w-full"
+        style={{ ['--seg-count' as string]: 2, ['--seg-index' as string]: 1 }}
+        aria-label={t('input.mode.aria')}
+      >
+        <button type="button" data-active={false} onClick={onSwitchToGenerate} disabled={!onSwitchToGenerate}>
+          <span>{t('input.mode.generate')}</span>
+        </button>
+        <button type="button" data-active>
+          <span>{t('common.agent')}</span>
+        </button>
+      </div>
+
+      <button
+        type="button"
+        onClick={onNewSession}
+        className="mb-7 flex h-[34px] w-full items-center gap-2 rounded-[var(--radius-md)] bg-(--color-surface-2) px-3 text-left text-base font-medium text-(--color-text-2) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)] transition-[background-color,color] hover:bg-(--color-surface-3) hover:text-(--color-text) focus-visible:bg-(--color-surface-3) focus-visible:text-(--color-text) focus-visible:outline-none"
+      >
+        <Icon name="plus" size={13} />
+        <span>{t('agentChat.header.newConversation')}</span>
+      </button>
+
+      <div className="mb-2 flex items-center gap-2 px-1">
+        <div className="label min-w-0 flex-1 truncate">{t('agentChat.header.allConversations')}</div>
+        <span className="text-xs text-(--color-text-4) tabular-nums">{sessions.length}</span>
+      </div>
+
+      <div className="min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]">
+        {sessionsLoading ? (
+          <div className="px-2 py-3 text-sm text-(--color-text-3)">{t('agentChat.header.loadingSessions')}</div>
+        ) : sessions.length === 0 ? (
+          <div className="rounded-[var(--radius-md)] px-2 py-3 text-sm text-(--color-text-3) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
+            {t('agentChat.header.emptyHistory')}
+          </div>
+        ) : (
+          <div className="space-y-0.5">
+            {sessions.map((session) => {
+              const active = session.id === currentSessionId
+              return (
+                <div
+                  key={session.id}
+                  className={`group relative flex h-[32px] items-center rounded-[var(--radius-md)] px-2 transition-[background-color,box-shadow] ${
+                    active
+                      ? 'bg-(--color-accent-wash) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]'
+                      : 'hover:bg-(--color-surface-2)'
+                  }`}
+                >
+                  {active && (
+                    <span className="absolute top-1.5 bottom-1.5 left-1 w-0.5 rounded-[var(--radius-xs)] bg-(--color-accent)" />
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => onSwitchSession(session.id)}
+                    className="min-w-0 flex-1 bg-transparent pl-2 text-left"
+                    aria-current={active ? 'true' : undefined}
+                    title={session.title}
+                  >
+                    <span
+                      className={`block truncate text-base ${active ? 'font-semibold text-(--color-text)' : 'text-(--color-text-2)'}`}
+                    >
+                      {session.title}
+                    </span>
+                  </button>
+                  <span
+                    className={`ml-2 shrink-0 text-sm ${active ? 'text-(--color-text-3)' : 'text-(--color-text-4)'}`}
+                  >
+                    {formatSessionTime(session.updatedAt)}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => onDeleteSession(session.id)}
+                    className={`absolute right-1 flex h-6 w-6 items-center justify-center rounded-[var(--radius-sm)] text-(--color-text-4) opacity-0 transition-opacity hover:bg-(--color-surface-3) hover:text-(--color-danger) group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none ${
+                      active
+                        ? 'bg-(--color-accent-wash) shadow-[-10px_0_12px_var(--color-accent-wash)]'
+                        : 'bg-(--color-surface-2) shadow-[-10px_0_12px_var(--color-surface-2)]'
+                    }`}
+                    aria-label={t('agentChat.header.deleteConversation')}
+                  >
+                    <Icon name="trash" size={12} />
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+    </aside>
   )
 }

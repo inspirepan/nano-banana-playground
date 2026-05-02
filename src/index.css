@@ -46,18 +46,18 @@
   --text-xl: 0.9375rem; /* 15px */
   --text-xl--line-height: 1.35;
 
-  /* Neutrals — cool whites through cool slate-blues, no accent */
-  --color-bg: #f6f8fa;
-  --color-bg-sunken: #eef1f5;
+  /* Neutrals — pure grayscale, no temperature tint. */
+  --color-bg: #fbfbfb;
+  --color-bg-sunken: #f5f5f5;
   --color-surface: #ffffff;
-  --color-surface-2: #f0f3f7;
-  --color-surface-3: #e4e9ef;
-  --color-border: #dde3ea;
-  --color-border-strong: #c4cdd6;
-  --color-text: #1a1f26;
-  --color-text-2: #4a5562;
-  --color-text-3: #76828f;
-  --color-text-4: #a6b0bb;
+  --color-surface-2: #f6f6f6;
+  --color-surface-3: #eeeeee;
+  --color-border: #e5e5e5;
+  --color-border-strong: #d9d9d9;
+  --color-text: #1c1c1c;
+  --color-text-2: #525252;
+  --color-text-3: #848484;
+  --color-text-4: #afafaf;
 
   /* Accent (default: indigo). Themes below override via .theme-* classes. */
   --color-accent: #2f6feb;
@@ -69,11 +69,11 @@
   --color-accent-ring: color-mix(in srgb, var(--color-accent) 11%, transparent);
   --color-accent-ring-hover: color-mix(in srgb, var(--color-accent) 14%, transparent);
 
-  --color-warning: #8a6d12;
-  --color-warning-soft: #efe9d4;
-  --color-danger: #b3413f;
-  --color-danger-soft: #f0dcdc;
-  --color-success: #3a7a6a;
+  --color-warning: #a56b08;
+  --color-warning-soft: #faf2e4;
+  --color-danger: #c14545;
+  --color-danger-soft: #fbefef;
+  --color-success: #3a9e5d;
 
   /* Aliases kept for components still referencing the old names */
   --color-primary: var(--color-accent);
@@ -103,13 +103,13 @@
 
   --color-title: var(--color-text);
 
-  /* Edge rings — cool slate-blue instead of pure black. */
-  --ring-edge: rgba(20, 35, 60, 0.08);
-  --ring-edge-elevated: rgba(20, 35, 60, 0.1);
-  --ring-edge-strong: rgba(20, 35, 60, 0.14);
-  --ring-edge-soft: rgba(20, 35, 60, 0.05);
-  --shadow-lift: 0 12px 28px -18px rgba(20, 35, 60, 0.22), 0 1px 2px rgba(20, 35, 60, 0.04);
-  --shadow-float: 0 16px 36px -24px rgba(20, 35, 60, 0.24), 0 2px 6px rgba(20, 35, 60, 0.06);
+  /* Edge rings — pure grayscale to match the light palette. */
+  --ring-edge: rgba(28, 28, 28, 0.08);
+  --ring-edge-elevated: rgba(28, 28, 28, 0.1);
+  --ring-edge-strong: rgba(28, 28, 28, 0.14);
+  --ring-edge-soft: rgba(28, 28, 28, 0.05);
+  --shadow-lift: 0 12px 28px -18px rgba(28, 28, 28, 0.18), 0 1px 2px rgba(28, 28, 28, 0.035);
+  --shadow-float: 0 16px 36px -24px rgba(28, 28, 28, 0.2), 0 2px 6px rgba(28, 28, 28, 0.055);
 
   --radius-xs: 4px;
   --radius-sm: 6px;

@@ -277,6 +277,7 @@ type Props = {
   keyStatuses: Record<Provider, ApiKeyStatus>
   showHeader?: boolean
   showInputModeSwitcher?: boolean
+  showAgentSessionSidebar?: boolean
   onOpenApiKeys: () => void
   onInputModeChange: (mode: InputMode) => void
   onSwitchModel: (id: string) => void
@@ -344,6 +345,7 @@ export function InputPanel({
   keyStatuses,
   showHeader = true,
   showInputModeSwitcher = true,
+  showAgentSessionSidebar = false,
   onOpenApiKeys,
   onInputModeChange,
   onSwitchModel,
@@ -531,6 +533,7 @@ export function InputPanel({
   const currentKeyStatus = keyStatuses[model.provider]
   const isCurrentKeyMissing = currentKeyStatus === 'empty' || apiKey.trim() === ''
   const providerLabel = getProviderConfig(model.provider).shortLabel
+  const useWideAgentSidebar = inputMode === 'agent' && showAgentSessionSidebar
 
   return (
     <div
@@ -542,11 +545,13 @@ export function InputPanel({
       onPaste={inputMode === 'generate' ? handlePanelPaste : undefined}
       className={
         inputMode === 'agent'
-          ? 'relative flex min-h-full flex-col px-[var(--agent-panel-padding-x,18px)] py-[18px] transition-[padding] duration-[220ms] ease-[cubic-bezier(0.22,0.8,0.4,1)] motion-reduce:transition-none'
+          ? useWideAgentSidebar
+            ? 'relative flex min-h-full flex-col p-0 transition-[padding] duration-[220ms] ease-[cubic-bezier(0.22,0.8,0.4,1)] motion-reduce:transition-none'
+            : 'relative flex min-h-full flex-col px-[var(--agent-panel-padding-x,18px)] py-[18px] transition-[padding] duration-[220ms] ease-[cubic-bezier(0.22,0.8,0.4,1)] motion-reduce:transition-none'
           : 'relative px-[18px] py-[18px] pb-[120px]'
       }
     >
-      {showHeader && (
+      {showHeader && !useWideAgentSidebar && (
         <div className="mb-[18px] flex min-h-[30px] items-center gap-2.5">
           <div className="min-w-0 font-display text-lg font-semibold tracking-[-0.01em] text-(--color-text)">
             {t('app.name')}
@@ -607,6 +612,7 @@ export function InputPanel({
           models={agentModels}
           thinkingLevel={agentThinkingLevel}
           keyStatuses={keyStatuses}
+          showSessionSidebar={useWideAgentSidebar}
           onOpenApiKeys={onOpenApiKeys}
           onDraftChange={onAgentDraftChange}
           onAddAttachments={onAddAgentAttachments}
@@ -616,6 +622,7 @@ export function InputPanel({
           onNewSession={onCreateAgentSession}
           onSwitchSession={onSwitchAgentSession}
           onDeleteSession={onDeleteAgentSession}
+          onSwitchToGenerate={() => onInputModeChange('generate')}
           onToggleAutoApproveImageTasks={onToggleAutoApproveAgentImageTasks}
           onApproveImageTask={onApproveAgentImageTask}
           onCancelImageTask={onCancelAgentImageTask}

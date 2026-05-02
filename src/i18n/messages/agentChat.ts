@@ -21,6 +21,7 @@ export const agentChatMessages: MessageDictionary = {
   'agentChat.header.loadingSessions': { 'zh-CN': '加载对话…', en: 'Loading conversations…' },
   'agentChat.header.newConversation': { 'zh-CN': '新对话', en: 'New conversation' },
   'agentChat.header.history': { 'zh-CN': '历史对话', en: 'Conversation history' },
+  'agentChat.header.allConversations': { 'zh-CN': '所有对话', en: 'All conversations' },
   'agentChat.header.emptyHistory': { 'zh-CN': '暂无历史对话', en: 'No conversation history' },
   'agentChat.header.emptyConversation': { 'zh-CN': '空对话', en: 'Empty conversation' },
   'agentChat.header.deleteConversation': { 'zh-CN': '删除对话', en: 'Delete conversation' },

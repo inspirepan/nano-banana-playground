@@ -21,7 +21,7 @@ import {
   type LanguagePreference,
 } from './config/languages'
 import { COLOR_THEME_IDS, type ColorThemeId, type Theme } from './config/theme'
-import { useExternalSync, useMountEffect } from './hooks/effects'
+import { useExternalSync, useMediaQuery, useMountEffect } from './hooks/effects'
 import { usePlayground } from './hooks/usePlayground'
 import { createTranslator, I18nProvider } from './i18n'
 import type { PlaygroundImageMeta } from './lib/types'
@@ -33,6 +33,7 @@ const GOOGLE_FONT_PREVIEWS_LINK_ID = 'nano-banana-google-font-previews'
 const DESKTOP_INPUT_PANEL_WIDTH = '480px'
 const DESKTOP_AGENT_PANEL_WIDE_WIDTH = 'clamp(480px, 75vw, calc(100vw - 300px))'
 const DESKTOP_AGENT_PANEL_WIDE_PADDING_X = '128px'
+const DESKTOP_AGENT_PANEL_SIDEBAR_MEDIA = '(min-width: 1760px)'
 
 type SettingsTarget = 'generationConcurrency'
 type MobileTab = 'generate' | 'agent' | 'gallery'
@@ -115,6 +116,7 @@ function App() {
   const [settingsTarget, setSettingsTarget] = useState<SettingsTarget | null>(null)
   const [mobileTab, setMobileTab] = useState<MobileTab>(() => (pg.inputMode === 'agent' ? 'agent' : 'generate'))
   const [agentPanelWide, setAgentPanelWide] = useState(getInitialAgentPanelWide)
+  const agentPanelSidebarFits = useMediaQuery(DESKTOP_AGENT_PANEL_SIDEBAR_MEDIA)
   const [highlightStackId, setHighlightStackId] = useState<string | null>(null)
   const highlightTimerRef = useRef<number | null>(null)
   const regenToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -126,8 +128,8 @@ function App() {
   const queueDone = queueSummary.succeeded + queueSummary.failed + queueSummary.canceled
   const language = resolveLanguagePreference(languagePreference, browserLanguages)
   const t = useMemo(() => createTranslator(language), [language])
-  const desktopInputPanelWidth =
-    pg.inputMode === 'agent' && agentPanelWide ? DESKTOP_AGENT_PANEL_WIDE_WIDTH : DESKTOP_INPUT_PANEL_WIDTH
+  const useWideAgentPanel = pg.inputMode === 'agent' && agentPanelWide && agentPanelSidebarFits
+  const desktopInputPanelWidth = useWideAgentPanel ? DESKTOP_AGENT_PANEL_WIDE_WIDTH : DESKTOP_INPUT_PANEL_WIDTH
 
   const toggleAgentPanelWide = useCallback(() => {
     setAgentPanelWide((prev) => {
@@ -495,7 +497,7 @@ function App() {
             className="shrink-0 flex flex-col overflow-y-auto [scrollbar-gutter:stable] bg-(--color-bg) shadow-[inset_-1px_0_0_var(--ring-edge-soft)] transition-[width] duration-[280ms] ease-[cubic-bezier(0.22,0.8,0.4,1)] motion-reduce:transition-none"
             style={{
               width: desktopInputPanelWidth,
-              ['--agent-panel-padding-x' as string]: agentPanelWide ? DESKTOP_AGENT_PANEL_WIDE_PADDING_X : undefined,
+              ['--agent-panel-padding-x' as string]: useWideAgentPanel ? DESKTOP_AGENT_PANEL_WIDE_PADDING_X : undefined,
             }}
           >
             <InputPanel
@@ -530,6 +532,7 @@ function App() {
               apiKey={pg.apiKey}
               apiKeyStatus={pg.apiKeyStatus}
               keyStatuses={pg.keyStatuses}
+              showAgentSessionSidebar={useWideAgentPanel}
               onOpenApiKeys={() => openSettings()}
               onInputModeChange={switchInputMode}
               onSwitchModel={pg.switchModel}
