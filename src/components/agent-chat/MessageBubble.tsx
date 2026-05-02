@@ -95,7 +95,7 @@ export function MessageBubble({
               ? `rounded-[12px] px-3 py-2.5 text-(--color-text) ${
                   isQueued
                     ? 'bg-(--color-surface-2) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]'
-                    : 'bg-(--color-accent-soft) shadow-[var(--bubble-user-edge)]'
+                    : 'bg-(--bubble-user-bg) shadow-[var(--bubble-user-edge)]'
                 }`
               : ''
           }
@@ -130,7 +130,7 @@ export function MessageBubble({
                 <TruncatedText
                   text={visibleText}
                   className="whitespace-pre-wrap text-base leading-[1.58]"
-                  fadeColor={isQueued ? 'var(--color-surface-2)' : 'var(--color-accent-soft)'}
+                  fadeColor={isQueued ? 'var(--color-surface-2)' : 'var(--bubble-user-bg)'}
                   maxHeight={220}
                 />
               </div>
