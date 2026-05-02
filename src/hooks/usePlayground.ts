@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useMemo, useRef } from 'react'
 
 import { useExternalSync, useMountEffect } from './effects'
 import { useApiKey } from './useApiKey'
@@ -12,6 +12,7 @@ import {
   defaultOptionsFor,
   serializeOptionValue,
   type ModelConfig,
+  type Provider,
 } from '../config/models'
 import { readFileAsImageData } from '../lib/fileToImage'
 import {
@@ -164,8 +165,15 @@ function stackIdForGenerationRequest(params: {
 export function usePlayground() {
   const googleKeyHook = useApiKey('google')
   const openaiKeyHook = useApiKey('openai')
+  const keyHooks: Record<Provider, ReturnType<typeof useApiKey>> = useMemo(
+    () => ({
+      google: googleKeyHook,
+      openai: openaiKeyHook,
+    }),
+    [googleKeyHook, openaiKeyHook],
+  )
   const [model, setModel] = useState<ModelConfig>(() => resolveModel(_initial.modelId))
-  const apiKeyHook = model.provider === 'google' ? googleKeyHook : openaiKeyHook
+  const apiKeyHook = keyHooks[model.provider]
   const [resolution, setResolutionRaw] = useState(() => {
     const m = resolveModel(_initial.modelId)
     if (_initial.resolution && m.resolutions.includes(_initial.resolution)) return _initial.resolution
@@ -193,18 +201,17 @@ export function usePlayground() {
   const historyLoadingRef = useRef(false)
   const getProviderCredentials = useCallback(
     (provider: ModelConfig['provider']) => {
-      const keyHook = provider === 'google' ? googleKeyHook : openaiKeyHook
+      const keyHook = keyHooks[provider]
       return { apiKey: keyHook.apiKey, baseUrl: keyHook.baseUrl }
     },
-    [googleKeyHook, openaiKeyHook],
+    [keyHooks],
   )
 
   const invalidateGenerationKey = useCallback(
     (provider: ModelConfig['provider']) => {
-      if (provider === 'google') googleKeyHook.invalidate()
-      else openaiKeyHook.invalidate()
+      keyHooks[provider].invalidate()
     },
-    [googleKeyHook, openaiKeyHook],
+    [keyHooks],
   )
 
   const onGeneratedImageSaved = useCallback((image: PlaygroundImage) => {
@@ -232,8 +239,7 @@ export function usePlayground() {
 
   const agent = useAgentPlayground({
     initialSessionId: _initial.agentSessionId,
-    googleKeyHook,
-    openaiKeyHook,
+    keyHooks,
     referenceImages,
     history,
     generationJobs,
@@ -475,7 +481,7 @@ export function usePlayground() {
       if (targetModel.provider === 'openai' && source.parentImageId && source.usesMask !== false) {
         return { status: 'unsupported-mask' }
       }
-      const keyHook = targetModel.provider === 'google' ? googleKeyHook : openaiKeyHook
+      const keyHook = keyHooks[targetModel.provider]
       if (!keyHook.apiKey) return { status: 'unavailable' }
 
       const trimmed = source.prompt.trim()
@@ -514,8 +520,7 @@ export function usePlayground() {
       appendGenerationSlot,
       enqueueGenerationJob,
       findActiveGenerationJob,
-      googleKeyHook,
-      openaiKeyHook,
+      keyHooks,
       resolveFullImages,
       resolveReferenceMetas,
     ],
@@ -574,7 +579,7 @@ export function usePlayground() {
       // should pass annotatedSource instead.
       mask?: PlaygroundImage
     }): Promise<string | null> => {
-      const keyHook = params.model.provider === 'google' ? googleKeyHook : openaiKeyHook
+      const keyHook = keyHooks[params.model.provider]
       if (!keyHook.apiKey) return null
       const trimmed = params.prompt.trim()
       if (!trimmed) return null
@@ -620,7 +625,7 @@ export function usePlayground() {
         params.sourceImage.id,
       )
     },
-    [googleKeyHook, openaiKeyHook, resolveFullImages, enqueueGenerationJob],
+    [keyHooks, resolveFullImages, enqueueGenerationJob],
   )
 
   const addToReferences = useCallback(
@@ -647,9 +652,11 @@ export function usePlayground() {
     apiKeyStatus: apiKeyHook.status,
     submitApiKey: apiKeyHook.submit,
     resetApiKey: apiKeyHook.reset,
-    // All provider keys (used by the API Keys dialog to configure both at once)
-    googleKey: googleKeyHook,
-    openaiKey: openaiKeyHook,
+    keyHooks,
+    keyStatuses: {
+      google: googleKeyHook.status,
+      openai: openaiKeyHook.status,
+    } satisfies Record<Provider, ReturnType<typeof useApiKey>['status']>,
     model,
     resolution,
     aspectRatio,

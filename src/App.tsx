@@ -390,8 +390,7 @@ function App() {
                 referenceImageError={pg.referenceImageError}
                 apiKey={pg.apiKey}
                 apiKeyStatus={pg.apiKeyStatus}
-                googleKeyStatus={pg.googleKey.status}
-                openaiKeyStatus={pg.openaiKey.status}
+                keyStatuses={pg.keyStatuses}
                 showHeader={false}
                 onOpenApiKeys={() => openSettings()}
                 onInputModeChange={switchInputMode}
@@ -484,8 +483,7 @@ function App() {
               referenceImageError={pg.referenceImageError}
               apiKey={pg.apiKey}
               apiKeyStatus={pg.apiKeyStatus}
-              googleKeyStatus={pg.googleKey.status}
-              openaiKeyStatus={pg.openaiKey.status}
+              keyStatuses={pg.keyStatuses}
               onOpenApiKeys={() => openSettings()}
               onInputModeChange={switchInputMode}
               onSwitchModel={pg.switchModel}
@@ -555,8 +553,7 @@ function App() {
 
       <SettingsDialog
         open={settingsOpen}
-        googleKey={pg.googleKey}
-        openaiKey={pg.openaiKey}
+        keyHooks={pg.keyHooks}
         theme={theme}
         colorTheme={colorTheme}
         sansFont={sansFont}

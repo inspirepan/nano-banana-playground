@@ -1,10 +1,11 @@
 import type { ThinkingLevel as AgentCoreThinkingLevel } from '@mariozechner/pi-agent'
 import { getModel, type Api, type Model } from '@mariozechner/pi-ai'
 
+import { getProviderConfig, type Provider } from './providers'
 import { translate } from '../i18n'
 import { resolveBaseUrl } from '../lib/validateKey'
 
-export type AgentModelProvider = 'google' | 'openai'
+export type AgentModelProvider = Provider
 export type AgentThinkingLevel = Extract<AgentCoreThinkingLevel, 'off' | 'minimal' | 'low' | 'medium' | 'high'>
 
 export type AgentModelConfig = {
@@ -68,7 +69,7 @@ export const AGENT_MODEL_CONFIGS: AgentModelConfig[] = [
     label: 'Gemini 3 Flash',
     shortLabel: 'Gemini 3 Flash',
     provider: 'google',
-    providerLabel: 'Gemini',
+    providerLabel: getProviderConfig('google').shortLabel,
     ...asAgentModel(getModel('google', 'gemini-3-flash-preview') as Model<Api>),
   },
   {
@@ -76,7 +77,7 @@ export const AGENT_MODEL_CONFIGS: AgentModelConfig[] = [
     label: 'GPT 5.5',
     shortLabel: 'GPT 5.5',
     provider: 'openai',
-    providerLabel: 'OpenAI',
+    providerLabel: getProviderConfig('openai').shortLabel,
     ...asAgentModel(GPT_5_5_MODEL),
   },
   {
@@ -84,7 +85,7 @@ export const AGENT_MODEL_CONFIGS: AgentModelConfig[] = [
     label: 'GPT 5.4 mini',
     shortLabel: 'GPT 5.4 mini',
     provider: 'openai',
-    providerLabel: 'OpenAI',
+    providerLabel: getProviderConfig('openai').shortLabel,
     ...asAgentModel(GPT_5_4_MINI_MODEL),
   },
 ]

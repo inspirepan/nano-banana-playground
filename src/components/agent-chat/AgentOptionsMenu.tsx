@@ -3,6 +3,8 @@ import type { Dispatch, SetStateAction } from 'react'
 import { AgentModelIcon } from './AgentModelIcon'
 import type { AgentChatMenu } from './types'
 import { AGENT_THINKING_OPTIONS, type AgentModelConfig, type AgentThinkingLevel } from '../../config/agentModels'
+import type { Provider } from '../../config/models'
+import type { ApiKeyStatus } from '../../hooks/useApiKey'
 import { useI18n } from '../../i18n'
 import { Icon } from '../Icon'
 
@@ -13,9 +15,11 @@ export function AgentOptionsMenu({
   model,
   models,
   effectiveThinkingLevel,
+  keyStatuses,
   onToggleAutoApproveImageTasks,
   onModelChange,
   onThinkingLevelChange,
+  onOpenApiKeys,
 }: {
   openMenu: AgentChatMenu
   setOpenMenu: Dispatch<SetStateAction<AgentChatMenu>>
@@ -23,9 +27,11 @@ export function AgentOptionsMenu({
   model: AgentModelConfig
   models: AgentModelConfig[]
   effectiveThinkingLevel: AgentThinkingLevel
+  keyStatuses: Record<Provider, ApiKeyStatus>
   onToggleAutoApproveImageTasks: (value: boolean) => void
   onModelChange: (id: string) => void
   onThinkingLevelChange: (level: AgentThinkingLevel) => void
+  onOpenApiKeys: () => void
 }) {
   const { t } = useI18n()
 
@@ -63,22 +69,39 @@ export function AgentOptionsMenu({
         )
       })}
       <div className="my-1 h-px bg-(--ring-edge-soft)" />
-      {models.map((item) => (
-        <button
-          key={item.id}
-          type="button"
-          onClick={() => {
-            onModelChange(item.id)
-            setOpenMenu(null)
-          }}
-          className="flex h-7 w-full items-center gap-2 rounded-[var(--radius-sm)] px-2 text-left text-sm font-medium text-(--color-text-2) transition-colors hover:bg-(--color-surface-2)"
-          data-active={model.id === item.id}
-        >
-          <AgentModelIcon model={item} />
-          <span className="min-w-0 flex-1 truncate">{item.label}</span>
-          {model.id === item.id && <Icon name="check" size={13} />}
-        </button>
-      ))}
+      {models.map((item) => {
+        const needsKey = keyStatuses[item.provider] === 'empty'
+        return (
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => {
+              onModelChange(item.id)
+              setOpenMenu(null)
+              if (needsKey) onOpenApiKeys()
+            }}
+            className="flex h-7 w-full items-center gap-2 rounded-[var(--radius-sm)] px-2 text-left text-sm font-medium text-(--color-text-2) transition-colors hover:bg-(--color-surface-2)"
+            data-active={model.id === item.id}
+          >
+            <AgentModelIcon model={item} />
+            <span className="min-w-0 flex-1 truncate">{item.label}</span>
+            {needsKey ? (
+              <span
+                className="shrink-0 rounded-[var(--radius-xs)] px-1.5 py-0.5 text-xs leading-[1.25]"
+                style={{
+                  color: 'var(--color-danger)',
+                  background: 'var(--color-danger-soft)',
+                  boxShadow: 'inset 0 0 0 1px color-mix(in srgb, var(--color-danger) 20%, transparent)',
+                }}
+              >
+                {t('agentChat.apiKeyMissing.action')}
+              </span>
+            ) : (
+              model.id === item.id && <Icon name="check" size={13} />
+            )}
+          </button>
+        )
+      })}
     </div>
   )
 }

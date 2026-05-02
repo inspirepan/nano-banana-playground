@@ -45,6 +45,8 @@ import {
 } from 'lucide-react'
 import { useId, type SVGProps } from 'react'
 
+import type { ProviderBrandIconName } from '../config/providers'
+
 export type IconName =
   | 'add_photo_alternate'
   | 'alert_circle'
@@ -93,7 +95,7 @@ type Props = LucideProps & {
   name: IconName
 }
 
-export type BrandIconName = 'gemini' | 'openai'
+export type BrandIconName = ProviderBrandIconName
 
 type BrandIconProps = Omit<SVGProps<SVGSVGElement>, 'name'> & {
   name: BrandIconName

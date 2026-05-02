@@ -5,6 +5,7 @@ import { ApiKeysSettings, type KeyHook } from './ApiKeysDialog'
 import { Icon, type IconName } from './Icon'
 import { SANS_FONTS, type SansFontId } from '../config/fonts'
 import { LANGUAGE_PREFERENCES, type LanguagePreference } from '../config/languages'
+import type { Provider } from '../config/models'
 import { COLOR_THEMES, type ColorThemeId, type Theme } from '../config/theme'
 import { useExternalSync, useWindowEvent } from '../hooks/effects'
 import { useI18n } from '../i18n'
@@ -34,8 +35,7 @@ function formatBytes(bytes: number): string {
 
 type Props = {
   open: boolean
-  googleKey: KeyHook
-  openaiKey: KeyHook
+  keyHooks: Record<Provider, KeyHook>
   theme: Theme
   colorTheme: ColorThemeId
   sansFont: SansFontId
@@ -52,8 +52,7 @@ type Props = {
 
 export function SettingsDialog({
   open,
-  googleKey,
-  openaiKey,
+  keyHooks,
   theme,
   colorTheme,
   sansFont,
@@ -177,7 +176,7 @@ export function SettingsDialog({
         <div className="min-h-0 overflow-y-auto px-5 py-2">
           <div>
             <SettingsSection title={t('settings.apiKeys.title')} description={t('settings.apiKeys.description')}>
-              <ApiKeysSettings googleKey={googleKey} openaiKey={openaiKey} variant="embedded" />
+              <ApiKeysSettings keyHooks={keyHooks} variant="embedded" />
             </SettingsSection>
 
             <SettingsSection title={t('settings.appearance.title')} description={t('settings.appearance.description')}>

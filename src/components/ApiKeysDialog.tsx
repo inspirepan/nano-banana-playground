@@ -1,8 +1,9 @@
 import { useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 
-import { Icon } from './Icon'
+import { BrandIcon, Icon } from './Icon'
 import type { Provider } from '../config/models'
+import { PROVIDER_CONFIGS, getProviderConfig } from '../config/providers'
 import { useExternalSync, useWindowEvent } from '../hooks/effects'
 import type { ApiKeyStatus } from '../hooks/useApiKey'
 import { useI18n } from '../i18n'
@@ -21,25 +22,11 @@ export type KeyHook = {
 
 type Props = {
   open: boolean
-  googleKey: KeyHook
-  openaiKey: KeyHook
+  keyHooks: Record<Provider, KeyHook>
   onClose: () => void
 }
 
-const LABELS: Record<Provider, { labelKey: string; placeholderKey: string; hintKey: string }> = {
-  google: {
-    labelKey: 'apiKeys.provider.google.label',
-    placeholderKey: 'apiKeys.provider.google.placeholder',
-    hintKey: 'apiKeys.provider.google.hint',
-  },
-  openai: {
-    labelKey: 'apiKeys.provider.openai.label',
-    placeholderKey: 'apiKeys.provider.openai.placeholder',
-    hintKey: 'apiKeys.provider.openai.hint',
-  },
-}
-
-export function ApiKeysDialog({ open, googleKey, openaiKey, onClose }: Props) {
+export function ApiKeysDialog({ open, keyHooks, onClose }: Props) {
   const { t } = useI18n()
 
   useWindowEvent(
@@ -70,7 +57,7 @@ export function ApiKeysDialog({ open, googleKey, openaiKey, onClose }: Props) {
           </button>
         </div>
         <div className="px-5 py-4">
-          <ApiKeysSettings googleKey={googleKey} openaiKey={openaiKey} />
+          <ApiKeysSettings keyHooks={keyHooks} />
         </div>
       </div>
     </div>,
@@ -81,12 +68,10 @@ export function ApiKeysDialog({ open, googleKey, openaiKey, onClose }: Props) {
 type ApiKeysSettingsVariant = 'dialog' | 'embedded'
 
 export function ApiKeysSettings({
-  googleKey,
-  openaiKey,
+  keyHooks,
   variant = 'dialog',
 }: {
-  googleKey: KeyHook
-  openaiKey: KeyHook
+  keyHooks: Record<Provider, KeyHook>
   variant?: ApiKeysSettingsVariant
 }) {
   const { t } = useI18n()
@@ -94,8 +79,15 @@ export function ApiKeysSettings({
   return (
     <div className="space-y-4">
       <div className="overflow-hidden rounded-[var(--radius-md)] bg-(--color-surface) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
-        <KeyRow provider="google" hook={googleKey} variant={variant} />
-        <KeyRow provider="openai" hook={openaiKey} variant={variant} last />
+        {PROVIDER_CONFIGS.map((provider, index) => (
+          <KeyRow
+            key={provider.id}
+            provider={provider.id}
+            hook={keyHooks[provider.id]}
+            variant={variant}
+            last={index === PROVIDER_CONFIGS.length - 1}
+          />
+        ))}
       </div>
       <p className="text-sm leading-relaxed text-(--color-text-3)">{t('apiKeys.storageNote')}</p>
     </div>
@@ -115,10 +107,10 @@ function KeyRow({
 }) {
   const { t } = useI18n()
   const id = useId()
-  const { labelKey, placeholderKey, hintKey } = LABELS[provider]
-  const label = t(labelKey)
-  const placeholder = t(placeholderKey)
-  const hint = t(hintKey)
+  const providerConfig = getProviderConfig(provider)
+  const label = t(providerConfig.keyLabelKey)
+  const placeholder = t(providerConfig.keyPlaceholderKey)
+  const hint = t(providerConfig.keyHintKey)
   const apiKeyInputId = `${id}-api-key`
   const baseUrlInputId = `${id}-base-url`
   const { apiKey, baseUrl, status, error, submit, reset, keepCurrent } = hook
@@ -189,7 +181,10 @@ function KeyRow({
   }`
   const header = (
     <div className="flex min-w-0 items-baseline justify-between gap-3">
-      <label className="text-base font-medium text-(--color-text)">{label}</label>
+      <label className="flex min-w-0 items-center gap-2 text-base font-medium text-(--color-text)">
+        <BrandIcon name={providerConfig.brandIcon} size={13} className="shrink-0 text-(--color-text-3)" />
+        <span className="min-w-0 truncate">{label}</span>
+      </label>
       <span className="shrink-0 text-sm text-(--color-text-3)">{hint}</span>
     </div>
   )

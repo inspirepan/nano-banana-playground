@@ -44,6 +44,7 @@ import {
   type AgentThinkingLevel,
 } from '../config/agentModels'
 import { MODEL_CONFIGS, defaultOptionsFor, type ModelConfig } from '../config/models'
+import { getProviderConfig } from '../config/providers'
 import { useExternalSync, useMountEffect } from '../hooks/effects'
 import type { useApiKey } from '../hooks/useApiKey'
 import type { GenerationJob } from '../hooks/useGenerationQueue'
@@ -68,8 +69,7 @@ type ProviderCredentials = { apiKey: string; baseUrl?: string }
 
 export type UseAgentPlaygroundParams = {
   initialSessionId: string | null
-  googleKeyHook: ApiKeyHook
-  openaiKeyHook: ApiKeyHook
+  keyHooks: Record<AgentModelProvider, ApiKeyHook>
   referenceImages: PlaygroundImage[]
   history: PlaygroundImageMeta[]
   generationJobs: GenerationJob[]
@@ -347,8 +347,7 @@ function restoreAgentImageTasks(tasks: AgentImageTask[]): AgentImageTask[] {
 
 export function useAgentPlayground({
   initialSessionId,
-  googleKeyHook,
-  openaiKeyHook,
+  keyHooks,
   referenceImages,
   history,
   generationJobs,
@@ -383,8 +382,8 @@ export function useAgentPlayground({
   const historyRef = useRef<PlaygroundImageMeta[]>([])
   const generationJobsRefForAgent = useRef<GenerationJob[]>([])
   const agentCredentialsRef = useRef({
-    google: { apiKey: googleKeyHook.apiKey, baseUrl: googleKeyHook.baseUrl },
-    openai: { apiKey: openaiKeyHook.apiKey, baseUrl: openaiKeyHook.baseUrl },
+    google: { apiKey: keyHooks.google.apiKey, baseUrl: keyHooks.google.baseUrl },
+    openai: { apiKey: keyHooks.openai.apiKey, baseUrl: keyHooks.openai.baseUrl },
   })
   const agentToolHandlersRef = useRef<{
     genImage: (
@@ -413,10 +412,10 @@ export function useAgentPlayground({
 
   useExternalSync(() => {
     agentCredentialsRef.current = {
-      google: { apiKey: googleKeyHook.apiKey, baseUrl: googleKeyHook.baseUrl },
-      openai: { apiKey: openaiKeyHook.apiKey, baseUrl: openaiKeyHook.baseUrl },
+      google: { apiKey: keyHooks.google.apiKey, baseUrl: keyHooks.google.baseUrl },
+      openai: { apiKey: keyHooks.openai.apiKey, baseUrl: keyHooks.openai.baseUrl },
     }
-  }, [googleKeyHook.apiKey, googleKeyHook.baseUrl, openaiKeyHook.apiKey, openaiKeyHook.baseUrl])
+  }, [keyHooks.google.apiKey, keyHooks.google.baseUrl, keyHooks.openai.apiKey, keyHooks.openai.baseUrl])
 
   const upsertAgentSessionSummary = useCallback((record: AgentSessionSummary) => {
     setAgentSessions((prev) =>
@@ -1174,7 +1173,7 @@ export function useAgentPlayground({
       if (!credentials.apiKey) {
         const message = translate('configLib.agent.modelMissingKey', {
           model: modelConfig.name,
-          provider: modelConfig.provider === 'google' ? 'Gemini' : 'OpenAI',
+          provider: getProviderConfig(modelConfig.provider).shortLabel,
         })
         const next = setRuntimeImageTasks(runtime, (prev) =>
           prev.map((item) => (item.id === task.id ? { ...item, status: 'failed', error: message } : item)),
@@ -1635,10 +1634,10 @@ export function useAgentPlayground({
   }, [runAskUserQuestionTool, runGenImageTool, runReadImageTool])
 
   useExternalSync(() => {
-    void googleKeyHook.apiKey
-    void openaiKeyHook.apiKey
+    void keyHooks.google.apiKey
+    void keyHooks.openai.apiKey
     for (const runtime of agentRuntimesRef.current.values()) maybeDispatchAgentImageCallbacks(runtime)
-  }, [googleKeyHook.apiKey, maybeDispatchAgentImageCallbacks, openaiKeyHook.apiKey])
+  }, [keyHooks.google.apiKey, keyHooks.openai.apiKey, maybeDispatchAgentImageCallbacks])
 
   useExternalSync(() => {
     for (const runtime of agentRuntimesRef.current.values()) {

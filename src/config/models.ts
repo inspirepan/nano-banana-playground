@@ -1,6 +1,7 @@
 import { translate } from '../i18n'
+import type { Provider } from './providers'
 
-export type Provider = 'google' | 'openai'
+export type { Provider } from './providers'
 
 // --- Option descriptors ---
 // Each model declares its provider-specific generation parameters as a list of

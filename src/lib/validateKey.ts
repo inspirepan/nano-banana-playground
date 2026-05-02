@@ -1,12 +1,12 @@
 import type { Provider } from '../config/models'
+import { PROVIDER_CONFIGS, getProviderConfig } from '../config/providers'
 import { translate } from '../i18n'
 
 // Default API base URLs shown as placeholder text. Both are the canonical
 // entry points used when the user leaves the field blank.
-export const DEFAULT_BASE_URL: Record<Provider, string> = {
-  google: 'https://generativelanguage.googleapis.com',
-  openai: 'https://api.openai.com/v1',
-}
+export const DEFAULT_BASE_URL = Object.fromEntries(
+  PROVIDER_CONFIGS.map((provider) => [provider.id, provider.defaultBaseUrl]),
+) as Record<Provider, string>
 
 // Trailing `/v1`, `/v1beta`, `/v1alpha`, `/v2beta` etc.
 const TRAILING_API_VERSION = /\/v\d+(?:alpha|beta)?\/*$/i
@@ -22,7 +22,7 @@ export function resolveBaseUrl(provider: Provider, baseUrl?: string): string {
   if (trimmed.endsWith('#')) {
     return trimmed.slice(0, -1).replace(/\/+$/, '')
   }
-  const effective = (trimmed || DEFAULT_BASE_URL[provider]).replace(/\/+$/, '')
+  const effective = (trimmed || getProviderConfig(provider).defaultBaseUrl).replace(/\/+$/, '')
   const stripped = effective.replace(TRAILING_API_VERSION, '')
   if (provider === 'google') return stripped
   return `${stripped}/v1`

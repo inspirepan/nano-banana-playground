@@ -10,6 +10,7 @@ import {
   type AskUserQuestionAnswer,
 } from '../agent'
 import type { AgentModelConfig, AgentThinkingLevel } from '../config/agentModels'
+import type { Provider } from '../config/models'
 import { useExternalSync, useWindowEvent } from '../hooks/effects'
 import type { ApiKeyStatus } from '../hooks/useApiKey'
 import { useI18n } from '../i18n'
@@ -44,8 +45,7 @@ type Props = {
   model: AgentModelConfig
   models: AgentModelConfig[]
   thinkingLevel: AgentThinkingLevel
-  googleKeyStatus: ApiKeyStatus
-  openaiKeyStatus: ApiKeyStatus
+  keyStatuses: Record<Provider, ApiKeyStatus>
   onOpenApiKeys: () => void
   onDraftChange: (value: string) => void
   onAddAttachments: (files: File[]) => void
@@ -84,8 +84,7 @@ export function AgentChatPanel({
   model,
   models,
   thinkingLevel,
-  googleKeyStatus,
-  openaiKeyStatus,
+  keyStatuses,
   onOpenApiKeys,
   onDraftChange,
   onAddAttachments,
@@ -111,7 +110,7 @@ export function AgentChatPanel({
   const controlsRef = useRef<HTMLDivElement>(null)
   const [openMenu, setOpenMenu] = useState<AgentChatMenu>(null)
   const [nearBottom, setNearBottom] = useState(true)
-  const currentKeyStatus = model.provider === 'google' ? googleKeyStatus : openaiKeyStatus
+  const currentKeyStatus = keyStatuses[model.provider]
   const keyMissing = currentKeyStatus === 'empty'
   const hasComposerContent = draft.trim() !== '' || attachments.length > 0
   const canSend = !keyMissing && hasComposerContent
@@ -317,6 +316,7 @@ export function AgentChatPanel({
         model={model}
         models={models}
         thinkingLevel={thinkingLevel}
+        keyStatuses={keyStatuses}
         canSend={canSend}
         showStop={showStop}
         isStreaming={isStreaming}
@@ -327,6 +327,7 @@ export function AgentChatPanel({
         onToggleAutoApproveImageTasks={onToggleAutoApproveImageTasks}
         onModelChange={onModelChange}
         onThinkingLevelChange={onThinkingLevelChange}
+        onOpenApiKeys={onOpenApiKeys}
         onSend={onSend}
         onStop={onStop}
         scrollToBottom={scrollToBottom}

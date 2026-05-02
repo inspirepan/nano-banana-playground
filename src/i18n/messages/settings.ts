@@ -3,13 +3,13 @@ import type { MessageDictionary } from '../types'
 export const settingsMessages: MessageDictionary = {
   'settings.title': { 'zh-CN': '设置', en: 'Settings' },
   'settings.description': {
-    'zh-CN': '管理密钥、外观和生成队列行为',
-    en: 'Manage keys, appearance, and generation queue behavior',
+    'zh-CN': '管理服务连接、外观和生成队列行为',
+    en: 'Manage service connections, appearance, and generation queue behavior',
   },
-  'settings.apiKeys.title': { 'zh-CN': '接口密钥', en: 'API keys' },
+  'settings.apiKeys.title': { 'zh-CN': '服务连接', en: 'Service connections' },
   'settings.apiKeys.description': {
-    'zh-CN': '配置浏览器本地保存的 Gemini 和 OpenAI 访问密钥。',
-    en: 'Configure the Gemini and OpenAI access keys saved locally in this browser.',
+    'zh-CN': '配置固定支持服务的访问密钥；模型列表仍由应用内置白名单控制。',
+    en: 'Configure access keys for supported services. The model list stays controlled by the built-in allowlist.',
   },
   'settings.appearance.title': { 'zh-CN': '外观', en: 'Appearance' },
   'settings.appearance.description': {

@@ -16,6 +16,8 @@ import type { AgentChatMenu } from './types'
 import { isImageFile } from './utils'
 import type { AgentChatAttachment } from '../../agent'
 import type { AgentModelConfig, AgentThinkingLevel } from '../../config/agentModels'
+import type { Provider } from '../../config/models'
+import type { ApiKeyStatus } from '../../hooks/useApiKey'
 import { useI18n } from '../../i18n'
 
 const MAX_COMPOSER_HEIGHT = 150
@@ -39,6 +41,7 @@ type AgentChatComposerProps = {
   model: AgentModelConfig
   models: AgentModelConfig[]
   thinkingLevel: AgentThinkingLevel
+  keyStatuses: Record<Provider, ApiKeyStatus>
   canSend: boolean
   showStop: boolean
   isStreaming: boolean
@@ -49,6 +52,7 @@ type AgentChatComposerProps = {
   onToggleAutoApproveImageTasks: (value: boolean) => void
   onModelChange: (id: string) => void
   onThinkingLevelChange: (level: AgentThinkingLevel) => void
+  onOpenApiKeys: () => void
   onSend: () => void
   onStop: () => void
   scrollToBottom: () => void
@@ -68,6 +72,7 @@ export function AgentChatComposer({
   model,
   models,
   thinkingLevel,
+  keyStatuses,
   canSend,
   showStop,
   isStreaming,
@@ -78,6 +83,7 @@ export function AgentChatComposer({
   onToggleAutoApproveImageTasks,
   onModelChange,
   onThinkingLevelChange,
+  onOpenApiKeys,
   onSend,
   onStop,
   scrollToBottom,
@@ -128,9 +134,11 @@ export function AgentChatComposer({
             model={model}
             models={models}
             effectiveThinkingLevel={effectiveThinkingLevel}
+            keyStatuses={keyStatuses}
             onToggleAutoApproveImageTasks={onToggleAutoApproveImageTasks}
             onModelChange={onModelChange}
             onThinkingLevelChange={onThinkingLevelChange}
+            onOpenApiKeys={onOpenApiKeys}
           />
 
           <ComposerAttachments attachments={attachments} onRemoveAttachment={onRemoveAttachment} />

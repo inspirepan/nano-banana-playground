@@ -10,6 +10,7 @@ import {
   getModelShortLabel,
   type ModelConfig,
 } from '../../config/models'
+import { getProviderConfig } from '../../config/providers'
 import { useExternalSync, useWindowEvent } from '../../hooks/effects'
 import type { GenerationJob } from '../../hooks/usePlayground'
 import { useI18n } from '../../i18n'
@@ -20,8 +21,7 @@ import { getPricePerImage } from '../../lib/pricing'
 import type { PlaygroundImage, PlaygroundImageMeta } from '../../lib/types'
 import { AspectRatioSelector } from '../AspectRatioSelector'
 import { ChipGroup } from '../ChipGroup'
-import { Icon } from '../Icon'
-import { OpenAILogo } from '../ModelLabel'
+import { BrandIcon, Icon } from '../Icon'
 import { ReferenceImageUpload, type LockedReferenceImage } from '../ReferenceImageUpload'
 
 function InlineParamDivider() {
@@ -528,7 +528,7 @@ export function EditSidebar({
                       onClick={() => handleModelChange(model.id)}
                       title={model.name}
                     >
-                      {model.provider === 'google' ? <span className="text-base">🍌</span> : <OpenAILogo />}
+                      <BrandIcon name={getProviderConfig(model.provider).brandIcon} size={12} />
                       <span>{getModelShortLabel(model)}</span>
                     </button>
                   ))}

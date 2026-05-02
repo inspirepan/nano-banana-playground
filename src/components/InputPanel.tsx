@@ -4,8 +4,7 @@ import { useState, useRef, useCallback, useLayoutEffect, type ReactNode } from '
 import { AgentChatPanel } from './AgentChatPanel'
 import { AspectRatioSelector } from './AspectRatioSelector'
 import { ChipGroup } from './ChipGroup'
-import { Icon } from './Icon'
-import { OpenAILogo } from './ModelLabel'
+import { BrandIcon, Icon } from './Icon'
 import { ReferenceImageUpload } from './ReferenceImageUpload'
 import { Tooltip } from './Tooltip'
 import type {
@@ -22,7 +21,9 @@ import {
   type ModelConfig,
   type ModelOption,
   type ModelToggleOption,
+  type Provider,
 } from '../config/models'
+import { getProviderConfig } from '../config/providers'
 import { useMountEffect, useWindowEvent } from '../hooks/effects'
 import type { ApiKeyStatus } from '../hooks/useApiKey'
 import type { InputMode } from '../hooks/usePlayground'
@@ -269,8 +270,7 @@ type Props = {
   referenceImageError: string | null
   apiKey: string
   apiKeyStatus?: ApiKeyStatus
-  googleKeyStatus: ApiKeyStatus
-  openaiKeyStatus: ApiKeyStatus
+  keyStatuses: Record<Provider, ApiKeyStatus>
   showHeader?: boolean
   showInputModeSwitcher?: boolean
   onOpenApiKeys: () => void
@@ -334,8 +334,7 @@ export function InputPanel({
   referenceImages,
   referenceImageError,
   apiKey,
-  googleKeyStatus,
-  openaiKeyStatus,
+  keyStatuses,
   showHeader = true,
   showInputModeSwitcher = true,
   onOpenApiKeys,
@@ -522,9 +521,9 @@ export function InputPanel({
   const optionSummaryLabels = getOptionSummaryLabels(model, options)
   const optionSummary = optionSummaryLabels.join(t('input.summary.optionSeparator'))
 
-  const currentKeyStatus = model.provider === 'google' ? googleKeyStatus : openaiKeyStatus
+  const currentKeyStatus = keyStatuses[model.provider]
   const isCurrentKeyMissing = currentKeyStatus === 'empty' || apiKey.trim() === ''
-  const providerLabel = model.provider === 'google' ? 'Gemini' : 'OpenAI'
+  const providerLabel = getProviderConfig(model.provider).shortLabel
 
   return (
     <div
@@ -597,8 +596,7 @@ export function InputPanel({
           model={agentModel}
           models={agentModels}
           thinkingLevel={agentThinkingLevel}
-          googleKeyStatus={googleKeyStatus}
-          openaiKeyStatus={openaiKeyStatus}
+          keyStatuses={keyStatuses}
           onOpenApiKeys={onOpenApiKeys}
           onDraftChange={onAgentDraftChange}
           onAddAttachments={onAddAgentAttachments}
@@ -668,7 +666,7 @@ export function InputPanel({
                   onClick={() => onSwitchModel(m.id)}
                   title={m.name}
                 >
-                  {m.provider === 'google' ? <span className="text-base">🍌</span> : <OpenAILogo />}
+                  <BrandIcon name={getProviderConfig(m.provider).brandIcon} size={12} />
                   <span>{getModelShortLabel(m)}</span>
                 </button>
               ))}

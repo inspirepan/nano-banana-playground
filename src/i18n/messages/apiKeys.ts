@@ -1,17 +1,20 @@
 import type { MessageDictionary } from '../types'
 
 export const apiKeysMessages: MessageDictionary = {
-  'apiKeys.title': { 'zh-CN': '接口密钥', en: 'API keys' },
+  'apiKeys.title': { 'zh-CN': '服务连接', en: 'Service connections' },
   'apiKeys.storageNote': {
     'zh-CN': '密钥与 Base URL 仅保存在当前浏览器的 localStorage，不会上传任何服务器。',
     en: 'Keys and Base URLs are saved only in localStorage in this browser and are never uploaded to any server.',
   },
-  'apiKeys.provider.google.label': { 'zh-CN': 'Gemini API Key', en: 'Gemini API key' },
+  'apiKeys.provider.google.label': { 'zh-CN': 'Google Gemini', en: 'Google Gemini' },
   'apiKeys.provider.google.placeholder': { 'zh-CN': '粘贴你的 Gemini API Key', en: 'Paste your Gemini API key' },
-  'apiKeys.provider.google.hint': { 'zh-CN': '用于 Nano Banana 系列', en: 'For the Nano Banana series' },
-  'apiKeys.provider.openai.label': { 'zh-CN': 'OpenAI API Key', en: 'OpenAI API key' },
+  'apiKeys.provider.google.hint': {
+    'zh-CN': '用于 Nano Banana 与 Gemini Agent',
+    en: 'For Nano Banana and Gemini Agent models',
+  },
+  'apiKeys.provider.openai.label': { 'zh-CN': 'OpenAI', en: 'OpenAI' },
   'apiKeys.provider.openai.placeholder': { 'zh-CN': '粘贴你的 OpenAI API Key', en: 'Paste your OpenAI API key' },
-  'apiKeys.provider.openai.hint': { 'zh-CN': '用于 GPT Image 系列', en: 'For the GPT Image series' },
+  'apiKeys.provider.openai.hint': { 'zh-CN': '用于 Image 2 与 GPT Agent', en: 'For Image 2 and GPT Agent models' },
   'apiKeys.apiKey.label': { 'zh-CN': 'API Key', en: 'API key' },
   'apiKeys.apiKey.ariaLabel': { 'zh-CN': '{label} 输入框', en: '{label} field' },
   'apiKeys.apiKey.placeholder.replaceExisting': {
