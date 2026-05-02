@@ -149,11 +149,7 @@ export function summarizeToolArgs(call: AgentMessageToolCall): string {
   if (call.name === 'WebFetch') {
     const url = typeof call.arguments.url === 'string' ? call.arguments.url : ''
     if (!url) return 'URL'
-    try {
-      return new URL(url).hostname
-    } catch {
-      return url.slice(0, 64)
-    }
+    return url
   }
   return Object.keys(call.arguments).slice(0, 3).join(' · ')
 }

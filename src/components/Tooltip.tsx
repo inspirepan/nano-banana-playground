@@ -6,6 +6,7 @@ import { useMountEffect, useWindowEvent } from '../hooks/effects'
 type Props = {
   text: string
   children: ReactNode
+  className?: string
   // Preferred placement; will flip to the other side if viewport space is tight.
   placement?: 'top' | 'bottom'
   // Max width for the tooltip content. Defaults to 240.
@@ -20,7 +21,7 @@ const VIEWPORT_PAD = 8
 // escape clipping ancestors (for example the `overflow-y-auto` InputPanel
 // scroll container). Positioning: centered under/above the trigger, clamped
 // horizontally to the viewport, flipped vertically when space is tight.
-export function Tooltip({ text, children, placement = 'bottom', maxWidth = 240 }: Props) {
+export function Tooltip({ text, children, className, placement = 'bottom', maxWidth = 240 }: Props) {
   const wrapperRef = useRef<HTMLDivElement>(null)
   const tooltipRef = useRef<HTMLDivElement>(null)
   const showTimerRef = useRef<number>(0)
@@ -68,14 +69,14 @@ export function Tooltip({ text, children, placement = 'bottom', maxWidth = 240 }
   useMountEffect(() => () => window.clearTimeout(showTimerRef.current))
 
   return (
-    <div ref={wrapperRef} className="relative" onMouseEnter={handleEnter} onMouseLeave={handleLeave}>
+    <div ref={wrapperRef} className={`relative ${className ?? ''}`} onMouseEnter={handleEnter} onMouseLeave={handleLeave}>
       {children}
       {visible &&
         createPortal(
           <div
             ref={tooltipRef}
             role="tooltip"
-            className="pointer-events-none fixed z-[9999] px-2.5 py-1.5 rounded-[var(--radius-sm)] text-sm leading-[1.45] fade-in"
+            className="pointer-events-none fixed z-[9999] px-2.5 py-1.5 rounded-[var(--radius-sm)] text-sm leading-[1.45] whitespace-pre-wrap break-words fade-in"
             style={{
               top: pos.top,
               left: pos.left,

@@ -4,6 +4,23 @@ import { summarizeToolArgs, summarizeToolResult, toolLabel } from './utils'
 import type { AgentMessageToolCall, AgentMessageToolResult } from '../../agent'
 import { useI18n } from '../../i18n'
 import { Icon } from '../Icon'
+import { Tooltip } from '../Tooltip'
+
+function formatToolArgValue(value: unknown): string {
+  if (typeof value === 'string') return value
+  if (typeof value === 'number' || typeof value === 'boolean' || value === null) return String(value)
+  try {
+    return JSON.stringify(value, null, 2)
+  } catch {
+    return String(value)
+  }
+}
+
+function formatToolArgsTooltip(args: Record<string, unknown>): string {
+  const entries = Object.entries(args)
+  if (entries.length === 0) return ''
+  return entries.map(([key, value]) => `${key}: ${formatToolArgValue(value)}`).join('\n')
+}
 
 export function ToolCallRow({
   call,
@@ -14,6 +31,8 @@ export function ToolCallRow({
 }) {
   const failed = result?.isError === true
   const done = Boolean(result)
+  const args = summarizeToolArgs(call)
+  const argsTooltip = formatToolArgsTooltip(call.arguments)
   return (
     <div className="flex items-start gap-2 rounded-[var(--radius-md)] px-1.5 py-1">
       {failed && (
@@ -29,11 +48,17 @@ export function ToolCallRow({
         </span>
       )}
       <span className="min-w-0 flex-1">
-        <span className="flex min-w-0 items-center gap-1.5">
-          <span className="truncate text-sm font-medium text-(--color-text-2)">{toolLabel(call.name)}</span>
-          {!done && <span className="spinner shrink-0" style={{ width: 10, height: 10 }} />}
+        <span className="flex min-w-0 items-baseline gap-1.5 text-sm">
+          <span className="max-w-[55%] shrink-0 truncate font-medium text-(--color-text-2)">{toolLabel(call.name)}</span>
+          {argsTooltip ? (
+            <Tooltip text={argsTooltip} placement="top" maxWidth={420} className="min-w-0 flex-1">
+              <span className="block min-w-0 truncate text-(--color-text-3)">{args}</span>
+            </Tooltip>
+          ) : (
+            <span className="min-w-0 flex-1 truncate text-(--color-text-3)">{args}</span>
+          )}
+          {!done && <span className="spinner shrink-0 self-center" style={{ width: 10, height: 10 }} />}
         </span>
-        <span className="mt-0.5 block truncate text-sm text-(--color-text-3)">{summarizeToolArgs(call)}</span>
         {result?.isError && (
           <span className="mt-1 block truncate text-sm text-(--color-danger)">{summarizeToolResult(result)}</span>
         )}
