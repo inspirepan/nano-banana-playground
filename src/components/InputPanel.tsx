@@ -13,6 +13,7 @@ import type {
   AgentChatAttachment,
   AgentImageTask,
   AgentPendingQuestion,
+  AgentQueuedUserMessage,
   AgentSessionSummary,
   AgentSkillSummary,
   AskUserQuestionAnswer,
@@ -44,6 +45,7 @@ type Props = {
   agentMessages: AgentMessage[]
   agentMessageMetadata: WeakMap<AgentMessage, AgentSessionMessageMetadata>
   agentStreamingMessage: AgentMessage | null
+  agentQueuedMessages: AgentQueuedUserMessage[]
   agentIsStreaming: boolean
   agentError: string | null
   agentDraft: string
@@ -114,6 +116,7 @@ export function InputPanel({
   agentMessages,
   agentMessageMetadata,
   agentStreamingMessage,
+  agentQueuedMessages,
   agentIsStreaming,
   agentError,
   agentDraft,
@@ -384,6 +387,7 @@ export function InputPanel({
           messages={agentMessages}
           messageMetadata={agentMessageMetadata}
           streamingMessage={agentStreamingMessage}
+          queuedMessages={agentQueuedMessages}
           isStreaming={agentIsStreaming}
           error={agentError}
           draft={agentDraft}

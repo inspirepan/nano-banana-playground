@@ -7,6 +7,7 @@ import {
   isTerminalAgentImageTaskStatus,
   promptLineCount,
   type AgentImageTask,
+  type AgentTurnCallbackState,
 } from './imageTasks'
 import {
   activateAgentResponseMetadata,
@@ -111,14 +112,25 @@ export function useAgentImageTools({
         await runtime.agent.prompt(text)
       }
       syncRuntimeSnapshot(runtime)
+      if (runtime.ready && agentRuntimesRef.current.get(runtime.sessionId) === runtime) {
+        maybeDispatchAgentImageCallbacksRef.current(runtime)
+      }
       return true
     },
-    [agentCredentialsRef, applyAgentRuntimeConfig, setRuntimeError, syncRuntimeSnapshot],
+    [
+      agentCredentialsRef,
+      agentRuntimesRef,
+      applyAgentRuntimeConfig,
+      maybeDispatchAgentImageCallbacksRef,
+      setRuntimeError,
+      syncRuntimeSnapshot,
+    ],
   )
 
   const maybeDispatchAgentImageCallbacks = useCallback(
     (runtime: AgentSessionRuntime, tasks = runtime.imageTasks) => {
       if (runtime.agent.state.isStreaming || runtime.isCompacting) return
+      const readyCallbacks: Array<{ callbackState: AgentTurnCallbackState; tasks: AgentImageTask[] }> = []
       for (const callbackState of runtime.turnCallbacks.values()) {
         if (callbackState.callbackQueued || callbackState.taskIds.length === 0) continue
         const turnTasks = callbackState.taskIds
@@ -126,22 +138,53 @@ export function useAgentImageTools({
           .filter((task): task is AgentImageTask => Boolean(task))
         if (turnTasks.length !== callbackState.taskIds.length) continue
         if (!turnTasks.every((task) => isTerminalAgentImageTaskStatus(task.status))) continue
-
-        const text = buildAgentTaskCallbackText(turnTasks)
-        callbackState.callbackQueued = true
-        scheduleRuntimeSidecarPersist(runtime)
-        void sendAgentSystemEvent(runtime, text)
-          .then((sent) => {
-            if (!sent) callbackState.callbackQueued = false
-          })
-          .catch((error: unknown) => {
-            callbackState.callbackQueued = false
-            const message = error instanceof Error ? error.message : String(error)
-            setRuntimeError(runtime, message)
-          })
+        readyCallbacks.push({ callbackState, tasks: turnTasks })
       }
+
+      if (readyCallbacks.length === 0) return
+
+      const config = resolveAgentModelConfig(runtime.modelId)
+      const credentials = agentCredentialsRef.current[config.provider]
+      if (!credentials.apiKey) {
+        setRuntimeError(runtime, translate('configLib.agent.callbackMissingKey', { provider: config.providerLabel }))
+        return
+      }
+
+      applyAgentRuntimeConfig(runtime)
+      if (runtime.agent.state.isStreaming || runtime.isCompacting) return
+
+      const callbackStates = readyCallbacks.map((item) => item.callbackState)
+      const text = buildAgentTaskCallbackText(readyCallbacks.flatMap((item) => item.tasks))
+      for (const callbackState of callbackStates) callbackState.callbackQueued = true
+      scheduleRuntimeSidecarPersist(runtime)
+
+      runtime.currentAgentTurnId = crypto.randomUUID()
+      activateAgentResponseMetadata(runtime, config.id)
+      const promptPromise = runtime.agent.prompt(text)
+      syncRuntimeSnapshot(runtime)
+      promptPromise
+        .catch((error: unknown) => {
+          for (const callbackState of callbackStates) callbackState.callbackQueued = false
+          scheduleRuntimeSidecarPersist(runtime)
+          const message = error instanceof Error ? error.message : String(error)
+          setRuntimeError(runtime, message)
+        })
+        .finally(() => {
+          syncRuntimeSnapshot(runtime)
+          if (runtime.ready && agentRuntimesRef.current.get(runtime.sessionId) === runtime) {
+            maybeDispatchAgentImageCallbacksRef.current(runtime)
+          }
+        })
     },
-    [scheduleRuntimeSidecarPersist, sendAgentSystemEvent, setRuntimeError],
+    [
+      agentCredentialsRef,
+      agentRuntimesRef,
+      applyAgentRuntimeConfig,
+      maybeDispatchAgentImageCallbacksRef,
+      scheduleRuntimeSidecarPersist,
+      setRuntimeError,
+      syncRuntimeSnapshot,
+    ],
   )
 
   useExternalSync(() => {
@@ -279,7 +322,10 @@ export function useAgentImageTools({
         maybeDispatchAgentImageCallbacks(runtime, next)
         return
       }
-      if (task.generationJobId) cancelGenerationJob(task.generationJobId)
+      if (task.generationJobId) {
+        cancelGenerationJob(task.generationJobId)
+        dismissGenerationJob(task.generationJobId)
+      }
       const job = task.generationJobId
         ? generationJobsRefForAgent.current.find((item) => item.id === task.generationJobId)
         : undefined
@@ -295,6 +341,7 @@ export function useAgentImageTools({
     },
     [
       cancelGenerationJob,
+      dismissGenerationJob,
       generationJobsRefForAgent,
       getCurrentRuntime,
       maybeDispatchAgentImageCallbacks,
@@ -505,7 +552,7 @@ export function useAgentImageTools({
         const resultImageIds = job.slots.flatMap((slot) => (slot.image ? [slot.image.id] : []))
         const nextStatus = agentTaskStatusFromGenerationJob(job)
         const nextError = errorFromGenerationJob(job)
-        if (nextStatus === 'completed') dismissGenerationJob(job.id)
+        if (isTerminalAgentImageTaskStatus(nextStatus)) dismissGenerationJob(job.id)
         for (const slot of job.slots) {
           if (slot.image) {
             runtime.imageRegistry.set(slot.image.id, {

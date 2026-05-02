@@ -32,6 +32,7 @@ export const agentChatMessages: MessageDictionary = {
   'agentChat.header.deleteConversation': { 'zh-CN': '删除对话', en: 'Delete conversation' },
   'agentChat.message.copy': { 'zh-CN': '复制', en: 'Copy' },
   'agentChat.message.copied': { 'zh-CN': '已复制', en: 'Copied' },
+  'agentChat.message.queued': { 'zh-CN': '排队中', en: 'Queued' },
   'agentChat.composer.placeholder.questionPending': {
     'zh-CN': '跳过问卷并发送…',
     en: 'Skip the questions and send…',

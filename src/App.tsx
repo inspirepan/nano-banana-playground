@@ -287,6 +287,7 @@ function App() {
                 agentMessages={pg.agentMessages}
                 agentMessageMetadata={pg.agentMessageMetadata}
                 agentStreamingMessage={pg.agentStreamingMessage}
+                agentQueuedMessages={pg.agentQueuedMessages}
                 agentIsStreaming={pg.agentIsStreaming}
                 agentError={pg.agentError}
                 agentDraft={pg.agentDraft}
@@ -390,6 +391,7 @@ function App() {
               agentMessages={pg.agentMessages}
               agentMessageMetadata={pg.agentMessageMetadata}
               agentStreamingMessage={pg.agentStreamingMessage}
+              agentQueuedMessages={pg.agentQueuedMessages}
               agentIsStreaming={pg.agentIsStreaming}
               agentError={pg.agentError}
               agentDraft={pg.agentDraft}

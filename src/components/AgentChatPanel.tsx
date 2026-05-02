@@ -10,6 +10,7 @@ import {
   type AgentChatAttachment,
   type AgentImageTask,
   type AgentPendingQuestion,
+  type AgentQueuedUserMessage,
   type AgentSessionSummary,
   type AgentSkillSummary,
   type AskUserQuestionAnswer,
@@ -43,6 +44,7 @@ type Props = {
   messages: AgentMessage[]
   messageMetadata: WeakMap<AgentMessage, AgentSessionMessageMetadata>
   streamingMessage: AgentMessage | null
+  queuedMessages: AgentQueuedUserMessage[]
   isStreaming: boolean
   error: string | null
   draft: string
@@ -88,6 +90,7 @@ export function AgentChatPanel({
   messages,
   messageMetadata,
   streamingMessage,
+  queuedMessages,
   isStreaming,
   error,
   draft,
@@ -236,7 +239,7 @@ export function AgentChatPanel({
     // Note: nearBottom is intentionally excluded from deps — flipping it true
     // mid-smooth-scroll would otherwise snap the animation to its end.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visibleMessages.length, streamingMessage, isStreaming])
+  }, [visibleMessages.length, queuedMessages.length, streamingMessage, isStreaming])
 
   const scrollToBottom = useCallback(() => {
     const el = scrollRef.current
@@ -372,7 +375,7 @@ export function AgentChatPanel({
           }}
         >
           <div className={`space-y-4 ${contentRightPaddingClass}`}>
-            {renderItems.length === 0 && !showThinkingPlaceholder ? (
+            {renderItems.length === 0 && queuedMessages.length === 0 && !showThinkingPlaceholder ? (
               <div className="flex min-h-[300px] flex-col items-center justify-center text-center">
                 {drawingSkills.length > 0 ? (
                   <DrawingSkillStarters
@@ -428,6 +431,9 @@ export function AgentChatPanel({
                     </div>
                   </div>
                 )}
+                {queuedMessages.map((queued) => (
+                  <MessageBubble key={queued.id} message={queued.message} isStreaming={false} isQueued />
+                ))}
               </>
             )}
           </div>
@@ -440,7 +446,7 @@ export function AgentChatPanel({
             draft={draft}
             attachments={attachments}
             pendingQuestionCount={pendingQuestions.length}
-            renderItemCount={renderItems.length}
+            renderItemCount={renderItems.length + queuedMessages.length}
             nearBottom={nearBottom}
             openMenu={openMenu}
             setOpenMenu={setOpenMenu}

@@ -1,7 +1,7 @@
 import { Agent, ProviderTransport, type AppMessage as AgentMessage } from '@mariozechner/pi-agent'
 import { useCallback, useRef, useState } from 'react'
 
-import type { AgentChatAttachment } from './agentChat'
+import { agentMessageRole, type AgentChatAttachment } from './agentChat'
 import { buildCompactionSummaryMessage } from './compaction'
 import {
   isTerminalAgentImageTaskStatus,
@@ -18,7 +18,12 @@ import {
   toolTextResult,
 } from './messageRecovery'
 import { isAgentModelProvider } from './runtimeConfig'
-import { type AgentPendingQuestion, type AgentSessionRuntime, type ProviderCredentials } from './runtimeTypes'
+import {
+  type AgentPendingQuestion,
+  type AgentQueuedUserMessage,
+  type AgentSessionRuntime,
+  type ProviderCredentials,
+} from './runtimeTypes'
 import {
   appendAgentSessionMessage,
   createAgentSessionRecord,
@@ -53,9 +58,26 @@ import type { useApiKey } from '../hooks/useApiKey'
 import type { GenerationJob } from '../hooks/useGenerationQueue'
 import type { PlaygroundImage, PlaygroundImageMeta } from '../lib/types'
 
-export type { AgentPendingQuestion } from './runtimeTypes'
+export type { AgentPendingQuestion, AgentQueuedUserMessage } from './runtimeTypes'
 
 type ApiKeyHook = ReturnType<typeof useApiKey>
+
+function agentMessageTimestamp(message: AgentMessage): number | null {
+  if (typeof message !== 'object' || message === null) return null
+  const value = (message as unknown as Record<string, unknown>).timestamp
+  return typeof value === 'number' ? value : null
+}
+
+function isSameQueuedUserMessage(message: AgentMessage, queuedMessage: AgentMessage): boolean {
+  if (message === queuedMessage) return true
+  if (agentMessageRole(message) !== 'user' || agentMessageRole(queuedMessage) !== 'user') return false
+
+  const timestamp = agentMessageTimestamp(message)
+  const queuedTimestamp = agentMessageTimestamp(queuedMessage)
+  if (timestamp !== null && queuedTimestamp !== null && timestamp === queuedTimestamp) return true
+
+  return false
+}
 
 export type UseAgentPlaygroundParams = {
   initialSessionId: string | null
@@ -95,6 +117,7 @@ export function useAgentPlayground({
     () => new WeakMap<AgentMessage, AgentSessionMessageMetadata>(),
   )
   const [agentStreamingMessage, setAgentStreamingMessage] = useState<AgentMessage | null>(null)
+  const [agentQueuedMessages, setAgentQueuedMessages] = useState<AgentQueuedUserMessage[]>([])
   const [agentIsStreaming, setAgentIsStreaming] = useState(false)
   const [agentError, setAgentError] = useState<string | null>(null)
   const [agentDraft, setAgentDraft] = useState('')
@@ -160,6 +183,7 @@ export function useAgentPlayground({
     setAgentMessages(runtime.messages)
     setAgentMessageMetadata(runtime.messageMetadata)
     setAgentStreamingMessage(runtime.streamingMessage)
+    setAgentQueuedMessages(runtime.queuedUserMessages)
     setAgentIsStreaming(runtime.isStreaming)
     setAgentError(runtime.error)
     setAgentDraft(runtime.draft)
@@ -173,6 +197,16 @@ export function useAgentPlayground({
     (runtime: AgentSessionRuntime, message: string | null) => {
       runtime.error = message
       if (isCurrentRuntime(runtime)) setAgentError(message)
+    },
+    [isCurrentRuntime],
+  )
+
+  const setRuntimeQueuedUserMessages = useCallback(
+    (runtime: AgentSessionRuntime, updater: (prev: AgentQueuedUserMessage[]) => AgentQueuedUserMessage[]) => {
+      const next = updater(runtime.queuedUserMessages)
+      runtime.queuedUserMessages = next
+      if (isCurrentRuntime(runtime)) setAgentQueuedMessages(next)
+      return next
     },
     [isCurrentRuntime],
   )
@@ -282,12 +316,21 @@ export function useAgentPlayground({
       runtime.messages = runtime.agent.state.messages.slice()
       runtime.streamingMessage = getAgentStreamingMessage(runtime.agent)
       if (runtime.streamingMessage) metadataForAgentMessage(runtime, runtime.streamingMessage)
+      if (runtime.queuedUserMessages.length > 0) {
+        const remainingQueuedMessages = runtime.queuedUserMessages.filter(
+          (queued) => !runtime.messages.some((message) => isSameQueuedUserMessage(message, queued.message)),
+        )
+        if (remainingQueuedMessages.length !== runtime.queuedUserMessages.length) {
+          runtime.queuedUserMessages = remainingQueuedMessages
+        }
+      }
       runtime.isStreaming = runtime.agent.state.isStreaming || runtime.isCompacting
       runtime.error = getAgentError(runtime.agent)
       if (!isCurrentRuntime(runtime)) return
       setAgentMessages(runtime.messages)
       setAgentMessageMetadata(runtime.messageMetadata)
       setAgentStreamingMessage(runtime.streamingMessage)
+      setAgentQueuedMessages(runtime.queuedUserMessages)
       setAgentIsStreaming(runtime.isStreaming)
       setAgentError(runtime.error)
     },
@@ -362,6 +405,7 @@ export function useAgentPlayground({
         autoApproveImageTasks: params.autoApproveImageTasks,
         messages: params.messages,
         streamingMessage: null,
+        queuedUserMessages: [],
         isStreaming: false,
         error: null,
         draft: params.draft,
@@ -390,6 +434,11 @@ export function useAgentPlayground({
       agent.subscribe((event) => {
         if (event.type === 'message_end') {
           metadataForAgentMessage(runtime, event.message)
+          if (runtime.queuedUserMessages.length > 0 && agentMessageRole(event.message) === 'user') {
+            setRuntimeQueuedUserMessages(runtime, (prev) =>
+              prev.filter((queued) => !isSameQueuedUserMessage(event.message, queued.message)),
+            )
+          }
         }
         syncRuntimeSnapshot(runtime)
         if (event.type === 'message_end') {
@@ -429,7 +478,11 @@ export function useAgentPlayground({
         }
         if (event.type === 'agent_end') {
           runtime.activeResponseMetadata = runtime.queuedResponseMetadata.shift()
-          maybeRunRuntimeCompactionRef.current(runtime)
+          void runtime.agent.waitForIdle().then(() => {
+            if (!runtime.ready || agentRuntimesRef.current.get(runtime.sessionId) !== runtime) return
+            maybeRunRuntimeCompactionRef.current(runtime)
+            maybeDispatchAgentImageCallbacksRef.current(runtime)
+          })
         }
       })
       agentRuntimesRef.current.set(runtime.sessionId, runtime)
@@ -444,6 +497,7 @@ export function useAgentPlayground({
       isCurrentRuntime,
       maybeRunRuntimeCompactionRef,
       persistRuntimeSidecar,
+      setRuntimeQueuedUserMessages,
       setRuntimeError,
       syncRuntimeSnapshot,
       upsertAgentSessionSummary,
@@ -604,8 +658,9 @@ export function useAgentPlayground({
           runtime.compactionAbort?.abort()
           runtime.agent.abort()
           for (const task of runtime.imageTasks) {
-            if (task.generationJobId && !isTerminalAgentImageTaskStatus(task.status))
-              cancelGenerationJob(task.generationJobId)
+            if (!task.generationJobId) continue
+            if (!isTerminalAgentImageTaskStatus(task.status)) cancelGenerationJob(task.generationJobId)
+            dismissGenerationJob(task.generationJobId)
           }
           agentRuntimesRef.current.delete(sessionId)
         }
@@ -625,7 +680,13 @@ export function useAgentPlayground({
         setAgentError(error instanceof Error ? error.message : String(error))
       })
     },
-    [cancelGenerationJob, clearRuntimeQuestionResolvers, createNewAgentSession, loadAgentSessionIntoRuntime],
+    [
+      cancelGenerationJob,
+      clearRuntimeQuestionResolvers,
+      createNewAgentSession,
+      dismissGenerationJob,
+      loadAgentSessionIntoRuntime,
+    ],
   )
 
   useMountEffect(() => {
@@ -739,6 +800,7 @@ export function useAgentPlayground({
     cancelRuntimeQuestion,
     maybeDispatchAgentImageCallbacks,
     scheduleRuntimeSidecarPersist,
+    setRuntimeQueuedUserMessages,
     setRuntimeError,
     syncRuntimeSnapshot,
     invalidateGenerationKey,
@@ -774,6 +836,7 @@ export function useAgentPlayground({
     agentMessages,
     agentMessageMetadata,
     agentStreamingMessage,
+    agentQueuedMessages,
     agentIsStreaming,
     agentError,
     agentDraft,

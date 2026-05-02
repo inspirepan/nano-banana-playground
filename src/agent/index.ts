@@ -66,4 +66,4 @@ export type {
 } from './imageTasks'
 export type { AgentSessionSummary } from './sessionTypes'
 export { useAgentPlayground } from './useAgentPlayground'
-export type { AgentPendingQuestion, UseAgentPlaygroundParams } from './useAgentPlayground'
+export type { AgentPendingQuestion, AgentQueuedUserMessage, UseAgentPlaygroundParams } from './useAgentPlayground'

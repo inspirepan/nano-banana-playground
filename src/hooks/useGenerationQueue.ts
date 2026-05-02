@@ -97,6 +97,10 @@ export function isActiveJob(job: GenerationJob): boolean {
   return job.slots.some(isActiveSlot)
 }
 
+function shouldKeepExistingJob(job: GenerationJob): boolean {
+  return isActiveJob(job) || job.request.outputImageIdSource === 'agent'
+}
+
 function deriveJobStatus(slots: GenerationSlot[]): GenerationJobStatus {
   if (slots.some((slot) => slot.status === 'running' || slot.status === 'retrying')) return 'running'
   if (slots.some((slot) => slot.status === 'queued')) return 'queued'
@@ -414,7 +418,7 @@ export function useGenerationQueue({
           outputImageId: request.outputImageIds?.[index],
         })),
       }
-      setGenerationJobs((prev) => [job, ...prev.filter(isActiveJob)])
+      setGenerationJobs((prev) => [job, ...prev.filter(shouldKeepExistingJob)])
       for (const refImg of request.referenceImages) putBlobInCache(refImg.id, refImg.data)
       pumpQueueRef.current()
       return batchId

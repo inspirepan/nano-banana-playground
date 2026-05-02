@@ -1,17 +1,18 @@
 import { useCallback, type RefObject } from 'react'
 
 import { compressedAttachmentToAgentAttachment, type AgentChatAttachment } from './agentChat'
-import {
-  activateAgentResponseMetadata,
-  getAgentError,
-  queueAgentResponseMetadata,
-} from './messageRecovery'
+import { activateAgentResponseMetadata, getAgentError, queueAgentResponseMetadata } from './messageRecovery'
 import {
   buildLanguageDirective,
   buildPreferredImageModelClearedDirective,
   buildPreferredImageModelDirective,
 } from './runtimeConfig'
-import type { AgentPendingQuestion, AgentSessionRuntime, ProviderCredentials } from './runtimeTypes'
+import type {
+  AgentPendingQuestion,
+  AgentQueuedUserMessage,
+  AgentSessionRuntime,
+  ProviderCredentials,
+} from './runtimeTypes'
 import { buildAvailableSkillsSystemMessage } from './skills/listing'
 import { getAgentSkillSummaries } from './skills/registry'
 import { resolveAgentModelConfig, type AgentModelProvider } from '../config/agentModels'
@@ -27,6 +28,7 @@ export function useAgentMessageSender({
   cancelRuntimeQuestion,
   maybeDispatchAgentImageCallbacks,
   scheduleRuntimeSidecarPersist,
+  setRuntimeQueuedUserMessages,
   setRuntimeError,
   syncRuntimeSnapshot,
   invalidateGenerationKey,
@@ -42,6 +44,10 @@ export function useAgentMessageSender({
   cancelRuntimeQuestion: (runtime: AgentSessionRuntime, question: AgentPendingQuestion) => void
   maybeDispatchAgentImageCallbacks: (runtime: AgentSessionRuntime) => void
   scheduleRuntimeSidecarPersist: (runtime: AgentSessionRuntime) => void
+  setRuntimeQueuedUserMessages: (
+    runtime: AgentSessionRuntime,
+    updater: (prev: AgentQueuedUserMessage[]) => AgentQueuedUserMessage[],
+  ) => AgentQueuedUserMessage[]
   setRuntimeError: (runtime: AgentSessionRuntime, message: string | null) => void
   syncRuntimeSnapshot: (runtime: AgentSessionRuntime) => void
   invalidateGenerationKey: (provider: AgentModelProvider) => void
@@ -132,6 +138,35 @@ export function useAgentMessageSender({
     syncRuntimeSnapshot(runtime)
     scheduleRuntimeSidecarPersist(runtime)
 
+    const queuedMessageId = inFlight ? crypto.randomUUID() : null
+    const queuedMessage =
+      inFlight && queuedMessageId
+        ? {
+            id: queuedMessageId,
+            message: {
+              role: 'user' as const,
+              content: [
+                { type: 'text' as const, text: promptText },
+                ...attachmentsToSend.map((attachment) => ({
+                  type: 'image' as const,
+                  data: attachment.data,
+                  mimeType: attachment.mimeType,
+                })),
+              ],
+              attachments: attachmentsToSend.map((attachment) => ({
+                id: attachment.id,
+                type: 'image' as const,
+                fileName: attachment.fileName,
+                mimeType: attachment.mimeType,
+                size: attachment.size,
+                content: attachment.data,
+              })),
+              timestamp: Date.now(),
+            },
+          }
+        : null
+    if (queuedMessage) setRuntimeQueuedUserMessages(runtime, (prev) => [...prev, queuedMessage])
+
     void (async () => {
       try {
         const images = await Promise.all(attachmentsToSend.map(compressedAttachmentToAgentAttachment))
@@ -147,7 +182,7 @@ export function useAgentMessageSender({
             role: 'user',
             content,
             attachments: images.length > 0 ? images : undefined,
-            timestamp: Date.now(),
+            timestamp: queuedMessage ? queuedMessage.message.timestamp : Date.now(),
           })
           for (const question of pendingQuestionsToCancel) cancelRuntimeQuestion(runtime, question)
           return
@@ -170,6 +205,9 @@ export function useAgentMessageSender({
             maybeDispatchAgentImageCallbacks(runtime)
           })
       } catch (error) {
+        if (queuedMessageId) {
+          setRuntimeQueuedUserMessages(runtime, (prev) => prev.filter((queued) => queued.id !== queuedMessageId))
+        }
         setRuntimeError(runtime, error instanceof Error ? error.message : String(error))
       } finally {
         runtime.promptPreparing = false
@@ -190,6 +228,7 @@ export function useAgentMessageSender({
     setAgentAttachments,
     setAgentDraft,
     setAgentIsStreaming,
+    setRuntimeQueuedUserMessages,
     setRuntimeError,
     syncRuntimeSnapshot,
   ])

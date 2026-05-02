@@ -31,6 +31,11 @@ export type AgentQuestionResolver = {
   questions: AskUserQuestionItem[]
 }
 
+export type AgentQueuedUserMessage = {
+  id: string
+  message: AgentMessage
+}
+
 export type AgentSessionRuntime = {
   sessionId: string
   persisted: boolean
@@ -41,6 +46,7 @@ export type AgentSessionRuntime = {
   autoApproveImageTasks: boolean
   messages: AgentMessage[]
   streamingMessage: AgentMessage | null
+  queuedUserMessages: AgentQueuedUserMessage[]
   isStreaming: boolean
   error: string | null
   draft: string

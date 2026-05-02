@@ -36,10 +36,12 @@ async function writeClipboardText(text: string): Promise<void> {
 export function MessageBubble({
   message,
   isStreaming,
+  isQueued = false,
   assistantTitle,
 }: {
   message: AgentMessage
   isStreaming: boolean
+  isQueued?: boolean
   assistantTitle?: string
 }) {
   const { t } = useI18n()
@@ -90,7 +92,11 @@ export function MessageBubble({
         <div
           className={
             isUser
-              ? 'rounded-[12px] bg-(--color-accent-soft) px-3 py-2.5 text-(--color-text) shadow-[var(--bubble-user-edge)]'
+              ? `rounded-[12px] px-3 py-2.5 text-(--color-text) ${
+                  isQueued
+                    ? 'bg-(--color-surface-2) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]'
+                    : 'bg-(--color-accent-soft) shadow-[var(--bubble-user-edge)]'
+                }`
               : ''
           }
         >
@@ -119,12 +125,21 @@ export function MessageBubble({
             />
           )}
           {isUser ? (
-            <TruncatedText
-              text={visibleText}
-              className="whitespace-pre-wrap text-base leading-[1.58]"
-              fadeColor="var(--color-accent-soft)"
-              maxHeight={220}
-            />
+            <div className={isQueued ? 'flex items-start gap-3' : undefined}>
+              <div className={isQueued ? 'min-w-0 flex-1' : undefined}>
+                <TruncatedText
+                  text={visibleText}
+                  className="whitespace-pre-wrap text-base leading-[1.58]"
+                  fadeColor={isQueued ? 'var(--color-surface-2)' : 'var(--color-accent-soft)'}
+                  maxHeight={220}
+                />
+              </div>
+              {isQueued && (
+                <span className="mt-0.5 inline-flex h-[22px] shrink-0 items-center rounded-[var(--radius-xs)] bg-(--color-surface-2) px-1.5 text-xs font-medium text-(--color-text-4)">
+                  {t('agentChat.message.queued')}
+                </span>
+              )}
+            </div>
           ) : (
             <>
               {showAssistantMarkdown && <MarkdownText text={visibleText} isStreaming={isStreaming} />}
