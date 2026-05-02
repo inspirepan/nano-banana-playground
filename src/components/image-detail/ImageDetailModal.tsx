@@ -2,33 +2,28 @@ import { useCallback, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 
 import { Icon } from '../Icon'
-import { BRUSH_PRESETS, type BrushPresetId } from './annotationPresets'
 import { DetailCanvas } from './DetailCanvas'
 import { DetailFooter } from './DetailFooter'
 import { DetailHeader } from './DetailHeader'
 import { DetailSidePanel } from './DetailSidePanel'
-import type { DrawableLayerHandle, DrawMode, DrawTool } from './DrawableLayer'
+import type { DrawableLayerHandle } from './DrawableLayer'
 import type { EditImageHandler } from './EditSidebar'
 import { MobileDrawFullscreen } from './MobileDrawFullscreen'
 import { MobileEditScreen } from './MobileEditScreen'
 import { MobilePreviewFullscreen } from './MobilePreviewFullscreen'
 import { StackGallery, StackStrip } from './StackViews'
+import { useImageDetailModalState, type ModalViewMode } from './useImageDetailModalState'
 import { MODEL_CONFIGS } from '../../config/models'
 import { useExternalSync, useMediaQuery, useVisualViewport, useWindowEvent } from '../../hooks/effects'
 import { ensureBlobLoaded, useImageSrc } from '../../hooks/useImageSrc'
 import type { GenerationJob } from '../../hooks/usePlayground'
 import { useI18n } from '../../i18n'
-import { computeItemCounts, copyEditState, getEditState, setEditItems, type ItemCounts } from '../../lib/editStateCache'
+import { copyEditState, setEditItems } from '../../lib/editStateCache'
 import { downloadImagePng } from '../../lib/exportImages'
 import { loadImageMetas } from '../../lib/history'
 import { getActualCost } from '../../lib/pricing'
 import type { ImageStack, StackItem } from '../../lib/stacks'
 import type { PlaygroundImageMeta } from '../../lib/types'
-
-type EditMode = 'view' | DrawMode
-type ModalViewMode = 'detail' | 'gallery'
-type GalleryMode = 'view' | 'manage'
-type GalleryReturnTarget = 'output' | 'detail'
 
 type Props = {
   stack: ImageStack
@@ -90,14 +85,44 @@ export function ImageDetailModal({
   const currentImage = selectedItem?.type === 'image' ? selectedItem.image : null
   const currentSlot = selectedItem?.type === 'slot' ? selectedItem.slot : null
   const currentJob = selectedItem?.type === 'slot' ? selectedItem.job : null
-  const [editing, setEditing] = useState(initialEditing)
-  const [mobileDrawOpen, setMobileDrawOpen] = useState(false)
-  const [mobilePreviewOpen, setMobilePreviewOpen] = useState(false)
-  const [viewMode, setViewMode] = useState<ModalViewMode>(initialViewMode)
-  const [galleryInitialMode, setGalleryInitialMode] = useState<GalleryMode>('view')
-  const [galleryReturnTarget, setGalleryReturnTarget] = useState<GalleryReturnTarget>(() =>
-    initialViewMode === 'gallery' ? 'output' : 'detail',
-  )
+  const isMobileLayout = useMediaQuery('(max-width: 767px)')
+
+  const {
+    editing,
+    setEditing,
+    mobileDrawOpen,
+    setMobileDrawOpen,
+    mobilePreviewOpen,
+    setMobilePreviewOpen,
+    viewMode,
+    setViewMode,
+    galleryInitialMode,
+    setGalleryInitialMode,
+    galleryReturnTarget,
+    setGalleryReturnTarget,
+    editMode,
+    setEditMode,
+    drawTool,
+    setDrawTool,
+    desktopMoveActive,
+    setDesktopMoveActive,
+    brushPreset,
+    setBrushPreset,
+    brushSize,
+    activeDrawMode,
+    drawableCounts,
+    setDrawableCounts,
+    drawRevision,
+    setDrawRevision,
+    resetDetailTab,
+    exitEdit,
+  } = useImageDetailModalState({
+    initialViewMode,
+    initialEditing,
+    currentImageId: currentImage?.id ?? '',
+    isMobileLayout,
+  })
+  const drawableRef = useRef<DrawableLayerHandle | null>(null)
 
   // After submit, we watch history for the first new image with this batchId
   // and auto-navigate the pager to it.
@@ -107,36 +132,6 @@ export function ImageDetailModal({
     activeEditSourceIdRef.current = batchId ? (sourceImageId ?? activeEditSourceIdRef.current) : null
     setActiveEditBatchId(batchId)
   }, [])
-  // Canvas-edit mode: view (default pan/zoom), annotate (paint colored strokes
-  // baked into the reference), or mask (paint a region for OpenAI's mask
-  // field / Gemini red overlay).
-  const [editMode, setEditMode] = useState<EditMode>(() => {
-    if (typeof window === 'undefined') return 'view'
-    return initialEditing && !window.matchMedia('(max-width: 767px)').matches ? 'mask' : 'view'
-  })
-  const [drawTool, setDrawTool] = useState<DrawTool>('brush')
-  const [desktopMoveActive, setDesktopMoveActive] = useState(false)
-  if (drawTool === 'rect') {
-    setDrawTool('brush')
-  }
-  const [brushPreset, setBrushPreset] = useState<BrushPresetId>('M')
-  const brushSize = BRUSH_PRESETS.find((p) => p.id === brushPreset)?.size ?? 56
-  const activeDrawMode: DrawMode = drawTool === 'step' ? 'annotate' : 'mask'
-  // Per-layer item counts. Seed from the cache so the mode-segment dots
-  // light up on modal open even before the drawable layer mounts; the
-  // layer's onItemsChange keeps us in sync afterward; pager image changes
-  // reseed counts during render (see drawablePagerImageId below).
-  const [drawableCounts, setDrawableCounts] = useState<ItemCounts>(() =>
-    computeItemCounts(getEditState(currentImage?.id ?? '').items),
-  )
-  const [drawRevision, setDrawRevision] = useState(0)
-  const [drawablePagerImageId, setDrawablePagerImageId] = useState(currentImage?.id ?? '')
-  if ((currentImage?.id ?? '') !== drawablePagerImageId) {
-    const imageId = currentImage?.id ?? ''
-    setDrawablePagerImageId(imageId)
-    setDrawableCounts(computeItemCounts(getEditState(imageId).items))
-  }
-  const drawableRef = useRef<DrawableLayerHandle | null>(null)
 
   const currentInlineData =
     currentImage && 'data' in currentImage && typeof currentImage.data === 'string' ? currentImage.data : undefined
@@ -194,14 +189,6 @@ export function ImageDetailModal({
       })
       .catch(() => {})
   }, [refDetailId, refSrcMap, findRefImage])
-
-  const resetDetailTab = useCallback(() => {
-    setEditing(false)
-    setEditMode('view')
-    setDrawTool('brush')
-    setDesktopMoveActive(false)
-    setMobileDrawOpen(false)
-  }, [])
 
   const selectStackItem = useCallback(
     (item: StackItem | null) => {
@@ -277,12 +264,6 @@ export function ImageDetailModal({
       cancelled = true
     }
   }, [canNavigate, currentIdx, stack.items])
-
-  const exitEdit = useCallback(() => {
-    resetDetailTab()
-    // Keep items — they're cached per-image so reopening the modal restores
-    // whatever annotations were in progress. Counts stay for the dots.
-  }, [resetDetailTab])
 
   useWindowEvent('keydown', (e) => {
     // Ctrl/Cmd+Z triggers an undo on the drawable layer. Skip when the user
@@ -360,16 +341,6 @@ export function ImageDetailModal({
       }
     }
   }, [activeEditBatchId, stack.items, toSelection])
-
-  const isMobileLayout = useMediaQuery('(max-width: 767px)')
-
-  useExternalSync(() => {
-    if (!isMobileLayout || !editing) setMobileDrawOpen(false)
-  }, [isMobileLayout, editing])
-
-  useExternalSync(() => {
-    if (!isMobileLayout || !currentImage) setMobilePreviewOpen(false)
-  }, [isMobileLayout, currentImage])
 
   // Desktop-only: collapse the right metadata sidebar to give the canvas more room.
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {

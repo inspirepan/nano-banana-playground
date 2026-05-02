@@ -2,115 +2,39 @@ import { Agentation } from 'agentation'
 import { useState, useLayoutEffect, useRef, useCallback, useMemo } from 'react'
 
 import type { AgentImageTask } from './agent'
+import {
+  BASE_TITLE,
+  DESKTOP_AGENT_PANEL_SIDEBAR_MEDIA,
+  DESKTOP_AGENT_PANEL_WIDE_PADDING_X,
+  DESKTOP_AGENT_PANEL_WIDE_WIDTH,
+  DESKTOP_INPUT_PANEL_WIDTH,
+  TITLE_RESET_DELAY_MS,
+  applyColorThemePreference,
+  applyLanguagePreference,
+  applySansFontPreference,
+  getInitialAgentPanelWide,
+  getInitialAgentWideTipDismissed,
+  getInitialColorTheme,
+  getInitialLanguagePreference,
+  getInitialSansFont,
+  getInitialTheme,
+  syncThemePreference,
+  type SansFontId,
+  type LanguagePreference,
+} from './App/initThemePrefs'
+import { Topbar, type MobileTab } from './App/Topbar'
 import { Icon } from './components/Icon'
 import { InputPanel } from './components/InputPanel'
 import { OutputPanel } from './components/OutputPanel'
 import { SettingsDialog } from './components/SettingsDialog'
-import {
-  DEFAULT_SANS_FONT,
-  SANS_FONT_IDS,
-  SANS_FONTS,
-  googleFontPreviewsHref,
-  googleFontsHref,
-  type SansFontId,
-} from './config/fonts'
-import {
-  isLanguagePreference,
-  LANGUAGE_STORAGE_KEY,
-  resolveLanguagePreference,
-  type LanguagePreference,
-} from './config/languages'
-import { COLOR_THEME_IDS, type ColorThemeId, type Theme } from './config/theme'
+import { resolveLanguagePreference } from './config/languages'
+import type { ColorThemeId, Theme } from './config/theme'
 import { useExternalSync, useMediaQuery, useMountEffect } from './hooks/effects'
 import { usePlayground } from './hooks/usePlayground'
 import { createTranslator, I18nProvider } from './i18n'
 import type { PlaygroundImageMeta } from './lib/types'
 
-const BASE_TITLE = 'Imagine Playground'
-const TITLE_RESET_DELAY_MS = 8000
-const GOOGLE_FONTS_LINK_ID = 'nano-banana-google-fonts'
-const GOOGLE_FONT_PREVIEWS_LINK_ID = 'nano-banana-google-font-previews'
-const DESKTOP_INPUT_PANEL_WIDTH = '480px'
-const DESKTOP_AGENT_PANEL_WIDE_WIDTH = 'clamp(480px, 75vw, calc(100vw - 300px))'
-const DESKTOP_AGENT_PANEL_WIDE_PADDING_X = '128px'
-const DESKTOP_AGENT_PANEL_SIDEBAR_MEDIA = '(min-width: 1760px)'
-
 type SettingsTarget = 'generationConcurrency'
-type MobileTab = 'generate' | 'agent' | 'gallery'
-
-function getInitialTheme(): Theme {
-  const stored = localStorage.getItem('nano-banana-theme')
-  const theme = stored === 'light' || stored === 'warm' || stored === 'dark' || stored === 'system' ? stored : 'system'
-  if (theme === 'warm') document.documentElement.classList.add('warm')
-  if (theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-    document.documentElement.classList.add('dark')
-  }
-  return theme
-}
-
-function getInitialColorTheme(): ColorThemeId {
-  const stored = localStorage.getItem('nano-banana-color-theme')
-  const id = stored && (COLOR_THEME_IDS as string[]).includes(stored) ? (stored as ColorThemeId) : 'default'
-  if (id !== 'default') document.documentElement.classList.add(`theme-${id}`)
-  return id
-}
-
-function getInitialSansFont(): SansFontId {
-  const stored = localStorage.getItem('nano-banana-sans-font')
-  const id = stored && (SANS_FONT_IDS as string[]).includes(stored) ? (stored as SansFontId) : DEFAULT_SANS_FONT
-  document.documentElement.classList.add(
-    SANS_FONTS.find((font) => font.id === id)?.className ?? SANS_FONTS[0].className,
-  )
-  return id
-}
-
-function getInitialLanguagePreference(): LanguagePreference {
-  const stored = localStorage.getItem(LANGUAGE_STORAGE_KEY)
-  return isLanguagePreference(stored) ? stored : 'auto'
-}
-
-function getInitialAgentPanelWide(): boolean {
-  return localStorage.getItem('nano-banana-agent-panel-wide') === '1'
-}
-
-function getInitialAgentWideTipDismissed(): boolean {
-  // If the user already enabled wide mode in a prior session, treat the tip as seen.
-  if (localStorage.getItem('nano-banana-agent-panel-wide') === '1') return true
-  return localStorage.getItem('nano-banana-agent-panel-wide-tip') === '1'
-}
-
-function ensureGoogleFontsPreconnect() {
-  let preconnect = document.querySelector<HTMLLinkElement>('link[data-nano-banana-fonts-preconnect="fonts-googleapis"]')
-  if (!preconnect) {
-    preconnect = document.createElement('link')
-    preconnect.rel = 'preconnect'
-    preconnect.href = 'https://fonts.googleapis.com'
-    preconnect.dataset.nanoBananaFontsPreconnect = 'fonts-googleapis'
-    document.head.appendChild(preconnect)
-  }
-
-  let gstatic = document.querySelector<HTMLLinkElement>('link[data-nano-banana-fonts-preconnect="fonts-gstatic"]')
-  if (!gstatic) {
-    gstatic = document.createElement('link')
-    gstatic.rel = 'preconnect'
-    gstatic.href = 'https://fonts.gstatic.com'
-    gstatic.crossOrigin = 'anonymous'
-    gstatic.dataset.nanoBananaFontsPreconnect = 'fonts-gstatic'
-    document.head.appendChild(gstatic)
-  }
-}
-
-function ensureGoogleFontsLink(id: string, href: string) {
-  ensureGoogleFontsPreconnect()
-  let link = document.getElementById(id) as HTMLLinkElement | null
-  if (!link) {
-    link = document.createElement('link')
-    link.id = id
-    link.rel = 'stylesheet'
-    document.head.appendChild(link)
-  }
-  link.href = href
-}
 
 function App() {
   const pg = usePlayground()
@@ -263,28 +187,15 @@ function App() {
   )
 
   useLayoutEffect(() => {
-    const root = document.documentElement
-    COLOR_THEME_IDS.forEach((id) => root.classList.remove(`theme-${id}`))
-    if (colorTheme !== 'default') root.classList.add(`theme-${colorTheme}`)
-    localStorage.setItem('nano-banana-color-theme', colorTheme)
+    applyColorThemePreference(colorTheme)
   }, [colorTheme])
 
   useLayoutEffect(() => {
-    const root = document.documentElement
-    SANS_FONTS.forEach((font) => root.classList.remove(font.className))
-    root.classList.add(SANS_FONTS.find((font) => font.id === sansFont)?.className ?? SANS_FONTS[0].className)
-    ensureGoogleFontsLink(GOOGLE_FONTS_LINK_ID, googleFontsHref(sansFont))
-    if (settingsOpen) {
-      ensureGoogleFontsLink(GOOGLE_FONT_PREVIEWS_LINK_ID, googleFontPreviewsHref())
-    } else {
-      document.getElementById(GOOGLE_FONT_PREVIEWS_LINK_ID)?.remove()
-    }
-    localStorage.setItem('nano-banana-sans-font', sansFont)
+    applySansFontPreference(sansFont, settingsOpen)
   }, [sansFont, settingsOpen])
 
   useLayoutEffect(() => {
-    localStorage.setItem(LANGUAGE_STORAGE_KEY, languagePreference)
-    document.documentElement.lang = language
+    applyLanguagePreference(languagePreference, language)
   }, [language, languagePreference])
 
   useExternalSync(() => {
@@ -298,32 +209,7 @@ function App() {
   }, [mobileTab])
 
   useExternalSync(() => {
-    const root = document.documentElement
-    const applyDark = (isDark: boolean) => {
-      root.classList.remove('warm')
-      root.classList.toggle('dark', isDark)
-      root.style.colorScheme = isDark ? 'dark' : 'light'
-    }
-    const applyWarm = () => {
-      root.classList.remove('dark')
-      root.classList.add('warm')
-      root.style.colorScheme = 'light'
-    }
-    if (theme === 'system') {
-      const mq = window.matchMedia('(prefers-color-scheme: dark)')
-      const apply = () => applyDark(mq.matches)
-      apply()
-      mq.addEventListener('change', apply)
-      localStorage.setItem('nano-banana-theme', 'system')
-      return () => mq.removeEventListener('change', apply)
-    }
-    if (theme === 'warm') {
-      applyWarm()
-      localStorage.setItem('nano-banana-theme', theme)
-      return
-    }
-    applyDark(theme === 'dark')
-    localStorage.setItem('nano-banana-theme', theme)
+    return syncThemePreference(theme)
   }, [theme])
 
   useExternalSync(() => {
@@ -382,41 +268,7 @@ function App() {
     <I18nProvider preference={languagePreference} browserLanguages={browserLanguages}>
       {/* Mobile layout */}
       <div className="flex h-[100dvh] flex-col overflow-hidden bg-(--color-bg) md:hidden">
-        <div className="shrink-0 px-3 pt-3 pb-2">
-          <div className="mb-2 flex min-h-[30px] items-center gap-2.5">
-            <div className="min-w-0 font-display text-lg font-semibold tracking-[-0.01em] text-(--color-text)">
-              {t('app.name')}
-            </div>
-            <div className="flex-1" />
-            <button
-              type="button"
-              onClick={() => openSettings()}
-              className="icon-btn"
-              title={t('common.settings')}
-              aria-label={t('common.settings')}
-            >
-              <Icon name="settings" size={14} />
-            </button>
-          </div>
-          <div
-            className="segmented"
-            style={{
-              ['--seg-count' as string]: 3,
-              ['--seg-index' as string]: mobileTab === 'generate' ? 0 : mobileTab === 'agent' ? 1 : 2,
-            }}
-            aria-label={t('app.mobilePanel')}
-          >
-            <button type="button" data-active={mobileTab === 'generate'} onClick={() => switchMobileTab('generate')}>
-              {t('common.generate')}
-            </button>
-            <button type="button" data-active={mobileTab === 'agent'} onClick={() => switchMobileTab('agent')}>
-              {t('common.agent')}
-            </button>
-            <button type="button" data-active={mobileTab === 'gallery'} onClick={() => switchMobileTab('gallery')}>
-              {t('common.gallery')}
-            </button>
-          </div>
-        </div>
+        <Topbar mobileTab={mobileTab} onMobileTabChange={switchMobileTab} onOpenSettings={() => openSettings()} />
 
         <div ref={mobilePanelScrollRef} className="min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]">
           {mobileTab !== 'gallery' ? (

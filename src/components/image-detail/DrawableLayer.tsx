@@ -1,5 +1,7 @@
 import { forwardRef, useCallback, useImperativeHandle, useLayoutEffect, useRef, useState } from 'react'
 
+import { hitTestItem, nextStepNumber } from './drawableLayer/hitTest'
+import { DEFAULT_ANNOTATE_COLOR, MASK_OVERLAY_COLOR, paintItem } from './drawableLayer/paint'
 import { clamp, getViewportSize } from './viewGeometry'
 import { useExternalSync, useResizeObserver } from '../../hooks/effects'
 import { dataUrlToBase64 } from '../../lib/blobUtils'
@@ -12,7 +14,6 @@ import {
   type DrawTool,
   type ItemCounts,
   type Point,
-  type StepItem,
 } from '../../lib/editStateCache'
 
 export type { DrawMode, DrawTool, ItemCounts } from '../../lib/editStateCache'
@@ -46,140 +47,9 @@ type Props = {
   onItemsChange?: (counts: ItemCounts) => void
 }
 
-const MASK_OVERLAY_COLOR = 'rgba(239, 68, 68, 0.5)'
-const DEFAULT_ANNOTATE_COLOR = '#ef4444'
-const ERASER_HIT_PADDING = 6 // extra natural-px tolerance around items
 const LOCAL_MIN_SCALE = 0.5
 const LOCAL_FIT_SCALE = 1
 const LOCAL_MAX_SCALE = 6
-
-function distanceToSegment(p: Point, a: Point, b: Point): number {
-  const dx = b.x - a.x
-  const dy = b.y - a.y
-  const len2 = dx * dx + dy * dy
-  if (len2 === 0) return Math.hypot(p.x - a.x, p.y - a.y)
-  let t = ((p.x - a.x) * dx + (p.y - a.y) * dy) / len2
-  t = Math.max(0, Math.min(1, t))
-  return Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy))
-}
-
-// Ratio of (bubble-center-to-tip distance) over radius. 2.0 gives a nicely
-// rounded bubble whose tangents to the anchor form the tail (30° half-angle),
-// so bubble and tail merge into one smooth teardrop path.
-const STEP_TAIL_RATIO = 2.0
-
-function stepPinCenter(item: StepItem): Point {
-  // Place the bubble above the anchor so the tail points at the click
-  // location (matches the familiar map-pin metaphor).
-  return { x: item.anchor.x, y: item.anchor.y - item.size * STEP_TAIL_RATIO }
-}
-
-function hitTestItem(item: DrawItem, pt: Point): boolean {
-  if (item.kind === 'path') {
-    const threshold = item.size / 2 + ERASER_HIT_PADDING
-    const pts = item.points
-    if (pts.length === 1) return Math.hypot(pt.x - pts[0].x, pt.y - pts[0].y) <= threshold
-    for (let i = 1; i < pts.length; i++) {
-      if (distanceToSegment(pt, pts[i - 1], pts[i]) <= threshold) return true
-    }
-    return false
-  }
-  if (item.kind === 'rect') {
-    const x1 = Math.min(item.start.x, item.end.x)
-    const y1 = Math.min(item.start.y, item.end.y)
-    const x2 = Math.max(item.start.x, item.end.x)
-    const y2 = Math.max(item.start.y, item.end.y)
-    const pad = item.size / 2 + ERASER_HIT_PADDING
-    return pt.x >= x1 - pad && pt.x <= x2 + pad && pt.y >= y1 - pad && pt.y <= y2 + pad
-  }
-  // step: bubble OR anchor tip both count as a hit
-  const c = stepPinCenter(item)
-  if (Math.hypot(pt.x - c.x, pt.y - c.y) <= item.size + ERASER_HIT_PADDING) return true
-  if (Math.hypot(pt.x - item.anchor.x, pt.y - item.anchor.y) <= item.size * 0.5 + ERASER_HIT_PADDING) return true
-  return false
-}
-
-// Returns the smallest positive integer not yet used as a step number.
-function nextStepNumber(items: DrawItem[]): number {
-  const used = new Set<number>()
-  for (const it of items) {
-    if (it.kind === 'step') used.add(it.n)
-  }
-  let n = 1
-  while (used.has(n)) n++
-  return n
-}
-
-// Given a target paint color (annotate: item.color, mask: red overlay), render
-// one item onto the provided 2d context.
-function paintItem(ctx: CanvasRenderingContext2D, item: DrawItem, paintColor: string) {
-  ctx.save()
-  ctx.strokeStyle = paintColor
-  ctx.fillStyle = paintColor
-  ctx.lineCap = 'round'
-  ctx.lineJoin = 'round'
-
-  if (item.kind === 'path') {
-    ctx.lineWidth = item.size
-    const pts = item.points
-    if (pts.length === 0) {
-      ctx.restore()
-      return
-    }
-    if (pts.length === 1) {
-      ctx.beginPath()
-      ctx.arc(pts[0].x, pts[0].y, item.size / 2, 0, Math.PI * 2)
-      ctx.fill()
-    } else {
-      ctx.beginPath()
-      ctx.moveTo(pts[0].x, pts[0].y)
-      for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y)
-      ctx.stroke()
-    }
-  } else if (item.kind === 'rect') {
-    const x = Math.min(item.start.x, item.end.x)
-    const y = Math.min(item.start.y, item.end.y)
-    const w = Math.abs(item.end.x - item.start.x)
-    const h = Math.abs(item.end.y - item.start.y)
-    ctx.lineWidth = item.size
-    ctx.strokeRect(x, y, w, h)
-  } else {
-    // step — one continuous teardrop path. The two tangent lines from the
-    // anchor to the bubble meet the arc smoothly (since a tangent is always
-    // perpendicular to the radius at the contact point), so there's no
-    // visible seam between bubble and tail. Number label centered in the
-    // bubble afterwards.
-    const r = item.size
-    const center = stepPinCenter(item)
-    const h = item.size * STEP_TAIL_RATIO
-    // Bubble-relative angles of the left/right tangent contact points.
-    // sin(theta) = r / h because the tangent line from an external point P
-    // to a circle of radius r touches at points making a right triangle
-    // with legs r (radius) and sqrt(h²-r²) (tangent length).
-    const theta = Math.asin(r / h)
-    const leftPhi = Math.PI - theta
-    const rightPhi = theta
-    ctx.fillStyle = paintColor
-    ctx.beginPath()
-    ctx.moveTo(center.x + r * Math.cos(leftPhi), center.y + r * Math.sin(leftPhi))
-    // Canvas y-axis points down, so 270° is the top of the bubble. Going
-    // CW (anticlockwise=false) from 155°→180°→270°→0°→25° visits the top;
-    // flipping the flag took the tail through the bottom, leaving us with
-    // an inverted half-moon shape with no visible bubble.
-    ctx.arc(center.x, center.y, r, leftPhi, rightPhi, false)
-    ctx.lineTo(item.anchor.x, item.anchor.y)
-    ctx.closePath()
-    ctx.fill()
-
-    ctx.fillStyle = '#ffffff'
-    ctx.font = `700 ${r * 1.1}px system-ui, -apple-system, sans-serif`
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'middle'
-    ctx.fillText(String(item.n), center.x, center.y + r * 0.04)
-  }
-
-  ctx.restore()
-}
 
 export const DrawableLayer = forwardRef<DrawableLayerHandle, Props>(function DrawableLayer(
   {

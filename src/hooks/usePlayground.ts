@@ -4,6 +4,7 @@ import { useExternalSync, useMountEffect } from './effects'
 import { useApiKey } from './useApiKey'
 import { useGenerationQueue, type GenerationJob } from './useGenerationQueue'
 import { putBlobInCache, getBlobFromCache, removeBlobFromCache } from './useImageSrc'
+import { findModelConfig, normalizeAspectRatio, normalizeResolution } from '../agent/modelLookup'
 import { useAgentPlayground } from '../agent/useAgentPlayground'
 import {
   MODEL_CONFIGS,
@@ -24,6 +25,7 @@ import {
   loadDraftRefs,
   clearDraftRefs,
 } from '../lib/history'
+import { stackIdForGenerationRequest } from '../lib/stackId'
 import type { GeneratedSource, PlaygroundImage, PlaygroundImageMeta } from '../lib/types'
 import { AGENT_MODE_SENTINEL, readSimpleUrlParams, updateUrl } from '../lib/urlState'
 
@@ -64,21 +66,6 @@ function initialOptionsFor(model: ModelConfig, rawParams: Record<string, string>
   return bag
 }
 
-function normalizeModelLookupKey(id: string): string {
-  return id
-    .trim()
-    .toLowerCase()
-    .replace(/[\s_]+/g, '-')
-}
-
-function findModelConfig(modelId: string): ModelConfig | null {
-  const direct = MODEL_CONFIGS.find((item) => item.id === modelId)
-  if (direct) return direct
-  const normalized = normalizeModelLookupKey(modelId)
-  if (!normalized) return null
-  return MODEL_CONFIGS.find((item) => normalizeModelLookupKey(item.id) === normalized) ?? null
-}
-
 function optionsForGeneratedSource(model: ModelConfig, source: GeneratedSource): Record<string, unknown> {
   const next = defaultOptionsFor(model)
   for (const opt of model.options ?? []) {
@@ -93,73 +80,6 @@ function optionsForGeneratedSource(model: ModelConfig, source: GeneratedSource):
     }
   }
   return next
-}
-
-function normalizeResolution(model: ModelConfig, resolution: string): string {
-  return model.resolutions.includes(resolution) ? resolution : model.defaultResolution
-}
-
-function normalizeAspectRatio(model: ModelConfig, aspectRatio: string): string {
-  return model.aspectRatios.includes(aspectRatio) ? aspectRatio : model.defaultAspectRatio
-}
-
-function stableStringify(value: unknown): string {
-  if (value === undefined) return '"__undefined__"'
-  if (value === null || typeof value !== 'object') return JSON.stringify(value)
-  if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`
-
-  const record = value as Record<string, unknown>
-  return `{${Object.keys(record)
-    .sort()
-    .map((key) => `${JSON.stringify(key)}:${stableStringify(record[key])}`)
-    .join(',')}}`
-}
-
-function hashString(value: string): string {
-  let a = 0x811c9dc5
-  let b = 0x45d9f3b
-  for (let i = 0; i < value.length; i++) {
-    const code = value.charCodeAt(i)
-    a ^= code
-    a = Math.imul(a, 0x01000193)
-    b ^= code
-    b = Math.imul(b, 0x1000193)
-  }
-  return `${(a >>> 0).toString(36)}${(b >>> 0).toString(36)}`
-}
-
-function localDateKey(date = new Date()): string {
-  const year = date.getFullYear()
-  const month = (date.getMonth() + 1).toString().padStart(2, '0')
-  const day = date.getDate().toString().padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
-
-function stackIdForGenerationRequest(params: {
-  model: ModelConfig
-  prompt: string
-  referenceImages: PlaygroundImage[]
-  resolution: string
-  aspectRatio: string
-  options: Record<string, unknown>
-  batchCount: number
-}): string {
-  const payload = {
-    version: 1,
-    date: localDateKey(),
-    modelId: params.model.id,
-    prompt: params.prompt,
-    resolution: params.resolution,
-    aspectRatio: params.aspectRatio,
-    batchCount: params.batchCount,
-    options: params.options,
-    referenceImages: params.referenceImages.map((image) => ({
-      mimeType: image.mimeType,
-      dataHash: hashString(image.data),
-    })),
-  }
-
-  return `stack-${hashString(stableStringify(payload))}`
 }
 
 export function usePlayground() {

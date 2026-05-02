@@ -1,12 +1,14 @@
 import type { AppMessage as AgentMessage } from '@mariozechner/pi-agent'
-import { useState, useRef, useCallback, useLayoutEffect, type ReactNode } from 'react'
+import { useState, useRef, useCallback, useLayoutEffect } from 'react'
 
 import { AgentChatPanel } from './AgentChatPanel'
 import { AspectRatioSelector } from './AspectRatioSelector'
 import { ChipGroup } from './ChipGroup'
 import { BrandIcon, Icon } from './Icon'
+import { buildOptionBlocks, getOptionSummaryLabels } from './InputPanel/optionBlocks'
+import { INPUT_LABEL_CLASS, OptionSection, Section, ToggleGroupSection } from './InputPanel/sections'
+import { autoResizeTextarea } from './InputPanel/textarea'
 import { ReferenceImageUpload } from './ReferenceImageUpload'
-import { Tooltip } from './Tooltip'
 import type {
   AgentChatAttachment,
   AgentImageTask,
@@ -17,14 +19,7 @@ import type {
 } from '../agent'
 import type { AgentSessionMessageMetadata } from '../agent/sessionTypes'
 import type { AgentModelConfig, AgentThinkingLevel } from '../config/agentModels'
-import {
-  MODEL_CONFIGS,
-  getModelShortLabel,
-  type ModelConfig,
-  type ModelOption,
-  type ModelToggleOption,
-  type Provider,
-} from '../config/models'
+import { MODEL_CONFIGS, getModelShortLabel, type ModelConfig, type Provider } from '../config/models'
 import { getProviderConfig } from '../config/providers'
 import { useMountEffect, useWindowEvent } from '../hooks/effects'
 import type { ApiKeyStatus } from '../hooks/useApiKey'
@@ -34,215 +29,6 @@ import { isHeifFile } from '../lib/fileToImage'
 import { openAISize } from '../lib/openai'
 import { getPricePerImage } from '../lib/pricing'
 import type { PlaygroundImage, PlaygroundImageMeta } from '../lib/types'
-
-const INPUT_LABEL_CLASS = 'text-base font-semibold tracking-normal text-(--color-text-3)'
-
-// ——— Section helper ———
-function Section({
-  label,
-  right,
-  hint,
-  children,
-}: {
-  label: string
-  right?: ReactNode
-  hint?: ReactNode
-  children: ReactNode
-}) {
-  return (
-    <div className="mb-[18px]">
-      <div className="flex items-center justify-between mb-1.5 min-h-[20px]">
-        <div className="flex items-center gap-2">
-          <span className={INPUT_LABEL_CLASS}>{label}</span>
-          {hint && <span className="text-sm text-(--color-text-3)">{hint}</span>}
-        </div>
-        {right}
-      </div>
-      {children}
-    </div>
-  )
-}
-
-// --- Auto-resize textarea ---
-const TEXTAREA_MIN_HEIGHT = 120
-const TEXTAREA_MAX_HEIGHT = 360
-
-function findScrollableAncestor(el: HTMLElement): HTMLElement | null {
-  let current = el.parentElement
-  while (current) {
-    const { overflowY } = getComputedStyle(current)
-    if ((overflowY === 'auto' || overflowY === 'scroll') && current.scrollHeight > current.clientHeight) {
-      return current
-    }
-    current = current.parentElement
-  }
-  return null
-}
-
-function autoResizeTextarea(el: HTMLTextAreaElement) {
-  const scrollContainer = findScrollableAncestor(el)
-  const prevScroll = scrollContainer?.scrollTop
-  const borderHeight = el.offsetHeight - el.clientHeight
-  el.style.height = 'auto'
-  const target = Math.max(el.scrollHeight + borderHeight + 1, TEXTAREA_MIN_HEIGHT)
-  const capped = Math.min(target, TEXTAREA_MAX_HEIGHT)
-  el.style.height = `${capped}px`
-  el.style.overflowY = target > TEXTAREA_MAX_HEIGHT ? 'auto' : 'hidden'
-  if (scrollContainer && prevScroll !== undefined) scrollContainer.scrollTop = prevScroll
-}
-
-// Group model options so adjacent toggle options sharing a `group` render
-// inside one Section; select options and ungrouped toggles render alone.
-type OptionsBlock =
-  | { kind: 'single'; option: ModelOption }
-  | { kind: 'toggles'; label: string; hint?: string; options: ModelToggleOption[] }
-
-function buildOptionBlocks(opts: ModelOption[]): OptionsBlock[] {
-  const blocks: OptionsBlock[] = []
-  let i = 0
-  while (i < opts.length) {
-    const head = opts[i]
-    if (head.type === 'toggle' && head.group) {
-      const group: ModelToggleOption[] = [head]
-      let j = i + 1
-      while (j < opts.length) {
-        const next = opts[j]
-        if (next.type !== 'toggle' || next.group !== head.group) break
-        group.push(next)
-        j++
-      }
-      blocks.push({
-        kind: 'toggles',
-        label: head.groupLabel ?? head.label,
-        hint: head.hint,
-        options: group,
-      })
-      i = j
-    } else {
-      blocks.push({ kind: 'single', option: head })
-      i++
-    }
-  }
-  return blocks
-}
-
-function getOptionSummaryLabels(model: ModelConfig, values: Record<string, unknown>) {
-  const labels: string[] = []
-
-  for (const option of model.options ?? []) {
-    const value = values[option.id]
-    if (value === option.default) continue
-
-    if (option.type === 'toggle') {
-      if (value === true) labels.push(option.label)
-      continue
-    }
-
-    if (typeof value !== 'string') continue
-    const choice = option.choices.find((item) => item.value === value)
-    if (!choice || choice.value === option.default) continue
-    labels.push(`${option.label} ${choice.label}`)
-  }
-
-  return labels
-}
-
-function OptionSection({
-  option,
-  value,
-  onChange,
-}: {
-  option: ModelOption
-  value: unknown
-  onChange: (v: unknown) => void
-}) {
-  const { t } = useI18n()
-
-  if (option.type === 'select') {
-    const current = typeof value === 'string' ? value : option.default
-    const values = option.choices.map((c) => c.value)
-    const labelFor = (v: string) => option.choices.find((c) => c.value === v)?.label ?? v
-    const tooltipFor = (v: string) => option.choices.find((c) => c.value === v)?.tooltip
-    return (
-      <Section label={option.label} hint={option.hint}>
-        <ChipGroup
-          options={values}
-          value={current}
-          onChange={onChange}
-          mono={false}
-          columns={values.length}
-          renderOption={(v) => <span>{labelFor(v)}</span>}
-          tooltipFor={tooltipFor}
-        />
-      </Section>
-    )
-  }
-  // Single ungrouped toggle: render as a one-chip row.
-  const active = value === true
-  const button = (
-    <button type="button" className="chip justify-center w-full" data-active={active} onClick={() => onChange(!active)}>
-      <span>{active ? t('input.option.enabled') : t('input.option.disabled')}</span>
-    </button>
-  )
-  return (
-    <Section label={option.label} hint={option.hint}>
-      {option.tooltip ? <Tooltip text={option.tooltip}>{button}</Tooltip> : button}
-    </Section>
-  )
-}
-
-function ToggleGroupSection({
-  label,
-  hint,
-  options,
-  values,
-  onChange,
-}: {
-  label: string
-  hint?: string
-  options: ModelToggleOption[]
-  values: Record<string, unknown>
-  onChange: (id: string, v: unknown) => void
-}) {
-  return (
-    <Section label={label} hint={hint}>
-      <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${options.length}, 1fr)` }}>
-        {options.map((opt) => {
-          const active = values[opt.id] === true
-          const button = (
-            <button
-              type="button"
-              role="checkbox"
-              aria-checked={active}
-              className="chip justify-center w-full"
-              data-active={active}
-              onClick={() => onChange(opt.id, !active)}
-            >
-              <span
-                aria-hidden
-                className="inline-flex items-center justify-center w-[13px] h-[13px] rounded-[var(--radius-xs)] transition-colors"
-                style={{
-                  background: active ? 'var(--color-accent)' : 'var(--color-surface)',
-                  boxShadow: active ? 'inset 0 0 0 1px var(--color-accent)' : 'inset 0 0 0 1px var(--ring-edge)',
-                }}
-              >
-                {active && <Icon name="check" size={9} strokeWidth={3} style={{ color: 'var(--color-accent-fg)' }} />}
-              </span>
-              <span>{opt.label}</span>
-            </button>
-          )
-          return opt.tooltip ? (
-            <Tooltip key={opt.id} text={opt.tooltip}>
-              {button}
-            </Tooltip>
-          ) : (
-            <div key={opt.id}>{button}</div>
-          )
-        })}
-      </div>
-    </Section>
-  )
-}
 
 type Props = {
   inputMode: InputMode

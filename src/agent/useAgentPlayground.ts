@@ -1,8 +1,7 @@
-import { setDefaultBaseUrls } from '@google/genai'
 import { Agent, ProviderTransport, type AppMessage as AgentMessage } from '@mariozechner/pi-agent'
 import { useCallback, useRef, useState } from 'react'
 
-import { agentMessageRole, compressedAttachmentToAgentAttachment, type AgentChatAttachment } from './agentChat'
+import { compressedAttachmentToAgentAttachment, type AgentChatAttachment } from './agentChat'
 import {
   buildCompactionSummaryMessage,
   compact,
@@ -19,9 +18,37 @@ import {
   reserveAgentImageIds,
   type AgentImageRegistryEntry,
   type AgentImageTask,
-  type AgentImageTaskStatus,
   type AgentTurnCallbackState,
 } from './imageTasks'
+import {
+  activateAgentResponseMetadata,
+  agentTaskStatusFromGenerationJob,
+  buildAgentTaskCallbackText,
+  errorFromGenerationJob,
+  getAgentError,
+  getAgentStreamingMessage,
+  injectAbandonedToolResults,
+  metadataForAgentMessage,
+  queueAgentResponseMetadata,
+  restoreAgentImageTasks,
+  toolTextResult,
+} from './messageRecovery'
+import { activeOptionsForModel, findModelConfig, normalizeAspectRatio, normalizeResolution } from './modelLookup'
+import {
+  buildLanguageDirective,
+  buildPreferredImageModelClearedDirective,
+  buildPreferredImageModelDirective,
+  isAgentModelProvider,
+  syncGeminiAgentBaseUrl,
+} from './runtimeConfig'
+import {
+  AGENT_MAX_ATTACHMENTS,
+  AGENT_TASK_PROTOCOL_MESSAGES,
+  type AgentPendingQuestion,
+  type AgentQuestionResolver,
+  type AgentSessionRuntime,
+  type ProviderCredentials,
+} from './runtimeTypes'
 import {
   appendAgentSessionMessage,
   createAgentSessionRecord,
@@ -50,7 +77,6 @@ import {
   runWebFetch,
   type AgentToolResult,
   type AskUserQuestionAnswer,
-  type AskUserQuestionItem,
   type AskUserQuestionToolArgs,
   type CreateSkillToolArgs,
   type GenImageToolArgs,
@@ -72,7 +98,6 @@ import {
   setPreferredAgentModelId,
   setPreferredAgentThinkingLevel,
 } from '../config/agentPreferences'
-import type { Language } from '../config/languages'
 import { MODEL_CONFIGS, defaultOptionsFor, type ModelConfig } from '../config/models'
 import { getPreferredImageModelId } from '../config/preferredImageModel'
 import { getProviderConfig } from '../config/providers'
@@ -83,58 +108,13 @@ import { putBlobInCache, getBlobFromCache } from '../hooks/useImageSrc'
 import { getActiveLanguage, translate } from '../i18n'
 import { readFileAsImageData } from '../lib/fileToImage'
 import { loadImageBlob, loadImageMetas } from '../lib/history'
+import { stackIdForGenerationRequest } from '../lib/stackId'
 import type { PlaygroundImage, PlaygroundImageMeta } from '../lib/types'
-import { isKeyError, resolveBaseUrl } from '../lib/validateKey'
+import { isKeyError } from '../lib/validateKey'
 
-const AGENT_MAX_ATTACHMENTS = 8
-const TRAILING_GEMINI_API_VERSION = /\/v\d+(?:alpha|beta)?\/*$/i
-
-function syncGeminiAgentBaseUrl(provider: AgentModelProvider, baseUrl: string): void {
-  if (provider !== 'google') return
-  const trimmed = baseUrl.trim()
-  if (!trimmed) {
-    setDefaultBaseUrls({ geminiUrl: undefined })
-    return
-  }
-  const sdkBaseUrl = resolveBaseUrl('google', trimmed).replace(TRAILING_GEMINI_API_VERSION, '')
-  setDefaultBaseUrls({ geminiUrl: sdkBaseUrl })
-}
-
-function buildLanguageDirective(language: Language): string {
-  const instruction =
-    language === 'en' ? 'Reply to the user in English.' : 'Reply to the user in Simplified Chinese (简体中文).'
-  return `<system>${instruction}</system>`
-}
-
-function buildPreferredImageModelDirective(id: string): string | null {
-  const model = MODEL_CONFIGS.find((item) => item.id === id)
-  if (!model) return null
-  return `<system>The user prefers "${model.name}" (model id: ${model.id}) for image generation. Use this model for GenImage tool calls unless the user explicitly asks for a different one.</system>`
-}
-
-function buildPreferredImageModelClearedDirective(): string {
-  return `<system>The user no longer has a preferred image generation model. Pick the most appropriate model for each GenImage call based on the request.</system>`
-}
-
-function agentMessageMetadataForModel(modelId: string): AgentSessionMessageMetadata {
-  const config = resolveAgentModelConfig(modelId)
-  return { modelId: config.id, modelTitle: config.shortLabel }
-}
-
-const AGENT_TASK_PROTOCOL_MESSAGES = {
-  autoStarted: 'The task has been submitted and automatically started generation.',
-  failedToStart: 'The task was submitted but could not start generation.',
-  pending: 'The task has been submitted and is waiting for user approval.',
-  pendingWithReserved: (ids: string[]) =>
-    `The task has been submitted and is waiting for user approval. image_id has been reserved as ${ids.join(', ')}.`,
-} as const
+export type { AgentPendingQuestion } from './runtimeTypes'
 
 type ApiKeyHook = ReturnType<typeof useApiKey>
-type ProviderCredentials = { apiKey: string; baseUrl: string }
-
-function isAgentModelProvider(provider: string): provider is AgentModelProvider {
-  return provider === 'google' || provider === 'openai' || provider === 'anthropic' || provider === 'deepseek'
-}
 
 export type UseAgentPlaygroundParams = {
   initialSessionId: string | null
@@ -152,300 +132,6 @@ export type UseAgentPlaygroundParams = {
   ) => string
   cancelGenerationJob: (jobId: string) => void
   dismissGenerationJob: (jobId: string) => void
-}
-
-function normalizeModelLookupKey(id: string): string {
-  return id
-    .trim()
-    .toLowerCase()
-    .replace(/[\s_]+/g, '-')
-}
-
-function findModelConfig(modelId: string): ModelConfig | null {
-  const direct = MODEL_CONFIGS.find((item) => item.id === modelId)
-  if (direct) return direct
-  const normalized = normalizeModelLookupKey(modelId)
-  if (!normalized) return null
-  return MODEL_CONFIGS.find((item) => normalizeModelLookupKey(item.id) === normalized) ?? null
-}
-
-function normalizeResolution(model: ModelConfig, resolution: string): string {
-  return model.resolutions.includes(resolution) ? resolution : model.defaultResolution
-}
-
-function normalizeAspectRatio(model: ModelConfig, aspectRatio: string): string {
-  return model.aspectRatios.includes(aspectRatio) ? aspectRatio : model.defaultAspectRatio
-}
-
-function stableStringify(value: unknown): string {
-  if (value === undefined) return '"__undefined__"'
-  if (value === null || typeof value !== 'object') return JSON.stringify(value)
-  if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`
-
-  const record = value as Record<string, unknown>
-  return `{${Object.keys(record)
-    .sort()
-    .map((key) => `${JSON.stringify(key)}:${stableStringify(record[key])}`)
-    .join(',')}}`
-}
-
-function hashString(value: string): string {
-  let a = 0x811c9dc5
-  let b = 0x45d9f3b
-  for (let i = 0; i < value.length; i++) {
-    const code = value.charCodeAt(i)
-    a ^= code
-    a = Math.imul(a, 0x01000193)
-    b ^= code
-    b = Math.imul(b, 0x1000193)
-  }
-  return `${(a >>> 0).toString(36)}${(b >>> 0).toString(36)}`
-}
-
-function localDateKey(date = new Date()): string {
-  const year = date.getFullYear()
-  const month = (date.getMonth() + 1).toString().padStart(2, '0')
-  const day = date.getDate().toString().padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
-
-function stackIdForGenerationRequest(params: {
-  model: ModelConfig
-  prompt: string
-  referenceImages: PlaygroundImage[]
-  resolution: string
-  aspectRatio: string
-  options: Record<string, unknown>
-  batchCount: number
-}): string {
-  const payload = {
-    version: 1,
-    date: localDateKey(),
-    modelId: params.model.id,
-    prompt: params.prompt,
-    resolution: params.resolution,
-    aspectRatio: params.aspectRatio,
-    batchCount: params.batchCount,
-    options: params.options,
-    referenceImages: params.referenceImages.map((image) => ({
-      mimeType: image.mimeType,
-      dataHash: hashString(image.data),
-    })),
-  }
-
-  return `stack-${hashString(stableStringify(payload))}`
-}
-
-function agentStateValue(agent: Agent, key: 'streamingMessage' | 'streamMessage' | 'errorMessage' | 'error'): unknown {
-  return (agent.state as unknown as Record<string, unknown>)[key]
-}
-
-function getAgentStreamingMessage(agent: Agent): AgentMessage | null {
-  const value = agentStateValue(agent, 'streamingMessage') ?? agentStateValue(agent, 'streamMessage')
-  return value && typeof value === 'object' ? (value as AgentMessage) : null
-}
-
-function getAgentError(agent: Agent): string | null {
-  const value = agentStateValue(agent, 'errorMessage') ?? agentStateValue(agent, 'error')
-  return typeof value === 'string' ? value : null
-}
-
-function activeOptionsForModel(model: ModelConfig, source: Record<string, unknown>): Record<string, unknown> {
-  const activeOptions: Record<string, unknown> = {}
-  for (const opt of model.options ?? []) activeOptions[opt.id] = opt.id in source ? source[opt.id] : opt.default
-  return activeOptions
-}
-
-function agentTaskStatusFromGenerationJob(job: GenerationJob): AgentImageTaskStatus {
-  if (job.status === 'completed') return 'completed'
-  if (job.status === 'canceled') return 'canceled'
-  if (job.status === 'failed' || job.status === 'partial_failed') return 'failed'
-  if (job.slots.some((slot) => slot.status === 'running' || slot.status === 'retrying')) return 'running'
-  return 'queued'
-}
-
-function errorFromGenerationJob(job: GenerationJob): string | undefined {
-  return job.slots.find((slot) => slot.error)?.error
-}
-
-function noteForAgentTaskStatus(status: AgentImageTask['status']): string | undefined {
-  switch (status) {
-    case 'rejected':
-      return 'The human user manually clicked the Reject button in the approval UI to decline this image task before any generation began. This is purely a user decision — there was NO content policy violation, NO safety filter, and NO system-side rejection. Do not apologize for safety reasons or assume the prompt was problematic. Ask the user what they want to change (subject, style, parameters, etc.) before proposing another task.'
-    case 'canceled':
-      return 'The image generation was interrupted or canceled before all requested images were produced. This does NOT necessarily mean the human user clicked Cancel. If an error line is present, use it as the reason. Do not ask why the user canceled unless the error explicitly says it was a manual cancellation.'
-    case 'failed':
-      return 'The image generation failed due to a technical or service-side error (network, model API, etc.). The error message is included above. This is not a user rejection.'
-    default:
-      return undefined
-  }
-}
-
-function buildAgentTaskCallbackText(tasks: AgentImageTask[]): string {
-  const lines = ['<system>']
-  for (const task of tasks) {
-    lines.push(`tool GenImage call ${task.toolCallId} has been finished.`)
-    lines.push(`status: ${task.status}`)
-    lines.push(`requested_image_id: ${task.request.requestedImageId}`)
-    lines.push(`reserved_image_ids: ${task.request.reservedImageIds.join(', ')}`)
-    lines.push(`image_ids: ${task.resultImageIds.join(', ')}`)
-    if (task.error) lines.push(`error: ${task.error}`)
-    const note = noteForAgentTaskStatus(task.status)
-    if (note) lines.push(`note: ${note}`)
-    lines.push('')
-  }
-  if (lines[lines.length - 1] === '') lines.pop()
-  lines.push('</system>')
-  return lines.join('\n')
-}
-
-function toolTextResult(text: string, details: unknown): AgentToolResult {
-  return { content: [{ type: 'text', text }], details }
-}
-
-export type AgentPendingQuestion = {
-  toolCallId: string
-  agentTurnId: string
-  questions: AskUserQuestionItem[]
-  createdAt: number
-}
-
-type AgentQuestionResolver = {
-  resolve: (result: AgentToolResult) => void
-  reject: (reason: unknown) => void
-  questions: AskUserQuestionItem[]
-}
-
-type AgentSessionRuntime = {
-  sessionId: string
-  persisted: boolean
-  agent: Agent
-  ready: boolean
-  modelId: string
-  thinkingLevel: AgentThinkingLevel
-  autoApproveImageTasks: boolean
-  messages: AgentMessage[]
-  streamingMessage: AgentMessage | null
-  isStreaming: boolean
-  error: string | null
-  draft: string
-  attachments: AgentChatAttachment[]
-  attachmentError: string | null
-  imageTasks: AgentImageTask[]
-  imageRegistry: Map<string, AgentImageRegistryEntry>
-  turnCallbacks: Map<string, AgentTurnCallbackState>
-  currentAgentTurnId: string | null
-  leafEntryId: string | null
-  pendingQuestions: AgentPendingQuestion[]
-  questionResolvers: Map<string, AgentQuestionResolver>
-  persistQueue: Promise<void>
-  sidecarPersistQueue: Promise<void>
-  sidecarDebounce: number
-  promptPreparing: boolean
-  messageEntryIds: WeakMap<AgentMessage, string>
-  messageMetadata: WeakMap<AgentMessage, AgentSessionMessageMetadata>
-  activeResponseMetadata: AgentSessionMessageMetadata | undefined
-  queuedResponseMetadata: AgentSessionMessageMetadata[]
-  lastCompaction: AgentCompactionState | undefined
-  isCompacting: boolean
-  compactionAbort: AbortController | null
-  lastInjectedPreferredImageModelId: string | null | undefined
-}
-
-function activateAgentResponseMetadata(
-  runtime: AgentSessionRuntime,
-  modelId = runtime.modelId,
-): AgentSessionMessageMetadata {
-  const metadata = agentMessageMetadataForModel(modelId)
-  runtime.activeResponseMetadata = metadata
-  return metadata
-}
-
-function queueAgentResponseMetadata(runtime: AgentSessionRuntime, modelId = runtime.modelId): void {
-  runtime.queuedResponseMetadata.push(agentMessageMetadataForModel(modelId))
-}
-
-function metadataForAgentMessage(
-  runtime: AgentSessionRuntime,
-  message: AgentMessage,
-): AgentSessionMessageMetadata | undefined {
-  if (agentMessageRole(message) !== 'assistant') return undefined
-  const existing = runtime.messageMetadata.get(message)
-  if (existing) return existing
-  const metadata = runtime.activeResponseMetadata ?? agentMessageMetadataForModel(runtime.modelId)
-  runtime.messageMetadata.set(message, metadata)
-  return metadata
-}
-
-function findDanglingToolCallIds(messages: AgentMessage[]): Set<string> {
-  const fulfilled = new Set<string>()
-  const all = new Set<string>()
-  for (const message of messages) {
-    if (typeof message !== 'object' || message === null) continue
-    const record = message as unknown as Record<string, unknown>
-    if (record.role === 'assistant' && Array.isArray(record.content)) {
-      for (const part of record.content) {
-        if (typeof part !== 'object' || part === null) continue
-        const partRecord = part as Record<string, unknown>
-        if (partRecord.type === 'toolCall' && typeof partRecord.id === 'string') all.add(partRecord.id)
-      }
-    }
-    if (record.role === 'toolResult' && typeof record.toolCallId === 'string') fulfilled.add(record.toolCallId)
-  }
-  for (const id of fulfilled) all.delete(id)
-  return all
-}
-
-function buildAbandonedToolResult(toolCallId: string, toolName: string): AgentMessage {
-  return {
-    role: 'toolResult',
-    toolCallId,
-    toolName,
-    content: [
-      {
-        type: 'text',
-        text: '<system>The user navigated away or refreshed before answering. Re-ask if still needed.</system>',
-      },
-    ],
-    isError: false,
-    timestamp: Date.now(),
-  } as unknown as AgentMessage
-}
-
-function injectAbandonedToolResults(messages: AgentMessage[], skipIds?: Set<string>): AgentMessage[] {
-  const dangling = findDanglingToolCallIds(messages)
-  if (skipIds) for (const id of skipIds) dangling.delete(id)
-  if (dangling.size === 0) return messages
-
-  const result: AgentMessage[] = []
-  for (let i = 0; i < messages.length; i++) {
-    const message = messages[i]
-    result.push(message)
-    if (typeof message !== 'object' || message === null) continue
-    const record = message as unknown as Record<string, unknown>
-    if (record.role !== 'assistant' || !Array.isArray(record.content)) continue
-    for (const part of record.content) {
-      if (typeof part !== 'object' || part === null) continue
-      const partRecord = part as Record<string, unknown>
-      if (partRecord.type !== 'toolCall') continue
-      const id = typeof partRecord.id === 'string' ? partRecord.id : null
-      const name = typeof partRecord.name === 'string' ? partRecord.name : null
-      if (!id || !name || !dangling.has(id)) continue
-      result.push(buildAbandonedToolResult(id, name))
-    }
-  }
-  return result
-}
-
-function restoreAgentImageTasks(tasks: AgentImageTask[]): AgentImageTask[] {
-  return tasks.map((task) => {
-    if (task.status !== 'approved' && task.status !== 'queued' && task.status !== 'running') return task
-    return {
-      ...task,
-      status: 'failed',
-      error: task.error ?? translate('configLib.agent.taskInterrupted'),
-    }
-  })
 }
 
 export function useAgentPlayground({
