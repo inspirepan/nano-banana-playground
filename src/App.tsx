@@ -36,13 +36,14 @@ type MobileTab = 'generate' | 'agent' | 'gallery'
 
 function getInitialTheme(): Theme {
   const stored = localStorage.getItem('nano-banana-theme')
-  if (stored === 'light' || stored === 'dark' || stored === 'system') return stored
-  return 'system'
+  const theme = stored === 'light' || stored === 'warm' || stored === 'dark' || stored === 'system' ? stored : 'warm'
+  if (theme === 'warm') document.documentElement.classList.add('warm')
+  return theme
 }
 
 function getInitialColorTheme(): ColorThemeId {
   const stored = localStorage.getItem('nano-banana-color-theme')
-  const id = stored && (COLOR_THEME_IDS as string[]).includes(stored) ? (stored as ColorThemeId) : 'default'
+  const id = stored && (COLOR_THEME_IDS as string[]).includes(stored) ? (stored as ColorThemeId) : 'orange'
   if (id !== 'default') document.documentElement.classList.add(`theme-${id}`)
   return id
 }
@@ -252,8 +253,14 @@ function App() {
   useExternalSync(() => {
     const root = document.documentElement
     const applyDark = (isDark: boolean) => {
+      root.classList.remove('warm')
       root.classList.toggle('dark', isDark)
       root.style.colorScheme = isDark ? 'dark' : 'light'
+    }
+    const applyWarm = () => {
+      root.classList.remove('dark')
+      root.classList.add('warm')
+      root.style.colorScheme = 'light'
     }
     if (theme === 'system') {
       const mq = window.matchMedia('(prefers-color-scheme: dark)')
@@ -262,6 +269,11 @@ function App() {
       mq.addEventListener('change', apply)
       localStorage.setItem('nano-banana-theme', 'system')
       return () => mq.removeEventListener('change', apply)
+    }
+    if (theme === 'warm') {
+      applyWarm()
+      localStorage.setItem('nano-banana-theme', theme)
+      return
     }
     applyDark(theme === 'dark')
     localStorage.setItem('nano-banana-theme', theme)

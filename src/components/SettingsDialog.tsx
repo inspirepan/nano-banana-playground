@@ -13,6 +13,7 @@ import { clearCurrentSiteData, getCurrentSiteDataUsage, type SiteDataUsage } fro
 
 const BRIGHTNESS: { value: Theme; icon: IconName; labelKey: string }[] = [
   { value: 'light', icon: 'light_mode', labelKey: 'settings.theme.light' },
+  { value: 'warm', icon: 'palette', labelKey: 'settings.theme.warm' },
   { value: 'dark', icon: 'dark_mode', labelKey: 'settings.theme.dark' },
   { value: 'system', icon: 'contrast', labelKey: 'settings.theme.system' },
 ]

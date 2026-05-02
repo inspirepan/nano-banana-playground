@@ -22,6 +22,7 @@ import {
   Monitor,
   Moon,
   MousePointer2,
+  Palette,
   Paperclip,
   Plus,
   Redo2,
@@ -74,6 +75,7 @@ export type IconName =
   | 'map_pin'
   | 'more'
   | 'mouse_pointer'
+  | 'palette'
   | 'paperclip'
   | 'plus'
   | 'redo'
@@ -129,6 +131,7 @@ const ICONS = {
   map_pin: MapPin,
   more: MoreHorizontal,
   mouse_pointer: MousePointer2,
+  palette: Palette,
   paperclip: Paperclip,
   plus: Plus,
   redo: Redo2,

@@ -287,11 +287,11 @@
 }
 
 .theme-orange {
-  --color-accent: #c0582a;
-  --color-accent-hover: #a94c20;
-  --color-accent-soft: #faeee8;
-  --color-accent-wash: color-mix(in srgb, #c0582a 10%, transparent);
-  --color-accent-wash-2: color-mix(in srgb, #c0582a 16%, transparent);
+  --color-accent: #c2643a;
+  --color-accent-hover: #a8552f;
+  --color-accent-soft: #f7e9df;
+  --color-accent-wash: color-mix(in srgb, #c2643a 10%, transparent);
+  --color-accent-wash-2: color-mix(in srgb, #c2643a 16%, transparent);
   --color-title: var(--color-accent);
 }
 .dark.theme-orange {
@@ -334,6 +334,38 @@
   --color-accent-soft: #2e2e33;
   --color-accent-wash: color-mix(in srgb, #f2f1ef 14%, transparent);
   --color-accent-wash-2: color-mix(in srgb, #f2f1ef 22%, transparent);
+}
+
+/* Warm neutrals — third base palette. Accent themes still layer on top. */
+.warm {
+  --color-bg: #faf8f5;
+  --color-bg-sunken: #f3efe8;
+  --color-surface: #ffffff;
+  --color-surface-2: #f6f2eb;
+  --color-surface-3: #ece6dc;
+  --color-border: #e6dfd2;
+  --color-border-strong: #d6cdbb;
+  --color-text: #2a2622;
+  --color-text-2: #5b524a;
+  --color-text-3: #8a7e72;
+  --color-text-4: #b6aa9a;
+
+  --color-warning: #a07211;
+  --color-warning-soft: #f6ecd6;
+  --color-danger: #b04a3b;
+  --color-danger-soft: #f6e3df;
+  --color-success: #5e8a4a;
+  --color-on-success: #ffffff;
+  --color-title: var(--color-text);
+
+  --ring-edge: rgba(60, 40, 20, 0.08);
+  --ring-edge-elevated: rgba(60, 40, 20, 0.1);
+  --ring-edge-strong: rgba(60, 40, 20, 0.14);
+  --ring-edge-soft: rgba(60, 40, 20, 0.05);
+  --shadow-lift: 0 12px 28px -18px rgba(60, 40, 20, 0.22), 0 1px 2px rgba(60, 40, 20, 0.04);
+  --shadow-float: 0 16px 36px -24px rgba(60, 40, 20, 0.24), 0 2px 6px rgba(60, 40, 20, 0.06);
+
+  color-scheme: light;
 }
 
 @layer base {
