@@ -130,7 +130,7 @@ export function AskUserQuestionForm({
                       type="button"
                       onClick={() => toggleOption(index, option.label, question.multi_select)}
                       data-active={checked || undefined}
-                      className={`group flex items-start gap-2 ${shapeClass} bg-(--color-surface) py-1 text-left shadow-[inset_0_0_0_1px_var(--ring-edge)] transition-[box-shadow,color] hover:shadow-[inset_0_0_0_1px_var(--ring-edge-strong)] data-[active]:shadow-[0_0_0_1px_var(--color-accent),0_0_0_3px_var(--color-accent-wash)]`}
+                      className={`group flex items-start gap-2 ${shapeClass} bg-(--color-surface) py-1 text-left shadow-[inset_0_0_0_1px_var(--ring-edge),0_1px_2px_rgba(0,0,0,0.06)] transition-[box-shadow,color] hover:shadow-[inset_0_0_0_1px_var(--ring-edge-strong),0_1px_3px_rgba(0,0,0,0.08)] data-[active]:shadow-[0_0_0_1px_var(--color-accent),0_0_0_3px_var(--color-accent-wash)]`}
                     >
                       {question.multi_select && (
                         <span
@@ -163,7 +163,7 @@ export function AskUserQuestionForm({
                 onChange={(event) => setNote(index, event.target.value)}
                 placeholder={t('agentChat.question.notePlaceholder')}
                 data-active={entry.note.trim().length > 0 || undefined}
-                className={`mt-2 h-7 min-w-[12em] max-w-full bg-(--color-surface) text-sm font-medium text-(--color-text) shadow-[inset_0_0_0_1px_var(--ring-edge)] transition-[box-shadow,color] placeholder:font-normal placeholder:text-(--color-text-4) focus:shadow-[inset_0_0_0_1px_var(--color-accent)] focus:outline-none data-[active]:text-(--color-accent) data-[active]:shadow-[inset_0_0_0_1px_var(--color-accent)] ${
+                className={`mt-2 h-7 min-w-[12em] max-w-full bg-(--color-surface) text-sm font-medium text-(--color-text) shadow-[inset_0_0_0_1px_var(--ring-edge),0_1px_2px_rgba(0,0,0,0.06)] transition-[box-shadow,color] placeholder:font-normal placeholder:text-(--color-text-4) focus:shadow-[inset_0_0_0_1px_var(--color-accent),0_1px_2px_rgba(0,0,0,0.06)] focus:outline-none data-[active]:text-(--color-accent) data-[active]:shadow-[inset_0_0_0_1px_var(--color-accent),0_1px_2px_rgba(0,0,0,0.06)] ${
                   question.multi_select ? 'rounded-[var(--radius-sm)] px-2.5' : 'rounded-full px-5'
                 }`}
                 style={{ fieldSizing: 'content' } as CSSProperties}
@@ -209,7 +209,10 @@ export function AskUserQuestionResultCard({
   const hasFormatted = /\nAnswer:/.test(result.text) || result.text.startsWith('Question:')
 
   return (
-    <div className="rounded-[var(--radius-md)] bg-(--color-surface) px-3.5 py-3 shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
+    <div
+      className="rounded-[var(--radius-md)] px-3.5 py-3 shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]"
+      style={{ background: 'var(--color-accent-soft)' }}
+    >
       {!hasFormatted ? (
         <div className="space-y-2">
           <div className="text-sm leading-[1.55] text-(--color-text-3)">
