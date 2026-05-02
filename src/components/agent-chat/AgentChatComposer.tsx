@@ -23,6 +23,11 @@ import { useI18n } from '../../i18n'
 const MAX_COMPOSER_HEIGHT = 150
 
 function autoResizeComposer(el: HTMLTextAreaElement) {
+  if (el.value === '') {
+    el.style.height = ''
+    return
+  }
+
   el.style.height = 'auto'
   el.style.height = `${Math.min(el.scrollHeight + 1, MAX_COMPOSER_HEIGHT)}px`
 }
@@ -90,6 +95,7 @@ export function AgentChatComposer({
 }: AgentChatComposerProps) {
   const { t } = useI18n()
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const composerRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const effectiveThinkingLevel = model.supportsThinking ? thinkingLevel : 'off'
   const effectiveThinkingLabel = t(`agentChat.thinking.${effectiveThinkingLevel}`)
@@ -97,6 +103,28 @@ export function AgentChatComposer({
   useLayoutEffect(() => {
     if (textareaRef.current) autoResizeComposer(textareaRef.current)
   }, [draft])
+
+  useLayoutEffect(() => {
+    const composer = composerRef.current
+    const textarea = textareaRef.current
+    if (!composer || !textarea || typeof ResizeObserver === 'undefined') return
+
+    let frame = 0
+    let previousWidth = composer.getBoundingClientRect().width
+    const resizeObserver = new ResizeObserver(([entry]) => {
+      const nextWidth = entry.contentRect.width
+      if (Math.abs(nextWidth - previousWidth) < 0.5) return
+      previousWidth = nextWidth
+      window.cancelAnimationFrame(frame)
+      frame = window.requestAnimationFrame(() => autoResizeComposer(textarea))
+    })
+
+    resizeObserver.observe(composer)
+    return () => {
+      window.cancelAnimationFrame(frame)
+      resizeObserver.disconnect()
+    }
+  }, [])
 
   const addFiles = (files: FileList | File[]) => {
     const imageFiles = Array.from(files).filter(isImageFile)
@@ -126,7 +154,10 @@ export function AgentChatComposer({
           renderItemCount={renderItemCount}
           onScrollToBottom={scrollToBottom}
         />
-        <div className="prompt-wrap relative rounded-[12px] bg-(--color-surface) focus-within:shadow-[inset_0_0_0_1px_var(--ring-edge)]">
+        <div
+          ref={composerRef}
+          className="prompt-wrap relative rounded-[12px] bg-(--color-surface) focus-within:shadow-[inset_0_0_0_1px_var(--ring-edge)]"
+        >
           <AgentOptionsMenu
             openMenu={openMenu}
             setOpenMenu={setOpenMenu}
