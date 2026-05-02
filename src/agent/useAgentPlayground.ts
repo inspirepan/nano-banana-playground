@@ -2,7 +2,7 @@ import { setDefaultBaseUrls } from '@google/genai'
 import { Agent, ProviderTransport, type AppMessage as AgentMessage } from '@mariozechner/pi-agent'
 import { useCallback, useRef, useState } from 'react'
 
-import { compressedAttachmentToAgentAttachment, type AgentChatAttachment } from './agentChat'
+import { agentMessageRole, compressedAttachmentToAgentAttachment, type AgentChatAttachment } from './agentChat'
 import {
   buildCompactionSummaryMessage,
   compact,
@@ -31,7 +31,7 @@ import {
   saveAgentSessionSidecar,
   updateAgentSessionConfig,
 } from './sessionStore'
-import type { AgentCompactionState, AgentSessionSummary } from './sessionTypes'
+import type { AgentCompactionState, AgentSessionMessageMetadata, AgentSessionSummary } from './sessionTypes'
 import { AGENT_SYSTEM_PROMPT } from './systemPrompt'
 import {
   createAgentTools,
@@ -92,6 +92,12 @@ function buildPreferredImageModelDirective(): string | null {
   if (!model) return null
   return `<system>The user prefers "${model.name}" (model id: ${model.id}) for image generation. Use this model for GenImage tool calls unless the user explicitly asks for a different one.</system>`
 }
+
+function agentMessageMetadataForModel(modelId: string): AgentSessionMessageMetadata {
+  const config = resolveAgentModelConfig(modelId)
+  return { modelId: config.id, modelTitle: config.shortLabel }
+}
+
 const AGENT_TASK_PROTOCOL_MESSAGES = {
   autoStarted: 'The task has been submitted and automatically started generation.',
   failedToStart: 'The task was submitted but could not start generation.',
@@ -314,9 +320,31 @@ type AgentSessionRuntime = {
   sidecarDebounce: number
   promptPreparing: boolean
   messageEntryIds: WeakMap<AgentMessage, string>
+  messageMetadata: WeakMap<AgentMessage, AgentSessionMessageMetadata>
+  activeResponseMetadata: AgentSessionMessageMetadata | undefined
+  queuedResponseMetadata: AgentSessionMessageMetadata[]
   lastCompaction: AgentCompactionState | undefined
   isCompacting: boolean
   compactionAbort: AbortController | null
+}
+
+function activateAgentResponseMetadata(runtime: AgentSessionRuntime, modelId = runtime.modelId): AgentSessionMessageMetadata {
+  const metadata = agentMessageMetadataForModel(modelId)
+  runtime.activeResponseMetadata = metadata
+  return metadata
+}
+
+function queueAgentResponseMetadata(runtime: AgentSessionRuntime, modelId = runtime.modelId): void {
+  runtime.queuedResponseMetadata.push(agentMessageMetadataForModel(modelId))
+}
+
+function metadataForAgentMessage(runtime: AgentSessionRuntime, message: AgentMessage): AgentSessionMessageMetadata | undefined {
+  if (agentMessageRole(message) !== 'assistant') return undefined
+  const existing = runtime.messageMetadata.get(message)
+  if (existing) return existing
+  const metadata = runtime.activeResponseMetadata ?? agentMessageMetadataForModel(runtime.modelId)
+  runtime.messageMetadata.set(message, metadata)
+  return metadata
 }
 
 function findDanglingToolCallIds(messages: AgentMessage[]): Set<string> {
@@ -406,6 +434,7 @@ export function useAgentPlayground({
   const agentModel = resolveAgentModelConfig(agentModelId)
   const [agentThinkingLevel, setAgentThinkingLevelState] = useState<AgentThinkingLevel>('low')
   const [agentMessages, setAgentMessages] = useState<AgentMessage[]>([])
+  const [agentMessageMetadata, setAgentMessageMetadata] = useState(() => new WeakMap<AgentMessage, AgentSessionMessageMetadata>())
   const [agentStreamingMessage, setAgentStreamingMessage] = useState<AgentMessage | null>(null)
   const [agentIsStreaming, setAgentIsStreaming] = useState(false)
   const [agentError, setAgentError] = useState<string | null>(null)
@@ -499,6 +528,7 @@ export function useAgentPlayground({
     setAgentThinkingLevelState(runtime.thinkingLevel)
     setAutoApproveAgentImageTasksState(runtime.autoApproveImageTasks)
     setAgentMessages(runtime.messages)
+    setAgentMessageMetadata(runtime.messageMetadata)
     setAgentStreamingMessage(runtime.streamingMessage)
     setAgentIsStreaming(runtime.isStreaming)
     setAgentError(runtime.error)
@@ -657,10 +687,12 @@ export function useAgentPlayground({
     (runtime: AgentSessionRuntime) => {
       runtime.messages = runtime.agent.state.messages.slice()
       runtime.streamingMessage = getAgentStreamingMessage(runtime.agent)
+      if (runtime.streamingMessage) metadataForAgentMessage(runtime, runtime.streamingMessage)
       runtime.isStreaming = runtime.agent.state.isStreaming || runtime.isCompacting
       runtime.error = getAgentError(runtime.agent)
       if (!isCurrentRuntime(runtime)) return
       setAgentMessages(runtime.messages)
+      setAgentMessageMetadata(runtime.messageMetadata)
       setAgentStreamingMessage(runtime.streamingMessage)
       setAgentIsStreaming(runtime.isStreaming)
       setAgentError(runtime.error)
@@ -844,6 +876,7 @@ export function useAgentPlayground({
       leafEntryId: string | null
       messages: AgentMessage[]
       messageEntryIds: string[]
+      messageMetadata: AgentSessionMessageMetadata[]
       lastCompaction?: AgentCompactionState
       draft: string
       attachments: AgentChatAttachment[]
@@ -872,11 +905,14 @@ export function useAgentPlayground({
         },
       })
       const messageEntryIds = new WeakMap<AgentMessage, string>()
+      const messageMetadata = new WeakMap<AgentMessage, AgentSessionMessageMetadata>()
       const limit = Math.min(params.messages.length, params.messageEntryIds.length)
       for (let i = 0; i < limit; i++) {
         const message = params.messages[i]
         const entryId = params.messageEntryIds[i]
         if (message && typeof entryId === 'string' && entryId) messageEntryIds.set(message, entryId)
+        const metadata = params.messageMetadata[i]
+        if (message && metadata) messageMetadata.set(message, metadata)
       }
 
       const runtime: AgentSessionRuntime = {
@@ -906,20 +942,28 @@ export function useAgentPlayground({
         sidecarDebounce: 0,
         promptPreparing: false,
         messageEntryIds,
+        messageMetadata,
+        activeResponseMetadata: undefined,
+        queuedResponseMetadata: [],
         lastCompaction: params.lastCompaction,
         isCompacting: false,
         compactionAbort: null,
       }
       agent.subscribe((event) => {
+        if (event.type === 'message_end') {
+          metadataForAgentMessage(runtime, event.message)
+        }
         syncRuntimeSnapshot(runtime)
         if (event.type === 'message_end') {
           const persistedMessage = event.message
+          const metadata = runtime.messageMetadata.get(persistedMessage)
           runtime.persistQueue = runtime.persistQueue
             .then(async () => {
               const result = await appendAgentSessionMessage({
                 sessionId: runtime.sessionId,
                 parentId: runtime.leafEntryId,
                 message: persistedMessage,
+                metadata,
                 ...(runtime.persisted
                   ? {}
                   : {
@@ -946,6 +990,7 @@ export function useAgentPlayground({
           return
         }
         if (event.type === 'agent_end') {
+          runtime.activeResponseMetadata = runtime.queuedResponseMetadata.shift()
           maybeRunRuntimeCompactionRef.current(runtime)
         }
       })
@@ -993,25 +1038,31 @@ export function useAgentPlayground({
       const lastCompaction = session.sidecar.lastCompaction
       const persistedMessages = session.messages
       const persistedEntryIds = session.messageEntryIds
+      const persistedMetadata = session.messageMetadata
       let runtimeMessages = persistedMessages
       let runtimeEntryIds = persistedEntryIds
+      let runtimeMetadata = persistedMetadata
       if (lastCompaction) {
         const summaryMessage = buildCompactionSummaryMessage(lastCompaction.summary, lastCompaction.createdAt)
         runtimeMessages = [summaryMessage, ...persistedMessages]
         runtimeEntryIds = ['', ...persistedEntryIds]
+        runtimeMetadata = [{}, ...persistedMetadata]
       }
       const finalMessages = injectAbandonedToolResults(runtimeMessages, restoredQuestionIds)
       // injectAbandonedToolResults preserves originals in order and only inserts
       // synthetic toolResult placeholders, so we can walk in lockstep instead of
       // calling indexOf per message (which was O(N²) on large transcripts).
       const finalEntryIds: string[] = []
+      const finalMetadata: AgentSessionMessageMetadata[] = []
       let originalCursor = 0
       for (const message of finalMessages) {
         if (originalCursor < runtimeMessages.length && runtimeMessages[originalCursor] === message) {
           finalEntryIds.push(runtimeEntryIds[originalCursor] ?? '')
+          finalMetadata.push(runtimeMetadata[originalCursor] ?? {})
           originalCursor++
         } else {
           finalEntryIds.push('')
+          finalMetadata.push({})
         }
       }
 
@@ -1024,6 +1075,7 @@ export function useAgentPlayground({
         leafEntryId: session.record.leafEntryId,
         messages: finalMessages,
         messageEntryIds: finalEntryIds,
+        messageMetadata: finalMetadata,
         lastCompaction,
         draft: session.sidecar.draft,
         attachments: session.sidecar.attachments,
@@ -1068,6 +1120,7 @@ export function useAgentPlayground({
       leafEntryId: null,
       messages: [],
       messageEntryIds: [],
+      messageMetadata: [],
       draft: '',
       attachments: [],
       imageTasks: [],
@@ -1433,8 +1486,10 @@ export function useAgentPlayground({
       applyAgentRuntimeConfig(runtime)
       runtime.currentAgentTurnId = crypto.randomUUID()
       if (runtime.agent.state.isStreaming || runtime.isCompacting) {
+        queueAgentResponseMetadata(runtime, config.id)
         await runtime.agent.queueMessage({ role: 'user', content: [{ type: 'text', text }], timestamp: Date.now() })
       } else {
+        activateAgentResponseMetadata(runtime, config.id)
         await runtime.agent.prompt(text)
       }
       syncRuntimeSnapshot(runtime)
@@ -2082,6 +2137,7 @@ export function useAgentPlayground({
     runtime.promptPreparing = true
     if (!inFlight) {
       runtime.currentAgentTurnId = crypto.randomUUID()
+      activateAgentResponseMetadata(runtime, config.id)
       runtime.isStreaming = true
     }
     if (isCurrentRuntime(runtime)) {
@@ -2117,6 +2173,7 @@ export function useAgentPlayground({
           for (const image of images) {
             if (image.type === 'image') content.push({ type: 'image', data: image.content, mimeType: image.mimeType })
           }
+          queueAgentResponseMetadata(runtime, config.id)
           await runtime.agent.queueMessage({
             role: 'user',
             content,
@@ -2128,6 +2185,7 @@ export function useAgentPlayground({
         }
 
         for (const question of pendingQuestionsToCancel) cancelRuntimeQuestion(question)
+        activateAgentResponseMetadata(runtime, config.id)
         const promptPromise = runtime.agent.prompt(promptText, images)
         runtime.promptPreparing = false
         promptPromise
@@ -2202,6 +2260,7 @@ export function useAgentPlayground({
     agentModel,
     agentThinkingLevel,
     agentMessages,
+    agentMessageMetadata,
     agentStreamingMessage,
     agentIsStreaming,
     agentError,

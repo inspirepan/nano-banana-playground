@@ -386,6 +386,7 @@ function App() {
                 agentModel={pg.agentModel}
                 agentThinkingLevel={pg.agentThinkingLevel}
                 agentMessages={pg.agentMessages}
+                agentMessageMetadata={pg.agentMessageMetadata}
                 agentStreamingMessage={pg.agentStreamingMessage}
                 agentIsStreaming={pg.agentIsStreaming}
                 agentError={pg.agentError}
@@ -481,6 +482,7 @@ function App() {
               agentModel={pg.agentModel}
               agentThinkingLevel={pg.agentThinkingLevel}
               agentMessages={pg.agentMessages}
+              agentMessageMetadata={pg.agentMessageMetadata}
               agentStreamingMessage={pg.agentStreamingMessage}
               agentIsStreaming={pg.agentIsStreaming}
               agentError={pg.agentError}

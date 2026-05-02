@@ -7,6 +7,7 @@ import type {
   AgentSessionRecord,
   AgentSessionSidecarRecord,
   CreateAgentSessionParams,
+  AgentSessionMessageMetadata,
   HydratedAgentSession,
   HydratedAgentSessionSidecar,
   PersistedAgentChatAttachment,
@@ -241,6 +242,7 @@ export async function appendAgentSessionMessage(params: {
   sessionId: string
   parentId: string | null
   message: AgentMessage
+  metadata?: AgentSessionMessageMetadata
   createSession?: CreateAgentSessionParams
 }): Promise<{ entryId: string; record: AgentSessionRecord }> {
   const entryId = crypto.randomUUID()
@@ -271,6 +273,7 @@ export async function appendAgentSessionMessage(params: {
         parentId: params.parentId,
         timestamp: now,
         message,
+        metadata: params.metadata,
       }
       const isUser = isRecord(params.message) && params.message.role === 'user'
       const cleanText = stripSystemDirectives(text)
@@ -377,6 +380,7 @@ export async function loadAgentSession(sessionId: string): Promise<HydratedAgent
   }
   const hydratedMessages = await Promise.all(slicedEntries.map((entry) => hydrateAgentMessage(entry.message)))
   const messageEntryIds = slicedEntries.map((entry) => entry.id)
+  const messageMetadata = slicedEntries.map((entry) => entry.metadata ?? {})
 
   const sidecar = sidecarRecord
     ? {
@@ -390,7 +394,7 @@ export async function loadAgentSession(sessionId: string): Promise<HydratedAgent
         lastCompaction: sidecarRecord.lastCompaction,
       }
     : emptySidecar()
-  return { record, messages: hydratedMessages, messageEntryIds, sidecar }
+  return { record, messages: hydratedMessages, messageEntryIds, messageMetadata, sidecar }
 }
 
 export async function deleteAgentSession(sessionId: string): Promise<void> {

@@ -30,6 +30,11 @@ export type AgentSessionSummary = AgentSessionRecord
 
 export type PersistedAgentMessage = Record<string, unknown>
 
+export type AgentSessionMessageMetadata = {
+  modelId?: string
+  modelTitle?: string
+}
+
 export type AgentSessionMessageEntry = {
   type: 'message'
   id: string
@@ -37,6 +42,7 @@ export type AgentSessionMessageEntry = {
   parentId: string | null
   timestamp: number
   message: PersistedAgentMessage
+  metadata?: AgentSessionMessageMetadata
 }
 
 export type PersistedAgentChatAttachment = Omit<AgentChatAttachment, 'data'> & {
@@ -82,6 +88,7 @@ export type HydratedAgentSession = {
   record: AgentSessionRecord
   messages: AgentMessage[]
   messageEntryIds: string[]
+  messageMetadata: AgentSessionMessageMetadata[]
   sidecar: HydratedAgentSessionSidecar
 }
 

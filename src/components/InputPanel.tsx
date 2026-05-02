@@ -14,6 +14,7 @@ import type {
   AgentSessionSummary,
   AskUserQuestionAnswer,
 } from '../agent'
+import type { AgentSessionMessageMetadata } from '../agent/sessionTypes'
 import type { AgentModelConfig, AgentThinkingLevel } from '../config/agentModels'
 import {
   MODEL_CONFIGS,
@@ -254,6 +255,7 @@ type Props = {
   agentModel: AgentModelConfig
   agentThinkingLevel: AgentThinkingLevel
   agentMessages: AgentMessage[]
+  agentMessageMetadata: WeakMap<AgentMessage, AgentSessionMessageMetadata>
   agentStreamingMessage: AgentMessage | null
   agentIsStreaming: boolean
   agentError: string | null
@@ -321,6 +323,7 @@ export function InputPanel({
   agentModel,
   agentThinkingLevel,
   agentMessages,
+  agentMessageMetadata,
   agentStreamingMessage,
   agentIsStreaming,
   agentError,
@@ -585,6 +588,7 @@ export function InputPanel({
       {inputMode === 'agent' ? (
         <AgentChatPanel
           messages={agentMessages}
+          messageMetadata={agentMessageMetadata}
           streamingMessage={agentStreamingMessage}
           isStreaming={agentIsStreaming}
           error={agentError}

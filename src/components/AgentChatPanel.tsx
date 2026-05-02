@@ -3,13 +3,17 @@ import { useCallback, useLayoutEffect, useMemo, useRef, useState, type DragEvent
 
 import {
   agentMessageError,
+  agentMessageRole,
+  agentMessageText,
   agentMessageToolCalls,
+  stripSystemDirectives,
   type AgentChatAttachment,
   type AgentImageTask,
   type AgentPendingQuestion,
   type AgentSessionSummary,
   type AskUserQuestionAnswer,
 } from '../agent'
+import type { AgentSessionMessageMetadata } from '../agent/sessionTypes'
 import type { AgentModelConfig, AgentThinkingLevel } from '../config/agentModels'
 import type { Provider } from '../config/models'
 import { useExternalSync, useWindowEvent } from '../hooks/effects'
@@ -33,6 +37,7 @@ import { Icon } from './Icon'
 
 type Props = {
   messages: AgentMessage[]
+  messageMetadata: WeakMap<AgentMessage, AgentSessionMessageMetadata>
   streamingMessage: AgentMessage | null
   isStreaming: boolean
   error: string | null
@@ -74,6 +79,7 @@ type Props = {
 
 export function AgentChatPanel({
   messages,
+  messageMetadata,
   streamingMessage,
   isStreaming,
   error,
@@ -129,6 +135,30 @@ export function AgentChatPanel({
   const renderItems = useMemo(
     () => buildChatRenderItems(visibleMessages, streamingMessage),
     [visibleMessages, streamingMessage],
+  )
+  const titledAssistantMessages = useMemo(() => {
+    const titled = new WeakSet<AgentMessage>()
+    let nextVisibleAssistantStartsTurn = false
+    for (const item of renderItems) {
+      if (item.type !== 'message') continue
+      const role = agentMessageRole(item.message)
+      if (role === 'user') {
+        if (stripSystemDirectives(agentMessageText(item.message)).trim()) nextVisibleAssistantStartsTurn = true
+        continue
+      }
+      if (role !== 'assistant') continue
+      if (nextVisibleAssistantStartsTurn) titled.add(item.message)
+      nextVisibleAssistantStartsTurn = false
+    }
+    return titled
+  }, [renderItems])
+  const assistantTitleFor = useCallback(
+    (message: AgentMessage, itemIsStreaming: boolean) => {
+      if (!titledAssistantMessages.has(message)) return undefined
+      const metadata = messageMetadata.get(message)
+      return metadata?.modelTitle ?? (itemIsStreaming ? model.shortLabel : 'Agent')
+    },
+    [messageMetadata, model.shortLabel, titledAssistantMessages],
   )
   const latestMessageError = useMemo(() => {
     for (let index = visibleMessages.length - 1; index >= 0; index--) {
@@ -312,7 +342,12 @@ export function AgentChatPanel({
           <>
             {renderItems.map((item) =>
               item.type === 'message' ? (
-                <MessageBubble key={item.key} message={item.message} isStreaming={item.isStreaming} />
+                <MessageBubble
+                  key={item.key}
+                  message={item.message}
+                  isStreaming={item.isStreaming}
+                  assistantTitle={assistantTitleFor(item.message, item.isStreaming)}
+                />
               ) : (
                 <ToolActivityCard
                   key={item.key}

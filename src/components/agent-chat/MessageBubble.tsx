@@ -33,7 +33,15 @@ async function writeClipboardText(text: string): Promise<void> {
   textarea.remove()
 }
 
-export function MessageBubble({ message, isStreaming }: { message: AgentMessage; isStreaming: boolean }) {
+export function MessageBubble({
+  message,
+  isStreaming,
+  assistantTitle,
+}: {
+  message: AgentMessage
+  isStreaming: boolean
+  assistantTitle?: string
+}) {
   const { t } = useI18n()
   const [copied, setCopied] = useState(false)
   const copiedResetRef = useRef<number | null>(null)
@@ -43,15 +51,19 @@ export function MessageBubble({ message, isStreaming }: { message: AgentMessage;
   const images = agentMessageImages(message)
   const error = agentMessageError(message)
   const isUser = role === 'user'
+  const isAssistant = role === 'assistant'
   const trimmedText = text.trim()
   const visibleText = stripSystemDirectives(text)
   const copyText = isUser
     ? visibleText
     : [visibleText, error].filter((part): part is string => Boolean(part)).join('\n\n')
   const isSystemEvent = isUser && visibleText === '' && trimmedText.startsWith('<system>')
-  const canCopy = copyText.trim() !== ''
+  const copyLineCount = copyText.trim() ? copyText.trim().split(/\r\n|\r|\n/).length : 0
+  const canCopy = isUser ? copyText.length >= 50 : Boolean(error) || (copyText.length >= 400 && copyLineCount >= 5)
   const showAssistantMarkdown = visibleText.trim() !== ''
   const hasAssistantTrailingContent = showAssistantMarkdown || Boolean(error)
+  const showAssistantTitle = isAssistant && Boolean(assistantTitle)
+  const hasAssistantBody = thinking.trim() !== '' || images.length > 0 || hasAssistantTrailingContent
 
   const handleCopy = () => {
     if (!canCopy) return
@@ -82,6 +94,11 @@ export function MessageBubble({ message, isStreaming }: { message: AgentMessage;
               : ''
           }
         >
+          {showAssistantTitle && (
+            <div className={`${hasAssistantBody ? 'mb-2' : ''} text-base font-semibold text-(--color-text)`}>
+              {assistantTitle}
+            </div>
+          )}
           {images.length > 0 && (
             <div className="mb-2 grid grid-cols-3 gap-1.5">
               {images.map((image, index) => (
@@ -128,7 +145,7 @@ export function MessageBubble({ message, isStreaming }: { message: AgentMessage;
           )}
         </div>
         {canCopy && (
-          <div className={`mt-1 flex ${isUser ? 'justify-end pr-1' : 'justify-start'}`}>
+          <div className="mt-1 flex justify-end pr-1">
             <button
               type="button"
               className="inline-flex h-[26px] appearance-none items-center justify-center rounded-[var(--radius-sm)] border-0 bg-transparent px-2 text-xs font-medium text-(--color-text-4) transition-colors duration-150 hover:bg-(--color-surface-2) hover:text-(--color-text-3)"

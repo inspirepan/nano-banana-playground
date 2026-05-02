@@ -130,6 +130,11 @@
   --font-sans--font-feature-settings: 'calt' 1, 'case' 1;
 }
 
+.font-sans-hanken-grotesk {
+  --font-sans: 'Hanken Grotesk', var(--font-cjk-sans);
+  --font-sans--font-feature-settings: 'calt' 1, 'case' 1;
+}
+
 .font-sans-google-sans-flex {
   --font-sans: 'Google Sans Flex', var(--font-cjk-sans);
   --font-sans--font-feature-settings: 'calt' 1, 'case' 1;
