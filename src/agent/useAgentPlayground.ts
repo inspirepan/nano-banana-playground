@@ -2,6 +2,13 @@ import { Agent, ProviderTransport, type AppMessage as AgentMessage } from '@mari
 import { useCallback, useRef, useState } from 'react'
 
 import { compressedAttachmentToAgentAttachment, type AgentChatAttachment } from './agentChat'
+import {
+  buildCompactionSummaryMessage,
+  compact,
+  DEFAULT_COMPACTION_SETTINGS,
+  estimateContextTokens,
+  shouldCompact,
+} from './compaction'
 import { compressImageForAgentInput } from './imageCompression'
 import {
   AGENT_PROMPT_DEFAULT_LINE_LIMIT,
@@ -23,7 +30,7 @@ import {
   saveAgentSessionSidecar,
   updateAgentSessionConfig,
 } from './sessionStore'
-import type { AgentSessionSummary } from './sessionTypes'
+import type { AgentCompactionState, AgentSessionSummary } from './sessionTypes'
 import { AGENT_SYSTEM_PROMPT } from './systemPrompt'
 import {
   createAgentTools,
@@ -276,6 +283,10 @@ type AgentSessionRuntime = {
   sidecarPersistQueue: Promise<void>
   sidecarDebounce: number
   promptPreparing: boolean
+  messageEntryIds: WeakMap<AgentMessage, string>
+  lastCompaction: AgentCompactionState | undefined
+  isCompacting: boolean
+  compactionAbort: AbortController | null
 }
 
 function findDanglingToolCallIds(messages: AgentMessage[]): Set<string> {
@@ -474,6 +485,9 @@ export function useAgentPlayground({
     [isCurrentRuntime],
   )
 
+  const maybeRunRuntimeCompactionRef = useRef<(runtime: AgentSessionRuntime) => void>(() => {})
+  const maybeDispatchAgentImageCallbacksRef = useRef<(runtime: AgentSessionRuntime) => void>(() => {})
+
   const persistRuntimeSidecar = useCallback((runtime: AgentSessionRuntime) => {
     if (!runtime.ready) return Promise.resolve()
     const payload = {
@@ -485,6 +499,7 @@ export function useAgentPlayground({
       turnCallbacks: Array.from(runtime.turnCallbacks.values()),
       currentAgentTurnId: runtime.currentAgentTurnId,
       pendingQuestions: runtime.pendingQuestions,
+      lastCompaction: runtime.lastCompaction,
     }
     const write = runtime.sidecarPersistQueue.then(() => saveAgentSessionSidecar(payload))
     runtime.sidecarPersistQueue = write.catch(() => undefined)
@@ -608,7 +623,7 @@ export function useAgentPlayground({
     (runtime: AgentSessionRuntime) => {
       runtime.messages = runtime.agent.state.messages.slice()
       runtime.streamingMessage = getAgentStreamingMessage(runtime.agent)
-      runtime.isStreaming = runtime.agent.state.isStreaming
+      runtime.isStreaming = runtime.agent.state.isStreaming || runtime.isCompacting
       runtime.error = getAgentError(runtime.agent)
       if (!isCurrentRuntime(runtime)) return
       setAgentMessages(runtime.messages)
@@ -637,6 +652,152 @@ export function useAgentPlayground({
     [getAgentBaseUrl],
   )
 
+  const runRuntimeCompaction = useCallback(
+    async (runtime: AgentSessionRuntime) => {
+      if (runtime.isCompacting || runtime.agent.state.isStreaming) return
+      if (!runtime.ready) return
+      if (agentRuntimesRef.current.get(runtime.sessionId) !== runtime) return
+
+      const config = resolveAgentModelConfig(runtime.modelId)
+      const credentials = agentCredentialsRef.current[config.provider]
+      if (!credentials.apiKey) return
+
+      const model = agentModelWithBaseUrl(config, credentials.baseUrl)
+      const contextWindow = model.contextWindow ?? 0
+      if (contextWindow <= 0) return
+
+      // Trust assistant usage only when its timestamp is later than the last
+      // compaction — otherwise the message still carries pre-compaction
+      // usage.totalTokens and would falsely re-trigger compaction every turn.
+      const minUsageTimestamp = runtime.lastCompaction?.createdAt ?? 0
+      const settings = DEFAULT_COMPACTION_SETTINGS
+      const preflightMessages = runtime.agent.state.messages
+      if (preflightMessages.length === 0) return
+      const preflightTokens = estimateContextTokens(preflightMessages, { minUsageTimestamp }).tokens
+      if (!shouldCompact(preflightTokens, contextWindow, settings)) return
+
+      // Acquire the compaction lock BEFORE awaiting persistence so that
+      // sendAgentMessage / image callbacks / system events that all guard on
+      // `isCompacting` cannot start a new prompt during the await window.
+      runtime.isCompacting = true
+      const abortController = new AbortController()
+      runtime.compactionAbort = abortController
+      // Use syncRuntimeSnapshot (not just setAgentIsStreaming) so runtime.isStreaming
+      // also reflects the lock — otherwise the next sendAgentMessage would read the
+      // stale runtime field and take the in-flight queueMessage path instead of prompt.
+      syncRuntimeSnapshot(runtime)
+
+      let compactionErrorMessage: string | null = null
+      try {
+        await runtime.persistQueue.catch(() => undefined)
+
+        // Re-confirm runtime is still alive and idle. The await above can yield
+        // long enough for the session to be deleted, swapped, or for some path
+        // we did not lock to push the agent into a new turn.
+        if (!runtime.ready) return
+        if (agentRuntimesRef.current.get(runtime.sessionId) !== runtime) return
+        if (runtime.agent.state.isStreaming) return
+
+        const messages = runtime.agent.state.messages.slice()
+        if (messages.length === 0) return
+        // If nothing changed during the await, the preflight estimate is still valid;
+        // otherwise recompute on the latest snapshot.
+        const sameAsPreflight =
+          messages.length === preflightMessages.length &&
+          messages[messages.length - 1] === preflightMessages[preflightMessages.length - 1]
+        const contextTokens = sameAsPreflight
+          ? preflightTokens
+          : estimateContextTokens(messages, { minUsageTimestamp }).tokens
+        if (!shouldCompact(contextTokens, contextWindow, settings)) return
+
+        const previousSummary = runtime.lastCompaction?.summary
+        const ignoreLeadingCount = previousSummary && messages.length > 0 ? 1 : 0
+
+        const result = await compact({
+          messages,
+          settings,
+          model,
+          apiKey: credentials.apiKey,
+          previousSummary,
+          ignoreLeadingCount,
+          tokensBefore: contextTokens,
+          signal: abortController.signal,
+        })
+        if (!result) return
+        if (!runtime.ready) return
+        if (agentRuntimesRef.current.get(runtime.sessionId) !== runtime) return
+
+        // If user has appended new messages while we were summarizing, snap firstKeptIndex
+        // forward proportionally so we don't drop those new messages.
+        const liveMessages = runtime.agent.state.messages
+        const drift = liveMessages.length - messages.length
+        if (drift < 0) return // messages got truncated externally; bail
+        const liveFirstKeptIndex = Math.min(result.firstKeptIndex, liveMessages.length)
+        if (liveFirstKeptIndex <= 0) return
+
+        const firstKeptMessage = liveMessages[liveFirstKeptIndex]
+        if (!firstKeptMessage) return
+        let firstKeptEntryId: string | undefined
+        for (let i = liveFirstKeptIndex; i < liveMessages.length; i++) {
+          const candidate = liveMessages[i]
+          const id = runtime.messageEntryIds.get(candidate)
+          if (id) {
+            firstKeptEntryId = id
+            break
+          }
+        }
+        if (!firstKeptEntryId) return // nothing reliably persisted; skip this round
+
+        const summaryMessage = buildCompactionSummaryMessage(result.summary)
+        const keptMessages = liveMessages.slice(liveFirstKeptIndex)
+        const nextMessages = [summaryMessage, ...keptMessages]
+
+        runtime.agent.replaceMessages(nextMessages)
+        runtime.lastCompaction = {
+          summary: result.summary,
+          firstKeptEntryId,
+          tokensBefore: result.tokensBefore,
+          createdAt: Date.now(),
+        }
+
+        // syncRuntimeSnapshot will copy agent.state.messages into runtime.messages
+        // and push it to React state — no need to assign runtime.messages manually.
+        syncRuntimeSnapshot(runtime)
+        await persistRuntimeSidecar(runtime)
+      } catch (error) {
+        if (abortController.signal.aborted) return
+        // Compaction failure should not break the user's session — log via runtime error
+        // surface but keep messages intact. Stash the message and apply it AFTER
+        // syncRuntimeSnapshot in finally so the snapshot does not overwrite it
+        // with agent.state.error (which is unrelated to the summarization call).
+        compactionErrorMessage = error instanceof Error ? error.message : String(error)
+      } finally {
+        runtime.isCompacting = false
+        runtime.compactionAbort = null
+        // Re-sync so runtime.isStreaming returns to agent.state.isStreaming.
+        // setAgentIsStreaming alone would only update React state, leaving
+        // runtime.isStreaming stuck at true and breaking the next sendAgentMessage.
+        syncRuntimeSnapshot(runtime)
+        if (compactionErrorMessage !== null) setRuntimeError(runtime, compactionErrorMessage)
+        // Image task callbacks that arrived during compaction are skipped at
+        // dispatch time; drain once now so the agent receives any deferred
+        // "image finished" system events even if no further job updates fire.
+        // Skip if the runtime was deleted or replaced — otherwise we could
+        // dispatch onto a torn-down session.
+        if (runtime.ready && agentRuntimesRef.current.get(runtime.sessionId) === runtime) {
+          maybeDispatchAgentImageCallbacksRef.current(runtime)
+        }
+      }
+    },
+    [persistRuntimeSidecar, setRuntimeError, syncRuntimeSnapshot],
+  )
+
+  useExternalSync(() => {
+    maybeRunRuntimeCompactionRef.current = (runtime) => {
+      void runRuntimeCompaction(runtime)
+    }
+  }, [runRuntimeCompaction])
+
   const createRuntime = useCallback(
     (params: {
       sessionId: string
@@ -645,6 +806,8 @@ export function useAgentPlayground({
       autoApproveImageTasks: boolean
       leafEntryId: string | null
       messages: AgentMessage[]
+      messageEntryIds: string[]
+      lastCompaction?: AgentCompactionState
       draft: string
       attachments: AgentChatAttachment[]
       imageTasks: AgentImageTask[]
@@ -671,6 +834,14 @@ export function useAgentPlayground({
           messages: params.messages,
         },
       })
+      const messageEntryIds = new WeakMap<AgentMessage, string>()
+      const limit = Math.min(params.messages.length, params.messageEntryIds.length)
+      for (let i = 0; i < limit; i++) {
+        const message = params.messages[i]
+        const entryId = params.messageEntryIds[i]
+        if (message && typeof entryId === 'string' && entryId) messageEntryIds.set(message, entryId)
+      }
+
       const runtime: AgentSessionRuntime = {
         sessionId: params.sessionId,
         agent,
@@ -696,23 +867,34 @@ export function useAgentPlayground({
         sidecarPersistQueue: Promise.resolve(),
         sidecarDebounce: 0,
         promptPreparing: false,
+        messageEntryIds,
+        lastCompaction: params.lastCompaction,
+        isCompacting: false,
+        compactionAbort: null,
       }
       agent.subscribe((event) => {
         syncRuntimeSnapshot(runtime)
-        if (event.type !== 'message_end') return
-        runtime.persistQueue = runtime.persistQueue
-          .then(async () => {
-            const result = await appendAgentSessionMessage({
-              sessionId: runtime.sessionId,
-              parentId: runtime.leafEntryId,
-              message: event.message,
+        if (event.type === 'message_end') {
+          const persistedMessage = event.message
+          runtime.persistQueue = runtime.persistQueue
+            .then(async () => {
+              const result = await appendAgentSessionMessage({
+                sessionId: runtime.sessionId,
+                parentId: runtime.leafEntryId,
+                message: persistedMessage,
+              })
+              runtime.leafEntryId = result.entryId
+              runtime.messageEntryIds.set(persistedMessage, result.entryId)
+              upsertAgentSessionSummary(result.record)
             })
-            runtime.leafEntryId = result.entryId
-            upsertAgentSessionSummary(result.record)
-          })
-          .catch((error: unknown) => {
-            setRuntimeError(runtime, error instanceof Error ? error.message : String(error))
-          })
+            .catch((error: unknown) => {
+              setRuntimeError(runtime, error instanceof Error ? error.message : String(error))
+            })
+          return
+        }
+        if (event.type === 'agent_end') {
+          maybeRunRuntimeCompactionRef.current(runtime)
+        }
       })
       agentRuntimesRef.current.set(runtime.sessionId, runtime)
       applyAgentRuntimeConfig(runtime)
@@ -747,13 +929,40 @@ export function useAgentPlayground({
       const restoredQuestions = session.sidecar.pendingQuestions ?? []
       const restoredQuestionIds = new Set(restoredQuestions.map((item) => item.toolCallId))
 
+      const lastCompaction = session.sidecar.lastCompaction
+      const persistedMessages = session.messages
+      const persistedEntryIds = session.messageEntryIds
+      let runtimeMessages = persistedMessages
+      let runtimeEntryIds = persistedEntryIds
+      if (lastCompaction) {
+        const summaryMessage = buildCompactionSummaryMessage(lastCompaction.summary, lastCompaction.createdAt)
+        runtimeMessages = [summaryMessage, ...persistedMessages]
+        runtimeEntryIds = ['', ...persistedEntryIds]
+      }
+      const finalMessages = injectAbandonedToolResults(runtimeMessages, restoredQuestionIds)
+      // injectAbandonedToolResults preserves originals in order and only inserts
+      // synthetic toolResult placeholders, so we can walk in lockstep instead of
+      // calling indexOf per message (which was O(N²) on large transcripts).
+      const finalEntryIds: string[] = []
+      let originalCursor = 0
+      for (const message of finalMessages) {
+        if (originalCursor < runtimeMessages.length && runtimeMessages[originalCursor] === message) {
+          finalEntryIds.push(runtimeEntryIds[originalCursor] ?? '')
+          originalCursor++
+        } else {
+          finalEntryIds.push('')
+        }
+      }
+
       const runtime = createRuntime({
         sessionId: session.record.id,
         modelId: session.record.modelId,
         thinkingLevel: session.record.thinkingLevel,
         autoApproveImageTasks: session.record.autoApproveImageTasks,
         leafEntryId: session.record.leafEntryId,
-        messages: injectAbandonedToolResults(session.messages, restoredQuestionIds),
+        messages: finalMessages,
+        messageEntryIds: finalEntryIds,
+        lastCompaction,
         draft: session.sidecar.draft,
         attachments: session.sidecar.attachments,
         imageTasks: restoredTasks,
@@ -783,6 +992,7 @@ export function useAgentPlayground({
     loadAgentSessionIntoRuntime({
       record,
       messages: [],
+      messageEntryIds: [],
       sidecar: {
         draft: '',
         attachments: [],
@@ -791,6 +1001,7 @@ export function useAgentPlayground({
         turnCallbacks: [],
         currentAgentTurnId: null,
         pendingQuestions: [],
+        lastCompaction: undefined,
       },
     })
   }, [
@@ -828,6 +1039,7 @@ export function useAgentPlayground({
         if (runtime) {
           runtime.ready = false
           clearRuntimeQuestionResolvers(runtime, 'session_deleted')
+          runtime.compactionAbort?.abort()
           runtime.agent.abort()
           for (const task of runtime.imageTasks) {
             if (task.generationJobId && !isTerminalAgentImageTaskStatus(task.status))
@@ -1142,7 +1354,7 @@ export function useAgentPlayground({
 
       applyAgentRuntimeConfig(runtime)
       runtime.currentAgentTurnId = crypto.randomUUID()
-      if (runtime.agent.state.isStreaming) {
+      if (runtime.agent.state.isStreaming || runtime.isCompacting) {
         await runtime.agent.queueMessage({ role: 'user', content: [{ type: 'text', text }], timestamp: Date.now() })
       } else {
         await runtime.agent.prompt(text)
@@ -1155,7 +1367,7 @@ export function useAgentPlayground({
 
   const maybeDispatchAgentImageCallbacks = useCallback(
     (runtime: AgentSessionRuntime, tasks = runtime.imageTasks) => {
-      if (runtime.agent.state.isStreaming) return
+      if (runtime.agent.state.isStreaming || runtime.isCompacting) return
       for (const callbackState of runtime.turnCallbacks.values()) {
         if (callbackState.callbackQueued || callbackState.taskIds.length === 0) continue
         const turnTasks = callbackState.taskIds
@@ -1180,6 +1392,10 @@ export function useAgentPlayground({
     },
     [scheduleRuntimeSidecarPersist, sendAgentSystemEvent, setRuntimeError],
   )
+
+  useExternalSync(() => {
+    maybeDispatchAgentImageCallbacksRef.current = maybeDispatchAgentImageCallbacks
+  }, [maybeDispatchAgentImageCallbacks])
 
   const startAgentImageTask = useCallback(
     async (runtime: AgentSessionRuntime, task: AgentImageTask): Promise<{ ok: boolean; message: string }> => {
@@ -1735,7 +1951,8 @@ export function useAgentPlayground({
   const sendAgentMessage = useCallback(() => {
     const runtime = getCurrentRuntime()
     const trimmed = runtime?.draft.trim() ?? ''
-    if (!runtime || runtime.promptPreparing || (!trimmed && runtime.attachments.length === 0)) return
+    if (!runtime || runtime.promptPreparing || runtime.isCompacting) return
+    if (!trimmed && runtime.attachments.length === 0) return
 
     const config = resolveAgentModelConfig(runtime.modelId)
     const credentials = agentCredentialsRef.current[config.provider]

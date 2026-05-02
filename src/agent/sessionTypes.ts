@@ -47,6 +47,13 @@ export type PersistedAgentImageRegistryEntry = Omit<AgentImageRegistryEntry, 'im
   attachment?: PersistedAgentChatAttachment
 }
 
+export type AgentCompactionState = {
+  summary: string
+  firstKeptEntryId: string
+  tokensBefore: number
+  createdAt: number
+}
+
 export type AgentSessionSidecarRecord = {
   sessionId: string
   updatedAt: number
@@ -57,6 +64,7 @@ export type AgentSessionSidecarRecord = {
   turnCallbacks: AgentTurnCallbackState[]
   currentAgentTurnId: string | null
   pendingQuestions?: PersistedAgentPendingQuestion[]
+  lastCompaction?: AgentCompactionState
 }
 
 export type HydratedAgentSessionSidecar = {
@@ -67,11 +75,13 @@ export type HydratedAgentSessionSidecar = {
   turnCallbacks: AgentTurnCallbackState[]
   currentAgentTurnId: string | null
   pendingQuestions: PersistedAgentPendingQuestion[]
+  lastCompaction?: AgentCompactionState
 }
 
 export type HydratedAgentSession = {
   record: AgentSessionRecord
   messages: AgentMessage[]
+  messageEntryIds: string[]
   sidecar: HydratedAgentSessionSidecar
 }
 
@@ -90,4 +100,5 @@ export type SaveAgentSessionSidecarParams = {
   turnCallbacks: AgentTurnCallbackState[]
   currentAgentTurnId: string | null
   pendingQuestions: PersistedAgentPendingQuestion[]
+  lastCompaction?: AgentCompactionState
 }

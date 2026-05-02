@@ -199,6 +199,7 @@ function emptySidecar(): HydratedAgentSessionSidecar {
     turnCallbacks: [],
     currentAgentTurnId: null,
     pendingQuestions: [],
+    lastCompaction: undefined,
   }
 }
 
@@ -334,6 +335,7 @@ export async function saveAgentSessionSidecar(params: SaveAgentSessionSidecarPar
     turnCallbacks: params.turnCallbacks,
     currentAgentTurnId: params.currentAgentTurnId,
     pendingQuestions: params.pendingQuestions,
+    lastCompaction: params.lastCompaction,
   }
   const db = await openNanoBananaDB()
   const tx = db.transaction(AGENT_SESSION_SIDECAR_STORE, 'readwrite')
@@ -357,9 +359,17 @@ export async function loadAgentSession(sessionId: string): Promise<HydratedAgent
     requestToPromise(sidecarReq),
   ])
   if (!record) return null
-  const messages = await Promise.all(
-    entries.sort((a, b) => a.timestamp - b.timestamp).map((entry) => hydrateAgentMessage(entry.message)),
-  )
+
+  const sortedEntries = entries.slice().sort((a, b) => a.timestamp - b.timestamp)
+  const lastCompaction = sidecarRecord?.lastCompaction
+  let slicedEntries = sortedEntries
+  if (lastCompaction) {
+    const cutIndex = sortedEntries.findIndex((entry) => entry.id === lastCompaction.firstKeptEntryId)
+    if (cutIndex >= 0) slicedEntries = sortedEntries.slice(cutIndex)
+  }
+  const hydratedMessages = await Promise.all(slicedEntries.map((entry) => hydrateAgentMessage(entry.message)))
+  const messageEntryIds = slicedEntries.map((entry) => entry.id)
+
   const sidecar = sidecarRecord
     ? {
         draft: sidecarRecord.draft,
@@ -369,9 +379,10 @@ export async function loadAgentSession(sessionId: string): Promise<HydratedAgent
         turnCallbacks: sidecarRecord.turnCallbacks,
         currentAgentTurnId: sidecarRecord.currentAgentTurnId,
         pendingQuestions: sidecarRecord.pendingQuestions ?? [],
+        lastCompaction: sidecarRecord.lastCompaction,
       }
     : emptySidecar()
-  return { record, messages, sidecar }
+  return { record, messages: hydratedMessages, messageEntryIds, sidecar }
 }
 
 export async function deleteAgentSession(sessionId: string): Promise<void> {

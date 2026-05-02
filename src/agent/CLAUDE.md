@@ -38,6 +38,7 @@
 src/agent/
   useAgentPlayground.ts   # Agent orchestration hook: runtime/session/attachments/tasks/tools bridge
   agentChat.ts            # AppMessage/attachment parsing helpers for UI and runtime inputs
+  compaction.ts           # token estimation, cut point, generateSummary, compact orchestrator
   imageTasks.ts           # AgentImageTask, registry types, image_id reservation, prompt line formatting
   sessionStore.ts         # IndexedDB-backed Agent session log + sidecar persistence
   sessionTypes.ts         # Persisted/hydrated Agent session records and sidecar shapes
@@ -83,6 +84,21 @@ type UseAgentPlaygroundReturn = {
 ```
 
 内部保持一个 `Agent` 实例和当前会话 refs：`imageTasks`、`imageRegistry`、`turnCallbacks`、`currentAgentTurnId`、`leafEntryId`。这些运行期结构会通过 `sessionStore` 保存为 session sidecar，页面刷新或切换会话时可恢复；刷新中断的非终结生图任务会恢复为 `canceled`。
+
+### 上下文压缩
+
+`compaction.ts` 参考 `pi-coding-agent` 的做法，提供阈值触发的上下文压缩：
+
+- 在每次 `agent_end` 事件后检查最新 assistant message 的 `usage`，按 `model.contextWindow - reserveTokens` 与 `DEFAULT_COMPACTION_SETTINGS` 判断是否需要压缩。
+- `findCutPoint` 从尾部往前累加 token，达到 `keepRecentTokens` 后吸附到最近的 `user` / `assistant` 消息（`toolResult` 永远不会作为切点，避免割裂 toolCall + toolResult 配对）。
+- 通过 `completeSimple` 用同模型 + 同 apiKey 调用一次额外的 LLM 完成，按结构化模板（Goal / Progress / Generated Images / Next Steps 等）生成 summary；如果存在上一次的 summary，则用 update 模板做增量更新。
+- 压缩成功后把 `agent.state.messages` 替换为 `[synthesizedSummaryUserMsg, ...keptMessages]`；synthesized summary 是一条 `role: 'user'` 的 `<system>` 包裹文本，对模型相当于可读的检查点。
+- 持久化：`runtime.lastCompaction = { summary, firstKeptEntryId, tokensBefore, createdAt }` 写进 session sidecar；session 入库的 message entries 不删，刷新时按 `firstKeptEntryId` 切片，前面再补一条 synthesized summary。
+- `runtime.messageEntryIds: WeakMap<AgentMessage, entryId>` 跟踪每条消息的持久化 ID，让我们能在运行期定位 `firstKeptEntryId`；无 ID 的消息（synthesized summary、abandoned tool result）自动跳过，不会被当作 cut point。
+- 压缩进行期间 `runtime.isCompacting=true`，`syncRuntimeSnapshot` 把它和 `agent.state.isStreaming` OR 起来对外暴露，`sendAgentMessage` 会拒绝新输入，`removeAgentSession` / 切换会话会 abort 进行中的压缩。
+- 失败不破坏会话：异常时仅把错误投到 `runtime.error`，不替换消息；下一次 `agent_end` 还会再尝试。
+
+设置：当前为常量 `DEFAULT_COMPACTION_SETTINGS = { enabled: true, reserveTokens: 8192, keepRecentTokens: 16384 }`。如果需要做成可配置（per-session / 全局开关），把它接到 settings 层。
 
 ### 会话持久化
 
