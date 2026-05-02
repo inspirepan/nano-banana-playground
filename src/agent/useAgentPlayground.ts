@@ -36,10 +36,11 @@ import { buildAvailableSkillsSystemMessage } from './skills/listing'
 import {
   createAgentSkill,
   deleteAgentSkill as deleteAgentSkillFromRegistry,
+  findAgentSkill,
   getAgentSkillSummaries,
   setAgentSkillEnabled as setAgentSkillEnabledInRegistry,
 } from './skills/registry'
-import type { AgentSkillSummary } from './skills/types'
+import type { AgentSkill, AgentSkillCreateInput, AgentSkillSummary } from './skills/types'
 import { AGENT_SYSTEM_PROMPT } from './systemPrompt'
 import {
   createAgentTools,
@@ -2058,6 +2059,16 @@ export function useAgentPlayground({
     setAgentSkillsState(deleteAgentSkillFromRegistry(name))
   }, [])
 
+  const getAgentSkillPackage = useCallback((name: string): AgentSkill | null => findAgentSkill(name), [])
+
+  const createUserAgentSkill = useCallback(
+    (input: AgentSkillCreateInput) => {
+      createAgentSkill(input)
+      refreshAgentSkills()
+    },
+    [refreshAgentSkills],
+  )
+
   const runSkillTool = useCallback(
     async (_sessionId: string, _toolCallId: string, args: SkillToolArgs): Promise<AgentToolResult> => {
       return formatLoadedSkillText(args.skill)
@@ -2379,6 +2390,8 @@ export function useAgentPlayground({
     setAutoApproveAgentImageTasks,
     setAgentSkillEnabled,
     deleteAgentSkill,
+    getAgentSkillPackage,
+    createUserAgentSkill,
     setAgentDraft: setCurrentAgentDraft,
     addAgentAttachments,
     addAgentImageAttachment,

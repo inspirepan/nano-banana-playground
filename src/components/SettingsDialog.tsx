@@ -1,10 +1,10 @@
 import { useCallback, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 
+import { AgentSkillSettings } from './AgentSkillSettings'
 import { ApiKeysSettings, type KeyHook } from './ApiKeysDialog'
 import { Icon, type IconName } from './Icon'
-import { SkillIcon } from './SkillIcon'
-import type { AgentSkillSummary } from '../agent'
+import type { AgentSkill, AgentSkillCreateInput, AgentSkillSummary } from '../agent'
 import { SANS_FONTS, type SansFontId } from '../config/fonts'
 import { LANGUAGE_PREFERENCES, type LanguagePreference } from '../config/languages'
 import type { Provider } from '../config/models'
@@ -53,6 +53,8 @@ type Props = {
   onGenerationConcurrencyChange: (value: number) => void
   onAgentSkillEnabledChange: (name: string, enabled: boolean) => void
   onDeleteAgentSkill: (name: string) => void
+  onGetAgentSkillPackage: (name: string) => AgentSkill | null
+  onCreateAgentSkill: (input: AgentSkillCreateInput) => void
   onClose: () => void
 }
 
@@ -73,6 +75,8 @@ export function SettingsDialog({
   onGenerationConcurrencyChange,
   onAgentSkillEnabledChange,
   onDeleteAgentSkill,
+  onGetAgentSkillPackage,
+  onCreateAgentSkill,
   onClose,
 }: Props) {
   const { t, language: resolvedLanguage } = useI18n()
@@ -169,7 +173,7 @@ export function SettingsDialog({
         role="dialog"
         aria-modal="true"
         aria-label={t('settings.title')}
-        className="relative flex max-h-[min(760px,calc(100dvh-32px))] w-full max-w-2xl flex-col overflow-hidden rounded-[var(--radius-lg)] bg-(--color-surface) shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-float)]"
+        className="relative flex max-h-[min(760px,calc(100dvh-32px))] w-full max-w-3xl flex-col overflow-hidden rounded-[var(--radius-lg)] bg-(--color-surface) shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-float)]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-5 py-4 shadow-[inset_0_-1px_0_var(--ring-edge-soft)]">
@@ -237,7 +241,7 @@ export function SettingsDialog({
 
                 <div>
                   <div className="label mb-1.5 px-1">{t('settings.colorTheme.label')}</div>
-                  <div className="grid grid-cols-9 gap-2 sm:w-[316px]">
+                  <div className="flex gap-2">
                     {COLOR_THEMES.map((ct) => {
                       const swatch = ct.id === 'mono' ? (isDark ? '#f2f1ef' : '#1f1d1a') : ct.color
                       return (
@@ -247,7 +251,7 @@ export function SettingsDialog({
                           title={ct.name}
                           aria-label={ct.name}
                           onClick={() => onColorThemeChange(ct.id)}
-                          className="aspect-square rounded-[var(--radius-sm)] transition-all"
+                          className="h-7 w-7 rounded-[var(--radius-sm)] transition-all"
                           style={{
                             background: swatch,
                             boxShadow:
@@ -318,6 +322,8 @@ export function SettingsDialog({
                 skills={agentSkills}
                 onEnabledChange={onAgentSkillEnabledChange}
                 onDelete={onDeleteAgentSkill}
+                onGetPackage={onGetAgentSkillPackage}
+                onCreate={onCreateAgentSkill}
               />
             </SettingsSection>
 
@@ -447,111 +453,6 @@ function FontChoiceGroup<T extends string>({
           </button>
         ))}
       </div>
-    </div>
-  )
-}
-
-function AgentSkillSettings({
-  skills,
-  onEnabledChange,
-  onDelete,
-}: {
-  skills: AgentSkillSummary[]
-  onEnabledChange: (name: string, enabled: boolean) => void
-  onDelete: (name: string) => void
-}) {
-  const { t, language } = useI18n()
-  if (skills.length === 0) {
-    return <div className="text-sm text-(--color-text-3)">{t('settings.agentSkills.empty')}</div>
-  }
-
-  return (
-    <div className="overflow-hidden rounded-[var(--radius-md)] bg-(--color-surface) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
-      {skills.map((skill, index) => {
-        const description = skill.displayDescriptionKey
-          ? t(skill.displayDescriptionKey)
-          : skill.displayDescription[language] || skill.displayDescription['zh-CN'] || skill.displayDescription.en
-        const isLast = index === skills.length - 1
-        return (
-          <div
-            key={skill.name}
-            className={`px-3.5 py-3 ${isLast ? '' : 'shadow-[inset_0_-1px_0_var(--ring-edge-soft)]'}`}
-          >
-            <div className="flex min-w-0 items-start gap-3">
-              <span
-                aria-hidden
-                className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-[var(--radius-sm)] text-(--color-accent)"
-                style={{ background: 'var(--color-accent-wash-2)', boxShadow: 'inset 0 0 0 1px var(--ring-edge-soft)' }}
-              >
-                <SkillIcon name={skill.icon} size={14} strokeWidth={2} />
-              </span>
-              <div className="min-w-0 flex-1">
-                <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-                  {skill.displayNameKey ? (
-                    <>
-                      <span className="truncate text-sm font-medium text-(--color-text)">
-                        {t(skill.displayNameKey)}
-                      </span>
-                      <span className="mono truncate text-[11px] text-(--color-text-4)">{skill.name}</span>
-                    </>
-                  ) : (
-                    <span className="mono truncate text-sm font-medium text-(--color-text)">{skill.name}</span>
-                  )}
-                  <span className="rounded-[var(--radius-xs)] bg-(--color-surface-2) px-1.5 py-0.5 text-[11px] font-medium text-(--color-text-3) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
-                    {t(`settings.agentSkills.source.${skill.source}`)}
-                  </span>
-                  <span className="text-xs text-(--color-text-4)">
-                    {t('settings.agentSkills.fileCount', { count: skill.fileCount })}
-                  </span>
-                </div>
-                <div className="mt-1 text-sm leading-relaxed text-(--color-text-3)">{description}</div>
-              </div>
-              <div className="flex shrink-0 items-center gap-1.5">
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={skill.enabled}
-                  aria-label={skill.enabled ? t('settings.agentSkills.enabled') : t('settings.agentSkills.disabled')}
-                  onClick={() => onEnabledChange(skill.name, !skill.enabled)}
-                  className="group inline-flex items-center rounded-[var(--radius-sm)] p-1 transition-colors hover:bg-(--color-surface-2)"
-                >
-                  <span
-                    className={`relative h-4 w-7 rounded-full transition-colors ${
-                      skill.enabled ? 'bg-(--color-accent)' : 'bg-(--color-surface-2)'
-                    }`}
-                    style={{ boxShadow: 'inset 0 0 0 1px var(--ring-edge-soft)' }}
-                  >
-                    <span
-                      className={`absolute top-0.5 left-0.5 h-3 w-3 rounded-full bg-(--color-surface) transition-transform ${
-                        skill.enabled ? 'translate-x-3' : 'translate-x-0'
-                      }`}
-                      style={{ boxShadow: '0 0 0 1px var(--ring-edge-soft)' }}
-                    />
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onDelete(skill.name)}
-                  disabled={skill.source !== 'user'}
-                  className="icon-btn"
-                  title={
-                    skill.source === 'user'
-                      ? t('settings.agentSkills.delete')
-                      : t('settings.agentSkills.deleteUnavailable')
-                  }
-                  aria-label={
-                    skill.source === 'user'
-                      ? t('settings.agentSkills.delete')
-                      : t('settings.agentSkills.deleteUnavailable')
-                  }
-                >
-                  {skill.source === 'user' ? <Icon name="trash" size={12} /> : <Icon name="lock" size={12} />}
-                </button>
-              </div>
-            </div>
-          </div>
-        )
-      })}
     </div>
   )
 }

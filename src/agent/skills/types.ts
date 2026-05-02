@@ -55,7 +55,7 @@ export type AgentSkillCreateInput = {
   name: string
   agentDescription: string
   displayDescription: AgentSkillDisplayDescription
-  icon: AgentSkillIconName
+  icon: string
   files: AgentSkillFile[]
   enabled: boolean
 }

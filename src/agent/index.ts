@@ -42,7 +42,13 @@ export type {
   SkillExecutor,
   SkillToolArgs,
 } from './tools'
-export type { AgentSkill, AgentSkillFile, AgentSkillSource, AgentSkillSummary } from './skills/types'
+export type {
+  AgentSkill,
+  AgentSkillCreateInput,
+  AgentSkillFile,
+  AgentSkillSource,
+  AgentSkillSummary,
+} from './skills/types'
 export {
   AGENT_PROMPT_DEFAULT_LINE_LIMIT,
   formatPromptLines,

@@ -50,7 +50,7 @@ function getInitialTheme(): Theme {
 
 function getInitialColorTheme(): ColorThemeId {
   const stored = localStorage.getItem('nano-banana-color-theme')
-  const id = stored && (COLOR_THEME_IDS as string[]).includes(stored) ? (stored as ColorThemeId) : 'orange'
+  const id = stored && (COLOR_THEME_IDS as string[]).includes(stored) ? (stored as ColorThemeId) : 'default'
   if (id !== 'default') document.documentElement.classList.add(`theme-${id}`)
   return id
 }
@@ -636,6 +636,8 @@ function App() {
         onGenerationConcurrencyChange={pg.setGenerationConcurrency}
         onAgentSkillEnabledChange={pg.setAgentSkillEnabled}
         onDeleteAgentSkill={pg.deleteAgentSkill}
+        onGetAgentSkillPackage={pg.getAgentSkillPackage}
+        onCreateAgentSkill={pg.createUserAgentSkill}
         onClose={() => setSettingsOpen(false)}
       />
     </I18nProvider>

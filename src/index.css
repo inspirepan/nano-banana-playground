@@ -59,13 +59,13 @@
   --color-text-3: #848484;
   --color-text-4: #afafaf;
 
-  /* Accent (default: indigo). Themes below override via .theme-* classes. */
-  --color-accent: #2f6feb;
-  --color-accent-hover: #2862d4;
+  /* Accent (default: deep ink blue). Themes below override via .theme-* classes. */
+  --color-accent: #1e4fa8;
+  --color-accent-hover: #18408b;
   --color-accent-fg: #ffffff;
-  --color-accent-soft: #e8f0fc;
-  --color-accent-wash: color-mix(in srgb, #2f6feb 10%, transparent);
-  --color-accent-wash-2: color-mix(in srgb, #2f6feb 16%, transparent);
+  --color-accent-soft: #e6edf6;
+  --color-accent-wash: color-mix(in srgb, #1e4fa8 10%, transparent);
+  --color-accent-wash-2: color-mix(in srgb, #1e4fa8 16%, transparent);
   --color-accent-ring: color-mix(in srgb, var(--color-accent) 11%, transparent);
   --color-accent-ring-hover: color-mix(in srgb, var(--color-accent) 14%, transparent);
 
@@ -184,12 +184,12 @@
   --color-text-3: #8b9097;
   --color-text-4: #6a6f77;
 
-  --color-accent: #6ea5f5;
-  --color-accent-hover: #85b5f7;
+  --color-accent: #6a99e3;
+  --color-accent-hover: #80abea;
   --color-accent-fg: #0f0f10;
   --color-accent-soft: #15233a;
-  --color-accent-wash: color-mix(in srgb, #6ea5f5 18%, transparent);
-  --color-accent-wash-2: color-mix(in srgb, #6ea5f5 28%, transparent);
+  --color-accent-wash: color-mix(in srgb, #6a99e3 18%, transparent);
+  --color-accent-wash-2: color-mix(in srgb, #6a99e3 28%, transparent);
   --color-accent-ring: color-mix(in srgb, var(--color-accent) 20%, transparent);
   --color-accent-ring-hover: color-mix(in srgb, var(--color-accent) 24%, transparent);
 
@@ -215,84 +215,20 @@
    Accent themes — override ONLY the --color-accent family.
    Mapped to existing theme-* class names used by the app.
    ============================================================ */
-.theme-teal {
-  --color-accent: #0e8f87;
-  --color-accent-hover: #0a7f78;
-  --color-accent-soft: #e6f4f3;
-  --color-accent-wash: color-mix(in srgb, #0e8f87 10%, transparent);
-  --color-accent-wash-2: color-mix(in srgb, #0e8f87 16%, transparent);
-  --color-title: var(--color-accent);
-}
-.dark.theme-teal {
-  --color-accent: #5dc4bd;
-  --color-accent-hover: #74cdc7;
-  --color-accent-soft: #112826;
-  --color-accent-wash: color-mix(in srgb, #5dc4bd 18%, transparent);
-  --color-accent-wash-2: color-mix(in srgb, #5dc4bd 28%, transparent);
-}
-
 .theme-green {
-  --color-accent: #2f9e6a;
-  --color-accent-hover: #288c5d;
-  --color-accent-soft: #ecf7f1;
-  --color-accent-wash: color-mix(in srgb, #2f9e6a 10%, transparent);
-  --color-accent-wash-2: color-mix(in srgb, #2f9e6a 16%, transparent);
+  --color-accent: #1a7048;
+  --color-accent-hover: #145c3a;
+  --color-accent-soft: #e8f0eb;
+  --color-accent-wash: color-mix(in srgb, #1a7048 10%, transparent);
+  --color-accent-wash-2: color-mix(in srgb, #1a7048 16%, transparent);
   --color-title: var(--color-accent);
 }
 .dark.theme-green {
-  --color-accent: #52c08a;
-  --color-accent-hover: #6bcd9b;
-  --color-accent-soft: #132820;
-  --color-accent-wash: color-mix(in srgb, #52c08a 18%, transparent);
-  --color-accent-wash-2: color-mix(in srgb, #52c08a 28%, transparent);
-}
-
-.theme-yellow {
-  --color-accent: #b87503;
-  --color-accent-hover: #a26800;
-  --color-accent-soft: #f8f1e3;
-  --color-accent-wash: color-mix(in srgb, #b87503 10%, transparent);
-  --color-accent-wash-2: color-mix(in srgb, #b87503 16%, transparent);
-  --color-title: var(--color-accent);
-}
-.dark.theme-yellow {
-  --color-accent: #e0a340;
-  --color-accent-hover: #e7b45c;
-  --color-accent-soft: #2b2212;
-  --color-accent-wash: color-mix(in srgb, #e0a340 18%, transparent);
-  --color-accent-wash-2: color-mix(in srgb, #e0a340 28%, transparent);
-}
-
-.theme-pink {
-  --color-accent: #c4436d;
-  --color-accent-hover: #b03a60;
-  --color-accent-soft: #faedf2;
-  --color-accent-wash: color-mix(in srgb, #c4436d 10%, transparent);
-  --color-accent-wash-2: color-mix(in srgb, #c4436d 16%, transparent);
-  --color-title: var(--color-accent);
-}
-.dark.theme-pink {
-  --color-accent: #e08aa6;
-  --color-accent-hover: #e79bb5;
-  --color-accent-soft: #2c1922;
-  --color-accent-wash: color-mix(in srgb, #e08aa6 18%, transparent);
-  --color-accent-wash-2: color-mix(in srgb, #e08aa6 28%, transparent);
-}
-
-.theme-crimson {
-  --color-accent: #a8243a;
-  --color-accent-hover: #921f33;
-  --color-accent-soft: #f8e8eb;
-  --color-accent-wash: color-mix(in srgb, #a8243a 10%, transparent);
-  --color-accent-wash-2: color-mix(in srgb, #a8243a 16%, transparent);
-  --color-title: var(--color-accent);
-}
-.dark.theme-crimson {
-  --color-accent: #e58193;
-  --color-accent-hover: #ec94a3;
-  --color-accent-soft: #2c151a;
-  --color-accent-wash: color-mix(in srgb, #e58193 18%, transparent);
-  --color-accent-wash-2: color-mix(in srgb, #e58193 28%, transparent);
+  --color-accent: #4fb085;
+  --color-accent-hover: #66bd96;
+  --color-accent-soft: #122821;
+  --color-accent-wash: color-mix(in srgb, #4fb085 18%, transparent);
+  --color-accent-wash-2: color-mix(in srgb, #4fb085 28%, transparent);
 }
 
 .theme-orange {
@@ -309,22 +245,6 @@
   --color-accent-soft: #2b1d15;
   --color-accent-wash: color-mix(in srgb, #e69960 18%, transparent);
   --color-accent-wash-2: color-mix(in srgb, #e69960 28%, transparent);
-}
-
-.theme-purple {
-  --color-accent: #7c56d4;
-  --color-accent-hover: #6e48c8;
-  --color-accent-soft: #f2edfb;
-  --color-accent-wash: color-mix(in srgb, #7c56d4 10%, transparent);
-  --color-accent-wash-2: color-mix(in srgb, #7c56d4 16%, transparent);
-  --color-title: var(--color-accent);
-}
-.dark.theme-purple {
-  --color-accent: #a585f0;
-  --color-accent-hover: #b597f3;
-  --color-accent-soft: #221c33;
-  --color-accent-wash: color-mix(in srgb, #a585f0 18%, transparent);
-  --color-accent-wash-2: color-mix(in srgb, #a585f0 28%, transparent);
 }
 
 .theme-mono {
