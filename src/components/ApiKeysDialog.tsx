@@ -1,4 +1,4 @@
-import { useId, useRef, useState } from 'react'
+import { useId, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 
 import { BrandIcon, Icon } from './Icon'
@@ -123,6 +123,7 @@ function KeyRow({
   }
   const [justValidated, setJustValidated] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
+  const [advancedOpen, setAdvancedOpen] = useState(false)
   const prevStatusRef = useRef(status)
   const suppressValidFlashRef = useRef(false)
 
@@ -153,6 +154,7 @@ function KeyRow({
   const handleEdit = () => {
     setDraft('')
     setBaseUrlDraft(baseUrl)
+    setAdvancedOpen(false)
     setJustValidated(false)
     setIsEditing(true)
   }
@@ -160,6 +162,7 @@ function KeyRow({
   const handleCancelEdit = () => {
     setDraft('')
     setBaseUrlDraft(baseUrl)
+    setAdvancedOpen(false)
     setIsEditing(false)
     setJustValidated(false)
     suppressValidFlashRef.current = true
@@ -169,57 +172,82 @@ function KeyRow({
   const handleReset = () => {
     reset()
     setDraft('')
+    setBaseUrlDraft('')
+    setAdvancedOpen(false)
     setIsEditing(false)
     setJustValidated(false)
   }
 
   const masked = apiKey ? `${apiKey.slice(0, 6)}******${apiKey.slice(-4)}` : ''
   const baseUrlPlaceholder = DEFAULT_BASE_URL[provider]
+  const isValidating = status === 'validating'
+  const expanded = isEditing || isValidating
+  const hasExistingKey = apiKey.trim() !== ''
 
-  const rowClass = `${variant === 'embedded' ? 'px-3 py-3' : 'px-3.5 py-3.5'} ${
+  const rowClass = `${variant === 'embedded' ? 'px-3 py-2.5' : 'px-3.5 py-3'} ${
     last ? '' : 'shadow-[inset_0_-1px_0_var(--ring-edge-soft)]'
   }`
-  const header = (
-    <div className="flex min-w-0 items-baseline justify-between gap-3">
-      <label className="flex min-w-0 items-center gap-2 text-base font-medium text-(--color-text)">
-        <BrandIcon name={providerConfig.brandIcon} size={13} className="shrink-0 text-(--color-text-3)" />
-        <span className="min-w-0 truncate">{label}</span>
-      </label>
-      <span className="shrink-0 text-sm text-(--color-text-3)">{hint}</span>
-    </div>
-  )
 
-  if (status === 'valid' && !isEditing) {
+  if (!expanded) {
+    let summary: ReactNode
+    if (status === 'valid') {
+      summary = (
+        <div className="flex min-w-0 items-center gap-1.5 text-sm">
+          <Icon name="check_circle" size={12} className="shrink-0 text-(--color-success)" strokeWidth={1.9} />
+          <span className="mono min-w-0 truncate text-(--color-text-2)">{masked}</span>
+          {baseUrl ? (
+            <>
+              <span className="shrink-0 text-(--color-text-4)">·</span>
+              <span className="shrink-0 text-(--color-text-3)">{t('apiKeys.baseUrl.customSuffix')}</span>
+            </>
+          ) : null}
+        </div>
+      )
+    } else if (status === 'invalid') {
+      summary = (
+        <div className="flex min-w-0 items-center gap-1.5 text-sm text-(--color-danger)">
+          <span className="inline-block size-1.5 shrink-0 rounded-full bg-(--color-danger)" />
+          <span className="min-w-0 truncate">{t('apiKeys.status.invalidShort')}</span>
+        </div>
+      )
+    } else {
+      summary = <div className="truncate text-sm text-(--color-text-3)">{hint}</div>
+    }
+
+    const actionLabel =
+      status === 'valid'
+        ? t('apiKeys.action.edit')
+        : status === 'invalid'
+          ? t('apiKeys.action.reenter')
+          : t('apiKeys.action.add')
+    const actionAriaLabel =
+      status === 'valid'
+        ? t('apiKeys.action.editProvider', { label })
+        : status === 'invalid'
+          ? t('apiKeys.action.reenterProvider', { label })
+          : t('apiKeys.action.addProvider', { label })
+
     return (
       <div className={rowClass}>
-        {header}
-        <div className="mt-2 flex min-w-0 items-start justify-between gap-3">
-          <div className="min-w-0 space-y-1">
-            <div className="flex min-w-0 items-center gap-2">
-              <Icon name="check_circle" size={13} className="shrink-0 text-(--color-success)" strokeWidth={1.9} />
-              <span className="mono min-w-0 flex-1 truncate text-base text-(--color-text-2)">{masked}</span>
-            </div>
-            <div className="flex min-w-0 items-center gap-2 text-sm text-(--color-text-3)">
-              <span className="shrink-0 text-(--color-text-3)">{t('apiKeys.baseUrl.label')}</span>
-              <span className="mono min-w-0 flex-1 truncate">
-                {baseUrl || baseUrlPlaceholder}
-                {!baseUrl && <span className="ml-1 text-(--color-text-3)">{t('apiKeys.baseUrl.defaultSuffix')}</span>}
-              </span>
-            </div>
+        <div className="flex min-w-0 items-center gap-3 px-1">
+          <BrandIcon name={providerConfig.brandIcon} size={14} className="shrink-0 text-(--color-text-2)" />
+          <div className="min-w-0 flex-1">
+            <div className="text-base font-medium text-(--color-text)">{label}</div>
+            <div className="mt-0.5 min-w-0">{summary}</div>
           </div>
           {justValidated ? (
-            <span className="inline-flex shrink-0 items-center gap-1 text-base font-medium text-(--color-success)">
-              <Icon name="check_circle" size={13} strokeWidth={2.1} />
+            <span className="inline-flex shrink-0 items-center gap-1 text-sm font-medium text-(--color-success)">
+              <Icon name="check_circle" size={12} strokeWidth={2.1} />
               {t('apiKeys.status.validated')}
             </span>
           ) : (
             <button
               type="button"
               onClick={handleEdit}
-              className="action-soft -mr-1 shrink-0 text-base"
-              aria-label={t('apiKeys.action.editProvider', { label })}
+              className="action-soft -mr-1 shrink-0 text-sm"
+              aria-label={actionAriaLabel}
             >
-              {t('apiKeys.action.edit')}
+              {actionLabel}
             </button>
           )}
         </div>
@@ -227,17 +255,22 @@ function KeyRow({
     )
   }
 
-  // empty / invalid / validating / editing: full form with explicit save and clear actions.
-  const isValidating = status === 'validating'
-  const hasExistingKey = apiKey.trim() !== ''
   const hasDraftKey = draft.trim() !== ''
   const hasBaseUrlDraft = baseUrlDraft.trim() !== ''
   const hasBaseUrlChange = baseUrlDraft.trim() !== baseUrl
   const canSubmit = !isValidating && (hasDraftKey || (hasExistingKey && hasBaseUrlChange))
+  const advancedId = `${id}-advanced`
+
   return (
     <div className={rowClass}>
-      {header}
-      <div className="mt-3 space-y-2.5">
+      <div className="flex min-w-0 items-baseline justify-between gap-3 px-1">
+        <label className="flex min-w-0 items-center gap-2 text-base font-medium text-(--color-text)">
+          <BrandIcon name={providerConfig.brandIcon} size={14} className="shrink-0 text-(--color-text-2)" />
+          <span className="min-w-0 truncate">{label}</span>
+        </label>
+        <span className="shrink-0 text-sm text-(--color-text-3)">{hint}</span>
+      </div>
+      <div className="mt-3 space-y-2.5 px-1">
         {status === 'invalid' && (
           <div className="text-sm leading-relaxed text-(--color-danger) break-words">
             {error ?? t('apiKeys.error.invalidOrExpired')}
@@ -259,6 +292,7 @@ function KeyRow({
             placeholder={hasExistingKey ? t('apiKeys.apiKey.placeholder.replaceExisting') : placeholder}
             aria-label={t('apiKeys.apiKey.ariaLabel', { label })}
             disabled={isValidating}
+            autoFocus
             className="w-full rounded-[var(--radius-sm)] bg-(--color-surface) px-2.5 py-1.5 text-base
                        shadow-[inset_0_0_0_1px_var(--ring-edge)]
                        focus:shadow-[inset_0_0_0_1px_var(--color-accent),0_0_0_3px_var(--color-accent-wash)]
@@ -269,38 +303,57 @@ function KeyRow({
         </div>
 
         <div>
-          <div className="flex items-baseline justify-between mb-1">
-            <label className="text-base font-medium text-(--color-text-2)" htmlFor={baseUrlInputId}>
-              {t('apiKeys.baseUrl.label')}
-            </label>
-            <span className="text-sm text-(--color-text-3)">{t('apiKeys.baseUrl.hint')}</span>
-          </div>
-          <input
-            id={baseUrlInputId}
-            type="url"
-            value={baseUrlDraft}
-            onChange={(e) => setBaseUrlDraft(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') handleSubmit()
-            }}
-            placeholder={baseUrlPlaceholder}
-            aria-label={t('apiKeys.baseUrl.ariaLabel', { label })}
-            spellCheck={false}
-            autoComplete="off"
-            disabled={isValidating}
-            className="mono w-full rounded-[var(--radius-sm)] bg-(--color-surface) px-2.5 py-1.5 text-base
-                       shadow-[inset_0_0_0_1px_var(--ring-edge)]
-                       focus:shadow-[inset_0_0_0_1px_var(--color-accent),0_0_0_3px_var(--color-accent-wash)]
-                       transition-[box-shadow,background]
-                       placeholder:text-(--color-text-4)
-                       disabled:opacity-60 disabled:cursor-not-allowed"
-          />
-          {hasBaseUrlDraft && (
-            <div className="mt-1 flex items-start gap-1 text-sm leading-[1.5] text-(--color-text-3)">
-              <span className="shrink-0">{t('apiKeys.baseUrl.previewLabel')}</span>
-              <span className="mono min-w-0 flex-1 break-all text-(--color-text-3)">
-                {previewEndpoint(provider, baseUrlDraft)}
-              </span>
+          <button
+            type="button"
+            onClick={() => setAdvancedOpen((value) => !value)}
+            aria-expanded={advancedOpen}
+            aria-controls={advancedId}
+            className="flex h-7 w-full items-center justify-between rounded-[var(--radius-sm)] text-left text-sm font-medium text-(--color-text-3) transition-colors hover:bg-(--color-surface-2)"
+          >
+            <span className="inline-flex items-center gap-1.5">
+              {t('apiKeys.advanced.toggle')}
+              {!advancedOpen && hasBaseUrlDraft && (
+                <span className="inline-block size-1.5 rounded-full bg-(--color-accent)" aria-hidden="true" />
+              )}
+            </span>
+            <Icon name={advancedOpen ? 'chevron_down' : 'chevron_right'} size={12} />
+          </button>
+          {advancedOpen && (
+            <div id={advancedId} className="mt-1.5 space-y-1.5">
+              <div className="mb-1 flex items-baseline justify-between">
+                <label className="text-sm font-medium text-(--color-text-3)" htmlFor={baseUrlInputId}>
+                  {t('apiKeys.baseUrl.label')}
+                </label>
+                <span className="text-sm text-(--color-text-3)">{t('apiKeys.baseUrl.hint')}</span>
+              </div>
+              <input
+                id={baseUrlInputId}
+                type="url"
+                value={baseUrlDraft}
+                onChange={(e) => setBaseUrlDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleSubmit()
+                }}
+                placeholder={baseUrlPlaceholder}
+                aria-label={t('apiKeys.baseUrl.ariaLabel', { label })}
+                spellCheck={false}
+                autoComplete="off"
+                disabled={isValidating}
+                className="mono w-full rounded-[var(--radius-sm)] bg-(--color-surface) px-2.5 py-1.5 text-base
+                           shadow-[inset_0_0_0_1px_var(--ring-edge)]
+                           focus:shadow-[inset_0_0_0_1px_var(--color-accent),0_0_0_3px_var(--color-accent-wash)]
+                           transition-[box-shadow,background]
+                           placeholder:text-(--color-text-4)
+                           disabled:opacity-60 disabled:cursor-not-allowed"
+              />
+              {hasBaseUrlDraft && (
+                <div className="flex items-start gap-1 text-sm leading-[1.5] text-(--color-text-3)">
+                  <span className="shrink-0">{t('apiKeys.baseUrl.previewLabel')}</span>
+                  <span className="mono min-w-0 flex-1 break-all text-(--color-text-3)">
+                    {previewEndpoint(provider, baseUrlDraft)}
+                  </span>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -320,7 +373,7 @@ function KeyRow({
             )}
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2">
-            {hasExistingKey && !isValidating && (
+            {!isValidating && (
               <button
                 type="button"
                 onClick={handleCancelEdit}
@@ -336,23 +389,13 @@ function KeyRow({
               onClick={handleSubmit}
               aria-label={t('apiKeys.action.saveAndValidate', { label })}
               disabled={!canSubmit}
-              className="chip accent-active"
-              style={{
-                height: 30,
-                padding: '0 11px',
-                ...(isValidating && {
-                  background: 'var(--color-accent)',
-                  color: 'var(--color-accent-fg)',
-                  opacity: 0.9,
-                }),
-              }}
+              data-active="true"
+              className="chip text-sm"
+              style={{ height: 28, padding: '0 11px' }}
             >
               {isValidating ? (
                 <>
-                  <span
-                    className="spinner"
-                    style={{ borderColor: 'rgba(255,255,255,0.35)', borderTopColor: 'currentColor' }}
-                  />
+                  <span className="spinner" />
                   <span>{t('apiKeys.status.validating')}</span>
                 </>
               ) : (

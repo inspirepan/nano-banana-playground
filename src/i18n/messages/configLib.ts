@@ -117,6 +117,10 @@ export const configLibMessages: MessageDictionary = {
     'zh-CN': '无法读取这张图片，请先打开图片或稍后重试。',
     en: 'Could not read this image. Open it first or try again later.',
   },
+  'configLib.agent.modelImageUnsupported': {
+    'zh-CN': '{model} 不支持图片附件，请移除图片或切换到支持图片的模型。',
+    en: '{model} does not support image attachments. Remove images or switch to a model with image input.',
+  },
   'configLib.agent.callbackMissingKey': {
     'zh-CN': 'Agent 需要 {provider} API Key 才能接收任务完成回调。',
     en: 'The agent needs a {provider} API key to receive task completion callbacks.',

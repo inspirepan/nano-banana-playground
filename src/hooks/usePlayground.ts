@@ -165,12 +165,16 @@ function stackIdForGenerationRequest(params: {
 export function usePlayground() {
   const googleKeyHook = useApiKey('google')
   const openaiKeyHook = useApiKey('openai')
+  const anthropicKeyHook = useApiKey('anthropic')
+  const deepseekKeyHook = useApiKey('deepseek')
   const keyHooks: Record<Provider, ReturnType<typeof useApiKey>> = useMemo(
     () => ({
       google: googleKeyHook,
       openai: openaiKeyHook,
+      anthropic: anthropicKeyHook,
+      deepseek: deepseekKeyHook,
     }),
-    [googleKeyHook, openaiKeyHook],
+    [anthropicKeyHook, deepseekKeyHook, googleKeyHook, openaiKeyHook],
   )
   const [model, setModel] = useState<ModelConfig>(() => resolveModel(_initial.modelId))
   const apiKeyHook = keyHooks[model.provider]
@@ -208,7 +212,7 @@ export function usePlayground() {
   )
 
   const invalidateGenerationKey = useCallback(
-    (provider: ModelConfig['provider']) => {
+    (provider: Provider) => {
       keyHooks[provider].invalidate()
     },
     [keyHooks],
@@ -656,6 +660,8 @@ export function usePlayground() {
     keyStatuses: {
       google: googleKeyHook.status,
       openai: openaiKeyHook.status,
+      anthropic: anthropicKeyHook.status,
+      deepseek: deepseekKeyHook.status,
     } satisfies Record<Provider, ReturnType<typeof useApiKey>['status']>,
     model,
     resolution,

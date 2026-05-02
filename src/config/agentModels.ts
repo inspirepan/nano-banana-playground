@@ -27,6 +27,10 @@ function asAgentModel(model: Model<Api>): Pick<AgentModelConfig, 'model' | 'supp
   }
 }
 
+function providerLabel(provider: Provider): string {
+  return getProviderConfig(provider).shortLabel
+}
+
 const GPT_5_5_MODEL: Model<Api> = {
   id: 'gpt-5.5',
   name: 'GPT-5.5',
@@ -69,7 +73,7 @@ export const AGENT_MODEL_CONFIGS: AgentModelConfig[] = [
     label: 'Gemini 3 Flash',
     shortLabel: 'Gemini 3 Flash',
     provider: 'google',
-    providerLabel: getProviderConfig('google').shortLabel,
+    providerLabel: providerLabel('google'),
     ...asAgentModel(getModel('google', 'gemini-3-flash-preview') as Model<Api>),
   },
   {
@@ -77,7 +81,7 @@ export const AGENT_MODEL_CONFIGS: AgentModelConfig[] = [
     label: 'GPT 5.5',
     shortLabel: 'GPT 5.5',
     provider: 'openai',
-    providerLabel: getProviderConfig('openai').shortLabel,
+    providerLabel: providerLabel('openai'),
     ...asAgentModel(GPT_5_5_MODEL),
   },
   {
@@ -85,8 +89,48 @@ export const AGENT_MODEL_CONFIGS: AgentModelConfig[] = [
     label: 'GPT 5.4 mini',
     shortLabel: 'GPT 5.4 mini',
     provider: 'openai',
-    providerLabel: getProviderConfig('openai').shortLabel,
+    providerLabel: providerLabel('openai'),
     ...asAgentModel(GPT_5_4_MINI_MODEL),
+  },
+  {
+    id: 'claude-haiku-4-5-20251001',
+    label: 'Claude Haiku 4.5',
+    shortLabel: 'Haiku 4.5',
+    provider: 'anthropic',
+    providerLabel: providerLabel('anthropic'),
+    ...asAgentModel(getModel('anthropic', 'claude-haiku-4-5-20251001') as Model<Api>),
+  },
+  {
+    id: 'claude-sonnet-4-6',
+    label: 'Claude Sonnet 4.6',
+    shortLabel: 'Sonnet 4.6',
+    provider: 'anthropic',
+    providerLabel: providerLabel('anthropic'),
+    ...asAgentModel(getModel('anthropic', 'claude-sonnet-4-6') as Model<Api>),
+  },
+  {
+    id: 'claude-opus-4-7',
+    label: 'Claude Opus 4.7',
+    shortLabel: 'Opus 4.7',
+    provider: 'anthropic',
+    providerLabel: providerLabel('anthropic'),
+    ...asAgentModel(getModel('anthropic', 'claude-opus-4-7') as Model<Api>),
+  },
+  {
+    id: 'deepseek-v4-flash',
+    label: 'DeepSeek V4 Flash',
+    shortLabel: 'V4 Flash',
+    provider: 'deepseek',
+    providerLabel: providerLabel('deepseek'),
+    ...asAgentModel(getModel('deepseek', 'deepseek-v4-flash') as Model<Api>),
+  },
+  {
+    id: 'deepseek-v4-pro',
+    label: 'DeepSeek V4 Pro',
+    shortLabel: 'V4 Pro',
+    provider: 'deepseek',
+    providerLabel: providerLabel('deepseek'),
+    ...asAgentModel(getModel('deepseek', 'deepseek-v4-pro') as Model<Api>),
   },
 ]
 

@@ -14,6 +14,7 @@ const TRAILING_API_VERSION = /\/v\d+(?:alpha|beta)?\/*$/i
 // Normalize a user-entered base URL into the form our callers expect:
 //   - google: host root (versioned paths are appended per-endpoint)
 //   - openai: must end in `/v1` (all endpoints are relative to /v1)
+//   - anthropic / deepseek: host root (SDKs append their endpoint paths)
 // Whatever the user types (`xxx.com`, `xxx.com/v1`, `xxx.com/v1beta/`) is
 // reconciled to the canonical shape. Suffix `#` suppresses normalization so
 // non-standard gateways can be addressed explicitly.
@@ -25,7 +26,8 @@ export function resolveBaseUrl(provider: Provider, baseUrl?: string): string {
   const effective = (trimmed || getProviderConfig(provider).defaultBaseUrl).replace(/\/+$/, '')
   const stripped = effective.replace(TRAILING_API_VERSION, '')
   if (provider === 'google') return stripped
-  return `${stripped}/v1`
+  if (provider === 'openai') return `${stripped}/v1`
+  return stripped
 }
 
 // Representative endpoint shown in the dialog so the user can verify their
@@ -33,6 +35,8 @@ export function resolveBaseUrl(provider: Provider, baseUrl?: string): string {
 export function previewEndpoint(provider: Provider, baseUrl?: string): string {
   const base = resolveBaseUrl(provider, baseUrl)
   if (provider === 'google') return `${base}/v1beta/models/{model}:generateContent`
+  if (provider === 'anthropic') return `${base}/v1/messages`
+  if (provider === 'deepseek') return `${base}/models`
   return `${base}/images/generations`
 }
 
@@ -60,7 +64,23 @@ export async function validateApiKey(
       return { valid: true }
     }
 
-    // OpenAI: a cheap idempotent GET that only requires a valid key.
+    if (provider === 'anthropic') {
+      const res = await fetch(`${base}/v1/models`, {
+        method: 'GET',
+        headers: {
+          'anthropic-dangerous-direct-browser-access': 'true',
+          'anthropic-version': '2023-06-01',
+          'x-api-key': apiKey,
+        },
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => null)
+        return { valid: false, error: data?.error?.message || `HTTP ${res.status}` }
+      }
+      return { valid: true }
+    }
+
+    // OpenAI-compatible providers: a cheap idempotent GET that only requires a valid key.
     const res = await fetch(`${base}/models`, {
       method: 'GET',
       headers: { Authorization: `Bearer ${apiKey}` },

@@ -30,6 +30,10 @@ export const agentChatMessages: MessageDictionary = {
   'agentChat.composer.placeholder.streaming': { 'zh-CN': '追加消息…', en: 'Add a message…' },
   'agentChat.composer.placeholder.default': { 'zh-CN': '给 Agent 发送消息…', en: 'Message Agent…' },
   'agentChat.composer.attachImage': { 'zh-CN': '附加图片', en: 'Attach image' },
+  'agentChat.composer.attachImageUnsupported': {
+    'zh-CN': '{model} 不支持图片附件',
+    en: '{model} does not support image attachments',
+  },
   'agentChat.composer.optionsTitle': { 'zh-CN': '切换模型与思考等级', en: 'Switch model and thinking level' },
   'agentChat.composer.stop': { 'zh-CN': '停止', en: 'Stop' },
   'agentChat.composer.send': { 'zh-CN': '发送', en: 'Send' },

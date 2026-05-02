@@ -65,7 +65,11 @@ const AGENT_TASK_PROTOCOL_MESSAGES = {
 } as const
 
 type ApiKeyHook = ReturnType<typeof useApiKey>
-type ProviderCredentials = { apiKey: string; baseUrl?: string }
+type ProviderCredentials = { apiKey: string; baseUrl: string }
+
+function isAgentModelProvider(provider: string): provider is AgentModelProvider {
+  return provider === 'google' || provider === 'openai' || provider === 'anthropic' || provider === 'deepseek'
+}
 
 export type UseAgentPlaygroundParams = {
   initialSessionId: string | null
@@ -74,7 +78,7 @@ export type UseAgentPlaygroundParams = {
   history: PlaygroundImageMeta[]
   generationJobs: GenerationJob[]
   getProviderCredentials: (provider: ModelConfig['provider']) => ProviderCredentials
-  invalidateGenerationKey: (provider: ModelConfig['provider']) => void
+  invalidateGenerationKey: (provider: AgentModelProvider) => void
   enqueueGenerationJob: (
     request: GenerationJob['request'],
     batchCount: number,
@@ -381,9 +385,11 @@ export function useAgentPlayground({
   const referenceImagesRef = useRef<PlaygroundImage[]>([])
   const historyRef = useRef<PlaygroundImageMeta[]>([])
   const generationJobsRefForAgent = useRef<GenerationJob[]>([])
-  const agentCredentialsRef = useRef({
+  const agentCredentialsRef = useRef<Record<AgentModelProvider, ProviderCredentials>>({
     google: { apiKey: keyHooks.google.apiKey, baseUrl: keyHooks.google.baseUrl },
     openai: { apiKey: keyHooks.openai.apiKey, baseUrl: keyHooks.openai.baseUrl },
+    anthropic: { apiKey: keyHooks.anthropic.apiKey, baseUrl: keyHooks.anthropic.baseUrl },
+    deepseek: { apiKey: keyHooks.deepseek.apiKey, baseUrl: keyHooks.deepseek.baseUrl },
   })
   const agentToolHandlersRef = useRef<{
     genImage: (
@@ -414,8 +420,19 @@ export function useAgentPlayground({
     agentCredentialsRef.current = {
       google: { apiKey: keyHooks.google.apiKey, baseUrl: keyHooks.google.baseUrl },
       openai: { apiKey: keyHooks.openai.apiKey, baseUrl: keyHooks.openai.baseUrl },
+      anthropic: { apiKey: keyHooks.anthropic.apiKey, baseUrl: keyHooks.anthropic.baseUrl },
+      deepseek: { apiKey: keyHooks.deepseek.apiKey, baseUrl: keyHooks.deepseek.baseUrl },
     }
-  }, [keyHooks.google.apiKey, keyHooks.google.baseUrl, keyHooks.openai.apiKey, keyHooks.openai.baseUrl])
+  }, [
+    keyHooks.anthropic.apiKey,
+    keyHooks.anthropic.baseUrl,
+    keyHooks.deepseek.apiKey,
+    keyHooks.deepseek.baseUrl,
+    keyHooks.google.apiKey,
+    keyHooks.google.baseUrl,
+    keyHooks.openai.apiKey,
+    keyHooks.openai.baseUrl,
+  ])
 
   const upsertAgentSessionSummary = useCallback((record: AgentSessionSummary) => {
     setAgentSessions((prev) =>
@@ -640,7 +657,7 @@ export function useAgentPlayground({
       const agent = new Agent({
         transport: new ProviderTransport({
           getApiKey: (provider) => {
-            if (provider === 'google' || provider === 'openai') {
+            if (isAgentModelProvider(provider)) {
               return agentCredentialsRef.current[provider].apiKey || undefined
             }
             return undefined
@@ -868,6 +885,13 @@ export function useAgentPlayground({
     (files: File[]) => {
       const runtime = getCurrentRuntime()
       if (!runtime) return
+      const config = resolveAgentModelConfig(runtime.modelId)
+      if (!config.supportsImages) {
+        const message = translate('configLib.agent.modelImageUnsupported', { model: config.label })
+        runtime.attachmentError = message
+        setAgentAttachmentError(message)
+        return
+      }
       const remaining = AGENT_MAX_ATTACHMENTS - runtime.attachments.length
       if (remaining <= 0) {
         const message = translate('configLib.agent.maxAttachments', { count: AGENT_MAX_ATTACHMENTS })
@@ -922,6 +946,13 @@ export function useAgentPlayground({
     (image: PlaygroundImage | PlaygroundImageMeta) => {
       const runtime = getCurrentRuntime()
       if (!runtime || runtime.attachments.some((item) => item.id === image.id)) return
+      const config = resolveAgentModelConfig(runtime.modelId)
+      if (!config.supportsImages) {
+        const message = translate('configLib.agent.modelImageUnsupported', { model: config.label })
+        runtime.attachmentError = message
+        setAgentAttachmentError(message)
+        return
+      }
       const remaining = AGENT_MAX_ATTACHMENTS - runtime.attachments.length
       if (remaining <= 0) {
         const message = translate('configLib.agent.maxAttachments', { count: AGENT_MAX_ATTACHMENTS })
@@ -1634,10 +1665,18 @@ export function useAgentPlayground({
   }, [runAskUserQuestionTool, runGenImageTool, runReadImageTool])
 
   useExternalSync(() => {
+    void keyHooks.anthropic.apiKey
+    void keyHooks.deepseek.apiKey
     void keyHooks.google.apiKey
     void keyHooks.openai.apiKey
     for (const runtime of agentRuntimesRef.current.values()) maybeDispatchAgentImageCallbacks(runtime)
-  }, [keyHooks.google.apiKey, keyHooks.openai.apiKey, maybeDispatchAgentImageCallbacks])
+  }, [
+    keyHooks.anthropic.apiKey,
+    keyHooks.deepseek.apiKey,
+    keyHooks.google.apiKey,
+    keyHooks.openai.apiKey,
+    maybeDispatchAgentImageCallbacks,
+  ])
 
   useExternalSync(() => {
     for (const runtime of agentRuntimesRef.current.values()) {
@@ -1705,6 +1744,10 @@ export function useAgentPlayground({
         runtime,
         translate('configLib.agent.modelMissingKey', { model: config.label, provider: config.providerLabel }),
       )
+      return
+    }
+    if (!config.supportsImages && runtime.attachments.length > 0) {
+      setRuntimeError(runtime, translate('configLib.agent.modelImageUnsupported', { model: config.label }))
       return
     }
 

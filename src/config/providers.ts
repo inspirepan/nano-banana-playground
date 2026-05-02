@@ -1,6 +1,6 @@
-export type Provider = 'google' | 'openai'
+export type Provider = 'google' | 'openai' | 'anthropic' | 'deepseek'
 
-export type ProviderBrandIconName = 'gemini' | 'openai'
+export type ProviderBrandIconName = 'gemini' | 'openai' | 'claude' | 'deepseek'
 
 export type ProviderConfig = {
   id: Provider
@@ -39,6 +39,30 @@ const PROVIDER_CONFIG_BY_ID: Record<Provider, ProviderConfig> = {
     keyLabelKey: 'apiKeys.provider.openai.label',
     keyPlaceholderKey: 'apiKeys.provider.openai.placeholder',
     keyHintKey: 'apiKeys.provider.openai.hint',
+  },
+  anthropic: {
+    id: 'anthropic',
+    label: 'Anthropic',
+    shortLabel: 'Anthropic',
+    brandIcon: 'claude',
+    defaultBaseUrl: 'https://api.anthropic.com',
+    apiKeyStorageKey: 'nbp-api-key:anthropic',
+    baseUrlStorageKey: 'nbp-base-url:anthropic',
+    keyLabelKey: 'apiKeys.provider.anthropic.label',
+    keyPlaceholderKey: 'apiKeys.provider.anthropic.placeholder',
+    keyHintKey: 'apiKeys.provider.anthropic.hint',
+  },
+  deepseek: {
+    id: 'deepseek',
+    label: 'DeepSeek',
+    shortLabel: 'DeepSeek',
+    brandIcon: 'deepseek',
+    defaultBaseUrl: 'https://api.deepseek.com',
+    apiKeyStorageKey: 'nbp-api-key:deepseek',
+    baseUrlStorageKey: 'nbp-base-url:deepseek',
+    keyLabelKey: 'apiKeys.provider.deepseek.label',
+    keyPlaceholderKey: 'apiKeys.provider.deepseek.placeholder',
+    keyHintKey: 'apiKeys.provider.deepseek.hint',
   },
 }
 

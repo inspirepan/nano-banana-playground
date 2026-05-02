@@ -36,6 +36,9 @@ export function ComposerActions({
   onStop: () => void
 }) {
   const { t } = useI18n()
+  const attachImageTitle = model.supportsImages
+    ? t('agentChat.composer.attachImage')
+    : t('agentChat.composer.attachImageUnsupported', { model: model.label })
 
   return (
     <div className="flex items-center gap-1.5 px-2 pt-0.5 pb-2">
@@ -46,13 +49,15 @@ export function ComposerActions({
         multiple
         className="hidden"
         onChange={onFileChange}
+        disabled={!model.supportsImages}
       />
       <button
         type="button"
         onClick={() => fileInputRef.current?.click()}
+        disabled={!model.supportsImages}
         className="icon-btn"
-        title={t('agentChat.composer.attachImage')}
-        aria-label={t('agentChat.composer.attachImage')}
+        title={attachImageTitle}
+        aria-label={attachImageTitle}
       >
         <Icon name="plus" size={17} />
       </button>
