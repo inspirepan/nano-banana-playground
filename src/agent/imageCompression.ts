@@ -10,11 +10,11 @@ export type AgentImagePayload = AgentImageInput & {
   size: number
 }
 
-const AGENT_IMAGE_MAX_DIMENSION = 3072
-const AGENT_IMAGE_MAX_BYTES = 4_500_000
-const AGENT_IMAGE_MAX_BASE64_BYTES = 5 * 1024 * 1024
+const AGENT_IMAGE_MAX_DIMENSION = 2560
+const AGENT_IMAGE_MAX_BYTES = 3_000_000
+const AGENT_IMAGE_MAX_BASE64_BYTES = Math.floor(3.5 * 1024 * 1024)
 const AGENT_IMAGE_TARGET_BYTES = Math.min(AGENT_IMAGE_MAX_BYTES, Math.floor(AGENT_IMAGE_MAX_BASE64_BYTES / 4) * 3)
-const JPEG_QUALITIES = [0.85, 0.7, 0.55, 0.4, 0.25] as const
+const JPEG_QUALITIES = [0.8, 0.65, 0.5, 0.35, 0.25] as const
 
 const COMPRESSIBLE_MIME_TYPES = new Set(['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/avif'])
 

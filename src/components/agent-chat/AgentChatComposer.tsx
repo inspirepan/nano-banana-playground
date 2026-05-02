@@ -1,4 +1,6 @@
 import {
+  forwardRef,
+  useImperativeHandle,
   useLayoutEffect,
   useRef,
   type ChangeEvent,
@@ -63,42 +65,57 @@ type AgentChatComposerProps = {
   scrollToBottom: () => void
 }
 
-export function AgentChatComposer({
-  error,
-  attachmentError,
-  draft,
-  attachments,
-  pendingQuestionCount,
-  renderItemCount,
-  nearBottom,
-  openMenu,
-  setOpenMenu,
-  autoApproveImageTasks,
-  model,
-  models,
-  thinkingLevel,
-  keyStatuses,
-  canSend,
-  showStop,
-  isStreaming,
-  onDraftChange,
-  onAddAttachments,
-  onRemoveAttachment,
-  onClearAttachmentError,
-  onToggleAutoApproveImageTasks,
-  onModelChange,
-  onThinkingLevelChange,
-  onOpenApiKeys,
-  onSend,
-  onStop,
-  scrollToBottom,
-}: AgentChatComposerProps) {
+export type AgentChatComposerHandle = {
+  focus: () => void
+}
+
+export const AgentChatComposer = forwardRef<AgentChatComposerHandle, AgentChatComposerProps>(function AgentChatComposer(
+  {
+    error,
+    attachmentError,
+    draft,
+    attachments,
+    pendingQuestionCount,
+    renderItemCount,
+    nearBottom,
+    openMenu,
+    setOpenMenu,
+    autoApproveImageTasks,
+    model,
+    models,
+    thinkingLevel,
+    keyStatuses,
+    canSend,
+    showStop,
+    isStreaming,
+    onDraftChange,
+    onAddAttachments,
+    onRemoveAttachment,
+    onClearAttachmentError,
+    onToggleAutoApproveImageTasks,
+    onModelChange,
+    onThinkingLevelChange,
+    onOpenApiKeys,
+    onSend,
+    onStop,
+    scrollToBottom,
+  }: AgentChatComposerProps,
+  ref,
+) {
   const { t } = useI18n()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const composerRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const effectiveThinkingLevel = model.supportsThinking ? thinkingLevel : 'off'
   const effectiveThinkingLabel = t(`agentChat.thinking.${effectiveThinkingLevel}`)
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      focus: () => textareaRef.current?.focus({ preventScroll: true }),
+    }),
+    [],
+  )
 
   useLayoutEffect(() => {
     if (textareaRef.current) autoResizeComposer(textareaRef.current)
@@ -213,4 +230,4 @@ export function AgentChatComposer({
       </div>
     </>
   )
-}
+})

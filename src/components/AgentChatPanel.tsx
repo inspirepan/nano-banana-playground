@@ -25,7 +25,7 @@ import type { GenerationJob } from '../hooks/usePlayground'
 import { useI18n } from '../i18n'
 import { buildImageStacks, type StackItem } from '../lib/stacks'
 import type { PlaygroundImage, PlaygroundImageMeta } from '../lib/types'
-import { AgentChatComposer } from './agent-chat/AgentChatComposer'
+import { AgentChatComposer, type AgentChatComposerHandle } from './agent-chat/AgentChatComposer'
 import { AgentChatHeader } from './agent-chat/AgentChatHeader'
 import { AgentSessionSidebar } from './agent-chat/AgentSessionSidebar'
 import { isDrawingSkill } from './agent-chat/drawingSkills'
@@ -135,6 +135,7 @@ export function AgentChatPanel({
   const { t } = useI18n()
   const scrollRef = useRef<HTMLDivElement>(null)
   const controlsRef = useRef<HTMLDivElement>(null)
+  const composerRef = useRef<AgentChatComposerHandle>(null)
   const [openMenu, setOpenMenu] = useState<AgentChatMenu>(null)
   const [nearBottom, setNearBottom] = useState(true)
   const [optimisticThinking, setOptimisticThinking] = useState(false)
@@ -274,6 +275,12 @@ export function AgentChatPanel({
     scrollToBottomAfterSend()
   }, [onSend, scrollToBottomAfterSend])
 
+  const handleNewSession = useCallback(() => {
+    onNewSession()
+    setOpenMenu(null)
+    composerRef.current?.focus()
+  }, [onNewSession])
+
   useWindowEvent(
     'pointerdown',
     (event) => {
@@ -332,7 +339,7 @@ export function AgentChatPanel({
           sessions={sessions}
           currentSessionId={currentSessionId}
           sessionsLoading={sessionsLoading}
-          onNewSession={onNewSession}
+          onNewSession={handleNewSession}
           onSwitchSession={onSwitchSession}
           onDeleteSession={onDeleteSession}
           onSwitchToGenerate={onSwitchToGenerate}
@@ -349,7 +356,7 @@ export function AgentChatPanel({
             compactSessionControls={showSessionSidebar}
             openMenu={openMenu}
             setOpenMenu={setOpenMenu}
-            onNewSession={onNewSession}
+            onNewSession={handleNewSession}
             onSwitchSession={onSwitchSession}
             onDeleteSession={onDeleteSession}
           />
@@ -456,6 +463,7 @@ export function AgentChatPanel({
 
         <div className={contentRightPaddingClass}>
           <AgentChatComposer
+            ref={composerRef}
             error={composerError}
             attachmentError={attachmentError}
             draft={draft}
