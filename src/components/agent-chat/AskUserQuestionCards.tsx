@@ -210,7 +210,7 @@ export function AskUserQuestionResultCard({
 
   return (
     <div
-      className="rounded-[var(--radius-md)] px-3.5 py-3 shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]"
+      className="w-fit max-w-full rounded-[var(--radius-md)] px-3.5 py-3 shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]"
       style={{ background: 'var(--color-accent-soft)' }}
     >
       {!hasFormatted ? (
