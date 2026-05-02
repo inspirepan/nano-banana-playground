@@ -21,6 +21,10 @@ export function setActiveLanguage(language: Language) {
   activeLanguage = language
 }
 
+export function getActiveLanguage(): Language {
+  return activeLanguage
+}
+
 export function translate(key: string, params?: TranslationParams): string {
   return createTranslator(activeLanguage)(key, params)
 }
