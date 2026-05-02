@@ -43,7 +43,6 @@ import {
 import {
   AGENT_TASK_PROTOCOL_MESSAGES,
   type AgentPendingQuestion,
-  type AgentQuestionResolver,
   type AgentSessionRuntime,
   type ProviderCredentials,
 } from './runtimeTypes'
@@ -64,7 +63,6 @@ import {
   createAgentTools,
   formatAskUserQuestionResult,
   type AgentToolResult,
-  type AskUserQuestionAnswer,
   type AskUserQuestionToolArgs,
   type CreateSkillToolArgs,
   type GenImageToolArgs,
@@ -75,6 +73,7 @@ import {
 } from './tools'
 import { useAgentAttachments } from './useAgentAttachments'
 import { useAgentImageRegistry } from './useAgentImageRegistry'
+import { useAgentQuestions } from './useAgentQuestions'
 import { useAgentSkills } from './useAgentSkills'
 import {
   AGENT_MODEL_CONFIGS,
@@ -1019,6 +1018,17 @@ export function useAgentPlayground({
     maybeDispatchAgentImageCallbacksRef.current = maybeDispatchAgentImageCallbacks
   }, [maybeDispatchAgentImageCallbacks])
 
+  const { runAskUserQuestionTool, submitAgentQuestionAnswers, cancelAgentQuestion, cancelRuntimeQuestion } =
+    useAgentQuestions({
+      agentRuntimesRef,
+      getCurrentRuntime,
+      setRuntimePendingQuestions,
+      sendAgentSystemEvent,
+      setRuntimeError,
+      syncRuntimeSnapshot,
+      upsertAgentSessionSummary,
+    })
+
   const startAgentImageTask = useCallback(
     async (runtime: AgentSessionRuntime, task: AgentImageTask): Promise<{ ok: boolean; message: string }> => {
       setRuntimeImageTasks(runtime, (prev) =>
@@ -1345,155 +1355,6 @@ export function useAgentPlayground({
     [resolveAgentImageById],
   )
 
-  const runAskUserQuestionTool = useCallback(
-    (
-      sessionId: string,
-      toolCallId: string,
-      args: AskUserQuestionToolArgs,
-      signal?: AbortSignal,
-    ): Promise<AgentToolResult> => {
-      const runtime = agentRuntimesRef.current.get(sessionId)
-      if (!runtime) return Promise.reject(new Error('Agent session is no longer available.'))
-      const questions = args.questions
-      if (questions.length === 0) {
-        return Promise.resolve(
-          toolTextResult('<tool_use_error>AskUserQuestion requires at least one question.</tool_use_error>', {
-            status: 'error',
-          }),
-        )
-      }
-
-      const pending: AgentPendingQuestion = {
-        toolCallId,
-        agentTurnId: runtime.currentAgentTurnId ?? toolCallId,
-        questions,
-        createdAt: Date.now(),
-      }
-      setRuntimePendingQuestions(runtime, (prev) => [...prev.filter((item) => item.toolCallId !== toolCallId), pending])
-
-      return new Promise<AgentToolResult>((resolve, reject) => {
-        const cleanup = () => {
-          runtime.questionResolvers.delete(toolCallId)
-          setRuntimePendingQuestions(runtime, (prev) => prev.filter((item) => item.toolCallId !== toolCallId))
-        }
-
-        const resolver: AgentQuestionResolver = {
-          questions,
-          resolve: (result) => {
-            cleanup()
-            resolve(result)
-          },
-          reject: (reason) => {
-            cleanup()
-            reject(reason instanceof Error ? reason : new Error(String(reason)))
-          },
-        }
-        runtime.questionResolvers.set(toolCallId, resolver)
-
-        if (signal) {
-          if (signal.aborted) {
-            resolver.reject(new Error('AskUserQuestion was aborted.'))
-            return
-          }
-          signal.addEventListener(
-            'abort',
-            () => {
-              const stillPending = runtime.questionResolvers.get(toolCallId)
-              if (!stillPending) return
-              stillPending.resolve(
-                toolTextResult(formatAskUserQuestionResult(questions, [], { cancelled: true }), {
-                  status: 'cancelled',
-                  reason: 'aborted',
-                }),
-              )
-            },
-            { once: true },
-          )
-        }
-      })
-    },
-    [setRuntimePendingQuestions],
-  )
-
-  const finishRestoredAgentQuestion = useCallback(
-    (
-      runtime: AgentSessionRuntime,
-      toolCallId: string,
-      answers: AskUserQuestionAnswer[],
-      options: { cancelled: boolean },
-    ) => {
-      const pending = runtime.pendingQuestions.find((item) => item.toolCallId === toolCallId)
-      if (!pending) return
-      const text = formatAskUserQuestionResult(pending.questions, answers, { cancelled: options.cancelled })
-      const toolResultMessage = {
-        role: 'toolResult',
-        toolCallId,
-        toolName: 'AskUserQuestion',
-        content: [{ type: 'text', text }],
-        isError: false,
-        timestamp: Date.now(),
-      } as unknown as AgentMessage
-
-      setRuntimePendingQuestions(runtime, (prev) => prev.filter((item) => item.toolCallId !== toolCallId))
-
-      runtime.agent.appendMessage(toolResultMessage)
-      syncRuntimeSnapshot(runtime)
-
-      runtime.persistQueue = runtime.persistQueue
-        .then(async () => {
-          const result = await appendAgentSessionMessage({
-            sessionId: runtime.sessionId,
-            parentId: runtime.leafEntryId,
-            message: toolResultMessage,
-          })
-          runtime.leafEntryId = result.entryId
-          upsertAgentSessionSummary(result.record)
-        })
-        .catch((error: unknown) => {
-          setRuntimeError(runtime, error instanceof Error ? error.message : String(error))
-        })
-
-      if (options.cancelled) return
-      const eventText = `<system>\ntool AskUserQuestion call ${toolCallId} has been answered.\n</system>`
-      void sendAgentSystemEvent(runtime, eventText)
-    },
-    [sendAgentSystemEvent, setRuntimeError, setRuntimePendingQuestions, syncRuntimeSnapshot, upsertAgentSessionSummary],
-  )
-
-  const submitAgentQuestionAnswers = useCallback(
-    (toolCallId: string, answers: AskUserQuestionAnswer[]) => {
-      const runtime = getCurrentRuntime()
-      if (!runtime) return
-      const resolver = runtime.questionResolvers.get(toolCallId)
-      if (resolver) {
-        const text = formatAskUserQuestionResult(resolver.questions, answers)
-        resolver.resolve(toolTextResult(text, { status: 'submitted', answers }))
-        return
-      }
-      finishRestoredAgentQuestion(runtime, toolCallId, answers, { cancelled: false })
-    },
-    [finishRestoredAgentQuestion, getCurrentRuntime],
-  )
-
-  const cancelAgentQuestion = useCallback(
-    (toolCallId: string) => {
-      const runtime = getCurrentRuntime()
-      if (!runtime) return
-      const resolver = runtime.questionResolvers.get(toolCallId)
-      if (resolver) {
-        resolver.resolve(
-          toolTextResult(formatAskUserQuestionResult(resolver.questions, [], { cancelled: true }), {
-            status: 'cancelled',
-            reason: 'user_dismissed',
-          }),
-        )
-        return
-      }
-      finishRestoredAgentQuestion(runtime, toolCallId, [], { cancelled: true })
-    },
-    [finishRestoredAgentQuestion, getCurrentRuntime],
-  )
-
   useExternalSync(() => {
     agentToolHandlersRef.current = {
       genImage: runGenImageTool,
@@ -1664,20 +1525,6 @@ export function useAgentPlayground({
     syncRuntimeSnapshot(runtime)
     scheduleRuntimeSidecarPersist(runtime)
 
-    const cancelRuntimeQuestion = (question: AgentPendingQuestion) => {
-      const resolver = runtime.questionResolvers.get(question.toolCallId)
-      if (resolver) {
-        resolver.resolve(
-          toolTextResult(formatAskUserQuestionResult(resolver.questions, [], { cancelled: true }), {
-            status: 'cancelled',
-            reason: 'user_dismissed',
-          }),
-        )
-        return
-      }
-      finishRestoredAgentQuestion(runtime, question.toolCallId, [], { cancelled: true })
-    }
-
     void (async () => {
       try {
         const images = await Promise.all(attachmentsToSend.map(compressedAttachmentToAgentAttachment))
@@ -1695,11 +1542,11 @@ export function useAgentPlayground({
             attachments: images.length > 0 ? images : undefined,
             timestamp: Date.now(),
           })
-          for (const question of pendingQuestionsToCancel) cancelRuntimeQuestion(question)
+          for (const question of pendingQuestionsToCancel) cancelRuntimeQuestion(runtime, question)
           return
         }
 
-        for (const question of pendingQuestionsToCancel) cancelRuntimeQuestion(question)
+        for (const question of pendingQuestionsToCancel) cancelRuntimeQuestion(runtime, question)
         activateAgentResponseMetadata(runtime, config.id)
         const promptPromise = runtime.agent.prompt(promptText, images)
         runtime.promptPreparing = false
@@ -1725,7 +1572,7 @@ export function useAgentPlayground({
     })()
   }, [
     applyAgentRuntimeConfig,
-    finishRestoredAgentQuestion,
+    cancelRuntimeQuestion,
     getCurrentRuntime,
     invalidateGenerationKey,
     isCurrentRuntime,
