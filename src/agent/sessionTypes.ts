@@ -86,6 +86,7 @@ export type HydratedAgentSession = {
 }
 
 export type CreateAgentSessionParams = {
+  id?: string
   modelId: string
   thinkingLevel: AgentThinkingLevel
   autoApproveImageTasks: boolean

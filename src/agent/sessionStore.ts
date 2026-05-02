@@ -203,10 +203,10 @@ function emptySidecar(): HydratedAgentSessionSidecar {
   }
 }
 
-export async function createAgentSession(params: CreateAgentSessionParams): Promise<AgentSessionRecord> {
+export function createAgentSessionRecord(params: CreateAgentSessionParams): AgentSessionRecord {
   const now = Date.now()
-  const record: AgentSessionRecord = {
-    id: crypto.randomUUID(),
+  return {
+    id: params.id ?? crypto.randomUUID(),
     title: defaultSessionTitle(),
     createdAt: now,
     updatedAt: now,
@@ -218,6 +218,10 @@ export async function createAgentSession(params: CreateAgentSessionParams): Prom
     firstUserText: '',
     previewText: '',
   }
+}
+
+export async function createAgentSession(params: CreateAgentSessionParams): Promise<AgentSessionRecord> {
+  const record = createAgentSessionRecord(params)
   const db = await openNanoBananaDB()
   const tx = db.transaction(AGENT_SESSION_STORE, 'readwrite')
   tx.objectStore(AGENT_SESSION_STORE).put(record)
@@ -230,13 +234,14 @@ export async function listAgentSessions(): Promise<AgentSessionRecord[]> {
   const tx = db.transaction(AGENT_SESSION_STORE, 'readonly')
   const store = tx.objectStore(AGENT_SESSION_STORE)
   const records = await requestToPromise<AgentSessionRecord[]>(store.getAll())
-  return records.sort((a, b) => b.updatedAt - a.updatedAt)
+  return records.filter((record) => record.messageCount > 0).sort((a, b) => b.updatedAt - a.updatedAt)
 }
 
 export async function appendAgentSessionMessage(params: {
   sessionId: string
   parentId: string | null
   message: AgentMessage
+  createSession?: CreateAgentSessionParams
 }): Promise<{ entryId: string; record: AgentSessionRecord }> {
   const entryId = crypto.randomUUID()
   const now = Date.now()
@@ -251,7 +256,9 @@ export async function appendAgentSessionMessage(params: {
     let nextRecord: AgentSessionRecord | null = null
 
     getReq.onsuccess = () => {
-      const record = getReq.result
+      const record =
+        getReq.result ??
+        (params.createSession ? createAgentSessionRecord({ ...params.createSession, id: params.sessionId }) : undefined)
       if (!record) {
         tx.abort()
         reject(new Error('Agent session does not exist.'))

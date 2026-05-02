@@ -174,4 +174,5 @@ npm test
 ## 精选知识源
 
 - Gemini 图像生成 API：`docs/refs/nano-banana-api-guide.md`
+- Agent Gemini Base URL 调试备忘：`docs/agent-gemini-base-url.md`
 - 提示词指南：`docs/refs/ultimate-prompting-guide-for-nano-banana.md`

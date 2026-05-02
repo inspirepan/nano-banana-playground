@@ -34,26 +34,29 @@ export function useApiKey(provider: Provider) {
   const [status, setStatus] = useState<ApiKeyStatus>(stored ? 'valid' : 'empty')
   const [error, setError] = useState<string | null>(null)
 
-  const submit = useCallback(async (key: string, nextBaseUrl?: string) => {
-    setStatus('validating')
-    setError(null)
-    const effectiveBaseUrl = nextBaseUrl !== undefined ? nextBaseUrl.trim() : baseUrl
-    const result = await validateApiKey(provider, key, effectiveBaseUrl)
-    if (result.valid) {
-      setApiKeyRaw(key)
-      localStorage.setItem(getProviderConfig(provider).apiKeyStorageKey, key)
-      if (nextBaseUrl !== undefined) {
-        setBaseUrlRaw(effectiveBaseUrl)
-        const config = getProviderConfig(provider)
-        if (effectiveBaseUrl) localStorage.setItem(config.baseUrlStorageKey, effectiveBaseUrl)
-        else localStorage.removeItem(config.baseUrlStorageKey)
+  const submit = useCallback(
+    async (key: string, nextBaseUrl?: string) => {
+      setStatus('validating')
+      setError(null)
+      const effectiveBaseUrl = nextBaseUrl !== undefined ? nextBaseUrl.trim() : baseUrl
+      const result = await validateApiKey(provider, key, effectiveBaseUrl)
+      if (result.valid) {
+        setApiKeyRaw(key)
+        localStorage.setItem(getProviderConfig(provider).apiKeyStorageKey, key)
+        if (nextBaseUrl !== undefined) {
+          setBaseUrlRaw(effectiveBaseUrl)
+          const config = getProviderConfig(provider)
+          if (effectiveBaseUrl) localStorage.setItem(config.baseUrlStorageKey, effectiveBaseUrl)
+          else localStorage.removeItem(config.baseUrlStorageKey)
+        }
+        setStatus('valid')
+      } else {
+        setError(result.error ?? translate('configLib.useApiKey.validationFailed'))
+        setStatus('invalid')
       }
-      setStatus('valid')
-    } else {
-      setError(result.error ?? translate('configLib.useApiKey.validationFailed'))
-      setStatus('invalid')
-    }
-  }, [baseUrl, provider])
+    },
+    [baseUrl, provider],
+  )
 
   const reset = useCallback(() => {
     setApiKeyRaw('')
@@ -68,13 +71,16 @@ export function useApiKey(provider: Provider) {
     setStatus('valid')
   }, [apiKey])
 
-  const setBaseUrl = useCallback((next: string) => {
-    const trimmed = next.trim()
-    setBaseUrlRaw(trimmed)
-    const config = getProviderConfig(provider)
-    if (trimmed) localStorage.setItem(config.baseUrlStorageKey, trimmed)
-    else localStorage.removeItem(config.baseUrlStorageKey)
-  }, [provider])
+  const setBaseUrl = useCallback(
+    (next: string) => {
+      const trimmed = next.trim()
+      setBaseUrlRaw(trimmed)
+      const config = getProviderConfig(provider)
+      if (trimmed) localStorage.setItem(config.baseUrlStorageKey, trimmed)
+      else localStorage.removeItem(config.baseUrlStorageKey)
+    },
+    [provider],
+  )
 
   const invalidate = useCallback(() => {
     setStatus('invalid')

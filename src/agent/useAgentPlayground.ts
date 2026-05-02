@@ -1,3 +1,4 @@
+import { setDefaultBaseUrls } from '@google/genai'
 import { Agent, ProviderTransport, type AppMessage as AgentMessage } from '@mariozechner/pi-agent'
 import { useCallback, useRef, useState } from 'react'
 
@@ -23,7 +24,7 @@ import {
 } from './imageTasks'
 import {
   appendAgentSessionMessage,
-  createAgentSession,
+  createAgentSessionRecord,
   deleteAgentSession,
   listAgentSessions,
   loadAgentSession,
@@ -62,9 +63,21 @@ import { getActiveLanguage, translate } from '../i18n'
 import { readFileAsImageData } from '../lib/fileToImage'
 import { loadImageBlob, loadImageMetas } from '../lib/history'
 import type { PlaygroundImage, PlaygroundImageMeta } from '../lib/types'
-import { isKeyError } from '../lib/validateKey'
+import { isKeyError, resolveBaseUrl } from '../lib/validateKey'
 
 const AGENT_MAX_ATTACHMENTS = 8
+const TRAILING_GEMINI_API_VERSION = /\/v\d+(?:alpha|beta)?\/*$/i
+
+function syncGeminiAgentBaseUrl(provider: AgentModelProvider, baseUrl: string): void {
+  if (provider !== 'google') return
+  const trimmed = baseUrl.trim()
+  if (!trimmed) {
+    setDefaultBaseUrls({ geminiUrl: undefined })
+    return
+  }
+  const sdkBaseUrl = resolveBaseUrl('google', trimmed).replace(TRAILING_GEMINI_API_VERSION, '')
+  setDefaultBaseUrls({ geminiUrl: sdkBaseUrl })
+}
 
 function buildLanguageDirective(language: Language): string {
   const instruction =
@@ -276,6 +289,7 @@ type AgentQuestionResolver = {
 
 type AgentSessionRuntime = {
   sessionId: string
+  persisted: boolean
   agent: Agent
   ready: boolean
   modelId: string
@@ -463,7 +477,9 @@ export function useAgentPlayground({
 
   const upsertAgentSessionSummary = useCallback((record: AgentSessionSummary) => {
     setAgentSessions((prev) =>
-      [record, ...prev.filter((item) => item.id !== record.id)].sort((a, b) => b.updatedAt - a.updatedAt),
+      record.messageCount > 0
+        ? [record, ...prev.filter((item) => item.id !== record.id)].sort((a, b) => b.updatedAt - a.updatedAt)
+        : prev.filter((item) => item.id !== record.id),
     )
   }, [])
 
@@ -478,7 +494,7 @@ export function useAgentPlayground({
 
   const projectRuntimeToUi = useCallback((runtime: AgentSessionRuntime) => {
     currentAgentSessionIdRef.current = runtime.sessionId
-    setCurrentAgentSessionId(runtime.sessionId)
+    setCurrentAgentSessionId(runtime.persisted ? runtime.sessionId : null)
     setAgentModelId(runtime.modelId)
     setAgentThinkingLevelState(runtime.thinkingLevel)
     setAutoApproveAgentImageTasksState(runtime.autoApproveImageTasks)
@@ -505,7 +521,7 @@ export function useAgentPlayground({
   const maybeDispatchAgentImageCallbacksRef = useRef<(runtime: AgentSessionRuntime) => void>(() => {})
 
   const persistRuntimeSidecar = useCallback((runtime: AgentSessionRuntime) => {
-    if (!runtime.ready) return Promise.resolve()
+    if (!runtime.ready || !runtime.persisted) return Promise.resolve()
     const payload = {
       sessionId: runtime.sessionId,
       draft: runtime.draft,
@@ -613,6 +629,7 @@ export function useAgentPlayground({
       const config = resolveAgentModelConfig(modelId)
       runtime.agent.state.model = agentModelWithBaseUrl(config, getAgentBaseUrl(config.provider))
       runtime.agent.state.thinkingLevel = config.supportsThinking ? runtime.thinkingLevel : 'off'
+      if (!runtime.persisted) return
       void updateAgentSessionConfig(runtime.sessionId, { modelId }).then((record) => {
         if (record) upsertAgentSessionSummary(record)
       })
@@ -628,6 +645,7 @@ export function useAgentPlayground({
       setAgentThinkingLevelState(level)
       const config = resolveAgentModelConfig(runtime.modelId)
       runtime.agent.state.thinkingLevel = config.supportsThinking ? level : 'off'
+      if (!runtime.persisted) return
       void updateAgentSessionConfig(runtime.sessionId, { thinkingLevel: level }).then((record) => {
         if (record) upsertAgentSessionSummary(record)
       })
@@ -653,8 +671,10 @@ export function useAgentPlayground({
   const applyAgentRuntimeConfig = useCallback(
     (runtime: AgentSessionRuntime) => {
       const config = resolveAgentModelConfig(runtime.modelId)
+      const baseUrl = getAgentBaseUrl(config.provider)
+      syncGeminiAgentBaseUrl(config.provider, baseUrl)
       runtime.agent.state.systemPrompt = AGENT_SYSTEM_PROMPT
-      runtime.agent.state.model = agentModelWithBaseUrl(config, getAgentBaseUrl(config.provider))
+      runtime.agent.state.model = agentModelWithBaseUrl(config, baseUrl)
       runtime.agent.state.thinkingLevel = config.supportsThinking ? runtime.thinkingLevel : 'off'
       runtime.agent.state.tools = createAgentTools({
         imageModels: MODEL_CONFIGS,
@@ -817,6 +837,7 @@ export function useAgentPlayground({
   const createRuntime = useCallback(
     (params: {
       sessionId: string
+      persisted: boolean
       modelId: string
       thinkingLevel: AgentThinkingLevel
       autoApproveImageTasks: boolean
@@ -860,6 +881,7 @@ export function useAgentPlayground({
 
       const runtime: AgentSessionRuntime = {
         sessionId: params.sessionId,
+        persisted: params.persisted,
         agent,
         ready: false,
         modelId: params.modelId,
@@ -898,9 +920,24 @@ export function useAgentPlayground({
                 sessionId: runtime.sessionId,
                 parentId: runtime.leafEntryId,
                 message: persistedMessage,
+                ...(runtime.persisted
+                  ? {}
+                  : {
+                      createSession: {
+                        id: runtime.sessionId,
+                        modelId: runtime.modelId,
+                        thinkingLevel: runtime.thinkingLevel,
+                        autoApproveImageTasks: runtime.autoApproveImageTasks,
+                      },
+                    }),
               })
               runtime.leafEntryId = result.entryId
               runtime.messageEntryIds.set(persistedMessage, result.entryId)
+              if (!runtime.persisted) {
+                runtime.persisted = true
+                if (isCurrentRuntime(runtime)) setCurrentAgentSessionId(runtime.sessionId)
+                void persistRuntimeSidecar(runtime)
+              }
               upsertAgentSessionSummary(result.record)
             })
             .catch((error: unknown) => {
@@ -918,7 +955,15 @@ export function useAgentPlayground({
       runtime.ready = true
       return runtime
     },
-    [applyAgentRuntimeConfig, getAgentBaseUrl, setRuntimeError, syncRuntimeSnapshot, upsertAgentSessionSummary],
+    [
+      applyAgentRuntimeConfig,
+      getAgentBaseUrl,
+      isCurrentRuntime,
+      persistRuntimeSidecar,
+      setRuntimeError,
+      syncRuntimeSnapshot,
+      upsertAgentSessionSummary,
+    ],
   )
 
   const loadAgentSessionIntoRuntime = useCallback(
@@ -972,6 +1017,7 @@ export function useAgentPlayground({
 
       const runtime = createRuntime({
         sessionId: session.record.id,
+        persisted: true,
         modelId: session.record.modelId,
         thinkingLevel: session.record.thinkingLevel,
         autoApproveImageTasks: session.record.autoApproveImageTasks,
@@ -998,43 +1044,59 @@ export function useAgentPlayground({
   )
 
   const createNewAgentSession = useCallback(async () => {
-    await flushRuntime(getCurrentRuntime())
-    const record = await createAgentSession({
+    const previousRuntime = getCurrentRuntime()
+    await flushRuntime(previousRuntime)
+    if (
+      previousRuntime &&
+      !previousRuntime.persisted &&
+      !previousRuntime.isStreaming &&
+      previousRuntime.messages.length === 0
+    ) {
+      agentRuntimesRef.current.delete(previousRuntime.sessionId)
+    }
+    const record = createAgentSessionRecord({
       modelId: agentModel.id,
       thinkingLevel: agentThinkingLevel,
       autoApproveImageTasks: autoApproveAgentImageTasks,
     })
-    upsertAgentSessionSummary(record)
-    loadAgentSessionIntoRuntime({
-      record,
+    const runtime = createRuntime({
+      sessionId: record.id,
+      persisted: false,
+      modelId: record.modelId,
+      thinkingLevel: record.thinkingLevel,
+      autoApproveImageTasks: record.autoApproveImageTasks,
+      leafEntryId: null,
       messages: [],
       messageEntryIds: [],
-      sidecar: {
-        draft: '',
-        attachments: [],
-        imageTasks: [],
-        imageRegistry: [],
-        turnCallbacks: [],
-        currentAgentTurnId: null,
-        pendingQuestions: [],
-        lastCompaction: undefined,
-      },
+      draft: '',
+      attachments: [],
+      imageTasks: [],
+      imageRegistry: [],
+      turnCallbacks: [],
+      currentAgentTurnId: null,
+      pendingQuestions: [],
+      lastCompaction: undefined,
     })
+    projectRuntimeToUi(runtime)
   }, [
     agentModel.id,
     agentThinkingLevel,
     autoApproveAgentImageTasks,
+    createRuntime,
     flushRuntime,
     getCurrentRuntime,
-    loadAgentSessionIntoRuntime,
-    upsertAgentSessionSummary,
+    projectRuntimeToUi,
   ])
 
   const switchAgentSession = useCallback(
     (sessionId: string) => {
       if (sessionId === currentAgentSessionIdRef.current) return
       void (async () => {
-        await flushRuntime(getCurrentRuntime())
+        const previousRuntime = getCurrentRuntime()
+        await flushRuntime(previousRuntime)
+        if (previousRuntime && !previousRuntime.persisted && previousRuntime.messages.length === 0) {
+          agentRuntimesRef.current.delete(previousRuntime.sessionId)
+        }
         const runtime = agentRuntimesRef.current.get(sessionId)
         if (runtime) {
           projectRuntimeToUi(runtime)
@@ -2127,6 +2189,7 @@ export function useAgentPlayground({
       runtime.autoApproveImageTasks = value
       setAutoApproveAgentImageTasksState(value)
       scheduleRuntimeSidecarPersist(runtime)
+      if (!runtime.persisted) return
       void updateAgentSessionConfig(runtime.sessionId, { autoApproveImageTasks: value }).then((record) => {
         if (record) upsertAgentSessionSummary(record)
       })
