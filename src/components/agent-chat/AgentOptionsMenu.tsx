@@ -3,10 +3,12 @@ import type { Dispatch, SetStateAction } from 'react'
 import { AgentModelIcon } from './AgentModelIcon'
 import type { AgentChatMenu } from './types'
 import { AGENT_THINKING_OPTIONS, type AgentModelConfig, type AgentThinkingLevel } from '../../config/agentModels'
-import type { Provider } from '../../config/models'
+import { MODEL_CONFIGS, type Provider } from '../../config/models'
+import { getProviderConfig } from '../../config/providers'
 import type { ApiKeyStatus } from '../../hooks/useApiKey'
+import { usePreferredImageModel } from '../../hooks/usePreferredImageModel'
 import { useI18n } from '../../i18n'
-import { Icon } from '../Icon'
+import { BrandIcon, Icon } from '../Icon'
 
 export function AgentOptionsMenu({
   openMenu,
@@ -34,6 +36,7 @@ export function AgentOptionsMenu({
   onOpenApiKeys: () => void
 }) {
   const { t } = useI18n()
+  const { preferredImageModelId, setPreferredImageModelId } = usePreferredImageModel()
 
   if (openMenu !== 'agentOptions') return null
 
@@ -42,32 +45,46 @@ export function AgentOptionsMenu({
       <button
         type="button"
         onClick={() => onToggleAutoApproveImageTasks(!autoApproveImageTasks)}
+        role="switch"
+        aria-checked={autoApproveImageTasks}
         className="flex h-7 w-full items-center gap-2 rounded-[var(--radius-sm)] px-2 text-left text-sm font-medium text-(--color-text-2) transition-colors hover:bg-(--color-surface-2)"
       >
         <span className="min-w-0 flex-1 truncate">{t('agentChat.options.autoApproveImageTasks')}</span>
-        {autoApproveImageTasks && <Icon name="check" size={13} />}
+        <ToggleSwitch checked={autoApproveImageTasks} />
       </button>
       <div className="my-1 h-px bg-(--ring-edge-soft)" />
-      <div className="px-2 py-1 text-sm font-medium text-(--color-text-3)">{t('agentChat.options.thinking')}</div>
-      {AGENT_THINKING_OPTIONS.map((item) => {
-        const disabled = !model.supportsThinking && item.value !== 'off'
-        return (
-          <button
-            key={item.value}
-            type="button"
-            onClick={() => {
-              if (disabled) return
-              onThinkingLevelChange(item.value)
-              setOpenMenu(null)
-            }}
-            disabled={disabled}
-            className="flex h-7 w-full items-center gap-2 rounded-[var(--radius-sm)] px-2 text-left text-sm font-medium text-(--color-text-2) transition-colors hover:bg-(--color-surface-2) disabled:cursor-not-allowed disabled:opacity-45"
-          >
-            <span className="min-w-0 flex-1 truncate">{t(`agentChat.thinking.${item.value}`)}</span>
-            {effectiveThinkingLevel === item.value && <Icon name="check" size={13} />}
-          </button>
-        )
-      })}
+      <div className="flex items-baseline gap-2 px-2 py-1">
+        <span className="text-sm font-medium text-(--color-text-3)">{t('agentChat.options.preferredImageModel')}</span>
+        <span className="text-xs text-(--color-text-3) opacity-65">
+          {t('agentChat.options.preferredImageModel.hint')}
+        </span>
+      </div>
+      <button
+        type="button"
+        onClick={() => setPreferredImageModelId(null)}
+        className="flex h-7 w-full items-center gap-2 rounded-[var(--radius-sm)] px-2 text-left text-sm font-medium text-(--color-text-2) transition-colors hover:bg-(--color-surface-2)"
+      >
+        <span className="min-w-0 flex-1 truncate">{t('agentChat.options.preferredImageModel.none')}</span>
+        {preferredImageModelId === null && <Icon name="check" size={13} />}
+      </button>
+      {MODEL_CONFIGS.map((item) => (
+        <button
+          key={item.id}
+          type="button"
+          onClick={() => setPreferredImageModelId(item.id)}
+          className="flex h-7 w-full items-center gap-2 rounded-[var(--radius-sm)] px-2 text-left text-sm font-medium text-(--color-text-2) transition-colors hover:bg-(--color-surface-2)"
+        >
+          <BrandIcon name={getProviderConfig(item.provider).brandIcon} size={12} />
+          <span className="min-w-0 flex-1 truncate">{item.name}</span>
+          {preferredImageModelId === item.id && <Icon name="check" size={13} />}
+        </button>
+      ))}
+      <div className="my-1 h-px bg-(--ring-edge-soft)" />
+      <ThinkingSlider
+        value={effectiveThinkingLevel}
+        disabled={!model.supportsThinking}
+        onChange={onThinkingLevelChange}
+      />
       <div className="my-1 h-px bg-(--ring-edge-soft)" />
       {models.map((item) => {
         const needsKey = keyStatuses[item.provider] === 'empty'
@@ -102,6 +119,68 @@ export function AgentOptionsMenu({
           </button>
         )
       })}
+    </div>
+  )
+}
+
+function ToggleSwitch({ checked }: { checked: boolean }) {
+  return (
+    <span
+      aria-hidden="true"
+      className="relative h-[14px] w-[24px] shrink-0 rounded-full transition-colors"
+      style={{
+        background: checked ? 'var(--color-accent)' : 'var(--color-surface-3)',
+        boxShadow: checked
+          ? 'inset 0 0 0 1px color-mix(in srgb, var(--color-accent) 55%, #000 10%)'
+          : 'inset 0 0 0 1px var(--ring-edge)',
+      }}
+    >
+      <span
+        className="absolute top-[1px] left-[1px] h-[12px] w-[12px] rounded-full bg-(--color-surface) transition-transform"
+        style={{
+          transform: checked ? 'translateX(10px)' : 'translateX(0)',
+          boxShadow: '0 1px 2px rgba(0,0,0,0.18), inset 0 0 0 0.5px var(--ring-edge-soft)',
+        }}
+      />
+    </span>
+  )
+}
+
+function ThinkingSlider({
+  value,
+  disabled,
+  onChange,
+}: {
+  value: AgentThinkingLevel
+  disabled: boolean
+  onChange: (level: AgentThinkingLevel) => void
+}) {
+  const { t } = useI18n()
+  const levels = AGENT_THINKING_OPTIONS.map((item) => item.value)
+  const activeIndex = Math.max(0, levels.indexOf(value))
+
+  return (
+    <div className="px-2 py-1.5" style={{ opacity: disabled ? 0.5 : 1, pointerEvents: disabled ? 'none' : undefined }}>
+      <div className="mb-1.5 px-1 text-sm font-medium text-(--color-text-3)">{t('agentChat.options.thinking')}</div>
+      <div
+        className="segmented"
+        style={{
+          ['--seg-count' as string]: levels.length,
+          ['--seg-index' as string]: activeIndex,
+        }}
+      >
+        {levels.map((level) => (
+          <button
+            key={level}
+            type="button"
+            onClick={() => onChange(level)}
+            data-active={value === level}
+            title={t(`agentChat.thinking.${level}`)}
+          >
+            <span className="text-xs">{t(`agentChat.thinking.${level}`)}</span>
+          </button>
+        ))}
+      </div>
     </div>
   )
 }

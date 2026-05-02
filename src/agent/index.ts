@@ -9,6 +9,7 @@ export {
   attachmentToAgentAttachment,
   imageDataUrl,
   isLlmAgentMessage,
+  stripSystemDirectives,
 } from './agentChat'
 export type { AgentChatAttachment, AgentMessageImage, AgentMessageToolCall, AgentMessageToolResult } from './agentChat'
 export { AGENT_SYSTEM_PROMPT } from './systemPrompt'

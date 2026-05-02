@@ -11,6 +11,7 @@ import {
   agentMessageText,
   agentMessageThinking,
   imageDataUrl,
+  stripSystemDirectives,
 } from '../../agent'
 import { useI18n } from '../../i18n'
 
@@ -23,7 +24,8 @@ export function MessageBubble({ message, isStreaming }: { message: AgentMessage;
   const error = agentMessageError(message)
   const isUser = role === 'user'
   const trimmedText = text.trim()
-  const isSystemEvent = isUser && trimmedText.startsWith('<system>') && trimmedText.endsWith('</system>')
+  const visibleText = stripSystemDirectives(text)
+  const isSystemEvent = isUser && visibleText === '' && trimmedText.startsWith('<system>')
 
   if (isSystemEvent) {
     return (
@@ -58,13 +60,13 @@ export function MessageBubble({ message, isStreaming }: { message: AgentMessage;
           {thinking && !isUser && <AgentThinking thinking={thinking} />}
           {isUser ? (
             <TruncatedText
-              text={text}
+              text={visibleText}
               className="whitespace-pre-wrap text-base leading-[1.58]"
               fadeColor="var(--color-accent-soft)"
               maxHeight={220}
             />
           ) : (
-            <MarkdownText text={error ? `${text}\n\n${error}` : text} isStreaming={isStreaming} />
+            <MarkdownText text={error ? `${visibleText}\n\n${error}` : visibleText} isStreaming={isStreaming} />
           )}
         </div>
       </div>

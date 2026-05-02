@@ -1,6 +1,6 @@
 import type { AppMessage as AgentMessage } from '@mariozechner/pi-agent'
 
-import type { AgentChatAttachment } from './agentChat'
+import { stripSystemDirectives, type AgentChatAttachment } from './agentChat'
 import type { AgentImageRegistryEntry } from './imageTasks'
 import type {
   AgentSessionMessageEntry,
@@ -266,11 +266,12 @@ export async function appendAgentSessionMessage(params: {
         message,
       }
       const isUser = isRecord(params.message) && params.message.role === 'user'
+      const cleanText = stripSystemDirectives(text)
       nextRecord = {
         ...record,
-        title: !record.firstUserText && isUser ? titleFromText(text) : record.title,
-        firstUserText: record.firstUserText || (isUser ? text : ''),
-        previewText: text || record.previewText,
+        title: !record.firstUserText && isUser && cleanText ? titleFromText(cleanText) : record.title,
+        firstUserText: record.firstUserText || (isUser ? cleanText : ''),
+        previewText: cleanText || record.previewText,
         updatedAt: now,
         leafEntryId: entryId,
         messageCount: record.messageCount + 1,

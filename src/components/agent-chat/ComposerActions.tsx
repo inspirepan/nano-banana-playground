@@ -3,8 +3,11 @@ import type { ChangeEvent, Dispatch, RefObject, SetStateAction } from 'react'
 import { AgentModelIcon } from './AgentModelIcon'
 import type { AgentChatMenu } from './types'
 import type { AgentModelConfig, AgentThinkingLevel } from '../../config/agentModels'
+import { MODEL_CONFIGS } from '../../config/models'
+import { getProviderConfig } from '../../config/providers'
+import { usePreferredImageModel } from '../../hooks/usePreferredImageModel'
 import { useI18n } from '../../i18n'
-import { Icon } from '../Icon'
+import { BrandIcon, Icon } from '../Icon'
 
 export function ComposerActions({
   fileInputRef,
@@ -36,6 +39,10 @@ export function ComposerActions({
   onStop: () => void
 }) {
   const { t } = useI18n()
+  const { preferredImageModelId } = usePreferredImageModel()
+  const preferredImageModel = preferredImageModelId
+    ? (MODEL_CONFIGS.find((item) => item.id === preferredImageModelId) ?? null)
+    : null
   const attachImageTitle = model.supportsImages
     ? t('agentChat.composer.attachImage')
     : t('agentChat.composer.attachImageUnsupported', { model: model.label })
@@ -62,6 +69,18 @@ export function ComposerActions({
         <Icon name="plus" size={17} />
       </button>
       <div className="flex-1" />
+      {preferredImageModel && (
+        <button
+          type="button"
+          onClick={() => setOpenMenu((prev) => (prev === 'agentOptions' ? null : 'agentOptions'))}
+          className="chip ghost max-w-[140px] px-2 text-sm"
+          style={{ height: 28 }}
+          title={t('agentChat.composer.preferredImageModelTitle', { model: preferredImageModel.name })}
+        >
+          <BrandIcon name={getProviderConfig(preferredImageModel.provider).brandIcon} size={11} />
+          <span className="min-w-0 truncate text-(--color-text-2)">{preferredImageModel.name}</span>
+        </button>
+      )}
       <button
         type="button"
         onClick={() => setOpenMenu((prev) => (prev === 'agentOptions' ? null : 'agentOptions'))}

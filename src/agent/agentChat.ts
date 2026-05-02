@@ -53,6 +53,13 @@ export function agentMessageRole(message: AgentMessage): AgentMessageRole {
   return message.role
 }
 
+export function stripSystemDirectives(text: string): string {
+  return text
+    .replace(/<system>[\s\S]*?<\/system>/g, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}
+
 export function agentMessageText(message: AgentMessage): string {
   if (!isLlmAgentMessage(message)) return ''
   const { content } = message

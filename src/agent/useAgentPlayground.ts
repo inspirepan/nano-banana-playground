@@ -52,6 +52,7 @@ import {
 } from '../config/agentModels'
 import type { Language } from '../config/languages'
 import { MODEL_CONFIGS, defaultOptionsFor, type ModelConfig } from '../config/models'
+import { getPreferredImageModelId } from '../config/preferredImageModel'
 import { getProviderConfig } from '../config/providers'
 import { useExternalSync, useMountEffect } from '../hooks/effects'
 import type { useApiKey } from '../hooks/useApiKey'
@@ -69,6 +70,14 @@ function buildLanguageDirective(language: Language): string {
   const instruction =
     language === 'en' ? 'Reply to the user in English.' : 'Reply to the user in Simplified Chinese (简体中文).'
   return `<system>${instruction}</system>`
+}
+
+function buildPreferredImageModelDirective(): string | null {
+  const id = getPreferredImageModelId()
+  if (!id) return null
+  const model = MODEL_CONFIGS.find((item) => item.id === id)
+  if (!model) return null
+  return `<system>The user prefers "${model.name}" (model id: ${model.id}) for image generation. Use this model for GenImage tool calls unless the user explicitly asks for a different one.</system>`
 }
 const AGENT_TASK_PROTOCOL_MESSAGES = {
   autoStarted: 'The task has been submitted and automatically started generation.',
@@ -1978,10 +1987,16 @@ export function useAgentPlayground({
     applyAgentRuntimeConfig(runtime)
     const attachmentsToSend = runtime.attachments
     const attachmentIds = attachmentsToSend.map((attachment) => attachment.id)
-    const attachmentNote = attachmentIds.length > 0 ? `\n\n可用附件图片 ID：${attachmentIds.join('、')}` : ''
+    const attachmentNote =
+      attachmentIds.length > 0 ? `\n\n<system>Available attachment image IDs: ${attachmentIds.join(', ')}</system>` : ''
     const isFirstUserMessage = runtime.agent.state.messages.length === 0
-    const languagePrefix = isFirstUserMessage ? `${buildLanguageDirective(getActiveLanguage())}\n\n` : ''
-    const promptText = `${languagePrefix}${trimmed || '请分析这些图片。'}${attachmentNote}`
+    let systemPrefix = ''
+    if (isFirstUserMessage) {
+      systemPrefix += `${buildLanguageDirective(getActiveLanguage())}\n\n`
+      const preferredModelDirective = buildPreferredImageModelDirective()
+      if (preferredModelDirective) systemPrefix += `${preferredModelDirective}\n\n`
+    }
+    const promptText = `${systemPrefix}${trimmed || '请分析这些图片。'}${attachmentNote}`
     for (const attachment of attachmentsToSend) {
       if (runtime.imageRegistry.get(attachment.id)?.status === 'ready') continue
       runtime.imageRegistry.set(attachment.id, {

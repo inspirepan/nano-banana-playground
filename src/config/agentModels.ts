@@ -71,7 +71,7 @@ export const AGENT_MODEL_CONFIGS: AgentModelConfig[] = [
   {
     id: 'gemini-3-flash-preview',
     label: 'Gemini 3 Flash',
-    shortLabel: 'Gemini 3 Flash',
+    shortLabel: '3 Flash',
     provider: 'google',
     providerLabel: providerLabel('google'),
     ...asAgentModel(getModel('google', 'gemini-3-flash-preview') as Model<Api>),
@@ -79,7 +79,7 @@ export const AGENT_MODEL_CONFIGS: AgentModelConfig[] = [
   {
     id: 'gpt-5.5',
     label: 'GPT 5.5',
-    shortLabel: 'GPT 5.5',
+    shortLabel: '5.5',
     provider: 'openai',
     providerLabel: providerLabel('openai'),
     ...asAgentModel(GPT_5_5_MODEL),
@@ -87,7 +87,7 @@ export const AGENT_MODEL_CONFIGS: AgentModelConfig[] = [
   {
     id: 'gpt-5.4-mini',
     label: 'GPT 5.4 mini',
-    shortLabel: 'GPT 5.4 mini',
+    shortLabel: '5.4 mini',
     provider: 'openai',
     providerLabel: providerLabel('openai'),
     ...asAgentModel(GPT_5_4_MINI_MODEL),
