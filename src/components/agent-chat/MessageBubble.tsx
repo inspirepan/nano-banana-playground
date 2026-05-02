@@ -1,4 +1,5 @@
 import type { AppMessage as AgentMessage } from '@mariozechner/pi-agent'
+import { useRef, useState } from 'react'
 
 import { AgentThinking } from './AgentThinking'
 import { MarkdownText } from './MarkdownText'
@@ -14,9 +15,28 @@ import {
   stripSystemDirectives,
 } from '../../agent'
 import { useI18n } from '../../i18n'
+import { Icon } from '../Icon'
+
+async function writeClipboardText(text: string): Promise<void> {
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(text)
+    return
+  }
+
+  const textarea = document.createElement('textarea')
+  textarea.value = text
+  textarea.style.position = 'fixed'
+  textarea.style.left = '-9999px'
+  document.body.appendChild(textarea)
+  textarea.select()
+  document.execCommand('copy')
+  textarea.remove()
+}
 
 export function MessageBubble({ message, isStreaming }: { message: AgentMessage; isStreaming: boolean }) {
   const { t } = useI18n()
+  const [copied, setCopied] = useState(false)
+  const copiedResetRef = useRef<number | null>(null)
   const role = agentMessageRole(message)
   const text = agentMessageText(message)
   const thinking = agentMessageThinking(message)
@@ -25,7 +45,24 @@ export function MessageBubble({ message, isStreaming }: { message: AgentMessage;
   const isUser = role === 'user'
   const trimmedText = text.trim()
   const visibleText = stripSystemDirectives(text)
+  const copyText = isUser
+    ? visibleText
+    : [visibleText, error].filter((part): part is string => Boolean(part)).join('\n\n')
   const isSystemEvent = isUser && visibleText === '' && trimmedText.startsWith('<system>')
+  const canCopy = copyText.trim() !== ''
+  const showAssistantMarkdown = visibleText.trim() !== ''
+  const hasAssistantTrailingContent = showAssistantMarkdown || Boolean(error)
+
+  const handleCopy = () => {
+    if (!canCopy) return
+    void writeClipboardText(copyText)
+      .then(() => {
+        setCopied(true)
+        if (copiedResetRef.current !== null) window.clearTimeout(copiedResetRef.current)
+        copiedResetRef.current = window.setTimeout(() => setCopied(false), 1400)
+      })
+      .catch(() => {})
+  }
 
   if (isSystemEvent) {
     return (
@@ -57,7 +94,13 @@ export function MessageBubble({ message, isStreaming }: { message: AgentMessage;
               ))}
             </div>
           )}
-          {thinking && !isUser && <AgentThinking thinking={thinking} />}
+          {thinking && !isUser && (
+            <AgentThinking
+              thinking={thinking}
+              isStreaming={isStreaming}
+              hasTrailingContent={hasAssistantTrailingContent}
+            />
+          )}
           {isUser ? (
             <TruncatedText
               text={visibleText}
@@ -66,9 +109,40 @@ export function MessageBubble({ message, isStreaming }: { message: AgentMessage;
               maxHeight={220}
             />
           ) : (
-            <MarkdownText text={error ? `${visibleText}\n\n${error}` : visibleText} isStreaming={isStreaming} />
+            <>
+              {showAssistantMarkdown && <MarkdownText text={visibleText} isStreaming={isStreaming} />}
+              {error && (
+                <div
+                  className={`${showAssistantMarkdown ? 'mt-2.5' : ''} flex w-fit max-w-full items-start gap-2 rounded-[var(--radius-md)] px-3 py-2 text-sm leading-[1.45]`}
+                  style={{
+                    color: 'var(--color-danger)',
+                    background: 'var(--color-danger-soft)',
+                    boxShadow: 'inset 0 0 0 1px color-mix(in srgb, var(--color-danger) 18%, transparent)',
+                  }}
+                >
+                  <Icon name="alert_circle" size={13} style={{ marginTop: 2, flexShrink: 0 }} />
+                  <div className="min-w-0 flex-1 whitespace-pre-wrap">{error}</div>
+                </div>
+              )}
+            </>
           )}
         </div>
+        {canCopy && (
+          <div className={`mt-1 flex ${isUser ? 'justify-end pr-1' : 'justify-start'}`}>
+            <button
+              type="button"
+              className="inline-flex h-[26px] appearance-none items-center justify-center rounded-[var(--radius-sm)] border-0 bg-transparent px-2 text-xs font-medium text-(--color-text-4) transition-colors duration-150 hover:bg-(--color-surface-2) hover:text-(--color-text-3)"
+              onClick={handleCopy}
+              title={copied ? t('agentChat.message.copied') : t('agentChat.message.copy')}
+              aria-label={copied ? t('agentChat.message.copied') : t('agentChat.message.copy')}
+            >
+              <span className="inline-flex items-center gap-1.5">
+                <Icon name={copied ? 'check' : 'copy'} size={12} strokeWidth={copied ? 2.2 : 1.8} />
+                {copied ? t('agentChat.message.copied') : t('agentChat.message.copy')}
+              </span>
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )

@@ -1,16 +1,21 @@
-import { TruncatedText } from './TruncatedText'
+import { useLayoutEffect, useRef, useState } from 'react'
+
 import { summarizeToolResult, taskStatusLabel } from './utils'
 import type { AgentImageTask, AgentMessageToolCall, AgentMessageToolResult } from '../../agent'
 import { MODEL_CONFIGS } from '../../config/models'
 import { useImageSrc } from '../../hooks/useImageSrc'
 import { useI18n } from '../../i18n'
+import type { StackItem } from '../../lib/stacks'
+import { StackItemThumb } from '../StackItemThumb'
 
-function GenImageResultThumb({ id }: { id: string }) {
+const PROMPT_BOX_MAX_HEIGHT = 148
+
+function GenImageResultThumb({ id, flush = false }: { id: string; flush?: boolean }) {
   const { ref, src } = useImageSrc(id, 'image/png', undefined, { variant: 'preview' })
   return (
     <div
       ref={ref}
-      className="relative aspect-square w-full overflow-hidden rounded-[var(--radius-md)] bg-(--color-surface-2) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]"
+      className={`relative aspect-square w-full overflow-hidden bg-(--color-surface-2) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)] ${flush ? 'rounded-none' : 'rounded-[var(--radius-md)]'}`}
     >
       {src ? (
         <img src={src} alt={id} className="h-full w-full object-cover" />
@@ -23,25 +28,70 @@ function GenImageResultThumb({ id }: { id: string }) {
   )
 }
 
+function AgentImagePromptBox({ text, isStreaming }: { text: string; isStreaming: boolean }) {
+  const { t } = useI18n()
+  const [expanded, setExpanded] = useState(false)
+  const [overflowing, setOverflowing] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!el) return
+    setOverflowing(el.scrollHeight > PROMPT_BOX_MAX_HEIGHT + 4)
+    if (isStreaming && !expanded) {
+      el.scrollTop = el.scrollHeight
+    }
+  }, [expanded, isStreaming, text])
+
+  return (
+    <div className="mt-2.5">
+      <div
+        ref={ref}
+        className="whitespace-pre-wrap rounded-[var(--radius-sm)] bg-(--color-surface) px-2.5 py-2 text-sm leading-[1.62] text-(--color-text-2) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]"
+        style={expanded ? undefined : { maxHeight: PROMPT_BOX_MAX_HEIGHT, overflowY: 'auto' }}
+      >
+        {text}
+      </div>
+      {overflowing && (
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation()
+            setExpanded((prev) => !prev)
+          }}
+          className="mt-1.5 bg-transparent p-0 text-sm text-(--color-text-3) transition-colors hover:text-(--color-text)"
+        >
+          {expanded ? t('agentChat.truncated.collapse') : t('agentChat.truncated.expand')}
+        </button>
+      )}
+    </div>
+  )
+}
+
 export function AgentImageTaskCard({
   call,
   task,
+  stackItemByImageId,
   result,
+  isStreaming,
   onApprove,
   onCancel,
   onFocus,
 }: {
   call: AgentMessageToolCall
   task: AgentImageTask | undefined
+  stackItemByImageId: Map<string, StackItem>
   result?: AgentMessageToolResult
+  isStreaming: boolean
   onApprove: (taskId: string) => void
   onCancel: (taskId: string) => void
   onFocus?: (task: AgentImageTask) => void
 }) {
   const { t } = useI18n()
+  const isComposingPrompt = isStreaming && !task && !result
   const status: AgentImageTask['status'] = task?.status ?? (result?.isError ? 'failed' : 'pending_approval')
   const danger = status === 'failed' || status === 'rejected' || status === 'canceled'
-  const active = status === 'queued' || status === 'running'
+  const active = isComposingPrompt || status === 'queued' || status === 'running'
   const reservedIds = task?.request.reservedImageIds ?? []
   const modelName = task
     ? (MODEL_CONFIGS.find((item) => item.id === task.request.modelId)?.name ?? task.request.modelId)
@@ -61,6 +111,10 @@ export function AgentImageTaskCard({
       task.status === 'approved'
     : false
   const statusColor = danger ? 'var(--color-danger)' : active ? 'var(--color-accent)' : 'var(--color-text-3)'
+  const statusText = isComposingPrompt ? t('agentChat.taskStatus.prompting') : taskStatusLabel(status)
+  const resultMetaBadge =
+    task && modelName ? `${modelName} · ${task.request.resolution} · ${task.request.aspectRatio}` : undefined
+  const resultsEdgeToEdge = task?.status === 'completed'
   const canFocus = Boolean(
     onFocus &&
     task &&
@@ -87,13 +141,13 @@ export function AgentImageTaskCard({
             }
           : undefined
       }
-      className={`rounded-[var(--radius-md)] bg-(--color-surface) px-3.5 py-3 shadow-[inset_0_0_0_1px_var(--ring-edge-soft)] ${canFocus ? 'cursor-pointer transition-colors duration-150 hover:bg-(--color-surface-2)' : ''}`}
+      className={`m-1 rounded-[var(--radius-lg)] bg-(--color-surface) px-3.5 py-3 shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-lift)] ${canFocus ? 'cursor-pointer transition-[background-color,box-shadow] duration-150 hover:bg-(--color-surface-2) hover:shadow-[0_0_0_1px_var(--ring-edge-strong),var(--shadow-lift)]' : ''}`}
     >
       <div className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1">
         <span className="text-sm font-semibold text-(--color-text)">{t('agentChat.imageTask.title')}</span>
         <span className="inline-flex items-center gap-1.5 text-sm" style={{ color: statusColor }}>
           <span className="h-1.5 w-1.5 rounded-full" style={{ background: 'currentColor' }} />
-          {taskStatusLabel(status)}
+          {statusText}
         </span>
         {active && <span className="spinner" style={{ width: 10, height: 10 }} />}
         {headerIds.length > 0 && (
@@ -104,12 +158,7 @@ export function AgentImageTaskCard({
       </div>
 
       {promptText && task?.status !== 'completed' && (
-        <TruncatedText
-          text={promptText}
-          className="mt-2.5 whitespace-pre-wrap text-sm leading-[1.62] text-(--color-text-2)"
-          fadeColor="var(--color-surface)"
-          maxHeight={140}
-        />
+        <AgentImagePromptBox text={promptText} isStreaming={isComposingPrompt} />
       )}
 
       {task?.status !== 'completed' && (task || requestedFromArgs) && (
@@ -163,17 +212,39 @@ export function AgentImageTaskCard({
 
       {resultIds.length > 0 && (
         <div
-          className="mt-3 grid gap-1.5"
+          className={
+            resultsEdgeToEdge
+              ? '-mx-3.5 -mb-3 mt-3 grid gap-px overflow-hidden rounded-b-[var(--radius-lg)] bg-(--ring-edge-soft) shadow-[inset_0_1px_0_var(--ring-edge-soft)]'
+              : 'mt-3 grid gap-1.5'
+          }
           style={{
-            gridTemplateColumns:
-              task?.status === 'completed'
-                ? `repeat(${Math.min(resultIds.length, 3)}, minmax(0, 1fr))`
-                : 'repeat(auto-fill, minmax(72px, 1fr))',
+            gridTemplateColumns: resultsEdgeToEdge
+              ? `repeat(${Math.min(resultIds.length, 3)}, minmax(0, 1fr))`
+              : 'repeat(auto-fill, minmax(72px, 1fr))',
           }}
         >
-          {resultIds.map((id) => (
-            <GenImageResultThumb key={id} id={id} />
-          ))}
+          {resultIds.map((id, index) => {
+            const item = stackItemByImageId.get(id)
+            return item ? (
+              <StackItemThumb
+                key={id}
+                item={item}
+                number={index + 1}
+                outerRing
+                hoverLift={false}
+                className="aspect-square w-full"
+                roundedClassName={resultsEdgeToEdge ? 'rounded-none' : undefined}
+                numberBadgeInset={6}
+                metaBadge={resultMetaBadge}
+                metaBadgeTitle={resultMetaBadge}
+                onSelect={() => {
+                  if (task && canFocus) onFocus?.(task)
+                }}
+              />
+            ) : (
+              <GenImageResultThumb key={id} id={id} flush={resultsEdgeToEdge} />
+            )
+          })}
         </div>
       )}
 

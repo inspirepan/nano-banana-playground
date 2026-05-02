@@ -17,11 +17,13 @@ import type {
   AskUserQuestionAnswer,
 } from '../../agent'
 import { useI18n } from '../../i18n'
+import type { StackItem } from '../../lib/stacks'
 
 export function ToolActivityCard({
   calls,
   results,
   imageTaskByToolCallId,
+  stackItemByImageId,
   pendingQuestionByToolCallId,
   isStreaming,
   onApproveImageTask,
@@ -33,6 +35,7 @@ export function ToolActivityCard({
   calls: AgentMessageToolCall[]
   results: AgentMessageToolResult[]
   imageTaskByToolCallId: Map<string, AgentImageTask>
+  stackItemByImageId: Map<string, StackItem>
   pendingQuestionByToolCallId: Map<string, AgentPendingQuestion>
   isStreaming: boolean
   onApproveImageTask: (taskId: string) => void
@@ -59,7 +62,9 @@ export function ToolActivityCard({
           key={call.id}
           call={call}
           task={imageTaskByToolCallId.get(call.id)}
+          stackItemByImageId={stackItemByImageId}
           result={resultByCallId.get(call.id)}
+          isStreaming={isStreaming}
           onApprove={onApproveImageTask}
           onCancel={onCancelImageTask}
           onFocus={onFocusImageTask}

@@ -35,16 +35,23 @@ export function AgentChatHeader({
       <button
         type="button"
         onClick={() => setOpenMenu((prev) => (prev === 'sessions' ? null : 'sessions'))}
-        className="chip ghost min-w-0 max-w-[calc(100%-78px)] shrink justify-start gap-1.5 px-2.5 text-base"
-        style={{ height: 30 }}
+        aria-expanded={openMenu === 'sessions'}
+        className="group flex h-[34px] min-w-0 max-w-[calc(100%-86px)] shrink items-center gap-2 rounded-[var(--radius-md)] bg-(--color-surface) px-2.5 text-left shadow-[inset_0_0_0_1px_var(--ring-edge-soft)] transition-[background,box-shadow] duration-150 hover:bg-(--color-surface-2) hover:shadow-[inset_0_0_0_1px_var(--ring-edge)]"
         title={t('agentChat.header.switchTitle')}
       >
-        <span className="min-w-0 truncate text-left text-(--color-text-2)">
+        <span className="min-w-0 flex-1 truncate text-base font-medium text-(--color-text-2) transition-colors group-hover:text-(--color-text)">
           {sessionsLoading
             ? t('agentChat.header.loadingSessions')
             : (currentSession?.title ?? t('agentChat.header.newConversation'))}
         </span>
-        <Icon name="chevron_right" size={13} className={openMenu === 'sessions' ? '-rotate-90' : 'rotate-90'} />
+        <span className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-(--color-text-4) transition-colors group-hover:text-(--color-text-3)">
+          <span>{t('agentChat.header.switchAction')}</span>
+          <Icon
+            name="chevron_down"
+            size={13}
+            className={`transition-transform duration-150 ${openMenu === 'sessions' ? 'rotate-180' : ''}`}
+          />
+        </span>
       </button>
       <div className="flex-1" />
       <button
@@ -56,7 +63,7 @@ export function AgentChatHeader({
         {t('agentChat.header.newConversation')}
       </button>
       {openMenu === 'sessions' && (
-        <div className="absolute top-[36px] left-0 z-50 w-full rounded-[var(--radius-lg)] bg-(--color-surface) p-1 shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-float)]">
+        <div className="absolute top-[40px] left-0 z-50 w-full rounded-[var(--radius-lg)] bg-(--color-surface) p-1 shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-float)]">
           <div className="px-2 py-1.5 text-sm font-medium text-(--color-text-3)">{t('agentChat.header.history')}</div>
           <div className="max-h-[260px] overflow-y-auto py-0.5">
             {sessions.length === 0 ? (

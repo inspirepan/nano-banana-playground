@@ -26,7 +26,7 @@ import {
 import { getProviderConfig } from '../config/providers'
 import { useMountEffect, useWindowEvent } from '../hooks/effects'
 import type { ApiKeyStatus } from '../hooks/useApiKey'
-import type { InputMode } from '../hooks/usePlayground'
+import type { GenerationJob, InputMode } from '../hooks/usePlayground'
 import { useI18n } from '../i18n'
 import { isHeifFile } from '../lib/fileToImage'
 import { openAISize } from '../lib/openai'
@@ -266,6 +266,8 @@ type Props = {
   autoApproveAgentImageTasks: boolean
   agentImageTasks: AgentImageTask[]
   agentPendingQuestions: AgentPendingQuestion[]
+  history: PlaygroundImageMeta[]
+  generationJobs: GenerationJob[]
   referenceImages: PlaygroundImage[]
   referenceImageError: string | null
   apiKey: string
@@ -331,6 +333,8 @@ export function InputPanel({
   autoApproveAgentImageTasks,
   agentImageTasks,
   agentPendingQuestions,
+  history,
+  generationJobs,
   referenceImages,
   referenceImageError,
   apiKey,
@@ -593,6 +597,8 @@ export function InputPanel({
           autoApproveImageTasks={autoApproveAgentImageTasks}
           imageTasks={agentImageTasks}
           pendingQuestions={agentPendingQuestions}
+          history={history}
+          generationJobs={generationJobs}
           model={agentModel}
           models={agentModels}
           thinkingLevel={agentThinkingLevel}

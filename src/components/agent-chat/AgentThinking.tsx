@@ -1,5 +1,6 @@
-import { useState, type ReactNode } from 'react'
+import { useRef, useState, type ReactNode } from 'react'
 
+import { useExternalSync } from '../../hooks/effects'
 import { useI18n } from '../../i18n'
 import { Icon } from '../Icon'
 
@@ -35,19 +36,52 @@ function renderInline(text: string): ReactNode[] {
   return nodes
 }
 
-export function AgentThinking({ thinking }: { thinking: string }) {
+function thoughtLabel(t: ReturnType<typeof useI18n>['t'], durationMs: number | null): string {
+  if (durationMs === null) return t('agentChat.thinking.thought')
+  const seconds = Math.max(1, Math.round(durationMs / 1000))
+  if (seconds === 1) return t('agentChat.thinking.thoughtForOneSecond')
+  return t('agentChat.thinking.thoughtForSeconds', { seconds })
+}
+
+export function AgentThinking({
+  thinking,
+  isStreaming,
+  hasTrailingContent,
+}: {
+  thinking: string
+  isStreaming: boolean
+  hasTrailingContent: boolean
+}) {
   const { t } = useI18n()
-  const [thinkingOpen, setThinkingOpen] = useState(true)
+  const [thinkingOpen, setThinkingOpen] = useState(false)
+  const [durationMs, setDurationMs] = useState<number | null>(null)
+  const startedAtRef = useRef<number | null>(null)
+
+  useExternalSync(() => {
+    if (isStreaming) {
+      startedAtRef.current = Date.now()
+      return
+    }
+    const startedAt = startedAtRef.current
+    if (startedAt === null) return
+    const timer = window.setTimeout(() => {
+      setDurationMs(Date.now() - startedAt)
+      startedAtRef.current = null
+    }, 0)
+    return () => window.clearTimeout(timer)
+  }, [isStreaming])
+
+  const label = isStreaming ? t('agentChat.thinking.label') : thoughtLabel(t, durationMs)
 
   return (
-    <div className="mb-3">
+    <div className={hasTrailingContent ? 'mb-3' : ''}>
       <button
         type="button"
         onClick={() => setThinkingOpen((prev) => !prev)}
         aria-expanded={thinkingOpen}
         className="inline-flex cursor-pointer items-center gap-1.5 bg-transparent p-0 py-0.5 text-(--color-text-4) transition-colors duration-150 hover:text-(--color-text-3)"
       >
-        <span>{t('agentChat.thinking.label')}</span>
+        <span>{label}</span>
         <Icon
           name="chevron_right"
           size={13}

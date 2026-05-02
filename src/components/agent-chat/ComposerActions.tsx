@@ -69,30 +69,29 @@ export function ComposerActions({
         <Icon name="plus" size={17} />
       </button>
       <div className="flex-1" />
-      {preferredImageModel && (
-        <button
-          type="button"
-          onClick={() => setOpenMenu((prev) => (prev === 'agentOptions' ? null : 'agentOptions'))}
-          className="chip ghost max-w-[140px] px-2 text-sm"
-          style={{ height: 28 }}
-          title={t('agentChat.composer.preferredImageModelTitle', { model: preferredImageModel.name })}
-        >
-          <BrandIcon name={getProviderConfig(preferredImageModel.provider).brandIcon} size={11} />
-          <span className="min-w-0 truncate text-(--color-text-2)">{preferredImageModel.name}</span>
-        </button>
-      )}
       <button
         type="button"
         onClick={() => setOpenMenu((prev) => (prev === 'agentOptions' ? null : 'agentOptions'))}
-        className="chip ghost max-w-[170px] justify-between px-2.5 text-sm"
+        className="chip ghost min-w-0 max-w-[300px] gap-1 px-2 text-sm"
         style={{ height: 28 }}
         title={t('agentChat.composer.optionsTitle')}
       >
-        <AgentModelIcon model={model} />
-        <span className="min-w-0 truncate text-(--color-text-2)">{model.shortLabel}</span>
-        {effectiveThinkingLevel !== 'off' && (
-          <span className="shrink-0 text-(--color-text-3)">{effectiveThinkingLabel}</span>
+        {preferredImageModel && (
+          <>
+            <span className="flex min-w-0 items-center gap-1.5">
+              <BrandIcon name={getProviderConfig(preferredImageModel.provider).brandIcon} size={11} />
+              <span className="min-w-0 truncate text-(--color-text-2)">{preferredImageModel.name}</span>
+            </span>
+            <span aria-hidden="true" className="h-4 w-px shrink-0 bg-(--ring-edge-soft)" />
+          </>
         )}
+        <span className="flex min-w-0 items-center gap-1.5">
+          <AgentModelIcon model={model} />
+          <span className="min-w-0 truncate text-(--color-text-2)">{model.shortLabel}</span>
+          {effectiveThinkingLevel !== 'off' && (
+            <span className="shrink-0 text-(--color-text-3)">{effectiveThinkingLabel}</span>
+          )}
+        </span>
         <Icon name="chevron_right" size={13} className={openMenu === 'agentOptions' ? '-rotate-90' : 'rotate-90'} />
       </button>
       {showStop ? (

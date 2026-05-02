@@ -2,6 +2,7 @@ import type { AppMessage as AgentMessage } from '@mariozechner/pi-agent'
 import { useCallback, useLayoutEffect, useMemo, useRef, useState, type DragEvent } from 'react'
 
 import {
+  agentMessageError,
   agentMessageToolCalls,
   type AgentChatAttachment,
   type AgentImageTask,
@@ -13,7 +14,9 @@ import type { AgentModelConfig, AgentThinkingLevel } from '../config/agentModels
 import type { Provider } from '../config/models'
 import { useExternalSync, useWindowEvent } from '../hooks/effects'
 import type { ApiKeyStatus } from '../hooks/useApiKey'
+import type { GenerationJob } from '../hooks/usePlayground'
 import { useI18n } from '../i18n'
+import { buildImageStacks, type StackItem } from '../lib/stacks'
 import type { PlaygroundImage, PlaygroundImageMeta } from '../lib/types'
 import { AgentChatComposer } from './agent-chat/AgentChatComposer'
 import { AgentChatHeader } from './agent-chat/AgentChatHeader'
@@ -42,6 +45,8 @@ type Props = {
   autoApproveImageTasks: boolean
   imageTasks: AgentImageTask[]
   pendingQuestions: AgentPendingQuestion[]
+  history: PlaygroundImageMeta[]
+  generationJobs: GenerationJob[]
   model: AgentModelConfig
   models: AgentModelConfig[]
   thinkingLevel: AgentThinkingLevel
@@ -81,6 +86,8 @@ export function AgentChatPanel({
   autoApproveImageTasks,
   imageTasks,
   pendingQuestions,
+  history,
+  generationJobs,
   model,
   models,
   thinkingLevel,
@@ -123,6 +130,14 @@ export function AgentChatPanel({
     () => buildChatRenderItems(visibleMessages, streamingMessage),
     [visibleMessages, streamingMessage],
   )
+  const latestMessageError = useMemo(() => {
+    for (let index = visibleMessages.length - 1; index >= 0; index--) {
+      const messageError = agentMessageError(visibleMessages[index])
+      if (messageError) return messageError
+    }
+    return null
+  }, [visibleMessages])
+  const composerError = error && error === latestMessageError ? null : error
   const showThinkingPlaceholder =
     isStreaming &&
     pendingQuestions.length === 0 &&
@@ -133,6 +148,15 @@ export function AgentChatPanel({
     for (const task of imageTasks) map.set(task.toolCallId, task)
     return map
   }, [imageTasks])
+  const stackItemByImageId = useMemo(() => {
+    const map = new Map<string, StackItem>()
+    for (const stack of buildImageStacks(history, generationJobs)) {
+      for (const item of stack.items) {
+        if (item.type === 'image') map.set(item.image.id, item)
+      }
+    }
+    return map
+  }, [generationJobs, history])
   const pendingQuestionByToolCallId = useMemo(() => {
     const map = new Map<string, AgentPendingQuestion>()
     for (const question of pendingQuestions) map.set(question.toolCallId, question)
@@ -164,8 +188,22 @@ export function AgentChatPanel({
   const scrollToBottom = useCallback(() => {
     const el = scrollRef.current
     if (!el) return
+    setNearBottom(true)
     el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' })
   }, [])
+
+  const scrollToBottomAfterSend = useCallback(() => {
+    setNearBottom(true)
+    requestAnimationFrame(() => {
+      scrollToBottom()
+      requestAnimationFrame(scrollToBottom)
+    })
+  }, [scrollToBottom])
+
+  const handleSend = useCallback(() => {
+    onSend()
+    scrollToBottomAfterSend()
+  }, [onSend, scrollToBottomAfterSend])
 
   useWindowEvent(
     'pointerdown',
@@ -281,6 +319,7 @@ export function AgentChatPanel({
                   calls={item.calls}
                   results={item.results}
                   imageTaskByToolCallId={imageTaskByToolCallId}
+                  stackItemByImageId={stackItemByImageId}
                   pendingQuestionByToolCallId={pendingQuestionByToolCallId}
                   isStreaming={item.isStreaming}
                   onApproveImageTask={onApproveImageTask}
@@ -293,7 +332,7 @@ export function AgentChatPanel({
             )}
             {showThinkingPlaceholder && (
               <div className="flex justify-start">
-                <div className="mr-3 max-w-[94%]">
+                <div className="mr-3 max-w-[94%] pl-3">
                   <span className="text-(--color-text-4)">{t('agentChat.status.thinking')}</span>
                 </div>
               </div>
@@ -303,7 +342,7 @@ export function AgentChatPanel({
       </div>
 
       <AgentChatComposer
-        error={error}
+        error={composerError}
         attachmentError={attachmentError}
         draft={draft}
         attachments={attachments}
@@ -328,7 +367,7 @@ export function AgentChatPanel({
         onModelChange={onModelChange}
         onThinkingLevelChange={onThinkingLevelChange}
         onOpenApiKeys={onOpenApiKeys}
-        onSend={onSend}
+        onSend={handleSend}
         onStop={onStop}
         scrollToBottom={scrollToBottom}
       />

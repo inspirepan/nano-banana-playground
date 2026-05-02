@@ -386,6 +386,8 @@ function App() {
                 autoApproveAgentImageTasks={pg.autoApproveAgentImageTasks}
                 agentImageTasks={pg.agentImageTasks}
                 agentPendingQuestions={pg.agentPendingQuestions}
+                history={pg.history}
+                generationJobs={pg.generationJobs}
                 referenceImages={pg.referenceImages}
                 referenceImageError={pg.referenceImageError}
                 apiKey={pg.apiKey}
@@ -479,6 +481,8 @@ function App() {
               autoApproveAgentImageTasks={pg.autoApproveAgentImageTasks}
               agentImageTasks={pg.agentImageTasks}
               agentPendingQuestions={pg.agentPendingQuestions}
+              history={pg.history}
+              generationJobs={pg.generationJobs}
               referenceImages={pg.referenceImages}
               referenceImageError={pg.referenceImageError}
               apiKey={pg.apiKey}

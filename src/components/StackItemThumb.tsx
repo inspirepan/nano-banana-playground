@@ -12,9 +12,11 @@ type Props = {
   outerRing?: boolean
   selectable?: boolean
   selected?: boolean
+  hoverLift?: boolean
   showSlotReason?: boolean
   actions?: ReactNode
   className?: string
+  roundedClassName?: string
   numberBadgeInset?: number
   metaBadge?: string
   metaBadgeTitle?: string
@@ -52,9 +54,11 @@ export function StackItemThumb({
   outerRing = false,
   selectable = false,
   selected = false,
+  hoverLift = true,
   showSlotReason = false,
   actions,
   className = 'h-14 w-14',
+  roundedClassName = 'rounded-[var(--radius-md)]',
   numberBadgeInset = 3,
   metaBadge,
   metaBadgeTitle,
@@ -143,7 +147,7 @@ export function StackItemThumb({
       }}
       aria-pressed={selectable ? selected : undefined}
       aria-label={ariaLabel}
-      className={`group relative shrink-0 overflow-hidden rounded-[var(--radius-md)] transition-transform ${selectable ? '' : 'hover:-translate-y-0.5'} ${className}`}
+      className={`group relative shrink-0 overflow-hidden ${roundedClassName} transition-transform ${hoverLift && !selectable ? 'hover:-translate-y-0.5' : ''} ${className}`}
       style={{ background, boxShadow }}
       title={title}
     >
