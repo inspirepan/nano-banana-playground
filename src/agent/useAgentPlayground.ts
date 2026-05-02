@@ -17,10 +17,7 @@ import {
   restoreAgentImageTasks,
   toolTextResult,
 } from './messageRecovery'
-import {
-  isAgentModelProvider,
-  syncGeminiAgentBaseUrl,
-} from './runtimeConfig'
+import { isAgentModelProvider } from './runtimeConfig'
 import { type AgentPendingQuestion, type AgentSessionRuntime, type ProviderCredentials } from './runtimeTypes'
 import {
   appendAgentSessionMessage,
@@ -33,24 +30,14 @@ import {
 } from './sessionStore'
 import type { AgentCompactionState, AgentSessionMessageMetadata, AgentSessionSummary } from './sessionTypes'
 import { AGENT_SYSTEM_PROMPT } from './systemPrompt'
-import {
-  createAgentTools,
-  formatAskUserQuestionResult,
-  type AgentToolResult,
-  type AskUserQuestionToolArgs,
-  type CreateSkillToolArgs,
-  type GenImageToolArgs,
-  type ReadImageToolArgs,
-  type ReadSkillFileToolArgs,
-  type SkillToolArgs,
-  type WebFetchToolArgs,
-} from './tools'
+import { formatAskUserQuestionResult } from './tools'
 import { useAgentAttachments } from './useAgentAttachments'
 import { useAgentCompaction } from './useAgentCompaction'
 import { useAgentImageRegistry } from './useAgentImageRegistry'
 import { useAgentImageTools } from './useAgentImageTools'
 import { useAgentMessageSender } from './useAgentMessageSender'
 import { useAgentQuestions } from './useAgentQuestions'
+import { createInitialAgentToolHandlers, useAgentRuntimeConfig } from './useAgentRuntimeConfig'
 import { useAgentSkills } from './useAgentSkills'
 import {
   AGENT_MODEL_CONFIGS,
@@ -62,10 +49,8 @@ import {
 import {
   getPreferredAgentModelId,
   getPreferredAgentThinkingLevel,
-  setPreferredAgentModelId,
-  setPreferredAgentThinkingLevel,
 } from '../config/agentPreferences'
-import { MODEL_CONFIGS, type ModelConfig } from '../config/models'
+import type { ModelConfig } from '../config/models'
 import { useExternalSync, useMountEffect } from '../hooks/effects'
 import type { useApiKey } from '../hooks/useApiKey'
 import type { GenerationJob } from '../hooks/useGenerationQueue'
@@ -151,69 +136,7 @@ export function useAgentPlayground({
     anthropic: { apiKey: keyHooks.anthropic.apiKey, baseUrl: keyHooks.anthropic.baseUrl },
     deepseek: { apiKey: keyHooks.deepseek.apiKey, baseUrl: keyHooks.deepseek.baseUrl },
   })
-  const agentToolHandlersRef = useRef<{
-    genImage: (
-      sessionId: string,
-      toolCallId: string,
-      args: GenImageToolArgs,
-      signal?: AbortSignal,
-    ) => Promise<AgentToolResult>
-    readImage: (sessionId: string, toolCallId: string, args: ReadImageToolArgs) => Promise<AgentToolResult>
-    askUserQuestion: (
-      sessionId: string,
-      toolCallId: string,
-      args: AskUserQuestionToolArgs,
-      signal?: AbortSignal,
-    ) => Promise<AgentToolResult>
-    loadSkill: (sessionId: string, toolCallId: string, args: SkillToolArgs) => Promise<AgentToolResult>
-    readSkillFile: (sessionId: string, toolCallId: string, args: ReadSkillFileToolArgs) => Promise<AgentToolResult>
-    createSkill: (sessionId: string, toolCallId: string, args: CreateSkillToolArgs) => Promise<AgentToolResult>
-    webFetch: (
-      sessionId: string,
-      toolCallId: string,
-      args: WebFetchToolArgs,
-      signal?: AbortSignal,
-    ) => Promise<AgentToolResult>
-  }>({
-    genImage: async (_sessionId: string, _toolCallId: string, _args: GenImageToolArgs, _signal?: AbortSignal) => {
-      throw new Error('Agent tools are not ready yet.')
-    },
-    readImage: async (_sessionId: string, _toolCallId: string, _args: ReadImageToolArgs) => {
-      throw new Error('Agent tools are not ready yet.')
-    },
-    askUserQuestion: (_sessionId: string, _toolCallId: string, _args: AskUserQuestionToolArgs, _signal?: AbortSignal) =>
-      Promise.reject(new Error('Agent tools are not ready yet.')),
-    loadSkill: async (_sessionId: string, _toolCallId: string, _args: SkillToolArgs) => {
-      throw new Error('Agent tools are not ready yet.')
-    },
-    readSkillFile: async (_sessionId: string, _toolCallId: string, _args: ReadSkillFileToolArgs) => {
-      throw new Error('Agent tools are not ready yet.')
-    },
-    createSkill: async (_sessionId: string, _toolCallId: string, _args: CreateSkillToolArgs) => {
-      throw new Error('Agent tools are not ready yet.')
-    },
-    webFetch: async (_sessionId: string, _toolCallId: string, _args: WebFetchToolArgs, _signal?: AbortSignal) => {
-      throw new Error('Agent tools are not ready yet.')
-    },
-  })
-
-  useExternalSync(() => {
-    agentCredentialsRef.current = {
-      google: { apiKey: keyHooks.google.apiKey, baseUrl: keyHooks.google.baseUrl },
-      openai: { apiKey: keyHooks.openai.apiKey, baseUrl: keyHooks.openai.baseUrl },
-      anthropic: { apiKey: keyHooks.anthropic.apiKey, baseUrl: keyHooks.anthropic.baseUrl },
-      deepseek: { apiKey: keyHooks.deepseek.apiKey, baseUrl: keyHooks.deepseek.baseUrl },
-    }
-  }, [
-    keyHooks.anthropic.apiKey,
-    keyHooks.anthropic.baseUrl,
-    keyHooks.deepseek.apiKey,
-    keyHooks.deepseek.baseUrl,
-    keyHooks.google.apiKey,
-    keyHooks.google.baseUrl,
-    keyHooks.openai.apiKey,
-    keyHooks.openai.baseUrl,
-  ])
+  const agentToolHandlersRef = useRef(createInitialAgentToolHandlers())
 
   const upsertAgentSessionSummary = useCallback((record: AgentSessionSummary) => {
     setAgentSessions((prev) =>
@@ -343,45 +266,21 @@ export function useAgentPlayground({
     [setRuntimePendingQuestions],
   )
 
-  const getAgentBaseUrl = useCallback(
-    (provider: AgentModelProvider) => agentCredentialsRef.current[provider].baseUrl,
-    [],
-  )
-
-  const setAgentModelIdForSession = useCallback(
-    (modelId: string) => {
-      const runtime = getCurrentRuntime()
-      if (!runtime) return
-      runtime.modelId = modelId
-      setAgentModelId(modelId)
-      setPreferredAgentModelId(modelId)
-      const config = resolveAgentModelConfig(modelId)
-      runtime.agent.state.model = agentModelWithBaseUrl(config, getAgentBaseUrl(config.provider))
-      runtime.agent.state.thinkingLevel = config.supportsThinking ? runtime.thinkingLevel : 'off'
-      if (!runtime.persisted) return
-      void updateAgentSessionConfig(runtime.sessionId, { modelId }).then((record) => {
-        if (record) upsertAgentSessionSummary(record)
-      })
-    },
-    [getAgentBaseUrl, getCurrentRuntime, upsertAgentSessionSummary],
-  )
-
-  const setAgentThinkingLevel = useCallback(
-    (level: AgentThinkingLevel) => {
-      const runtime = getCurrentRuntime()
-      if (!runtime) return
-      runtime.thinkingLevel = level
-      setAgentThinkingLevelState(level)
-      setPreferredAgentThinkingLevel(level)
-      const config = resolveAgentModelConfig(runtime.modelId)
-      runtime.agent.state.thinkingLevel = config.supportsThinking ? level : 'off'
-      if (!runtime.persisted) return
-      void updateAgentSessionConfig(runtime.sessionId, { thinkingLevel: level }).then((record) => {
-        if (record) upsertAgentSessionSummary(record)
-      })
-    },
-    [getCurrentRuntime, upsertAgentSessionSummary],
-  )
+  const { getAgentBaseUrl, setAgentModelIdForSession, setAgentThinkingLevel, applyAgentRuntimeConfig } =
+    useAgentRuntimeConfig({
+      agentCredentialsRef,
+      agentToolHandlersRef,
+      providerCredentials: {
+        google: { apiKey: keyHooks.google.apiKey, baseUrl: keyHooks.google.baseUrl },
+        openai: { apiKey: keyHooks.openai.apiKey, baseUrl: keyHooks.openai.baseUrl },
+        anthropic: { apiKey: keyHooks.anthropic.apiKey, baseUrl: keyHooks.anthropic.baseUrl },
+        deepseek: { apiKey: keyHooks.deepseek.apiKey, baseUrl: keyHooks.deepseek.baseUrl },
+      },
+      getCurrentRuntime,
+      upsertAgentSessionSummary,
+      setAgentModelId,
+      setAgentThinkingLevelState,
+    })
 
   const syncRuntimeSnapshot = useCallback(
     (runtime: AgentSessionRuntime) => {
@@ -398,33 +297,6 @@ export function useAgentPlayground({
       setAgentError(runtime.error)
     },
     [isCurrentRuntime],
-  )
-
-  const applyAgentRuntimeConfig = useCallback(
-    (runtime: AgentSessionRuntime) => {
-      const config = resolveAgentModelConfig(runtime.modelId)
-      const baseUrl = getAgentBaseUrl(config.provider)
-      syncGeminiAgentBaseUrl(config.provider, baseUrl)
-      runtime.agent.state.systemPrompt = AGENT_SYSTEM_PROMPT
-      runtime.agent.state.model = agentModelWithBaseUrl(config, baseUrl)
-      runtime.agent.state.thinkingLevel = config.supportsThinking ? runtime.thinkingLevel : 'off'
-      runtime.agent.state.tools = createAgentTools({
-        imageModels: MODEL_CONFIGS,
-        genImage: (toolCallId, args, signal) =>
-          agentToolHandlersRef.current.genImage(runtime.sessionId, toolCallId, args, signal),
-        readImage: (toolCallId, args) => agentToolHandlersRef.current.readImage(runtime.sessionId, toolCallId, args),
-        askUserQuestion: (toolCallId, args, signal) =>
-          agentToolHandlersRef.current.askUserQuestion(runtime.sessionId, toolCallId, args, signal),
-        loadSkill: (toolCallId, args) => agentToolHandlersRef.current.loadSkill(runtime.sessionId, toolCallId, args),
-        readSkillFile: (toolCallId, args) =>
-          agentToolHandlersRef.current.readSkillFile(runtime.sessionId, toolCallId, args),
-        createSkill: (toolCallId, args) =>
-          agentToolHandlersRef.current.createSkill(runtime.sessionId, toolCallId, args),
-        webFetch: (toolCallId, args, signal) =>
-          agentToolHandlersRef.current.webFetch(runtime.sessionId, toolCallId, args, signal),
-      })
-    },
-    [getAgentBaseUrl],
   )
 
   const { maybeRunRuntimeCompactionRef } = useAgentCompaction({
