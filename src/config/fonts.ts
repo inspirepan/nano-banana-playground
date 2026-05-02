@@ -1,4 +1,11 @@
-export type SansFontId = 'geist' | 'system-ui' | 'inter' | 'hanken-grotesk' | 'google-sans-flex' | 'onest'
+export type SansFontId =
+  | 'geist'
+  | 'system-ui'
+  | 'inter'
+  | 'instrument-sans'
+  | 'hanken-grotesk'
+  | 'google-sans-flex'
+  | 'onest'
 
 type FontOption<T extends string> = {
   id: T
@@ -31,6 +38,13 @@ export const SANS_FONTS: FontOption<SansFontId>[] = [
     className: 'font-sans-inter',
     cssFamily: "'Inter'",
     googleQuery: 'Inter:ital,wght@0,100..900;1,100..900',
+  },
+  {
+    id: 'instrument-sans',
+    name: 'Instrument Sans',
+    className: 'font-sans-instrument-sans',
+    cssFamily: "'Instrument Sans'",
+    googleQuery: 'Instrument Sans:ital,wght@0,400..700;1,400..700',
   },
   {
     id: 'hanken-grotesk',

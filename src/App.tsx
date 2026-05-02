@@ -28,6 +28,7 @@ import {
 } from './App/initThemePrefs'
 import { Topbar, type MobileTab } from './App/Topbar'
 import { Icon } from './components/Icon'
+import { ImageDetailModal } from './components/image-detail/ImageDetailModal'
 import { InputPanel } from './components/InputPanel'
 import { OutputPanel } from './components/OutputPanel'
 import { SettingsDialog } from './components/SettingsDialog'
@@ -36,10 +37,13 @@ import type { ColorThemeId, Theme } from './config/theme'
 import { useExternalSync, useMountEffect, useWindowEvent } from './hooks/effects'
 import { usePlayground } from './hooks/usePlayground'
 import { createTranslator, I18nProvider } from './i18n'
+import { buildImageStacks } from './lib/stacks'
 import type { PlaygroundImageMeta } from './lib/types'
 
 type SettingsTarget = 'generationConcurrency'
 type AgentPanelWideLayout = { fits: boolean; panelWidth: number; sideSpace: number }
+type MobileDetailNavTarget = { stackId: string; itemId: string }
+type MobileDetailState = { stackId: string; itemId?: string }
 
 const DESKTOP_LAYOUT_MIN_WIDTH_PX = 768
 
@@ -77,6 +81,7 @@ function App() {
   const [agentWideTipDismissed, setAgentWideTipDismissed] = useState(getInitialAgentWideTipDismissed)
   const [viewportWidth, setViewportWidth] = useState(() => (typeof window === 'undefined' ? 0 : window.innerWidth))
   const [highlightStackId, setHighlightStackId] = useState<string | null>(null)
+  const [mobileDetailState, setMobileDetailState] = useState<MobileDetailState | null>(null)
   const highlightTimerRef = useRef<number | null>(null)
   const regenToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const titleResetTimerRef = useRef<number | null>(null)
@@ -94,6 +99,36 @@ function App() {
     ? `${Math.round(agentWideLayout.panelWidth)}px`
     : DESKTOP_INPUT_PANEL_WIDTH
   const agentPanelSideSpace = `${Math.round(agentWideLayout.sideSpace)}px`
+
+  const allStacks = useMemo(() => buildImageStacks(pg.history, pg.generationJobs), [pg.history, pg.generationJobs])
+  const mobileDetailStack = mobileDetailState
+    ? (allStacks.find((stack) => stack.id === mobileDetailState.stackId) ?? null)
+    : null
+  const mobileStackIndex = mobileDetailStack ? allStacks.findIndex((stack) => stack.id === mobileDetailStack.id) : -1
+  const mobilePrevStackTarget: MobileDetailNavTarget | null =
+    mobileStackIndex > 0
+      ? (() => {
+          const prev = allStacks[mobileStackIndex - 1]
+          const item = prev?.items[prev.items.length - 1]
+          return item ? { stackId: prev.id, itemId: item.id } : null
+        })()
+      : null
+  const mobileNextStackTarget: MobileDetailNavTarget | null =
+    mobileStackIndex >= 0 && mobileStackIndex < allStacks.length - 1
+      ? (() => {
+          const next = allStacks[mobileStackIndex + 1]
+          const item = next?.items[0]
+          return item ? { stackId: next.id, itemId: item.id } : null
+        })()
+      : null
+
+  const handleMobileNavigateToStackItem = useCallback(
+    (target: MobileDetailNavTarget) => {
+      if (!allStacks.some((stack) => stack.id === target.stackId)) return
+      setMobileDetailState({ stackId: target.stackId, itemId: target.itemId })
+    },
+    [allStacks],
+  )
 
   useWindowEvent('resize', () => setViewportWidth(window.innerWidth))
 
@@ -206,17 +241,29 @@ function App() {
       }
       if (!stackId) return
       if (typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches) {
-        setMobileTab('gallery')
+        const stack = allStacks.find((s) => s.id === stackId)
+        if (!stack) return
+        const newestImage = [...stack.images].sort((a, b) => b.timestamp - a.timestamp)[0]
+        const fallbackItem = stack.items[stack.items.length - 1]
+        setMobileDetailState({
+          stackId: stack.id,
+          itemId: newestImage?.id ?? fallbackItem?.id,
+        })
+      } else {
+        setHighlightStackId(stackId)
+        if (highlightTimerRef.current) window.clearTimeout(highlightTimerRef.current)
+        highlightTimerRef.current = window.setTimeout(() => {
+          setHighlightStackId((prev) => (prev === stackId ? null : prev))
+          highlightTimerRef.current = null
+        }, 1800)
       }
-      setHighlightStackId(stackId)
-      if (highlightTimerRef.current) window.clearTimeout(highlightTimerRef.current)
-      highlightTimerRef.current = window.setTimeout(() => {
-        setHighlightStackId((prev) => (prev === stackId ? null : prev))
-        highlightTimerRef.current = null
-      }, 1800)
     },
-    [pg.generationJobs],
+    [allStacks, pg.generationJobs],
   )
+
+  const handleCloseMobileDetail = useCallback(() => {
+    setMobileDetailState(null)
+  }, [])
 
   useLayoutEffect(() => {
     applyColorThemePreference(colorTheme)
@@ -304,7 +351,10 @@ function App() {
 
         <div ref={mobilePanelScrollRef} className="min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]">
           {mobileTab !== 'gallery' ? (
-            <div className="h-full px-3">
+            <div
+              className={`h-full ${mobileTab === 'agent' ? 'px-0' : 'px-3'}`}
+              style={{ ['--agent-panel-padding-x' as string]: mobileTab === 'agent' ? '10px' : undefined }}
+            >
               <InputPanel
                 inputMode={mobileTab === 'agent' ? 'agent' : 'generate'}
                 model={pg.model}
@@ -396,6 +446,28 @@ function App() {
             </div>
           )}
         </div>
+
+        {mobileDetailState && mobileDetailStack && (
+          <ImageDetailModal
+            stack={mobileDetailStack}
+            initialItemId={mobileDetailState.itemId}
+            history={pg.history}
+            generationJobs={pg.generationJobs}
+            previousStackTarget={mobilePrevStackTarget}
+            nextStackTarget={mobileNextStackTarget}
+            onNavigateToStackItem={handleMobileNavigateToStackItem}
+            onClose={handleCloseMobileDetail}
+            onAddToRef={handleAddToRef}
+            onRegenerate={handleRegenerate}
+            onReroll={handleReroll}
+            onEditImage={pg.editImage}
+            onCancelGenerationJob={pg.cancelGenerationJob}
+            onDismissGenerationJob={pg.dismissGenerationJob}
+            onCancelGenerationSlot={pg.cancelGenerationSlot}
+            onRetryGenerationSlot={handleRetryGenerationSlot}
+            onRemove={pg.removeFromHistory}
+          />
+        )}
       </div>
 
       {/* Desktop layout */}

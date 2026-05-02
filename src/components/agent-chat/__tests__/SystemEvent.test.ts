@@ -15,7 +15,7 @@ requested_image_id: poster
 reserved_image_ids: poster, poster_2
 image_ids: poster, poster_2
 </system>`),
-    ).toBe('生成任务完成，生成了 2 张')
+    ).toBe('生成任务完成，生成了 2 张：poster, poster_2')
   })
 
   it('reports failed GenImage counts from reserved ids and result ids', () => {

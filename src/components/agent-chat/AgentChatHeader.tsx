@@ -126,7 +126,7 @@ export function AgentChatHeader({
                         event.stopPropagation()
                         onDeleteSession(session.id)
                       }}
-                      className="flex h-6 w-6 shrink-0 items-center justify-center rounded-[var(--radius-sm)] text-(--color-text-4) opacity-0 transition-opacity hover:bg-(--color-surface-3) hover:text-(--color-danger) group-hover:opacity-100"
+                      className="flex h-6 w-6 shrink-0 items-center justify-center rounded-[var(--radius-sm)] text-(--color-text-4) transition-colors hover:bg-(--color-surface-3) hover:text-(--color-danger)"
                       aria-label={t('agentChat.header.deleteConversation')}
                     >
                       <Icon name="trash" size={12} />

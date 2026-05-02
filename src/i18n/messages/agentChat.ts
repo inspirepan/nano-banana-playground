@@ -150,8 +150,8 @@ export const agentChatMessages: MessageDictionary = {
   'agentChat.system.toolCallback': { 'zh-CN': '{tool} 回调', en: '{tool} callback' },
   'agentChat.system.toolCallbackWithStatus': { 'zh-CN': '{tool} 回调 · {status}', en: '{tool} callback · {status}' },
   'agentChat.system.imageCompleted': {
-    'zh-CN': '生成任务完成，生成了 {count} 张',
-    en: 'Image task completed with {count} images',
+    'zh-CN': '生成任务完成，生成了 {count} 张：{ids}',
+    en: 'Image task completed with {count} images: {ids}',
   },
   'agentChat.system.imageFailed': { 'zh-CN': '生成任务失败', en: 'Image task failed' },
   'agentChat.system.imageFailedWithParts': { 'zh-CN': '生成任务失败，{parts}', en: 'Image task failed, {parts}' },

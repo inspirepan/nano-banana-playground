@@ -12,12 +12,16 @@ function systemStatusLabel(status: string): string {
   return status
 }
 
-function countCommaList(value: string | undefined): number {
-  if (!value) return 0
+function parseCommaList(value: string | undefined): string[] {
+  if (!value) return []
   return value
     .split(',')
     .map((part) => part.trim())
-    .filter((part) => part.length > 0).length
+    .filter((part) => part.length > 0)
+}
+
+function countCommaList(value: string | undefined): number {
+  return parseCommaList(value).length
 }
 
 type ParsedToolCallback = {
@@ -78,10 +82,11 @@ export function summarizeSystemEvent(text: string): string {
     0,
   )
   const completedCount = genImageCallbacks.reduce((sum, callback) => sum + countCommaList(callback.fields.image_ids), 0)
+  const completedImageIds = genImageCallbacks.flatMap((callback) => parseCommaList(callback.fields.image_ids))
   const failedCount = Math.max(0, reservedCount - completedCount)
 
   if (statuses.length > 0 && statuses.every((item) => item === 'completed')) {
-    return translate('agentChat.system.imageCompleted', { count: completedCount })
+    return translate('agentChat.system.imageCompleted', { count: completedCount, ids: completedImageIds.join(', ') })
   }
   if (statuses.includes('failed')) return summarizeFailedGenImages(completedCount, failedCount)
   if (statuses.length > 0 && statuses.every((item) => item === 'rejected'))
