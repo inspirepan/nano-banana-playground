@@ -21,7 +21,26 @@ export function TruncatedText({
   useLayoutEffect(() => {
     const el = ref.current
     if (!el) return
-    setOverflowing(el.scrollHeight > maxHeight + 4)
+
+    let frame: number | null = null
+    const measure = () => {
+      if (frame !== null) window.cancelAnimationFrame(frame)
+      frame = window.requestAnimationFrame(() => {
+        frame = null
+        const nextOverflowing = el.scrollHeight > maxHeight + 4
+        setOverflowing((prev) => (prev === nextOverflowing ? prev : nextOverflowing))
+      })
+    }
+
+    measure()
+
+    const resizeObserver = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure)
+    resizeObserver?.observe(el)
+
+    return () => {
+      if (frame !== null) window.cancelAnimationFrame(frame)
+      resizeObserver?.disconnect()
+    }
   }, [text, maxHeight])
 
   const collapsed = overflowing && !expanded
