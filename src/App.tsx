@@ -420,7 +420,7 @@ function App() {
 
         <div ref={mobilePanelScrollRef} className="min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]">
           {mobileTab !== 'gallery' ? (
-            <div className="px-3">
+            <div className="h-full px-3">
               <InputPanel
                 inputMode={mobileTab === 'agent' ? 'agent' : 'generate'}
                 model={pg.model}

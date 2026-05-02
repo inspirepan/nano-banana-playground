@@ -270,7 +270,7 @@ export function AgentChatPanel({
   return (
     <div
       ref={controlsRef}
-      className={`flex min-h-[calc(100dvh-126px)] flex-1 md:min-h-[560px] ${showSessionSidebar ? 'min-h-0 flex-row gap-[168px]' : 'flex-col'}`}
+      className={`flex h-full md:h-auto md:min-h-[560px] md:flex-1 ${showSessionSidebar ? 'min-h-0 flex-row gap-[168px]' : 'flex-col'}`}
       onDragOver={(event) => event.preventDefault()}
       onDrop={(event) => {
         event.preventDefault()
