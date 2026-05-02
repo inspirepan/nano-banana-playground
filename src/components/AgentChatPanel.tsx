@@ -630,7 +630,7 @@ function DrawingSkillStarters({
               key={skill.name}
               type="button"
               onClick={() => onPick(skill)}
-              className="group max-w-[250px] rounded-[var(--radius-md)] bg-(--color-surface) px-3 py-2 text-left shadow-[inset_0_0_0_1px_var(--ring-edge-soft)] transition-[box-shadow,background-color] hover:bg-(--color-surface-2) hover:shadow-[inset_0_0_0_1px_var(--ring-edge-strong)]"
+              className="group max-w-[250px] rounded-[var(--radius-md)] bg-(--color-surface) px-3 py-2 text-left shadow-[0_0_0_1px_var(--ring-edge-soft),var(--shadow-lift)] transition-[box-shadow,background-color,transform] hover:-translate-y-px hover:bg-(--color-surface-2) hover:shadow-[0_0_0_1px_var(--ring-edge-strong),var(--shadow-float)]"
             >
               <span className="flex items-start gap-2">
                 <span
