@@ -16,10 +16,14 @@ export const BASE_TITLE = 'Imagine Playground'
 export const TITLE_RESET_DELAY_MS = 8000
 export const GOOGLE_FONTS_LINK_ID = 'nano-banana-google-fonts'
 export const GOOGLE_FONT_PREVIEWS_LINK_ID = 'nano-banana-google-font-previews'
-export const DESKTOP_INPUT_PANEL_WIDTH = '480px'
-export const DESKTOP_AGENT_PANEL_WIDE_WIDTH = 'clamp(480px, 75vw, calc(100vw - 300px))'
-export const DESKTOP_AGENT_PANEL_WIDE_PADDING_X = '128px'
-export const DESKTOP_AGENT_PANEL_SIDEBAR_MEDIA = '(min-width: 1760px)'
+export const DESKTOP_INPUT_PANEL_WIDTH_PX = 480
+export const DESKTOP_INPUT_PANEL_WIDTH = `${DESKTOP_INPUT_PANEL_WIDTH_PX}px`
+export const DESKTOP_AGENT_PANEL_OUTPUT_MIN_WIDTH_PX = 300
+export const DESKTOP_AGENT_PANEL_WIDE_RATIO = 0.75
+export const DESKTOP_AGENT_SESSION_SIDEBAR_WIDTH_PX = 264
+export const DESKTOP_AGENT_CHAT_MIN_WIDTH_PX = 600
+export const DESKTOP_AGENT_SIDE_SPACE_MIN_PX = 72
+export const DESKTOP_AGENT_SIDE_SPACE_MAX_PX = 128
 
 export function getInitialTheme(): Theme {
   const stored = localStorage.getItem('nano-banana-theme')

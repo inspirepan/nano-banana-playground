@@ -4,10 +4,14 @@ import { useState, useLayoutEffect, useRef, useCallback, useMemo } from 'react'
 import type { AgentImageTask } from './agent'
 import {
   BASE_TITLE,
-  DESKTOP_AGENT_PANEL_SIDEBAR_MEDIA,
-  DESKTOP_AGENT_PANEL_WIDE_PADDING_X,
-  DESKTOP_AGENT_PANEL_WIDE_WIDTH,
+  DESKTOP_AGENT_CHAT_MIN_WIDTH_PX,
+  DESKTOP_AGENT_PANEL_OUTPUT_MIN_WIDTH_PX,
+  DESKTOP_AGENT_PANEL_WIDE_RATIO,
+  DESKTOP_AGENT_SESSION_SIDEBAR_WIDTH_PX,
+  DESKTOP_AGENT_SIDE_SPACE_MAX_PX,
+  DESKTOP_AGENT_SIDE_SPACE_MIN_PX,
   DESKTOP_INPUT_PANEL_WIDTH,
+  DESKTOP_INPUT_PANEL_WIDTH_PX,
   TITLE_RESET_DELAY_MS,
   applyColorThemePreference,
   applyLanguagePreference,
@@ -29,12 +33,33 @@ import { OutputPanel } from './components/OutputPanel'
 import { SettingsDialog } from './components/SettingsDialog'
 import { resolveLanguagePreference } from './config/languages'
 import type { ColorThemeId, Theme } from './config/theme'
-import { useExternalSync, useMediaQuery, useMountEffect } from './hooks/effects'
+import { useExternalSync, useMountEffect, useWindowEvent } from './hooks/effects'
 import { usePlayground } from './hooks/usePlayground'
 import { createTranslator, I18nProvider } from './i18n'
 import type { PlaygroundImageMeta } from './lib/types'
 
 type SettingsTarget = 'generationConcurrency'
+type AgentPanelWideLayout = { fits: boolean; panelWidth: number; sideSpace: number }
+
+const DESKTOP_LAYOUT_MIN_WIDTH_PX = 768
+
+function clampNumber(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max)
+}
+
+function resolveAgentPanelWideLayout(viewportWidth: number): AgentPanelWideLayout {
+  const maxPanelWidth = viewportWidth - DESKTOP_AGENT_PANEL_OUTPUT_MIN_WIDTH_PX
+  const preferredPanelWidth = viewportWidth * DESKTOP_AGENT_PANEL_WIDE_RATIO
+  const panelWidth = Math.max(DESKTOP_INPUT_PANEL_WIDTH_PX, Math.min(preferredPanelWidth, maxPanelWidth))
+  const availableSideSpace = (panelWidth - DESKTOP_AGENT_SESSION_SIDEBAR_WIDTH_PX - DESKTOP_AGENT_CHAT_MIN_WIDTH_PX) / 2
+  const sideSpace = clampNumber(availableSideSpace, DESKTOP_AGENT_SIDE_SPACE_MIN_PX, DESKTOP_AGENT_SIDE_SPACE_MAX_PX)
+
+  return {
+    fits: viewportWidth >= DESKTOP_LAYOUT_MIN_WIDTH_PX && availableSideSpace >= DESKTOP_AGENT_SIDE_SPACE_MIN_PX,
+    panelWidth,
+    sideSpace,
+  }
+}
 
 function App() {
   const pg = usePlayground()
@@ -50,7 +75,7 @@ function App() {
   const [mobileTab, setMobileTab] = useState<MobileTab>(() => (pg.inputMode === 'agent' ? 'agent' : 'generate'))
   const [agentPanelWide, setAgentPanelWide] = useState(getInitialAgentPanelWide)
   const [agentWideTipDismissed, setAgentWideTipDismissed] = useState(getInitialAgentWideTipDismissed)
-  const agentPanelSidebarFits = useMediaQuery(DESKTOP_AGENT_PANEL_SIDEBAR_MEDIA)
+  const [viewportWidth, setViewportWidth] = useState(() => (typeof window === 'undefined' ? 0 : window.innerWidth))
   const [highlightStackId, setHighlightStackId] = useState<string | null>(null)
   const highlightTimerRef = useRef<number | null>(null)
   const regenToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -62,8 +87,15 @@ function App() {
   const queueDone = queueSummary.succeeded + queueSummary.failed + queueSummary.canceled
   const language = resolveLanguagePreference(languagePreference, browserLanguages)
   const t = useMemo(() => createTranslator(language), [language])
+  const agentWideLayout = useMemo(() => resolveAgentPanelWideLayout(viewportWidth), [viewportWidth])
+  const agentPanelSidebarFits = agentWideLayout.fits
   const useWideAgentPanel = pg.inputMode === 'agent' && agentPanelWide && agentPanelSidebarFits
-  const desktopInputPanelWidth = useWideAgentPanel ? DESKTOP_AGENT_PANEL_WIDE_WIDTH : DESKTOP_INPUT_PANEL_WIDTH
+  const desktopInputPanelWidth = useWideAgentPanel
+    ? `${Math.round(agentWideLayout.panelWidth)}px`
+    : DESKTOP_INPUT_PANEL_WIDTH
+  const agentPanelSideSpace = `${Math.round(agentWideLayout.sideSpace)}px`
+
+  useWindowEvent('resize', () => setViewportWidth(window.innerWidth))
 
   const dismissAgentWideTip = useCallback(() => {
     setAgentWideTipDismissed(true)
@@ -374,7 +406,7 @@ function App() {
             className="shrink-0 flex flex-col overflow-y-auto [scrollbar-gutter:stable] bg-(--color-bg) shadow-[inset_-1px_0_0_var(--ring-edge-soft)] transition-[width] duration-[280ms] ease-[cubic-bezier(0.22,0.8,0.4,1)] motion-reduce:transition-none"
             style={{
               width: desktopInputPanelWidth,
-              ['--agent-panel-padding-x' as string]: useWideAgentPanel ? DESKTOP_AGENT_PANEL_WIDE_PADDING_X : undefined,
+              ['--agent-panel-wide-side-space' as string]: useWideAgentPanel ? agentPanelSideSpace : undefined,
             }}
           >
             <InputPanel

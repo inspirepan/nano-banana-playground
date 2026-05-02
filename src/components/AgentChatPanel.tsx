@@ -282,12 +282,14 @@ export function AgentChatPanel({
     onAddImageAttachment(image)
     return true
   }
-  const contentRightPaddingClass = showSessionSidebar ? 'pr-[192px]' : 'pr-[var(--agent-panel-padding-x,18px)]'
+  const contentRightPaddingClass = showSessionSidebar
+    ? 'pr-[var(--agent-panel-wide-side-space,128px)]'
+    : 'pr-[var(--agent-panel-padding-x,18px)]'
 
   return (
     <div
       ref={controlsRef}
-      className={`flex h-full md:h-auto md:min-h-[560px] md:flex-1 ${showSessionSidebar ? 'min-h-0 flex-row gap-[168px]' : 'flex-col'}`}
+      className={`flex h-full md:h-auto md:min-h-[560px] md:flex-1 ${showSessionSidebar ? 'min-h-0 flex-row gap-[var(--agent-panel-wide-side-space,128px)]' : 'flex-col'}`}
       onDragOver={(event) => event.preventDefault()}
       onDrop={(event) => {
         event.preventDefault()
