@@ -324,7 +324,7 @@ export function useAgentPlayground({
           runtime.queuedUserMessages = remainingQueuedMessages
         }
       }
-      runtime.isStreaming = runtime.agent.state.isStreaming || runtime.isCompacting
+      runtime.isStreaming = runtime.promptPreparing || runtime.agent.state.isStreaming || runtime.isCompacting
       runtime.error = getAgentError(runtime.agent)
       if (!isCurrentRuntime(runtime)) return
       setAgentMessages(runtime.messages)

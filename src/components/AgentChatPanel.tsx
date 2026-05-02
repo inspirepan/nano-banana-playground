@@ -1,5 +1,6 @@
 import type { AppMessage as AgentMessage } from '@mariozechner/pi-agent'
 import { useCallback, useLayoutEffect, useMemo, useRef, useState, type DragEvent } from 'react'
+import { flushSync } from 'react-dom'
 
 import {
   agentMessageError,
@@ -82,7 +83,7 @@ type Props = {
   onFocusImageTask?: (task: AgentImageTask) => void
   onModelChange: (id: string) => void
   onThinkingLevelChange: (level: AgentThinkingLevel) => void
-  onSend: () => void
+  onSend: () => boolean
   onStop: () => void
 }
 
@@ -136,6 +137,7 @@ export function AgentChatPanel({
   const controlsRef = useRef<HTMLDivElement>(null)
   const [openMenu, setOpenMenu] = useState<AgentChatMenu>(null)
   const [nearBottom, setNearBottom] = useState(true)
+  const [optimisticThinking, setOptimisticThinking] = useState(false)
 
   useWindowEvent(
     'pointerdown',
@@ -152,6 +154,7 @@ export function AgentChatPanel({
   const keyMissing = currentKeyStatus === 'empty'
   const hasComposerContent = draft.trim() !== '' || attachments.length > 0
   const canSend = !keyMissing && hasComposerContent
+  const isAwaitingAgentResponse = isStreaming || optimisticThinking
   const showStop = isStreaming && !hasComposerContent
   const visibleMessages = useMemo(
     () => (streamingMessage ? [...messages, streamingMessage] : messages),
@@ -195,8 +198,8 @@ export function AgentChatPanel({
   }, [visibleMessages])
   const composerError = error && error === latestMessageError ? null : error
   const showThinkingPlaceholder =
-    isStreaming &&
-    pendingQuestions.length === 0 &&
+    isAwaitingAgentResponse &&
+    (optimisticThinking || pendingQuestions.length === 0) &&
     (!streamingMessage ||
       (!hasRenderableMessageContent(streamingMessage) && agentMessageToolCalls(streamingMessage).length === 0))
   const imageTaskByToolCallId = useMemo(() => {
@@ -221,6 +224,10 @@ export function AgentChatPanel({
   const drawingSkills = useMemo(() => skills.filter(isDrawingSkill), [skills])
 
   useExternalSync(() => {
+    if (optimisticThinking && (isStreaming || streamingMessage || error)) setOptimisticThinking(false)
+  }, [error, isStreaming, optimisticThinking, streamingMessage])
+
+  useExternalSync(() => {
     const el = scrollRef.current
     if (!el) return
     const handle = () => {
@@ -240,7 +247,7 @@ export function AgentChatPanel({
     // Note: nearBottom is intentionally excluded from deps — flipping it true
     // mid-smooth-scroll would otherwise snap the animation to its end.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visibleMessages.length, queuedMessages.length, streamingMessage, isStreaming])
+  }, [visibleMessages.length, queuedMessages.length, streamingMessage, isStreaming, optimisticThinking])
 
   const scrollToBottom = useCallback(() => {
     const el = scrollRef.current
@@ -258,7 +265,12 @@ export function AgentChatPanel({
   }, [scrollToBottom])
 
   const handleSend = useCallback(() => {
-    onSend()
+    flushSync(() => setOptimisticThinking(true))
+    const sent = onSend()
+    if (!sent) {
+      setOptimisticThinking(false)
+      return
+    }
     scrollToBottomAfterSend()
   }, [onSend, scrollToBottomAfterSend])
 
@@ -427,6 +439,9 @@ export function AgentChatPanel({
                     />
                   ),
                 )}
+                {queuedMessages.map((queued) => (
+                  <MessageBubble key={queued.id} message={queued.message} isStreaming={false} isQueued />
+                ))}
                 {showThinkingPlaceholder && (
                   <div className="flex justify-start">
                     <div className="mr-3 max-w-[94%] pl-3">
@@ -434,9 +449,6 @@ export function AgentChatPanel({
                     </div>
                   </div>
                 )}
-                {queuedMessages.map((queued) => (
-                  <MessageBubble key={queued.id} message={queued.message} isStreaming={false} isQueued />
-                ))}
               </>
             )}
           </div>
@@ -460,7 +472,7 @@ export function AgentChatPanel({
             keyStatuses={keyStatuses}
             canSend={canSend}
             showStop={showStop}
-            isStreaming={isStreaming}
+            isStreaming={isAwaitingAgentResponse}
             onDraftChange={onDraftChange}
             onAddAttachments={onAddAttachments}
             onRemoveAttachment={onRemoveAttachment}

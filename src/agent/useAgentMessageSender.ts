@@ -59,8 +59,8 @@ export function useAgentMessageSender({
   const sendAgentMessage = useCallback(() => {
     const runtime = getCurrentRuntime()
     const trimmed = runtime?.draft.trim() ?? ''
-    if (!runtime || runtime.promptPreparing || runtime.isCompacting) return
-    if (!trimmed && runtime.attachments.length === 0) return
+    if (!runtime || runtime.promptPreparing || runtime.isCompacting) return false
+    if (!trimmed && runtime.attachments.length === 0) return false
 
     const config = resolveAgentModelConfig(runtime.modelId)
     const credentials = agentCredentialsRef.current[config.provider]
@@ -69,11 +69,11 @@ export function useAgentMessageSender({
         runtime,
         translate('configLib.agent.modelMissingKey', { model: config.label, provider: config.providerLabel }),
       )
-      return
+      return false
     }
     if (!config.supportsImages && runtime.attachments.length > 0) {
       setRuntimeError(runtime, translate('configLib.agent.modelImageUnsupported', { model: config.label }))
-      return
+      return false
     }
 
     applyAgentRuntimeConfig(runtime)
@@ -215,6 +215,7 @@ export function useAgentMessageSender({
         maybeDispatchAgentImageCallbacks(runtime)
       }
     })()
+    return true
   }, [
     agentCredentialsRef,
     applyAgentRuntimeConfig,
