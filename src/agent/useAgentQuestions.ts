@@ -6,10 +6,11 @@ import { type AgentPendingQuestion, type AgentQuestionResolver, type AgentSessio
 import { appendAgentSessionMessage } from './sessionStore'
 import type { AgentSessionSummary } from './sessionTypes'
 import {
+  formatAskUserQuestionArgumentError,
   formatAskUserQuestionResult,
   type AgentToolResult,
   type AskUserQuestionAnswer,
-  type AskUserQuestionToolArgs,
+  type PreparedAskUserQuestionToolArgs,
 } from './tools'
 
 export function useAgentQuestions({
@@ -36,11 +37,20 @@ export function useAgentQuestions({
     (
       sessionId: string,
       toolCallId: string,
-      args: AskUserQuestionToolArgs,
+      args: PreparedAskUserQuestionToolArgs,
       signal?: AbortSignal,
     ): Promise<AgentToolResult> => {
       const runtime = agentRuntimesRef.current.get(sessionId)
       if (!runtime) return Promise.reject(new Error('Agent session is no longer available.'))
+      if (args.validationErrors?.length > 0) {
+        return Promise.resolve(
+          toolTextResult(formatAskUserQuestionArgumentError(args.validationErrors), {
+            status: 'error',
+            reason: 'invalid_arguments',
+            validationErrors: args.validationErrors,
+          }),
+        )
+      }
       const questions = args.questions
       if (questions.length === 0) {
         return Promise.resolve(

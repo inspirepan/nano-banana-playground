@@ -8,9 +8,9 @@ import { AGENT_SYSTEM_PROMPT } from './systemPrompt'
 import {
   createAgentTools,
   type AgentToolResult,
-  type AskUserQuestionToolArgs,
   type CreateSkillToolArgs,
   type GenImageToolArgs,
+  type PreparedAskUserQuestionToolArgs,
   type ReadImageToolArgs,
   type ReadSkillFileToolArgs,
   type SkillToolArgs,
@@ -37,7 +37,7 @@ export type AgentToolHandlers = {
   askUserQuestion: (
     sessionId: string,
     toolCallId: string,
-    args: AskUserQuestionToolArgs,
+    args: PreparedAskUserQuestionToolArgs,
     signal?: AbortSignal,
   ) => Promise<AgentToolResult>
   loadSkill: (sessionId: string, toolCallId: string, args: SkillToolArgs) => Promise<AgentToolResult>

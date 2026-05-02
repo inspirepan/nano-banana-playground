@@ -12,13 +12,19 @@ export { createGenImageTool, prepareGenImageArgs } from './genImage'
 export type { GenImageExecutor, GenImageToolArgs } from './genImage'
 export { createReadImageTool, prepareReadImageArgs } from './readImage'
 export type { ReadImageExecutor, ReadImageToolArgs } from './readImage'
-export { createAskUserQuestionTool, formatAskUserQuestionResult, prepareAskUserQuestionArgs } from './askUserQuestion'
+export {
+  createAskUserQuestionTool,
+  formatAskUserQuestionArgumentError,
+  formatAskUserQuestionResult,
+  prepareAskUserQuestionArgs,
+} from './askUserQuestion'
 export type {
   AskUserQuestionAnswer,
   AskUserQuestionExecutor,
   AskUserQuestionItem,
   AskUserQuestionOption,
   AskUserQuestionToolArgs,
+  PreparedAskUserQuestionToolArgs,
 } from './askUserQuestion'
 export { createCreateSkillTool, prepareCreateSkillArgs } from './createSkill'
 export type { CreateSkillExecutor, CreateSkillToolArgs } from './createSkill'

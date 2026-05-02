@@ -20,6 +20,10 @@ export type AskUserQuestionToolArgs = {
   questions: AskUserQuestionItem[]
 }
 
+export type PreparedAskUserQuestionToolArgs = AskUserQuestionToolArgs & {
+  validationErrors: string[]
+}
+
 export type AskUserQuestionAnswer = {
   question: string
   selectedLabels: string[]
@@ -28,37 +32,96 @@ export type AskUserQuestionAnswer = {
 
 export type AskUserQuestionExecutor = (
   toolCallId: string,
-  args: AskUserQuestionToolArgs,
+  args: PreparedAskUserQuestionToolArgs,
   signal?: AbortSignal,
 ) => Promise<AgentToolResult>
 
-function normalizeOption(value: unknown): AskUserQuestionOption | null {
-  if (typeof value !== 'object' || value === null) return null
+function normalizeOption(value: unknown, path: string, errors: string[]): AskUserQuestionOption | null {
+  if (typeof value !== 'object' || value === null) {
+    errors.push(`${path} must be an object with label and description.`)
+    return null
+  }
   const record = value as Record<string, unknown>
   const label = typeof record.label === 'string' ? record.label.trim() : ''
   const desc = typeof record.description === 'string' ? record.description.trim() : ''
-  if (!label) return null
+  if (!label) {
+    errors.push(`${path}.label is required.`)
+    return null
+  }
   return { label, description: desc }
 }
 
-function normalizeQuestion(value: unknown): AskUserQuestionItem | null {
-  if (typeof value !== 'object' || value === null) return null
+function normalizeQuestion(value: unknown, index: number, errors: string[]): AskUserQuestionItem | null {
+  const path = `questions[${index}]`
+  if (typeof value !== 'object' || value === null) {
+    errors.push(`${path} must be an object.`)
+    return null
+  }
   const record = value as Record<string, unknown>
   const question = typeof record.question === 'string' ? record.question.trim() : ''
   const header = typeof record.header === 'string' ? record.header.trim() : ''
-  const rawOptions = Array.isArray(record.options) ? record.options : []
-  const options = rawOptions.map(normalizeOption).filter((option): option is AskUserQuestionOption => option !== null)
+  if (!question) errors.push(`${path}.question is required.`)
+  if (header.length > 12) errors.push(`${path}.header must be 12 characters or fewer.`)
+
+  if (!Array.isArray(record.options)) {
+    errors.push(`${path}.options must be an array with 2-4 options.`)
+    return null
+  }
+  if (record.options.length < 2 || record.options.length > 4) {
+    errors.push(`${path}.options must contain 2-4 options.`)
+  }
+  const options = record.options
+    .map((option, optionIndex) => normalizeOption(option, `${path}.options[${optionIndex}]`, errors))
+    .filter((option): option is AskUserQuestionOption => option !== null)
   if (!question || options.length < 2) return null
   const multiSelect =
     record.multi_select === true || record.multiSelect === true || record.multi_select === 'true' ? true : false
   return { question, header: header || question.slice(0, 12), options, multi_select: multiSelect }
 }
 
-export function prepareAskUserQuestionArgs(args: unknown): AskUserQuestionToolArgs {
+export function prepareAskUserQuestionArgs(args: unknown): PreparedAskUserQuestionToolArgs {
   const record = typeof args === 'object' && args !== null ? (args as Record<string, unknown>) : {}
-  const rawQuestions = Array.isArray(record.questions) ? record.questions : []
-  const questions = rawQuestions.map(normalizeQuestion).filter((item): item is AskUserQuestionItem => item !== null)
-  return { questions }
+  const validationErrors: string[] = []
+  if (!Array.isArray(record.questions)) {
+    validationErrors.push('questions must be an array with 1-4 questions.')
+    return { questions: [], validationErrors }
+  }
+  if (record.questions.length < 1 || record.questions.length > 4) {
+    validationErrors.push('questions must contain 1-4 questions.')
+  }
+  const questions = record.questions
+    .map((question, index) => normalizeQuestion(question, index, validationErrors))
+    .filter((item): item is AskUserQuestionItem => item !== null)
+  return { questions, validationErrors }
+}
+
+export function formatAskUserQuestionArgumentError(errors: string[]): string {
+  const lines = [
+    '<tool_use_error>',
+    'AskUserQuestion argument validation failed. Fix the arguments and call AskUserQuestion again.',
+    ...errors.map((error) => `- ${error}`),
+    '',
+    'Expected shape:',
+    JSON.stringify(
+      {
+        questions: [
+          {
+            question: 'Full question text?',
+            header: 'Short label',
+            options: [
+              { label: 'Option A', description: 'What this option means.' },
+              { label: 'Option B', description: 'What this option means.' },
+            ],
+            multi_select: false,
+          },
+        ],
+      },
+      null,
+      2,
+    ),
+    '</tool_use_error>',
+  ]
+  return lines.join('\n')
 }
 
 export function createAskUserQuestionTool({
@@ -71,20 +134,24 @@ export function createAskUserQuestionTool({
     label: translate('configLib.agent.tool.askUserQuestion'),
     description: description.trim(),
     parameters: Type.Object({
-      questions: Type.Array(
-        Type.Object({
-          question: Type.String({ description: 'Full question text ending with a question mark.' }),
-          header: Type.String({ description: 'Short chip label for the question (max 12 chars).' }),
-          options: Type.Array(
-            Type.Object({
-              label: Type.String({ description: 'Concise option label (1-5 words).' }),
-              description: Type.String({ description: 'One-sentence explanation of the option.' }),
-            }),
-            { minItems: 2, maxItems: 4, description: '2-4 mutually exclusive options.' },
-          ),
-          multi_select: Type.Boolean({ description: 'Allow multiple selections when true.' }),
-        }),
-        { minItems: 1, maxItems: 4, description: '1-4 questions to ask in a single form.' },
+      questions: Type.Optional(
+        Type.Array(
+          Type.Object({
+            question: Type.Optional(Type.String({ description: 'Full question text ending with a question mark.' })),
+            header: Type.Optional(Type.String({ description: 'Short chip label for the question (max 12 chars).' })),
+            options: Type.Optional(
+              Type.Array(
+                Type.Object({
+                  label: Type.Optional(Type.String({ description: 'Concise option label (1-5 words).' })),
+                  description: Type.Optional(Type.String({ description: 'One-sentence explanation of the option.' })),
+                }),
+                { description: '2-4 mutually exclusive options.' },
+              ),
+            ),
+            multi_select: Type.Optional(Type.Boolean({ description: 'Allow multiple selections when true.' })),
+          }),
+          { description: '1-4 questions to ask in a single form.' },
+        ),
       ),
     }),
     prepareArguments: prepareAskUserQuestionArgs,
