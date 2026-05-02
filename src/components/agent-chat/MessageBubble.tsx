@@ -100,7 +100,7 @@ export function MessageBubble({
             </div>
           )}
           {images.length > 0 && (
-            <div className="mb-2 grid grid-cols-3 gap-1.5">
+            <div className="mb-2 grid max-w-[360px] grid-cols-3 gap-1.5">
               {images.map((image, index) => (
                 <img
                   key={index}

@@ -30,6 +30,9 @@ const BASE_TITLE = 'Imagine Playground'
 const TITLE_RESET_DELAY_MS = 8000
 const GOOGLE_FONTS_LINK_ID = 'nano-banana-google-fonts'
 const GOOGLE_FONT_PREVIEWS_LINK_ID = 'nano-banana-google-font-previews'
+const DESKTOP_INPUT_PANEL_WIDTH = '480px'
+const DESKTOP_AGENT_PANEL_WIDE_WIDTH = 'clamp(480px, 75vw, calc(100vw - 300px))'
+const DESKTOP_AGENT_PANEL_WIDE_PADDING_X = '128px'
 
 type SettingsTarget = 'generationConcurrency'
 type MobileTab = 'generate' | 'agent' | 'gallery'
@@ -60,6 +63,10 @@ function getInitialSansFont(): SansFontId {
 function getInitialLanguagePreference(): LanguagePreference {
   const stored = localStorage.getItem(LANGUAGE_STORAGE_KEY)
   return isLanguagePreference(stored) ? stored : 'auto'
+}
+
+function getInitialAgentPanelWide(): boolean {
+  return localStorage.getItem('nano-banana-agent-panel-wide') === '1'
 }
 
 function ensureGoogleFontsPreconnect() {
@@ -107,6 +114,7 @@ function App() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [settingsTarget, setSettingsTarget] = useState<SettingsTarget | null>(null)
   const [mobileTab, setMobileTab] = useState<MobileTab>(() => (pg.inputMode === 'agent' ? 'agent' : 'generate'))
+  const [agentPanelWide, setAgentPanelWide] = useState(getInitialAgentPanelWide)
   const [highlightStackId, setHighlightStackId] = useState<string | null>(null)
   const highlightTimerRef = useRef<number | null>(null)
   const regenToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -118,6 +126,20 @@ function App() {
   const queueDone = queueSummary.succeeded + queueSummary.failed + queueSummary.canceled
   const language = resolveLanguagePreference(languagePreference, browserLanguages)
   const t = useMemo(() => createTranslator(language), [language])
+  const desktopInputPanelWidth =
+    pg.inputMode === 'agent' && agentPanelWide ? DESKTOP_AGENT_PANEL_WIDE_WIDTH : DESKTOP_INPUT_PANEL_WIDTH
+
+  const toggleAgentPanelWide = useCallback(() => {
+    setAgentPanelWide((prev) => {
+      const next = !prev
+      try {
+        localStorage.setItem('nano-banana-agent-panel-wide', next ? '1' : '0')
+      } catch {
+        /* ignore */
+      }
+      return next
+    })
+  }, [])
 
   const handleAddToRef = useCallback(
     (image: PlaygroundImageMeta) => {
@@ -467,9 +489,15 @@ function App() {
 
       {/* Desktop layout */}
       <div className="hidden md:flex flex-col h-screen overflow-hidden bg-(--color-bg)">
-        <div className="flex flex-1 min-h-0 overflow-hidden">
+        <div className="relative flex flex-1 min-h-0 overflow-hidden">
           {/* Left input panel */}
-          <div className="w-[480px] shrink-0 flex flex-col overflow-y-auto [scrollbar-gutter:stable] bg-(--color-bg) shadow-[inset_-1px_0_0_var(--ring-edge-soft)]">
+          <div
+            className="shrink-0 flex flex-col overflow-y-auto [scrollbar-gutter:stable] bg-(--color-bg) shadow-[inset_-1px_0_0_var(--ring-edge-soft)] transition-[width] duration-[280ms] ease-[cubic-bezier(0.22,0.8,0.4,1)] motion-reduce:transition-none"
+            style={{
+              width: desktopInputPanelWidth,
+              ['--agent-panel-padding-x' as string]: agentPanelWide ? DESKTOP_AGENT_PANEL_WIDE_PADDING_X : undefined,
+            }}
+          >
             <InputPanel
               inputMode={pg.inputMode}
               model={pg.model}
@@ -536,6 +564,20 @@ function App() {
               onGenerate={handleGenerate}
             />
           </div>
+
+          {pg.inputMode === 'agent' && (
+            <button
+              type="button"
+              onClick={toggleAgentPanelWide}
+              title={agentPanelWide ? t('app.action.collapseAgentPanel') : t('app.action.expandAgentPanel')}
+              aria-label={agentPanelWide ? t('app.action.collapseAgentPanel') : t('app.action.expandAgentPanel')}
+              aria-pressed={agentPanelWide}
+              className="agent-panel-width-toggle"
+              style={{ left: desktopInputPanelWidth }}
+            >
+              <Icon name={agentPanelWide ? 'chevron_left' : 'chevron_right'} size={14} strokeWidth={1.8} />
+            </button>
+          )}
 
           {/* Right output panel */}
           <OutputPanel

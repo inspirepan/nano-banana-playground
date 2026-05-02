@@ -10,6 +10,8 @@ export const commonMessages: MessageDictionary = {
   'app.title.generating': { 'zh-CN': '生成中 · {app}', en: 'Generating · {app}' },
   'app.title.failed': { 'zh-CN': '生成失败 · {app}', en: 'Generation failed · {app}' },
   'app.title.completed': { 'zh-CN': '已完成 · {app}', en: 'Completed · {app}' },
+  'app.action.expandAgentPanel': { 'zh-CN': '展开 Agent 面板', en: 'Expand Agent panel' },
+  'app.action.collapseAgentPanel': { 'zh-CN': '收起 Agent 面板', en: 'Collapse Agent panel' },
   'app.toast.restoredPromptParamsRefs': {
     'zh-CN': '已还原提示词、参数和 {count} 张参考图',
     en: 'Restored prompt, settings, and {count} reference images',
