@@ -14,7 +14,7 @@ const TRAILING_API_VERSION = /\/v\d+(?:alpha|beta)?\/*$/i
 // Normalize a user-entered base URL into the form our callers expect:
 //   - google: host root (versioned paths are appended per-endpoint)
 //   - openai: must end in `/v1` (all endpoints are relative to /v1)
-//   - anthropic / deepseek: host root (SDKs append their endpoint paths)
+//   - anthropic: host root (SDK appends its endpoint paths)
 // Whatever the user types (`xxx.com`, `xxx.com/v1`, `xxx.com/v1beta/`) is
 // reconciled to the canonical shape. Suffix `#` suppresses normalization so
 // non-standard gateways can be addressed explicitly.
@@ -36,7 +36,6 @@ export function previewEndpoint(provider: Provider, baseUrl?: string): string {
   const base = resolveBaseUrl(provider, baseUrl)
   if (provider === 'google') return `${base}/v1beta/models/{model}:generateContent`
   if (provider === 'anthropic') return `${base}/v1/messages`
-  if (provider === 'deepseek') return `${base}/models`
   return `${base}/images/generations`
 }
 

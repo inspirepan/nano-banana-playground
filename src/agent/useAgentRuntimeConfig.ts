@@ -22,10 +22,7 @@ import {
   type AgentModelProvider,
   type AgentThinkingLevel,
 } from '../config/agentModels'
-import {
-  setPreferredAgentModelId,
-  setPreferredAgentThinkingLevel,
-} from '../config/agentPreferences'
+import { setPreferredAgentModelId, setPreferredAgentThinkingLevel } from '../config/agentPreferences'
 import { MODEL_CONFIGS } from '../config/models'
 import { useExternalSync } from '../hooks/effects'
 
@@ -103,27 +100,14 @@ export function useAgentRuntimeConfig({
   const openaiBaseUrl = providerCredentials.openai.baseUrl
   const anthropicApiKey = providerCredentials.anthropic.apiKey
   const anthropicBaseUrl = providerCredentials.anthropic.baseUrl
-  const deepseekApiKey = providerCredentials.deepseek.apiKey
-  const deepseekBaseUrl = providerCredentials.deepseek.baseUrl
 
   useExternalSync(() => {
     agentCredentialsRef.current = {
       google: { apiKey: googleApiKey, baseUrl: googleBaseUrl },
       openai: { apiKey: openaiApiKey, baseUrl: openaiBaseUrl },
       anthropic: { apiKey: anthropicApiKey, baseUrl: anthropicBaseUrl },
-      deepseek: { apiKey: deepseekApiKey, baseUrl: deepseekBaseUrl },
     }
-  }, [
-    agentCredentialsRef,
-    anthropicApiKey,
-    anthropicBaseUrl,
-    deepseekApiKey,
-    deepseekBaseUrl,
-    googleApiKey,
-    googleBaseUrl,
-    openaiApiKey,
-    openaiBaseUrl,
-  ])
+  }, [agentCredentialsRef, anthropicApiKey, anthropicBaseUrl, googleApiKey, googleBaseUrl, openaiApiKey, openaiBaseUrl])
 
   const getAgentBaseUrl = useCallback(
     (provider: AgentModelProvider) => agentCredentialsRef.current[provider].baseUrl,

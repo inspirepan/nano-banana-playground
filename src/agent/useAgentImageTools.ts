@@ -71,7 +71,11 @@ export function useAgentImageTools({
   dismissGenerationJob: (jobId: string) => void
   resolveAgentReferenceImages: (runtime: AgentSessionRuntime, ids: string[]) => Promise<PlaygroundImage[]>
   resolveAgentImageById: (runtime: AgentSessionRuntime, id: string) => Promise<AgentResolvedImage>
-  reserveAgentImageIdsForRuntime: (runtime: AgentSessionRuntime, requestedImageId: string, count: number) => Promise<{
+  reserveAgentImageIdsForRuntime: (
+    runtime: AgentSessionRuntime,
+    requestedImageId: string,
+    count: number,
+  ) => Promise<{
     requestedImageId: string
     reservedImageIds: string[]
     renamed: boolean
@@ -480,7 +484,6 @@ export function useAgentImageTools({
 
   useExternalSync(() => {
     void providerApiKeys.anthropic
-    void providerApiKeys.deepseek
     void providerApiKeys.google
     void providerApiKeys.openai
     for (const runtime of agentRuntimesRef.current.values()) maybeDispatchAgentImageCallbacks(runtime)
@@ -488,7 +491,6 @@ export function useAgentImageTools({
     agentRuntimesRef,
     maybeDispatchAgentImageCallbacks,
     providerApiKeys.anthropic,
-    providerApiKeys.deepseek,
     providerApiKeys.google,
     providerApiKeys.openai,
   ])

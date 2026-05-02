@@ -21,15 +21,6 @@ export const apiKeysMessages: MessageDictionary = {
     en: 'Paste your Anthropic API key',
   },
   'apiKeys.provider.anthropic.hint': { 'zh-CN': '用于 Claude Agent 模型', en: 'For Claude Agent models' },
-  'apiKeys.provider.deepseek.label': { 'zh-CN': 'DeepSeek', en: 'DeepSeek' },
-  'apiKeys.provider.deepseek.placeholder': {
-    'zh-CN': '粘贴你的 DeepSeek API Key',
-    en: 'Paste your DeepSeek API key',
-  },
-  'apiKeys.provider.deepseek.hint': {
-    'zh-CN': '用于 DeepSeek Agent 模型',
-    en: 'For DeepSeek Agent models',
-  },
   'apiKeys.apiKey.label': { 'zh-CN': 'API Key', en: 'API key' },
   'apiKeys.apiKey.ariaLabel': { 'zh-CN': '{label} 输入框', en: '{label} field' },
   'apiKeys.apiKey.placeholder.replaceExisting': {

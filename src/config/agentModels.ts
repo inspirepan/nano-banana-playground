@@ -116,22 +116,6 @@ export const AGENT_MODEL_CONFIGS: AgentModelConfig[] = [
     providerLabel: providerLabel('anthropic'),
     ...asAgentModel(getModel('anthropic', 'claude-opus-4-7') as Model<Api>),
   },
-  {
-    id: 'deepseek-v4-flash',
-    label: 'DeepSeek V4 Flash',
-    shortLabel: 'V4 Flash',
-    provider: 'deepseek',
-    providerLabel: providerLabel('deepseek'),
-    ...asAgentModel(getModel('deepseek', 'deepseek-v4-flash') as Model<Api>),
-  },
-  {
-    id: 'deepseek-v4-pro',
-    label: 'DeepSeek V4 Pro',
-    shortLabel: 'V4 Pro',
-    provider: 'deepseek',
-    providerLabel: providerLabel('deepseek'),
-    ...asAgentModel(getModel('deepseek', 'deepseek-v4-pro') as Model<Api>),
-  },
 ]
 
 export const DEFAULT_AGENT_MODEL =

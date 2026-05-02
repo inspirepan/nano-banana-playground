@@ -46,10 +46,7 @@ import {
   type AgentModelProvider,
   type AgentThinkingLevel,
 } from '../config/agentModels'
-import {
-  getPreferredAgentModelId,
-  getPreferredAgentThinkingLevel,
-} from '../config/agentPreferences'
+import { getPreferredAgentModelId, getPreferredAgentThinkingLevel } from '../config/agentPreferences'
 import type { ModelConfig } from '../config/models'
 import { useExternalSync, useMountEffect } from '../hooks/effects'
 import type { useApiKey } from '../hooks/useApiKey'
@@ -134,7 +131,6 @@ export function useAgentPlayground({
     google: { apiKey: keyHooks.google.apiKey, baseUrl: keyHooks.google.baseUrl },
     openai: { apiKey: keyHooks.openai.apiKey, baseUrl: keyHooks.openai.baseUrl },
     anthropic: { apiKey: keyHooks.anthropic.apiKey, baseUrl: keyHooks.anthropic.baseUrl },
-    deepseek: { apiKey: keyHooks.deepseek.apiKey, baseUrl: keyHooks.deepseek.baseUrl },
   })
   const agentToolHandlersRef = useRef(createInitialAgentToolHandlers())
 
@@ -274,7 +270,6 @@ export function useAgentPlayground({
         google: { apiKey: keyHooks.google.apiKey, baseUrl: keyHooks.google.baseUrl },
         openai: { apiKey: keyHooks.openai.apiKey, baseUrl: keyHooks.openai.baseUrl },
         anthropic: { apiKey: keyHooks.anthropic.apiKey, baseUrl: keyHooks.anthropic.baseUrl },
-        deepseek: { apiKey: keyHooks.deepseek.apiKey, baseUrl: keyHooks.deepseek.baseUrl },
       },
       getCurrentRuntime,
       upsertAgentSessionSummary,
@@ -686,7 +681,6 @@ export function useAgentPlayground({
       google: keyHooks.google.apiKey,
       openai: keyHooks.openai.apiKey,
       anthropic: keyHooks.anthropic.apiKey,
-      deepseek: keyHooks.deepseek.apiKey,
     },
     getCurrentRuntime,
     getProviderCredentials,

@@ -86,15 +86,13 @@ export function usePlayground() {
   const googleKeyHook = useApiKey('google')
   const openaiKeyHook = useApiKey('openai')
   const anthropicKeyHook = useApiKey('anthropic')
-  const deepseekKeyHook = useApiKey('deepseek')
   const keyHooks: Record<Provider, ReturnType<typeof useApiKey>> = useMemo(
     () => ({
       google: googleKeyHook,
       openai: openaiKeyHook,
       anthropic: anthropicKeyHook,
-      deepseek: deepseekKeyHook,
     }),
-    [anthropicKeyHook, deepseekKeyHook, googleKeyHook, openaiKeyHook],
+    [anthropicKeyHook, googleKeyHook, openaiKeyHook],
   )
   const [model, setModel] = useState<ModelConfig>(() => resolveModel(_initial.modelId))
   const apiKeyHook = keyHooks[model.provider]
@@ -581,7 +579,6 @@ export function usePlayground() {
       google: googleKeyHook.status,
       openai: openaiKeyHook.status,
       anthropic: anthropicKeyHook.status,
-      deepseek: deepseekKeyHook.status,
     } satisfies Record<Provider, ReturnType<typeof useApiKey>['status']>,
     model,
     resolution,
