@@ -31,12 +31,11 @@ export function ToolCallRow({
       <span className="min-w-0 flex-1">
         <span className="flex min-w-0 items-center gap-1.5">
           <span className="truncate text-sm font-medium text-(--color-text-2)">{toolLabel(call.name)}</span>
-          <span className="mono shrink-0 text-[11px] text-(--color-text-4)">{call.name}</span>
           {!done && <span className="spinner shrink-0" style={{ width: 10, height: 10 }} />}
         </span>
         <span className="mt-0.5 block truncate text-sm text-(--color-text-3)">{summarizeToolArgs(call)}</span>
-        {result && (
-          <span className="mt-1 block truncate text-sm text-(--color-text-3)">{summarizeToolResult(result)}</span>
+        {result?.isError && (
+          <span className="mt-1 block truncate text-sm text-(--color-danger)">{summarizeToolResult(result)}</span>
         )}
       </span>
     </div>
@@ -53,7 +52,9 @@ export function StandaloneToolResultRow({ result }: { result: AgentMessageToolRe
       )}
       <span className="min-w-0 flex-1">
         <span className="text-sm font-medium text-(--color-text-2)">{toolLabel(result.toolName)}</span>
-        <span className="mt-0.5 block truncate text-sm text-(--color-text-3)">{summarizeToolResult(result)}</span>
+        {result.isError && (
+          <span className="mt-0.5 block truncate text-sm text-(--color-danger)">{summarizeToolResult(result)}</span>
+        )}
       </span>
     </div>
   )
