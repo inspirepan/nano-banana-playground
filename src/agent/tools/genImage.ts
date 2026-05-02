@@ -61,7 +61,9 @@ export function createGenImageTool({
       model: Type.String({ description: 'Image model ID from the playground model list.' }),
       resolution: Type.String({ description: 'Target resolution supported by the model.' }),
       ratio: Type.String({ description: 'Target aspect ratio.' }),
-      n: Type.Number({ description: 'Number of images to generate.' }),
+      n: Type.Number({
+        description: 'Sample count for variants from one unchanged prompt; do not use for different photos.',
+      }),
       reference_image_ids: Type.Array(Type.String(), {
         description: 'IDs of uploaded, reference, history, or generated images to use as references.',
       }),
