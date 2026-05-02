@@ -132,6 +132,18 @@ export function AgentChatPanel({
   const controlsRef = useRef<HTMLDivElement>(null)
   const [openMenu, setOpenMenu] = useState<AgentChatMenu>(null)
   const [nearBottom, setNearBottom] = useState(true)
+
+  useWindowEvent(
+    'pointerdown',
+    (event) => {
+      const target = event.target
+      if (!(target instanceof Element)) return
+      if (target.closest('[data-agent-menu], [data-agent-menu-trigger]')) return
+      setOpenMenu(null)
+    },
+    undefined,
+    openMenu !== null,
+  )
   const currentKeyStatus = keyStatuses[model.provider]
   const keyMissing = currentKeyStatus === 'empty'
   const hasComposerContent = draft.trim() !== '' || attachments.length > 0

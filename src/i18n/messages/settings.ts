@@ -8,8 +8,8 @@ export const settingsMessages: MessageDictionary = {
   },
   'settings.apiKeys.title': { 'zh-CN': '服务连接', en: 'Service connections' },
   'settings.apiKeys.description': {
-    'zh-CN': '配置固定支持服务的访问密钥；模型列表仍由应用内置白名单控制。',
-    en: 'Configure access keys for supported services. The model list stays controlled by the built-in allowlist.',
+    'zh-CN': '配置固定支持服务的访问密钥。',
+    en: 'Configure access keys for supported services.',
   },
   'settings.appearance.title': { 'zh-CN': '外观', en: 'Appearance' },
   'settings.appearance.description': {

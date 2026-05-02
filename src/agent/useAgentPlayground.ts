@@ -61,12 +61,17 @@ import {
 } from './tools'
 import {
   AGENT_MODEL_CONFIGS,
-  DEFAULT_AGENT_MODEL,
   agentModelWithBaseUrl,
   resolveAgentModelConfig,
   type AgentModelProvider,
   type AgentThinkingLevel,
 } from '../config/agentModels'
+import {
+  getPreferredAgentModelId,
+  getPreferredAgentThinkingLevel,
+  setPreferredAgentModelId,
+  setPreferredAgentThinkingLevel,
+} from '../config/agentPreferences'
 import type { Language } from '../config/languages'
 import { MODEL_CONFIGS, defaultOptionsFor, type ModelConfig } from '../config/models'
 import { getPreferredImageModelId } from '../config/preferredImageModel'
@@ -452,9 +457,9 @@ export function useAgentPlayground({
   cancelGenerationJob,
   dismissGenerationJob,
 }: UseAgentPlaygroundParams) {
-  const [agentModelId, setAgentModelId] = useState(DEFAULT_AGENT_MODEL.id)
+  const [agentModelId, setAgentModelId] = useState(getPreferredAgentModelId)
   const agentModel = resolveAgentModelConfig(agentModelId)
-  const [agentThinkingLevel, setAgentThinkingLevelState] = useState<AgentThinkingLevel>('low')
+  const [agentThinkingLevel, setAgentThinkingLevelState] = useState<AgentThinkingLevel>(getPreferredAgentThinkingLevel)
   const [agentMessages, setAgentMessages] = useState<AgentMessage[]>([])
   const [agentMessageMetadata, setAgentMessageMetadata] = useState(
     () => new WeakMap<AgentMessage, AgentSessionMessageMetadata>(),
@@ -702,6 +707,7 @@ export function useAgentPlayground({
       if (!runtime) return
       runtime.modelId = modelId
       setAgentModelId(modelId)
+      setPreferredAgentModelId(modelId)
       const config = resolveAgentModelConfig(modelId)
       runtime.agent.state.model = agentModelWithBaseUrl(config, getAgentBaseUrl(config.provider))
       runtime.agent.state.thinkingLevel = config.supportsThinking ? runtime.thinkingLevel : 'off'
@@ -719,6 +725,7 @@ export function useAgentPlayground({
       if (!runtime) return
       runtime.thinkingLevel = level
       setAgentThinkingLevelState(level)
+      setPreferredAgentThinkingLevel(level)
       const config = resolveAgentModelConfig(runtime.modelId)
       runtime.agent.state.thinkingLevel = config.supportsThinking ? level : 'off'
       if (!runtime.persisted) return
@@ -1160,8 +1167,8 @@ export function useAgentPlayground({
       agentRuntimesRef.current.delete(previousRuntime.sessionId)
     }
     const record = createAgentSessionRecord({
-      modelId: agentModel.id,
-      thinkingLevel: agentThinkingLevel,
+      modelId: getPreferredAgentModelId(),
+      thinkingLevel: getPreferredAgentThinkingLevel(),
       autoApproveImageTasks: autoApproveAgentImageTasks,
     })
     const runtime = createRuntime({
@@ -1184,15 +1191,7 @@ export function useAgentPlayground({
       lastCompaction: undefined,
     })
     projectRuntimeToUi(runtime)
-  }, [
-    agentModel.id,
-    agentThinkingLevel,
-    autoApproveAgentImageTasks,
-    createRuntime,
-    flushRuntime,
-    getCurrentRuntime,
-    projectRuntimeToUi,
-  ])
+  }, [autoApproveAgentImageTasks, createRuntime, flushRuntime, getCurrentRuntime, projectRuntimeToUi])
 
   const switchAgentSession = useCallback(
     (sessionId: string) => {

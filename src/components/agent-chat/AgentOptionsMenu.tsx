@@ -41,7 +41,10 @@ export function AgentOptionsMenu({
   if (openMenu !== 'agentOptions') return null
 
   return (
-    <div className="absolute right-2 bottom-[46px] z-50 w-[320px] max-w-[calc(100vw-32px)] rounded-[var(--radius-lg)] bg-(--color-surface) p-1 shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-float)]">
+    <div
+      data-agent-menu
+      className="absolute right-2 bottom-[46px] z-50 w-[320px] max-w-[calc(100vw-32px)] rounded-[var(--radius-lg)] bg-(--color-surface) p-1 shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-float)]"
+    >
       <button
         type="button"
         onClick={() => onToggleAutoApproveImageTasks(!autoApproveImageTasks)}

@@ -45,6 +45,7 @@ export function AgentChatHeader({
       ) : (
         <button
           type="button"
+          data-agent-menu-trigger
           onClick={() => setOpenMenu((prev) => (prev === 'sessions' ? null : 'sessions'))}
           aria-expanded={openMenu === 'sessions'}
           className="group flex h-[34px] min-w-0 max-w-[calc(100%-86px)] shrink items-center gap-2 rounded-[var(--radius-md)] bg-(--color-surface) px-2.5 text-left shadow-[inset_0_0_0_1px_var(--ring-edge-soft)] transition-[background,box-shadow] duration-150 hover:bg-(--color-surface-2) hover:shadow-[inset_0_0_0_1px_var(--ring-edge)]"
@@ -77,7 +78,10 @@ export function AgentChatHeader({
         </button>
       )}
       {!compactSessionControls && openMenu === 'sessions' && (
-        <div className="absolute top-[40px] left-0 z-50 w-full rounded-[var(--radius-lg)] bg-(--color-surface) p-1 shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-float)]">
+        <div
+          data-agent-menu
+          className="absolute top-[40px] left-0 z-50 w-full rounded-[var(--radius-lg)] bg-(--color-surface) p-1 shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-float)]"
+        >
           <div className="px-2 py-1.5 text-sm font-medium text-(--color-text-3)">{t('agentChat.header.history')}</div>
           <div className="max-h-[260px] overflow-y-auto py-0.5">
             {sessions.length === 0 ? (

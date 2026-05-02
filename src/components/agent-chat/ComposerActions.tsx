@@ -73,6 +73,7 @@ export function ComposerActions({
       <div className="flex-1" />
       <button
         type="button"
+        data-agent-menu-trigger
         onClick={() => setOpenMenu((prev) => (prev === 'agentOptions' ? null : 'agentOptions'))}
         className="chip ghost min-w-0 max-w-[300px] gap-1 px-2 text-sm"
         style={{ height: 28 }}
