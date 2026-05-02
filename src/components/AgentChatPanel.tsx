@@ -372,7 +372,7 @@ export function AgentChatPanel({
           }}
         >
           <div className={`space-y-4 ${contentRightPaddingClass}`}>
-            {renderItems.length === 0 ? (
+            {renderItems.length === 0 && !showThinkingPlaceholder ? (
               <div className="flex min-h-[300px] flex-col items-center justify-center text-center">
                 {drawingSkills.length > 0 ? (
                   <DrawingSkillStarters
