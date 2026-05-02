@@ -74,7 +74,7 @@ export function AskUserQuestionForm({
 
   return (
     <div
-      className="rounded-[var(--radius-lg)] p-3 shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]"
+      className="m-1 rounded-[var(--radius-lg)] p-3 shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]"
       style={{ background: 'var(--color-bg-sunken)' }}
     >
       <div className="flex min-w-0 items-center gap-2">
@@ -210,7 +210,7 @@ export function AskUserQuestionResultCard({
 
   return (
     <div
-      className="w-fit max-w-full rounded-[var(--radius-md)] px-3.5 py-3 shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]"
+      className="m-1 w-fit max-w-full rounded-[var(--radius-md)] px-3.5 py-3 shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]"
       style={{ background: 'var(--color-accent-soft)' }}
     >
       {!hasFormatted ? (
