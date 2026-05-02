@@ -7,12 +7,24 @@ const BUILTIN_SKILL_DISPLAY_KEYS: Record<string, string> = {
   'baoyu-cover-image': 'settings.agentSkills.builtin.baoyuCoverImage.description',
   'editorial-sketch-art': 'settings.agentSkills.builtin.editorialSketchArt.description',
   'skill-creator': 'settings.agentSkills.builtin.skillCreator.description',
+  'article-cover-image': 'settings.agentSkills.builtin.articleCoverImage.description',
+  'xhs-card-series': 'settings.agentSkills.builtin.xhsCardSeries.description',
+  'editorial-poster': 'settings.agentSkills.builtin.editorialPoster.description',
+  'knowledge-infographic': 'settings.agentSkills.builtin.knowledgeInfographic.description',
+  'scene-cinematic': 'settings.agentSkills.builtin.sceneCinematic.description',
+  'comic-strip': 'settings.agentSkills.builtin.comicStrip.description',
 }
 
 const BUILTIN_SKILL_ICONS: Record<string, AgentSkillIconName> = {
   'baoyu-cover-image': 'image',
   'editorial-sketch-art': 'pencil-ruler',
   'skill-creator': 'badge-plus',
+  'article-cover-image': 'image',
+  'xhs-card-series': 'layout-grid',
+  'editorial-poster': 'film',
+  'knowledge-infographic': 'notebook-pen',
+  'scene-cinematic': 'clapperboard',
+  'comic-strip': 'book-open',
 }
 
 const BUILTIN_SKILL_MARKDOWN = import.meta.glob('./builtin/**/*.md', {

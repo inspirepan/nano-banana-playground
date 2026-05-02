@@ -56,6 +56,30 @@ export const settingsMessages: MessageDictionary = {
     'zh-CN': '帮助 Agent 把可复用流程沉淀成精简 Skill。',
     en: 'Helps the agent turn reusable workflows into concise skills.',
   },
+  'settings.agentSkills.builtin.articleCoverImage.description': {
+    'zh-CN': '文章 / 公众号 / 博客封面图，type × palette × rendering × text × mood 五维度自由组合。',
+    en: 'Article / blog cover images via the 5-dimension system (type × palette × rendering × text × mood).',
+  },
+  'settings.agentSkills.builtin.xhsCardSeries.description': {
+    'zh-CN': '小红书 / 微信图文系列卡，多张连贯，12 风格 × 8 布局 × 3 配色。',
+    en: 'Coherent Xiaohongshu / WeChat image card series across 12 styles, 8 layouts, and 3 palettes.',
+  },
+  'settings.agentSkills.builtin.editorialPoster.description': {
+    'zh-CN': '影评 / 书评 / 演唱会海报，screen-print + duotone 双色调编辑风。',
+    en: 'Editorial movie / book / concert posters in screen-print and duotone style.',
+  },
+  'settings.agentSkills.builtin.knowledgeInfographic.description': {
+    'zh-CN': '高密度知识卡 / 信息图，notion 极简、sketch-notes 手绘、chalkboard 黑板三选一。',
+    en: 'Dense knowledge cards in notion line, sketch-notes, or chalkboard styles.',
+  },
+  'settings.agentSkills.builtin.sceneCinematic.description': {
+    'zh-CN': '电影感叙事场景图，强氛围、宽幅 2.35:1、大气透视。',
+    en: 'Cinematic narrative scene images with strong atmosphere and wide 2.35:1 framing.',
+  },
+  'settings.agentSkills.builtin.comicStrip.description': {
+    'zh-CN': '多格漫画 / 分镜故事，single-sheet 一图多格或 multi-image 多张连贯。',
+    en: 'Multi-panel comic strips and storyboards in single-sheet or multi-image mode.',
+  },
   'settings.data.title': { 'zh-CN': '数据', en: 'Data' },
   'settings.data.description': {
     'zh-CN': '清空当前站点保存在此浏览器里的所有数据。',
