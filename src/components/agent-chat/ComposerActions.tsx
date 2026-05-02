@@ -121,7 +121,7 @@ export function ComposerActions({
           }
           aria-label={t('agentChat.composer.send')}
         >
-          <Icon name="send" size={14} />
+          <Icon name="send" size={16} strokeWidth={2.2} />
         </button>
       )}
     </div>

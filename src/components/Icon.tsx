@@ -1,4 +1,5 @@
 import {
+  ArrowUp,
   Brush,
   Check,
   ChevronDown,
@@ -28,7 +29,6 @@ import {
   Redo2,
   RefreshCw,
   Search,
-  SendHorizontal,
   Settings,
   Sparkles,
   Square,
@@ -137,7 +137,7 @@ const ICONS = {
   redo: Redo2,
   refresh: RefreshCw,
   search: Search,
-  send: SendHorizontal,
+  send: ArrowUp,
   settings: Settings,
   sparkles: Sparkles,
   square: Square,
