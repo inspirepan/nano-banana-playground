@@ -67,7 +67,7 @@ export function ComposerActions({
         <AgentModelIcon model={model} />
         <span className="min-w-0 truncate text-(--color-text-2)">{model.shortLabel}</span>
         {effectiveThinkingLevel !== 'off' && (
-          <span className="shrink-0 text-(--color-text-4)">{effectiveThinkingLabel}</span>
+          <span className="shrink-0 text-(--color-text-3)">{effectiveThinkingLabel}</span>
         )}
         <Icon name="chevron_right" size={13} className={openMenu === 'agentOptions' ? '-rotate-90' : 'rotate-90'} />
       </button>

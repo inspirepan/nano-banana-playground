@@ -119,7 +119,7 @@ export function SlotHero({
         <span className="spinner" />
       )}
       <div className="text-sm text-(--color-text-2)">{label}</div>
-      {slot?.error && <div className="max-w-[420px] text-sm leading-[1.5] text-(--color-text-4)">{slot.error}</div>}
+      {slot?.error && <div className="max-w-[420px] text-sm leading-[1.5] text-(--color-text-2)">{slot.error}</div>}
       {slot &&
         job &&
         (slot.status === 'queued' || slot.status === 'running' || slot.status === 'retrying') &&
@@ -279,7 +279,7 @@ export function StackStrip({
                       <span className="text-(--color-text-3)">{formatHourMinute(batch.createdAt)}</span>
                     </div>
                     <div
-                      className="mt-0.5 truncate text-sm leading-[1.35] text-(--color-text-4)"
+                      className="mt-0.5 truncate text-sm leading-[1.35] text-(--color-text-3)"
                       title={batch.prompt ?? undefined}
                     >
                       {batch.prompt ?? '—'}

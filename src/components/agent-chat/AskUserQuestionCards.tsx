@@ -148,7 +148,7 @@ export function AskUserQuestionForm({
                           {option.label}
                         </span>
                         {option.description && (
-                          <span className="text-[12px] leading-[1.35] text-(--color-text-4) group-data-[active]:text-(--color-text-2)">
+                          <span className="text-[12px] leading-[1.35] text-(--color-text-3) group-data-[active]:text-(--color-text-2)">
                             {option.description}
                           </span>
                         )}
@@ -254,7 +254,7 @@ export function AskUserQuestionResultCard({
                 <div className="text-sm font-semibold text-(--color-text)">{questionText}</div>
                 <div className="whitespace-pre-wrap text-sm leading-[1.55] text-(--color-text-3)">{displayAnswer}</div>
                 {noteLine && (
-                  <div className="text-sm leading-[1.55] text-(--color-text-4)">
+                  <div className="text-sm leading-[1.55] text-(--color-text-3)">
                     {t('agentChat.question.notePrefix', { note: noteLine.replace(/^Note:\s*/, '') })}
                   </div>
                 )}

@@ -57,10 +57,10 @@ export function AgentChatHeader({
       </button>
       {openMenu === 'sessions' && (
         <div className="absolute top-[36px] left-0 z-50 w-full rounded-[var(--radius-lg)] bg-(--color-surface) p-1 shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-float)]">
-          <div className="px-2 py-1.5 text-sm font-medium text-(--color-text-4)">{t('agentChat.header.history')}</div>
+          <div className="px-2 py-1.5 text-sm font-medium text-(--color-text-3)">{t('agentChat.header.history')}</div>
           <div className="max-h-[260px] overflow-y-auto py-0.5">
             {sessions.length === 0 ? (
-              <div className="px-2 py-4 text-center text-sm text-(--color-text-4)">
+              <div className="px-2 py-4 text-center text-sm text-(--color-text-3)">
                 {t('agentChat.header.emptyHistory')}
               </div>
             ) : (
@@ -81,11 +81,11 @@ export function AgentChatHeader({
                         <span className="truncate text-sm font-medium text-(--color-text-2)">{session.title}</span>
                         {active && <Icon name="check" size={12} className="shrink-0 text-(--color-accent)" />}
                       </span>
-                      <span className="mt-0.5 block truncate text-sm text-(--color-text-4)">
+                      <span className="mt-0.5 block truncate text-sm text-(--color-text-3)">
                         {session.previewText || session.firstUserText || t('agentChat.header.emptyConversation')}
                       </span>
                     </span>
-                    <span className="shrink-0 text-sm text-(--color-text-4)">
+                    <span className="shrink-0 text-sm text-(--color-text-3)">
                       {formatSessionTime(session.updatedAt)}
                     </span>
                     <span

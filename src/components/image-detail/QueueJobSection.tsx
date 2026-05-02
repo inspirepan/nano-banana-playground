@@ -54,9 +54,9 @@ function StatusCard({ slot, onCancel }: { slot: GenerationSlot; onCancel: (slotI
         <div className="text-sm text-(--color-text-3)">
           {label} #{slot.index + 1}
         </div>
-        <div className="text-sm text-(--color-text-4)">{hint}</div>
+        <div className="text-sm text-(--color-text-3)">{hint}</div>
         {retrying && slot.error && (
-          <div className="max-h-[44px] overflow-y-auto break-words text-sm leading-[1.45] text-(--color-text-4)">
+          <div className="max-h-[44px] overflow-y-auto break-words text-sm leading-[1.45] text-(--color-text-2)">
             {slot.error}
           </div>
         )}
@@ -110,7 +110,7 @@ function CanceledCard({ index }: { index: number }) {
         background: 'var(--color-surface-2)',
       }}
     >
-      <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-(--color-text-4)">
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-(--color-text-3)">
         <Icon name="close" size={14} strokeWidth={1.8} />
         <div className="text-base">{t('imageDetail.queue.status.canceledIndexed', { index: index + 1 })}</div>
       </div>

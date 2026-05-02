@@ -82,7 +82,7 @@ export function MobileEditScreen({
         </button>
         <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-semibold text-(--color-text)">{t('imageDetail.action.editImage')}</div>
-          <div className="flex min-w-0 items-center gap-1.5 text-sm text-(--color-text-4)">
+          <div className="flex min-w-0 items-center gap-1.5 text-sm text-(--color-text-3)">
             <span className="truncate">{modelName ?? t('imageDetail.mobile.editFallbackImage')}</span>
             {pxDim && (
               <>

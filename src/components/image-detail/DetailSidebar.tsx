@@ -180,7 +180,7 @@ export function DetailSidebar({
         <div className="mb-[18px]">
           <div className="flex items-center mb-1.5">
             <span className="label">{t('imageDetail.meta.referenceImages')}</span>
-            <span className="ml-1.5 text-sm text-(--color-text-4) tabular-nums">
+            <span className="ml-1.5 text-sm text-(--color-text-3) tabular-nums">
               {t('imageDetail.reference.count', { count: currentMeta.referenceImageIds.length })}
             </span>
           </div>
@@ -327,7 +327,7 @@ export function DetailSidebar({
             value={
               <span>
                 <span className="mono">s_{stackId.slice(0, 6)}</span>
-                <span className="text-(--color-text-4) ml-1.5">
+                <span className="text-(--color-text-3) ml-1.5">
                   #{stackInfo.pos}/{stackInfo.total}
                 </span>
               </span>

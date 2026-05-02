@@ -42,7 +42,7 @@ export function AgentOptionsMenu({
         {autoApproveImageTasks && <Icon name="check" size={13} />}
       </button>
       <div className="my-1 h-px bg-(--ring-edge-soft)" />
-      <div className="px-2 py-1 text-sm font-medium text-(--color-text-4)">{t('agentChat.options.thinking')}</div>
+      <div className="px-2 py-1 text-sm font-medium text-(--color-text-3)">{t('agentChat.options.thinking')}</div>
       {AGENT_THINKING_OPTIONS.map((item) => {
         const disabled = !model.supportsThinking && item.value !== 'off'
         return (

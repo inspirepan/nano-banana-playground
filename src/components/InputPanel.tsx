@@ -51,7 +51,7 @@ function Section({
       <div className="flex items-center justify-between mb-1.5 min-h-[20px]">
         <div className="flex items-center gap-2">
           <span className={INPUT_LABEL_CLASS}>{label}</span>
-          {hint && <span className="text-sm text-(--color-text-4)">{hint}</span>}
+          {hint && <span className="text-sm text-(--color-text-3)">{hint}</span>}
         </div>
         {right}
       </div>
@@ -717,7 +717,7 @@ export function InputPanel({
                 className="block w-full bg-transparent px-3 py-2.5 text-[16px] md:text-base leading-[1.55] resize-none focus:outline-none"
               />
               <div className="flex items-center gap-2 px-2.5 py-1.5 text-sm text-(--color-text-3) shadow-[inset_0_1px_0_var(--ring-edge-soft)]">
-                <span className="text-sm text-(--color-text-4)">
+                <span className="text-sm text-(--color-text-3)">
                   {t('input.prompt.charCount', { count: prompt.length })}
                 </span>
                 <div className="flex-1" />
@@ -844,21 +844,21 @@ export function InputPanel({
                 )}
               </div>
               <dl className="grid grid-cols-[52px_1fr] gap-x-3 gap-y-[5px] text-sm leading-[1.5]">
-                <dt className="text-(--color-text-4)">{t('common.model')}</dt>
+                <dt className="text-(--color-text-3)">{t('common.model')}</dt>
                 <dd className="text-(--color-text-2)">{model.name}</dd>
-                <dt className="text-(--color-text-4)">{t('input.summary.size')}</dt>
+                <dt className="text-(--color-text-3)">{t('input.summary.size')}</dt>
                 <dd className="text-(--color-text-2) tabular-nums">
                   <span>{resolution}</span>
                   <span className="mx-1.5 text-(--color-text-4)">/</span>
                   <span>{aspectRatio}</span>
                 </dd>
-                <dt className="text-(--color-text-4)">{t('input.count.label')}</dt>
+                <dt className="text-(--color-text-3)">{t('input.count.label')}</dt>
                 <dd className="text-(--color-text-2) tabular-nums">
                   <span>×{batchCount}</span>
                 </dd>
                 {referenceImages.length > 0 && (
                   <>
-                    <dt className="text-(--color-text-4)">{t('input.summary.referenceImages')}</dt>
+                    <dt className="text-(--color-text-3)">{t('input.summary.referenceImages')}</dt>
                     <dd className="text-(--color-text-2) tabular-nums">
                       {t('input.summary.referenceImageCount', { count: referenceImages.length })}
                     </dd>
@@ -866,7 +866,7 @@ export function InputPanel({
                 )}
                 {optionSummaryLabels.length > 0 && (
                   <>
-                    <dt className="text-(--color-text-4)">{t('input.summary.options')}</dt>
+                    <dt className="text-(--color-text-3)">{t('input.summary.options')}</dt>
                     <dd className="text-(--color-text-2)">{optionSummary}</dd>
                   </>
                 )}
@@ -882,7 +882,7 @@ export function InputPanel({
               </span>
             </button>
             {!apiKey.trim() && (
-              <div className="mt-1.5 text-sm text-(--color-text-4) text-center">{t('input.apiKey.required')}</div>
+              <div className="mt-1.5 text-sm text-(--color-text-3) text-center">{t('input.apiKey.required')}</div>
             )}
           </div>
         </>

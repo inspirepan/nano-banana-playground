@@ -14,7 +14,7 @@ export function DetailFooter({ editing, currentImage, selectedItem, stackId }: D
 
   return (
     <div
-      className="hidden shrink-0 items-center gap-3.5 px-3.5 text-sm text-(--color-text-4) md:flex"
+      className="hidden shrink-0 items-center gap-3.5 px-3.5 text-sm text-(--color-text-3) md:flex"
       style={{
         height: 30,
         borderTop: '1px solid var(--color-border)',

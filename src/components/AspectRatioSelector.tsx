@@ -55,11 +55,11 @@ export function AspectRatioSelector({
       {showLabel ? (
         <div className="flex items-center justify-between mb-1.5">
           <span className={labelClassName}>{t('input.aspectRatio.label')}</span>
-          <span className="text-sm text-(--color-text-4) tabular-nums">{pixelLabel(value, resolution)}</span>
+          <span className="text-sm text-(--color-text-3) tabular-nums">{pixelLabel(value, resolution)}</span>
         </div>
       ) : (
         <div className="flex justify-end mb-1.5">
-          <span className="text-sm text-(--color-text-4) tabular-nums">{pixelLabel(value, resolution)}</span>
+          <span className="text-sm text-(--color-text-3) tabular-nums">{pixelLabel(value, resolution)}</span>
         </div>
       )}
       <div className="grid grid-cols-4 gap-1.5">

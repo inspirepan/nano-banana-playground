@@ -327,7 +327,7 @@ export function SettingsDialog({
                 </button>
               </div>
               {siteDataUsage?.browserEstimateBytes !== null && siteDataUsage?.browserEstimateBytes !== undefined && (
-                <div className="mt-1 text-sm text-(--color-text-4)">
+                <div className="mt-1 text-sm text-(--color-text-3)">
                   {t('settings.data.browserEstimate', { size: formatBytes(siteDataUsage.browserEstimateBytes) })}
                   {siteDataUsage.quotaBytes
                     ? t('settings.data.quota', { size: formatBytes(siteDataUsage.quotaBytes) })

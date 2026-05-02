@@ -543,7 +543,7 @@ export const OutputPanel = memo(function OutputPanel({
 
           {historyHasMore && (
             <div ref={sentinelRef} className="flex justify-center py-4">
-              <div className="text-sm text-(--color-text-4)">{t('common.loadingMore')}</div>
+              <div className="text-sm text-(--color-text-3)">{t('common.loadingMore')}</div>
             </div>
           )}
         </div>
@@ -551,7 +551,7 @@ export const OutputPanel = memo(function OutputPanel({
         <div className="card px-4 py-5 text-(--color-text-3)">
           <div className="label mb-2">{t('output.emptyHistory')}</div>
           <div className="text-base font-medium text-(--color-text-2)">{t('output.emptyTitle')}</div>
-          <div className="mt-1 text-sm leading-[1.7] text-(--color-text-4)">{t('output.emptyDescription')}</div>
+          <div className="mt-1 text-sm leading-[1.7] text-(--color-text-3)">{t('output.emptyDescription')}</div>
         </div>
       )}
 

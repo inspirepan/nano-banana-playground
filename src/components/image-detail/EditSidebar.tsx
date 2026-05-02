@@ -462,7 +462,7 @@ export function EditSidebar({
             autoFocus={autoFocusPrompt}
           />
           <div className="flex items-center gap-2 px-2.5 py-1.5 text-sm text-(--color-text-3) shadow-[inset_0_1px_0_var(--ring-edge-soft)]">
-            <span className="text-sm text-(--color-text-4)">
+            <span className="text-sm text-(--color-text-3)">
               {t('imageDetail.editPrompt.charCount', { count: prompt.length })}
             </span>
             <div className="flex-1" />

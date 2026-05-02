@@ -190,7 +190,7 @@ function KeyRow({
   const header = (
     <div className="flex min-w-0 items-baseline justify-between gap-3">
       <label className="text-base font-medium text-(--color-text)">{label}</label>
-      <span className="shrink-0 text-sm text-(--color-text-4)">{hint}</span>
+      <span className="shrink-0 text-sm text-(--color-text-3)">{hint}</span>
     </div>
   )
 
@@ -205,10 +205,10 @@ function KeyRow({
               <span className="mono min-w-0 flex-1 truncate text-base text-(--color-text-2)">{masked}</span>
             </div>
             <div className="flex min-w-0 items-center gap-2 text-sm text-(--color-text-3)">
-              <span className="shrink-0 text-(--color-text-4)">{t('apiKeys.baseUrl.label')}</span>
+              <span className="shrink-0 text-(--color-text-3)">{t('apiKeys.baseUrl.label')}</span>
               <span className="mono min-w-0 flex-1 truncate">
                 {baseUrl || baseUrlPlaceholder}
-                {!baseUrl && <span className="ml-1 text-(--color-text-4)">{t('apiKeys.baseUrl.defaultSuffix')}</span>}
+                {!baseUrl && <span className="ml-1 text-(--color-text-3)">{t('apiKeys.baseUrl.defaultSuffix')}</span>}
               </span>
             </div>
           </div>
@@ -278,7 +278,7 @@ function KeyRow({
             <label className="text-base font-medium text-(--color-text-2)" htmlFor={baseUrlInputId}>
               {t('apiKeys.baseUrl.label')}
             </label>
-            <span className="text-sm text-(--color-text-4)">{t('apiKeys.baseUrl.hint')}</span>
+            <span className="text-sm text-(--color-text-3)">{t('apiKeys.baseUrl.hint')}</span>
           </div>
           <input
             id={baseUrlInputId}
@@ -301,7 +301,7 @@ function KeyRow({
                        disabled:opacity-60 disabled:cursor-not-allowed"
           />
           {hasBaseUrlDraft && (
-            <div className="mt-1 flex items-start gap-1 text-sm leading-[1.5] text-(--color-text-4)">
+            <div className="mt-1 flex items-start gap-1 text-sm leading-[1.5] text-(--color-text-3)">
               <span className="shrink-0">{t('apiKeys.baseUrl.previewLabel')}</span>
               <span className="mono min-w-0 flex-1 break-all text-(--color-text-3)">
                 {previewEndpoint(provider, baseUrlDraft)}

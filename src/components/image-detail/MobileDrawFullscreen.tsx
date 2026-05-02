@@ -207,7 +207,7 @@ export function MobileDrawFullscreen({
         </button>
         <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-semibold text-(--color-text)">{t('imageDetail.annotation.label')}</div>
-          <div className="text-sm text-(--color-text-4)">
+          <div className="text-sm text-(--color-text-3)">
             {isMoveTool ? t('imageDetail.annotation.hint.move') : t('imageDetail.annotation.hint.draw')}
           </div>
         </div>

@@ -129,7 +129,7 @@ export function ReferenceImageUpload({
           </button>
         </div>
       )}
-      <div className="text-sm text-(--color-text-4) mt-1.5">{displayHint}</div>
+      <div className="text-sm text-(--color-text-3) mt-1.5">{displayHint}</div>
       <input
         ref={inputRef}
         type="file"

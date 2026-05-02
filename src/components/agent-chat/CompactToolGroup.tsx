@@ -38,7 +38,7 @@ export function ToolCallRow({
           <span className="truncate text-sm font-medium text-(--color-text-2)">{toolLabel(call.name)}</span>
           <span className="mono shrink-0 text-[11px] text-(--color-text-4)">{call.name}</span>
         </span>
-        <span className="mt-0.5 block truncate text-sm text-(--color-text-4)">{summarizeToolArgs(call)}</span>
+        <span className="mt-0.5 block truncate text-sm text-(--color-text-3)">{summarizeToolArgs(call)}</span>
         {result && (
           <span className="mt-1 block truncate text-sm text-(--color-text-3)">{summarizeToolResult(result)}</span>
         )}
@@ -75,7 +75,7 @@ export function CompactToolGroup({ rows, isStreaming }: { rows: ReactNode[]; isS
         <div className="rounded-[var(--radius-lg)] bg-(--color-surface) px-2.5 py-2 shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
           <div className="space-y-1.5">{rows}</div>
           {isStreaming && (
-            <div className="mt-1.5 text-sm text-(--color-text-4)">{t('agentChat.tool.waitingResult')}</div>
+            <div className="mt-1.5 text-sm text-(--color-text-3)">{t('agentChat.tool.waitingResult')}</div>
           )}
         </div>
       </div>
@@ -97,7 +97,7 @@ export function InlineToolNotice({ label }: { label: string }) {
 export function InlineToolDone({ label }: { label: string }) {
   return (
     <div className="flex justify-start">
-      <div className="mr-3 max-w-[94%] pl-3 text-(--color-text-4)">{label}</div>
+      <div className="mr-3 max-w-[94%] pl-3 text-(--color-text-3)">{label}</div>
     </div>
   )
 }

@@ -28,7 +28,7 @@ export function MessageBubble({ message, isStreaming }: { message: AgentMessage;
   if (isSystemEvent) {
     return (
       <div className="flex justify-start">
-        <div className="mr-3 max-w-[94%] pl-3 text-(--color-text-4)">{summarizeSystemEvent(trimmedText)}</div>
+        <div className="mr-3 max-w-[94%] pl-3 text-(--color-text-3)">{summarizeSystemEvent(trimmedText)}</div>
       </div>
     )
   }

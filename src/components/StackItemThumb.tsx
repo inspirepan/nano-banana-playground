@@ -41,7 +41,7 @@ function slotReasonText(slot: Slot, t: Translate): string | null {
 function slotReasonColor(slot: Slot): string {
   if (slot.status === 'failed') return 'var(--color-danger)'
   if (slot.status === 'retrying') return 'var(--color-accent)'
-  return 'var(--color-text-4)'
+  return 'var(--color-text-3)'
 }
 
 export function StackItemThumb({
@@ -153,7 +153,7 @@ export function StackItemThumb({
             <div className="h-full w-full skeleton-animated" />
           )
         ) : (
-          <div className="flex h-full w-full flex-col items-center justify-center gap-1 px-3 text-(--color-text-4)">
+          <div className="flex h-full w-full flex-col items-center justify-center gap-1 px-3 text-(--color-text-3)">
             {slot?.status === 'failed' || slot?.status === 'canceled' ? (
               <Icon name="close" size={13} strokeWidth={1.8} />
             ) : slot?.status === 'queued' ? (
