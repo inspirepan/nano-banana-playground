@@ -64,8 +64,8 @@ export function CompactToolGroup({ rows, isStreaming }: { rows: ReactNode[]; isS
 
   return (
     <div className="flex justify-start">
-      <div className="mr-3 max-w-[88%]">
-        <div className="rounded-[var(--radius-lg)] bg-(--color-surface) px-2.5 py-2 shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
+      <div className="ml-1 mr-3 max-w-[88%]">
+        <div className="rounded-[var(--radius-lg)] bg-(--color-surface) px-2.5 py-2 shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-lift)]">
           <div className="space-y-1.5">{rows}</div>
           {isStreaming && (
             <div className="mt-1.5 text-sm text-(--color-text-3)">{t('agentChat.tool.waitingResult')}</div>

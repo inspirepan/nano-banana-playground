@@ -305,7 +305,7 @@ function AgentSkillCreateForm({
                 <input
                   value={file.path}
                   onChange={(event) => updateFile(file.id, { path: event.target.value })}
-                  className="mono min-w-0 flex-1 rounded-[var(--radius-sm)] bg-(--color-bg-sunken) px-2.5 py-1.5 text-xs text-(--color-text) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)] outline-none focus:shadow-[inset_0_0_0_1px_var(--color-accent)]"
+                  className="mono min-w-0 flex-1 rounded-[var(--radius-sm)] bg-(--color-surface-2) px-2.5 py-1.5 text-xs text-(--color-text) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)] outline-none focus:shadow-[inset_0_0_0_1px_var(--color-accent)]"
                   aria-label={t('settings.agentSkills.filePath')}
                 />
                 {file.path !== 'SKILL.md' && (
@@ -317,7 +317,7 @@ function AgentSkillCreateForm({
               <textarea
                 value={file.content}
                 onChange={(event) => updateFile(file.id, { content: event.target.value })}
-                className="mono min-h-[140px] w-full resize-y rounded-[var(--radius-sm)] bg-(--color-bg-sunken) px-2.5 py-2 text-xs leading-relaxed text-(--color-text) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)] outline-none focus:shadow-[inset_0_0_0_1px_var(--color-accent)]"
+                className="mono min-h-[140px] w-full resize-y rounded-[var(--radius-sm)] bg-(--color-surface-2) px-2.5 py-2 text-xs leading-relaxed text-(--color-text) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)] outline-none focus:shadow-[inset_0_0_0_1px_var(--color-accent)]"
                 aria-label={t('settings.agentSkills.fileContent')}
               />
             </div>
@@ -359,7 +359,7 @@ function TextField({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
-        className="w-full rounded-[var(--radius-sm)] bg-(--color-bg-sunken) px-2.5 py-2 text-sm text-(--color-text) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)] outline-none placeholder:text-(--color-text-4) focus:shadow-[inset_0_0_0_1px_var(--color-accent)]"
+        className="w-full rounded-[var(--radius-sm)] bg-(--color-surface-2) px-2.5 py-2 text-sm text-(--color-text) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)] outline-none placeholder:text-(--color-text-4) focus:shadow-[inset_0_0_0_1px_var(--color-accent)]"
       />
     </label>
   )
@@ -385,7 +385,7 @@ function TextAreaField({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
-        className="w-full resize-y rounded-[var(--radius-sm)] bg-(--color-bg-sunken) px-2.5 py-2 text-sm leading-relaxed text-(--color-text) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)] outline-none placeholder:text-(--color-text-4) focus:shadow-[inset_0_0_0_1px_var(--color-accent)]"
+        className="w-full resize-y rounded-[var(--radius-sm)] bg-(--color-surface-2) px-2.5 py-2 text-sm leading-relaxed text-(--color-text) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)] outline-none placeholder:text-(--color-text-4) focus:shadow-[inset_0_0_0_1px_var(--color-accent)]"
         style={{ minHeight }}
       />
     </label>
@@ -429,7 +429,7 @@ function SkillPackageViewer({
             </button>
           ))}
         </div>
-        <pre className="mono max-h-[420px] overflow-auto whitespace-pre-wrap rounded-[var(--radius-sm)] bg-(--color-bg-sunken) p-3 text-xs leading-relaxed text-(--color-text-2) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
+        <pre className="mono max-h-[420px] overflow-auto whitespace-pre-wrap rounded-[var(--radius-sm)] bg-(--color-surface-2) p-3 text-xs leading-relaxed text-(--color-text-2) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
           {selectedFile.content}
         </pre>
       </div>

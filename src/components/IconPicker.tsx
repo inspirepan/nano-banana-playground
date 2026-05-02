@@ -1,9 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-
 import { DynamicIcon, iconNames, type IconName as LucideIconName } from 'lucide-react/dynamic'
+import { useMemo, useRef, useState } from 'react'
 
 import { Icon } from './Icon'
-import { useWindowEvent } from '../hooks/effects'
+import { useExternalSync, useWindowEvent } from '../hooks/effects'
 import { useI18n } from '../i18n'
 
 const ALL_ICON_NAMES = iconNames as readonly LucideIconName[]
@@ -34,7 +33,7 @@ export function IconPicker({ value, onChange }: Props) {
     return matches
   }, [query])
 
-  useEffect(() => {
+  useExternalSync(() => {
     if (!open) return
     const handler = (event: MouseEvent) => {
       if (!containerRef.current?.contains(event.target as Node)) setOpen(false)
@@ -59,7 +58,7 @@ export function IconPicker({ value, onChange }: Props) {
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className="flex w-full items-center gap-2 rounded-[var(--radius-sm)] bg-(--color-bg-sunken) px-2.5 py-2 text-left text-(--color-text) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)] outline-none focus:shadow-[inset_0_0_0_1px_var(--color-accent)]"
+        className="flex w-full items-center gap-2 rounded-[var(--radius-sm)] bg-(--color-surface-2) px-2.5 py-2 text-left text-(--color-text) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)] outline-none focus:shadow-[inset_0_0_0_1px_var(--color-accent)]"
         aria-haspopup="dialog"
         aria-expanded={open}
       >
@@ -81,7 +80,7 @@ export function IconPicker({ value, onChange }: Props) {
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder={t('settings.agentSkills.iconSearchPlaceholder')}
-              className="w-full rounded-[var(--radius-sm)] bg-(--color-bg-sunken) py-1.5 pr-2.5 pl-7 text-xs text-(--color-text) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)] outline-none placeholder:text-(--color-text-4) focus:shadow-[inset_0_0_0_1px_var(--color-accent)]"
+              className="w-full rounded-[var(--radius-sm)] bg-(--color-surface-2) py-1.5 pr-2.5 pl-7 text-xs text-(--color-text) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)] outline-none placeholder:text-(--color-text-4) focus:shadow-[inset_0_0_0_1px_var(--color-accent)]"
             />
           </div>
 
