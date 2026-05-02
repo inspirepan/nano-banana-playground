@@ -111,6 +111,10 @@
   --shadow-lift: 0 12px 28px -18px rgba(28, 28, 28, 0.18), 0 1px 2px rgba(28, 28, 28, 0.035);
   --shadow-float: 0 16px 36px -24px rgba(28, 28, 28, 0.2), 0 2px 6px rgba(28, 28, 28, 0.055);
 
+  /* Chat user bubble edge — light mode leans on a bottom drop for lift. */
+  --bubble-user-edge:
+    inset 0 0 0 1px var(--color-accent-ring), 0 1px 0 var(--color-accent-ring), 0 2px 3px -1px rgba(0, 0, 0, 0.05);
+
   --radius-xs: 4px;
   --radius-sm: 6px;
   --radius-md: 8px;
@@ -207,6 +211,10 @@
   --ring-edge-soft: rgba(255, 255, 255, 0.04);
   --shadow-lift: 0 12px 28px -18px rgba(0, 0, 0, 0.55), 0 1px 2px rgba(0, 0, 0, 0.3);
   --shadow-float: 0 16px 36px -24px rgba(0, 0, 0, 0.65), 0 2px 6px rgba(0, 0, 0, 0.35);
+
+  /* Chat user bubble edge — dark mode: accent ring on the outer 1px, white
+     highlight on the next 1px inside, giving a crisp double-line top edge. */
+  --bubble-user-edge: inset 0 2px 0 -1px rgba(255, 255, 255, 0.16), inset 0 0 0 1px var(--color-accent-ring);
 
   color-scheme: dark;
 }

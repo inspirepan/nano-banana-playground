@@ -90,7 +90,7 @@ export function MessageBubble({
         <div
           className={
             isUser
-              ? 'rounded-[12px] bg-(--color-accent-soft) px-3 py-2.5 text-(--color-text) shadow-[inset_0_0_0_1px_var(--color-accent-ring),0_1px_0_var(--color-accent-ring),0_2px_3px_-1px_rgba(0,0,0,0.05)]'
+              ? 'rounded-[12px] bg-(--color-accent-soft) px-3 py-2.5 text-(--color-text) shadow-[var(--bubble-user-edge)]'
               : ''
           }
         >
