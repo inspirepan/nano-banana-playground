@@ -50,6 +50,7 @@ type DetailCanvasProps = {
   onCancelGenerationJob: (jobId: string) => void
   onDismissGenerationJob: (jobId: string) => void
   onRetryGenerationSlot: () => void
+  onPinchZoom?: () => void
 }
 
 export function DetailCanvas({
@@ -91,6 +92,7 @@ export function DetailCanvas({
   onCancelGenerationJob,
   onDismissGenerationJob,
   onRetryGenerationSlot,
+  onPinchZoom,
 }: DetailCanvasProps) {
   const { t } = useI18n()
 
@@ -148,6 +150,7 @@ export function DetailCanvas({
             alt={displayImage?.alt ?? currentMeta?.prompt ?? ''}
             onSwipeLeft={hasNext ? onGoNext : undefined}
             onSwipeRight={hasPrev ? onGoPrev : undefined}
+            onPinchZoom={onPinchZoom}
           />
           {!refDetailId && isMobileLayout && (
             <button

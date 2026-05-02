@@ -689,6 +689,7 @@ export function ImageDetailModal({
                       onCancelGenerationJob={onCancelGenerationJob}
                       onDismissGenerationJob={onDismissGenerationJob}
                       onRetryGenerationSlot={handleRetrySlotAction}
+                      onPinchZoom={isMobileLayout ? () => setMobilePreviewOpen(true) : undefined}
                     />
 
                     <DetailSidePanel

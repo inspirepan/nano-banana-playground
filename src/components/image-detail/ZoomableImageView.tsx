@@ -18,6 +18,19 @@ import { useExternalSync, useResizeObserver, useWindowEvent } from '../../hooks/
 import { useI18n } from '../../i18n'
 import { Icon } from '../Icon'
 
+const PINCH_HANDOFF_THRESHOLD = 1.05
+
+type TouchListLike = {
+  item: (index: number) => { clientX: number; clientY: number } | null
+}
+
+function getTouchDistance(touches: TouchListLike) {
+  const first = touches.item(0)
+  const second = touches.item(1)
+  if (!first || !second) return null
+  return Math.max(getDistance({ x: first.clientX, y: first.clientY }, { x: second.clientX, y: second.clientY }), 1)
+}
+
 /* ========================================================================
    ZoomableImageView — wheel/drag/pinch zoom, with Linear-style Zoom HUD
    ======================================================================== */
@@ -28,12 +41,14 @@ export function ZoomableImageView({
   label,
   onSwipeLeft,
   onSwipeRight,
+  onPinchZoom,
 }: {
   src: string
   alt: string
   label?: string
   onSwipeLeft?: () => void
   onSwipeRight?: () => void
+  onPinchZoom?: () => void
 }) {
   const { t } = useI18n()
   const containerRef = useRef<HTMLDivElement>(null)
@@ -48,6 +63,8 @@ export function ZoomableImageView({
   const offsetRef = useRef<Point>({ x: 0, y: 0 })
   const lastTapRef = useRef<{ at: number; point: Point } | null>(null)
   const didPinchRef = useRef(false)
+  const touchPinchStartDistanceRef = useRef<number | null>(null)
+  const pinchHandoffActiveRef = useRef(false)
 
   const [scale, setScale] = useState(FIT_SCALE)
   const [offset, setOffset] = useState<Point>({ x: 0, y: 0 })
@@ -73,6 +90,27 @@ export function ZoomableImageView({
     setOffset(clampedOffset)
   }, [])
 
+  const clearInteractionState = useCallback(() => {
+    activePointersRef.current.clear()
+    pointerStartsRef.current.clear()
+    dragStartRef.current = null
+    pinchStartRef.current = null
+    touchPinchStartDistanceRef.current = null
+    didPinchRef.current = false
+    setIsDragging(false)
+    setIsInteracting(false)
+  }, [])
+
+  const handOffPinchZoom = useCallback(() => {
+    if (!onPinchZoom || pinchHandoffActiveRef.current) return
+    pinchHandoffActiveRef.current = true
+    clearInteractionState()
+    onPinchZoom()
+    window.setTimeout(() => {
+      pinchHandoffActiveRef.current = false
+    }, 300)
+  }, [clearInteractionState, onPinchZoom])
+
   const syncFitSize = useCallback(() => {
     const viewport = getViewportSize(containerRef.current)
     const nextFitSize = getContainedSize(viewport, naturalSizeRef.current)
@@ -82,15 +120,9 @@ export function ZoomableImageView({
   }, [applyView])
 
   const resetView = useCallback(() => {
-    activePointersRef.current.clear()
-    pointerStartsRef.current.clear()
-    dragStartRef.current = null
-    pinchStartRef.current = null
-    didPinchRef.current = false
-    setIsDragging(false)
-    setIsInteracting(false)
+    clearInteractionState()
     applyView(FIT_SCALE, { x: 0, y: 0 })
-  }, [applyView])
+  }, [applyView, clearInteractionState])
 
   const zoomAtPoint = useCallback(
     (targetScale: number, anchor: Point) => {
@@ -113,6 +145,10 @@ export function ZoomableImageView({
     if (!element) return
     const handleWheel = (event: WheelEvent) => {
       event.preventDefault()
+      if (onPinchZoom && event.ctrlKey && event.deltaY < 0) {
+        handOffPinchZoom()
+        return
+      }
       const point = getRelativePoint(containerRef.current, event.clientX, event.clientY)
       // Chrome reports trackpad pinch gestures as wheel events with ctrlKey
       // set. Their deltaY is small, so a larger coefficient is needed to
@@ -123,7 +159,7 @@ export function ZoomableImageView({
     }
     element.addEventListener('wheel', handleWheel, { passive: false })
     return () => element.removeEventListener('wheel', handleWheel)
-  }, [zoomAtPoint])
+  }, [handOffPinchZoom, onPinchZoom, zoomAtPoint])
 
   // Keyboard 0 = reset
   useWindowEvent('keydown', (e) => {
@@ -186,6 +222,12 @@ export function ZoomableImageView({
             const [first, second] = Array.from(activePointersRef.current.values())
             const start = pinchStartRef.current
             const distance = Math.max(getDistance(first, second), 1)
+
+            if (onPinchZoom && distance > start.distance * PINCH_HANDOFF_THRESHOLD) {
+              handOffPinchZoom()
+              return
+            }
+
             const center = getCenter(first, second)
             const nextScale = clamp(start.scale * (distance / start.distance), MIN_SCALE, MAX_SCALE)
             const ratio = nextScale / start.scale
@@ -255,13 +297,33 @@ export function ZoomableImageView({
           if (activePointersRef.current.size < 2) didPinchRef.current = false
         }}
         onPointerCancel={() => {
-          activePointersRef.current.clear()
-          pointerStartsRef.current.clear()
-          dragStartRef.current = null
-          pinchStartRef.current = null
-          didPinchRef.current = false
-          setIsDragging(false)
-          setIsInteracting(false)
+          clearInteractionState()
+        }}
+        onTouchStart={(event) => {
+          if (!onPinchZoom || event.touches.length < 2) return
+          touchPinchStartDistanceRef.current = getTouchDistance(event.touches)
+        }}
+        onTouchMove={(event) => {
+          if (!onPinchZoom || pinchHandoffActiveRef.current || event.touches.length < 2) return
+          const distance = getTouchDistance(event.touches)
+          if (!distance) return
+          const startDistance = touchPinchStartDistanceRef.current
+          if (!startDistance) {
+            touchPinchStartDistanceRef.current = distance
+            return
+          }
+          if (distance > startDistance * PINCH_HANDOFF_THRESHOLD) {
+            event.preventDefault()
+            handOffPinchZoom()
+          }
+        }}
+        onTouchEnd={(event) => {
+          if (event.touches.length < 2) touchPinchStartDistanceRef.current = null
+          if (event.touches.length === 0) pinchHandoffActiveRef.current = false
+        }}
+        onTouchCancel={() => {
+          touchPinchStartDistanceRef.current = null
+          pinchHandoffActiveRef.current = false
         }}
         style={{ cursor: scale > FIT_SCALE ? (isDragging ? 'grabbing' : 'grab') : 'zoom-in' }}
       >
