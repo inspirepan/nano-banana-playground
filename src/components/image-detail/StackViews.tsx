@@ -295,6 +295,7 @@ export function StackStrip({
                             number={itemNumberById.get(item.id)}
                             active={active}
                             outerRing
+                            showImageIdLabel={false}
                             onSelect={onSelect}
                           />
                         </div>

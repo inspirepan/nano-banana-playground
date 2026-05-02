@@ -213,6 +213,7 @@ export function DetailSidebar({
 
       <div className="mb-[18px] tabular-nums">
         <div className="label mb-1">{t('imageDetail.meta.metadata')}</div>
+        {currentImage && <MetaRow label={t('imageDetail.meta.imageId')} value={currentImage.id} mono />}
         {currentMeta && (
           <>
             <MetaRow label={t('common.model')} value={modelName ?? currentMeta.modelId} />

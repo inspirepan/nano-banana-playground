@@ -18,6 +18,7 @@ type Props = {
   numberBadgeInset?: number
   metaBadge?: string
   metaBadgeTitle?: string
+  showImageIdLabel?: boolean
   onSelect: (item: StackItem) => void
 }
 
@@ -57,6 +58,7 @@ export function StackItemThumb({
   numberBadgeInset = 3,
   metaBadge,
   metaBadgeTitle,
+  showImageIdLabel = true,
   onSelect,
 }: Props) {
   const { t } = useI18n()
@@ -190,7 +192,7 @@ export function StackItemThumb({
       >
         #{itemNumber}
       </span>
-      {imageIdLabel && imageIdDisplay && (
+      {showImageIdLabel && imageIdLabel && imageIdDisplay && (
         <span
           className="pointer-events-none absolute z-10 mono max-w-[calc(100%-16px)] truncate rounded-[var(--radius-xs)] px-1.5 py-0.5 text-[10px] leading-none"
           style={{

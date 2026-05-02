@@ -117,6 +117,7 @@ export const imageDetailMessages: MessageDictionary = {
   'imageDetail.meta.cost': { 'zh-CN': '费用', en: 'Cost' },
   'imageDetail.meta.createdAt': { 'zh-CN': '创建时间', en: 'Created at' },
   'imageDetail.meta.error': { 'zh-CN': '错误', en: 'Error' },
+  'imageDetail.meta.imageId': { 'zh-CN': '图片 ID', en: 'Image ID' },
   'imageDetail.meta.imageInputTokens': { 'zh-CN': '图片输入 Token', en: 'Image input tokens' },
   'imageDetail.meta.imageOutputTokens': { 'zh-CN': '图片输出 Token', en: 'Image output tokens' },
   'imageDetail.meta.imageTokens': { 'zh-CN': '图片 Token', en: 'Image tokens' },
