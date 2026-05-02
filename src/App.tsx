@@ -73,6 +73,12 @@ function getInitialAgentPanelWide(): boolean {
   return localStorage.getItem('nano-banana-agent-panel-wide') === '1'
 }
 
+function getInitialAgentWideTipDismissed(): boolean {
+  // If the user already enabled wide mode in a prior session, treat the tip as seen.
+  if (localStorage.getItem('nano-banana-agent-panel-wide') === '1') return true
+  return localStorage.getItem('nano-banana-agent-panel-wide-tip') === '1'
+}
+
 function ensureGoogleFontsPreconnect() {
   let preconnect = document.querySelector<HTMLLinkElement>('link[data-nano-banana-fonts-preconnect="fonts-googleapis"]')
   if (!preconnect) {
@@ -119,6 +125,7 @@ function App() {
   const [settingsTarget, setSettingsTarget] = useState<SettingsTarget | null>(null)
   const [mobileTab, setMobileTab] = useState<MobileTab>(() => (pg.inputMode === 'agent' ? 'agent' : 'generate'))
   const [agentPanelWide, setAgentPanelWide] = useState(getInitialAgentPanelWide)
+  const [agentWideTipDismissed, setAgentWideTipDismissed] = useState(getInitialAgentWideTipDismissed)
   const agentPanelSidebarFits = useMediaQuery(DESKTOP_AGENT_PANEL_SIDEBAR_MEDIA)
   const [highlightStackId, setHighlightStackId] = useState<string | null>(null)
   const highlightTimerRef = useRef<number | null>(null)
@@ -134,6 +141,15 @@ function App() {
   const useWideAgentPanel = pg.inputMode === 'agent' && agentPanelWide && agentPanelSidebarFits
   const desktopInputPanelWidth = useWideAgentPanel ? DESKTOP_AGENT_PANEL_WIDE_WIDTH : DESKTOP_INPUT_PANEL_WIDTH
 
+  const dismissAgentWideTip = useCallback(() => {
+    setAgentWideTipDismissed(true)
+    try {
+      localStorage.setItem('nano-banana-agent-panel-wide-tip', '1')
+    } catch {
+      /* ignore */
+    }
+  }, [])
+
   const toggleAgentPanelWide = useCallback(() => {
     setAgentPanelWide((prev) => {
       const next = !prev
@@ -144,7 +160,11 @@ function App() {
       }
       return next
     })
-  }, [])
+    dismissAgentWideTip()
+  }, [dismissAgentWideTip])
+
+  const showAgentWideTip =
+    pg.inputMode === 'agent' && agentPanelSidebarFits && !agentPanelWide && !agentWideTipDismissed
 
   const handleAddToRef = useCallback(
     (image: PlaygroundImageMeta) => {
@@ -585,6 +605,30 @@ function App() {
             >
               <Icon name={agentPanelWide ? 'chevron_left' : 'chevron_right'} size={14} strokeWidth={1.8} />
             </button>
+          )}
+
+          {showAgentWideTip && (
+            <div
+              role="status"
+              aria-live="polite"
+              className="agent-panel-width-tip"
+              style={{ left: desktopInputPanelWidth }}
+            >
+              <span aria-hidden className="agent-panel-width-tip__caret" />
+              <div className="agent-panel-width-tip__body">
+                <span className="agent-panel-width-tip__title">{t('app.tip.wideAgentPanel.title')}</span>
+                <span className="agent-panel-width-tip__desc">{t('app.tip.wideAgentPanel.description')}</span>
+              </div>
+              <button
+                type="button"
+                onClick={dismissAgentWideTip}
+                className="agent-panel-width-tip__close"
+                aria-label={t('common.close')}
+                title={t('common.close')}
+              >
+                <Icon name="close" size={11} strokeWidth={1.8} />
+              </button>
+            </div>
           )}
 
           {/* Right output panel */}

@@ -12,6 +12,11 @@ export const commonMessages: MessageDictionary = {
   'app.title.completed': { 'zh-CN': '已完成 · {app}', en: 'Completed · {app}' },
   'app.action.expandAgentPanel': { 'zh-CN': '展开 Agent 面板', en: 'Expand Agent panel' },
   'app.action.collapseAgentPanel': { 'zh-CN': '收起 Agent 面板', en: 'Collapse Agent panel' },
+  'app.tip.wideAgentPanel.title': { 'zh-CN': '试试宽屏 Agent', en: 'Try the wide Agent panel' },
+  'app.tip.wideAgentPanel.description': {
+    'zh-CN': '点击展开按钮，可同时看到所有对话历史，并获得更宽的工作空间。',
+    en: 'Expand to see your conversation history alongside a roomier chat workspace.',
+  },
   'app.toast.restoredPromptParamsRefs': {
     'zh-CN': '已还原提示词、参数和 {count} 张参考图',
     en: 'Restored prompt, settings, and {count} reference images',

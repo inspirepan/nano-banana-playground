@@ -783,6 +783,84 @@
       color: var(--color-text);
       box-shadow: inset 0 0 0 1px var(--ring-edge-strong);
     }
+
+    .agent-panel-width-tip {
+      position: absolute;
+      top: 8px;
+      z-index: 21;
+      display: inline-flex;
+      align-items: flex-start;
+      gap: 10px;
+      max-width: 280px;
+      margin-left: 22px;
+      padding: 10px 8px 10px 14px;
+      border-radius: var(--radius-md);
+      background: var(--color-surface);
+      color: var(--color-text);
+      box-shadow:
+        0 0 0 1px var(--ring-edge),
+        var(--shadow-float);
+      animation: agent-panel-width-tip-in 240ms cubic-bezier(0.22, 0.8, 0.4, 1) both;
+      transition: left 280ms cubic-bezier(0.22, 0.8, 0.4, 1);
+    }
+    .agent-panel-width-tip__caret {
+      position: absolute;
+      top: 14px;
+      left: -4px;
+      width: 8px;
+      height: 8px;
+      background: var(--color-surface);
+      box-shadow: -1px 1px 0 0 var(--ring-edge);
+      transform: rotate(45deg);
+      border-radius: 1px;
+    }
+    .agent-panel-width-tip__body {
+      display: flex;
+      min-width: 0;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .agent-panel-width-tip__title {
+      font-size: var(--text-base);
+      font-weight: 600;
+      color: var(--color-text);
+    }
+    .agent-panel-width-tip__desc {
+      font-size: var(--text-sm);
+      line-height: 1.45;
+      color: var(--color-text-3);
+    }
+    .agent-panel-width-tip__close {
+      display: inline-flex;
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+      align-items: center;
+      justify-content: center;
+      margin-top: 1px;
+      border: 0;
+      border-radius: var(--radius-xs);
+      background: transparent;
+      color: var(--color-text-4);
+      cursor: pointer;
+      transition:
+        background 120ms,
+        color 120ms;
+    }
+    .agent-panel-width-tip__close:hover {
+      background: var(--color-surface-2);
+      color: var(--color-text);
+    }
+    @keyframes agent-panel-width-tip-in {
+      from {
+        opacity: 0;
+        transform: translate(-4px, 0);
+      }
+      to {
+        opacity: 1;
+        transform: translate(0, 0);
+      }
+    }
   }
 
   /* Primary CTA — outer ring instead of solid border keeps the drop shadow clean */
