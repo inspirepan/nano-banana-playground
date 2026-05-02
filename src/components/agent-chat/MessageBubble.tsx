@@ -59,7 +59,7 @@ export function MessageBubble({
     : [visibleText, error].filter((part): part is string => Boolean(part)).join('\n\n')
   const isSystemEvent = isUser && visibleText === '' && trimmedText.startsWith('<system>')
   const copyLineCount = copyText.trim() ? copyText.trim().split(/\r\n|\r|\n/).length : 0
-  const canCopy = isUser ? copyText.length >= 50 : Boolean(error) || (copyText.length >= 400 && copyLineCount >= 5)
+  const canCopy = isUser ? copyText.length > 0 : Boolean(error) || (copyText.length >= 400 && copyLineCount >= 5)
   const showAssistantMarkdown = visibleText.trim() !== ''
   const hasAssistantTrailingContent = showAssistantMarkdown || Boolean(error)
   const showAssistantTitle = isAssistant && Boolean(assistantTitle)
