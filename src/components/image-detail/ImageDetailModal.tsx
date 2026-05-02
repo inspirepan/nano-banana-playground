@@ -30,8 +30,11 @@ type Props = {
   initialItemId?: string
   initialViewMode?: ModalViewMode
   initialEditing?: boolean
+  previousStackTarget?: StackNavigationTarget | null
+  nextStackTarget?: StackNavigationTarget | null
   history: PlaygroundImageMeta[]
   generationJobs: GenerationJob[]
+  onNavigateToStackItem?: (target: StackNavigationTarget) => void
   onClose: () => void
   onAddToRef: (image: PlaygroundImageMeta) => void
   onRegenerate: (image: PlaygroundImageMeta) => void
@@ -44,13 +47,18 @@ type Props = {
   onRemove: (id: string) => void | Promise<void>
 }
 
+type StackNavigationTarget = { stackId: string; itemId: string }
+
 export function ImageDetailModal({
   stack,
   initialItemId,
   initialViewMode = 'detail',
   initialEditing = false,
+  previousStackTarget,
+  nextStackTarget,
   history,
   generationJobs,
+  onNavigateToStackItem,
   onClose,
   onAddToRef,
   onRegenerate,
@@ -76,7 +84,7 @@ export function ImageDetailModal({
   const selectedItem =
     (selection && stack.items.find((item) => item.id === selection.id)) ??
     (selection && stack.items.find((item) => item.batchId === selection.batchId && item.order === selection.order)) ??
-    stack.items[stack.items.length - 1] ??
+    initialItem ??
     null
   if (selectedItem && selection?.id !== selectedItem.id) {
     setSelection(toSelection(selectedItem))
@@ -200,16 +208,32 @@ export function ImageDetailModal({
   )
 
   const goToPrev = useCallback(() => {
-    const prev = stack.items[Math.max(0, currentIdx - 1)] ?? null
-    selectStackItem(prev)
-    // No explicit clear — DrawableLayer remounts under the new image's key
-    // and restores that image's cached items (empty for never-edited ones).
-  }, [currentIdx, selectStackItem, stack.items])
+    if (currentIdx > 0) {
+      const prev = stack.items[currentIdx - 1] ?? null
+      selectStackItem(prev)
+      // No explicit clear — DrawableLayer remounts under the new image's key
+      // and restores that image's cached items (empty for never-edited ones).
+      return
+    }
+    if (previousStackTarget) {
+      setRefDetailId(null)
+      resetDetailTab()
+      onNavigateToStackItem?.(previousStackTarget)
+    }
+  }, [currentIdx, onNavigateToStackItem, previousStackTarget, resetDetailTab, selectStackItem, stack.items])
 
   const goToNext = useCallback(() => {
-    const next = stack.items[Math.min(stack.items.length - 1, currentIdx + 1)] ?? null
-    selectStackItem(next)
-  }, [currentIdx, selectStackItem, stack.items])
+    if (currentIdx >= 0 && currentIdx < stack.items.length - 1) {
+      const next = stack.items[currentIdx + 1] ?? null
+      selectStackItem(next)
+      return
+    }
+    if (nextStackTarget) {
+      setRefDetailId(null)
+      resetDetailTab()
+      onNavigateToStackItem?.(nextStackTarget)
+    }
+  }, [currentIdx, nextStackTarget, onNavigateToStackItem, resetDetailTab, selectStackItem, stack.items])
 
   useExternalSync(() => {
     if (!currentImage) return
@@ -413,8 +437,9 @@ export function ImageDetailModal({
     flash(result.ok ? t('imageDetail.toast.retryQueued') : result.message)
   }
 
-  const hasPrev = canNavigate && currentIdx > 0
-  const hasNext = canNavigate && currentIdx < stack.items.length - 1
+  const hasPrev = canNavigate && (currentIdx > 0 || Boolean(previousStackTarget && onNavigateToStackItem))
+  const hasNext =
+    canNavigate && (currentIdx < stack.items.length - 1 || Boolean(nextStackTarget && onNavigateToStackItem))
   const hasDrawableMarks = drawableCounts.annotate > 0 || drawableCounts.mask > 0
   const desktopAnnotationActive = editing && editMode !== 'view' && !isMobileLayout && !mobileDrawOpen
   const drawableLayerVisible = (editMode !== 'view' || hasDrawableMarks) && !mobileDrawOpen

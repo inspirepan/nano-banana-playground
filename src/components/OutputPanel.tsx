@@ -43,11 +43,22 @@ type Props = {
 }
 
 type DetailTarget = { stackId: string; itemId?: string; viewMode?: 'detail' | 'gallery'; initialEditing?: boolean }
+type DetailNavigationTarget = { stackId: string; itemId: string }
 type ActiveStackStatusPart = { kind: 'running' | 'retrying' | 'queued'; label: string }
 type ItemGenerationSummary = { modelName: string; aspectRatio: string; resolution: string }
 
 function latestImages(stack: ImageStack): PlaygroundImageMeta[] {
   return [...stack.images].sort((a, b) => b.timestamp - a.timestamp)
+}
+
+function firstStackItemTarget(stack: ImageStack | undefined): DetailNavigationTarget | null {
+  const item = stack?.items[0]
+  return item ? { stackId: stack.id, itemId: item.id } : null
+}
+
+function lastStackItemTarget(stack: ImageStack | undefined): DetailNavigationTarget | null {
+  const item = stack?.items[stack.items.length - 1]
+  return item ? { stackId: stack.id, itemId: item.id } : null
 }
 
 function stackItemAspectRatio(item: StackItem): string {
@@ -351,6 +362,12 @@ export const OutputPanel = memo(function OutputPanel({
   const stacks = useMemo(() => buildImageStacks(history, generationJobs), [history, generationJobs])
   const generatedImageCount = useMemo(() => history.filter((img) => img.source.type === 'generated').length, [history])
   const detailStack = detailTarget ? (stacks.find((stack) => stack.id === detailTarget.stackId) ?? null) : null
+  const detailStackIndex = detailStack ? stacks.findIndex((stack) => stack.id === detailStack.id) : -1
+  const previousStackTarget = detailStackIndex > 0 ? lastStackItemTarget(stacks[detailStackIndex - 1]) : null
+  const nextStackTarget =
+    detailStackIndex >= 0 && detailStackIndex < stacks.length - 1
+      ? firstStackItemTarget(stacks[detailStackIndex + 1])
+      : null
 
   const openStackItem = useCallback((stack: ImageStack, item: StackItem) => {
     setDetailTarget({ stackId: stack.id, itemId: item.id, viewMode: 'detail' })
@@ -365,6 +382,10 @@ export const OutputPanel = memo(function OutputPanel({
     const newestImage = latestImages(stack)[0]
     const fallbackItem = stack.items[stack.items.length - 1]
     setDetailTarget({ stackId: stack.id, itemId: newestImage?.id ?? fallbackItem?.id, viewMode: 'gallery' })
+  }, [])
+
+  const navigateDetailToTarget = useCallback((target: DetailNavigationTarget) => {
+    setDetailTarget({ stackId: target.stackId, itemId: target.itemId, viewMode: 'detail' })
   }, [])
 
   const handleExportAll = async () => {
@@ -561,8 +582,11 @@ export const OutputPanel = memo(function OutputPanel({
           initialItemId={detailTarget?.itemId}
           initialViewMode={detailTarget?.viewMode}
           initialEditing={detailTarget?.initialEditing}
+          previousStackTarget={previousStackTarget}
+          nextStackTarget={nextStackTarget}
           history={history}
           generationJobs={generationJobs}
+          onNavigateToStackItem={navigateDetailToTarget}
           onClose={() => setDetailTarget(null)}
           onAddToRef={onAddToRef}
           onRegenerate={onRegenerate}
