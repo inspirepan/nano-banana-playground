@@ -15,7 +15,6 @@ import {
   formatPromptLines,
   isTerminalAgentImageTaskStatus,
   promptLineCount,
-  reserveAgentImageIds,
   type AgentImageRegistryEntry,
   type AgentImageTask,
   type AgentTurnCallbackState,
@@ -42,7 +41,6 @@ import {
   syncGeminiAgentBaseUrl,
 } from './runtimeConfig'
 import {
-  AGENT_MAX_ATTACHMENTS,
   AGENT_TASK_PROTOCOL_MESSAGES,
   type AgentPendingQuestion,
   type AgentQuestionResolver,
@@ -60,21 +58,11 @@ import {
 } from './sessionStore'
 import type { AgentCompactionState, AgentSessionMessageMetadata, AgentSessionSummary } from './sessionTypes'
 import { buildAvailableSkillsSystemMessage } from './skills/listing'
-import {
-  createAgentSkill,
-  deleteAgentSkill as deleteAgentSkillFromRegistry,
-  findAgentSkill,
-  getAgentSkillSummaries,
-  setAgentSkillEnabled as setAgentSkillEnabledInRegistry,
-} from './skills/registry'
-import type { AgentSkill, AgentSkillCreateInput, AgentSkillSummary } from './skills/types'
+import { getAgentSkillSummaries } from './skills/registry'
 import { AGENT_SYSTEM_PROMPT } from './systemPrompt'
 import {
   createAgentTools,
   formatAskUserQuestionResult,
-  formatLoadedSkillText,
-  formatReadSkillFileResult,
-  runWebFetch,
   type AgentToolResult,
   type AskUserQuestionAnswer,
   type AskUserQuestionToolArgs,
@@ -85,6 +73,9 @@ import {
   type SkillToolArgs,
   type WebFetchToolArgs,
 } from './tools'
+import { useAgentAttachments } from './useAgentAttachments'
+import { useAgentImageRegistry } from './useAgentImageRegistry'
+import { useAgentSkills } from './useAgentSkills'
 import {
   AGENT_MODEL_CONFIGS,
   agentModelWithBaseUrl,
@@ -104,10 +95,7 @@ import { getProviderConfig } from '../config/providers'
 import { useExternalSync, useMountEffect } from '../hooks/effects'
 import type { useApiKey } from '../hooks/useApiKey'
 import type { GenerationJob } from '../hooks/useGenerationQueue'
-import { putBlobInCache, getBlobFromCache } from '../hooks/useImageSrc'
 import { getActiveLanguage, translate } from '../i18n'
-import { readFileAsImageData } from '../lib/fileToImage'
-import { loadImageBlob, loadImageMetas } from '../lib/history'
 import { stackIdForGenerationRequest } from '../lib/stackId'
 import type { PlaygroundImage, PlaygroundImageMeta } from '../lib/types'
 import { isKeyError } from '../lib/validateKey'
@@ -162,18 +150,30 @@ export function useAgentPlayground({
   const [autoApproveAgentImageTasks, setAutoApproveAgentImageTasksState] = useState(false)
   const [agentImageTasks, setAgentImageTasksState] = useState<AgentImageTask[]>([])
   const [agentPendingQuestions, setAgentPendingQuestionsState] = useState<AgentPendingQuestion[]>([])
-  const [agentSkills, setAgentSkillsState] = useState<AgentSkillSummary[]>(getAgentSkillSummaries)
   const [agentSessions, setAgentSessions] = useState<AgentSessionSummary[]>([])
   const [currentAgentSessionId, setCurrentAgentSessionId] = useState<string | null>(null)
   const [agentSessionsLoading, setAgentSessionsLoading] = useState(true)
+  const {
+    agentSkills,
+    setAgentSkillEnabled,
+    deleteAgentSkill,
+    getAgentSkillPackage,
+    createUserAgentSkill,
+    runSkillTool,
+    runReadSkillFileTool,
+    runCreateSkillTool,
+    runWebFetchTool,
+  } = useAgentSkills()
 
   const agentRuntimesRef = useRef<Map<string, AgentSessionRuntime>>(new Map())
-  const agentImageReservationQueueRef = useRef<Promise<void>>(Promise.resolve())
-  const agentPendingReservedImageIdsRef = useRef<Set<string>>(new Set())
   const currentAgentSessionIdRef = useRef<string | null>(null)
-  const referenceImagesRef = useRef<PlaygroundImage[]>([])
-  const historyRef = useRef<PlaygroundImageMeta[]>([])
-  const generationJobsRefForAgent = useRef<GenerationJob[]>([])
+  const {
+    generationJobsRefForAgent,
+    reserveAgentImageIdsForRuntime,
+    releasePendingAgentImageIds,
+    resolveAgentImageById,
+    resolveAgentReferenceImages,
+  } = useAgentImageRegistry({ agentRuntimesRef, referenceImages, history, generationJobs })
   const agentCredentialsRef = useRef<Record<AgentModelProvider, ProviderCredentials>>({
     google: { apiKey: keyHooks.google.apiKey, baseUrl: keyHooks.google.baseUrl },
     openai: { apiKey: keyHooks.openai.apiKey, baseUrl: keyHooks.openai.baseUrl },
@@ -372,18 +372,6 @@ export function useAgentPlayground({
     },
     [setRuntimePendingQuestions],
   )
-
-  useExternalSync(() => {
-    referenceImagesRef.current = referenceImages
-  }, [referenceImages])
-
-  useExternalSync(() => {
-    historyRef.current = history
-  }, [history])
-
-  useExternalSync(() => {
-    generationJobsRefForAgent.current = generationJobs
-  }, [generationJobs])
 
   const getAgentBaseUrl = useCallback(
     (provider: AgentModelProvider) => agentCredentialsRef.current[provider].baseUrl,
@@ -966,255 +954,14 @@ export function useAgentPlayground({
     }
   }, [applyAgentRuntimeConfig, syncRuntimeSnapshot])
 
-  const addAgentAttachments = useCallback(
-    (files: File[]) => {
-      const runtime = getCurrentRuntime()
-      if (!runtime) return
-      const config = resolveAgentModelConfig(runtime.modelId)
-      if (!config.supportsImages) {
-        const message = translate('configLib.agent.modelImageUnsupported', { model: config.label })
-        runtime.attachmentError = message
-        setAgentAttachmentError(message)
-        return
-      }
-      const remaining = AGENT_MAX_ATTACHMENTS - runtime.attachments.length
-      if (remaining <= 0) {
-        const message = translate('configLib.agent.maxAttachments', { count: AGENT_MAX_ATTACHMENTS })
-        runtime.attachmentError = message
-        setAgentAttachmentError(message)
-        return
-      }
-
-      const toAdd = files.slice(0, remaining)
-      void Promise.allSettled(
-        toAdd.map((file) =>
-          readFileAsImageData(file).then((result) => {
-            if (!result) return null
-            return {
-              id: crypto.randomUUID(),
-              data: result.base64,
-              mimeType: result.mimeType,
-              fileName: result.fileName,
-              size: file.size,
-            } satisfies AgentChatAttachment
-          }),
-        ),
-      ).then((results) => {
-        const attachments: AgentChatAttachment[] = []
-        const errors: string[] = []
-        for (const result of results) {
-          if (result.status === 'fulfilled' && result.value) {
-            attachments.push(result.value)
-          } else if (result.status === 'rejected') {
-            errors.push((result.reason as Error).message)
-          }
-        }
-        if (attachments.length > 0) {
-          runtime.attachments = [...runtime.attachments, ...attachments].slice(0, AGENT_MAX_ATTACHMENTS)
-          runtime.attachmentError = null
-          if (isCurrentRuntime(runtime)) {
-            setAgentAttachments(runtime.attachments)
-            setAgentAttachmentError(null)
-          }
-          scheduleRuntimeSidecarPersist(runtime)
-        }
-        if (errors.length > 0) {
-          runtime.attachmentError = errors.join('\n')
-          if (isCurrentRuntime(runtime)) setAgentAttachmentError(runtime.attachmentError)
-        }
-      })
-    },
-    [getCurrentRuntime, isCurrentRuntime, scheduleRuntimeSidecarPersist],
-  )
-
-  const addAgentImageAttachment = useCallback(
-    (image: PlaygroundImage | PlaygroundImageMeta) => {
-      const runtime = getCurrentRuntime()
-      if (!runtime || runtime.attachments.some((item) => item.id === image.id)) return
-      const config = resolveAgentModelConfig(runtime.modelId)
-      if (!config.supportsImages) {
-        const message = translate('configLib.agent.modelImageUnsupported', { model: config.label })
-        runtime.attachmentError = message
-        setAgentAttachmentError(message)
-        return
-      }
-      const remaining = AGENT_MAX_ATTACHMENTS - runtime.attachments.length
-      if (remaining <= 0) {
-        const message = translate('configLib.agent.maxAttachments', { count: AGENT_MAX_ATTACHMENTS })
-        runtime.attachmentError = message
-        setAgentAttachmentError(message)
-        return
-      }
-
-      void (async () => {
-        const data = 'data' in image ? image.data : (getBlobFromCache(image.id) ?? (await loadImageBlob(image.id)))
-        if (!data) {
-          runtime.attachmentError = translate('configLib.agent.readAttachmentFailed')
-          if (isCurrentRuntime(runtime)) setAgentAttachmentError(runtime.attachmentError)
-          return
-        }
-        putBlobInCache(image.id, data)
-        const fileName = image.source.type === 'upload' ? image.source.fileName : image.id
-        const attachment: AgentChatAttachment = {
-          id: image.id,
-          data,
-          mimeType: image.mimeType,
-          fileName,
-          size: 0,
-        }
-        runtime.imageRegistry.set(image.id, {
-          id: image.id,
-          image: { ...image, data },
-          source: image.source.type === 'generated' ? 'generated' : 'history',
-          status: 'ready',
-          createdAt: image.timestamp,
-        })
-        if (!runtime.attachments.some((item) => item.id === image.id))
-          runtime.attachments = [...runtime.attachments, attachment]
-        runtime.attachmentError = null
-        if (isCurrentRuntime(runtime)) {
-          setAgentAttachments(runtime.attachments)
-          setAgentAttachmentError(null)
-        }
-        scheduleRuntimeSidecarPersist(runtime)
-      })()
-    },
-    [getCurrentRuntime, isCurrentRuntime, scheduleRuntimeSidecarPersist],
-  )
-
-  const removeAgentAttachment = useCallback(
-    (id: string) => {
-      const runtime = getCurrentRuntime()
-      if (!runtime) return
-      runtime.attachments = runtime.attachments.filter((item) => item.id !== id)
-      if (isCurrentRuntime(runtime)) setAgentAttachments(runtime.attachments)
-      scheduleRuntimeSidecarPersist(runtime)
-    },
-    [getCurrentRuntime, isCurrentRuntime, scheduleRuntimeSidecarPersist],
-  )
-
-  const clearAgentAttachmentError = useCallback(() => {
-    const runtime = getCurrentRuntime()
-    if (runtime) runtime.attachmentError = null
-    setAgentAttachmentError(null)
-  }, [getCurrentRuntime])
-
-  const imageIdExistsForAgent = useCallback(async (runtime: AgentSessionRuntime, id: string): Promise<boolean> => {
-    if (runtime.imageRegistry.has(id)) return true
-    for (const otherRuntime of agentRuntimesRef.current.values()) {
-      if (otherRuntime.sessionId !== runtime.sessionId && otherRuntime.imageRegistry.has(id)) return true
-    }
-    if (referenceImagesRef.current.some((image) => image.id === id)) return true
-    if (historyRef.current.some((image) => image.id === id)) return true
-    if (generationJobsRefForAgent.current.some((job) => job.slots.some((slot) => slot.image?.id === id))) return true
-    const metas = await loadImageMetas([id])
-    return metas.has(id)
-  }, [])
-
-  const reserveAgentImageIdsForRuntime = useCallback(
-    async (runtime: AgentSessionRuntime, requestedImageId: string, count: number) => {
-      const reserve = agentImageReservationQueueRef.current.then(async () => {
-        const result = await reserveAgentImageIds({
-          requestedImageId,
-          count,
-          isReserved: (id) => agentPendingReservedImageIdsRef.current.has(id) || runtime.imageRegistry.has(id),
-          exists: (id) => imageIdExistsForAgent(runtime, id),
-        })
-        for (const id of result.reservedImageIds) agentPendingReservedImageIdsRef.current.add(id)
-        return result
-      })
-      agentImageReservationQueueRef.current = reserve.then(
-        () => undefined,
-        () => undefined,
-      )
-      return reserve
-    },
-    [imageIdExistsForAgent],
-  )
-
-  const releasePendingAgentImageIds = useCallback((ids: string[]) => {
-    for (const id of ids) agentPendingReservedImageIdsRef.current.delete(id)
-  }, [])
-
-  const resolveAgentImageById = useCallback(
-    async (
-      runtime: AgentSessionRuntime,
-      id: string,
-    ): Promise<
-      | { status: 'ready'; source: AgentImageRegistryEntry['source']; image: PlaygroundImage }
-      | { status: 'not_ready'; source: AgentImageRegistryEntry['source'] }
-      | null
-    > => {
-      const reference = referenceImagesRef.current.find((image) => image.id === id)
-      if (reference) return { status: 'ready', source: 'reference', image: reference }
-
-      const registryEntry = runtime.imageRegistry.get(id)
-      if (registryEntry?.source === 'agent_attachment' && registryEntry.image) {
-        const attachment = registryEntry.image as AgentChatAttachment
-        return {
-          status: 'ready',
-          source: 'agent_attachment',
-          image: {
-            id: attachment.id,
-            data: attachment.data,
-            mimeType: attachment.mimeType,
-            source: { type: 'upload', fileName: attachment.fileName },
-            timestamp: registryEntry.createdAt,
-          },
-        }
-      }
-      if (registryEntry?.status === 'ready' && registryEntry.image) {
-        const image = registryEntry.image
-        if ('data' in image && typeof image.data === 'string') {
-          return { status: 'ready', source: registryEntry.source, image: image as PlaygroundImage }
-        }
-        if ('mimeType' in image && 'source' in image && 'timestamp' in image) {
-          const blob = getBlobFromCache(id) ?? (await loadImageBlob(id))
-          if (blob) {
-            putBlobInCache(id, blob)
-            return {
-              status: 'ready',
-              source: registryEntry.source,
-              image: { ...(image as PlaygroundImageMeta), data: blob },
-            }
-          }
-        }
-      }
-      if (registryEntry && registryEntry.status !== 'ready')
-        return { status: 'not_ready', source: registryEntry.source }
-
-      for (const job of generationJobsRefForAgent.current) {
-        const image = job.slots.find((slot) => slot.image?.id === id)?.image
-        if (image) return { status: 'ready', source: 'generated', image }
-      }
-
-      const loaded = historyRef.current.find((image) => image.id === id) ?? (await loadImageMetas([id])).get(id)
-      if (!loaded) return null
-      const blob = getBlobFromCache(id) ?? (await loadImageBlob(id))
-      if (!blob) return null
-      putBlobInCache(id, blob)
-      return {
-        status: 'ready',
-        source: loaded.source.type === 'generated' ? 'generated' : 'history',
-        image: { ...loaded, data: blob },
-      }
-    },
-    [],
-  )
-
-  const resolveAgentReferenceImages = useCallback(
-    async (runtime: AgentSessionRuntime, ids: string[]): Promise<PlaygroundImage[]> => {
-      const images: PlaygroundImage[] = []
-      for (const id of ids) {
-        const result = await resolveAgentImageById(runtime, id)
-        if (!result) throw new Error(translate('configLib.agent.referenceMissing', { id }))
-        if (result.status !== 'ready') throw new Error(translate('configLib.agent.referenceNotReady', { id }))
-        images.push(result.image)
-      }
-      return images
-    },
-    [resolveAgentImageById],
-  )
+  const { addAgentAttachments, addAgentImageAttachment, removeAgentAttachment, clearAgentAttachmentError } =
+    useAgentAttachments({
+      getCurrentRuntime,
+      isCurrentRuntime,
+      scheduleRuntimeSidecarPersist,
+      setAgentAttachments,
+      setAgentAttachmentError,
+    })
 
   const sendAgentSystemEvent = useCallback(
     async (runtime: AgentSessionRuntime, text: string): Promise<boolean> => {
@@ -1416,7 +1163,7 @@ export function useAgentPlayground({
       )
       maybeDispatchAgentImageCallbacks(runtime, next)
     },
-    [cancelGenerationJob, getCurrentRuntime, maybeDispatchAgentImageCallbacks, setRuntimeImageTasks],
+    [cancelGenerationJob, generationJobsRefForAgent, getCurrentRuntime, maybeDispatchAgentImageCallbacks, setRuntimeImageTasks],
   )
 
   const runGenImageTool = useCallback(
@@ -1745,74 +1492,6 @@ export function useAgentPlayground({
       finishRestoredAgentQuestion(runtime, toolCallId, [], { cancelled: true })
     },
     [finishRestoredAgentQuestion, getCurrentRuntime],
-  )
-
-  const refreshAgentSkills = useCallback(() => {
-    const next = getAgentSkillSummaries()
-    setAgentSkillsState(next)
-    return next
-  }, [])
-
-  const setAgentSkillEnabled = useCallback((name: string, enabled: boolean) => {
-    setAgentSkillsState(setAgentSkillEnabledInRegistry(name, enabled))
-  }, [])
-
-  const deleteAgentSkill = useCallback((name: string) => {
-    setAgentSkillsState(deleteAgentSkillFromRegistry(name))
-  }, [])
-
-  const getAgentSkillPackage = useCallback((name: string): AgentSkill | null => findAgentSkill(name), [])
-
-  const createUserAgentSkill = useCallback(
-    (input: AgentSkillCreateInput) => {
-      createAgentSkill(input)
-      refreshAgentSkills()
-    },
-    [refreshAgentSkills],
-  )
-
-  const runSkillTool = useCallback(
-    async (_sessionId: string, _toolCallId: string, args: SkillToolArgs): Promise<AgentToolResult> => {
-      return formatLoadedSkillText(args.skill)
-    },
-    [],
-  )
-
-  const runReadSkillFileTool = useCallback(
-    async (_sessionId: string, _toolCallId: string, args: ReadSkillFileToolArgs): Promise<AgentToolResult> => {
-      return formatReadSkillFileResult(args.skill, args.path)
-    },
-    [],
-  )
-
-  const runCreateSkillTool = useCallback(
-    async (_sessionId: string, _toolCallId: string, args: CreateSkillToolArgs): Promise<AgentToolResult> => {
-      const skill = createAgentSkill(args)
-      refreshAgentSkills()
-      const payload = {
-        status: 'saved',
-        skill_name: skill.name,
-        icon: skill.icon,
-        enabled: skill.enabled,
-        file_count: skill.files.length,
-        message:
-          'Skill saved to the browser skill library. It will be listed in available skills for future new conversations.',
-      }
-      return toolTextResult(JSON.stringify(payload, null, 2), payload)
-    },
-    [refreshAgentSkills],
-  )
-
-  const runWebFetchTool = useCallback(
-    async (
-      _sessionId: string,
-      _toolCallId: string,
-      args: WebFetchToolArgs,
-      signal?: AbortSignal,
-    ): Promise<AgentToolResult> => {
-      return runWebFetch(args, signal)
-    },
-    [],
   )
 
   useExternalSync(() => {
