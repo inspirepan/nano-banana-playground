@@ -3,7 +3,7 @@ import type { ChangeEvent, Dispatch, RefObject, SetStateAction } from 'react'
 import { AgentModelIcon } from './AgentModelIcon'
 import type { AgentChatMenu } from './types'
 import type { AgentModelConfig, AgentThinkingLevel } from '../../config/agentModels'
-import { MODEL_CONFIGS } from '../../config/models'
+import { MODEL_CONFIGS, getModelShortLabel } from '../../config/models'
 import { getProviderConfig } from '../../config/providers'
 import { usePreferredImageModel } from '../../hooks/usePreferredImageModel'
 import { useI18n } from '../../i18n'
@@ -87,18 +87,18 @@ export function ComposerActions({
               aria-label={t('agentChat.composer.autoApproveActive')}
             >
               <Icon name="circle_play" size={12} />
-              <span>{t('agentChat.composer.autoApproveLabel')}</span>
+              <span className="hidden md:inline">{t('agentChat.composer.autoApproveLabel')}</span>
             </span>
             <span aria-hidden="true" className="h-4 w-px shrink-0 bg-(--ring-edge-soft)" />
           </>
         )}
         {preferredImageModel && (
           <>
-            <span className="flex min-w-0 items-center gap-1.5">
+            <span className="hidden min-w-0 items-center gap-1.5 md:flex">
               <BrandIcon name={getProviderConfig(preferredImageModel.provider).brandIcon} size={11} />
-              <span className="min-w-0 truncate text-(--color-text-2)">{preferredImageModel.name}</span>
+              <span className="min-w-0 truncate text-(--color-text-2)">{getModelShortLabel(preferredImageModel)}</span>
             </span>
-            <span aria-hidden="true" className="h-4 w-px shrink-0 bg-(--ring-edge-soft)" />
+            <span aria-hidden="true" className="hidden h-4 w-px shrink-0 bg-(--ring-edge-soft) md:block" />
           </>
         )}
         <span className="flex min-w-0 items-center gap-1.5">

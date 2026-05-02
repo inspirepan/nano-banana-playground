@@ -3,7 +3,7 @@ import type { Dispatch, SetStateAction } from 'react'
 import { AgentModelIcon } from './AgentModelIcon'
 import type { AgentChatMenu } from './types'
 import { AGENT_THINKING_OPTIONS, type AgentModelConfig, type AgentThinkingLevel } from '../../config/agentModels'
-import { MODEL_CONFIGS, type Provider } from '../../config/models'
+import { MODEL_CONFIGS, getModelShortLabel, type Provider } from '../../config/models'
 import { getProviderConfig } from '../../config/providers'
 import type { ApiKeyStatus } from '../../hooks/useApiKey'
 import { usePreferredImageModel } from '../../hooks/usePreferredImageModel'
@@ -78,7 +78,7 @@ export function AgentOptionsMenu({
           className="flex h-7 w-full items-center gap-2 rounded-[var(--radius-sm)] px-2 text-left text-sm font-medium text-(--color-text-2) transition-colors hover:bg-(--color-surface-2)"
         >
           <BrandIcon name={getProviderConfig(item.provider).brandIcon} size={12} />
-          <span className="min-w-0 flex-1 truncate">{item.name}</span>
+          <span className="min-w-0 flex-1 truncate">{getModelShortLabel(item)}</span>
           {preferredImageModelId === item.id && <Icon name="check" size={13} />}
         </button>
       ))}
