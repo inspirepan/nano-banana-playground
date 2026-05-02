@@ -11,7 +11,7 @@ import { translate } from '../i18n'
 
 export function agentMessageMetadataForModel(modelId: string): AgentSessionMessageMetadata {
   const config = resolveAgentModelConfig(modelId)
-  return { modelId: config.id, modelTitle: config.shortLabel }
+  return { modelId: config.id, modelTitle: config.label }
 }
 
 function agentStateValue(agent: Agent, key: 'streamingMessage' | 'streamMessage' | 'errorMessage' | 'error'): unknown {

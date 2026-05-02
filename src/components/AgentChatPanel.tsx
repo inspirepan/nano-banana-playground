@@ -16,7 +16,7 @@ import {
   type AskUserQuestionAnswer,
 } from '../agent'
 import type { AgentSessionMessageMetadata } from '../agent/sessionTypes'
-import type { AgentModelConfig, AgentThinkingLevel } from '../config/agentModels'
+import { resolveAgentModelConfig, type AgentModelConfig, type AgentThinkingLevel } from '../config/agentModels'
 import type { Provider } from '../config/models'
 import { useExternalSync, useWindowEvent } from '../hooks/effects'
 import type { ApiKeyStatus } from '../hooks/useApiKey'
@@ -181,9 +181,10 @@ export function AgentChatPanel({
     (message: AgentMessage, itemIsStreaming: boolean) => {
       if (!titledAssistantMessages.has(message)) return undefined
       const metadata = messageMetadata.get(message)
-      return metadata?.modelTitle ?? (itemIsStreaming ? model.shortLabel : 'Agent')
+      if (metadata?.modelId) return resolveAgentModelConfig(metadata.modelId).label
+      return metadata?.modelTitle ?? (itemIsStreaming ? model.label : 'Agent')
     },
-    [messageMetadata, model.shortLabel, titledAssistantMessages],
+    [messageMetadata, model.label, titledAssistantMessages],
   )
   const latestMessageError = useMemo(() => {
     for (let index = visibleMessages.length - 1; index >= 0; index--) {
