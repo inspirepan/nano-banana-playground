@@ -4,7 +4,7 @@ import { DesktopAnnotationToolbar } from './annotationControls'
 import type { BrushPresetId } from './annotationPresets'
 import { DrawableLayer, type DrawableLayerHandle, type DrawMode, type DrawTool } from './DrawableLayer'
 import { SlotHero } from './StackViews'
-import { ZoomableImageView } from './ZoomableImageView'
+import { ZoomableImageView, type ZoomableImageViewState } from './ZoomableImageView'
 import { useI18n } from '../../i18n'
 import type { ItemCounts } from '../../lib/editStateCache'
 import type { StackItem } from '../../lib/stacks'
@@ -50,7 +50,7 @@ type DetailCanvasProps = {
   onCancelGenerationJob: (jobId: string) => void
   onDismissGenerationJob: (jobId: string) => void
   onRetryGenerationSlot: () => void
-  onPinchZoom?: () => void
+  onPinchZoom?: (view: ZoomableImageViewState) => void
 }
 
 export function DetailCanvas({

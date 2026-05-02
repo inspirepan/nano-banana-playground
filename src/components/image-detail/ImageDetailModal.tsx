@@ -13,6 +13,7 @@ import { MobileEditScreen } from './MobileEditScreen'
 import { MobilePreviewFullscreen } from './MobilePreviewFullscreen'
 import { StackGallery, StackStrip } from './StackViews'
 import { useImageDetailModalState, type ModalViewMode } from './useImageDetailModalState'
+import type { ZoomableImageViewState } from './ZoomableImageView'
 import { MODEL_CONFIGS } from '../../config/models'
 import { useExternalSync, useMediaQuery, useVisualViewport, useWindowEvent } from '../../hooks/effects'
 import { ensureBlobLoaded, useImageSrc } from '../../hooks/useImageSrc'
@@ -155,6 +156,7 @@ export function ImageDetailModal({
   const [toast, setToast] = useState<string | null>(null)
   const [copiedPrompt, setCopiedPrompt] = useState(false)
   const [refDetailId, setRefDetailId] = useState<string | null>(null)
+  const [mobilePreviewInitialView, setMobilePreviewInitialView] = useState<ZoomableImageViewState | null>(null)
   const detailScrollRef = useRef<HTMLDivElement | null>(null)
   const [refSrcMap, setRefSrcMap] = useState<Map<string, string>>(new Map())
   const refDetailSrc = refDetailId ? (refSrcMap.get(refDetailId) ?? null) : null
@@ -306,6 +308,7 @@ export function ImageDetailModal({
     if (e.key === 'Escape') {
       if (mobilePreviewOpen) {
         setMobilePreviewOpen(false)
+        setMobilePreviewInitialView(null)
         return
       }
       if (mobileDrawOpen) {
@@ -417,6 +420,29 @@ export function ImageDetailModal({
     onAddToRef(currentImage)
     flash(t('imageDetail.toast.addedReference'))
   }
+
+  const openMobilePreview = useCallback(
+    (initialView: ZoomableImageViewState | null = null) => {
+      setMobilePreviewInitialView(initialView)
+      setMobilePreviewOpen(true)
+    },
+    [setMobilePreviewOpen],
+  )
+
+  const closeMobilePreview = useCallback(() => {
+    setMobilePreviewOpen(false)
+    setMobilePreviewInitialView(null)
+  }, [setMobilePreviewOpen])
+
+  const goToPrevFromMobilePreview = useCallback(() => {
+    setMobilePreviewInitialView(null)
+    goToPrev()
+  }, [goToPrev])
+
+  const goToNextFromMobilePreview = useCallback(() => {
+    setMobilePreviewInitialView(null)
+    goToNext()
+  }, [goToNext])
 
   const handleRegenerateAction = () => {
     if (!currentImage) return
@@ -537,7 +563,7 @@ export function ImageDetailModal({
             brushSize={brushSize}
             hasAnnotations={hasDrawableMarks}
             onClose={exitEdit}
-            onOpenPreview={() => setMobilePreviewOpen(true)}
+            onOpenPreview={() => openMobilePreview()}
             onEditImage={onEditImage}
             onSetActiveBatchId={setActiveEditBatch}
             onSubmitSuccess={exitEdit}
@@ -676,7 +702,7 @@ export function ImageDetailModal({
                       drawableRef={drawableRef}
                       onGoPrev={goToPrev}
                       onGoNext={goToNext}
-                      onOpenMobilePreview={() => setMobilePreviewOpen(true)}
+                      onOpenMobilePreview={() => openMobilePreview()}
                       onCloseRefDetail={() => setRefDetailId(null)}
                       onChangeDrawTool={setDrawTool}
                       onChangeDesktopMoveActive={setDesktopMoveActive}
@@ -689,7 +715,7 @@ export function ImageDetailModal({
                       onCancelGenerationJob={onCancelGenerationJob}
                       onDismissGenerationJob={onDismissGenerationJob}
                       onRetryGenerationSlot={handleRetrySlotAction}
-                      onPinchZoom={isMobileLayout ? () => setMobilePreviewOpen(true) : undefined}
+                      onPinchZoom={isMobileLayout ? openMobilePreview : undefined}
                     />
 
                     <DetailSidePanel
@@ -781,9 +807,10 @@ export function ImageDetailModal({
           <MobilePreviewFullscreen
             src={displayImage?.src ?? currentSrc ?? ''}
             alt={displayImage?.alt ?? currentMeta?.prompt ?? ''}
-            onClose={() => setMobilePreviewOpen(false)}
-            onSwipeLeft={hasNext ? goToNext : undefined}
-            onSwipeRight={hasPrev ? goToPrev : undefined}
+            initialView={mobilePreviewInitialView}
+            onClose={closeMobilePreview}
+            onSwipeLeft={hasNext ? goToNextFromMobilePreview : undefined}
+            onSwipeRight={hasPrev ? goToPrevFromMobilePreview : undefined}
           />
         )}
       </div>

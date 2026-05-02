@@ -1,16 +1,18 @@
 import { Icon } from '../Icon'
-import { ZoomableImageView } from './ZoomableImageView'
+import { ZoomableImageView, type ZoomableImageViewState } from './ZoomableImageView'
 import { useI18n } from '../../i18n'
 
 export function MobilePreviewFullscreen({
   src,
   alt,
+  initialView,
   onClose,
   onSwipeLeft,
   onSwipeRight,
 }: {
   src: string
   alt: string
+  initialView?: ZoomableImageViewState | null
   onClose: () => void
   onSwipeLeft?: () => void
   onSwipeRight?: () => void
@@ -27,7 +29,13 @@ export function MobilePreviewFullscreen({
       }}
     >
       {src ? (
-        <ZoomableImageView src={src} alt={alt} onSwipeLeft={onSwipeLeft} onSwipeRight={onSwipeRight} />
+        <ZoomableImageView
+          src={src}
+          alt={alt}
+          initialView={initialView}
+          onSwipeLeft={onSwipeLeft}
+          onSwipeRight={onSwipeRight}
+        />
       ) : (
         <div className="flex h-full items-center justify-center">
           <span className="spinner" />
