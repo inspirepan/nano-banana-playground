@@ -14,29 +14,25 @@ export function ToolCallRow({
 }) {
   const failed = result?.isError === true
   const done = Boolean(result)
-  const showStatusBadge = !done || failed
   return (
     <div className="flex items-start gap-2 rounded-[var(--radius-md)] px-1.5 py-1">
-      {showStatusBadge && (
+      {failed && (
         <span
           className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-[var(--radius-xs)]"
           style={{
-            background: failed ? 'var(--color-danger-soft)' : 'var(--color-surface-2)',
-            color: failed ? 'var(--color-danger)' : 'var(--color-text-3)',
+            background: 'var(--color-danger-soft)',
+            color: 'var(--color-danger)',
             boxShadow: 'inset 0 0 0 1px var(--ring-edge-soft)',
           }}
         >
-          {failed ? (
-            <Icon name="alert_circle" size={11} />
-          ) : (
-            <span className="spinner" style={{ width: 10, height: 10 }} />
-          )}
+          <Icon name="alert_circle" size={11} />
         </span>
       )}
       <span className="min-w-0 flex-1">
         <span className="flex min-w-0 items-center gap-1.5">
           <span className="truncate text-sm font-medium text-(--color-text-2)">{toolLabel(call.name)}</span>
           <span className="mono shrink-0 text-[11px] text-(--color-text-4)">{call.name}</span>
+          {!done && <span className="spinner shrink-0" style={{ width: 10, height: 10 }} />}
         </span>
         <span className="mt-0.5 block truncate text-sm text-(--color-text-3)">{summarizeToolArgs(call)}</span>
         {result && (
@@ -69,9 +65,6 @@ export function CompactToolGroup({ rows, isStreaming }: { rows: ReactNode[]; isS
   return (
     <div className="flex justify-start">
       <div className="mr-3 max-w-[88%]">
-        <div className="mb-1.5 mono text-[11px] uppercase tracking-[0.12em] text-(--color-text-4)">
-          {t('common.agent')}
-        </div>
         <div className="rounded-[var(--radius-lg)] bg-(--color-surface) px-2.5 py-2 shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
           <div className="space-y-1.5">{rows}</div>
           {isStreaming && (

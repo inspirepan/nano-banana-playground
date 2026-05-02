@@ -17,8 +17,11 @@ export {
   createAgentImageTools,
   createAgentTools,
   createAskUserQuestionTool,
+  createCreateSkillTool,
   createGenImageTool,
   createReadImageTool,
+  createReadSkillFileTool,
+  createSkillTool,
 } from './tools'
 export type {
   AgentImageToolResult,
@@ -28,11 +31,18 @@ export type {
   AskUserQuestionItem,
   AskUserQuestionOption,
   AskUserQuestionToolArgs,
+  CreateSkillExecutor,
+  CreateSkillToolArgs,
   GenImageExecutor,
   GenImageToolArgs,
   ReadImageExecutor,
   ReadImageToolArgs,
+  ReadSkillFileExecutor,
+  ReadSkillFileToolArgs,
+  SkillExecutor,
+  SkillToolArgs,
 } from './tools'
+export type { AgentSkill, AgentSkillFile, AgentSkillSource, AgentSkillSummary } from './skills/types'
 export {
   AGENT_PROMPT_DEFAULT_LINE_LIMIT,
   formatPromptLines,

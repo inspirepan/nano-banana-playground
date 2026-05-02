@@ -40,8 +40,11 @@ type MobileTab = 'generate' | 'agent' | 'gallery'
 
 function getInitialTheme(): Theme {
   const stored = localStorage.getItem('nano-banana-theme')
-  const theme = stored === 'light' || stored === 'warm' || stored === 'dark' || stored === 'system' ? stored : 'warm'
+  const theme = stored === 'light' || stored === 'warm' || stored === 'dark' || stored === 'system' ? stored : 'system'
   if (theme === 'warm') document.documentElement.classList.add('warm')
+  if (theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+    document.documentElement.classList.add('dark')
+  }
   return theme
 }
 
@@ -423,6 +426,7 @@ function App() {
                 autoApproveAgentImageTasks={pg.autoApproveAgentImageTasks}
                 agentImageTasks={pg.agentImageTasks}
                 agentPendingQuestions={pg.agentPendingQuestions}
+                agentSkills={pg.agentSkills}
                 history={pg.history}
                 generationJobs={pg.generationJobs}
                 referenceImages={pg.referenceImages}
@@ -525,6 +529,7 @@ function App() {
               autoApproveAgentImageTasks={pg.autoApproveAgentImageTasks}
               agentImageTasks={pg.agentImageTasks}
               agentPendingQuestions={pg.agentPendingQuestions}
+              agentSkills={pg.agentSkills}
               history={pg.history}
               generationJobs={pg.generationJobs}
               referenceImages={pg.referenceImages}
@@ -622,12 +627,15 @@ function App() {
         sansFont={sansFont}
         language={languagePreference}
         generationConcurrency={pg.generationConcurrency}
+        agentSkills={pg.agentSkills}
         focusSection={settingsTarget}
         onThemeChange={setTheme}
         onColorThemeChange={setColorTheme}
         onSansFontChange={setSansFont}
         onLanguageChange={setLanguagePreference}
         onGenerationConcurrencyChange={pg.setGenerationConcurrency}
+        onAgentSkillEnabledChange={pg.setAgentSkillEnabled}
+        onDeleteAgentSkill={pg.deleteAgentSkill}
         onClose={() => setSettingsOpen(false)}
       />
     </I18nProvider>

@@ -114,6 +114,9 @@ export function toolLabel(name: string): string {
   if (name === 'GenImage') return translate('agentChat.tool.label.genImage')
   if (name === 'ReadImage') return translate('agentChat.tool.label.readImage')
   if (name === 'AskUserQuestion') return translate('agentChat.tool.label.askUserQuestion')
+  if (name === 'Skill') return translate('agentChat.tool.label.skill')
+  if (name === 'ReadSkillFile') return translate('agentChat.tool.label.readSkillFile')
+  if (name === 'CreateSkill') return translate('agentChat.tool.label.createSkill')
   return name
 }
 
@@ -128,6 +131,19 @@ export function summarizeToolArgs(call: AgentMessageToolCall): string {
     return typeof call.arguments.image_id === 'string'
       ? call.arguments.image_id
       : translate('agentChat.tool.args.image')
+  }
+  if (call.name === 'Skill' || call.name === 'CreateSkill') {
+    return typeof call.arguments.skill === 'string'
+      ? call.arguments.skill
+      : typeof call.arguments.name === 'string'
+        ? call.arguments.name
+        : translate('agentChat.tool.args.skill')
+  }
+  if (call.name === 'ReadSkillFile') {
+    const skill =
+      typeof call.arguments.skill === 'string' ? call.arguments.skill : translate('agentChat.tool.args.skill')
+    const path = typeof call.arguments.path === 'string' ? call.arguments.path : 'file'
+    return `${skill} · ${path}`
   }
   return Object.keys(call.arguments).slice(0, 3).join(' · ')
 }

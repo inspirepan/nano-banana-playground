@@ -32,16 +32,29 @@ import {
   updateAgentSessionConfig,
 } from './sessionStore'
 import type { AgentCompactionState, AgentSessionMessageMetadata, AgentSessionSummary } from './sessionTypes'
+import { buildAvailableSkillsSystemMessage } from './skills/listing'
+import {
+  createAgentSkill,
+  deleteAgentSkill as deleteAgentSkillFromRegistry,
+  getAgentSkillSummaries,
+  setAgentSkillEnabled as setAgentSkillEnabledInRegistry,
+} from './skills/registry'
+import type { AgentSkillSummary } from './skills/types'
 import { AGENT_SYSTEM_PROMPT } from './systemPrompt'
 import {
   createAgentTools,
   formatAskUserQuestionResult,
+  formatLoadedSkillText,
+  formatReadSkillFileResult,
   type AgentToolResult,
   type AskUserQuestionAnswer,
   type AskUserQuestionItem,
   type AskUserQuestionToolArgs,
+  type CreateSkillToolArgs,
   type GenImageToolArgs,
   type ReadImageToolArgs,
+  type ReadSkillFileToolArgs,
+  type SkillToolArgs,
 } from './tools'
 import {
   AGENT_MODEL_CONFIGS,
@@ -328,7 +341,10 @@ type AgentSessionRuntime = {
   compactionAbort: AbortController | null
 }
 
-function activateAgentResponseMetadata(runtime: AgentSessionRuntime, modelId = runtime.modelId): AgentSessionMessageMetadata {
+function activateAgentResponseMetadata(
+  runtime: AgentSessionRuntime,
+  modelId = runtime.modelId,
+): AgentSessionMessageMetadata {
   const metadata = agentMessageMetadataForModel(modelId)
   runtime.activeResponseMetadata = metadata
   return metadata
@@ -338,7 +354,10 @@ function queueAgentResponseMetadata(runtime: AgentSessionRuntime, modelId = runt
   runtime.queuedResponseMetadata.push(agentMessageMetadataForModel(modelId))
 }
 
-function metadataForAgentMessage(runtime: AgentSessionRuntime, message: AgentMessage): AgentSessionMessageMetadata | undefined {
+function metadataForAgentMessage(
+  runtime: AgentSessionRuntime,
+  message: AgentMessage,
+): AgentSessionMessageMetadata | undefined {
   if (agentMessageRole(message) !== 'assistant') return undefined
   const existing = runtime.messageMetadata.get(message)
   if (existing) return existing
@@ -434,7 +453,9 @@ export function useAgentPlayground({
   const agentModel = resolveAgentModelConfig(agentModelId)
   const [agentThinkingLevel, setAgentThinkingLevelState] = useState<AgentThinkingLevel>('low')
   const [agentMessages, setAgentMessages] = useState<AgentMessage[]>([])
-  const [agentMessageMetadata, setAgentMessageMetadata] = useState(() => new WeakMap<AgentMessage, AgentSessionMessageMetadata>())
+  const [agentMessageMetadata, setAgentMessageMetadata] = useState(
+    () => new WeakMap<AgentMessage, AgentSessionMessageMetadata>(),
+  )
   const [agentStreamingMessage, setAgentStreamingMessage] = useState<AgentMessage | null>(null)
   const [agentIsStreaming, setAgentIsStreaming] = useState(false)
   const [agentError, setAgentError] = useState<string | null>(null)
@@ -444,6 +465,7 @@ export function useAgentPlayground({
   const [autoApproveAgentImageTasks, setAutoApproveAgentImageTasksState] = useState(false)
   const [agentImageTasks, setAgentImageTasksState] = useState<AgentImageTask[]>([])
   const [agentPendingQuestions, setAgentPendingQuestionsState] = useState<AgentPendingQuestion[]>([])
+  const [agentSkills, setAgentSkillsState] = useState<AgentSkillSummary[]>(getAgentSkillSummaries)
   const [agentSessions, setAgentSessions] = useState<AgentSessionSummary[]>([])
   const [currentAgentSessionId, setCurrentAgentSessionId] = useState<string | null>(null)
   const [agentSessionsLoading, setAgentSessionsLoading] = useState(true)
@@ -475,6 +497,9 @@ export function useAgentPlayground({
       args: AskUserQuestionToolArgs,
       signal?: AbortSignal,
     ) => Promise<AgentToolResult>
+    loadSkill: (sessionId: string, toolCallId: string, args: SkillToolArgs) => Promise<AgentToolResult>
+    readSkillFile: (sessionId: string, toolCallId: string, args: ReadSkillFileToolArgs) => Promise<AgentToolResult>
+    createSkill: (sessionId: string, toolCallId: string, args: CreateSkillToolArgs) => Promise<AgentToolResult>
   }>({
     genImage: async (_sessionId: string, _toolCallId: string, _args: GenImageToolArgs, _signal?: AbortSignal) => {
       throw new Error('Agent tools are not ready yet.')
@@ -484,6 +509,15 @@ export function useAgentPlayground({
     },
     askUserQuestion: (_sessionId: string, _toolCallId: string, _args: AskUserQuestionToolArgs, _signal?: AbortSignal) =>
       Promise.reject(new Error('Agent tools are not ready yet.')),
+    loadSkill: async (_sessionId: string, _toolCallId: string, _args: SkillToolArgs) => {
+      throw new Error('Agent tools are not ready yet.')
+    },
+    readSkillFile: async (_sessionId: string, _toolCallId: string, _args: ReadSkillFileToolArgs) => {
+      throw new Error('Agent tools are not ready yet.')
+    },
+    createSkill: async (_sessionId: string, _toolCallId: string, _args: CreateSkillToolArgs) => {
+      throw new Error('Agent tools are not ready yet.')
+    },
   })
 
   useExternalSync(() => {
@@ -715,6 +749,11 @@ export function useAgentPlayground({
         readImage: (toolCallId, args) => agentToolHandlersRef.current.readImage(runtime.sessionId, toolCallId, args),
         askUserQuestion: (toolCallId, args, signal) =>
           agentToolHandlersRef.current.askUserQuestion(runtime.sessionId, toolCallId, args, signal),
+        loadSkill: (toolCallId, args) => agentToolHandlersRef.current.loadSkill(runtime.sessionId, toolCallId, args),
+        readSkillFile: (toolCallId, args) =>
+          agentToolHandlersRef.current.readSkillFile(runtime.sessionId, toolCallId, args),
+        createSkill: (toolCallId, args) =>
+          agentToolHandlersRef.current.createSkill(runtime.sessionId, toolCallId, args),
       })
     },
     [getAgentBaseUrl],
@@ -2005,13 +2044,69 @@ export function useAgentPlayground({
     [finishRestoredAgentQuestion, getCurrentRuntime],
   )
 
+  const refreshAgentSkills = useCallback(() => {
+    const next = getAgentSkillSummaries()
+    setAgentSkillsState(next)
+    return next
+  }, [])
+
+  const setAgentSkillEnabled = useCallback((name: string, enabled: boolean) => {
+    setAgentSkillsState(setAgentSkillEnabledInRegistry(name, enabled))
+  }, [])
+
+  const deleteAgentSkill = useCallback((name: string) => {
+    setAgentSkillsState(deleteAgentSkillFromRegistry(name))
+  }, [])
+
+  const runSkillTool = useCallback(
+    async (_sessionId: string, _toolCallId: string, args: SkillToolArgs): Promise<AgentToolResult> => {
+      return formatLoadedSkillText(args.skill)
+    },
+    [],
+  )
+
+  const runReadSkillFileTool = useCallback(
+    async (_sessionId: string, _toolCallId: string, args: ReadSkillFileToolArgs): Promise<AgentToolResult> => {
+      return formatReadSkillFileResult(args.skill, args.path)
+    },
+    [],
+  )
+
+  const runCreateSkillTool = useCallback(
+    async (_sessionId: string, _toolCallId: string, args: CreateSkillToolArgs): Promise<AgentToolResult> => {
+      const skill = createAgentSkill(args)
+      refreshAgentSkills()
+      const payload = {
+        status: 'saved',
+        skill_name: skill.name,
+        icon: skill.icon,
+        enabled: skill.enabled,
+        file_count: skill.files.length,
+        message:
+          'Skill saved to the browser skill library. It will be listed in available skills for future new conversations.',
+      }
+      return toolTextResult(JSON.stringify(payload, null, 2), payload)
+    },
+    [refreshAgentSkills],
+  )
+
   useExternalSync(() => {
     agentToolHandlersRef.current = {
       genImage: runGenImageTool,
       readImage: runReadImageTool,
       askUserQuestion: runAskUserQuestionTool,
+      loadSkill: runSkillTool,
+      readSkillFile: runReadSkillFileTool,
+      createSkill: runCreateSkillTool,
     }
-  }, [runAskUserQuestionTool, runGenImageTool, runReadImageTool])
+  }, [
+    runAskUserQuestionTool,
+    runCreateSkillTool,
+    runGenImageTool,
+    runReadImageTool,
+    runReadSkillFileTool,
+    runSkillTool,
+  ])
 
   useExternalSync(() => {
     void keyHooks.anthropic.apiKey
@@ -2112,6 +2207,8 @@ export function useAgentPlayground({
       systemPrefix += `${buildLanguageDirective(getActiveLanguage())}\n\n`
       const preferredModelDirective = buildPreferredImageModelDirective()
       if (preferredModelDirective) systemPrefix += `${preferredModelDirective}\n\n`
+      const skillListing = buildAvailableSkillsSystemMessage(getAgentSkillSummaries())
+      if (skillListing) systemPrefix += `${skillListing}\n\n`
     }
     const promptText = `${systemPrefix}${trimmed || '请分析这些图片。'}${attachmentNote}`
     for (const attachment of attachmentsToSend) {
@@ -2273,12 +2370,15 @@ export function useAgentPlayground({
     autoApproveAgentImageTasks,
     agentImageTasks,
     agentPendingQuestions,
+    agentSkills,
     setAgentModelId: setAgentModelIdForSession,
     setAgentThinkingLevel,
     createAgentSession: createNewAgentSession,
     switchAgentSession,
     deleteAgentSession: removeAgentSession,
     setAutoApproveAgentImageTasks,
+    setAgentSkillEnabled,
+    deleteAgentSkill,
     setAgentDraft: setCurrentAgentDraft,
     addAgentAttachments,
     addAgentImageAttachment,

@@ -11,6 +11,7 @@ import {
   type AgentImageTask,
   type AgentPendingQuestion,
   type AgentSessionSummary,
+  type AgentSkillSummary,
   type AskUserQuestionAnswer,
 } from '../agent'
 import type { AgentSessionMessageMetadata } from '../agent/sessionTypes'
@@ -35,6 +36,7 @@ import {
   parseDraggedPlaygroundImage,
 } from './agent-chat/utils'
 import { Icon } from './Icon'
+import { SkillIcon } from './SkillIcon'
 
 type Props = {
   messages: AgentMessage[]
@@ -51,6 +53,7 @@ type Props = {
   autoApproveImageTasks: boolean
   imageTasks: AgentImageTask[]
   pendingQuestions: AgentPendingQuestion[]
+  skills: AgentSkillSummary[]
   history: PlaygroundImageMeta[]
   generationJobs: GenerationJob[]
   model: AgentModelConfig
@@ -95,6 +98,7 @@ export function AgentChatPanel({
   autoApproveImageTasks,
   imageTasks,
   pendingQuestions,
+  skills,
   history,
   generationJobs,
   model,
@@ -197,6 +201,7 @@ export function AgentChatPanel({
     for (const question of pendingQuestions) map.set(question.toolCallId, question)
     return map
   }, [pendingQuestions])
+  const drawingSkills = useMemo(() => skills.filter(isDrawingSkill), [skills])
 
   useExternalSync(() => {
     const el = scrollRef.current
@@ -260,6 +265,7 @@ export function AgentChatPanel({
     onAddImageAttachment(image)
     return true
   }
+  const contentRightPaddingClass = showSessionSidebar ? 'pr-[192px]' : 'pr-[var(--agent-panel-padding-x,18px)]'
 
   return (
     <div
@@ -303,46 +309,48 @@ export function AgentChatPanel({
         />
       )}
 
-      <div className={`flex min-h-0 min-w-0 flex-1 flex-col ${showSessionSidebar ? 'pt-8 pr-[192px] pb-[18px]' : ''}`}>
-        <AgentChatHeader
-          sessions={sessions}
-          currentSessionId={currentSessionId}
-          sessionsLoading={sessionsLoading}
-          compactSessionControls={showSessionSidebar}
-          openMenu={openMenu}
-          setOpenMenu={setOpenMenu}
-          onNewSession={onNewSession}
-          onSwitchSession={onSwitchSession}
-          onDeleteSession={onDeleteSession}
-        />
+      <div className={`flex min-h-0 min-w-0 flex-1 flex-col ${showSessionSidebar ? 'pt-8 pb-[18px]' : ''}`}>
+        <div className={contentRightPaddingClass}>
+          <AgentChatHeader
+            sessions={sessions}
+            currentSessionId={currentSessionId}
+            sessionsLoading={sessionsLoading}
+            compactSessionControls={showSessionSidebar}
+            openMenu={openMenu}
+            setOpenMenu={setOpenMenu}
+            onNewSession={onNewSession}
+            onSwitchSession={onSwitchSession}
+            onDeleteSession={onDeleteSession}
+          />
 
-        {keyMissing && (
-          <button
-            type="button"
-            onClick={onOpenApiKeys}
-            className="card mb-3 flex w-full items-start gap-2.5 px-3 py-2.5 text-left transition-colors"
-            style={{
-              color: 'var(--color-danger)',
-              background: 'var(--color-danger-soft)',
-              boxShadow: 'inset 0 0 0 1px color-mix(in srgb, var(--color-danger) 24%, transparent)',
-            }}
-          >
-            <Icon name="alert_circle" size={14} style={{ marginTop: 1, flexShrink: 0 }} />
-            <span className="flex-1">
-              <span className="block text-base font-medium">{t('agentChat.apiKeyMissing.title')}</span>
-              <span className="mt-0.5 block text-sm leading-[1.45] opacity-80">
-                {t('agentChat.apiKeyMissing.description', { model: model.label, provider: model.providerLabel })}
+          {keyMissing && (
+            <button
+              type="button"
+              onClick={onOpenApiKeys}
+              className="card mb-3 flex w-full items-start gap-2.5 px-3 py-2.5 text-left transition-colors"
+              style={{
+                color: 'var(--color-danger)',
+                background: 'var(--color-danger-soft)',
+                boxShadow: 'inset 0 0 0 1px color-mix(in srgb, var(--color-danger) 24%, transparent)',
+              }}
+            >
+              <Icon name="alert_circle" size={14} style={{ marginTop: 1, flexShrink: 0 }} />
+              <span className="flex-1">
+                <span className="block text-base font-medium">{t('agentChat.apiKeyMissing.title')}</span>
+                <span className="mt-0.5 block text-sm leading-[1.45] opacity-80">
+                  {t('agentChat.apiKeyMissing.description', { model: model.label, provider: model.providerLabel })}
+                </span>
               </span>
-            </span>
-            <span className="chip danger shrink-0 text-sm" style={{ height: 22, padding: '0 7px' }}>
-              {t('agentChat.apiKeyMissing.action')}
-            </span>
-          </button>
-        )}
+              <span className="chip danger shrink-0 text-sm" style={{ height: 22, padding: '0 7px' }}>
+                {t('agentChat.apiKeyMissing.action')}
+              </span>
+            </button>
+          )}
+        </div>
 
         <div
           ref={scrollRef}
-          className="min-h-0 flex-1 space-y-4 overflow-y-auto pt-5 pr-1 pb-8 [scrollbar-gutter:stable]"
+          className="min-h-0 flex-1 overflow-y-auto pt-5 pb-8 [scrollbar-gutter:stable]"
           style={{
             maskImage:
               'linear-gradient(to bottom, transparent 0, black 28px, black calc(100% - 34px), transparent 100%)',
@@ -350,83 +358,98 @@ export function AgentChatPanel({
               'linear-gradient(to bottom, transparent 0, black 28px, black calc(100% - 34px), transparent 100%)',
           }}
         >
-          {renderItems.length === 0 ? (
-            <div className="flex min-h-[300px] flex-col justify-center text-center">
-              <div className="font-display text-lg font-semibold tracking-[-0.01em] text-(--color-text)">
-                {t('agentChat.empty.title')}
-              </div>
-              <div className="mx-auto mt-1 max-w-[250px] text-sm leading-[1.5] text-(--color-text-3)">
-                {t('agentChat.empty.description')}
-              </div>
-            </div>
-          ) : (
-            <>
-              {renderItems.map((item) =>
-                item.type === 'message' ? (
-                  <MessageBubble
-                    key={item.key}
-                    message={item.message}
-                    isStreaming={item.isStreaming}
-                    assistantTitle={assistantTitleFor(item.message, item.isStreaming)}
+          <div className={`space-y-4 ${contentRightPaddingClass}`}>
+            {renderItems.length === 0 ? (
+              <div className="flex min-h-[300px] flex-col items-center justify-center text-center">
+                {drawingSkills.length > 0 ? (
+                  <DrawingSkillStarters
+                    skills={drawingSkills}
+                    onPick={(skill) => {
+                      onDraftChange(t('agentChat.empty.skillStarter.prompt', { skill: skill.name }))
+                    }}
                   />
                 ) : (
-                  <ToolActivityCard
-                    key={item.key}
-                    calls={item.calls}
-                    results={item.results}
-                    imageTaskByToolCallId={imageTaskByToolCallId}
-                    stackItemByImageId={stackItemByImageId}
-                    pendingQuestionByToolCallId={pendingQuestionByToolCallId}
-                    isStreaming={item.isStreaming}
-                    onApproveImageTask={onApproveImageTask}
-                    onCancelImageTask={onCancelImageTask}
-                    onSubmitQuestionAnswers={onSubmitQuestionAnswers}
-                    onCancelQuestion={onCancelQuestion}
-                    onFocusImageTask={onFocusImageTask}
-                  />
-                ),
-              )}
-              {showThinkingPlaceholder && (
-                <div className="flex justify-start">
-                  <div className="mr-3 max-w-[94%] pl-3">
-                    <span className="text-(--color-text-4)">{t('agentChat.status.thinking')}</span>
+                  <>
+                    <div className="font-display text-lg font-semibold tracking-[-0.01em] text-(--color-text)">
+                      {t('agentChat.empty.title')}
+                    </div>
+                    <div className="mx-auto mt-1 max-w-[250px] text-sm leading-[1.5] text-(--color-text-3)">
+                      {t('agentChat.empty.description')}
+                    </div>
+                  </>
+                )}
+              </div>
+            ) : (
+              <>
+                {renderItems.map((item) =>
+                  item.type === 'message' ? (
+                    <MessageBubble
+                      key={item.key}
+                      message={item.message}
+                      isStreaming={item.isStreaming}
+                      assistantTitle={assistantTitleFor(item.message, item.isStreaming)}
+                    />
+                  ) : (
+                    <ToolActivityCard
+                      key={item.key}
+                      calls={item.calls}
+                      results={item.results}
+                      imageTaskByToolCallId={imageTaskByToolCallId}
+                      stackItemByImageId={stackItemByImageId}
+                      pendingQuestionByToolCallId={pendingQuestionByToolCallId}
+                      isStreaming={item.isStreaming}
+                      onApproveImageTask={onApproveImageTask}
+                      onCancelImageTask={onCancelImageTask}
+                      onSubmitQuestionAnswers={onSubmitQuestionAnswers}
+                      onCancelQuestion={onCancelQuestion}
+                      onFocusImageTask={onFocusImageTask}
+                    />
+                  ),
+                )}
+                {showThinkingPlaceholder && (
+                  <div className="flex justify-start">
+                    <div className="mr-3 max-w-[94%] pl-3">
+                      <span className="text-(--color-text-4)">{t('agentChat.status.thinking')}</span>
+                    </div>
                   </div>
-                </div>
-              )}
-            </>
-          )}
+                )}
+              </>
+            )}
+          </div>
         </div>
 
-        <AgentChatComposer
-          error={composerError}
-          attachmentError={attachmentError}
-          draft={draft}
-          attachments={attachments}
-          pendingQuestionCount={pendingQuestions.length}
-          renderItemCount={renderItems.length}
-          nearBottom={nearBottom}
-          openMenu={openMenu}
-          setOpenMenu={setOpenMenu}
-          autoApproveImageTasks={autoApproveImageTasks}
-          model={model}
-          models={models}
-          thinkingLevel={thinkingLevel}
-          keyStatuses={keyStatuses}
-          canSend={canSend}
-          showStop={showStop}
-          isStreaming={isStreaming}
-          onDraftChange={onDraftChange}
-          onAddAttachments={onAddAttachments}
-          onRemoveAttachment={onRemoveAttachment}
-          onClearAttachmentError={onClearAttachmentError}
-          onToggleAutoApproveImageTasks={onToggleAutoApproveImageTasks}
-          onModelChange={onModelChange}
-          onThinkingLevelChange={onThinkingLevelChange}
-          onOpenApiKeys={onOpenApiKeys}
-          onSend={handleSend}
-          onStop={onStop}
-          scrollToBottom={scrollToBottom}
-        />
+        <div className={contentRightPaddingClass}>
+          <AgentChatComposer
+            error={composerError}
+            attachmentError={attachmentError}
+            draft={draft}
+            attachments={attachments}
+            pendingQuestionCount={pendingQuestions.length}
+            renderItemCount={renderItems.length}
+            nearBottom={nearBottom}
+            openMenu={openMenu}
+            setOpenMenu={setOpenMenu}
+            autoApproveImageTasks={autoApproveImageTasks}
+            model={model}
+            models={models}
+            thinkingLevel={thinkingLevel}
+            keyStatuses={keyStatuses}
+            canSend={canSend}
+            showStop={showStop}
+            isStreaming={isStreaming}
+            onDraftChange={onDraftChange}
+            onAddAttachments={onAddAttachments}
+            onRemoveAttachment={onRemoveAttachment}
+            onClearAttachmentError={onClearAttachmentError}
+            onToggleAutoApproveImageTasks={onToggleAutoApproveImageTasks}
+            onModelChange={onModelChange}
+            onThinkingLevelChange={onThinkingLevelChange}
+            onOpenApiKeys={onOpenApiKeys}
+            onSend={handleSend}
+            onStop={onStop}
+            scrollToBottom={scrollToBottom}
+          />
+        </div>
       </div>
     </div>
   )
@@ -557,5 +580,63 @@ function AgentSessionSidebar({
         )}
       </div>
     </aside>
+  )
+}
+
+function isDrawingSkill(skill: AgentSkillSummary): boolean {
+  if (!skill.enabled) return false
+  const text = [skill.name, skill.agentDescription, skill.displayDescription['zh-CN'], skill.displayDescription.en]
+    .join(' ')
+    .toLowerCase()
+  return /image|generate|generation|cover|sketch|illustration|draw|drawing|visual|nano.?banana|生图|画图|绘图|插画|封面|视觉/.test(
+    text,
+  )
+}
+
+function DrawingSkillStarters({
+  skills,
+  onPick,
+}: {
+  skills: AgentSkillSummary[]
+  onPick: (skill: AgentSkillSummary) => void
+}) {
+  const { t, language } = useI18n()
+  return (
+    <div className="max-w-[520px]">
+      <div className="label mb-2 px-1">{t('agentChat.empty.skillStarter.title')}</div>
+      <div className="flex flex-wrap gap-2">
+        {skills.map((skill) => {
+          const description = skill.displayDescriptionKey
+            ? t(skill.displayDescriptionKey)
+            : skill.displayDescription[language] || skill.displayDescription['zh-CN'] || skill.displayDescription.en
+          return (
+            <button
+              key={skill.name}
+              type="button"
+              onClick={() => onPick(skill)}
+              className="group max-w-[250px] rounded-[var(--radius-md)] bg-(--color-surface) px-3 py-2 text-left shadow-[inset_0_0_0_1px_var(--ring-edge-soft)] transition-[box-shadow,background-color] hover:bg-(--color-surface-2) hover:shadow-[inset_0_0_0_1px_var(--ring-edge-strong)]"
+            >
+              <span className="flex items-start gap-2">
+                <span
+                  aria-hidden
+                  className="mt-0.5 inline-flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[var(--radius-xs)] text-(--color-accent)"
+                  style={{ background: 'var(--color-accent-wash-2)' }}
+                >
+                  <SkillIcon name={skill.icon} size={11} strokeWidth={2} />
+                </span>
+                <span className="min-w-0">
+                  <span className="mono block truncate text-[12px] font-semibold text-(--color-text-2) group-hover:text-(--color-accent)">
+                    {skill.name}
+                  </span>
+                  <span className="mt-0.5 block overflow-hidden text-[12px] leading-[1.35] text-(--color-text-3) [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
+                    {description}
+                  </span>
+                </span>
+              </span>
+            </button>
+          )
+        })}
+      </div>
+    </div>
   )
 }

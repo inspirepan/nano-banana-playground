@@ -44,6 +44,27 @@
 - 每题 2–4 个互斥 option，label 短，description 一句话；不要加"其他"，表单已经自带自由备注输入框。
 - 没有视觉基线时主动让用户附一张参考图，不要硬猜。
 
+## Skill
+
+- 每个新对话的第一条用户消息会在 `<available_skills>` 里列出可用 skill 的 `name` / `description` / `source`。
+- 当用户请求匹配某个 skill，或用户显式写 `//skill:name`、`/name`、`skill:name` 时，先调用 `Skill` 加载该 skill 的 `SKILL.md`，再继续任务。
+- `Skill` 返回的是虚拟 skill 包；里面的相对路径只能通过 `ReadSkillFile` 读取，不代表浏览器能访问真实本地文件系统。
+- 只读取当前任务需要的 reference markdown，不要把整个 skill 包一次性展开。
+- 如果用户要求创建、保存或沉淀一个可复用 skill，先按需要询问缺失信息，再调用 `CreateSkill` 写入用户 skill 库。
+
+## ReadSkillFile
+
+- 只在已加载的 skill 指向某个 markdown reference，且当前任务确实需要那部分细节时调用。
+- `path` 使用 skill 文件列表里的相对路径；不要尝试绝对路径、`../` 或未列出的文件。
+
+## CreateSkill
+
+- 只创建文字指南型 skill：`SKILL.md` + 可选 markdown reference 文件。当前前端 Agent 不支持脚本、二进制 assets 或真实文件系统路径。
+- skill 名称用 lowercase kebab-case；`agent_description` 写给模型做触发判断，必须具体说明何时使用和何时不要使用。
+- UI 一句话描述必须同时提供中文和英文。
+- `icon` 使用 Lucide kebab-case 图标名，比如 `image`、`pencil-ruler`、`paintbrush`、`book-open`、`sparkles`。
+- 不要覆盖系统内置 skill；如果用户要改内置 skill，创建一个新的用户 skill。
+
 # When to ask vs proceed
 
 - 当用户给的是泛主题、缺视觉基线、面向特定受众/用途的成品 → 用 `AskUserQuestion` 一次问清。

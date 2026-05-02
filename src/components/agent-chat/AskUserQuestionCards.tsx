@@ -75,7 +75,7 @@ export function AskUserQuestionForm({
   return (
     <div
       className="rounded-[var(--radius-lg)] p-3 shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]"
-      style={{ background: 'var(--color-accent-soft)' }}
+      style={{ background: 'var(--color-bg-sunken)' }}
     >
       <div className="flex min-w-0 items-center gap-2">
         <span
@@ -85,7 +85,7 @@ export function AskUserQuestionForm({
         >
           <Icon name="help_circle" className="h-3.5 w-3.5" strokeWidth={2.2} />
         </span>
-        <span className="text-base font-semibold text-(--color-accent)">{t('agentChat.question.title')}</span>
+        <span className="text-base font-semibold text-(--color-text)">{t('agentChat.question.title')}</span>
         <span
           className="ml-auto rounded-full bg-(--color-surface) px-2 py-0.5 text-[11px] font-medium text-(--color-text-3) shadow-[inset_0_0_0_1px_var(--ring-edge)]"
           style={{ fontVariantNumeric: 'tabular-nums' }}
@@ -108,8 +108,8 @@ export function AskUserQuestionForm({
               <div className="flex min-w-0 items-baseline gap-2">
                 <span
                   aria-hidden
-                  className="inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-[var(--radius-xs)] px-1 text-[11px] font-semibold text-(--color-accent)"
-                  style={{ background: 'var(--color-accent-wash-2)', fontVariantNumeric: 'tabular-nums' }}
+                  className="inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-[var(--radius-xs)] px-1 text-[11px] font-semibold text-(--color-text)"
+                  style={{ background: 'var(--color-bg)', fontVariantNumeric: 'tabular-nums' }}
                 >
                   {index + 1}
                 </span>
