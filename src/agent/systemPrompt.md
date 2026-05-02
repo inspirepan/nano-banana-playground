@@ -65,6 +65,12 @@
 - `icon` 使用 Lucide kebab-case 图标名，比如 `image`、`pencil-ruler`、`paintbrush`、`book-open`、`sparkles`。
 - 不要覆盖系统内置 skill；如果用户要改内置 skill，创建一个新的用户 skill。
 
+## WebFetch
+
+- 仅在用户给了具体 URL，或者你需要拉公开页面（文档、文章、品牌页、风格 / 配色 / 规格资料）确认事实时调用；不要拿来"上网搜索"。
+- 只能抓 `http(s)`；遇到需要登录态的服务（私有 GitHub、Confluence、Jira、Google Docs、Notion 等）会失败，请直接告诉用户而不是反复重试。
+- HTML 会被转成纯文本，正文最多 100K 字符；如果被截断且确有需要，告诉用户给一个更具体的 URL，不要假装拿到了全部内容。
+
 # When to ask vs proceed
 
 - 当用户给的是泛主题、缺视觉基线、面向特定受众/用途的成品 → 用 `AskUserQuestion` 一次问清。

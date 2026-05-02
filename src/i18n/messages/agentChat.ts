@@ -121,6 +121,7 @@ export const agentChatMessages: MessageDictionary = {
   'agentChat.tool.label.skill': { 'zh-CN': '加载 Skill', en: 'Load skill' },
   'agentChat.tool.label.readSkillFile': { 'zh-CN': '读取 Skill 文件', en: 'Read skill file' },
   'agentChat.tool.label.createSkill': { 'zh-CN': '创建 Skill', en: 'Create skill' },
+  'agentChat.tool.label.webFetch': { 'zh-CN': '抓取网页', en: 'Fetch web page' },
   'agentChat.tool.unknown': { 'zh-CN': '工具', en: 'Tool' },
   'agentChat.tool.args.unnamed': { 'zh-CN': '未命名', en: 'Untitled' },
   'agentChat.tool.args.image': { 'zh-CN': '图片', en: 'Image' },

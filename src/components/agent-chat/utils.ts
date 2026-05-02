@@ -117,6 +117,7 @@ export function toolLabel(name: string): string {
   if (name === 'Skill') return translate('agentChat.tool.label.skill')
   if (name === 'ReadSkillFile') return translate('agentChat.tool.label.readSkillFile')
   if (name === 'CreateSkill') return translate('agentChat.tool.label.createSkill')
+  if (name === 'WebFetch') return translate('agentChat.tool.label.webFetch')
   return name
 }
 
@@ -144,6 +145,15 @@ export function summarizeToolArgs(call: AgentMessageToolCall): string {
       typeof call.arguments.skill === 'string' ? call.arguments.skill : translate('agentChat.tool.args.skill')
     const path = typeof call.arguments.path === 'string' ? call.arguments.path : 'file'
     return `${skill} · ${path}`
+  }
+  if (call.name === 'WebFetch') {
+    const url = typeof call.arguments.url === 'string' ? call.arguments.url : ''
+    if (!url) return 'URL'
+    try {
+      return new URL(url).hostname
+    } catch {
+      return url.slice(0, 64)
+    }
   }
   return Object.keys(call.arguments).slice(0, 3).join(' · ')
 }

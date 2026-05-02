@@ -158,4 +158,5 @@ export const configLibMessages: MessageDictionary = {
   'configLib.agent.tool.skill': { 'zh-CN': '加载 Skill', en: 'Load skill' },
   'configLib.agent.tool.readSkillFile': { 'zh-CN': '读取 Skill 文件', en: 'Read skill file' },
   'configLib.agent.tool.createSkill': { 'zh-CN': '创建 Skill', en: 'Create skill' },
+  'configLib.agent.tool.webFetch': { 'zh-CN': '抓取网页', en: 'Fetch web page' },
 }

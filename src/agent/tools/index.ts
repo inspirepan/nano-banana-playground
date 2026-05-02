@@ -5,6 +5,7 @@ import { createReadImageTool, type ReadImageExecutor } from './readImage'
 import { createReadSkillFileTool, type ReadSkillFileExecutor } from './readSkillFile'
 import type { AgentRuntimeTool } from './shared'
 import { createSkillTool, type SkillExecutor } from './skill'
+import { createWebFetchTool, type WebFetchExecutor } from './webFetch'
 import type { ModelConfig } from '../../config/models'
 
 export { createGenImageTool, prepareGenImageArgs } from './genImage'
@@ -25,6 +26,8 @@ export { createReadSkillFileTool, formatReadSkillFileResult, prepareReadSkillFil
 export type { ReadSkillFileExecutor, ReadSkillFileToolArgs } from './readSkillFile'
 export { createSkillTool, formatLoadedSkillText, prepareSkillArgs } from './skill'
 export type { SkillExecutor, SkillToolArgs } from './skill'
+export { createWebFetchTool, prepareWebFetchArgs, runWebFetch } from './webFetch'
+export type { WebFetchExecutor, WebFetchToolArgs } from './webFetch'
 export type { AgentImageToolResult, AgentRuntimeTool, AgentToolResult } from './shared'
 
 type CreateAgentToolsParams = {
@@ -35,6 +38,7 @@ type CreateAgentToolsParams = {
   loadSkill: SkillExecutor
   readSkillFile: ReadSkillFileExecutor
   createSkill: CreateSkillExecutor
+  webFetch: WebFetchExecutor
 }
 
 export function createAgentTools(params: CreateAgentToolsParams): AgentRuntimeTool[] {
@@ -45,6 +49,7 @@ export function createAgentTools(params: CreateAgentToolsParams): AgentRuntimeTo
     createSkillTool({ loadSkill: params.loadSkill }),
     createReadSkillFileTool({ readSkillFile: params.readSkillFile }),
     createCreateSkillTool({ createSkill: params.createSkill }),
+    createWebFetchTool({ webFetch: params.webFetch }),
   ]
 }
 

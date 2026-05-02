@@ -47,6 +47,7 @@ import {
   formatAskUserQuestionResult,
   formatLoadedSkillText,
   formatReadSkillFileResult,
+  runWebFetch,
   type AgentToolResult,
   type AskUserQuestionAnswer,
   type AskUserQuestionItem,
@@ -56,6 +57,7 @@ import {
   type ReadImageToolArgs,
   type ReadSkillFileToolArgs,
   type SkillToolArgs,
+  type WebFetchToolArgs,
 } from './tools'
 import {
   AGENT_MODEL_CONFIGS,
@@ -501,6 +503,12 @@ export function useAgentPlayground({
     loadSkill: (sessionId: string, toolCallId: string, args: SkillToolArgs) => Promise<AgentToolResult>
     readSkillFile: (sessionId: string, toolCallId: string, args: ReadSkillFileToolArgs) => Promise<AgentToolResult>
     createSkill: (sessionId: string, toolCallId: string, args: CreateSkillToolArgs) => Promise<AgentToolResult>
+    webFetch: (
+      sessionId: string,
+      toolCallId: string,
+      args: WebFetchToolArgs,
+      signal?: AbortSignal,
+    ) => Promise<AgentToolResult>
   }>({
     genImage: async (_sessionId: string, _toolCallId: string, _args: GenImageToolArgs, _signal?: AbortSignal) => {
       throw new Error('Agent tools are not ready yet.')
@@ -517,6 +525,9 @@ export function useAgentPlayground({
       throw new Error('Agent tools are not ready yet.')
     },
     createSkill: async (_sessionId: string, _toolCallId: string, _args: CreateSkillToolArgs) => {
+      throw new Error('Agent tools are not ready yet.')
+    },
+    webFetch: async (_sessionId: string, _toolCallId: string, _args: WebFetchToolArgs, _signal?: AbortSignal) => {
       throw new Error('Agent tools are not ready yet.')
     },
   })
@@ -755,6 +766,8 @@ export function useAgentPlayground({
           agentToolHandlersRef.current.readSkillFile(runtime.sessionId, toolCallId, args),
         createSkill: (toolCallId, args) =>
           agentToolHandlersRef.current.createSkill(runtime.sessionId, toolCallId, args),
+        webFetch: (toolCallId, args, signal) =>
+          agentToolHandlersRef.current.webFetch(runtime.sessionId, toolCallId, args, signal),
       })
     },
     [getAgentBaseUrl],
@@ -2101,6 +2114,18 @@ export function useAgentPlayground({
     [refreshAgentSkills],
   )
 
+  const runWebFetchTool = useCallback(
+    async (
+      _sessionId: string,
+      _toolCallId: string,
+      args: WebFetchToolArgs,
+      signal?: AbortSignal,
+    ): Promise<AgentToolResult> => {
+      return runWebFetch(args, signal)
+    },
+    [],
+  )
+
   useExternalSync(() => {
     agentToolHandlersRef.current = {
       genImage: runGenImageTool,
@@ -2109,6 +2134,7 @@ export function useAgentPlayground({
       loadSkill: runSkillTool,
       readSkillFile: runReadSkillFileTool,
       createSkill: runCreateSkillTool,
+      webFetch: runWebFetchTool,
     }
   }, [
     runAskUserQuestionTool,
@@ -2117,6 +2143,7 @@ export function useAgentPlayground({
     runReadImageTool,
     runReadSkillFileTool,
     runSkillTool,
+    runWebFetchTool,
   ])
 
   useExternalSync(() => {
