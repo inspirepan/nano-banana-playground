@@ -25,7 +25,7 @@ import {
   clearDraftRefs,
 } from '../lib/history'
 import type { GeneratedSource, PlaygroundImage, PlaygroundImageMeta } from '../lib/types'
-import { readSimpleUrlParams, updateUrl } from '../lib/urlState'
+import { AGENT_MODE_SENTINEL, readSimpleUrlParams, updateUrl } from '../lib/urlState'
 
 export type {
   GenerationJob,
@@ -197,7 +197,7 @@ export function usePlayground() {
     initialOptionsFor(resolveModel(_initial.modelId), _initial.rawParams),
   )
   const [prompt, setPromptRaw] = useState(_initial.prompt ?? '')
-  const [inputMode, setInputMode] = useState<InputMode>(() => (_initial.agentSessionId ? 'agent' : 'generate'))
+  const [inputMode, setInputMode] = useState<InputMode>(() => (_initial.agentMode ? 'agent' : 'generate'))
   const [referenceImages, setReferenceImages] = useState<PlaygroundImage[]>([])
   const [referenceImageError, setReferenceImageError] = useState<string | null>(null)
   const [history, setHistory] = useState<PlaygroundImageMeta[]>([])
@@ -317,7 +317,7 @@ export function usePlayground() {
         a: aspectRatio !== model.defaultAspectRatio ? aspectRatio : null,
         n: batchCount !== 1 ? String(batchCount) : null,
         p: prompt || null,
-        agent: inputMode === 'agent' ? agent.currentAgentSessionId : null,
+        agent: inputMode === 'agent' ? (agent.currentAgentSessionId ?? AGENT_MODE_SENTINEL) : null,
         ...optionUpdates,
       })
     }, 300)

@@ -23,6 +23,7 @@ describe('readSimpleUrlParams', () => {
       aspectRatio: '16:9',
       batchCount: 3,
       prompt: 'hello',
+      agentMode: false,
       agentSessionId: null,
       rawParams: {
         m: 'flash-pro',
@@ -45,6 +46,7 @@ describe('readSimpleUrlParams', () => {
       aspectRatio: null,
       batchCount: null,
       prompt: null,
+      agentMode: false,
       agentSessionId: null,
       rawParams: {},
     })
@@ -52,7 +54,16 @@ describe('readSimpleUrlParams', () => {
 
   it('parses active agent session id', () => {
     mockWindow('?agent=session-123')
-    expect(readSimpleUrlParams().agentSessionId).toBe('session-123')
+    const params = readSimpleUrlParams()
+    expect(params.agentMode).toBe(true)
+    expect(params.agentSessionId).toBe('session-123')
+  })
+
+  it('treats agent=new sentinel as agent mode without a session', () => {
+    mockWindow('?agent=new')
+    const params = readSimpleUrlParams()
+    expect(params.agentMode).toBe(true)
+    expect(params.agentSessionId).toBeNull()
   })
 
   it('returns null batchCount for non-numeric n', () => {
