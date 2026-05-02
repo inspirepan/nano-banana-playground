@@ -106,12 +106,14 @@ function buildLanguageDirective(language: Language): string {
   return `<system>${instruction}</system>`
 }
 
-function buildPreferredImageModelDirective(): string | null {
-  const id = getPreferredImageModelId()
-  if (!id) return null
+function buildPreferredImageModelDirective(id: string): string | null {
   const model = MODEL_CONFIGS.find((item) => item.id === id)
   if (!model) return null
   return `<system>The user prefers "${model.name}" (model id: ${model.id}) for image generation. Use this model for GenImage tool calls unless the user explicitly asks for a different one.</system>`
+}
+
+function buildPreferredImageModelClearedDirective(): string {
+  return `<system>The user no longer has a preferred image generation model. Pick the most appropriate model for each GenImage call based on the request.</system>`
 }
 
 function agentMessageMetadataForModel(modelId: string): AgentSessionMessageMetadata {
@@ -347,6 +349,7 @@ type AgentSessionRuntime = {
   lastCompaction: AgentCompactionState | undefined
   isCompacting: boolean
   compactionAbort: AbortController | null
+  lastInjectedPreferredImageModelId: string | null | undefined
 }
 
 function activateAgentResponseMetadata(
@@ -1008,6 +1011,7 @@ export function useAgentPlayground({
         lastCompaction: params.lastCompaction,
         isCompacting: false,
         compactionAbort: null,
+        lastInjectedPreferredImageModelId: undefined,
       }
       agent.subscribe((event) => {
         if (event.type === 'message_end') {
@@ -2239,11 +2243,23 @@ export function useAgentPlayground({
     const attachmentNote =
       attachmentIds.length > 0 ? `\n\n<system>Available attachment image IDs: ${attachmentIds.join(', ')}</system>` : ''
     const isFirstUserMessage = runtime.agent.state.messages.length === 0
+    const currentPreferredId = getPreferredImageModelId()
+    const preferredChanged = runtime.lastInjectedPreferredImageModelId !== currentPreferredId
     let systemPrefix = ''
     if (isFirstUserMessage) {
       systemPrefix += `${buildLanguageDirective(getActiveLanguage())}\n\n`
-      const preferredModelDirective = buildPreferredImageModelDirective()
-      if (preferredModelDirective) systemPrefix += `${preferredModelDirective}\n\n`
+    }
+    if (preferredChanged) {
+      let directive: string | null = null
+      if (currentPreferredId) {
+        directive = buildPreferredImageModelDirective(currentPreferredId)
+      } else if (runtime.lastInjectedPreferredImageModelId !== undefined) {
+        directive = buildPreferredImageModelClearedDirective()
+      }
+      if (directive) systemPrefix += `${directive}\n\n`
+      runtime.lastInjectedPreferredImageModelId = currentPreferredId
+    }
+    if (isFirstUserMessage) {
       const skillListing = buildAvailableSkillsSystemMessage(getAgentSkillSummaries())
       if (skillListing) systemPrefix += `${skillListing}\n\n`
     }
