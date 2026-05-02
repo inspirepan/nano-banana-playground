@@ -105,32 +105,32 @@ LLM 在用户表达"给这篇文章配封面 / 做 cover image / 生成头图"�
 
 ## 3. 维度速查
 
-| 维度 | 取值 | 一句话语义 |
-|------|------|------------|
-| type | hero / conceptual / typography / metaphor / scene / minimal | 视觉构图骨架 |
-| palette | warm / elegant / cool / dark / earth / vivid / pastel / mono / retro / duotone / macaron | 11 套色彩语义 |
-| rendering | flat-vector / hand-drawn / painterly / digital / pixel / chalk / screen-print | 7 种笔触表达 |
-| text | none / title-only / title-subtitle / text-rich | 文字占比和层级 |
-| mood | subtle / balanced / bold | 对比和饱和度倾向 |
-| font | clean / handwritten / serif / display | 字体风格（与 rendering 协同） |
+| 维度      | 取值                                                                                     | 一句话语义                    |
+| --------- | ---------------------------------------------------------------------------------------- | ----------------------------- |
+| type      | hero / conceptual / typography / metaphor / scene / minimal                              | 视觉构图骨架                  |
+| palette   | warm / elegant / cool / dark / earth / vivid / pastel / mono / retro / duotone / macaron | 11 套色彩语义                 |
+| rendering | flat-vector / hand-drawn / painterly / digital / pixel / chalk / screen-print            | 7 种笔触表达                  |
+| text      | none / title-only / title-subtitle / text-rich                                           | 文字占比和层级                |
+| mood      | subtle / balanced / bold                                                                 | 对比和饱和度倾向              |
+| font      | clean / handwritten / serif / display                                                    | 字体风格（与 rendering 协同） |
 
 ## 4. 调色板 hex 速查
 
 下表 hex 仅供模型作为颜色参考；**禁止在图里把色号、调色板名字、color role 当成可见文字渲染**。
 
-| Palette | Primary / Background / Accent (HEX) |
-|---------|--------------------------------------|
-| warm | `#ED8936` `#F6AD55` `#C05621` / `#FFFAF0` `#FED7AA` / `#744210` `#E53E3E` |
-| elegant | `#E8A598` `#5B8A8A` `#D4A5A5` / `#F5F0E6` `#F0EBE0` / `#C9A962` `#B87333` |
-| cool | `#2563EB` `#1E3A5F` `#06B6D4` / `#F8F9FA` `#FAF8F5` / `#F59E0B` `#BFDBFE` |
-| dark | `#8B5CF6` `#06B6D4` `#EC4899` / `#0A0A0A` `#1A1A2E` / `#F59E0B` `#FFFFFF` |
-| earth | `#276749` `#9AE6B4` `#744210` / `#F5E6D3` `#E0F2FE` / `#ED8936` `#63B3ED` |
-| vivid | `#EF4444` `#22C55E` `#3B82F6` / `#EFF6FF` `#F5F3FF` / `#FB923C` `#FACC15` |
-| pastel | `#FFB6C1` `#98D8C8` `#C8A2C8` / `#FFFFFF` `#FFF8E7` / `#FFFACD` `#BEE3F8` |
-| mono | `#000000` `#1F1F1F` `#374151` / `#FFFFFF` `#FAFAFA` / `#9CA3AF` + 内容衍生单点强调色 |
-| retro | `#E07A5F` `#81B29A` `#F2CC8F` `#5D3A3A` / `#F5F0E6` `#F5E6D3` / `#D4764A` `#577590` `#C9A227` |
+| Palette | Primary / Background / Accent (HEX)                                                                      |
+| ------- | -------------------------------------------------------------------------------------------------------- |
+| warm    | `#ED8936` `#F6AD55` `#C05621` / `#FFFAF0` `#FED7AA` / `#744210` `#E53E3E`                                |
+| elegant | `#E8A598` `#5B8A8A` `#D4A5A5` / `#F5F0E6` `#F0EBE0` / `#C9A962` `#B87333`                                |
+| cool    | `#2563EB` `#1E3A5F` `#06B6D4` / `#F8F9FA` `#FAF8F5` / `#F59E0B` `#BFDBFE`                                |
+| dark    | `#8B5CF6` `#06B6D4` `#EC4899` / `#0A0A0A` `#1A1A2E` / `#F59E0B` `#FFFFFF`                                |
+| earth   | `#276749` `#9AE6B4` `#744210` / `#F5E6D3` `#E0F2FE` / `#ED8936` `#63B3ED`                                |
+| vivid   | `#EF4444` `#22C55E` `#3B82F6` / `#EFF6FF` `#F5F3FF` / `#FB923C` `#FACC15`                                |
+| pastel  | `#FFB6C1` `#98D8C8` `#C8A2C8` / `#FFFFFF` `#FFF8E7` / `#FFFACD` `#BEE3F8`                                |
+| mono    | `#000000` `#1F1F1F` `#374151` / `#FFFFFF` `#FAFAFA` / `#9CA3AF` + 内容衍生单点强调色                     |
+| retro   | `#E07A5F` `#81B29A` `#F2CC8F` `#5D3A3A` / `#F5F0E6` `#F5E6D3` / `#D4764A` `#577590` `#C9A227`            |
 | duotone | 二选一 pair：`#E8751A`+`#0A6E6E` / `#1A3A5C`+`#D4A843` / `#DC143C`+`#0D1B2A` 等 + bg `#121212` `#1E1E1E` |
-| macaron | `#A8D8EA` `#B5E5CF` `#D5C6E0` / `#F5F0E8` `#FFD5C2` / `#E8655A` `#2D2D2D` |
+| macaron | `#A8D8EA` `#B5E5CF` `#D5C6E0` / `#F5F0E8` `#FFD5C2` / `#E8655A` `#2D2D2D`                                |
 
 ## 5. Prompt 拼装模板
 
@@ -193,19 +193,19 @@ Color values are guidance for the model — do NOT render hex codes, color names
 
 当用户跳过某个维度，按内容关键词从下表挑默认值，再写进 prompt。
 
-| 内容关键词 | type | palette | rendering | text | mood | font |
-|------------|------|---------|-----------|------|------|------|
-| 产品发布 / launch / 重磅 | hero | vivid 或 dark | digital | title-subtitle | bold | display |
-| 架构 / API / system | conceptual | cool | flat-vector | title-only | balanced | clean |
-| 观点 / 金句 / quote | typography | elegant 或 mono | flat-vector | title-only | subtle | serif |
-| 成长 / 哲思 / 反思 | metaphor | warm 或 earth | painterly | title-only | balanced | serif |
-| 故事 / 旅行 / 生活 | scene | earth 或 warm | painterly | title-only | balanced | handwritten |
-| 极简 / 禅 / 专注 | minimal | mono | flat-vector | title-only | subtle | clean |
-| 教程 / 科普 / onboarding | conceptual | macaron | flat-vector | title-subtitle | balanced | clean |
-| 复古 / 历史 / 回顾 | metaphor | retro | screen-print | title-only | balanced | display |
-| 影像 / 海报 / album | hero | duotone | screen-print | title-only | bold | display |
-| 教育 / 课堂 | conceptual | warm | chalk | title-subtitle | balanced | handwritten |
-| 游戏 / 像素 / 怀旧 | hero | vivid | pixel | title-only | bold | display |
+| 内容关键词               | type       | palette         | rendering    | text           | mood     | font        |
+| ------------------------ | ---------- | --------------- | ------------ | -------------- | -------- | ----------- |
+| 产品发布 / launch / 重磅 | hero       | vivid 或 dark   | digital      | title-subtitle | bold     | display     |
+| 架构 / API / system      | conceptual | cool            | flat-vector  | title-only     | balanced | clean       |
+| 观点 / 金句 / quote      | typography | elegant 或 mono | flat-vector  | title-only     | subtle   | serif       |
+| 成长 / 哲思 / 反思       | metaphor   | warm 或 earth   | painterly    | title-only     | balanced | serif       |
+| 故事 / 旅行 / 生活       | scene      | earth 或 warm   | painterly    | title-only     | balanced | handwritten |
+| 极简 / 禅 / 专注         | minimal    | mono            | flat-vector  | title-only     | subtle   | clean       |
+| 教程 / 科普 / onboarding | conceptual | macaron         | flat-vector  | title-subtitle | balanced | clean       |
+| 复古 / 历史 / 回顾       | metaphor   | retro           | screen-print | title-only     | balanced | display     |
+| 影像 / 海报 / album      | hero       | duotone         | screen-print | title-only     | bold     | display     |
+| 教育 / 课堂              | conceptual | warm            | chalk        | title-subtitle | balanced | handwritten |
+| 游戏 / 像素 / 怀旧       | hero       | vivid           | pixel        | title-only     | bold     | display     |
 
 未指定 aspect 默认 `16:9`；明显电影 / 海报感 → `2.35:1`；社交头像 → `1:1`；公众号常规可选 `4:3`。
 
@@ -227,13 +227,13 @@ Color values are guidance for the model — do NOT render hex codes, color names
 
 参数默认值：
 
-| 参数 | 默认 | 备注 |
-|------|------|------|
-| model | `nano-banana-pro` | 中文标题或多文字时换 `gpt-image-2`；预算敏感场景用 `nano-banana-2` |
-| resolution | `2K` | 公众号 / 博客够用；要海报印刷可上 `4K`（仅 nano-banana-pro 友好） |
-| ratio | `16:9` | 电影感 → `2.35:1`；社交方图 → `1:1`；公众号传统 → `4:3` |
-| n | `1` | 用户明说"出一组对比" / "多来几张" 才升到 2~4 |
-| reference_image_ids | `[]` | 仅当对话已有真实图片 id 才填 |
+| 参数                | 默认              | 备注                                                               |
+| ------------------- | ----------------- | ------------------------------------------------------------------ |
+| model               | `nano-banana-pro` | 中文标题或多文字时换 `gpt-image-2`；预算敏感场景用 `nano-banana-2` |
+| resolution          | `2K`              | 公众号 / 博客够用；要海报印刷可上 `4K`（仅 nano-banana-pro 友好）  |
+| ratio               | `16:9`            | 电影感 → `2.35:1`；社交方图 → `1:1`；公众号传统 → `4:3`            |
+| n                   | `1`               | 用户明说"出一组对比" / "多来几张" 才升到 2~4                       |
+| reference_image_ids | `[]`              | 仅当对话已有真实图片 id 才填                                       |
 
 ## 8. 参考图处理
 

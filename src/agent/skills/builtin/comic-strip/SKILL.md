@@ -20,22 +20,30 @@ icon: book-open
 色号仅用于引导模型配色,**禁止把色号、风格名、role 标签作为画面文字渲染**。
 
 ### manga-bw — 黑白漫画
+
 日式黑白漫画。强对比、粗轮廓、screen-tone 网点纸表现阴影、动作线 (speed lines) 表现冲击。背景纯白,人物有清晰轮廓和留白。
+
 - 背景 `#FFFFFF`,主线 `#0A0A0A`,中灰 `#9CA3AF`(网点 / 中间调)。
 - 适合段子、生活吐槽、传统 manga 节奏。
 
 ### flat-color — 平涂矢量漫画
+
 干净矢量风,圆润描线,平涂大色块,无渐变无网点。童话、科普、教学桥段最稳。
+
 - 背景 warm cream `#F5F0E8`,主色块橙 `#ED8936` / 软蓝 `#A8D8EA` / 软绿 `#B5E5CF`,描线 `#2D2D2D`。
 - 适合儿童向、说明性内容、温和叙事。
 
 ### american-comic — 美式漫画
+
 粗黑边 + halftone 半色调 + 饱和原色 + 拟声词 (onomatopoeia, 如 "BAM!" / "POW!")。动作场面、超英、夸张表情最有戏。
+
 - 红 `#EF4444` / 蓝 `#3B82F6` / 黄 `#FACC15`,描边 `#0A0A0A`。
 - **维持平涂 + halftone**,不要大量渐变;不然会失去美漫识别度。
 
 ### watercolor-storybook — 水彩绘本
+
 软水彩笔触、色边自然晕开、大量留白、抒情节奏。绘本、童话、温柔记忆段适用。
+
 - 背景 warm cream `#F5F0E8`,色软桃 `#FED7AA` / 软绿 `#9AE6B4` / 软蓝 `#BEE3F8`,主色 `#744210`。
 - 不要用粗黑描线;边线用色铅笔感的细线。
 
@@ -54,27 +62,33 @@ single-sheet 模式不需要 anchor chain,因为所有格在同一张画布里,�
 ## 分镜节奏(三种模板)
 
 ### setup → twist → punchline(3 格,段子 / 短笑话)
+
 节奏紧凑,第 3 格是反差点。
+
 1. setup:[场景描述,正常进入,铺设期望]
 2. twist:[出现意外、误会或转折]
 3. punchline:[反差落点,可以是表情特写或一句关键对白]
 
 ### setup → conflict → climax → resolution(4 格,经典四格 / 教学例子)
+
 最稳的故事结构,适合四格漫画和教学桥段。
+
 1. setup:[人物 + 场景 + 当前状态]
 2. conflict:[出现问题或挑战]
 3. climax:[问题被推到顶点,角色情绪最强]
 4. resolution:[解决、领悟、或荒诞收束]
 
 ### opening → 5×progression → closing(6-8 格,短漫故事)
+
 留出推进空间,适合 multi-image 模式。
+
 1. opening:[人物登场 + 世界设定,wide shot]
-2-6. progression:[每格推进一步,景别交替 wide / medium / close-up,避免连续 5 格全是中景]
-7-8. closing:[情绪落点 + 视觉收束,可以呼应 opening]
+   2-6. progression:[每格推进一步,景别交替 wide / medium / close-up,避免连续 5 格全是中景]
+   7-8. closing:[情绪落点 + 视觉收束,可以呼应 opening]
 
 ## AskUserQuestion(一次问完)
 
-故事大意单独问一题让用户写;后面六题用 options + 备注,默认值已标 *。
+故事大意单独问一题让用户写;后面六题用 options + 备注,默认值已标 \*。
 
 ```json
 {
@@ -82,16 +96,17 @@ single-sheet 模式不需要 anchor chain,因为所有格在同一张画布里,�
     {
       "question": "这格漫画讲什么?简单写一两句故事大意 / 段子内容,以及希望出现的关键对白。",
       "header": "故事大意",
-      "options": [
-        { "label": "我写在备注里", "description": "在下方备注写清楚情节、关键台词、想要的笑点或情绪" }
-      ],
+      "options": [{ "label": "我写在备注里", "description": "在下方备注写清楚情节、关键台词、想要的笑点或情绪" }],
       "multi_select": false
     },
     {
       "question": "想要哪种产出形态?",
       "header": "输出模式",
       "options": [
-        { "label": "single-sheet 一张多格 *", "description": "一张图里画 2/3/4 格,整体性强、生成一次,适合短段子和四格" },
+        {
+          "label": "single-sheet 一张多格 *",
+          "description": "一张图里画 2/3/4 格,整体性强、生成一次,适合短段子和四格"
+        },
         { "label": "multi-image 多张连贯", "description": "每张一格、N 张连贯,适合长一些的故事或要逐张放大编辑" }
       ],
       "multi_select": false

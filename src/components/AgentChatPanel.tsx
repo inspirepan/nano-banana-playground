@@ -353,9 +353,9 @@ export function AgentChatPanel({
           className="min-h-0 flex-1 overflow-y-auto pt-5 pb-8 [scrollbar-gutter:stable]"
           style={{
             maskImage:
-              'linear-gradient(to bottom, transparent 0, black 28px, black calc(100% - 34px), transparent 100%)',
+              'linear-gradient(to bottom, rgba(0,0,0,0.45) 0, black 14px, black calc(100% - 18px), rgba(0,0,0,0.45) 100%)',
             WebkitMaskImage:
-              'linear-gradient(to bottom, transparent 0, black 28px, black calc(100% - 34px), transparent 100%)',
+              'linear-gradient(to bottom, rgba(0,0,0,0.45) 0, black 14px, black calc(100% - 18px), rgba(0,0,0,0.45) 100%)',
           }}
         >
           <div className={`space-y-4 ${contentRightPaddingClass}`}>
@@ -398,8 +398,10 @@ export function AgentChatPanel({
                       stackItemByImageId={stackItemByImageId}
                       pendingQuestionByToolCallId={pendingQuestionByToolCallId}
                       isStreaming={item.isStreaming}
+                      autoApproveImageTasks={autoApproveImageTasks}
                       onApproveImageTask={onApproveImageTask}
                       onCancelImageTask={onCancelImageTask}
+                      onToggleAutoApproveImageTasks={onToggleAutoApproveImageTasks}
                       onSubmitQuestionAnswers={onSubmitQuestionAnswers}
                       onCancelQuestion={onCancelQuestion}
                       onFocusImageTask={onFocusImageTask}
@@ -477,7 +479,7 @@ function AgentSessionSidebar({
   const { t } = useI18n()
 
   return (
-    <aside className="hidden w-[264px] shrink-0 flex-col bg-(--color-bg-sunken) px-4 py-6 shadow-[inset_-1px_0_0_var(--ring-edge-soft)] md:flex">
+    <aside className="hidden w-[264px] shrink-0 flex-col bg-(--color-bg) px-4 py-6 shadow-[inset_-1px_0_0_var(--ring-edge-soft)] md:flex">
       <div className="mb-5 flex items-center gap-2">
         <div className="min-w-0 flex-1 truncate font-display text-lg font-semibold tracking-[-0.01em] text-(--color-text)">
           {t('app.name')}
@@ -602,13 +604,15 @@ function DrawingSkillStarters({
 }) {
   const { t, language } = useI18n()
   return (
-    <div className="max-w-[520px]">
-      <div className="label mb-2 px-1">{t('agentChat.empty.skillStarter.title')}</div>
-      <div className="flex flex-wrap gap-2">
+    <div className="mx-auto w-full max-w-[520px]">
+      <div className="label mb-2 text-center">{t('agentChat.empty.skillStarter.title')}</div>
+      <div className="flex flex-wrap justify-center gap-2">
         {skills.map((skill) => {
           const description = skill.displayDescriptionKey
             ? t(skill.displayDescriptionKey)
             : skill.displayDescription[language] || skill.displayDescription['zh-CN'] || skill.displayDescription.en
+          const hasDisplayName = Boolean(skill.displayNameKey)
+          const displayName = hasDisplayName ? t(skill.displayNameKey!) : skill.name
           return (
             <button
               key={skill.name}
@@ -625,8 +629,10 @@ function DrawingSkillStarters({
                   <SkillIcon name={skill.icon} size={11} strokeWidth={2} />
                 </span>
                 <span className="min-w-0">
-                  <span className="mono block truncate text-[12px] font-semibold text-(--color-text-2) group-hover:text-(--color-accent)">
-                    {skill.name}
+                  <span
+                    className={`block truncate text-[12px] ${hasDisplayName ? 'font-medium' : 'mono font-semibold'} text-(--color-text-2) group-hover:text-(--color-accent)`}
+                  >
+                    {displayName}
                   </span>
                   <span className="mt-0.5 block overflow-hidden text-[12px] leading-[1.35] text-(--color-text-3) [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
                     {description}

@@ -70,9 +70,7 @@ cinematic 的关键不是细节多，而是层级分明。
       "header": "主题",
       "question": "请用一句话描述这张图的主题与场景（地点 / 时间 / 主体 / 想传达的情绪），可在备注里详细写。",
       "multi_select": false,
-      "options": [
-        { "label": "已在备注中描述", "description": "把具体场景与情绪写在下方备注里" }
-      ]
+      "options": [{ "label": "已在备注中描述", "description": "把具体场景与情绪写在下方备注里" }]
     },
     {
       "header": "氛围方向",

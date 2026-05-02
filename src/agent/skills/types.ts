@@ -15,6 +15,7 @@ export type AgentSkill = {
   agentDescription: string
   displayDescription: AgentSkillDisplayDescription
   displayDescriptionKey?: string
+  displayNameKey?: string
   icon: AgentSkillIconName
   source: AgentSkillSource
   enabled: boolean
@@ -29,6 +30,7 @@ export type AgentSkillSummary = Pick<
   | 'agentDescription'
   | 'displayDescription'
   | 'displayDescriptionKey'
+  | 'displayNameKey'
   | 'icon'
   | 'source'
   | 'enabled'

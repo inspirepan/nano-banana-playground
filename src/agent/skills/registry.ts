@@ -82,6 +82,11 @@ export function displayDescriptionForLanguage(
   return skill.displayDescription[language] || skill.displayDescription['zh-CN'] || skill.displayDescription.en || ''
 }
 
+export function displayNameForSkill(skill: Pick<AgentSkill, 'name' | 'displayNameKey'>): string {
+  if (skill.displayNameKey) return translate(skill.displayNameKey)
+  return skill.name
+}
+
 export function buildSkillFileTree(files: AgentSkillFile[]): string {
   return files
     .map((file) => `- ${file.path} (${file.content.length} chars)`)

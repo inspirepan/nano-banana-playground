@@ -29,41 +29,41 @@ icon: layout-grid
 
 ### Style（12 个）
 
-| Style | 一句话 |
-| --- | --- |
-| `cute` | 甜美少女向，圆润字体 + 爱心 / 小花 / 闪光装饰，粉橘奶油色 |
-| `fresh` | 清新自然向，浅绿 / 米白 / 木色，留白多，干净通透 |
-| `warm` | 温暖故事向，米黄 / 砖红 / 焦糖，暖光氛围 |
-| `bold` | 高冲击力，大字粗体 + 高饱和对比色，标题撑满画面 |
-| `minimal` | 极简编辑风，大量留白 + 1-2 种无衬线字体，细线分隔 |
-| `retro` | 复古怀旧，做旧颗粒、磨损边缘、蜡笔色 + 印刷纹理 |
-| `pop` | 波普炸裂，撞色 + 漫画感感叹号 + 大号 emoji 风装饰 |
-| `notion` | 极简手绘线稿，黑细线 + checkbox / 标注气泡，理性知识感 |
-| `chalkboard` | 黑板粉笔风，深绿黑底 + 彩色粉笔字 + 木框纹理 |
-| `study-notes` | 真实学霸笔记，蓝笔正文 + 红笔批注 + 黄色荧光笔划线 |
-| `screen-print` | 丝网印刷海报感，halftone 网点 + 限定 2-3 色 + 象征化构图 |
-| `sketch-notes` | 手绘信息图，wobbly 抖线 + macaron 色块 + 米色底 |
+| Style          | 一句话                                                    |
+| -------------- | --------------------------------------------------------- |
+| `cute`         | 甜美少女向，圆润字体 + 爱心 / 小花 / 闪光装饰，粉橘奶油色 |
+| `fresh`        | 清新自然向，浅绿 / 米白 / 木色，留白多，干净通透          |
+| `warm`         | 温暖故事向，米黄 / 砖红 / 焦糖，暖光氛围                  |
+| `bold`         | 高冲击力，大字粗体 + 高饱和对比色，标题撑满画面           |
+| `minimal`      | 极简编辑风，大量留白 + 1-2 种无衬线字体，细线分隔         |
+| `retro`        | 复古怀旧，做旧颗粒、磨损边缘、蜡笔色 + 印刷纹理           |
+| `pop`          | 波普炸裂，撞色 + 漫画感感叹号 + 大号 emoji 风装饰         |
+| `notion`       | 极简手绘线稿，黑细线 + checkbox / 标注气泡，理性知识感    |
+| `chalkboard`   | 黑板粉笔风，深绿黑底 + 彩色粉笔字 + 木框纹理              |
+| `study-notes`  | 真实学霸笔记，蓝笔正文 + 红笔批注 + 黄色荧光笔划线        |
+| `screen-print` | 丝网印刷海报感，halftone 网点 + 限定 2-3 色 + 象征化构图  |
+| `sketch-notes` | 手绘信息图，wobbly 抖线 + macaron 色块 + 米色底           |
 
 ### Layout（8 个，含适用张数）
 
-| Layout | 信息密度 / 用途 | 适用张数 |
-| --- | --- | --- |
-| `sparse` | 1-2 个要点，封面 / 结尾 / 金句 | 1 张/位 |
-| `balanced` | 3-4 个要点，标准信息卡 | 中段主力 |
-| `dense` | 5-8 个要点，干货知识卡 | 中段 1-2 张 |
-| `list` | 4-7 项排行 / 清单 / 编号要点 | 中段 1-2 张 |
-| `comparison` | 左右对比 / 正反 PK / 前后差异 | 中段 1 张 |
-| `flow` | 3-6 步流程 / 时间线 / 教程顺序 | 中段 1-2 张 |
-| `mindmap` | 中心放射 4-8 分支，概念图 / 脑图 | 中段 1 张 |
-| `quadrant` | 四象限 / 圆形分区 / SWOT | 中段 1 张 |
+| Layout       | 信息密度 / 用途                  | 适用张数    |
+| ------------ | -------------------------------- | ----------- |
+| `sparse`     | 1-2 个要点，封面 / 结尾 / 金句   | 1 张/位     |
+| `balanced`   | 3-4 个要点，标准信息卡           | 中段主力    |
+| `dense`      | 5-8 个要点，干货知识卡           | 中段 1-2 张 |
+| `list`       | 4-7 项排行 / 清单 / 编号要点     | 中段 1-2 张 |
+| `comparison` | 左右对比 / 正反 PK / 前后差异    | 中段 1 张   |
+| `flow`       | 3-6 步流程 / 时间线 / 教程顺序   | 中段 1-2 张 |
+| `mindmap`    | 中心放射 4-8 分支，概念图 / 脑图 | 中段 1 张   |
+| `quadrant`   | 四象限 / 圆形分区 / SWOT         | 中段 1 张   |
 
 ### Palette（3 个，含完整 hex）
 
-| Palette | 背景 | 区块色 | Accent | 气质 |
-| --- | --- | --- | --- | --- |
-| `macaron` | `#F5F0E8` 暖米 | `#A8D8EA` 雾蓝 / `#D5C6E0` 薰衣草 / `#B5E5CF` 薄荷 / `#F8D5C4` 蜜桃 | `#E8655A` 珊瑚红 | 柔和教育向 |
-| `warm` | `#FFECD2` 浅橘 | `#ED8936` 橘 / `#C05621` 砖红 / `#F6AD55` 金黄 / `#D4A09A` 玫瑰陶土 | `#A0522D` 棕褐 | 大地温暖向 |
-| `neon` | `#1A1025` 深紫黑 | `#00F5FF` 青 / `#FF00FF` 品红 / `#39FF14` 荧光绿 / `#FF6EC7` 荧光粉 | `#FFFF00` 高亮黄 | 高能赛博向 |
+| Palette   | 背景             | 区块色                                                              | Accent           | 气质       |
+| --------- | ---------------- | ------------------------------------------------------------------- | ---------------- | ---------- |
+| `macaron` | `#F5F0E8` 暖米   | `#A8D8EA` 雾蓝 / `#D5C6E0` 薰衣草 / `#B5E5CF` 薄荷 / `#F8D5C4` 蜜桃 | `#E8655A` 珊瑚红 | 柔和教育向 |
+| `warm`    | `#FFECD2` 浅橘   | `#ED8936` 橘 / `#C05621` 砖红 / `#F6AD55` 金黄 / `#D4A09A` 玫瑰陶土 | `#A0522D` 棕褐   | 大地温暖向 |
+| `neon`    | `#1A1025` 深紫黑 | `#00F5FF` 青 / `#FF00FF` 品红 / `#39FF14` 荧光绿 / `#FF6EC7` 荧光粉 | `#FFFF00` 高亮黄 | 高能赛博向 |
 
 未选 palette 时使用 style 内置默认色（`sketch-notes` 默认 macaron，`chalkboard` 默认黑板深绿，`pop` 默认 neon-ish 撞色）。
 
@@ -73,72 +73,72 @@ icon: layout-grid
 
 **Knowledge & Learning（干货 / 学习）**
 
-| Preset | Style | Layout | 适用 |
-| --- | --- | --- | --- |
-| `knowledge-card` | notion | dense | 干货知识卡、概念科普 |
-| `checklist` | notion | list | 清单、Top N 排行 |
-| `concept-map` | notion | mindmap | 概念图、知识脉络 |
-| `swot` | notion | quadrant | SWOT、四象限分析 |
-| `tutorial` | chalkboard | flow | 教程步骤、操作流程 |
-| `classroom` | chalkboard | balanced | 课堂笔记、知识讲解 |
-| `study-guide` | study-notes | dense | 学霸笔记、考试重点 |
-| `hand-drawn-edu` | sketch-notes | flow | 手绘教程、流程图解 |
-| `sketch-card` | sketch-notes | dense | 手绘知识卡 |
+| Preset           | Style        | Layout   | 适用                 |
+| ---------------- | ------------ | -------- | -------------------- |
+| `knowledge-card` | notion       | dense    | 干货知识卡、概念科普 |
+| `checklist`      | notion       | list     | 清单、Top N 排行     |
+| `concept-map`    | notion       | mindmap  | 概念图、知识脉络     |
+| `swot`           | notion       | quadrant | SWOT、四象限分析     |
+| `tutorial`       | chalkboard   | flow     | 教程步骤、操作流程   |
+| `classroom`      | chalkboard   | balanced | 课堂笔记、知识讲解   |
+| `study-guide`    | study-notes  | dense    | 学霸笔记、考试重点   |
+| `hand-drawn-edu` | sketch-notes | flow     | 手绘教程、流程图解   |
+| `sketch-card`    | sketch-notes | dense    | 手绘知识卡           |
 
 **Lifestyle（生活分享）**
 
-| Preset | Style | Layout | 适用 |
-| --- | --- | --- | --- |
-| `cute-share` | cute | balanced | 少女分享、日常种草 |
-| `girly` | cute | sparse | 甜美封面、氛围感 |
-| `cozy-story` | warm | balanced | 生活故事、情感分享 |
-| `product-review` | fresh | comparison | 产品对比、测评 |
-| `nature-flow` | fresh | flow | 健康流程、自然主题 |
+| Preset           | Style | Layout     | 适用               |
+| ---------------- | ----- | ---------- | ------------------ |
+| `cute-share`     | cute  | balanced   | 少女分享、日常种草 |
+| `girly`          | cute  | sparse     | 甜美封面、氛围感   |
+| `cozy-story`     | warm  | balanced   | 生活故事、情感分享 |
+| `product-review` | fresh | comparison | 产品对比、测评     |
+| `nature-flow`    | fresh | flow       | 健康流程、自然主题 |
 
 **Impact（观点 / 警示）**
 
-| Preset | Style | Layout | 适用 |
-| --- | --- | --- | --- |
-| `warning` | bold | list | 避坑指南、重要提醒 |
-| `versus` | bold | comparison | 正反对比、PK |
-| `clean-quote` | minimal | sparse | 金句、极简封面 |
-| `pro-summary` | minimal | balanced | 专业总结、商务内容 |
+| Preset        | Style   | Layout     | 适用               |
+| ------------- | ------- | ---------- | ------------------ |
+| `warning`     | bold    | list       | 避坑指南、重要提醒 |
+| `versus`      | bold    | comparison | 正反对比、PK       |
+| `clean-quote` | minimal | sparse     | 金句、极简封面     |
+| `pro-summary` | minimal | balanced   | 专业总结、商务内容 |
 
 **Trend（潮流 / 娱乐）**
 
-| Preset | Style | Layout | 适用 |
-| --- | --- | --- | --- |
-| `retro-ranking` | retro | list | 复古排行、经典盘点 |
-| `throwback` | retro | balanced | 怀旧分享、年代回忆 |
-| `pop-facts` | pop | list | 趣味冷知识、彩蛋盘点 |
-| `hype` | pop | sparse | 炸裂封面、惊叹分享 |
+| Preset          | Style | Layout   | 适用                 |
+| --------------- | ----- | -------- | -------------------- |
+| `retro-ranking` | retro | list     | 复古排行、经典盘点   |
+| `throwback`     | retro | balanced | 怀旧分享、年代回忆   |
+| `pop-facts`     | pop   | list     | 趣味冷知识、彩蛋盘点 |
+| `hype`          | pop   | sparse   | 炸裂封面、惊叹分享   |
 
 **Editorial（海报 / 文化）**
 
-| Preset | Style | Layout | 适用 |
-| --- | --- | --- | --- |
-| `poster` | screen-print | sparse | 海报封面、影评书评 |
-| `editorial` | screen-print | balanced | 观点文章、文化评论 |
+| Preset      | Style        | Layout     | 适用               |
+| ----------- | ------------ | ---------- | ------------------ |
+| `poster`    | screen-print | sparse     | 海报封面、影评书评 |
+| `editorial` | screen-print | balanced   | 观点文章、文化评论 |
 | `cinematic` | screen-print | comparison | 电影对比、戏剧张力 |
 
 ## 自动推荐
 
 读用户主题里的关键词，命中第一行赢；都不命中时回落到 `cute-share`。
 
-| 关键词信号 | Style | Layout | 推荐 preset |
-| --- | --- | --- | --- |
-| 美妆、穿搭、可爱、女生、粉、ootd | `cute` | sparse / balanced | `cute-share`、`girly` |
-| 健康、自然、有机、护肤、清洁 | `fresh` | balanced / flow | `product-review`、`nature-flow` |
-| 故事、情感、回忆、家庭、温暖 | `warm` | balanced | `cozy-story` |
-| 避雷、警告、必看、注意、坑 | `bold` | list / comparison | `warning`、`versus` |
-| 商务、专业、效率、SaaS、职场 | `minimal` | sparse / balanced | `clean-quote`、`pro-summary` |
-| 复古、老物件、怀旧、年代、经典 | `retro` | balanced / list | `throwback`、`retro-ranking` |
-| 冷知识、有趣、惊呆、绝绝子 | `pop` | sparse / list | `hype`、`pop-facts` |
-| 知识、概念、原理、SaaS、AI、生产力 | `notion` | dense / list | `knowledge-card`、`checklist` |
-| 教程、课堂、学习、教学、入门 | `chalkboard` | balanced / flow | `tutorial`、`classroom` |
-| 笔记、考试、考研、手写、复习 | `study-notes` | dense / list | `study-guide` |
-| 影评、书评、观点、文化、思考 | `screen-print` | sparse / balanced | `poster`、`editorial` |
-| 手绘、图解、workflow、思路、整理 | `sketch-notes` | flow / dense | `hand-drawn-edu`、`sketch-card` |
+| 关键词信号                         | Style          | Layout            | 推荐 preset                     |
+| ---------------------------------- | -------------- | ----------------- | ------------------------------- |
+| 美妆、穿搭、可爱、女生、粉、ootd   | `cute`         | sparse / balanced | `cute-share`、`girly`           |
+| 健康、自然、有机、护肤、清洁       | `fresh`        | balanced / flow   | `product-review`、`nature-flow` |
+| 故事、情感、回忆、家庭、温暖       | `warm`         | balanced          | `cozy-story`                    |
+| 避雷、警告、必看、注意、坑         | `bold`         | list / comparison | `warning`、`versus`             |
+| 商务、专业、效率、SaaS、职场       | `minimal`      | sparse / balanced | `clean-quote`、`pro-summary`    |
+| 复古、老物件、怀旧、年代、经典     | `retro`        | balanced / list   | `throwback`、`retro-ranking`    |
+| 冷知识、有趣、惊呆、绝绝子         | `pop`          | sparse / list     | `hype`、`pop-facts`             |
+| 知识、概念、原理、SaaS、AI、生产力 | `notion`       | dense / list      | `knowledge-card`、`checklist`   |
+| 教程、课堂、学习、教学、入门       | `chalkboard`   | balanced / flow   | `tutorial`、`classroom`         |
+| 笔记、考试、考研、手写、复习       | `study-notes`  | dense / list      | `study-guide`                   |
+| 影评、书评、观点、文化、思考       | `screen-print` | sparse / balanced | `poster`、`editorial`           |
+| 手绘、图解、workflow、思路、整理   | `sketch-notes` | flow / dense      | `hand-drawn-edu`、`sketch-card` |
 
 ## 一次问完所有维度
 
@@ -302,25 +302,25 @@ LLM 模型每次独立生成会让角色 / 配色 / 装饰漂移。**唯一稳�
 ```ts
 // turn 1: 生成封面
 GenImage({
-  image_id: "xhs-cover",
-  prompt: "<#01 封面 prompt>",
-  model: "gpt-image-2",
-  resolution: "2K",
-  ratio: "3:4",
+  image_id: 'xhs-cover',
+  prompt: '<#01 封面 prompt>',
+  model: 'gpt-image-2',
+  resolution: '2K',
+  ratio: '3:4',
   n: 1,
-  reference_image_ids: []
+  reference_image_ids: [],
 })
 // 等待 task 终结事件，拿到真实 image id，例如 "xhs-cover"
 
 // turn 2: 生成第 2..N 张，每张一次调用
 GenImage({
-  image_id: "xhs-02",
-  prompt: "<#02 prompt>",
-  model: "gpt-image-2",
-  resolution: "2K",
-  ratio: "3:4",
+  image_id: 'xhs-02',
+  prompt: '<#02 prompt>',
+  model: 'gpt-image-2',
+  resolution: '2K',
+  ratio: '3:4',
   n: 1,
-  reference_image_ids: ["[第一张的真实 image_id]"]   // 例：["xhs-cover"]
+  reference_image_ids: ['[第一张的真实 image_id]'], // 例：["xhs-cover"]
 })
 // 后续 #03..#NN 同理，reference_image_ids 都用第 1 张的真实 id
 ```

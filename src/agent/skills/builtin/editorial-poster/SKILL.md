@@ -67,14 +67,14 @@ icon: film
 
 挑一套，**两个主色 + 一个背景 + 一个高光**。hex 仅用于引导生图，**禁止在画面内渲染色号、调色板名、role 标签或 "duotone" 字样**。
 
-| 套系                | Color A   | Color B   | 适配气质              |
-| ------------------- | --------- | --------- | --------------------- |
-| Orange + Teal       | `#E8751A` | `#0A6E6E` | cinematic, 动作 / 西部 |
-| Red + Cream         | `#C0392B` | `#F5E6D0` | bold, classic, 经典电影 |
-| Blue + Gold         | `#1A3A5C` | `#D4A843` | premium, 颁奖季 / 文学 |
-| Purple + Green      | `#6B3FA0` | `#2ECC71` | futuristic, 科幻 / 赛博 |
-| Magenta + Cyan      | `#C2185B` | `#00BCD4` | vibrant, pop, 演唱会 |
-| Crimson + Navy      | `#DC143C` | `#0D1B2A` | dramatic, noir, 黑色电影 |
+| 套系           | Color A   | Color B   | 适配气质                 |
+| -------------- | --------- | --------- | ------------------------ |
+| Orange + Teal  | `#E8751A` | `#0A6E6E` | cinematic, 动作 / 西部   |
+| Red + Cream    | `#C0392B` | `#F5E6D0` | bold, classic, 经典电影  |
+| Blue + Gold    | `#1A3A5C` | `#D4A843` | premium, 颁奖季 / 文学   |
+| Purple + Green | `#6B3FA0` | `#2ECC71` | futuristic, 科幻 / 赛博  |
+| Magenta + Cyan | `#C2185B` | `#00BCD4` | vibrant, pop, 演唱会     |
+| Crimson + Navy | `#DC143C` | `#0D1B2A` | dramatic, noir, 黑色电影 |
 
 背景默认三选一：
 
@@ -199,33 +199,42 @@ icon: film
 Create a screen-print style editorial poster for {{poster_type}}: {{title_text_verbatim}}.
 
 ## Subject and symbolism
+
 {{user_provided_subject}}. Render the main subject as a {{stylized_silhouette_or_symbolic_object}}. Build the iconography around: {{key_metaphors_from_user}}.
 
 ## Composition — {{template_name}}
+
 {{template_description_one_paragraph}}
+
 - Foreground: {{fg_silhouette_or_object}}
 - Mid: {{halftone_layer_or_secondary_silhouette}}
 - Background: solid color field with paper grain texture
 - Use negative space as an active compositional element; figure and ground may invert.
 
 ## Color — duotone {{palette_name}}
+
 Two-color screen print using exactly:
+
 - Color A: {{hexA}}
 - Color B: {{hexB}}
 - Background: {{bg_hex}}
 - Tiny accent (≤ 5% area): {{accent_hex}}
-Stark two-color separation across the entire composition. Halftone dot transitions between Color A and Color B. No third color beyond the small accent.
+  Stark two-color separation across the entire composition. Halftone dot transitions between Color A and Color B. No third color beyond the small accent.
 
 ## Texture and print feel
+
 Halftone dot patterns inside color fills, varying density to imply form. Slight color layer misregistration (2–4 px offset) on one of the two inks. Paper grain underneath. Risograph / silkscreen imperfections — ink spread, dot gain, faint overprint where the two inks cross. No gradients, no soft glow, no smooth shading.
 
 ## Typography
+
 {{typography_rules_for_chosen_language}} Title text is integrated into the composition (cropped by silhouettes, locked to a baseline strip, or embedded inside a geometric frame), not floating on top.
+
 - Title (verbatim): "{{title_text_verbatim}}"
 - Subtitle (optional, verbatim): "{{subtitle_text_verbatim_or_omit}}"
 - Tiny credit / tagline strip (optional): "{{credit_strip_or_omit}}"
 
 ## Constraints
+
 - No realistic human faces, no photorealistic skin or eyes; characters are stylized silhouettes only.
 - No photorealism, no 3D render look, no smooth gradients, no lens flare, no bokeh.
 - Limit to two main inks plus background and a tiny accent; do not introduce a fourth main color.
@@ -262,7 +271,9 @@ Halftone dot patterns inside color fills, varying density to imply form. Slight 
 
 ```markdown
 ## Reference image directives
+
 MUST preserve the following from the reference image and translate them into screen-print silhouette form:
+
 - {{character_silhouette_traits — 头型 / 发型 / 标志性配饰 / 服装轮廓}}
 - {{signature_objects_or_symbols — 武器 / 乐器 / 招牌道具}}
 - {{color_mapping — ref 中的主色映射到 Color A，次色映射到 Color B}}

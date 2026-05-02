@@ -169,6 +169,7 @@ export function AgentChatComposer({
             model={model}
             effectiveThinkingLevel={effectiveThinkingLevel}
             effectiveThinkingLabel={effectiveThinkingLabel}
+            autoApproveImageTasks={autoApproveImageTasks}
             pendingQuestionCount={pendingQuestionCount}
             canSend={canSend}
             showStop={showStop}

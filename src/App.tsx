@@ -573,7 +573,7 @@ function App() {
             />
           </div>
 
-          {pg.inputMode === 'agent' && (
+          {pg.inputMode === 'agent' && agentPanelSidebarFits && (
             <button
               type="button"
               onClick={toggleAgentPanelWide}

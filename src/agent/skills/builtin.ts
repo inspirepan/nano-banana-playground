@@ -3,6 +3,16 @@ import { normalizeSkillIcon, type AgentSkillIconName } from './icons'
 import { normalizeSkillFiles, normalizeSkillName } from './normalize'
 import type { AgentSkill, AgentSkillFile } from './types'
 
+const BUILTIN_SKILL_DISPLAY_NAME_KEYS: Record<string, string> = {
+  'skill-creator': 'settings.agentSkills.builtin.skillCreator.name',
+  'article-cover-image': 'settings.agentSkills.builtin.articleCoverImage.name',
+  'xhs-card-series': 'settings.agentSkills.builtin.xhsCardSeries.name',
+  'editorial-poster': 'settings.agentSkills.builtin.editorialPoster.name',
+  'knowledge-infographic': 'settings.agentSkills.builtin.knowledgeInfographic.name',
+  'scene-cinematic': 'settings.agentSkills.builtin.sceneCinematic.name',
+  'comic-strip': 'settings.agentSkills.builtin.comicStrip.name',
+}
+
 const BUILTIN_SKILL_DISPLAY_KEYS: Record<string, string> = {
   'baoyu-cover-image': 'settings.agentSkills.builtin.baoyuCoverImage.description',
   'editorial-sketch-art': 'settings.agentSkills.builtin.editorialSketchArt.description',
@@ -61,6 +71,7 @@ export function getBuiltinAgentSkills(): AgentSkill[] {
       const name = normalizeSkillName(parsed.frontmatter.name || folderName)
       const description = parsed.frontmatter.description?.trim() || `Use this skill for ${name}.`
       const displayDescriptionKey = BUILTIN_SKILL_DISPLAY_KEYS[name]
+      const displayNameKey = BUILTIN_SKILL_DISPLAY_NAME_KEYS[name]
       return {
         name,
         agentDescription: description,
@@ -69,6 +80,7 @@ export function getBuiltinAgentSkills(): AgentSkill[] {
           en: displayDescriptionKey ? '' : description,
         },
         displayDescriptionKey,
+        displayNameKey,
         icon: normalizeSkillIcon(parsed.frontmatter.icon ?? BUILTIN_SKILL_ICONS[name]),
         source: 'system',
         enabled: true,

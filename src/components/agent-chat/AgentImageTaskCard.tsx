@@ -6,6 +6,7 @@ import { MODEL_CONFIGS } from '../../config/models'
 import { useImageSrc } from '../../hooks/useImageSrc'
 import { useI18n } from '../../i18n'
 import type { StackItem } from '../../lib/stacks'
+import { Icon } from '../Icon'
 import { StackItemThumb } from '../StackItemThumb'
 
 const PROMPT_BOX_MAX_HEIGHT = 148
@@ -74,8 +75,10 @@ export function AgentImageTaskCard({
   stackItemByImageId,
   result,
   isStreaming,
+  autoApproveImageTasks,
   onApprove,
   onCancel,
+  onToggleAutoApproveImageTasks,
   onFocus,
 }: {
   call: AgentMessageToolCall
@@ -83,8 +86,10 @@ export function AgentImageTaskCard({
   stackItemByImageId: Map<string, StackItem>
   result?: AgentMessageToolResult
   isStreaming: boolean
+  autoApproveImageTasks: boolean
   onApprove: (taskId: string) => void
   onCancel: (taskId: string) => void
+  onToggleAutoApproveImageTasks: (value: boolean) => void
   onFocus?: (task: AgentImageTask) => void
 }) {
   const { t } = useI18n()
@@ -141,7 +146,7 @@ export function AgentImageTaskCard({
             }
           : undefined
       }
-      className={`m-1 max-w-[560px] rounded-[var(--radius-lg)] bg-(--color-surface) px-3.5 py-3 shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-lift)] ${canFocus ? 'cursor-pointer transition-[background-color,box-shadow] duration-150 hover:bg-(--color-surface-2) hover:shadow-[0_0_0_1px_var(--ring-edge-strong),var(--shadow-lift)]' : ''}`}
+      className={`m-1 max-w-[560px] rounded-[var(--radius-lg)] bg-(--color-surface) px-3.5 py-3 shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-lift)] ${canFocus ? 'cursor-pointer transition-[background-color,box-shadow] duration-150 hover:bg-[color-mix(in_srgb,var(--color-surface-2)_50%,var(--color-surface))] hover:shadow-[0_0_0_1px_var(--ring-edge-strong),var(--shadow-lift)]' : ''}`}
     >
       <div className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1">
         <span className="text-sm font-semibold text-(--color-text)">{t('agentChat.imageTask.title')}</span>
@@ -273,6 +278,22 @@ export function AgentImageTaskCard({
               style={{ height: 28, padding: '0 12px' }}
             >
               {t('common.generate')}
+            </button>
+          )}
+          {showApprove && !autoApproveImageTasks && (
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation()
+                onToggleAutoApproveImageTasks(true)
+                onApprove(task.id)
+              }}
+              className="chip flex items-center gap-1.5 text-sm"
+              style={{ height: 28, padding: '0 12px' }}
+              title={t('agentChat.imageTask.alwaysAutoApprove')}
+            >
+              <Icon name="circle_play" size={12} />
+              <span>{t('agentChat.imageTask.alwaysAutoApprove')}</span>
             </button>
           )}
           {showCancel && (

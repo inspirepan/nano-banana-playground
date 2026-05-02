@@ -8,6 +8,7 @@ import {
   ChevronUp,
   CircleAlert,
   CircleCheck,
+  CirclePlay,
   Copy,
   Download,
   Eraser,
@@ -54,6 +55,7 @@ export type IconName =
   | 'brush'
   | 'check'
   | 'check_circle'
+  | 'circle_play'
   | 'chevron_down'
   | 'chevron_left'
   | 'chevron_right'
@@ -110,6 +112,7 @@ const ICONS = {
   brush: Brush,
   check: Check,
   check_circle: CircleCheck,
+  circle_play: CirclePlay,
   chevron_down: ChevronDown,
   chevron_left: ChevronLeft,
   chevron_right: ChevronRight,

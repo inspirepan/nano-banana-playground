@@ -26,8 +26,10 @@ export function ToolActivityCard({
   stackItemByImageId,
   pendingQuestionByToolCallId,
   isStreaming,
+  autoApproveImageTasks,
   onApproveImageTask,
   onCancelImageTask,
+  onToggleAutoApproveImageTasks,
   onSubmitQuestionAnswers,
   onCancelQuestion,
   onFocusImageTask,
@@ -38,8 +40,10 @@ export function ToolActivityCard({
   stackItemByImageId: Map<string, StackItem>
   pendingQuestionByToolCallId: Map<string, AgentPendingQuestion>
   isStreaming: boolean
+  autoApproveImageTasks: boolean
   onApproveImageTask: (taskId: string) => void
   onCancelImageTask: (taskId: string) => void
+  onToggleAutoApproveImageTasks: (value: boolean) => void
   onSubmitQuestionAnswers: (toolCallId: string, answers: AskUserQuestionAnswer[]) => void
   onCancelQuestion: (toolCallId: string) => void
   onFocusImageTask?: (task: AgentImageTask) => void
@@ -65,8 +69,10 @@ export function ToolActivityCard({
           stackItemByImageId={stackItemByImageId}
           result={resultByCallId.get(call.id)}
           isStreaming={isStreaming}
+          autoApproveImageTasks={autoApproveImageTasks}
           onApprove={onApproveImageTask}
           onCancel={onCancelImageTask}
+          onToggleAutoApproveImageTasks={onToggleAutoApproveImageTasks}
           onFocus={onFocusImageTask}
         />,
       )

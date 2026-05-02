@@ -487,7 +487,16 @@ function AgentSkillSettings({
               </span>
               <div className="min-w-0 flex-1">
                 <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-                  <span className="mono truncate text-sm font-medium text-(--color-text)">{skill.name}</span>
+                  {skill.displayNameKey ? (
+                    <>
+                      <span className="truncate text-sm font-medium text-(--color-text)">
+                        {t(skill.displayNameKey)}
+                      </span>
+                      <span className="mono truncate text-[11px] text-(--color-text-4)">{skill.name}</span>
+                    </>
+                  ) : (
+                    <span className="mono truncate text-sm font-medium text-(--color-text)">{skill.name}</span>
+                  )}
                   <span className="rounded-[var(--radius-xs)] bg-(--color-surface-2) px-1.5 py-0.5 text-[11px] font-medium text-(--color-text-3) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
                     {t(`settings.agentSkills.source.${skill.source}`)}
                   </span>

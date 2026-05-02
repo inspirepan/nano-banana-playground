@@ -16,6 +16,7 @@ export function ComposerActions({
   model,
   effectiveThinkingLevel,
   effectiveThinkingLabel,
+  autoApproveImageTasks,
   pendingQuestionCount,
   canSend,
   showStop,
@@ -30,6 +31,7 @@ export function ComposerActions({
   model: AgentModelConfig
   effectiveThinkingLevel: AgentThinkingLevel
   effectiveThinkingLabel: string
+  autoApproveImageTasks: boolean
   pendingQuestionCount: number
   canSend: boolean
   showStop: boolean
@@ -76,6 +78,19 @@ export function ComposerActions({
         style={{ height: 28 }}
         title={t('agentChat.composer.optionsTitle')}
       >
+        {autoApproveImageTasks && (
+          <>
+            <span
+              className="flex shrink-0 items-center gap-1 text-(--color-accent)"
+              title={t('agentChat.composer.autoApproveActive')}
+              aria-label={t('agentChat.composer.autoApproveActive')}
+            >
+              <Icon name="circle_play" size={12} />
+              <span>{t('agentChat.composer.autoApproveLabel')}</span>
+            </span>
+            <span aria-hidden="true" className="h-4 w-px shrink-0 bg-(--ring-edge-soft)" />
+          </>
+        )}
         {preferredImageModel && (
           <>
             <span className="flex min-w-0 items-center gap-1.5">
