@@ -1,4 +1,4 @@
-export type SansFontId = 'geist' | 'inter' | 'hanken-grotesk' | 'google-sans-flex' | 'onest'
+export type SansFontId = 'geist' | 'system-ui' | 'inter' | 'hanken-grotesk' | 'google-sans-flex' | 'onest'
 
 type FontOption<T extends string> = {
   id: T
@@ -18,6 +18,12 @@ export const SANS_FONTS: FontOption<SansFontId>[] = [
     name: 'Geist',
     className: 'font-sans-geist',
     cssFamily: "'Geist'",
+  },
+  {
+    id: 'system-ui',
+    name: 'System UI',
+    className: 'font-sans-system-ui',
+    cssFamily: 'system-ui',
   },
   {
     id: 'inter',
@@ -51,7 +57,7 @@ export const SANS_FONTS: FontOption<SansFontId>[] = [
 
 export const SANS_FONT_IDS = SANS_FONTS.map((font) => font.id)
 
-export const DEFAULT_SANS_FONT: SansFontId = 'geist'
+export const DEFAULT_SANS_FONT: SansFontId = 'hanken-grotesk'
 
 function googleFontsHrefForQueries(queries: string[]) {
   const uniqueQueries = [...new Set(queries)]
