@@ -270,8 +270,8 @@ export const StackStrip = memo(function StackStrip({
                     style={{ background: 'var(--ring-edge-soft)' }}
                   />
                 )}
-                <div className="flex shrink-0 flex-col gap-1.5 md:flex-row md:items-center md:gap-2">
-                  <div className="min-w-0 max-w-[160px] px-0.5 md:max-w-[120px] md:shrink-0">
+                <div className="flex shrink-0 flex-col gap-1.5">
+                  <div className={`min-w-0 px-0.5 ${batch.items.length === 1 ? 'max-w-[112px]' : 'max-w-[160px]'}`}>
                     <div className="flex items-center gap-1 text-sm leading-[1.3] text-(--color-text-2)">
                       <span className="font-medium">{headline}</span>
                       <span className="text-(--color-text-4)">·</span>
