@@ -350,7 +350,16 @@ export function SettingsDialog({
                 <div className="label mb-1.5">{t('settings.colorTheme.label')}</div>
                 <div className="flex gap-2 pl-2">
                   {COLOR_THEMES.map((ct) => {
-                    const swatch = ct.id === 'mono' ? (isDark ? '#f2f1ef' : '#1f1d1a') : ct.color
+                    const swatch =
+                      ct.id === 'mono'
+                        ? isDark
+                          ? '#f2f1ef'
+                          : '#1f1d1a'
+                        : ct.id === 'default'
+                          ? isDark
+                            ? '#6875f5'
+                            : '#1e4fa8'
+                          : ct.color
                     return (
                       <button
                         key={ct.id}

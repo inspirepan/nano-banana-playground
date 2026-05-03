@@ -180,26 +180,26 @@
   --font-sans--font-feature-settings: 'calt' 1, 'case' 1;
 }
 
-/* Dark theme — medium-dark neutral gray, no warm/cool bias. */
+/* Dark theme — near-neutral dark, minimal purple-gray tint (Linear-style). */
 .dark {
-  --color-bg: #23262b;
-  --color-bg-sunken: #1d2025;
-  --color-surface: #2b2f35;
-  --color-surface-2: #32363d;
-  --color-surface-3: #3b4047;
-  --color-border: #3d4248;
-  --color-border-strong: #51575f;
+  --color-bg: #222225;
+  --color-bg-sunken: #1b1b1e;
+  --color-surface: #29292d;
+  --color-surface-2: #313135;
+  --color-surface-3: #39393e;
+  --color-border: #3c3c42;
+  --color-border-strong: #515158;
   --color-text: #ecedef;
   --color-text-2: #b8bcc2;
   --color-text-3: #8b9097;
   --color-text-4: #6a6f77;
 
-  --color-accent: #6a99e3;
-  --color-accent-hover: #80abea;
+  --color-accent: #6875f5;
+  --color-accent-hover: #7c86f7;
   --color-accent-fg: #0f0f10;
-  --color-accent-soft: #15233a;
-  --color-accent-wash: color-mix(in srgb, #6a99e3 18%, transparent);
-  --color-accent-wash-2: color-mix(in srgb, #6a99e3 28%, transparent);
+  --color-accent-soft: #1c1d35;
+  --color-accent-wash: color-mix(in srgb, #6875f5 18%, transparent);
+  --color-accent-wash-2: color-mix(in srgb, #6875f5 28%, transparent);
   --color-accent-ring: color-mix(in srgb, var(--color-accent) 20%, transparent);
   --color-accent-ring-hover: color-mix(in srgb, var(--color-accent) 24%, transparent);
 
@@ -238,11 +238,11 @@
   --color-title: var(--color-accent);
 }
 .dark.theme-green {
-  --color-accent: #4fb085;
-  --color-accent-hover: #66bd96;
-  --color-accent-soft: #122821;
-  --color-accent-wash: color-mix(in srgb, #4fb085 18%, transparent);
-  --color-accent-wash-2: color-mix(in srgb, #4fb085 28%, transparent);
+  --color-accent: #3dba82;
+  --color-accent-hover: #52c993;
+  --color-accent-soft: #102a1c;
+  --color-accent-wash: color-mix(in srgb, #3dba82 18%, transparent);
+  --color-accent-wash-2: color-mix(in srgb, #3dba82 28%, transparent);
 }
 
 .theme-orange {
@@ -256,23 +256,25 @@
   --color-title: var(--color-accent);
 }
 .dark.theme-orange {
-  --color-accent: #e69960;
-  --color-accent-hover: #eca878;
-  --color-accent-soft: #2b1d15;
-  --color-accent-wash: color-mix(in srgb, #e69960 18%, transparent);
-  --color-accent-wash-2: color-mix(in srgb, #e69960 28%, transparent);
+  --color-accent: #e8904a;
+  --color-accent-hover: #eda162;
+  --color-accent-soft: #2a1a0d;
+  --color-accent-wash: color-mix(in srgb, #e8904a 18%, transparent);
+  --color-accent-wash-2: color-mix(in srgb, #e8904a 28%, transparent);
   --bubble-user-bg: color-mix(in srgb, var(--color-accent) 12%, var(--color-surface));
   --bubble-user-edge: inset 0 0 0 1px var(--ring-edge-soft);
 }
 
 .theme-mono {
-  --color-accent: #1f1d1a;
+  --color-accent: #111111;
   --color-accent-hover: #000000;
   --color-accent-fg: #ffffff;
-  --color-accent-soft: #efeeec;
-  --color-accent-wash: color-mix(in srgb, #1f1d1a 8%, transparent);
-  --color-accent-wash-2: color-mix(in srgb, #1f1d1a 14%, transparent);
+  --color-accent-soft: #f0f0f0;
+  --color-accent-wash: color-mix(in srgb, #111111 8%, transparent);
+  --color-accent-wash-2: color-mix(in srgb, #111111 14%, transparent);
   --color-title: var(--color-accent);
+  --bubble-user-bg: var(--color-surface);
+  --bubble-user-edge: inset 0 0 0 1px var(--ring-edge-strong);
 }
 .dark.theme-mono {
   --color-accent: #f2f1ef;
@@ -1500,5 +1502,19 @@
     border-radius: 50%;
     animation: spin 0.7s linear infinite;
     display: inline-block;
+  }
+  @keyframes tool-dot-breathe {
+    0%,
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.28;
+      transform: scale(0.65);
+    }
+  }
+  .tool-dot-running {
+    animation: tool-dot-breathe 1.8s ease-in-out infinite;
   }
 }
