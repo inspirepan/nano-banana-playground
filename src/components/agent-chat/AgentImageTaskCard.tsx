@@ -153,7 +153,7 @@ export function AgentImageTaskCard({
             }
           : undefined
       }
-      className={`m-1 max-w-[560px] rounded-[var(--radius-lg)] bg-(--color-surface) px-3.5 py-3 shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-lift)] ${canFocus ? 'cursor-pointer transition-[background-color,box-shadow] duration-150 hover:bg-[color-mix(in_srgb,var(--color-surface-2)_50%,var(--color-surface))] hover:shadow-[0_0_0_1px_var(--ring-edge-strong),var(--shadow-lift)]' : ''}`}
+      className={`m-1 max-w-[560px] rounded-[var(--radius-lg)] bg-(--color-surface) px-3.5 py-3 shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-lift)] ${canFocus ? 'cursor-pointer transition-colors duration-150 hover:bg-[color-mix(in_srgb,var(--color-surface-2)_50%,var(--color-surface))]' : ''}`}
     >
       <div className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1">
         <span className="text-sm font-semibold text-(--color-text)">{t('agentChat.imageTask.title')}</span>
