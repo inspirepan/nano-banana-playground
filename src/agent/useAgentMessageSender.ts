@@ -44,6 +44,18 @@ function buildInvokedSkillSystemMessage(skillName: string, skillText: string): s
   ].join('\n')
 }
 
+function buildAttachmentSystemNote(attachments: AgentChatAttachment[]): string {
+  if (attachments.length === 0) return ''
+  const lines = attachments.map((attachment) => {
+    const details = [
+      attachment.resolution ? `resolution=${attachment.resolution}` : null,
+      attachment.aspectRatio ? `ratio=${attachment.aspectRatio}` : null,
+    ].filter((detail): detail is string => detail !== null)
+    return details.length > 0 ? `- ${attachment.id} (${details.join(', ')})` : `- ${attachment.id}`
+  })
+  return `\n\n<system>Available attachment images:\n${lines.join('\n')}</system>`
+}
+
 export function useAgentMessageSender({
   agentCredentialsRef,
   getCurrentRuntime,
@@ -102,9 +114,7 @@ export function useAgentMessageSender({
 
     applyAgentRuntimeConfig(runtime)
     const attachmentsToSend = runtime.attachments
-    const attachmentIds = attachmentsToSend.map((attachment) => attachment.id)
-    const attachmentNote =
-      attachmentIds.length > 0 ? `\n\n<system>Available attachment image IDs: ${attachmentIds.join(', ')}</system>` : ''
+    const attachmentNote = buildAttachmentSystemNote(attachmentsToSend)
     const isFirstUserMessage = runtime.agent.state.messages.length === 0
     const skillSummaries = getAgentSkillSummaries()
     const enabledSkillNames = new Set(skillSummaries.filter((skill) => skill.enabled).map((skill) => skill.name))

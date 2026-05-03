@@ -117,6 +117,8 @@ export function useAgentAttachments({
           mimeType: image.mimeType,
           fileName,
           size: 0,
+          resolution: image.source.type === 'generated' ? image.source.resolution : undefined,
+          aspectRatio: image.source.type === 'generated' ? image.source.aspectRatio : undefined,
         }
         runtime.imageRegistry.set(image.id, {
           id: image.id,

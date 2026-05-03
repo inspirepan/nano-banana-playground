@@ -8,6 +8,8 @@ export type AgentChatAttachment = {
   mimeType: string
   fileName: string
   size: number
+  resolution?: string
+  aspectRatio?: string
 }
 
 export type AgentMessageImage = {

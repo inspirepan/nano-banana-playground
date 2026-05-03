@@ -146,6 +146,8 @@ async function persistAttachment(
     mimeType: attachment.mimeType,
     fileName: attachment.fileName,
     size: attachment.size,
+    resolution: attachment.resolution,
+    aspectRatio: attachment.aspectRatio,
   }
 }
 
@@ -156,6 +158,8 @@ async function hydrateAttachment(attachment: PersistedAgentChatAttachment): Prom
     mimeType: attachment.mimeType,
     fileName: attachment.fileName,
     size: attachment.size,
+    resolution: attachment.resolution,
+    aspectRatio: attachment.aspectRatio,
   }
 }
 
