@@ -11,6 +11,21 @@ export function formatDownloadTimestamp(timestamp: number): string {
   )}${pad2(date.getSeconds())}`
 }
 
+function fileNameSlug(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
+function modelSlug(image: PlaygroundImageMeta): string {
+  const source = image.source
+  if (source.type !== 'generated') return 'upload'
+
+  return fileNameSlug(source.modelId) || 'image'
+}
+
 export function imageDownloadFileName(image: PlaygroundImageMeta, extension: string): string {
-  return `${formatDownloadTimestamp(image.timestamp)}-nano-banana-${image.id.slice(0, 8)}.${extension}`
+  return `${formatDownloadTimestamp(image.timestamp)}-${modelSlug(image)}-${image.id.slice(0, 8)}.${extension}`
 }
