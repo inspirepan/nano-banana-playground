@@ -53,7 +53,6 @@
   --color-surface-2: #f6f6f6;
   --color-surface-3: #eeeeee;
   --color-border: #e5e5e5;
-  --color-border-strong: #d9d9d9;
   --color-text: #1c1c1c;
   --color-text-2: #525252;
   --color-text-3: #848484;
@@ -69,39 +68,9 @@
   --color-accent-ring: color-mix(in srgb, var(--color-accent) 11%, transparent);
   --color-accent-ring-hover: color-mix(in srgb, var(--color-accent) 14%, transparent);
 
-  --color-warning: #a56b08;
-  --color-warning-soft: #faf2e4;
   --color-danger: #c14545;
   --color-danger-soft: #fbefef;
   --color-success: #3a9e5d;
-
-  /* Aliases kept for components still referencing the old names */
-  --color-primary: var(--color-accent);
-  --color-primary-hover: var(--color-accent-hover);
-  --color-primary-dim: var(--color-accent-wash);
-  --color-on-primary: var(--color-accent-fg);
-
-  --color-surface-dim: var(--color-bg-sunken);
-  --color-surface-container: var(--color-surface-2);
-  --color-surface-container-high: var(--color-surface-3);
-  --color-on-surface: var(--color-text);
-  --color-on-surface-variant: var(--color-text-2);
-  --color-outline: var(--color-border-strong);
-  --color-outline-variant: var(--color-border);
-
-  --color-tertiary: var(--color-accent);
-  --color-on-tertiary: var(--color-accent-fg);
-  --color-tertiary-dim: var(--color-accent-wash);
-
-  --color-error: var(--color-danger);
-  --color-error-container: var(--color-danger-soft);
-  --color-on-error-container: var(--color-danger);
-  --color-error-dim: color-mix(in srgb, var(--color-danger) 8%, transparent);
-
-  --color-on-success: #ffffff;
-  --color-inverse-primary: var(--color-accent);
-
-  --color-title: var(--color-text);
 
   /* Edge rings — pure grayscale to match the light palette. */
   --ring-edge: rgba(28, 28, 28, 0.08);
@@ -120,7 +89,6 @@
   --radius-sm: 6px;
   --radius-md: 8px;
   --radius-lg: 10px;
-  --radius-xl: 14px;
 }
 
 .font-sans-geist {
@@ -190,7 +158,6 @@
   --color-surface-3: #202124;
 
   --color-border: #2a2b2f;
-  --color-border-strong: #3a3c41;
 
   --color-text: #f7f8f8;
   --color-text-2: #c9ccd1;
@@ -206,16 +173,10 @@
   --color-accent-ring: color-mix(in srgb, var(--color-accent) 22%, transparent);
   --color-accent-ring-hover: color-mix(in srgb, var(--color-accent) 30%, transparent);
 
-  --color-warning: #c9a86a;
-  --color-warning-soft: #2a2418;
-
   --color-danger: #d96c5f;
   --color-danger-soft: #2a1b19;
 
   --color-success: #6fa37d;
-  --color-on-success: #08100b;
-
-  --color-error-dim: color-mix(in srgb, var(--color-danger) 14%, transparent);
 
   --ring-edge: rgba(255, 255, 255, 0.045);
   --ring-edge-elevated: rgba(255, 255, 255, 0.065);
@@ -243,7 +204,6 @@
   --color-accent-soft: #e8f0eb;
   --color-accent-wash: color-mix(in srgb, #1a7048 10%, transparent);
   --color-accent-wash-2: color-mix(in srgb, #1a7048 16%, transparent);
-  --color-title: var(--color-accent);
 }
 .dark.theme-green {
   --color-accent: #3dba82;
@@ -261,7 +221,6 @@
   --color-accent-wash-2: color-mix(in srgb, #c2643a 16%, transparent);
   --bubble-user-bg: color-mix(in srgb, var(--color-accent) 10%, var(--color-surface));
   --bubble-user-edge: inset 0 0 0 1px var(--ring-edge-soft);
-  --color-title: var(--color-accent);
 }
 .dark.theme-orange {
   --color-accent: #e8904a;
@@ -282,7 +241,6 @@
   --color-accent-wash-2: color-mix(in srgb, #111111 9%, transparent);
   --color-accent-ring: color-mix(in srgb, #111111 9%, transparent);
   --color-accent-ring-hover: color-mix(in srgb, #111111 14%, transparent);
-  --color-title: var(--color-accent);
 }
 .dark.theme-mono {
   --color-accent: #f2f1ef;
@@ -301,19 +259,14 @@
   --color-surface-2: #f6f2eb;
   --color-surface-3: #ece6dc;
   --color-border: #e6dfd2;
-  --color-border-strong: #d6cdbb;
   --color-text: #2a2622;
   --color-text-2: #5b524a;
   --color-text-3: #8a7e72;
   --color-text-4: #b6aa9a;
 
-  --color-warning: #a07211;
-  --color-warning-soft: #f6ecd6;
   --color-danger: #b04a3b;
   --color-danger-soft: #f6e3df;
   --color-success: #5e8a4a;
-  --color-on-success: #ffffff;
-  --color-title: var(--color-text);
 
   --ring-edge: rgba(60, 40, 20, 0.08);
   --ring-edge-elevated: rgba(60, 40, 20, 0.1);
