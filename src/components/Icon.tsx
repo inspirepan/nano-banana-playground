@@ -16,6 +16,7 @@ import {
   GripVertical,
   HelpCircle,
   Image as ImageIcon,
+  ImageOff,
   ImagePlus,
   KeyRound,
   Lock,
@@ -69,6 +70,7 @@ export type IconName =
   | 'expand_more'
   | 'help_circle'
   | 'image'
+  | 'image_off'
   | 'key'
   | 'keyboard_arrow_up'
   | 'light_mode'
@@ -126,6 +128,7 @@ const ICONS = {
   expand_more: ChevronDown,
   help_circle: HelpCircle,
   image: ImageIcon,
+  image_off: ImageOff,
   key: KeyRound,
   keyboard_arrow_up: ChevronUp,
   light_mode: Sun,

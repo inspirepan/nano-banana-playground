@@ -91,6 +91,7 @@ export const agentChatMessages: MessageDictionary = {
   'agentChat.imageTask.target': { 'zh-CN': '目标 ', en: 'Target ' },
   'agentChat.imageTask.reference': { 'zh-CN': '参考 ', en: 'Reference ' },
   'agentChat.imageTask.alwaysAutoApprove': { 'zh-CN': '始终自动通过', en: 'Always auto-approve' },
+  'agentChat.imageTask.deleted': { 'zh-CN': '已删除', en: 'Deleted' },
   'agentChat.imageTask.rejectedDetail': {
     'zh-CN': '你在生成前拒绝了这次任务，未向模型发起请求。',
     en: 'You rejected this task before generation, so no model request was sent.',

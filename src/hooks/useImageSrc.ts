@@ -182,7 +182,7 @@ export function useImageSrc(
   mimeType: string,
   inlineData?: string,
   options?: UseImageSrcOptions,
-): { ref: React.RefObject<HTMLDivElement | null>; src: string | null } {
+): { ref: React.RefObject<HTMLDivElement | null>; src: string | null; failed: boolean } {
   const variant = options?.variant ?? 'full'
 
   if (inlineData) {
@@ -192,6 +192,7 @@ export function useImageSrc(
   const [src, setSrc] = useState<string | null>(() => {
     return cachedSrcFor(id, mimeType, variant, inlineData)
   })
+  const [failed, setFailed] = useState(false)
 
   const ref = useRef<HTMLDivElement | null>(null)
 
@@ -208,8 +209,10 @@ export function useImageSrc(
     const cached = cachedSrcFor(id, mimeType, variant, inlineData)
     if (cached) {
       if (src !== cached) setSrc(cached)
-    } else if (src !== null) {
-      setSrc(null)
+      if (failed) setFailed(false)
+    } else {
+      if (src !== null) setSrc(null)
+      if (failed) setFailed(false)
     }
   }
 
@@ -235,7 +238,11 @@ export function useImageSrc(
               return toDataUrl(mimeType, data)
             })
 
-      if (!nextSrc || cancelled) return
+      if (cancelled) return
+      if (!nextSrc) {
+        setFailed(true)
+        return
+      }
       setSrc(nextSrc)
     }
 
@@ -255,7 +262,7 @@ export function useImageSrc(
     }
   }, [id, inlineData, mimeType, variant])
 
-  return { ref, src }
+  return { ref, src, failed }
 }
 
 /**

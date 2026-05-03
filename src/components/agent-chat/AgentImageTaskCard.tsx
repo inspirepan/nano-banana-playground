@@ -12,7 +12,8 @@ import { StackItemThumb } from '../StackItemThumb'
 const PROMPT_BOX_MAX_HEIGHT = 148
 
 function GenImageResultThumb({ id, flush = false }: { id: string; flush?: boolean }) {
-  const { ref, src } = useImageSrc(id, 'image/png', undefined, { variant: 'preview' })
+  const { t } = useI18n()
+  const { ref, src, failed } = useImageSrc(id, 'image/png', undefined, { variant: 'preview' })
   return (
     <div
       ref={ref}
@@ -20,6 +21,11 @@ function GenImageResultThumb({ id, flush = false }: { id: string; flush?: boolea
     >
       {src ? (
         <img src={src} alt={id} className="h-full w-full object-cover" />
+      ) : failed ? (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 text-(--color-text-4)">
+          <Icon name="image_off" size={12} />
+          <span style={{ fontSize: 10 }}>{t('agentChat.imageTask.deleted')}</span>
+        </div>
       ) : (
         <div className="absolute inset-0 flex items-center justify-center text-(--color-text-4)">
           <span className="spinner" style={{ width: 12, height: 12 }} />
@@ -222,7 +228,20 @@ export function AgentImageTaskCard({
         </div>
       )}
 
-      {resultIds.length > 0 && (
+      {resultIds.length > 0 && (() => {
+        // For completed tasks (edge-to-edge), only show images still in the library.
+        // This prevents a deleted image from expanding into a large empty square.
+        const visibleIds = resultsEdgeToEdge ? resultIds.filter((id) => stackItemByImageId.has(id)) : resultIds
+        const allDeleted = resultsEdgeToEdge && visibleIds.length === 0
+        if (allDeleted) {
+          return (
+            <div className="mt-2.5 flex items-center gap-1.5 text-sm" style={{ color: 'var(--color-danger)' }}>
+              <Icon name="image_off" size={12} />
+              <span>{t('agentChat.imageTask.deleted')}</span>
+            </div>
+          )
+        }
+        return (
         <div
           className={
             resultsEdgeToEdge
@@ -231,11 +250,11 @@ export function AgentImageTaskCard({
           }
           style={{
             gridTemplateColumns: resultsEdgeToEdge
-              ? `repeat(${Math.min(resultIds.length, 3)}, minmax(0, 1fr))`
+              ? `repeat(${Math.min(visibleIds.length, 3)}, minmax(0, 1fr))`
               : 'repeat(auto-fill, minmax(72px, 1fr))',
           }}
         >
-          {resultIds.map((id, index) => {
+          {visibleIds.map((id, index) => {
             const item = stackItemByImageId.get(id)
             return item ? (
               <StackItemThumb
@@ -254,11 +273,12 @@ export function AgentImageTaskCard({
                 }}
               />
             ) : (
-              <GenImageResultThumb key={id} id={id} flush={resultsEdgeToEdge} />
+              <GenImageResultThumb key={id} id={id} flush={false} />
             )
           })}
         </div>
-      )}
+        )
+      })()}
 
       {taskDetail && (
         <div className="mt-2.5 text-sm leading-[1.45]" style={{ color: 'var(--color-danger)' }}>
