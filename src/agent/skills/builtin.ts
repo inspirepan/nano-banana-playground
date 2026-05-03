@@ -1,41 +1,7 @@
 import { parseSkillFrontmatter, type SkillFrontmatter } from './frontmatter'
-import { normalizeSkillIcon, type AgentSkillIconName } from './icons'
+import { normalizeSkillIcon } from './icons'
 import { normalizeSkillFiles, normalizeSkillName } from './normalize'
 import type { AgentSkill, AgentSkillFile } from './types'
-
-const BUILTIN_SKILL_DISPLAY_NAME_KEYS: Record<string, string> = {
-  'skill-creator': 'settings.agentSkills.builtin.skillCreator.name',
-  'article-cover-image': 'settings.agentSkills.builtin.articleCoverImage.name',
-  'xhs-card-series': 'settings.agentSkills.builtin.xhsCardSeries.name',
-  'editorial-poster': 'settings.agentSkills.builtin.editorialPoster.name',
-  'knowledge-infographic': 'settings.agentSkills.builtin.knowledgeInfographic.name',
-  'scene-cinematic': 'settings.agentSkills.builtin.sceneCinematic.name',
-  'comic-strip': 'settings.agentSkills.builtin.comicStrip.name',
-}
-
-const BUILTIN_SKILL_DISPLAY_KEYS: Record<string, string> = {
-  'baoyu-cover-image': 'settings.agentSkills.builtin.baoyuCoverImage.description',
-  'editorial-sketch-art': 'settings.agentSkills.builtin.editorialSketchArt.description',
-  'skill-creator': 'settings.agentSkills.builtin.skillCreator.description',
-  'article-cover-image': 'settings.agentSkills.builtin.articleCoverImage.description',
-  'xhs-card-series': 'settings.agentSkills.builtin.xhsCardSeries.description',
-  'editorial-poster': 'settings.agentSkills.builtin.editorialPoster.description',
-  'knowledge-infographic': 'settings.agentSkills.builtin.knowledgeInfographic.description',
-  'scene-cinematic': 'settings.agentSkills.builtin.sceneCinematic.description',
-  'comic-strip': 'settings.agentSkills.builtin.comicStrip.description',
-}
-
-const BUILTIN_SKILL_ICONS: Record<string, AgentSkillIconName> = {
-  'baoyu-cover-image': 'image',
-  'editorial-sketch-art': 'pencil-ruler',
-  'skill-creator': 'badge-plus',
-  'article-cover-image': 'image',
-  'xhs-card-series': 'layout-grid',
-  'editorial-poster': 'film',
-  'knowledge-infographic': 'notebook-pen',
-  'scene-cinematic': 'clapperboard',
-  'comic-strip': 'book-open',
-}
 
 const BUILTIN_SKILL_MARKDOWN = import.meta.glob('./builtin/**/*.md', {
   query: '?raw',
@@ -70,18 +36,21 @@ export function getBuiltinAgentSkills(): AgentSkill[] {
       const parsed = root ? parseSkillFrontmatter(root.content) : { frontmatter: {} as SkillFrontmatter }
       const name = normalizeSkillName(parsed.frontmatter.name || folderName)
       const description = parsed.frontmatter.description?.trim() || `Use this skill for ${name}.`
-      const displayDescriptionKey = BUILTIN_SKILL_DISPLAY_KEYS[name]
-      const displayNameKey = BUILTIN_SKILL_DISPLAY_NAME_KEYS[name]
       return {
         name,
         agentDescription: description,
+        displayName: parsed.frontmatter.displayName ?? {},
         displayDescription: {
-          'zh-CN': displayDescriptionKey ? '' : description,
-          en: displayDescriptionKey ? '' : description,
+          'zh-CN':
+            parsed.frontmatter.displayDescription?.['zh-CN'] ||
+            parsed.frontmatter.displayDescription?.en ||
+            description,
+          en:
+            parsed.frontmatter.displayDescription?.en ||
+            parsed.frontmatter.displayDescription?.['zh-CN'] ||
+            description,
         },
-        displayDescriptionKey,
-        displayNameKey,
-        icon: normalizeSkillIcon(parsed.frontmatter.icon ?? BUILTIN_SKILL_ICONS[name]),
+        icon: normalizeSkillIcon(parsed.frontmatter.icon),
         source: 'system',
         enabled: true,
         files,

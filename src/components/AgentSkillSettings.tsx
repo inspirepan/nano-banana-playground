@@ -1,8 +1,16 @@
-import { lazy, Suspense, useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useRef, useState } from 'react'
 
 import { Icon } from './Icon'
 import { SkillIcon } from './SkillIcon'
-import type { AgentSkill, AgentSkillCreateInput, AgentSkillFile, AgentSkillSummary } from '../agent'
+import {
+  displayDescriptionForLanguage,
+  displayNameForLanguage,
+  type AgentSkill,
+  type AgentSkillCreateInput,
+  type AgentSkillFile,
+  type AgentSkillSummary,
+} from '../agent'
+import { useMountEffect } from '../hooks/effects'
 import { useI18n } from '../i18n'
 
 const IconPicker = lazy(() => import('./IconPicker').then((module) => ({ default: module.IconPicker })))
@@ -52,9 +60,9 @@ export function AgentSkillSettings({ skills, onEnabledChange, onDelete, onGetPac
       ) : (
         <div className="overflow-hidden rounded-[var(--radius-md)] bg-(--color-surface) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
           {skills.map((skill, index) => {
-            const description = skill.displayDescriptionKey
-              ? t(skill.displayDescriptionKey)
-              : skill.displayDescription[language] || skill.displayDescription['zh-CN'] || skill.displayDescription.en
+            const displayName = displayNameForLanguage(skill, language)
+            const hasDisplayName = displayName !== skill.name
+            const description = displayDescriptionForLanguage(skill, language)
             const isLast = index === skills.length - 1
             return (
               <div
@@ -74,11 +82,9 @@ export function AgentSkillSettings({ skills, onEnabledChange, onDelete, onGetPac
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-                      {skill.displayNameKey ? (
+                      {hasDisplayName ? (
                         <>
-                          <span className="truncate text-sm font-medium text-(--color-text)">
-                            {t(skill.displayNameKey)}
-                          </span>
+                          <span className="truncate text-sm font-medium text-(--color-text)">{displayName}</span>
                           <span className="mono truncate text-[11px] text-(--color-text-4)">{skill.name}</span>
                         </>
                       ) : (
@@ -188,9 +194,35 @@ function stripFrontmatter(markdown: string): string {
     .trim()
 }
 
-function buildRootSkillMarkdown(name: string, description: string, icon: string, content: string): string {
+function yamlSingleLine(value: string): string {
+  return value.replace(/\s+/g, ' ').trim()
+}
+
+function buildRootSkillMarkdown(
+  name: string,
+  description: string,
+  icon: string,
+  displayName: string,
+  displayDescription: string,
+  content: string,
+): string {
   const body = stripFrontmatter(content) || `# ${name}\n\n${description}`
-  return `---\nname: ${name}\ndescription: ${description.replace(/\s+/g, ' ').trim()}\nicon: ${icon.trim() || 'sparkles'}\n---\n\n${body}`
+  const lines = [
+    '---',
+    `name: ${name}`,
+    `description: ${yamlSingleLine(description)}`,
+    `icon: ${icon.trim() || 'sparkles'}`,
+  ]
+  if (displayName.trim()) {
+    lines.push('display_name:', `  zh-CN: ${yamlSingleLine(displayName)}`, `  en: ${yamlSingleLine(displayName)}`)
+  }
+  lines.push(
+    'display_description:',
+    `  zh-CN: ${yamlSingleLine(displayDescription || description)}`,
+    `  en: ${yamlSingleLine(displayDescription || description)}`,
+    '---',
+  )
+  return `${lines.join('\n')}\n\n${body}`
 }
 
 function AgentSkillCreateForm({
@@ -203,6 +235,7 @@ function AgentSkillCreateForm({
   const { t } = useI18n()
   const [name, setName] = useState('')
   const [icon, setIcon] = useState('sparkles')
+  const [displayName, setDisplayName] = useState('')
   const [agentDescription, setAgentDescription] = useState('')
   const [displayDescription, setDisplayDescription] = useState('')
   const [files, setFiles] = useState<DraftSkillFile[]>([
@@ -231,6 +264,8 @@ function AgentSkillCreateForm({
       trimmedName || 'new-skill',
       trimmedDescription,
       icon,
+      displayName.trim(),
+      displayDescription.trim(),
       rootDraft?.content ?? '',
     )
     const nextFiles = files.map((file) =>
@@ -246,6 +281,12 @@ function AgentSkillCreateForm({
       onCreate({
         name: trimmedName,
         agentDescription: trimmedDescription,
+        displayName: displayName.trim()
+          ? {
+              'zh-CN': displayName.trim(),
+              en: displayName.trim(),
+            }
+          : {},
         displayDescription: {
           'zh-CN': trimmedDisplay,
           en: trimmedDisplay,
@@ -280,6 +321,14 @@ function AgentSkillCreateForm({
             <IconPicker value={icon} onChange={setIcon} />
           </Suspense>
         </label>
+      </div>
+      <div className="mt-3">
+        <TextField
+          label={t('settings.agentSkills.displayName')}
+          value={displayName}
+          onChange={setDisplayName}
+          placeholder={t('settings.agentSkills.displayNamePlaceholder')}
+        />
       </div>
       <div className="mt-3">
         <TextAreaField
@@ -417,12 +466,12 @@ function SkillPackageViewer({
   const viewerRef = useRef<HTMLDivElement>(null)
   const selectedFile = skill.files.find((file) => file.path === selectedPath) ?? skill.files[0]
 
-  useEffect(() => {
+  useMountEffect(() => {
     const raf = requestAnimationFrame(() => {
       viewerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
     })
     return () => cancelAnimationFrame(raf)
-  }, [])
+  })
 
   if (!selectedFile) return null
   return (

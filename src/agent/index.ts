@@ -52,6 +52,7 @@ export type {
   AgentSkillSource,
   AgentSkillSummary,
 } from './skills/types'
+export { displayDescriptionForLanguage, displayNameForLanguage } from './skills/registry'
 export {
   AGENT_PROMPT_DEFAULT_LINE_LIMIT,
   formatPromptLines,

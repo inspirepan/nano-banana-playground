@@ -1,4 +1,3 @@
-import { normalizeSkillIcon } from './icons'
 import { normalizeSkillFiles, normalizeSkillName } from './normalize'
 import type { AgentSkillCreateInput, StoredUserSkill } from './types'
 import { getStorageItem, setStorageItem } from '../../lib/storage'
@@ -26,14 +25,7 @@ function writeJson<T>(key: string, value: T): void {
 function isStoredUserSkill(value: unknown): value is StoredUserSkill {
   if (typeof value !== 'object' || value === null) return false
   const record = value as Record<string, unknown>
-  return (
-    typeof record.name === 'string' &&
-    typeof record.agentDescription === 'string' &&
-    typeof record.displayDescription === 'object' &&
-    record.displayDescription !== null &&
-    Array.isArray(record.files) &&
-    typeof record.enabled === 'boolean'
-  )
+  return typeof record.name === 'string' && Array.isArray(record.files) && typeof record.enabled === 'boolean'
 }
 
 export function loadStoredUserSkills(): StoredUserSkill[] {
@@ -44,7 +36,6 @@ export function loadStoredUserSkills(): StoredUserSkill[] {
     .map((skill) => ({
       ...skill,
       name: normalizeSkillName(skill.name),
-      icon: normalizeSkillIcon(skill.icon),
       files: normalizeSkillFiles(skill.files),
     }))
     .filter((skill) => skill.name && skill.files.some((file) => file.path === 'SKILL.md'))
@@ -61,12 +52,6 @@ export function upsertStoredUserSkill(input: AgentSkillCreateInput): StoredUserS
   const existing = skills.find((skill) => skill.name === name)
   const next: StoredUserSkill = {
     name,
-    agentDescription: input.agentDescription.trim(),
-    displayDescription: {
-      'zh-CN': input.displayDescription['zh-CN'].trim(),
-      en: input.displayDescription.en.trim(),
-    },
-    icon: normalizeSkillIcon(input.icon),
     enabled: input.enabled,
     files: normalizeSkillFiles(input.files),
     createdAt: existing?.createdAt ?? now,

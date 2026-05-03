@@ -2,6 +2,12 @@
 name: xhs-card-series
 description: Generates Xiaohongshu (RedNote / 小红书 / 小绿书) and WeChat 图文 image card series — a coherent set of 4-8 cartoon-style infographic cards with 12 visual styles, 8 layouts, and 3 palettes. Use whenever the user mentions 小红书图片 / 小红书种草 / 小绿书 / 微信图文 / 微信贴图 / XHS images / RedNote infographics / image card series / 系列图卡 / 图卡系列 / 多图笔记. NOT for 单张文章封面、PPT 长图、单页海报、长图营销页 (single hero cover or single long poster — pick a different skill).
 icon: layout-grid
+display_name:
+  zh-CN: 小红书图卡系列
+  en: XHS Card Series
+display_description:
+  zh-CN: 小红书 / 微信图文系列卡，多张连贯，12 风格 × 8 布局 × 3 配色。
+  en: Coherent Xiaohongshu / WeChat image card series across 12 styles, 8 layouts, and 3 palettes.
 ---
 
 # XHS Card Series

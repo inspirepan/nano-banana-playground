@@ -68,7 +68,7 @@
 
 - 只创建文字指南型 skill：`SKILL.md` + 可选 markdown reference 文件。当前前端 Agent 不支持脚本、二进制 assets 或真实文件系统路径。
 - skill 名称用 lowercase kebab-case；`agent_description` 写给模型做触发判断，必须具体说明何时使用和何时不要使用。
-- UI 一句话描述必须同时提供中文和英文。
+- UI 展示名和一句话描述必须同时提供中文和英文；这些展示 metadata 会写入 `SKILL.md` 开头 YAML。
 - `icon` 使用 Lucide kebab-case 图标名，比如 `image`、`pencil-ruler`、`paintbrush`、`book-open`、`sparkles`。
 - 不要覆盖系统内置 skill；如果用户要改内置 skill，创建一个新的用户 skill。
 

@@ -23,6 +23,18 @@ export function prepareCreateSkillArgs(args: unknown): CreateSkillToolArgs {
   const record = typeof args === 'object' && args !== null ? (args as Record<string, unknown>) : {}
   const rawFiles = Array.isArray(record.files) ? record.files : []
   const files = normalizeSkillFiles(rawFiles.map(normalizeFile).filter((file): file is AgentSkillFile => file !== null))
+  const nameZh =
+    typeof record.display_name_zh === 'string'
+      ? record.display_name_zh
+      : typeof record.displayNameZh === 'string'
+        ? record.displayNameZh
+        : ''
+  const nameEn =
+    typeof record.display_name_en === 'string'
+      ? record.display_name_en
+      : typeof record.displayNameEn === 'string'
+        ? record.displayNameEn
+        : ''
   const zh =
     typeof record.display_description_zh === 'string'
       ? record.display_description_zh
@@ -43,6 +55,7 @@ export function prepareCreateSkillArgs(args: unknown): CreateSkillToolArgs {
         : typeof record.agentDescription === 'string'
           ? record.agentDescription
           : '',
+    displayName: { 'zh-CN': nameZh, en: nameEn },
     displayDescription: { 'zh-CN': zh, en },
     icon: normalizeSkillIcon(
       typeof record.icon === 'string'
@@ -68,6 +81,8 @@ export function createCreateSkillTool({ createSkill }: { createSkill: CreateSkil
       agent_description: Type.String({
         description: 'Discovery description shown to the agent before loading the skill.',
       }),
+      display_name_zh: Type.String({ description: 'Simplified Chinese display name for the UI.' }),
+      display_name_en: Type.String({ description: 'English display name for the UI.' }),
       display_description_zh: Type.String({
         description: 'One-line Simplified Chinese description for the settings UI.',
       }),

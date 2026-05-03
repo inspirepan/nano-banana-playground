@@ -6,6 +6,7 @@ import {
   agentMessageError,
   agentMessageRole,
   agentMessageText,
+  displayNameForLanguage,
   stripSystemDirectives,
   type AgentChatAttachment,
   type AgentImageTask,
@@ -32,11 +33,7 @@ import { DrawingSkillStarters } from './agent-chat/DrawingSkillStarters'
 import { MessageBubble } from './agent-chat/MessageBubble'
 import { ToolActivityCard } from './agent-chat/ToolActivityCard'
 import type { AgentChatMenu } from './agent-chat/types'
-import {
-  buildChatRenderItems,
-  isImageFile,
-  parseDraggedPlaygroundImage,
-} from './agent-chat/utils'
+import { buildChatRenderItems, isImageFile, parseDraggedPlaygroundImage } from './agent-chat/utils'
 import { Icon } from './Icon'
 
 type Props = {
@@ -144,7 +141,7 @@ export function AgentChatPanel({
   onSend,
   onStop,
 }: Props) {
-  const { t } = useI18n()
+  const { t, language } = useI18n()
   const scrollRef = useRef<HTMLDivElement>(null)
   const controlsRef = useRef<HTMLDivElement>(null)
   const composerRef = useRef<AgentChatComposerHandle>(null)
@@ -411,7 +408,9 @@ export function AgentChatPanel({
                   <DrawingSkillStarters
                     skills={drawingSkills}
                     onPick={(skill) => {
-                      onDraftChange(t('agentChat.empty.skillStarter.prompt', { skill: skill.name }))
+                      onDraftChange(
+                        t('agentChat.empty.skillStarter.prompt', { skill: displayNameForLanguage(skill, language) }),
+                      )
                     }}
                   />
                 ) : (

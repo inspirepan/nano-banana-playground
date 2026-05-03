@@ -1,6 +1,13 @@
 ---
 name: skill-creator
 description: Guide for creating effective skills. This skill should be used when users want to create a new skill (or update an existing skill) that extends Claude's capabilities with specialized knowledge, workflows, or tool integrations. Use whenever the user mentions "create a skill", "make a skill", "turn this into a skill", "skill for X", or wants to capture a workflow as reusable instructions.
+icon: badge-plus
+display_name:
+  zh-CN: Skill 创建器
+  en: Skill Creator
+display_description:
+  zh-CN: 帮助 Agent 把可复用流程沉淀成精简 Skill。
+  en: Helps the agent turn reusable workflows into concise skills.
 metadata:
   short-description: Create or update a skill
 ---

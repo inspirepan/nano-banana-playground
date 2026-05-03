@@ -9,13 +9,13 @@ export type AgentSkillFile = {
 }
 
 export type AgentSkillDisplayDescription = Record<Language, string>
+export type AgentSkillDisplayName = Partial<Record<Language, string>>
 
 export type AgentSkill = {
   name: string
   agentDescription: string
+  displayName: AgentSkillDisplayName
   displayDescription: AgentSkillDisplayDescription
-  displayDescriptionKey?: string
-  displayNameKey?: string
   icon: AgentSkillIconName
   source: AgentSkillSource
   enabled: boolean
@@ -28,9 +28,8 @@ export type AgentSkillSummary = Pick<
   AgentSkill,
   | 'name'
   | 'agentDescription'
+  | 'displayName'
   | 'displayDescription'
-  | 'displayDescriptionKey'
-  | 'displayNameKey'
   | 'icon'
   | 'source'
   | 'enabled'
@@ -42,9 +41,10 @@ export type AgentSkillSummary = Pick<
 
 export type StoredUserSkill = {
   name: string
-  agentDescription: string
-  displayDescription: AgentSkillDisplayDescription
-  icon: AgentSkillIconName
+  agentDescription?: string
+  displayName?: AgentSkillDisplayName
+  displayDescription?: AgentSkillDisplayDescription
+  icon?: AgentSkillIconName
   enabled: boolean
   files: AgentSkillFile[]
   createdAt: number
@@ -54,6 +54,7 @@ export type StoredUserSkill = {
 export type AgentSkillCreateInput = {
   name: string
   agentDescription: string
+  displayName?: AgentSkillDisplayName
   displayDescription: AgentSkillDisplayDescription
   icon: string
   files: AgentSkillFile[]

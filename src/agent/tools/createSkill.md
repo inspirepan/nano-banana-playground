@@ -7,7 +7,7 @@ Rules:
 - Create concise text-only skills. The browser cannot run bundled scripts or read arbitrary local files.
 - Use lowercase kebab-case names.
 - Include a useful `agent_description`; it is the discovery text shown to the model before loading the skill.
-- Include localized one-line display descriptions for the settings UI.
+- Include localized display names and one-line display descriptions for the settings UI. They are stored in the `SKILL.md` frontmatter.
 - Choose a Lucide `icon` name in kebab-case, such as `image`, `pencil-ruler`, `paintbrush`, `book-open`, or `sparkles`.
 - Include `SKILL.md` when possible. Additional markdown files may live under nested paths like `references/palettes/warm.md`.
 - Do not overwrite built-in system skills.

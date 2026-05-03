@@ -1,5 +1,5 @@
 import { getBuiltinAgentSkills } from './builtin'
-import { parseSkillFrontmatter } from './frontmatter'
+import { parseSkillFrontmatter, type SkillFrontmatter } from './frontmatter'
 import { normalizeSkillIcon } from './icons'
 import {
   isSafeSkillPath,
@@ -17,7 +17,6 @@ import {
 } from './storage'
 import type { AgentSkill, AgentSkillCreateInput, AgentSkillFile, AgentSkillSummary } from './types'
 import type { Language } from '../../config/languages'
-import { translate } from '../../i18n'
 
 const MAX_SKILL_FILES = 40
 const MAX_SKILL_FILE_CHARS = 80_000
@@ -33,7 +32,49 @@ function withSettingOverrides(skills: AgentSkill[]): AgentSkill[] {
 }
 
 function userSkillToAgentSkill(skill: ReturnType<typeof loadStoredUserSkills>[number]): AgentSkill {
-  return { ...skill, source: 'user' }
+  const files = normalizeSkillFiles(skill.files)
+  const root = files.find((file) => file.path === 'SKILL.md')
+  const parsed = root ? parseSkillFrontmatter(root.content) : { frontmatter: {} as SkillFrontmatter }
+  const name = normalizeSkillName(parsed.frontmatter.name || skill.name)
+  const agentDescription =
+    parsed.frontmatter.description?.trim() || skill.agentDescription?.trim() || `Use this skill for ${name}.`
+  const displayDescription = localizedDescription(
+    parsed.frontmatter.displayDescription,
+    skill.displayDescription,
+    agentDescription,
+  )
+  return {
+    name,
+    agentDescription,
+    displayName: parsed.frontmatter.displayName ?? skill.displayName ?? {},
+    displayDescription,
+    icon: normalizeSkillIcon(parsed.frontmatter.icon ?? skill.icon),
+    source: 'user',
+    enabled: skill.enabled,
+    files,
+    createdAt: skill.createdAt,
+    updatedAt: skill.updatedAt,
+  }
+}
+
+function localizedDescription(
+  primary: Partial<Record<Language, string>> | undefined,
+  fallback: Partial<Record<Language, string>> | undefined,
+  defaultText: string,
+): Record<Language, string> {
+  const zh =
+    primary?.['zh-CN']?.trim() ||
+    fallback?.['zh-CN']?.trim() ||
+    primary?.en?.trim() ||
+    fallback?.en?.trim() ||
+    defaultText
+  const en =
+    primary?.en?.trim() ||
+    fallback?.en?.trim() ||
+    primary?.['zh-CN']?.trim() ||
+    fallback?.['zh-CN']?.trim() ||
+    defaultText
+  return { 'zh-CN': zh, en }
 }
 
 export function loadAgentSkills(): AgentSkill[] {
@@ -67,24 +108,23 @@ export function deleteAgentSkill(name: string): AgentSkillSummary[] {
   return getAgentSkillSummaries()
 }
 
-export function displayDescriptionForSkill(
-  skill: Pick<AgentSkill, 'displayDescription' | 'displayDescriptionKey'>,
-): string {
-  if (skill.displayDescriptionKey) return translate(skill.displayDescriptionKey)
+export function displayDescriptionForSkill(skill: Pick<AgentSkill, 'displayDescription'>): string {
   return skill.displayDescription['zh-CN'] || skill.displayDescription.en || ''
 }
 
 export function displayDescriptionForLanguage(
-  skill: Pick<AgentSkill, 'displayDescription' | 'displayDescriptionKey'>,
+  skill: Pick<AgentSkill, 'displayDescription'>,
   language: Language,
 ): string {
-  if (skill.displayDescriptionKey) return translate(skill.displayDescriptionKey)
   return skill.displayDescription[language] || skill.displayDescription['zh-CN'] || skill.displayDescription.en || ''
 }
 
-export function displayNameForSkill(skill: Pick<AgentSkill, 'name' | 'displayNameKey'>): string {
-  if (skill.displayNameKey) return translate(skill.displayNameKey)
-  return skill.name
+export function displayNameForLanguage(skill: Pick<AgentSkill, 'name' | 'displayName'>, language: Language): string {
+  return skill.displayName[language] || skill.displayName['zh-CN'] || skill.displayName.en || skill.name
+}
+
+export function displayNameForSkill(skill: Pick<AgentSkill, 'name' | 'displayName'>): string {
+  return displayNameForLanguage(skill, 'zh-CN')
 }
 
 export function buildSkillFileTree(files: AgentSkillFile[]): string {
@@ -116,11 +156,18 @@ export function createAgentSkill(input: AgentSkillCreateInput): AgentSkill {
     'zh-CN': input.displayDescription['zh-CN'].trim() || input.displayDescription.en.trim(),
     en: input.displayDescription.en.trim() || input.displayDescription['zh-CN'].trim(),
   }
+  const displayName = {
+    'zh-CN': input.displayName?.['zh-CN']?.trim() || input.displayName?.en?.trim() || '',
+    en: input.displayName?.en?.trim() || input.displayName?.['zh-CN']?.trim() || '',
+  }
   const icon = normalizeSkillIcon(input.icon)
   if (!displayDescription['zh-CN'] || !displayDescription.en) throw new Error('display descriptions are required.')
   const files = normalizeSkillFiles(input.files).slice(0, MAX_SKILL_FILES)
   if (!files.some((file) => file.path === 'SKILL.md')) {
-    files.unshift({ path: 'SKILL.md', content: skillMarkdownFromInput(name, agentDescription) })
+    files.unshift({
+      path: 'SKILL.md',
+      content: skillMarkdownFromInput(name, agentDescription, icon, displayName, displayDescription),
+    })
   }
   for (const file of files) {
     if (file.content.length > MAX_SKILL_FILE_CHARS) throw new Error(`Skill file is too large: ${file.path}`)
@@ -129,14 +176,28 @@ export function createAgentSkill(input: AgentSkillCreateInput): AgentSkill {
   const root = files.find((file) => file.path === 'SKILL.md')
   if (root) {
     const parsed = parseSkillFrontmatter(root.content)
-    if (!parsed.frontmatter.name || !parsed.frontmatter.description) {
-      root.content = skillMarkdownFromInput(name, agentDescription, parsed.body.trim())
+    if (
+      !parsed.frontmatter.name ||
+      !parsed.frontmatter.description ||
+      !parsed.frontmatter.icon ||
+      !parsed.frontmatter.displayDescription ||
+      (displayName['zh-CN'] && !parsed.frontmatter.displayName)
+    ) {
+      root.content = skillMarkdownFromInput(
+        name,
+        agentDescription,
+        icon,
+        displayName,
+        displayDescription,
+        parsed.body.trim(),
+      )
     }
   }
 
   const stored = upsertStoredUserSkill({
     name,
     agentDescription,
+    displayName,
     displayDescription,
     icon,
     files,
@@ -146,6 +207,29 @@ export function createAgentSkill(input: AgentSkillCreateInput): AgentSkill {
   return userSkillToAgentSkill(stored)
 }
 
-function skillMarkdownFromInput(name: string, description: string, body?: string): string {
-  return `---\nname: ${name}\ndescription: ${description.replace(/\n/g, ' ')}\n---\n\n${body || `# ${name}\n\n${description}`}`
+function yamlSingleLine(value: string): string {
+  return value.replace(/\s+/g, ' ').trim()
+}
+
+function skillMarkdownFromInput(
+  name: string,
+  description: string,
+  icon: string,
+  displayName: Partial<Record<Language, string>>,
+  displayDescription: Record<Language, string>,
+  body?: string,
+): string {
+  const lines = ['---', `name: ${name}`, `description: ${yamlSingleLine(description)}`, `icon: ${icon}`]
+  if (displayName['zh-CN'] || displayName.en) {
+    lines.push('display_name:')
+    if (displayName['zh-CN']) lines.push(`  zh-CN: ${yamlSingleLine(displayName['zh-CN'])}`)
+    if (displayName.en) lines.push(`  en: ${yamlSingleLine(displayName.en)}`)
+  }
+  lines.push(
+    'display_description:',
+    `  zh-CN: ${yamlSingleLine(displayDescription['zh-CN'])}`,
+    `  en: ${yamlSingleLine(displayDescription.en)}`,
+    '---',
+  )
+  return `${lines.join('\n')}\n\n${body || `# ${name}\n\n${description}`}`
 }

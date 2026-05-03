@@ -2,6 +2,12 @@
 name: knowledge-infographic
 description: Generate a single dense knowledge card / infographic / concept map / cheat sheet / business analysis report from a topic, outline or article. Trigger on "knowledge card", "infographic", "concept map", "summary card", "cheat sheet", "mindmap card", "quadrant card", "business report infographic", "干货卡", "知识卡", "概念图", "速查表", "信息图", "思维导图卡", "象限图", "商业分析图", "商业报告长图". Style covers notion subtle layered surfaces, sketch-notes hand-drawn, chalkboard, consulting-report. Layout covers dense / list / mindmap / quadrant / flow / report. Do not use for movie posters, single-character illustration, standalone photorealistic scenes, or social-feed cover series.
 icon: notebook-pen
+display_name:
+  zh-CN: 知识信息图
+  en: Knowledge Infographic
+display_description:
+  zh-CN: 高密度知识卡 / 信息图，notion 极简、sketch-notes 手绘、chalkboard 黑板三选一。
+  en: Dense knowledge cards in notion line, sketch-notes, or chalkboard styles.
 ---
 
 # Knowledge Infographic
