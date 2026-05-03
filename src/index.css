@@ -1402,10 +1402,31 @@
   .agent-running-token > span:nth-child(3) {
     animation-delay: 280ms;
   }
+  @keyframes agent-session-running-pulse {
+    0%,
+    100% {
+      opacity: 0.42;
+      transform: scale(0.82);
+    }
+    45% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  .agent-session-running-dot {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--color-accent);
+    animation: agent-session-running-pulse 1050ms ease-in-out infinite;
+  }
   @media (prefers-reduced-motion: reduce) {
-    .agent-running-token > span {
+    .agent-running-token > span,
+    .agent-session-running-dot {
       animation: none;
       opacity: 0.72;
+      transform: none;
     }
   }
 

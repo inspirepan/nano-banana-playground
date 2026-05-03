@@ -28,7 +28,7 @@ import { buildImageStacks, type StackItem } from '../lib/stacks'
 import type { PlaygroundImage, PlaygroundImageMeta } from '../lib/types'
 import { AgentChatComposer, type AgentChatComposerHandle } from './agent-chat/AgentChatComposer'
 import { AgentChatHeader } from './agent-chat/AgentChatHeader'
-import { AgentSessionSidebar } from './agent-chat/AgentSessionSidebar'
+import { AgentSessionSidebar, type AgentSessionSidebarStatus } from './agent-chat/AgentSessionSidebar'
 import { isDrawingSkill } from './agent-chat/drawingSkills'
 import { DrawingSkillStarters } from './agent-chat/DrawingSkillStarters'
 import { MessageBubble } from './agent-chat/MessageBubble'
@@ -168,6 +168,14 @@ export function AgentChatPanel({
   const isAwaitingAgentResponse = isStreaming || optimisticRunning
   const isWaitingForQuestionAnswer = pendingQuestions.length > 0
   const isAgentActivelyRunning = isAwaitingAgentResponse && !isWaitingForQuestionAnswer
+  const hasGeneratingImageTask = imageTasks.some((task) => task.status === 'queued' || task.status === 'running')
+  const currentSessionSidebarStatus: AgentSessionSidebarStatus = isWaitingForQuestionAnswer
+    ? 'waiting_for_question'
+    : isAgentActivelyRunning
+      ? 'running'
+      : hasGeneratingImageTask
+        ? 'generating_images'
+        : null
   const showStop = isAgentActivelyRunning && !hasComposerContent
   const showRunningIndicator = isAgentActivelyRunning
   const visibleMessages = useMemo(
@@ -351,6 +359,7 @@ export function AgentChatPanel({
         <AgentSessionSidebar
           sessions={sessions}
           currentSessionId={currentSessionId}
+          currentSessionStatus={currentSessionSidebarStatus}
           sessionsLoading={sessionsLoading}
           onNewSession={handleNewSession}
           onSwitchSession={onSwitchSession}
