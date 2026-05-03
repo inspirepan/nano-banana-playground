@@ -63,6 +63,7 @@ export const agentChatMessages: MessageDictionary = {
   'agentChat.composer.autoApproveLabel': { 'zh-CN': '自动', en: 'Auto' },
   'agentChat.composer.removeImage': { 'zh-CN': '移除图片', en: 'Remove image' },
   'agentChat.composer.scrollToBottom': { 'zh-CN': '滚动到底部', en: 'Scroll to bottom' },
+  'agentChat.slash.imageOnlyPrompt': { 'zh-CN': '请分析这些图片。', en: 'Please analyze these images.' },
   'agentChat.options.autoApproveImageTasks': { 'zh-CN': '自动通过生图任务', en: 'Auto-approve image tasks' },
   'agentChat.options.thinking': { 'zh-CN': '深度思考', en: 'Thinking level' },
   'agentChat.options.preferredImageModel': { 'zh-CN': '默认偏好生图模型', en: 'Default image model' },

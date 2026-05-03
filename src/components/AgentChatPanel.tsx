@@ -17,6 +17,7 @@ import {
   type AskUserQuestionAnswer,
 } from '../agent'
 import type { AgentSessionMessageMetadata } from '../agent/sessionTypes'
+import { isNewConversationCommand } from '../agent/slashCommands'
 import { resolveAgentModelConfig, type AgentModelConfig, type AgentThinkingLevel } from '../config/agentModels'
 import type { Provider } from '../config/models'
 import { useExternalSync, useWindowEvent } from '../hooks/effects'
@@ -163,7 +164,7 @@ export function AgentChatPanel({
   const currentKeyStatus = keyStatuses[model.provider]
   const keyMissing = currentKeyStatus === 'empty'
   const hasComposerContent = draft.trim() !== '' || attachments.length > 0
-  const canSend = !keyMissing && hasComposerContent
+  const canSend = isNewConversationCommand(draft) || (!keyMissing && hasComposerContent)
   const isAwaitingAgentResponse = isStreaming || optimisticRunning
   const showStop = isStreaming && !hasComposerContent
   const showRunningIndicator = isAwaitingAgentResponse
@@ -270,7 +271,18 @@ export function AgentChatPanel({
     })
   }, [scrollToBottom])
 
+  const handleNewSession = useCallback(() => {
+    onNewSession()
+    setOpenMenu(null)
+    composerRef.current?.focus()
+  }, [onNewSession])
+
   const handleSend = useCallback(() => {
+    if (isNewConversationCommand(draft)) {
+      onDraftChange('')
+      handleNewSession()
+      return
+    }
     flushSync(() => setOptimisticRunning(true))
     const sent = onSend()
     if (!sent) {
@@ -278,13 +290,7 @@ export function AgentChatPanel({
       return
     }
     scrollToBottomAfterSend()
-  }, [onSend, scrollToBottomAfterSend])
-
-  const handleNewSession = useCallback(() => {
-    onNewSession()
-    setOpenMenu(null)
-    composerRef.current?.focus()
-  }, [onNewSession])
+  }, [draft, handleNewSession, onDraftChange, onSend, scrollToBottomAfterSend])
 
   useWindowEvent(
     'pointerdown',
@@ -409,8 +415,9 @@ export function AgentChatPanel({
                     skills={drawingSkills}
                     onPick={(skill) => {
                       onDraftChange(
-                        t('agentChat.empty.skillStarter.prompt', { skill: displayNameForLanguage(skill, language) }),
+                        `/${skill.name} ${t('agentChat.empty.skillStarter.prompt', { skill: displayNameForLanguage(skill, language) })}`,
                       )
+                      composerRef.current?.focus()
                     }}
                   />
                 ) : (
@@ -469,6 +476,7 @@ export function AgentChatPanel({
             attachmentError={attachmentError}
             draft={draft}
             attachments={attachments}
+            skills={skills}
             pendingQuestionCount={pendingQuestions.length}
             renderItemCount={renderItems.length + queuedMessages.length}
             nearBottom={nearBottom}

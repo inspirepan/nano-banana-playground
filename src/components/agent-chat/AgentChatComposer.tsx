@@ -3,6 +3,7 @@ import {
   useImperativeHandle,
   useLayoutEffect,
   useRef,
+  useState,
   type ChangeEvent,
   type Dispatch,
   type KeyboardEvent,
@@ -16,13 +17,28 @@ import { ComposerError } from './ComposerError'
 import { ComposerScrollButton } from './ComposerScrollButton'
 import type { AgentChatMenu } from './types'
 import { isImageFile } from './utils'
-import type { AgentChatAttachment } from '../../agent'
+import { displayNameForLanguage, type AgentChatAttachment, type AgentSkillSummary } from '../../agent'
 import type { AgentModelConfig, AgentThinkingLevel } from '../../config/agentModels'
 import type { Provider } from '../../config/models'
 import type { ApiKeyStatus } from '../../hooks/useApiKey'
 import { useI18n } from '../../i18n'
+import { Icon } from '../Icon'
+import { SkillIcon } from '../SkillIcon'
 
 const MAX_COMPOSER_HEIGHT = 150
+
+type SlashCompletionContext = {
+  start: number
+  end: number
+  query: string
+}
+
+type SlashSuggestion = {
+  kind: 'command' | 'skill'
+  name: string
+  label: string
+  icon?: AgentSkillSummary['icon']
+}
 
 function autoResizeComposer(el: HTMLTextAreaElement) {
   if (el.value === '') {
@@ -34,11 +50,23 @@ function autoResizeComposer(el: HTMLTextAreaElement) {
   el.style.height = `${Math.min(el.scrollHeight + 1, MAX_COMPOSER_HEIGHT)}px`
 }
 
+function getSlashCompletionContext(value: string, cursor: number): SlashCompletionContext | null {
+  const beforeCursor = value.slice(0, cursor)
+  const slashIndex = beforeCursor.lastIndexOf('/')
+  if (slashIndex === -1) return null
+  const previous = slashIndex === 0 ? '' : beforeCursor[slashIndex - 1]
+  if (previous && !/\s/.test(previous)) return null
+  const query = beforeCursor.slice(slashIndex + 1)
+  if (!/^[A-Za-z0-9-]*$/.test(query)) return null
+  return { start: slashIndex, end: cursor, query: query.toLowerCase() }
+}
+
 type AgentChatComposerProps = {
   error: string | null
   attachmentError: string | null
   draft: string
   attachments: AgentChatAttachment[]
+  skills: AgentSkillSummary[]
   pendingQuestionCount: number
   renderItemCount: number
   nearBottom: boolean
@@ -75,6 +103,7 @@ export const AgentChatComposer = forwardRef<AgentChatComposerHandle, AgentChatCo
     attachmentError,
     draft,
     attachments,
+    skills,
     pendingQuestionCount,
     renderItemCount,
     nearBottom,
@@ -102,12 +131,41 @@ export const AgentChatComposer = forwardRef<AgentChatComposerHandle, AgentChatCo
   }: AgentChatComposerProps,
   ref,
 ) {
-  const { t } = useI18n()
+  const { t, language } = useI18n()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const composerRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const [composerFocused, setComposerFocused] = useState(false)
+  const [slashActiveIndex, setSlashActiveIndex] = useState(0)
+  const [cursorOffset, setCursorOffset] = useState(draft.length)
   const effectiveThinkingLevel = model.supportsThinking ? thinkingLevel : 'off'
   const effectiveThinkingLabel = t(`agentChat.thinking.${effectiveThinkingLevel}`)
+  const slashContext = getSlashCompletionContext(draft, Math.min(cursorOffset, draft.length))
+  const slashSuggestions = slashContext
+    ? [
+        {
+          kind: 'command' as const,
+          name: 'new',
+          label: t('agentChat.header.newConversation'),
+        },
+        ...skills
+          .filter((skill) => skill.enabled)
+          .map((skill) => ({
+            kind: 'skill' as const,
+            name: skill.name,
+            label: displayNameForLanguage(skill, language),
+            icon: skill.icon,
+          })),
+      ].filter((suggestion) => {
+        if (!slashContext.query) return true
+        return (
+          suggestion.name.includes(slashContext.query) || suggestion.label.toLowerCase().includes(slashContext.query)
+        )
+      })
+    : []
+  const showSlashSuggestions =
+    composerFocused && openMenu === null && slashContext !== null && slashSuggestions.length > 0
+  const activeSlashIndex = Math.min(slashActiveIndex, Math.max(0, slashSuggestions.length - 1))
 
   useImperativeHandle(
     ref,
@@ -153,8 +211,46 @@ export const AgentChatComposer = forwardRef<AgentChatComposerHandle, AgentChatCo
     event.target.value = ''
   }
 
+  const applySlashSuggestion = (suggestion: SlashSuggestion) => {
+    const textarea = textareaRef.current
+    const context = getSlashCompletionContext(draft, textarea?.selectionStart ?? draft.length)
+    if (!context) return
+    const insertion = `/${suggestion.name} `
+    const nextDraft = `${draft.slice(0, context.start)}${insertion}${draft.slice(context.end).replace(/^\s+/, '')}`
+    const cursor = context.start + insertion.length
+    onDraftChange(nextDraft)
+    setSlashActiveIndex(0)
+    setCursorOffset(cursor)
+    requestAnimationFrame(() => {
+      textareaRef.current?.focus({ preventScroll: true })
+      textareaRef.current?.setSelectionRange(cursor, cursor)
+    })
+  }
+
   const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.nativeEvent.isComposing) return
+    if (showSlashSuggestions) {
+      if (event.key === 'ArrowDown') {
+        event.preventDefault()
+        setSlashActiveIndex((index) => (index + 1) % slashSuggestions.length)
+        return
+      }
+      if (event.key === 'ArrowUp') {
+        event.preventDefault()
+        setSlashActiveIndex((index) => (index - 1 + slashSuggestions.length) % slashSuggestions.length)
+        return
+      }
+      if (event.key === 'Tab' || (event.key === 'Enter' && !event.shiftKey)) {
+        event.preventDefault()
+        applySlashSuggestion(slashSuggestions[activeSlashIndex])
+        return
+      }
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        setComposerFocused(false)
+        return
+      }
+    }
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault()
       if (canSend) onSend()
@@ -189,16 +285,31 @@ export const AgentChatComposer = forwardRef<AgentChatComposerHandle, AgentChatCo
             onOpenApiKeys={onOpenApiKeys}
           />
 
+          <SlashCommandSuggestions
+            open={showSlashSuggestions}
+            suggestions={slashSuggestions}
+            activeIndex={activeSlashIndex}
+            onPick={applySlashSuggestion}
+          />
+
           <ComposerAttachments attachments={attachments} onRemoveAttachment={onRemoveAttachment} />
 
           <textarea
             ref={textareaRef}
             value={draft}
             onChange={(event) => {
+              setSlashActiveIndex(0)
+              setCursorOffset(event.target.selectionStart)
               onDraftChange(event.target.value)
               autoResizeComposer(event.target)
             }}
             onKeyDown={handleKeyDown}
+            onSelect={(event) => setCursorOffset(event.currentTarget.selectionStart)}
+            onFocus={(event) => {
+              setComposerFocused(true)
+              setCursorOffset(event.currentTarget.selectionStart)
+            }}
+            onBlur={() => setComposerFocused(false)}
             placeholder={
               pendingQuestionCount > 0
                 ? t('agentChat.composer.placeholder.questionPending')
@@ -231,3 +342,48 @@ export const AgentChatComposer = forwardRef<AgentChatComposerHandle, AgentChatCo
     </>
   )
 })
+
+function SlashCommandSuggestions({
+  open,
+  suggestions,
+  activeIndex,
+  onPick,
+}: {
+  open: boolean
+  suggestions: SlashSuggestion[]
+  activeIndex: number
+  onPick: (suggestion: SlashSuggestion) => void
+}) {
+  if (!open) return null
+  return (
+    <div
+      data-agent-menu
+      className="absolute bottom-[calc(100%+8px)] left-2 z-50 w-[320px] max-w-[calc(100vw-32px)] rounded-[var(--radius-lg)] bg-(--color-surface) p-1 shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-float)]"
+    >
+      {suggestions.map((suggestion, index) => (
+        <button
+          key={`${suggestion.kind}-${suggestion.name}`}
+          type="button"
+          onMouseDown={(event) => {
+            event.preventDefault()
+            onPick(suggestion)
+          }}
+          data-active={index === activeIndex || undefined}
+          className="flex h-8 w-full items-center gap-2 rounded-[var(--radius-sm)] px-2 text-left text-sm font-normal text-(--color-text-2) transition-colors hover:bg-(--color-surface-2) data-[active]:bg-(--color-surface-2) data-[active]:text-(--color-text)"
+        >
+          {suggestion.kind === 'skill' && suggestion.icon ? (
+            <SkillIcon name={suggestion.icon} size={13} strokeWidth={2} className="shrink-0 text-(--color-accent)" />
+          ) : (
+            <Icon name="plus" size={13} className="shrink-0 text-(--color-accent)" />
+          )}
+          <span className="mono min-w-0 flex-1 truncate text-[12px] font-normal text-(--color-text)">
+            /{suggestion.name}
+          </span>
+          <span className="max-w-[150px] shrink-0 truncate text-right text-sm font-normal text-(--color-text-4)">
+            {suggestion.label}
+          </span>
+        </button>
+      ))}
+    </div>
+  )
+}

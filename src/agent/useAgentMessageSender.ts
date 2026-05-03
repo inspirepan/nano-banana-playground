@@ -13,12 +13,36 @@ import type {
   AgentSessionRuntime,
   ProviderCredentials,
 } from './runtimeTypes'
-import { buildAvailableSkillsSystemMessage } from './skills/listing'
-import { getAgentSkillSummaries } from './skills/registry'
 import { resolveAgentModelConfig, type AgentModelProvider } from '../config/agentModels'
 import { getPreferredImageModelId } from '../config/preferredImageModel'
 import { getActiveLanguage, translate } from '../i18n'
+import { buildAvailableSkillsSystemMessage } from './skills/listing'
+import { getAgentSkillSummaries } from './skills/registry'
+import { parseAgentSlashCommands } from './slashCommands'
+import { formatLoadedSkillText } from './tools/skill'
 import { isKeyError } from '../lib/validateKey'
+
+function textFromLoadedSkill(skillName: string): string | null {
+  const result = formatLoadedSkillText(skillName)
+  const details = typeof result.details === 'object' && result.details !== null ? result.details : {}
+  if ((details as { status?: unknown }).status !== 'loaded') return null
+  return result.content
+    .filter((block): block is { type: 'text'; text: string } => block.type === 'text')
+    .map((block) => block.text)
+    .join('\n\n')
+    .trim()
+}
+
+function buildInvokedSkillSystemMessage(skillName: string, skillText: string): string {
+  return [
+    '<system>',
+    `The user explicitly invoked the /${skillName} slash command for this turn.`,
+    `The ${skillName} skill has already been loaded below. Follow these instructions directly and do not call the Skill tool for ${skillName} again unless the user asks to inspect or reload it.`,
+    '',
+    skillText,
+    '</system>',
+  ].join('\n')
+}
 
 export function useAgentMessageSender({
   agentCredentialsRef,
@@ -82,6 +106,9 @@ export function useAgentMessageSender({
     const attachmentNote =
       attachmentIds.length > 0 ? `\n\n<system>Available attachment image IDs: ${attachmentIds.join(', ')}</system>` : ''
     const isFirstUserMessage = runtime.agent.state.messages.length === 0
+    const skillSummaries = getAgentSkillSummaries()
+    const enabledSkillNames = new Set(skillSummaries.filter((skill) => skill.enabled).map((skill) => skill.name))
+    const slashCommands = parseAgentSlashCommands(trimmed, enabledSkillNames, { includeNewCommand: false })
     const currentPreferredId = getPreferredImageModelId()
     const preferredChanged = runtime.lastInjectedPreferredImageModelId !== currentPreferredId
     let systemPrefix = ''
@@ -99,10 +126,15 @@ export function useAgentMessageSender({
       runtime.lastInjectedPreferredImageModelId = currentPreferredId
     }
     if (isFirstUserMessage) {
-      const skillListing = buildAvailableSkillsSystemMessage(getAgentSkillSummaries())
+      const skillListing = buildAvailableSkillsSystemMessage(skillSummaries)
       if (skillListing) systemPrefix += `${skillListing}\n\n`
     }
-    const promptText = `${systemPrefix}${trimmed || '请分析这些图片。'}${attachmentNote}`
+    for (const skillName of slashCommands.skillNames) {
+      const skillText = textFromLoadedSkill(skillName)
+      if (skillText) systemPrefix += `${buildInvokedSkillSystemMessage(skillName, skillText)}\n\n`
+    }
+    const promptBody = trimmed || translate('agentChat.slash.imageOnlyPrompt')
+    const promptText = `${systemPrefix}${promptBody}${attachmentNote}`
     for (const attachment of attachmentsToSend) {
       if (runtime.imageRegistry.get(attachment.id)?.status === 'ready') continue
       runtime.imageRegistry.set(attachment.id, {
