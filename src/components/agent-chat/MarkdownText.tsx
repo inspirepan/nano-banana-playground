@@ -1,8 +1,6 @@
 import type { JSX } from 'react'
 import { Streamdown } from 'streamdown'
 
-import { useI18n } from '../../i18n'
-
 const MARKDOWN_COMPONENTS = {
   p: (props: JSX.IntrinsicElements['p']) => <p {...props} />,
   strong: (props: JSX.IntrinsicElements['strong']) => <strong className="font-semibold" {...props} />,
@@ -58,11 +56,7 @@ const MARKDOWN_COMPONENTS = {
 }
 
 export function MarkdownText({ text, isStreaming }: { text: string; isStreaming?: boolean }) {
-  const { t } = useI18n()
-
-  if (!text.trim()) {
-    return isStreaming ? <span className="text-(--color-text-4)">{t('agentChat.status.thinking')}</span> : null
-  }
+  if (!text.trim()) return null
 
   return (
     <div className="space-y-2.5 text-base leading-[1.62] text-(--color-text-2) [&_>_*]:my-0">

@@ -6,7 +6,6 @@ import {
   agentMessageError,
   agentMessageRole,
   agentMessageText,
-  agentMessageToolCalls,
   stripSystemDirectives,
   type AgentChatAttachment,
   type AgentImageTask,
@@ -35,7 +34,6 @@ import { ToolActivityCard } from './agent-chat/ToolActivityCard'
 import type { AgentChatMenu } from './agent-chat/types'
 import {
   buildChatRenderItems,
-  hasRenderableMessageContent,
   isImageFile,
   parseDraggedPlaygroundImage,
 } from './agent-chat/utils'
@@ -85,6 +83,20 @@ type Props = {
   onThinkingLevelChange: (level: AgentThinkingLevel) => void
   onSend: () => boolean
   onStop: () => void
+}
+
+function AgentRunningIndicator({ label }: { label: string }) {
+  return (
+    <div className="flex justify-start">
+      <div className="mr-3 pl-3">
+        <span className="agent-running-token" role="status" aria-label={label}>
+          <span aria-hidden="true" />
+          <span aria-hidden="true" />
+          <span aria-hidden="true" />
+        </span>
+      </div>
+    </div>
+  )
 }
 
 export function AgentChatPanel({
@@ -138,7 +150,7 @@ export function AgentChatPanel({
   const composerRef = useRef<AgentChatComposerHandle>(null)
   const [openMenu, setOpenMenu] = useState<AgentChatMenu>(null)
   const [nearBottom, setNearBottom] = useState(true)
-  const [optimisticThinking, setOptimisticThinking] = useState(false)
+  const [optimisticRunning, setOptimisticRunning] = useState(false)
 
   useWindowEvent(
     'pointerdown',
@@ -155,8 +167,9 @@ export function AgentChatPanel({
   const keyMissing = currentKeyStatus === 'empty'
   const hasComposerContent = draft.trim() !== '' || attachments.length > 0
   const canSend = !keyMissing && hasComposerContent
-  const isAwaitingAgentResponse = isStreaming || optimisticThinking
+  const isAwaitingAgentResponse = isStreaming || optimisticRunning
   const showStop = isStreaming && !hasComposerContent
+  const showRunningIndicator = isAwaitingAgentResponse
   const visibleMessages = useMemo(
     () => (streamingMessage ? [...messages, streamingMessage] : messages),
     [messages, streamingMessage],
@@ -198,11 +211,6 @@ export function AgentChatPanel({
     return null
   }, [visibleMessages])
   const composerError = error && error === latestMessageError ? null : error
-  const showThinkingPlaceholder =
-    isAwaitingAgentResponse &&
-    (optimisticThinking || pendingQuestions.length === 0) &&
-    (!streamingMessage ||
-      (!hasRenderableMessageContent(streamingMessage) && agentMessageToolCalls(streamingMessage).length === 0))
   const imageTaskByToolCallId = useMemo(() => {
     const map = new Map<string, AgentImageTask>()
     for (const task of imageTasks) map.set(task.toolCallId, task)
@@ -225,8 +233,8 @@ export function AgentChatPanel({
   const drawingSkills = useMemo(() => skills.filter(isDrawingSkill), [skills])
 
   useExternalSync(() => {
-    if (optimisticThinking && (isStreaming || streamingMessage || error)) setOptimisticThinking(false)
-  }, [error, isStreaming, optimisticThinking, streamingMessage])
+    if (optimisticRunning && (isStreaming || error)) setOptimisticRunning(false)
+  }, [error, isStreaming, optimisticRunning])
 
   useExternalSync(() => {
     const el = scrollRef.current
@@ -248,7 +256,7 @@ export function AgentChatPanel({
     // Note: nearBottom is intentionally excluded from deps — flipping it true
     // mid-smooth-scroll would otherwise snap the animation to its end.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visibleMessages.length, queuedMessages.length, streamingMessage, isStreaming, optimisticThinking])
+  }, [visibleMessages.length, queuedMessages.length, streamingMessage, showRunningIndicator])
 
   const scrollToBottom = useCallback(() => {
     const el = scrollRef.current
@@ -266,10 +274,10 @@ export function AgentChatPanel({
   }, [scrollToBottom])
 
   const handleSend = useCallback(() => {
-    flushSync(() => setOptimisticThinking(true))
+    flushSync(() => setOptimisticRunning(true))
     const sent = onSend()
     if (!sent) {
-      setOptimisticThinking(false)
+      setOptimisticRunning(false)
       return
     }
     scrollToBottomAfterSend()
@@ -397,7 +405,7 @@ export function AgentChatPanel({
           }}
         >
           <div className={`space-y-4 ${contentRightPaddingClass}`}>
-            {renderItems.length === 0 && queuedMessages.length === 0 && !showThinkingPlaceholder ? (
+            {renderItems.length === 0 && queuedMessages.length === 0 && !showRunningIndicator ? (
               <div className="flex min-h-[300px] flex-col items-center justify-center text-center">
                 {drawingSkills.length > 0 ? (
                   <DrawingSkillStarters
@@ -449,13 +457,7 @@ export function AgentChatPanel({
                 {queuedMessages.map((queued) => (
                   <MessageBubble key={queued.id} message={queued.message} isStreaming={false} isQueued />
                 ))}
-                {showThinkingPlaceholder ? (
-                  <div className="flex justify-start">
-                    <div className="mr-3 max-w-[94%] pl-3">
-                      <span className="text-(--color-text-4)">{t('agentChat.status.thinking')}</span>
-                    </div>
-                  </div>
-                ) : null}
+                {showRunningIndicator ? <AgentRunningIndicator label={t('agentChat.status.running')} /> : null}
               </>
             )}
           </div>

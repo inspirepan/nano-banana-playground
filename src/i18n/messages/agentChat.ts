@@ -20,7 +20,7 @@ export const agentChatMessages: MessageDictionary = {
     'zh-CN': '使用 {skill} Skill，帮我生成一张图片。先按这个 Skill 的流程带我试试看。',
     en: "Use the {skill} skill to help me generate an image. Walk me through that skill's flow first.",
   },
-  'agentChat.status.thinking': { 'zh-CN': '正在思考…', en: 'Thinking…' },
+  'agentChat.status.running': { 'zh-CN': 'Agent 正在运行', en: 'Agent is running' },
   'agentChat.header.switchTitle': { 'zh-CN': '切换 Agent 对话', en: 'Switch Agent conversation' },
   'agentChat.header.switchAction': { 'zh-CN': '切换', en: 'Switch' },
   'agentChat.header.loadingSessions': { 'zh-CN': '加载对话…', en: 'Loading conversations…' },
