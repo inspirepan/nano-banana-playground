@@ -10,6 +10,7 @@ export const settingsMessages: MessageDictionary = {
   'settings.tabs.api': { 'zh-CN': '服务', en: 'Connections' },
   'settings.tabs.web': { 'zh-CN': 'Web 工具', en: 'Web tools' },
   'settings.tabs.generation': { 'zh-CN': '生成', en: 'Generation' },
+  'settings.tabs.skills': { 'zh-CN': 'Skills', en: 'Skills' },
   'settings.tabs.data': { 'zh-CN': '数据', en: 'Data' },
   'settings.apiKeys.title': { 'zh-CN': '服务连接', en: 'Service connections' },
   'settings.apiKeys.description': {

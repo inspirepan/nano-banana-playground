@@ -35,13 +35,14 @@ import {
   type WebProviderApiKeys,
 } from '../lib/webProviderStore'
 
-type SettingsTab = 'appearance' | 'api' | 'web' | 'generation' | 'data'
+type SettingsTab = 'appearance' | 'api' | 'web' | 'generation' | 'skills' | 'data'
 
 const SETTINGS_TABS: { id: SettingsTab; labelKey: string; icon: IconName }[] = [
   { id: 'api', labelKey: 'settings.tabs.api', icon: 'key' },
   { id: 'appearance', labelKey: 'settings.tabs.appearance', icon: 'palette' },
   { id: 'web', labelKey: 'settings.tabs.web', icon: 'search' },
   { id: 'generation', labelKey: 'settings.tabs.generation', icon: 'sparkles' },
+  { id: 'skills', labelKey: 'settings.tabs.skills', icon: 'wand' },
   { id: 'data', labelKey: 'settings.tabs.data', icon: 'settings' },
 ]
 
@@ -480,13 +481,15 @@ export function SettingsDialog({
                   </div>
                 </div>
               </div>
+            </div>
+          )}
 
-              <div className="pt-4 shadow-[inset_0_1px_0_var(--ring-edge-soft)]">
-                <div className="label mb-1.5">{t('settings.agentSkills.title')}</div>
-                <p className="mb-3 text-sm leading-relaxed text-(--color-text-3)">
-                  {t('settings.agentSkills.description')}
-                </p>
-                <div className="pl-2">
+          {selectedTab === 'skills' && (
+            <div className="px-5 py-4">
+              <p className="mb-3 text-sm leading-relaxed text-(--color-text-3)">
+                {t('settings.agentSkills.description')}
+              </p>
+              <div className="pl-2">
                 <AgentSkillSettings
                   skills={agentSkills}
                   onEnabledChange={onAgentSkillEnabledChange}
@@ -494,7 +497,6 @@ export function SettingsDialog({
                   onGetPackage={onGetAgentSkillPackage}
                   onCreate={onCreateAgentSkill}
                 />
-                </div>
               </div>
             </div>
           )}
