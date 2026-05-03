@@ -126,6 +126,7 @@ export const agentChatMessages: MessageDictionary = {
   'agentChat.question.notePrefix': { 'zh-CN': '补充：{note}', en: 'Note: {note}' },
   'agentChat.tool.waitingResult': { 'zh-CN': '等待工具结果…', en: 'Waiting for tool results…' },
   'agentChat.tool.label.genImage': { 'zh-CN': '创建生图任务', en: 'Create image task' },
+  'agentChat.tool.label.readAgentFile': { 'zh-CN': '读取 Agent 文件', en: 'Read Agent file' },
   'agentChat.tool.label.readImage': { 'zh-CN': '读取图片', en: 'Read image' },
   'agentChat.tool.label.askUserQuestion': { 'zh-CN': '提问用户', en: 'Ask user' },
   'agentChat.tool.label.skill': { 'zh-CN': '加载 Skill', en: 'Load skill' },

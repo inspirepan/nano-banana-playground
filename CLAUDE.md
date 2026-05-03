@@ -171,6 +171,18 @@ npm run build
 npm test
 ```
 
+真实网络调用测试单独运行，默认测试不触发外部服务：
+
+```bash
+npm run test:network
+```
+
+当前网络测试会在检测到本地环境变量时执行对应服务：`EXA_API_KEY` 用于 Exa search/fetch，`TAVILY_API_KEY` 用于 Tavily search/fetch；缺少对应 Key 的用例会自动 skip。
+
+Web 工具保持纯前端可用后端：搜索和抓取只提供 Exa / Tavily。Brave Search API 和 Parallel API 当前需要服务端代理，不能从本项目浏览器端直连，已从可选 provider 中移除。
+
+Agent 长工具结果会保存为 IndexedDB 里的 `agent://...` 虚拟文件，再用 `ReadAgentFile` 按 `offset` / `limit` 分页读取。不要把大工具输出塞进 session sidecar 或 localStorage。
+
 构建失败不得提交。
 
 ## 精选知识源

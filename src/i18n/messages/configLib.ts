@@ -158,9 +158,11 @@ export const configLibMessages: MessageDictionary = {
   },
   'configLib.agent.tool.genImage': { 'zh-CN': '生成图片', en: 'Generate image' },
   'configLib.agent.tool.askUserQuestion': { 'zh-CN': '提问用户', en: 'Ask user' },
+  'configLib.agent.tool.readAgentFile': { 'zh-CN': '读取 Agent 文件', en: 'Read Agent file' },
   'configLib.agent.tool.readImage': { 'zh-CN': '读取图片', en: 'Read image' },
   'configLib.agent.tool.skill': { 'zh-CN': '加载 Skill', en: 'Load skill' },
   'configLib.agent.tool.readSkillFile': { 'zh-CN': '读取 Skill 文件', en: 'Read skill file' },
   'configLib.agent.tool.createSkill': { 'zh-CN': '创建 Skill', en: 'Create skill' },
+  'configLib.agent.tool.webSearch': { 'zh-CN': '搜索网页', en: 'Search web' },
   'configLib.agent.tool.webFetch': { 'zh-CN': '抓取网页', en: 'Fetch web page' },
 }

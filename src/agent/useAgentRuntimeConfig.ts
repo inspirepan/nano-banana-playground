@@ -10,12 +10,15 @@ import {
   type AgentToolResult,
   type CreateSkillToolArgs,
   type GenImageToolArgs,
+  type ReadAgentFileToolArgs,
   type PreparedAskUserQuestionToolArgs,
   type ReadImageToolArgs,
   type ReadSkillFileToolArgs,
   type SkillToolArgs,
   type WebFetchToolArgs,
+  type WebSearchToolArgs,
 } from './tools'
+import { offloadAgentToolResult } from './tools/toolResultOffload'
 import {
   agentModelWithBaseUrl,
   resolveAgentModelConfig,
@@ -33,6 +36,7 @@ export type AgentToolHandlers = {
     args: GenImageToolArgs,
     signal?: AbortSignal,
   ) => Promise<AgentToolResult>
+  readAgentFile: (sessionId: string, toolCallId: string, args: ReadAgentFileToolArgs) => Promise<AgentToolResult>
   readImage: (sessionId: string, toolCallId: string, args: ReadImageToolArgs) => Promise<AgentToolResult>
   askUserQuestion: (
     sessionId: string,
@@ -43,6 +47,12 @@ export type AgentToolHandlers = {
   loadSkill: (sessionId: string, toolCallId: string, args: SkillToolArgs) => Promise<AgentToolResult>
   readSkillFile: (sessionId: string, toolCallId: string, args: ReadSkillFileToolArgs) => Promise<AgentToolResult>
   createSkill: (sessionId: string, toolCallId: string, args: CreateSkillToolArgs) => Promise<AgentToolResult>
+  webSearch: (
+    sessionId: string,
+    toolCallId: string,
+    args: WebSearchToolArgs,
+    signal?: AbortSignal,
+  ) => Promise<AgentToolResult>
   webFetch: (
     sessionId: string,
     toolCallId: string,
@@ -54,6 +64,9 @@ export type AgentToolHandlers = {
 export function createInitialAgentToolHandlers(): AgentToolHandlers {
   return {
     genImage: async () => {
+      throw new Error('Agent tools are not ready yet.')
+    },
+    readAgentFile: async () => {
       throw new Error('Agent tools are not ready yet.')
     },
     readImage: async () => {
@@ -69,6 +82,9 @@ export function createInitialAgentToolHandlers(): AgentToolHandlers {
       throw new Error('Agent tools are not ready yet.')
     },
     createSkill: async () => {
+      throw new Error('Agent tools are not ready yet.')
+    },
+    webSearch: async () => {
       throw new Error('Agent tools are not ready yet.')
     },
     webFetch: async () => {
@@ -157,20 +173,44 @@ export function useAgentRuntimeConfig({
       runtime.agent.state.systemPrompt = AGENT_SYSTEM_PROMPT
       runtime.agent.state.model = agentModelWithBaseUrl(config, baseUrl)
       runtime.agent.state.thinkingLevel = config.supportsThinking ? runtime.thinkingLevel : 'off'
+      const runWithOffload = async (toolCallId: string, toolName: string, run: () => Promise<AgentToolResult>) => {
+        const result = await run()
+        if (toolName === 'ReadAgentFile' || toolName === 'ReadImage' || toolName === 'ReadSkillFile') return result
+        return offloadAgentToolResult(result, { sessionId: runtime.sessionId, toolCallId, toolName })
+      }
       runtime.agent.state.tools = createAgentTools({
         imageModels: MODEL_CONFIGS,
         genImage: (toolCallId, args, signal) =>
-          agentToolHandlersRef.current.genImage(runtime.sessionId, toolCallId, args, signal),
+          runWithOffload(toolCallId, 'GenImage', () =>
+            agentToolHandlersRef.current.genImage(runtime.sessionId, toolCallId, args, signal),
+          ),
+        readAgentFile: (toolCallId, args) =>
+          agentToolHandlersRef.current.readAgentFile(runtime.sessionId, toolCallId, args),
         readImage: (toolCallId, args) => agentToolHandlersRef.current.readImage(runtime.sessionId, toolCallId, args),
         askUserQuestion: (toolCallId, args, signal) =>
-          agentToolHandlersRef.current.askUserQuestion(runtime.sessionId, toolCallId, args, signal),
-        loadSkill: (toolCallId, args) => agentToolHandlersRef.current.loadSkill(runtime.sessionId, toolCallId, args),
+          runWithOffload(toolCallId, 'AskUserQuestion', () =>
+            agentToolHandlersRef.current.askUserQuestion(runtime.sessionId, toolCallId, args, signal),
+          ),
+        loadSkill: (toolCallId, args) =>
+          runWithOffload(toolCallId, 'Skill', () =>
+            agentToolHandlersRef.current.loadSkill(runtime.sessionId, toolCallId, args),
+          ),
         readSkillFile: (toolCallId, args) =>
-          agentToolHandlersRef.current.readSkillFile(runtime.sessionId, toolCallId, args),
+          runWithOffload(toolCallId, 'ReadSkillFile', () =>
+            agentToolHandlersRef.current.readSkillFile(runtime.sessionId, toolCallId, args),
+          ),
         createSkill: (toolCallId, args) =>
-          agentToolHandlersRef.current.createSkill(runtime.sessionId, toolCallId, args),
+          runWithOffload(toolCallId, 'CreateSkill', () =>
+            agentToolHandlersRef.current.createSkill(runtime.sessionId, toolCallId, args),
+          ),
+        webSearch: (toolCallId, args, signal) =>
+          runWithOffload(toolCallId, 'WebSearch', () =>
+            agentToolHandlersRef.current.webSearch(runtime.sessionId, toolCallId, args, signal),
+          ),
         webFetch: (toolCallId, args, signal) =>
-          agentToolHandlersRef.current.webFetch(runtime.sessionId, toolCallId, args, signal),
+          runWithOffload(toolCallId, 'WebFetch', () =>
+            agentToolHandlersRef.current.webFetch(runtime.sessionId, toolCallId, args, signal),
+          ),
       })
     },
     [agentToolHandlersRef, getAgentBaseUrl],

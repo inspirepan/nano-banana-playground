@@ -20,6 +20,7 @@ import {
   AGENT_SESSION_ENTRY_STORE,
   AGENT_SESSION_SIDECAR_STORE,
   AGENT_SESSION_STORE,
+  AGENT_VIRTUAL_FILE_STORE,
   IMAGE_BLOB_STORE,
   openNanoBananaDB,
 } from '../lib/db'
@@ -398,7 +399,13 @@ export async function loadAgentSession(sessionId: string): Promise<HydratedAgent
 export async function deleteAgentSession(sessionId: string): Promise<void> {
   const db = await openNanoBananaDB()
   const tx = db.transaction(
-    [AGENT_SESSION_STORE, AGENT_SESSION_ENTRY_STORE, AGENT_SESSION_SIDECAR_STORE, IMAGE_BLOB_STORE],
+    [
+      AGENT_SESSION_STORE,
+      AGENT_SESSION_ENTRY_STORE,
+      AGENT_SESSION_SIDECAR_STORE,
+      AGENT_VIRTUAL_FILE_STORE,
+      IMAGE_BLOB_STORE,
+    ],
     'readwrite',
   )
   tx.objectStore(AGENT_SESSION_STORE).delete(sessionId)
@@ -408,6 +415,16 @@ export async function deleteAgentSession(sessionId: string): Promise<void> {
   const cursorReq = index.openCursor(IDBKeyRange.only(sessionId))
   cursorReq.onsuccess = () => {
     const cursor = cursorReq.result
+    if (!cursor) return
+    cursor.delete()
+    cursor.continue()
+  }
+  const virtualFileCursorReq = tx
+    .objectStore(AGENT_VIRTUAL_FILE_STORE)
+    .index('sessionId')
+    .openCursor(IDBKeyRange.only(sessionId))
+  virtualFileCursorReq.onsuccess = () => {
+    const cursor = virtualFileCursorReq.result
     if (!cursor) return
     cursor.delete()
     cursor.continue()

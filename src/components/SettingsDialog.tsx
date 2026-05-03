@@ -9,9 +9,25 @@ import { SANS_FONTS, type SansFontId } from '../config/fonts'
 import { LANGUAGE_PREFERENCES, type LanguagePreference } from '../config/languages'
 import type { Provider } from '../config/models'
 import { COLOR_THEMES, type ColorThemeId, type Theme } from '../config/theme'
+import {
+  WEB_API_PROVIDER_CONFIGS,
+  WEB_FETCH_PROVIDER_OPTIONS,
+  WEB_SEARCH_PROVIDER_OPTIONS,
+  type WebApiProvider,
+  type WebFetchProvider,
+  type WebSearchProvider,
+} from '../config/webProviders'
 import { useExternalSync, useWindowEvent } from '../hooks/effects'
 import { useI18n } from '../i18n'
 import { clearCurrentSiteData, getCurrentSiteDataUsage, type SiteDataUsage } from '../lib/siteData'
+import {
+  clearWebProviderApiKey,
+  readWebProviderSettings,
+  writeWebFetchProviderPreference,
+  writeWebProviderApiKey,
+  writeWebSearchProviderPreference,
+  type WebProviderApiKeys,
+} from '../lib/webProviderStore'
 
 const BRIGHTNESS: { value: Theme; icon: IconName; labelKey: string }[] = [
   { value: 'light', icon: 'light_mode', labelKey: 'settings.theme.light' },
@@ -29,6 +45,13 @@ const GENERATION_CONCURRENCY_CHOICES = [
   { value: 4, label: '4', suffixKey: 'settings.generationConcurrency.imageSuffix' },
   { value: 999, labelKey: 'settings.generationConcurrency.unlimited' },
 ]
+
+function emptyWebProviderDrafts(): WebProviderApiKeys {
+  return WEB_API_PROVIDER_CONFIGS.reduce((drafts, provider) => {
+    drafts[provider.id] = ''
+    return drafts
+  }, {} as WebProviderApiKeys)
+}
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
@@ -87,6 +110,8 @@ export function SettingsDialog({
   const [siteDataUsage, setSiteDataUsage] = useState<SiteDataUsage | null>(null)
   const [siteDataUsageLoading, setSiteDataUsageLoading] = useState(false)
   const [siteDataUsageError, setSiteDataUsageError] = useState<string | null>(null)
+  const [webProviderSettings, setWebProviderSettings] = useState(readWebProviderSettings)
+  const [webProviderDrafts, setWebProviderDrafts] = useState<WebProviderApiKeys>(emptyWebProviderDrafts)
 
   const refreshSiteDataUsage = useCallback(async () => {
     setSiteDataUsageLoading(true)
@@ -159,6 +184,43 @@ export function SettingsDialog({
     refreshSiteDataUsage().catch(() => undefined)
   }
 
+  const handleWebSearchProviderChange = (provider: WebSearchProvider) => {
+    writeWebSearchProviderPreference(provider)
+    setWebProviderSettings((current) => ({ ...current, searchProvider: provider }))
+  }
+
+  const handleWebFetchProviderChange = (provider: WebFetchProvider) => {
+    writeWebFetchProviderPreference(provider)
+    setWebProviderSettings((current) => ({ ...current, fetchProvider: provider }))
+  }
+
+  const handleWebProviderDraftChange = (provider: WebApiProvider, value: string) => {
+    setWebProviderDrafts((current) => ({ ...current, [provider]: value }))
+  }
+
+  const handleSaveWebProviderApiKey = (provider: WebApiProvider) => {
+    const apiKey = webProviderDrafts[provider].trim()
+    if (!apiKey) return
+    writeWebProviderApiKey(provider, apiKey)
+    setWebProviderDrafts((current) => ({ ...current, [provider]: '' }))
+    setWebProviderSettings((current) => ({
+      ...current,
+      apiKeys: { ...current.apiKeys, [provider]: apiKey },
+    }))
+  }
+
+  const handleClearWebProviderApiKey = (provider: WebApiProvider) => {
+    clearWebProviderApiKey(provider)
+    setWebProviderDrafts((current) => ({ ...current, [provider]: '' }))
+    setWebProviderSettings((current) => ({
+      searchProvider: current.searchProvider === provider ? 'none' : current.searchProvider,
+      fetchProvider: current.fetchProvider === provider ? 'default' : current.fetchProvider,
+      apiKeys: { ...current.apiKeys, [provider]: '' },
+    }))
+    if (webProviderSettings.searchProvider === provider) writeWebSearchProviderPreference('none')
+    if (webProviderSettings.fetchProvider === provider) writeWebFetchProviderPreference('default')
+  }
+
   if (!open) return null
 
   const isDark =
@@ -190,6 +252,46 @@ export function SettingsDialog({
           <div>
             <SettingsSection title={t('settings.apiKeys.title')} description={t('settings.apiKeys.description')}>
               <ApiKeysSettings keyHooks={keyHooks} variant="embedded" />
+            </SettingsSection>
+
+            <SettingsSection title={t('settings.webTools.title')} description={t('settings.webTools.description')}>
+              <div className="space-y-4">
+                <div className="grid gap-3 md:grid-cols-2">
+                  <WebProviderChoiceGroup
+                    label={t('settings.webTools.search.label')}
+                    options={WEB_SEARCH_PROVIDER_OPTIONS}
+                    value={webProviderSettings.searchProvider}
+                    apiKeys={webProviderSettings.apiKeys}
+                    onChange={handleWebSearchProviderChange}
+                  />
+                  <WebProviderChoiceGroup
+                    label={t('settings.webTools.fetch.label')}
+                    options={WEB_FETCH_PROVIDER_OPTIONS}
+                    value={webProviderSettings.fetchProvider}
+                    apiKeys={webProviderSettings.apiKeys}
+                    onChange={handleWebFetchProviderChange}
+                  />
+                </div>
+
+                <div className="overflow-hidden rounded-[var(--radius-md)] bg-(--color-surface) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
+                  {WEB_API_PROVIDER_CONFIGS.map((provider, index) => (
+                    <WebProviderKeyRow
+                      key={provider.id}
+                      provider={provider.id}
+                      label={provider.label}
+                      configured={webProviderSettings.apiKeys[provider.id].trim() !== ''}
+                      draft={webProviderDrafts[provider.id]}
+                      apiKeyUrl={provider.apiKeyUrl}
+                      last={index === WEB_API_PROVIDER_CONFIGS.length - 1}
+                      onDraftChange={handleWebProviderDraftChange}
+                      onSave={handleSaveWebProviderApiKey}
+                      onClear={handleClearWebProviderApiKey}
+                    />
+                  ))}
+                </div>
+
+                <p className="text-sm leading-relaxed text-(--color-text-3)">{t('settings.webTools.note')}</p>
+              </div>
             </SettingsSection>
 
             <SettingsSection title={t('settings.appearance.title')} description={t('settings.appearance.description')}>
@@ -452,6 +554,130 @@ function FontChoiceGroup<T extends string>({
             </div>
           </button>
         ))}
+      </div>
+    </div>
+  )
+}
+
+function WebProviderChoiceGroup<T extends WebSearchProvider | WebFetchProvider>({
+  label,
+  options,
+  value,
+  apiKeys,
+  onChange,
+}: {
+  label: string
+  options: { id: T; labelKey: string; descriptionKey: string }[]
+  value: T
+  apiKeys: WebProviderApiKeys
+  onChange: (id: T) => void
+}) {
+  const { t } = useI18n()
+  return (
+    <div>
+      <div className="label mb-1.5 px-1">{label}</div>
+      <div className="grid gap-1.5">
+        {options.map((option) => {
+          const configured =
+            option.id === 'none' || option.id === 'default' || apiKeys[option.id as WebApiProvider]?.trim()
+          const active = value === option.id
+          return (
+            <button
+              key={option.id}
+              type="button"
+              onClick={() => onChange(option.id)}
+              disabled={!configured}
+              data-active={active}
+              className="rounded-[var(--radius-sm)] bg-(--color-surface) px-2.5 py-2 text-left transition-[background-color,box-shadow] hover:bg-(--color-surface-2) disabled:cursor-not-allowed disabled:opacity-55 data-[active=true]:bg-(--color-accent-wash) data-[active=true]:text-(--color-accent)"
+              style={{
+                boxShadow: active ? 'inset 0 0 0 1px var(--ring-edge-soft)' : 'inset 0 0 0 1px var(--ring-edge-soft)',
+              }}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-sm font-medium">{t(option.labelKey)}</span>
+                {active && <Icon name="check" size={12} strokeWidth={2.2} />}
+              </div>
+              <div className="mt-0.5 text-sm leading-snug text-(--color-text-3)">{t(option.descriptionKey)}</div>
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function WebProviderKeyRow({
+  provider,
+  label,
+  configured,
+  draft,
+  apiKeyUrl,
+  last,
+  onDraftChange,
+  onSave,
+  onClear,
+}: {
+  provider: WebApiProvider
+  label: string
+  configured: boolean
+  draft: string
+  apiKeyUrl: string
+  last: boolean
+  onDraftChange: (provider: WebApiProvider, value: string) => void
+  onSave: (provider: WebApiProvider) => void
+  onClear: (provider: WebApiProvider) => void
+}) {
+  const { t } = useI18n()
+  const canSave = draft.trim() !== ''
+  return (
+    <div className={`px-3 py-2.5 ${last ? '' : 'shadow-[inset_0_-1px_0_var(--ring-edge-soft)]'}`}>
+      <div className="flex min-w-0 items-center justify-between gap-3 px-1">
+        <div className="min-w-0">
+          <div className="text-base font-medium text-(--color-text)">{label}</div>
+          <div className="mt-0.5 flex min-w-0 items-center gap-1.5 text-sm text-(--color-text-3)">
+            <span
+              className={`inline-block size-1.5 shrink-0 rounded-full ${configured ? 'bg-(--color-success)' : 'bg-(--color-text-4)'}`}
+            />
+            <span>{configured ? t('settings.webTools.key.configured') : t('settings.webTools.key.notConfigured')}</span>
+            <span className="text-(--color-text-4)">·</span>
+            <a href={apiKeyUrl} target="_blank" rel="noreferrer" className="text-(--color-accent) hover:underline">
+              {t('settings.webTools.key.getKey')}
+            </a>
+          </div>
+        </div>
+        {configured && (
+          <button
+            type="button"
+            onClick={() => onClear(provider)}
+            className="chip danger shrink-0 text-sm"
+            style={{ height: 28 }}
+          >
+            {t('settings.webTools.key.clear')}
+          </button>
+        )}
+      </div>
+      <div className="mt-2.5 flex gap-2 px-1">
+        <input
+          type="password"
+          value={draft}
+          onChange={(event) => onDraftChange(provider, event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') onSave(provider)
+          }}
+          placeholder={
+            configured ? t('settings.webTools.key.replacePlaceholder') : t('settings.webTools.key.placeholder')
+          }
+          aria-label={t('settings.webTools.key.ariaLabel', { label })}
+          className="w-full min-w-0 rounded-[var(--radius-sm)] bg-(--color-surface) px-2.5 py-1.5 text-base shadow-[inset_0_0_0_1px_var(--ring-edge)] transition-[box-shadow,background] placeholder:text-(--color-text-4) focus:shadow-[inset_0_0_0_1px_var(--color-accent),0_0_0_3px_var(--color-accent-wash)]"
+        />
+        <button
+          type="button"
+          onClick={() => onSave(provider)}
+          disabled={!canSave}
+          className="chip shrink-0 disabled:opacity-50"
+        >
+          {t('settings.webTools.key.save')}
+        </button>
       </div>
     </div>
   )

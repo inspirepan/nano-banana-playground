@@ -11,6 +11,57 @@ export const settingsMessages: MessageDictionary = {
     'zh-CN': '配置固定支持服务的访问密钥。',
     en: 'Configure access keys for supported services.',
   },
+  'settings.webTools.title': { 'zh-CN': 'Web 工具', en: 'Web tools' },
+  'settings.webTools.description': {
+    'zh-CN': '为 Agent 的网页搜索和网页抓取选择后端服务。',
+    en: 'Choose backend services for the agent web search and web fetch tools.',
+  },
+  'settings.webTools.search.label': { 'zh-CN': 'WebSearch 后端', en: 'WebSearch backend' },
+  'settings.webTools.fetch.label': { 'zh-CN': 'WebFetch 后端', en: 'WebFetch backend' },
+  'settings.webTools.provider.exa': { 'zh-CN': 'Exa', en: 'Exa' },
+  'settings.webTools.provider.tavily': { 'zh-CN': 'Tavily', en: 'Tavily' },
+  'settings.webTools.search.provider.none': { 'zh-CN': '关闭', en: 'Off' },
+  'settings.webTools.search.provider.noneDescription': {
+    'zh-CN': '不提供搜索能力。Agent 仍可抓取用户给出的 URL。',
+    en: 'No search capability. The agent can still fetch URLs provided by the user.',
+  },
+  'settings.webTools.search.provider.exaDescription': {
+    'zh-CN': '语义搜索，返回标题、URL 和 highlights。',
+    en: 'Semantic search returning titles, URLs, and highlights.',
+  },
+  'settings.webTools.search.provider.tavilyDescription': {
+    'zh-CN': '面向 LLM 的通用搜索结果和摘要片段。',
+    en: 'LLM-oriented web results and summary snippets.',
+  },
+  'settings.webTools.fetch.provider.default': { 'zh-CN': '默认 + Jina', en: 'Default + Jina' },
+  'settings.webTools.fetch.provider.defaultDescription': {
+    'zh-CN': '浏览器直接抓取；遇到 CORS 时自动走 Jina Reader。',
+    en: 'Fetches directly in the browser, then falls back to Jina Reader on CORS failures.',
+  },
+  'settings.webTools.fetch.provider.exaDescription': {
+    'zh-CN': '使用 Exa Contents API 抽取 markdown 内容。',
+    en: 'Uses Exa Contents API to extract markdown content.',
+  },
+  'settings.webTools.fetch.provider.tavilyDescription': {
+    'zh-CN': '使用 Tavily Extract API 抽取网页正文。',
+    en: 'Uses Tavily Extract API to extract page content.',
+  },
+  'settings.webTools.key.configured': { 'zh-CN': '已配置', en: 'Configured' },
+  'settings.webTools.key.notConfigured': { 'zh-CN': '未配置', en: 'Not configured' },
+  'settings.webTools.key.getKey': { 'zh-CN': '获取 API Key', en: 'Get API key' },
+  'settings.webTools.key.clear': { 'zh-CN': '清除', en: 'Clear' },
+  'settings.webTools.key.save': { 'zh-CN': '保存', en: 'Save' },
+  'settings.webTools.key.placeholder': { 'zh-CN': '粘贴 API Key', en: 'Paste API key' },
+  'settings.webTools.key.replacePlaceholder': {
+    'zh-CN': '留空保持当前密钥，输入新密钥可替换',
+    en: 'Leave empty to keep the current key, or enter a new one to replace it',
+  },
+  'settings.webTools.key.ariaLabel': { 'zh-CN': '{label} API Key', en: '{label} API key' },
+  'settings.webTools.note': {
+    'zh-CN':
+      'API Key 只保存在此浏览器。没有配置搜索后端时，Agent 没有 WebSearch 能力；没有配置抓取后端时，WebFetch 使用默认浏览器抓取 + Jina Reader 兜底。',
+    en: 'API keys are stored only in this browser. Without a search backend, the agent has no WebSearch capability; without a fetch backend, WebFetch uses browser fetch plus Jina Reader fallback.',
+  },
   'settings.appearance.title': { 'zh-CN': '外观', en: 'Appearance' },
   'settings.appearance.description': {
     'zh-CN': '选择语言、界面色调和主色。',

@@ -136,8 +136,10 @@ export function useAgentPlayground({
     getAgentSkillPackage,
     createUserAgentSkill,
     runSkillTool,
+    runReadAgentFileTool,
     runReadSkillFileTool,
     runCreateSkillTool,
+    runWebSearchTool,
     runWebFetchTool,
   } = useAgentSkills()
 
@@ -795,8 +797,10 @@ export function useAgentPlayground({
       readImage: runReadImageTool,
       askUserQuestion: runAskUserQuestionTool,
       loadSkill: runSkillTool,
+      readAgentFile: runReadAgentFileTool,
       readSkillFile: runReadSkillFileTool,
       createSkill: runCreateSkillTool,
+      webSearch: runWebSearchTool,
       webFetch: runWebFetchTool,
     }
   }, [
@@ -804,8 +808,10 @@ export function useAgentPlayground({
     runCreateSkillTool,
     runGenImageTool,
     runReadImageTool,
+    runReadAgentFileTool,
     runReadSkillFileTool,
     runSkillTool,
+    runWebSearchTool,
     runWebFetchTool,
   ])
 

@@ -56,6 +56,13 @@
 
 - 只在已加载的 skill 指向某个 markdown reference，且当前任务确实需要那部分细节时调用。
 - `path` 使用 skill 文件列表里的相对路径；不要尝试绝对路径、`../` 或未列出的文件。
+- 输出按行编号，并和 `ReadAgentFile` 使用同一套截断规则；如果末尾提示还有更多内容，用更大的 `offset` 和合适的 `limit` 继续读取。
+
+## ReadAgentFile
+
+- 当工具结果提示 `Full output saved to agent://...` 或 `Full content saved to agent://...` 时，用它按行读取完整内容。
+- `path` 必须使用工具结果里给出的完整 `agent://...` 路径；这是当前浏览器会话里的虚拟文件，不是本地文件系统路径。
+- 首次读取可省略 `offset`；需要继续时用上次输出末尾提示的下一段行号，配合 `limit` 分页读取。
 
 ## CreateSkill
 
@@ -69,7 +76,7 @@
 
 - 仅在用户给了具体 URL，或者你需要拉公开页面（文档、文章、品牌页、风格 / 配色 / 规格资料）确认事实时调用；不要拿来"上网搜索"。
 - 只能抓 `http(s)`；遇到需要登录态的服务（私有 GitHub、Confluence、Jira、Google Docs、Notion 等）会失败，请直接告诉用户而不是反复重试。
-- HTML 会被转成纯文本，正文最多 100K 字符；如果被截断且确有需要，告诉用户给一个更具体的 URL，不要假装拿到了全部内容。
+- HTML 会被转成纯文本。长内容会保存为 `agent://...` 虚拟文件并返回预览；如果需要更多内容，调用 `ReadAgentFile` 用 `offset` / `limit` 分页读取。
 
 # When to ask vs proceed
 

@@ -11,13 +11,17 @@ import {
 import type { AgentSkill, AgentSkillCreateInput, AgentSkillSummary } from './skills/types'
 import {
   formatLoadedSkillText,
+  formatReadAgentFileResult,
   formatReadSkillFileResult,
   runWebFetch,
+  runWebSearch,
   type AgentToolResult,
   type CreateSkillToolArgs,
+  type ReadAgentFileToolArgs,
   type ReadSkillFileToolArgs,
   type SkillToolArgs,
   type WebFetchToolArgs,
+  type WebSearchToolArgs,
 } from './tools'
 
 export function useAgentSkills() {
@@ -54,9 +58,16 @@ export function useAgentSkills() {
     [],
   )
 
+  const runReadAgentFileTool = useCallback(
+    async (sessionId: string, _toolCallId: string, args: ReadAgentFileToolArgs): Promise<AgentToolResult> => {
+      return formatReadAgentFileResult(sessionId, args)
+    },
+    [],
+  )
+
   const runReadSkillFileTool = useCallback(
     async (_sessionId: string, _toolCallId: string, args: ReadSkillFileToolArgs): Promise<AgentToolResult> => {
-      return formatReadSkillFileResult(args.skill, args.path)
+      return formatReadSkillFileResult(args.skill, args.path, args.offset, args.limit)
     },
     [],
   )
@@ -81,12 +92,24 @@ export function useAgentSkills() {
 
   const runWebFetchTool = useCallback(
     async (
-      _sessionId: string,
-      _toolCallId: string,
+      sessionId: string,
+      toolCallId: string,
       args: WebFetchToolArgs,
       signal?: AbortSignal,
     ): Promise<AgentToolResult> => {
-      return runWebFetch(args, signal)
+      return runWebFetch(args, signal, { sessionId, toolCallId })
+    },
+    [],
+  )
+
+  const runWebSearchTool = useCallback(
+    async (
+      _sessionId: string,
+      _toolCallId: string,
+      args: WebSearchToolArgs,
+      signal?: AbortSignal,
+    ): Promise<AgentToolResult> => {
+      return runWebSearch(args, signal)
     },
     [],
   )
@@ -98,8 +121,10 @@ export function useAgentSkills() {
     getAgentSkillPackage,
     createUserAgentSkill,
     runSkillTool,
+    runReadAgentFileTool,
     runReadSkillFileTool,
     runCreateSkillTool,
+    runWebSearchTool,
     runWebFetchTool,
   }
 }

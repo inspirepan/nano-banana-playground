@@ -112,6 +112,7 @@ export function buildChatRenderItems(
 
 export function toolLabel(name: string): string {
   if (name === 'GenImage') return translate('agentChat.tool.label.genImage')
+  if (name === 'ReadAgentFile') return translate('agentChat.tool.label.readAgentFile')
   if (name === 'ReadImage') return translate('agentChat.tool.label.readImage')
   if (name === 'AskUserQuestion') return translate('agentChat.tool.label.askUserQuestion')
   if (name === 'Skill') return translate('agentChat.tool.label.skill')
@@ -133,6 +134,9 @@ export function summarizeToolArgs(call: AgentMessageToolCall): string {
       ? call.arguments.image_id
       : translate('agentChat.tool.args.image')
   }
+  if (call.name === 'ReadAgentFile') {
+    return typeof call.arguments.path === 'string' ? call.arguments.path : 'agent://'
+  }
   if (call.name === 'Skill' || call.name === 'CreateSkill') {
     return typeof call.arguments.skill === 'string'
       ? call.arguments.skill
@@ -150,6 +154,11 @@ export function summarizeToolArgs(call: AgentMessageToolCall): string {
     const url = typeof call.arguments.url === 'string' ? call.arguments.url : ''
     if (!url) return 'URL'
     return url
+  }
+  if (call.name === 'WebSearch') {
+    const query = typeof call.arguments.query === 'string' ? call.arguments.query.trim() : ''
+    if (!query) return 'query'
+    return query
   }
   return Object.keys(call.arguments).slice(0, 3).join(' · ')
 }

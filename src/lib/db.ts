@@ -1,5 +1,5 @@
 export const DB_NAME = 'nano-banana-playground'
-export const DB_VERSION = 5
+export const DB_VERSION = 6
 
 export const HISTORY_META_STORE = 'history'
 export const IMAGE_BLOB_STORE = 'blobs'
@@ -7,6 +7,7 @@ export const IMAGE_PREVIEW_STORE = 'previews'
 export const AGENT_SESSION_STORE = 'agent_sessions'
 export const AGENT_SESSION_ENTRY_STORE = 'agent_session_entries'
 export const AGENT_SESSION_SIDECAR_STORE = 'agent_session_sidecars'
+export const AGENT_VIRTUAL_FILE_STORE = 'agent_virtual_files'
 
 let dbPromise: Promise<IDBDatabase> | null = null
 
@@ -74,6 +75,13 @@ export function openNanoBananaDB(): Promise<IDBDatabase> {
         }
         if (!db.objectStoreNames.contains(AGENT_SESSION_SIDECAR_STORE)) {
           db.createObjectStore(AGENT_SESSION_SIDECAR_STORE, { keyPath: 'sessionId' })
+        }
+      }
+
+      if ((event.oldVersion ?? 0) < 6) {
+        if (!db.objectStoreNames.contains(AGENT_VIRTUAL_FILE_STORE)) {
+          const store = db.createObjectStore(AGENT_VIRTUAL_FILE_STORE, { keyPath: 'id' })
+          store.createIndex('sessionId', 'sessionId', { unique: false })
         }
       }
     }

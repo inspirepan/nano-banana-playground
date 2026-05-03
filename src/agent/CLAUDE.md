@@ -1,6 +1,6 @@
 # Agent package guidelines
 
-本目录承载本项目的 Agent 领域逻辑。凡是和 Agent 会话、Agent 工具、图片任务审批、Agent 图片 registry 相关的代码，都优先放在 `src/agent/`，再由 `usePlayground` 和组件层调用。
+本目录承载本项目的 Agent 领域逻辑。凡是和 Agent 会话、Agent 工具、图片任务审批、Agent 图片 registry、Agent Web 搜索/抓取相关的代码，都优先放在 `src/agent/`，再由 `usePlayground` 和组件层调用。
 
 ## 当前依赖语境
 
@@ -26,7 +26,7 @@
 ## 分层原则
 
 - `@mariozechner/pi-agent` 的 `Agent` 只当作通用 LLM loop：消息、工具、streaming、事件订阅。
-- 本目录负责项目语义：Agent 会话状态、图片 ID registry、`GenImage` / `ReadImage` / `AskUserQuestion` 工具、Agent 图片任务审批、Agent 问卷审批。
+- 本目录负责项目语义：Agent 会话状态、图片 ID registry、`GenImage` / `ReadImage` / `AskUserQuestion` / `WebSearch` / `WebFetch` 工具、Agent 图片任务审批、Agent 问卷审批。
 - React 组件只渲染状态和触发 handler，不直接实现工具业务逻辑。
 - `useAgentPlayground` 持有当前 Agent runtime、当前会话 sidecar、附件、图片 registry、任务审批和工具执行逻辑。
 - `usePlayground` 只负责主编辑器、URL 同步、参考图、历史和真实生成队列，再把必要能力注入 `useAgentPlayground`。
@@ -44,10 +44,13 @@ src/agent/
   sessionTypes.ts         # Persisted/hydrated Agent session records and sidecar shapes
   systemPrompt.ts         # Bundled system prompt loader
   tools/
-    index.ts              # createAgentTools composition (image + ask-user tools)
+    index.ts              # createAgentTools composition
     genImage.ts           # GenImage schema normalization and runtime tool wrapper
     readImage.ts          # ReadImage schema normalization and runtime tool wrapper
     askUserQuestion.ts    # AskUserQuestion schema, arg normalization, result formatting
+    webSearch.ts          # WebSearch schema normalization and provider-backed runtime wrapper
+    webFetch.ts           # WebFetch schema normalization and provider/default runtime wrapper
+    webProviderClients.ts # Exa / Tavily HTTP adapters
     shared.ts             # shared runtime tool result/types
 ```
 
@@ -115,10 +118,40 @@ LLM transcript 中的 `toolCall` 保持 provider 原生形状；审批、生成�
 当前 Agent 工具集合：
 
 - `GenImage`
+- `ReadAgentFile`
 - `ReadImage`
 - `AskUserQuestion`
+- `WebSearch`
+- `WebFetch`
 
 不要再引入 `image_gen`、`read_image`、`read_image_prompt` 这组旧命名。提示词读取能力并入 `ReadImage`；引导用户决策走 `AskUserQuestion`。
+Web 搜索和抓取能力走 `WebSearch` / `WebFetch`，不要引入 `web_search` / `web_fetch` 这类 snake_case 工具名。长工具输出和 WebFetch 全文通过 `ReadAgentFile` 读取，不要把它命名成通用本地文件读取工具。
+
+## Agent 虚拟文件
+
+长工具结果保存到 IndexedDB 的 `agent_virtual_files` store，路径形如 `agent://tool-output/{toolCallId}.txt` 或 `agent://web-fetch/{toolCallId}.md`。这些路径是当前 Agent session 内的虚拟文件，不映射到用户本机文件系统。
+
+- 通用工具结果 offload 由 `toolResultOffload.ts` 负责：超过 40000 字符或 2000 行时保存完整 text output，并返回 head/tail 预览。
+- `WebFetch` 会在有 session/toolCallId 时保存完整 processed content；短内容也会提示 `[Full content saved to ...]`，长内容返回预览。
+- `ReadAgentFile` 读取当前 session 的 `agent://...` 文件，支持 1-indexed `offset` 和行数 `limit`，输出带行号。
+- 删除 Agent session 时必须同步删除该 session 的虚拟文件，不要把大工具输出塞进 session sidecar。
+
+## Web 工具后端
+
+Web 工具后端分两类抽象：
+
+- `WebSearchProvider`: `none` / `exa` / `tavily`。
+- `WebFetchProvider`: `default` / `exa` / `tavily`。
+
+用户在 `SettingsDialog` 的 Web 工具区配置 API Key 和分别选择 `WebSearch` / `WebFetch` 后端。没有配置搜索后端时，`WebSearch` 返回未配置错误；没有配置抓取后端时，`WebFetch` 使用浏览器 direct fetch，并在 CORS 失败时自动 fallback 到 Jina Reader。Brave Search API 和 Parallel API 当前不支持本项目这种纯前端浏览器直连，已从可选后端中移除。
+
+真实网络调用测试使用根目录脚本：
+
+```bash
+npm run test:network
+```
+
+这组测试只在对应环境变量存在时执行：`EXA_API_KEY` 覆盖 Exa search/fetch，`TAVILY_API_KEY` 覆盖 Tavily search/fetch。不要把真实网络测试并入默认 `npm test`。
 
 ## `GenImage` 工具准则
 
