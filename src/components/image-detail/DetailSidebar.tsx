@@ -381,7 +381,8 @@ function renderRequestOptionRows(options: Record<string, unknown>, model: ModelC
 
 function renderOptionBagRows(bag: Record<string, unknown>, model: ModelConfig | null | undefined, t: Translate) {
   const declaredIds = model?.options?.map((o) => o.id) ?? []
-  const leftover = Object.keys(bag).filter((id) => !declaredIds.includes(id))
+  const declaredIdSet = new Set(declaredIds)
+  const leftover = Object.keys(bag).filter((id) => !declaredIdSet.has(id))
   return [...declaredIds, ...leftover].map((id) => {
     const formatted = formatOptionValue(model, id, bag[id], t)
     if (formatted === null) return null

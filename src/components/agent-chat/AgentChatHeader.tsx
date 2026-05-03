@@ -30,10 +30,7 @@ export function AgentChatHeader({
   onDeleteSession,
 }: AgentChatHeaderProps) {
   const { t } = useI18n()
-  const currentSession = useMemo(
-    () => sessions.find((s) => s.id === currentSessionId),
-    [sessions, currentSessionId],
-  )
+  const currentSession = useMemo(() => sessions.find((s) => s.id === currentSessionId), [sessions, currentSessionId])
 
   return (
     <div className="relative mb-1.5 flex items-center gap-2">

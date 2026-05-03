@@ -1,12 +1,9 @@
-import { memo, useCallback, useMemo, useRef, useState } from 'react'
+import { lazy, memo, Suspense, useCallback, useMemo, useRef, useState } from 'react'
 
 import { Icon } from './Icon'
-import { ImageDetailModal } from './image-detail/ImageDetailModal'
 import { GridCell, ImageGrid } from './ImageGrid'
 import { StackItemThumb } from './StackItemThumb'
 import { MODEL_CONFIGS, type ModelConfig } from '../config/models'
-
-const MODEL_CONFIG_BY_ID = new Map(MODEL_CONFIGS.map((m) => [m.id, m]))
 import { useExternalSync } from '../hooks/effects'
 import type { GenerationJob } from '../hooks/usePlayground'
 import { useI18n, type Translate } from '../i18n'
@@ -14,6 +11,11 @@ import { downloadImagePng, downloadImagesZip } from '../lib/exportImages'
 import { countSlots, formatTime } from '../lib/queueJobDisplay'
 import { buildImageStacks, type ImageStack, type StackItem } from '../lib/stacks'
 import type { PlaygroundImage, PlaygroundImageMeta } from '../lib/types'
+
+const MODEL_CONFIG_BY_ID = new Map(MODEL_CONFIGS.map((m) => [m.id, m]))
+const ImageDetailModal = lazy(() =>
+  import('./image-detail/ImageDetailModal').then((module) => ({ default: module.ImageDetailModal })),
+)
 
 type Props = {
   history: PlaygroundImageMeta[]
@@ -105,7 +107,7 @@ function activeStackStatusParts(stack: ImageStack, t: Translate): ActiveStackSta
   return parts
 }
 
-function StackRow({
+const StackRow = memo(function StackRow({
   stack,
   onOpenItem,
   onEditItem,
@@ -139,9 +141,12 @@ function StackRow({
   t: Translate
 }) {
   const totalItems = stack.images.length + stack.activeSlotCount + stack.failedSlotCount
-  const activeStatusParts = activeStackStatusParts(stack, t)
-  const hasDismissibleFailures = stack.jobs.some(canDismissFailedGenerationJob)
-  const stackItemNumberById = new Map(stack.items.map((item, index) => [item.id, index + 1]))
+  const activeStatusParts = useMemo(() => activeStackStatusParts(stack, t), [stack, t])
+  const hasDismissibleFailures = useMemo(() => stack.jobs.some(canDismissFailedGenerationJob), [stack.jobs])
+  const stackItemNumberById = useMemo(
+    () => new Map(stack.items.map((item, index) => [item.id, index + 1])),
+    [stack.items],
+  )
   const previewItems = stack.items
   const canDelete = stack.images.length > 0 && activeStatusParts.length === 0
 
@@ -335,7 +340,7 @@ function StackRow({
       </div>
     </div>
   )
-}
+})
 
 export const OutputPanel = memo(function OutputPanel({
   history,
@@ -362,8 +367,12 @@ export const OutputPanel = memo(function OutputPanel({
   const [deletingStackId, setDeletingStackId] = useState<string | null>(null)
   const stackRowRefs = useRef<Map<string, HTMLDivElement>>(new Map())
   const stacks = useMemo(() => buildImageStacks(history, generationJobs), [history, generationJobs])
-  const generatedImageCount = history.filter((img) => img.source.type === 'generated').length
-  const detailStackIndex = detailTarget ? stacks.findIndex((stack) => stack.id === detailTarget.stackId) : -1
+  const generatedImageCount = useMemo(
+    () => history.reduce((count, img) => count + (img.source.type === 'generated' ? 1 : 0), 0),
+    [history],
+  )
+  const stackIndexById = useMemo(() => new Map(stacks.map((stack, index) => [stack.id, index])), [stacks])
+  const detailStackIndex = detailTarget ? (stackIndexById.get(detailTarget.stackId) ?? -1) : -1
   const detailStack = detailStackIndex >= 0 ? stacks[detailStackIndex] : null
   const previousStackTarget = detailStackIndex > 0 ? lastStackItemTarget(stacks[detailStackIndex - 1]) : null
   const nextStackTarget =
@@ -579,27 +588,29 @@ export const OutputPanel = memo(function OutputPanel({
       )}
 
       {detailStack && (
-        <ImageDetailModal
-          stack={detailStack}
-          initialItemId={detailTarget?.itemId}
-          initialViewMode={detailTarget?.viewMode}
-          initialEditing={detailTarget?.initialEditing}
-          previousStackTarget={previousStackTarget}
-          nextStackTarget={nextStackTarget}
-          history={history}
-          generationJobs={generationJobs}
-          onNavigateToStackItem={navigateDetailToTarget}
-          onClose={() => setDetailTarget(null)}
-          onAddToRef={onAddToRef}
-          onRegenerate={onRegenerate}
-          onReroll={onReroll}
-          onEditImage={onEditImage}
-          onCancelGenerationJob={onCancelGenerationJob}
-          onDismissGenerationJob={onDismissGenerationJob}
-          onCancelGenerationSlot={onCancelGenerationSlot}
-          onRetryGenerationSlot={onRetryGenerationSlot}
-          onRemove={onRemove}
-        />
+        <Suspense fallback={null}>
+          <ImageDetailModal
+            stack={detailStack}
+            initialItemId={detailTarget?.itemId}
+            initialViewMode={detailTarget?.viewMode}
+            initialEditing={detailTarget?.initialEditing}
+            previousStackTarget={previousStackTarget}
+            nextStackTarget={nextStackTarget}
+            history={history}
+            generationJobs={generationJobs}
+            onNavigateToStackItem={navigateDetailToTarget}
+            onClose={() => setDetailTarget(null)}
+            onAddToRef={onAddToRef}
+            onRegenerate={onRegenerate}
+            onReroll={onReroll}
+            onEditImage={onEditImage}
+            onCancelGenerationJob={onCancelGenerationJob}
+            onDismissGenerationJob={onDismissGenerationJob}
+            onCancelGenerationSlot={onCancelGenerationSlot}
+            onRetryGenerationSlot={onRetryGenerationSlot}
+            onRemove={onRemove}
+          />
+        </Suspense>
       )}
     </div>
   )

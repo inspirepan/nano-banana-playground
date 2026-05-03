@@ -8,6 +8,7 @@ import {
 } from '../config/fonts'
 import { isLanguagePreference, LANGUAGE_STORAGE_KEY, type Language, type LanguagePreference } from '../config/languages'
 import { COLOR_THEME_IDS, type ColorThemeId, type Theme } from '../config/theme'
+import { getStorageItem, setStorageItem } from '../lib/storage'
 
 export type { SansFontId } from '../config/fonts'
 export type { LanguagePreference } from '../config/languages'
@@ -26,7 +27,7 @@ export const DESKTOP_AGENT_SIDE_SPACE_MIN_PX = 72
 export const DESKTOP_AGENT_SIDE_SPACE_MAX_PX = 128
 
 export function getInitialTheme(): Theme {
-  const stored = localStorage.getItem('nano-banana-theme')
+  const stored = getStorageItem('localStorage', 'nano-banana-theme')
   const theme = stored === 'light' || stored === 'warm' || stored === 'dark' || stored === 'system' ? stored : 'system'
   if (theme === 'warm') document.documentElement.classList.add('warm')
   if (theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
@@ -36,14 +37,14 @@ export function getInitialTheme(): Theme {
 }
 
 export function getInitialColorTheme(): ColorThemeId {
-  const stored = localStorage.getItem('nano-banana-color-theme')
+  const stored = getStorageItem('localStorage', 'nano-banana-color-theme')
   const id = stored && (COLOR_THEME_IDS as string[]).includes(stored) ? (stored as ColorThemeId) : 'default'
   if (id !== 'default') document.documentElement.classList.add(`theme-${id}`)
   return id
 }
 
 export function getInitialSansFont(): SansFontId {
-  const stored = localStorage.getItem('nano-banana-sans-font')
+  const stored = getStorageItem('localStorage', 'nano-banana-sans-font')
   const id = stored && (SANS_FONT_IDS as string[]).includes(stored) ? (stored as SansFontId) : DEFAULT_SANS_FONT
   document.documentElement.classList.add(
     SANS_FONTS.find((font) => font.id === id)?.className ?? SANS_FONTS[0].className,
@@ -52,17 +53,17 @@ export function getInitialSansFont(): SansFontId {
 }
 
 export function getInitialLanguagePreference(): LanguagePreference {
-  const stored = localStorage.getItem(LANGUAGE_STORAGE_KEY)
+  const stored = getStorageItem('localStorage', LANGUAGE_STORAGE_KEY)
   return isLanguagePreference(stored) ? stored : 'auto'
 }
 
 export function getInitialAgentPanelWide(): boolean {
-  return localStorage.getItem('nano-banana-agent-panel-wide') === '1'
+  return getStorageItem('localStorage', 'nano-banana-agent-panel-wide') === '1'
 }
 
 export function getInitialAgentWideTipDismissed(): boolean {
-  if (localStorage.getItem('nano-banana-agent-panel-wide') === '1') return true
-  return localStorage.getItem('nano-banana-agent-panel-wide-tip') === '1'
+  if (getStorageItem('localStorage', 'nano-banana-agent-panel-wide') === '1') return true
+  return getStorageItem('localStorage', 'nano-banana-agent-panel-wide-tip') === '1'
 }
 
 export function ensureGoogleFontsPreconnect() {
@@ -102,7 +103,7 @@ export function applyColorThemePreference(colorTheme: ColorThemeId) {
   const root = document.documentElement
   COLOR_THEME_IDS.forEach((id) => root.classList.remove(`theme-${id}`))
   if (colorTheme !== 'default') root.classList.add(`theme-${colorTheme}`)
-  localStorage.setItem('nano-banana-color-theme', colorTheme)
+  setStorageItem('localStorage', 'nano-banana-color-theme', colorTheme)
 }
 
 export function applySansFontPreference(sansFont: SansFontId, loadPreviews: boolean) {
@@ -115,11 +116,11 @@ export function applySansFontPreference(sansFont: SansFontId, loadPreviews: bool
   } else {
     document.getElementById(GOOGLE_FONT_PREVIEWS_LINK_ID)?.remove()
   }
-  localStorage.setItem('nano-banana-sans-font', sansFont)
+  setStorageItem('localStorage', 'nano-banana-sans-font', sansFont)
 }
 
 export function applyLanguagePreference(languagePreference: LanguagePreference, language: Language) {
-  localStorage.setItem(LANGUAGE_STORAGE_KEY, languagePreference)
+  setStorageItem('localStorage', LANGUAGE_STORAGE_KEY, languagePreference)
   document.documentElement.lang = language
 }
 
@@ -140,14 +141,14 @@ export function syncThemePreference(theme: Theme): (() => void) | void {
     const apply = () => applyDark(mq.matches)
     apply()
     mq.addEventListener('change', apply)
-    localStorage.setItem('nano-banana-theme', 'system')
+    setStorageItem('localStorage', 'nano-banana-theme', 'system')
     return () => mq.removeEventListener('change', apply)
   }
   if (theme === 'warm') {
     applyWarm()
-    localStorage.setItem('nano-banana-theme', theme)
+    setStorageItem('localStorage', 'nano-banana-theme', theme)
     return
   }
   applyDark(theme === 'dark')
-  localStorage.setItem('nano-banana-theme', theme)
+  setStorageItem('localStorage', 'nano-banana-theme', theme)
 }

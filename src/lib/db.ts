@@ -8,8 +8,12 @@ export const AGENT_SESSION_STORE = 'agent_sessions'
 export const AGENT_SESSION_ENTRY_STORE = 'agent_session_entries'
 export const AGENT_SESSION_SIDECAR_STORE = 'agent_session_sidecars'
 
+let dbPromise: Promise<IDBDatabase> | null = null
+
 export function openNanoBananaDB(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
+  if (dbPromise) return dbPromise
+
+  dbPromise = new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, DB_VERSION)
     req.onupgradeneeded = (event) => {
       const db = req.result
@@ -73,7 +77,19 @@ export function openNanoBananaDB(): Promise<IDBDatabase> {
         }
       }
     }
-    req.onsuccess = () => resolve(req.result)
-    req.onerror = () => reject(req.error)
+    req.onsuccess = () => {
+      const db = req.result
+      db.onversionchange = () => {
+        db.close()
+        dbPromise = null
+      }
+      resolve(db)
+    }
+    req.onerror = () => {
+      dbPromise = null
+      reject(req.error)
+    }
   })
+
+  return dbPromise
 }

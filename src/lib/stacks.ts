@@ -78,32 +78,37 @@ export function buildImageStacks(history: PlaygroundImageMeta[], generationJobs:
   const stacks = new Map<string, ImageStack>()
   const jobBatchIds = new Set(generationJobs.map((job) => job.id))
   const batchTimestamps = new Map<string, number>()
-
-  for (const image of history) {
-    if (image.source.type !== 'generated') continue
-    if (jobBatchIds.has(image.source.batchId)) continue
-    const batchTimestamp = batchTimestampForImage(image)
-    const current = batchTimestamps.get(image.source.batchId)
-    batchTimestamps.set(
-      image.source.batchId,
-      current === undefined ? batchTimestamp : Math.min(current, batchTimestamp),
-    )
-  }
+  const generatedHistoryItems: Array<{ image: PlaygroundImageMeta; stackId: string; batchId: string; order: number }> =
+    []
 
   for (const image of history) {
     if (image.source.type !== 'generated') continue
     if (jobBatchIds.has(image.source.batchId)) continue
     const stackId = stackIdForImage(image)
     if (!stackId) continue
-    const batchTimestamp = batchTimestamps.get(image.source.batchId) ?? batchTimestampForImage(image)
-    const order = image.source.slotIndex ?? image.timestamp
+    const batchTimestamp = batchTimestampForImage(image)
+    const current = batchTimestamps.get(image.source.batchId)
+    batchTimestamps.set(
+      image.source.batchId,
+      current === undefined ? batchTimestamp : Math.min(current, batchTimestamp),
+    )
+    generatedHistoryItems.push({
+      image,
+      stackId,
+      batchId: image.source.batchId,
+      order: image.source.slotIndex ?? image.timestamp,
+    })
+  }
+
+  for (const { image, stackId, batchId, order } of generatedHistoryItems) {
+    const batchTimestamp = batchTimestamps.get(batchId) ?? batchTimestampForImage(image)
     const stack = ensureStack(stacks, stackId, batchTimestamp)
     stack.images.push(image)
     stack.items.push({
       type: 'image',
       id: image.id,
       stackId,
-      batchId: image.source.batchId,
+      batchId,
       image,
       timestamp: batchTimestamp,
       order,

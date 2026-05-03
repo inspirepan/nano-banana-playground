@@ -49,10 +49,7 @@ export function ToolActivityCard({
   onFocusImageTask?: (task: AgentImageTask) => void
 }) {
   const { t } = useI18n()
-  const resultByCallId = useMemo(
-    () => new Map(results.map((result) => [result.toolCallId, result])),
-    [results],
-  )
+  const resultByCallId = useMemo(() => new Map(results.map((result) => [result.toolCallId, result])), [results])
 
   // GenImage calls render as standalone rich cards; AskUserQuestion renders a
   // form or result card; ReadImage / AskUserQuestion mid-stream collapse into a

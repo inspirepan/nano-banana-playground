@@ -1,4 +1,5 @@
 import { translate } from '../i18n'
+import { clearStorage, getStorageEntries, getStorageLength } from './storage'
 
 const KNOWN_INDEXED_DB_NAMES = [
   'nano-banana-playground',
@@ -33,12 +34,10 @@ function textBytes(value: string): number {
   return textEncoder.encode(value).byteLength
 }
 
-function storageBytes(storage: Storage): number {
+function storageBytes(entries: [string, string][]): number {
   let bytes = 0
-  for (let index = 0; index < storage.length; index++) {
-    const key = storage.key(index)
-    if (!key) continue
-    bytes += textBytes(key) + textBytes(storage.getItem(key) ?? '')
+  for (const [key, value] of entries) {
+    bytes += textBytes(key) + textBytes(value)
   }
   return bytes
 }
@@ -262,8 +261,8 @@ function clearWritableCookies() {
 
 export async function clearCurrentSiteData() {
   await Promise.allSettled([clearIndexedDBData(), clearCacheStorage(), unregisterServiceWorkers()])
-  localStorage.clear()
-  sessionStorage.clear()
+  clearStorage('localStorage')
+  clearStorage('sessionStorage')
   clearWritableCookies()
 }
 
@@ -283,14 +282,14 @@ export async function getCurrentSiteDataUsage(): Promise<SiteDataUsage> {
     {
       id: 'localStorage',
       label: translate('configLib.siteData.localStorage.label'),
-      bytes: storageBytes(localStorage),
-      detail: translate('configLib.siteData.itemCount', { count: localStorage.length }),
+      bytes: storageBytes(getStorageEntries('localStorage')),
+      detail: translate('configLib.siteData.itemCount', { count: getStorageLength('localStorage') }),
     },
     {
       id: 'sessionStorage',
       label: translate('configLib.siteData.sessionStorage.label'),
-      bytes: storageBytes(sessionStorage),
-      detail: translate('configLib.siteData.itemCount', { count: sessionStorage.length }),
+      bytes: storageBytes(getStorageEntries('sessionStorage')),
+      detail: translate('configLib.siteData.itemCount', { count: getStorageLength('sessionStorage') }),
     },
     { id: 'cacheStorage', label: translate('configLib.siteData.cacheStorage.label'), bytes: cacheBytes },
     { id: 'cookies', label: translate('configLib.siteData.cookies.label'), bytes: cookieBytes() },

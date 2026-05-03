@@ -1,50 +1,47 @@
-import {
-  ArrowUp,
-  Brush,
-  Check,
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  ChevronUp,
-  CircleAlert,
-  CircleCheck,
-  CirclePlay,
-  Copy,
-  Download,
-  Eraser,
-  GripVertical,
-  HelpCircle,
-  ImagePlus,
-  ImageIcon,
-  KeyRound,
-  Lock,
-  Maximize2,
-  MapPin,
-  MoreHorizontal,
-  Monitor,
-  Moon,
-  MousePointer2,
-  Palette,
-  Paperclip,
-  Plus,
-  Redo2,
-  RefreshCw,
-  Search,
-  Settings,
-  Sparkles,
-  Square,
-  CircleStop,
-  Sun,
-  Trash2,
-  Undo2,
-  Upload,
-  Wand2,
-  X,
-  ZoomIn,
-  ZoomOut,
-  type LucideIcon,
-  type LucideProps,
-} from 'lucide-react'
+import type { LucideIcon, LucideProps } from 'lucide-react'
+import ArrowUp from 'lucide-react/dist/esm/icons/arrow-up.js'
+import Brush from 'lucide-react/dist/esm/icons/brush.js'
+import Check from 'lucide-react/dist/esm/icons/check.js'
+import ChevronDown from 'lucide-react/dist/esm/icons/chevron-down.js'
+import ChevronLeft from 'lucide-react/dist/esm/icons/chevron-left.js'
+import ChevronRight from 'lucide-react/dist/esm/icons/chevron-right.js'
+import ChevronUp from 'lucide-react/dist/esm/icons/chevron-up.js'
+import CircleAlert from 'lucide-react/dist/esm/icons/circle-alert.js'
+import CircleCheck from 'lucide-react/dist/esm/icons/circle-check.js'
+import CirclePlay from 'lucide-react/dist/esm/icons/circle-play.js'
+import CircleStop from 'lucide-react/dist/esm/icons/circle-stop.js'
+import Copy from 'lucide-react/dist/esm/icons/copy.js'
+import Download from 'lucide-react/dist/esm/icons/download.js'
+import Eraser from 'lucide-react/dist/esm/icons/eraser.js'
+import GripVertical from 'lucide-react/dist/esm/icons/grip-vertical.js'
+import HelpCircle from 'lucide-react/dist/esm/icons/help-circle.js'
+import ImagePlus from 'lucide-react/dist/esm/icons/image-plus.js'
+import ImageIcon from 'lucide-react/dist/esm/icons/image.js'
+import KeyRound from 'lucide-react/dist/esm/icons/key-round.js'
+import Lock from 'lucide-react/dist/esm/icons/lock.js'
+import MapPin from 'lucide-react/dist/esm/icons/map-pin.js'
+import Maximize2 from 'lucide-react/dist/esm/icons/maximize-2.js'
+import Monitor from 'lucide-react/dist/esm/icons/monitor.js'
+import Moon from 'lucide-react/dist/esm/icons/moon.js'
+import MoreHorizontal from 'lucide-react/dist/esm/icons/more-horizontal.js'
+import MousePointer2 from 'lucide-react/dist/esm/icons/mouse-pointer-2.js'
+import Palette from 'lucide-react/dist/esm/icons/palette.js'
+import Paperclip from 'lucide-react/dist/esm/icons/paperclip.js'
+import Plus from 'lucide-react/dist/esm/icons/plus.js'
+import Redo2 from 'lucide-react/dist/esm/icons/redo-2.js'
+import RefreshCw from 'lucide-react/dist/esm/icons/refresh-cw.js'
+import Search from 'lucide-react/dist/esm/icons/search.js'
+import Settings from 'lucide-react/dist/esm/icons/settings.js'
+import Sparkles from 'lucide-react/dist/esm/icons/sparkles.js'
+import Square from 'lucide-react/dist/esm/icons/square.js'
+import Sun from 'lucide-react/dist/esm/icons/sun.js'
+import Trash2 from 'lucide-react/dist/esm/icons/trash-2.js'
+import Undo2 from 'lucide-react/dist/esm/icons/undo-2.js'
+import Upload from 'lucide-react/dist/esm/icons/upload.js'
+import Wand2 from 'lucide-react/dist/esm/icons/wand-2.js'
+import X from 'lucide-react/dist/esm/icons/x.js'
+import ZoomIn from 'lucide-react/dist/esm/icons/zoom-in.js'
+import ZoomOut from 'lucide-react/dist/esm/icons/zoom-out.js'
 import { useId, type SVGProps } from 'react'
 
 import type { ProviderBrandIconName } from '../config/providers'

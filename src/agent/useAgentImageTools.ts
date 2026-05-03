@@ -118,7 +118,10 @@ export function useAgentImageTools({
       return true
     },
     [
+      agentCredentialsRef,
+      agentRuntimesRef,
       applyAgentRuntimeConfig,
+      maybeDispatchAgentImageCallbacksRef,
       setRuntimeError,
       syncRuntimeSnapshot,
     ],
@@ -174,7 +177,10 @@ export function useAgentImageTools({
         })
     },
     [
+      agentCredentialsRef,
+      agentRuntimesRef,
       applyAgentRuntimeConfig,
+      maybeDispatchAgentImageCallbacksRef,
       scheduleRuntimeSidecarPersist,
       setRuntimeError,
       syncRuntimeSnapshot,
@@ -183,7 +189,7 @@ export function useAgentImageTools({
 
   useExternalSync(() => {
     maybeDispatchAgentImageCallbacksRef.current = maybeDispatchAgentImageCallbacks
-  }, [maybeDispatchAgentImageCallbacks])
+  }, [maybeDispatchAgentImageCallbacks, maybeDispatchAgentImageCallbacksRef])
 
   const startAgentImageTask = useCallback(
     async (runtime: AgentSessionRuntime, task: AgentImageTask): Promise<{ ok: boolean; message: string }> => {
@@ -284,6 +290,7 @@ export function useAgentImageTools({
       return { ok: true, message: translate('configLib.agent.taskStarted') }
     },
     [
+      agentRuntimesRef,
       enqueueGenerationJob,
       getProviderCredentials,
       maybeDispatchAgentImageCallbacks,
@@ -440,6 +447,7 @@ export function useAgentImageTools({
       }
     },
     [
+      agentRuntimesRef,
       releasePendingAgentImageIds,
       reserveAgentImageIdsForRuntime,
       resolveAgentReferenceImages,
@@ -520,7 +528,7 @@ export function useAgentImageTools({
         details: payload,
       }
     },
-    [resolveAgentImageById],
+    [agentRuntimesRef, resolveAgentImageById],
   )
 
   useExternalSync(() => {
@@ -583,6 +591,7 @@ export function useAgentImageTools({
       maybeDispatchAgentImageCallbacks(runtime, next)
     }
   }, [
+    agentRuntimesRef,
     dismissGenerationJob,
     generationJobs,
     isCurrentRuntime,

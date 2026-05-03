@@ -123,13 +123,16 @@ export function usePlayground() {
   const historyLoadingRef = useRef(false)
   const historyLengthRef = useRef(0)
 
-  const setHistory = useCallback((updater: PlaygroundImageMeta[] | ((prev: PlaygroundImageMeta[]) => PlaygroundImageMeta[])) => {
-    setHistoryRaw((prev) => {
-      const next = typeof updater === 'function' ? updater(prev) : updater
-      historyLengthRef.current = next.length
-      return next
-    })
-  }, [])
+  const setHistory = useCallback(
+    (updater: PlaygroundImageMeta[] | ((prev: PlaygroundImageMeta[]) => PlaygroundImageMeta[])) => {
+      setHistoryRaw((prev) => {
+        const next = typeof updater === 'function' ? updater(prev) : updater
+        historyLengthRef.current = next.length
+        return next
+      })
+    },
+    [],
+  )
   const getProviderCredentials = useCallback(
     (provider: ModelConfig['provider']) => {
       const keyHook = keyHooks[provider]
@@ -145,10 +148,13 @@ export function usePlayground() {
     [keyHooks],
   )
 
-  const onGeneratedImageSaved = useCallback((image: PlaygroundImage) => {
-    const { data: _, ...meta } = image
-    setHistory((prev) => (prev.some((item) => item.id === meta.id) ? prev : [meta, ...prev]))
-  }, [])
+  const onGeneratedImageSaved = useCallback(
+    (image: PlaygroundImage) => {
+      const { data: _, ...meta } = image
+      setHistory((prev) => (prev.some((item) => item.id === meta.id) ? prev : [meta, ...prev]))
+    },
+    [setHistory],
+  )
 
   const {
     generationJobs,
@@ -494,7 +500,18 @@ export function usePlayground() {
       batchCount,
       stackId,
     )
-  }, [currentApiKey, currentBaseUrl, prompt, model, referenceImages, resolution, aspectRatio, options, batchCount, enqueueGenerationJob])
+  }, [
+    currentApiKey,
+    currentBaseUrl,
+    prompt,
+    model,
+    referenceImages,
+    resolution,
+    aspectRatio,
+    options,
+    batchCount,
+    enqueueGenerationJob,
+  ])
 
   // Edit an existing image: prepends the source as the first reference and
   // enqueues a generation job independent of InputPanel state.
@@ -577,11 +594,14 @@ export function usePlayground() {
     [modelMaxReferenceImages, modelMaxCharacterImages, referenceImages.length, resolveFullImages],
   )
 
-  const removeFromHistory = useCallback(async (id: string) => {
-    await deleteFromHistory(id)
-    removeBlobFromCache(id)
-    setHistory((prev) => prev.filter((img) => img.id !== id))
-  }, [])
+  const removeFromHistory = useCallback(
+    async (id: string) => {
+      await deleteFromHistory(id)
+      removeBlobFromCache(id)
+      setHistory((prev) => prev.filter((img) => img.id !== id))
+    },
+    [setHistory],
+  )
 
   return {
     apiKey: apiKeyHook.apiKey,

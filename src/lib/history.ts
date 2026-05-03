@@ -1,4 +1,5 @@
 import { HISTORY_META_STORE, IMAGE_BLOB_STORE, IMAGE_PREVIEW_STORE, openNanoBananaDB } from './db'
+import { getStorageItem, removeStorageItem, setStorageItem } from './storage'
 import type { PlaygroundImage, PlaygroundImageMeta } from './types'
 
 export type ImagePreviewRecord = {
@@ -196,11 +197,7 @@ export async function saveDraftRefs(images: PlaygroundImage[]): Promise<void> {
   }
   return new Promise<void>((resolve, reject) => {
     tx.oncomplete = () => {
-      try {
-        sessionStorage.setItem(DRAFT_REFS_KEY, JSON.stringify(metas))
-      } catch {
-        // sessionStorage full or unavailable — silently skip
-      }
+      setStorageItem('sessionStorage', DRAFT_REFS_KEY, JSON.stringify(metas))
       resolve()
     }
     tx.onerror = () => reject(tx.error)
@@ -209,7 +206,7 @@ export async function saveDraftRefs(images: PlaygroundImage[]): Promise<void> {
 
 export async function loadDraftRefs(): Promise<PlaygroundImage[]> {
   try {
-    const raw = sessionStorage.getItem(DRAFT_REFS_KEY)
+    const raw = getStorageItem('sessionStorage', DRAFT_REFS_KEY)
     if (!raw) return []
     const metas: DraftRefMeta[] = JSON.parse(raw)
     if (!Array.isArray(metas) || metas.length === 0) return []
@@ -245,9 +242,5 @@ export async function loadDraftRefs(): Promise<PlaygroundImage[]> {
 }
 
 export function clearDraftRefs(): void {
-  try {
-    sessionStorage.removeItem(DRAFT_REFS_KEY)
-  } catch {
-    /* noop */
-  }
+  removeStorageItem('sessionStorage', DRAFT_REFS_KEY)
 }

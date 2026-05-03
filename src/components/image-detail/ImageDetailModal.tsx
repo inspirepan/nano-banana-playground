@@ -24,6 +24,7 @@ import { downloadImagePng } from '../../lib/exportImages'
 import { loadImageMetas } from '../../lib/history'
 import { getActualCost } from '../../lib/pricing'
 import type { ImageStack, StackItem } from '../../lib/stacks'
+import { getStorageItem, setStorageItem } from '../../lib/storage'
 import type { PlaygroundImageMeta } from '../../lib/types'
 
 type Props = {
@@ -76,6 +77,12 @@ export function ImageDetailModal({
     () => stack.items.find((item) => item.id === initialItemId) ?? stack.items[stack.items.length - 1] ?? null,
     [initialItemId, stack.items],
   )
+  const stackItemById = useMemo(() => new Map(stack.items.map((item) => [item.id, item])), [stack.items])
+  const stackItemByBatchOrder = useMemo(
+    () => new Map(stack.items.map((item) => [`${item.batchId}:${item.order}`, item])),
+    [stack.items],
+  )
+  const stackItemIndexById = useMemo(() => new Map(stack.items.map((item, index) => [item.id, index])), [stack.items])
   const toSelection = useCallback((item: StackItem | null) => {
     return item ? { id: item.id, batchId: item.batchId, order: item.order } : null
   }, [])
@@ -83,14 +90,14 @@ export function ImageDetailModal({
     toSelection(initialItem),
   )
   const selectedItem =
-    (selection && stack.items.find((item) => item.id === selection.id)) ??
-    (selection && stack.items.find((item) => item.batchId === selection.batchId && item.order === selection.order)) ??
+    (selection && stackItemById.get(selection.id)) ??
+    (selection && stackItemByBatchOrder.get(`${selection.batchId}:${selection.order}`)) ??
     initialItem ??
     null
   if (selectedItem && selection?.id !== selectedItem.id) {
     setSelection(toSelection(selectedItem))
   }
-  const currentIdx = selectedItem ? stack.items.findIndex((item) => item.id === selectedItem.id) : -1
+  const currentIdx = selectedItem ? (stackItemIndexById.get(selectedItem.id) ?? -1) : -1
   const currentImage = selectedItem?.type === 'image' ? selectedItem.image : null
   const currentSlot = selectedItem?.type === 'slot' ? selectedItem.slot : null
   const currentJob = selectedItem?.type === 'slot' ? selectedItem.job : null
@@ -163,10 +170,11 @@ export function ImageDetailModal({
 
   // Resolve missing refs from IndexedDB
   const [dbRefMetas, setDbRefMetas] = useState<Map<string, PlaygroundImageMeta>>(new Map())
+  const historyMetaById = useMemo(() => new Map(history.map((image) => [image.id, image])), [history])
   const missingRefIds = useMemo(() => {
     if (!currentMeta) return []
-    return currentMeta.referenceImageIds.filter((id) => !history.find((h) => h.id === id))
-  }, [currentMeta, history])
+    return currentMeta.referenceImageIds.filter((id) => !historyMetaById.has(id))
+  }, [currentMeta, historyMetaById])
 
   useExternalSync(() => {
     if (missingRefIds.length === 0) return
@@ -177,9 +185,9 @@ export function ImageDetailModal({
 
   const findRefImage = useCallback(
     (id: string): PlaygroundImageMeta | undefined => {
-      return history.find((h) => h.id === id) ?? dbRefMetas.get(id)
+      return historyMetaById.get(id) ?? dbRefMetas.get(id)
     },
-    [history, dbRefMetas],
+    [historyMetaById, dbRefMetas],
   )
 
   useExternalSync(() => {
@@ -372,17 +380,13 @@ export function ImageDetailModal({
   // Desktop-only: collapse the right metadata sidebar to give the canvas more room.
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     if (typeof window === 'undefined') return false
-    return localStorage.getItem('nano-banana-detail-sidebar-collapsed') === '1'
+    return getStorageItem('localStorage', 'nano-banana-detail-sidebar-collapsed') === '1'
   })
 
   const toggleSidebar = useCallback(() => {
     setSidebarCollapsed((prev) => {
       const next = !prev
-      try {
-        localStorage.setItem('nano-banana-detail-sidebar-collapsed', next ? '1' : '0')
-      } catch {
-        /* ignore */
-      }
+      setStorageItem('localStorage', 'nano-banana-detail-sidebar-collapsed', next ? '1' : '0')
       return next
     })
   }, [])

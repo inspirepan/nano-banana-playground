@@ -1,4 +1,4 @@
-import { createContext, useContext, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { createContext, useContext, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 
 import { useMediaQuery } from '../hooks/effects'
 
@@ -78,6 +78,7 @@ export function ImageGrid({ children, maxRowHeight }: ImageGridProps) {
   const [rowHeight, setRowHeight] = useState(TARGET_CELL_WIDTH)
   const isMobile = useMediaQuery('(max-width: 767px)')
   const minCols = isMobile ? MIN_GRID_COLS_MOBILE : MIN_GRID_COLS_DESKTOP
+  const contextValue = useMemo(() => ({ cols: gridCols, isMobile }), [gridCols, isMobile])
 
   useLayoutEffect(() => {
     const element = ref.current
@@ -103,7 +104,7 @@ export function ImageGrid({ children, maxRowHeight }: ImageGridProps) {
   }, [maxRowHeight, minCols])
 
   return (
-    <GridColsContext.Provider value={{ cols: gridCols, isMobile }}>
+    <GridColsContext.Provider value={contextValue}>
       <div
         ref={ref}
         className="grid gap-2"
@@ -136,6 +137,8 @@ export function GridCell({ children, aspectRatio, cols, rows }: GridCellProps) {
       style={{
         gridColumn: `span ${span.cols}`,
         gridRow: `span ${span.rows}`,
+        contentVisibility: 'auto',
+        containIntrinsicSize: '76px',
       }}
     >
       {children}

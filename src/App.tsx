@@ -1,5 +1,5 @@
 import { Agentation } from 'agentation'
-import { useState, useLayoutEffect, useRef, useCallback, useMemo, startTransition } from 'react'
+import { lazy, Suspense, useState, useLayoutEffect, useRef, useCallback, useMemo, startTransition } from 'react'
 
 import type { AgentImageTask } from './agent'
 import {
@@ -28,17 +28,23 @@ import {
 } from './App/initThemePrefs'
 import { Topbar, type MobileTab } from './App/Topbar'
 import { Icon } from './components/Icon'
-import { ImageDetailModal } from './components/image-detail/ImageDetailModal'
 import { InputPanel } from './components/InputPanel'
 import { OutputPanel } from './components/OutputPanel'
-import { SettingsDialog } from './components/SettingsDialog'
 import { resolveLanguagePreference } from './config/languages'
 import type { ColorThemeId, Theme } from './config/theme'
 import { useExternalSync, useMountEffect, useWindowEvent } from './hooks/effects'
 import { usePlayground } from './hooks/usePlayground'
 import { createTranslator, I18nProvider } from './i18n'
 import { buildImageStacks } from './lib/stacks'
+import { setStorageItem } from './lib/storage'
 import type { PlaygroundImageMeta } from './lib/types'
+
+const SettingsDialog = lazy(() =>
+  import('./components/SettingsDialog').then((module) => ({ default: module.SettingsDialog })),
+)
+const ImageDetailModal = lazy(() =>
+  import('./components/image-detail/ImageDetailModal').then((module) => ({ default: module.ImageDetailModal })),
+)
 
 type SettingsTarget = 'generationConcurrency'
 type AgentPanelWideLayout = { fits: boolean; panelWidth: number; sideSpace: number }
@@ -136,21 +142,13 @@ function App() {
 
   const dismissAgentWideTip = useCallback(() => {
     setAgentWideTipDismissed(true)
-    try {
-      localStorage.setItem('nano-banana-agent-panel-wide-tip', '1')
-    } catch {
-      /* ignore */
-    }
+    setStorageItem('localStorage', 'nano-banana-agent-panel-wide-tip', '1')
   }, [])
 
   const toggleAgentPanelWide = useCallback(() => {
     setAgentPanelWide((prev) => {
       const next = !prev
-      try {
-        localStorage.setItem('nano-banana-agent-panel-wide', next ? '1' : '0')
-      } catch {
-        /* ignore */
-      }
+      setStorageItem('localStorage', 'nano-banana-agent-panel-wide', next ? '1' : '0')
       return next
     })
     dismissAgentWideTip()
@@ -218,10 +216,7 @@ function App() {
     setSettingsOpen(true)
   }, [])
 
-  const handleOpenGenerationSettings = useCallback(
-    () => openSettings('generationConcurrency'),
-    [openSettings],
-  )
+  const handleOpenGenerationSettings = useCallback(() => openSettings('generationConcurrency'), [openSettings])
 
   const switchInputMode = useCallback(
     (mode: 'generate' | 'agent') => {
@@ -455,25 +450,27 @@ function App() {
         </div>
 
         {mobileDetailState && mobileDetailStack && (
-          <ImageDetailModal
-            stack={mobileDetailStack}
-            initialItemId={mobileDetailState.itemId}
-            history={pg.history}
-            generationJobs={pg.generationJobs}
-            previousStackTarget={mobilePrevStackTarget}
-            nextStackTarget={mobileNextStackTarget}
-            onNavigateToStackItem={handleMobileNavigateToStackItem}
-            onClose={handleCloseMobileDetail}
-            onAddToRef={handleAddToRef}
-            onRegenerate={handleRegenerate}
-            onReroll={handleReroll}
-            onEditImage={pg.editImage}
-            onCancelGenerationJob={pg.cancelGenerationJob}
-            onDismissGenerationJob={pg.dismissGenerationJob}
-            onCancelGenerationSlot={pg.cancelGenerationSlot}
-            onRetryGenerationSlot={handleRetryGenerationSlot}
-            onRemove={pg.removeFromHistory}
-          />
+          <Suspense fallback={null}>
+            <ImageDetailModal
+              stack={mobileDetailStack}
+              initialItemId={mobileDetailState.itemId}
+              history={pg.history}
+              generationJobs={pg.generationJobs}
+              previousStackTarget={mobilePrevStackTarget}
+              nextStackTarget={mobileNextStackTarget}
+              onNavigateToStackItem={handleMobileNavigateToStackItem}
+              onClose={handleCloseMobileDetail}
+              onAddToRef={handleAddToRef}
+              onRegenerate={handleRegenerate}
+              onReroll={handleReroll}
+              onEditImage={pg.editImage}
+              onCancelGenerationJob={pg.cancelGenerationJob}
+              onDismissGenerationJob={pg.dismissGenerationJob}
+              onCancelGenerationSlot={pg.cancelGenerationSlot}
+              onRetryGenerationSlot={handleRetryGenerationSlot}
+              onRemove={pg.removeFromHistory}
+            />
+          </Suspense>
         )}
       </div>
 
@@ -628,27 +625,31 @@ function App() {
         </div>
       </div>
 
-      <SettingsDialog
-        open={settingsOpen}
-        keyHooks={pg.keyHooks}
-        theme={theme}
-        colorTheme={colorTheme}
-        sansFont={sansFont}
-        language={languagePreference}
-        generationConcurrency={pg.generationConcurrency}
-        agentSkills={pg.agentSkills}
-        focusSection={settingsTarget}
-        onThemeChange={setTheme}
-        onColorThemeChange={setColorTheme}
-        onSansFontChange={setSansFont}
-        onLanguageChange={setLanguagePreference}
-        onGenerationConcurrencyChange={pg.setGenerationConcurrency}
-        onAgentSkillEnabledChange={pg.setAgentSkillEnabled}
-        onDeleteAgentSkill={pg.deleteAgentSkill}
-        onGetAgentSkillPackage={pg.getAgentSkillPackage}
-        onCreateAgentSkill={pg.createUserAgentSkill}
-        onClose={() => setSettingsOpen(false)}
-      />
+      {settingsOpen && (
+        <Suspense fallback={null}>
+          <SettingsDialog
+            open={settingsOpen}
+            keyHooks={pg.keyHooks}
+            theme={theme}
+            colorTheme={colorTheme}
+            sansFont={sansFont}
+            language={languagePreference}
+            generationConcurrency={pg.generationConcurrency}
+            agentSkills={pg.agentSkills}
+            focusSection={settingsTarget}
+            onThemeChange={setTheme}
+            onColorThemeChange={setColorTheme}
+            onSansFontChange={setSansFont}
+            onLanguageChange={setLanguagePreference}
+            onGenerationConcurrencyChange={pg.setGenerationConcurrency}
+            onAgentSkillEnabledChange={pg.setAgentSkillEnabled}
+            onDeleteAgentSkill={pg.deleteAgentSkill}
+            onGetAgentSkillPackage={pg.getAgentSkillPackage}
+            onCreateAgentSkill={pg.createUserAgentSkill}
+            onClose={() => setSettingsOpen(false)}
+          />
+        </Suspense>
+      )}
     </I18nProvider>
   )
 }

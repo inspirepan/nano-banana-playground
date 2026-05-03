@@ -330,12 +330,10 @@ export async function updateAgentSessionConfig(
 }
 
 export async function saveAgentSessionSidecar(params: SaveAgentSessionSidecarParams): Promise<void> {
-  const attachments = await Promise.all(
-    params.attachments.map((attachment) => persistAttachment(params.sessionId, 'draft', attachment)),
-  )
-  const imageRegistry = await Promise.all(
-    params.imageRegistry.map((entry) => persistRegistryEntry(params.sessionId, entry)),
-  )
+  const [attachments, imageRegistry] = await Promise.all([
+    Promise.all(params.attachments.map((attachment) => persistAttachment(params.sessionId, 'draft', attachment))),
+    Promise.all(params.imageRegistry.map((entry) => persistRegistryEntry(params.sessionId, entry))),
+  ])
   const record: AgentSessionSidecarRecord = {
     sessionId: params.sessionId,
     updatedAt: Date.now(),

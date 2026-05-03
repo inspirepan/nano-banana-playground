@@ -6,6 +6,7 @@ import type { ModelConfig } from '../config/models'
 import { translate } from '../i18n'
 import { GENERATE_MAX_ATTEMPTS, generateImage } from '../lib/api'
 import { deleteFromHistory, saveToHistory } from '../lib/history'
+import { getStorageItem, setStorageItem } from '../lib/storage'
 import type { PlaygroundImage } from '../lib/types'
 import { isKeyError } from '../lib/validateKey'
 
@@ -84,7 +85,7 @@ export function clampGenerationConcurrency(value: number): number {
 }
 
 function initialGenerationConcurrency(): number {
-  const raw = localStorage.getItem(GENERATION_CONCURRENCY_KEY)
+  const raw = getStorageItem('localStorage', GENERATION_CONCURRENCY_KEY)
   const parsed = raw ? Number.parseInt(raw, 10) : DEFAULT_GENERATION_CONCURRENCY
   return clampGenerationConcurrency(Number.isFinite(parsed) ? parsed : DEFAULT_GENERATION_CONCURRENCY)
 }
@@ -105,9 +106,14 @@ function deriveJobStatus(slots: GenerationSlot[]): GenerationJobStatus {
   if (slots.some((slot) => slot.status === 'running' || slot.status === 'retrying')) return 'running'
   if (slots.some((slot) => slot.status === 'queued')) return 'queued'
 
-  const succeeded = slots.filter((slot) => slot.status === 'succeeded').length
-  const failed = slots.filter((slot) => slot.status === 'failed').length
-  const canceled = slots.filter((slot) => slot.status === 'canceled').length
+  let succeeded = 0
+  let failed = 0
+  let canceled = 0
+  for (const slot of slots) {
+    if (slot.status === 'succeeded') succeeded++
+    else if (slot.status === 'failed') failed++
+    else if (slot.status === 'canceled') canceled++
+  }
   if (succeeded === slots.length) return 'completed'
   if (canceled === slots.length) return 'canceled'
   if (succeeded > 0 && failed + canceled > 0) return 'partial_failed'
@@ -395,7 +401,7 @@ export function useGenerationQueue({
     const next = clampGenerationConcurrency(value)
     generationConcurrencyRef.current = next
     setGenerationConcurrencyState(next)
-    localStorage.setItem(GENERATION_CONCURRENCY_KEY, String(next))
+    setStorageItem('localStorage', GENERATION_CONCURRENCY_KEY, String(next))
     pumpQueueRef.current()
   }, [])
 

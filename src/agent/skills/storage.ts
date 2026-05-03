@@ -1,6 +1,7 @@
 import { normalizeSkillIcon } from './icons'
 import { normalizeSkillFiles, normalizeSkillName } from './normalize'
 import type { AgentSkillCreateInput, StoredUserSkill } from './types'
+import { getStorageItem, setStorageItem } from '../../lib/storage'
 
 const USER_SKILLS_KEY = 'nano-banana-agent-user-skills-v1'
 const SKILL_SETTINGS_KEY = 'nano-banana-agent-skill-settings-v1'
@@ -9,7 +10,7 @@ type SkillSettings = Record<string, { enabled: boolean }>
 
 function readJson<T>(key: string, fallback: T): T {
   try {
-    const value = localStorage.getItem(key)
+    const value = getStorageItem('localStorage', key)
     return value ? (JSON.parse(value) as T) : fallback
   } catch {
     return fallback
@@ -17,7 +18,9 @@ function readJson<T>(key: string, fallback: T): T {
 }
 
 function writeJson<T>(key: string, value: T): void {
-  localStorage.setItem(key, JSON.stringify(value))
+  if (!setStorageItem('localStorage', key, JSON.stringify(value))) {
+    throw new Error('Failed to save skill data.')
+  }
 }
 
 function isStoredUserSkill(value: unknown): value is StoredUserSkill {

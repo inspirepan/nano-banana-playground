@@ -30,14 +30,17 @@ export function useWindowEvent<K extends keyof WindowEventMap>(
 ): void {
   const listenerRef = useLatestRef(listener)
   const capture = options?.capture
+  const once = options?.once
   const passive = options?.passive
+  const signal = options?.signal
 
   useEffect(() => {
     if (!enabled) return
     const handler = (event: WindowEventMap[K]) => listenerRef.current(event)
-    window.addEventListener(type, handler as EventListener, options)
-    return () => window.removeEventListener(type, handler as EventListener, options)
-  }, [capture, enabled, listenerRef, passive, type])
+    const listenerOptions: AddEventListenerOptions = { capture, once, passive, signal }
+    window.addEventListener(type, handler as EventListener, listenerOptions)
+    return () => window.removeEventListener(type, handler as EventListener, listenerOptions)
+  }, [capture, enabled, listenerRef, once, passive, signal, type])
 }
 
 export function useWindowResize(listener: () => void, enabled = true): void {

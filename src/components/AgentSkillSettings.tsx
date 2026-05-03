@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 
 import { Icon } from './Icon'
-import { IconPicker } from './IconPicker'
 import { SkillIcon } from './SkillIcon'
 import type { AgentSkill, AgentSkillCreateInput, AgentSkillFile, AgentSkillSummary } from '../agent'
 import { useI18n } from '../i18n'
+
+const IconPicker = lazy(() => import('./IconPicker').then((module) => ({ default: module.IconPicker })))
 
 type Props = {
   skills: AgentSkillSummary[]
@@ -268,7 +269,15 @@ function AgentSkillCreateForm({
         <TextField label={t('settings.agentSkills.name')} value={name} onChange={setName} placeholder="my-skill" />
         <label className="block">
           <span className="label mb-1 block px-1">{t('settings.agentSkills.icon')}</span>
-          <IconPicker value={icon} onChange={setIcon} />
+          <Suspense
+            fallback={
+              <div className="rounded-[var(--radius-sm)] bg-(--color-surface-2) px-2.5 py-2 text-xs text-(--color-text-4) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
+                {icon || 'sparkles'}
+              </div>
+            }
+          >
+            <IconPicker value={icon} onChange={setIcon} />
+          </Suspense>
         </label>
       </div>
       <div className="mt-3">

@@ -1,4 +1,4 @@
-import { Fragment, useMemo, useRef, useState, type ReactNode } from 'react'
+import { Fragment, memo, useMemo, useRef, useState, type ReactNode } from 'react'
 
 import { MODEL_CONFIGS } from '../../config/models'
 import { useExternalSync } from '../../hooks/effects'
@@ -197,7 +197,7 @@ function formatHourMinute(ts: number): string {
   return `${h}:${m}`
 }
 
-export function StackStrip({
+export const StackStrip = memo(function StackStrip({
   stack,
   selectedId,
   onSelect,
@@ -313,9 +313,9 @@ export function StackStrip({
       </div>
     </div>
   )
-}
+})
 
-export function StackGallery({
+export const StackGallery = memo(function StackGallery({
   stack,
   initialMode,
   selectedId,
@@ -334,7 +334,10 @@ export function StackGallery({
   const [exporting, setExporting] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const selectableImages = stack.images
-  const selectedImages = selectableImages.filter((image) => selectedIds.has(image.id))
+  const selectedImages = useMemo(
+    () => selectableImages.filter((image) => selectedIds.has(image.id)),
+    [selectableImages, selectedIds],
+  )
   const selectedCount = selectedImages.length
   const allSelected = selectableImages.length > 0 && selectedCount === selectableImages.length
   const batches = useMemo(() => buildStackGalleryBatches(stack.items), [stack.items])
@@ -454,7 +457,11 @@ export function StackGallery({
       </div>
       <div className="space-y-5">
         {batches.map((batch) => (
-          <section key={batch.id} className="min-w-0">
+          <section
+            key={batch.id}
+            className="min-w-0"
+            style={{ contentVisibility: 'auto', containIntrinsicSize: '220px' }}
+          >
             <div className="mb-2.5 min-w-0 px-0.5 py-1">
               <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
                 <span className="whitespace-nowrap text-sm text-(--color-text-3)">
@@ -516,4 +523,4 @@ export function StackGallery({
       </div>
     </div>
   )
-}
+})
