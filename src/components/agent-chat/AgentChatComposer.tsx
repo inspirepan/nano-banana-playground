@@ -269,7 +269,7 @@ export const AgentChatComposer = forwardRef<AgentChatComposerHandle, AgentChatCo
         />
         <div
           ref={composerRef}
-          className="prompt-wrap relative rounded-[12px] bg-(--color-surface) focus-within:shadow-[inset_0_0_0_1px_var(--ring-edge)]"
+          className="prompt-wrap relative rounded-[12px] bg-(--color-surface) shadow-[inset_0_0_0_1px_var(--ring-edge),var(--shadow-float)] focus-within:shadow-[inset_0_0_0_1px_var(--ring-edge-strong),var(--shadow-float)]"
         >
           <AgentOptionsMenu
             openMenu={openMenu}

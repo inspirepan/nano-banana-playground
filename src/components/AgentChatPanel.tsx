@@ -324,7 +324,7 @@ export function AgentChatPanel({
   }
   const contentRightPaddingClass = showSessionSidebar
     ? 'pr-[var(--agent-panel-wide-side-space,128px)]'
-    : 'pr-[var(--agent-panel-padding-x,18px)]'
+    : 'px-[var(--agent-panel-padding-x,18px)]'
 
   return (
     <div
@@ -410,7 +410,7 @@ export function AgentChatPanel({
 
         <div
           ref={scrollRef}
-          className="min-h-0 flex-1 overflow-y-auto pt-5 pb-8 [scrollbar-gutter:stable]"
+          className="min-h-0 flex-1 overflow-y-auto pt-5 pb-8 [scrollbar-gutter:stable_both-edges]"
           style={{
             maskImage:
               'linear-gradient(to bottom, rgba(0,0,0,0.45) 0, black 14px, black calc(100% - 18px), rgba(0,0,0,0.45) 100%)',

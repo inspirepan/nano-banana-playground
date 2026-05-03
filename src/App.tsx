@@ -352,7 +352,7 @@ function App() {
       <div className="flex h-[100dvh] flex-col overflow-hidden bg-(--color-bg) md:hidden">
         <Topbar mobileTab={mobileTab} onMobileTabChange={switchMobileTab} onOpenSettings={() => openSettings()} />
 
-        <div ref={mobilePanelScrollRef} className="min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]">
+        <div ref={mobilePanelScrollRef} className="min-h-0 flex-1 overflow-y-auto">
           {mobileTab !== 'gallery' ? (
             <div
               className={`h-full ${mobileTab === 'agent' ? 'px-0' : 'px-3'}`}

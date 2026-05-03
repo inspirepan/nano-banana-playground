@@ -43,7 +43,7 @@
 - **容器层级**：大多数控件保持 flat surface；只有图库图片、弹窗、toast、上下文菜单才使用轻量阴影。
 - **排版细节**：`.label` 是 eyebrow 语义但使用 sans；标题使用 `.font-display` 并保持轻微负 tracking。
 - **布局取舍**：工具型 SPA，不套用 hero、testimonial、canvas grid、大面积居中空态等 landing page 技巧。
-- **滚动条**：沿用 `src/index.css` 里的近乎不可见 Linear 风格滚动条。
+- **滚动条**：沿用 `src/index.css` 里的近乎不可见 Linear 风格滚动条。`[scrollbar-gutter:stable]` 只在右侧保留 gutter，会造成左右视觉不对称（macOS「始终显示滚动条」/ Windows 可见）。规则：① 容器有水平对称要求时改用 `[scrollbar-gutter:stable_both-edges]`；② 内容为 `h-full` 实际不会溢出时直接去掉，不需要 stable gutter。
 - **图标**：只用 Lucide，经 `Icon.tsx` 映射。
 - **暗色模式**：由 `<html>` 上的 `.dark` 控制；主色主题由 `.theme-*` 控制。
 - **复用 utility class**：优先使用 `.chip`、`.segmented`、`.aspect-tile`、`.card`、`.cta`、`.dropzone`、`.img-card`、`.icon-btn`、`.label`、`.mono`。

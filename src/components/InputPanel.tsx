@@ -361,12 +361,12 @@ export function InputPanel({
         inputMode === 'agent'
           ? useWideAgentSidebar
             ? 'relative flex h-full flex-col p-0 transition-[padding] duration-[220ms] ease-[cubic-bezier(0.22,0.8,0.4,1)] motion-reduce:transition-none'
-            : 'relative flex h-full flex-col py-[18px] pl-[var(--agent-panel-padding-x,18px)] transition-[padding] duration-[220ms] ease-[cubic-bezier(0.22,0.8,0.4,1)] motion-reduce:transition-none'
+            : 'relative flex h-full flex-col py-[18px] transition-[padding] duration-[220ms] ease-[cubic-bezier(0.22,0.8,0.4,1)] motion-reduce:transition-none'
           : 'relative px-[18px] py-[18px] pb-[120px]'
       }
     >
       {showHeader && !useWideAgentSidebar && (
-        <div className={`${inputMode === 'agent' ? 'mb-[10px]' : 'mb-[18px]'} flex min-h-[30px] items-center gap-2.5 pr-[var(--agent-panel-padding-x,18px)]`}>
+        <div className={`${inputMode === 'agent' ? 'mb-[10px]' : 'mb-[18px]'} flex min-h-[30px] items-center gap-2.5 px-[var(--agent-panel-padding-x,18px)]`}>
           <div className="min-w-0 font-display text-lg font-semibold tracking-[-0.01em] text-(--color-text)">
             {t('app.name')}
           </div>
