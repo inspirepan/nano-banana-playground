@@ -101,24 +101,11 @@ export function formatAskUserQuestionArgumentError(errors: string[]): string {
     'AskUserQuestion argument validation failed. Fix the arguments and call AskUserQuestion again.',
     ...errors.map((error) => `- ${error}`),
     '',
-    'Expected shape:',
-    JSON.stringify(
-      {
-        questions: [
-          {
-            question: 'Full question text?',
-            header: 'Short label',
-            options: [
-              { label: 'Option A' },
-              { label: 'Option B', description: 'Optional explanation when the label is not self-evident.' },
-            ],
-            multi_select: false,
-          },
-        ],
-      },
-      null,
-      2,
-    ),
+    'Rules:',
+    '- Every questions[i].options array must contain 2-4 options. A single "I will write in notes" option is invalid.',
+    '- Use options for real choices. Use the free-text note field only for optional details after a choice.',
+    '- If you mainly need open-ended text, ask in normal chat or provide 2-4 meaningful choices such as "自由发挥" and "我补充细节".',
+    '',
     '</tool_use_error>',
   ]
   return lines.join('\n')
@@ -134,26 +121,27 @@ export function createAskUserQuestionTool({
     label: translate('configLib.agent.tool.askUserQuestion'),
     description: description.trim(),
     parameters: Type.Object({
-      questions: Type.Optional(
-        Type.Array(
-          Type.Object({
-            question: Type.Optional(Type.String({ description: 'Full question text ending with a question mark.' })),
-            header: Type.Optional(Type.String({ description: 'Short chip label for the question (max 12 chars).' })),
-            options: Type.Optional(
-              Type.Array(
-                Type.Object({
-                  label: Type.Optional(Type.String({ description: 'Concise option label (1-5 words).' })),
-                  description: Type.Optional(
-                    Type.String({ description: 'Optional short explanation. Omit it when the label is self-evident.' }),
-                  ),
-                }),
-                { description: '2-4 mutually exclusive options.' },
+      questions: Type.Array(
+        Type.Object({
+          question: Type.String({ description: 'Full question text ending with a question mark.' }),
+          header: Type.String({ description: 'Short chip label for the question (max 12 chars).', maxLength: 12 }),
+          options: Type.Array(
+            Type.Object({
+              label: Type.String({ description: 'Concise option label (1-5 words).' }),
+              description: Type.Optional(
+                Type.String({ description: 'Optional short explanation. Omit it when the label is self-evident.' }),
               ),
-            ),
-            multi_select: Type.Optional(Type.Boolean({ description: 'Allow multiple selections when true.' })),
-          }),
-          { description: '1-4 questions to ask in a single form.' },
-        ),
+            }),
+            {
+              description:
+                'Required 2-4 answer options. Use real choices; never provide only one note/free-text option.',
+              minItems: 2,
+              maxItems: 4,
+            },
+          ),
+          multi_select: Type.Boolean({ description: 'Allow multiple selections when true; otherwise false.' }),
+        }),
+        { description: 'Required 1-4 questions to ask in a single form.', minItems: 1, maxItems: 4 },
       ),
     }),
     prepareArguments: prepareAskUserQuestionArgs,
@@ -165,8 +153,17 @@ export function createAskUserQuestionTool({
 export function formatAskUserQuestionResult(
   questions: AskUserQuestionItem[],
   answers: AskUserQuestionAnswer[],
-  options?: { cancelled?: boolean },
+  options?: { cancelled?: boolean; decideForUser?: boolean },
 ): string {
+  if (options?.decideForUser) {
+    return questions
+      .map(
+        (item) =>
+          `Question: ${item.question}\nAnswer: (User chose "Decide for me". Make a reasonable choice for this question on the user's behalf, use your creative judgment, and continue.)`,
+      )
+      .join('\n---\n')
+  }
+
   if (options?.cancelled) {
     return questions
       .map((item) => `Question: ${item.question}\nAnswer: (User dismissed the form without answering.)`)

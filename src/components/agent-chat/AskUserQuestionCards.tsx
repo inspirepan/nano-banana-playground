@@ -11,6 +11,15 @@ import { Icon } from '../Icon'
 
 type QuestionFormState = Record<number, { selected: string[]; note: string }>
 
+function extractToolUseError(text: string): string | null {
+  const match = text.match(/<tool_use_error>\s*([\s\S]*?)\s*<\/tool_use_error>/)
+  return match ? match[1].trim() : null
+}
+
+function removeExpectedShape(text: string): string {
+  return text.replace(/\n\s*Expected shape:\s*[\s\S]*$/i, '').trim()
+}
+
 function buildInitialQuestionFormState(questions: AskUserQuestionItem[]): QuestionFormState {
   const state: QuestionFormState = {}
   for (let index = 0; index < questions.length; index++) {
@@ -85,13 +94,17 @@ export function AskUserQuestionForm({
         >
           <Icon name="help_circle" className="h-3.5 w-3.5" strokeWidth={2.2} />
         </span>
-        <span className="text-base font-semibold text-(--color-text)">{t('agentChat.question.title')}</span>
-        <span
-          className="ml-auto rounded-full bg-(--color-surface) px-2 py-0.5 text-[11px] font-medium text-(--color-text-3) shadow-[inset_0_0_0_1px_var(--ring-edge)]"
-          style={{ fontVariantNumeric: 'tabular-nums' }}
-        >
-          {t('agentChat.question.count', { count: questions.length })}
+        <span className="min-w-0 flex-1 text-base font-semibold text-(--color-text)">
+          {t('agentChat.question.title')}
         </span>
+        <button
+          type="button"
+          onClick={() => onCancel(toolCallId)}
+          className="ml-auto inline-flex h-7 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[var(--radius-md)] bg-(--color-accent-wash) px-2.5 text-[12px] font-semibold text-(--color-accent) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)] transition-[background,box-shadow,color] hover:bg-(--color-accent-wash-2) hover:shadow-[inset_0_0_0_1px_var(--ring-edge)]"
+        >
+          <Icon name="circle_play" className="h-3.5 w-3.5" strokeWidth={2} />
+          {t('agentChat.question.decideForMe')}
+        </button>
       </div>
 
       {topics.length > 0 && (
@@ -178,14 +191,6 @@ export function AskUserQuestionForm({
       <div className="mt-3 flex items-center justify-end gap-1.5">
         <button
           type="button"
-          onClick={() => onCancel(toolCallId)}
-          className="chip ghost text-sm"
-          style={{ height: 28, padding: '0 12px' }}
-        >
-          {t('agentChat.question.skip')}
-        </button>
-        <button
-          type="button"
           onClick={handleSubmit}
           disabled={!allAnswered}
           className="chip accent-active text-sm disabled:cursor-not-allowed disabled:opacity-45"
@@ -206,9 +211,40 @@ export function AskUserQuestionResultCard({
   result: AgentMessageToolResult
 }) {
   const { t } = useI18n()
+  const [detailsOpen, setDetailsOpen] = useState(false)
   const questions = Array.isArray(call.arguments.questions) ? (call.arguments.questions as AskUserQuestionItem[]) : []
+  const toolUseError = extractToolUseError(result.text)
+  const toolUseErrorDetail = toolUseError ? removeExpectedShape(toolUseError) : null
   const abandoned = result.text.includes('navigated away')
   const hasFormatted = /\nAnswer:/.test(result.text) || result.text.startsWith('Question:')
+
+  if (toolUseErrorDetail) {
+    return (
+      <div
+        className="m-1 w-fit max-w-full rounded-[var(--radius-md)] px-3.5 py-3 shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-danger)_24%,transparent)]"
+        style={{ background: 'var(--color-danger-soft)' }}
+      >
+        <div className="text-sm font-semibold text-(--color-danger)">{t('agentChat.question.toolErrorTitle')}</div>
+        <div className="mt-1 text-sm leading-[1.55] text-(--color-text-2)">
+          {t('agentChat.question.toolErrorDescription')}
+        </div>
+        <button
+          type="button"
+          aria-expanded={detailsOpen}
+          onClick={() => setDetailsOpen((prev) => !prev)}
+          className="mt-2 inline-flex items-center gap-1 bg-transparent p-0 text-sm font-medium text-(--color-text-3) transition-colors hover:text-(--color-text)"
+        >
+          {detailsOpen ? t('agentChat.question.collapseDetails') : t('agentChat.question.expandDetails')}
+          <Icon name={detailsOpen ? 'keyboard_arrow_up' : 'expand_more'} className="h-3.5 w-3.5" />
+        </button>
+        {detailsOpen && (
+          <pre className="mt-2 max-w-full whitespace-pre-wrap break-words font-sans text-[12px] leading-[1.5] text-(--color-text-3)">
+            {toolUseErrorDetail}
+          </pre>
+        )}
+      </div>
+    )
+  }
 
   return (
     <div
@@ -248,12 +284,15 @@ export function AskUserQuestionResultCard({
                 : []
             const answerText = answerLines.join('\n').trim()
             const isDismissed = /User dismissed the form|dismissed the form/i.test(answerText)
+            const isDecideForMe = /User chose "Decide for me"|Decide for me/i.test(answerText)
             const isEmpty = /^\(No (?:answer provided|option selected)\.\)$/i.test(answerText)
             const displayAnswer = isDismissed
               ? t('agentChat.question.dismissed')
-              : isEmpty
-                ? t('agentChat.question.emptyAnswer')
-                : answerText
+              : isDecideForMe
+                ? t('agentChat.question.decidedByAgent')
+                : isEmpty
+                  ? t('agentChat.question.emptyAnswer')
+                  : answerText
             return (
               <div key={index} className="space-y-0.5">
                 <div className="text-sm font-semibold text-(--color-text)">{questionText}</div>

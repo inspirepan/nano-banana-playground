@@ -9,6 +9,7 @@ Each question must have:
 - 2-4 mutually exclusive (unless `multi_select` is true) `options`, each with a concise `label` and an optional short `description`.
 
 Do not include an "Other" option — the UI automatically lets the user type a free-text note for each question.
+Do not create a question with only one option such as "我写在备注里". That is invalid. If you mainly need free-form text (story outline, dialogue, character appearance), either ask in normal chat or provide 2-4 meaningful choices such as "自由发挥" / "我补充细节" / "沿用参考图" and let the user add details in the note field.
 
 Notes:
 

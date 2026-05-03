@@ -117,11 +117,14 @@ export function useAgentQuestions({
       runtime: AgentSessionRuntime,
       toolCallId: string,
       answers: AskUserQuestionAnswer[],
-      options: { cancelled: boolean },
+      options: { cancelled: boolean; decideForUser?: boolean },
     ) => {
       const pending = runtime.pendingQuestions.find((item) => item.toolCallId === toolCallId)
       if (!pending) return
-      const text = formatAskUserQuestionResult(pending.questions, answers, { cancelled: options.cancelled })
+      const text = formatAskUserQuestionResult(pending.questions, answers, {
+        cancelled: options.cancelled,
+        decideForUser: options.decideForUser,
+      })
       const toolResultMessage = {
         role: 'toolResult',
         toolCallId,
@@ -150,7 +153,7 @@ export function useAgentQuestions({
           setRuntimeError(runtime, error instanceof Error ? error.message : String(error))
         })
 
-      if (options.cancelled) return
+      if (options.cancelled && !options.decideForUser) return
       const eventText = `<system>\ntool AskUserQuestion call ${toolCallId} has been answered.\n</system>`
       void sendAgentSystemEvent(runtime, eventText)
     },
@@ -179,14 +182,14 @@ export function useAgentQuestions({
       const resolver = runtime.questionResolvers.get(toolCallId)
       if (resolver) {
         resolver.resolve(
-          toolTextResult(formatAskUserQuestionResult(resolver.questions, [], { cancelled: true }), {
-            status: 'cancelled',
-            reason: 'user_dismissed',
+          toolTextResult(formatAskUserQuestionResult(resolver.questions, [], { decideForUser: true }), {
+            status: 'decide_for_me',
+            reason: 'user_delegated_decision',
           }),
         )
         return
       }
-      finishRestoredAgentQuestion(runtime, toolCallId, [], { cancelled: true })
+      finishRestoredAgentQuestion(runtime, toolCallId, [], { cancelled: true, decideForUser: true })
     },
     [finishRestoredAgentQuestion, getCurrentRuntime],
   )
