@@ -45,6 +45,14 @@ const SETTINGS_TABS: { id: SettingsTab; labelKey: string; icon: IconName }[] = [
   { id: 'data', labelKey: 'settings.tabs.data', icon: 'settings' },
 ]
 
+type SettingsFocusSection = 'apiKeys' | 'generationConcurrency'
+
+function getInitialSettingsTab(focusSection: SettingsFocusSection | null | undefined): SettingsTab {
+  if (focusSection === 'apiKeys') return 'api'
+  if (focusSection === 'generationConcurrency') return 'generation'
+  return 'appearance'
+}
+
 const BRIGHTNESS: { value: Theme; icon: IconName; labelKey: string }[] = [
   { value: 'light', icon: 'light_mode', labelKey: 'settings.theme.light' },
   { value: 'warm', icon: 'palette', labelKey: 'settings.theme.warm' },
@@ -82,7 +90,7 @@ type Props = {
   language: LanguagePreference
   generationConcurrency: number
   agentSkills: AgentSkillSummary[]
-  focusSection?: 'generationConcurrency' | null
+  focusSection?: SettingsFocusSection | null
   onThemeChange: (theme: Theme) => void
   onColorThemeChange: (id: ColorThemeId) => void
   onSansFontChange: (id: SansFontId) => void
@@ -117,7 +125,7 @@ export function SettingsDialog({
   onClose,
 }: Props) {
   const { t, language: resolvedLanguage } = useI18n()
-  const [selectedTab, setSelectedTab] = useState<SettingsTab>('appearance')
+  const [selectedTab, setSelectedTab] = useState<SettingsTab>(() => getInitialSettingsTab(focusSection))
   const [clearDataConfirm, setClearDataConfirm] = useState(false)
   const [clearDataBusy, setClearDataBusy] = useState(false)
   const [clearDataError, setClearDataError] = useState<string | null>(null)
@@ -158,10 +166,10 @@ export function SettingsDialog({
     open,
   )
 
-  // Auto-navigate to generation tab when focusSection is set
+  // Auto-navigate when a settings entry point targets a specific tab.
   useExternalSync(() => {
     if (!open) return
-    if (focusSection === 'generationConcurrency') setSelectedTab('generation')
+    setSelectedTab(getInitialSettingsTab(focusSection))
   }, [open, focusSection])
 
   // Load site data usage + breakdown when dialog opens

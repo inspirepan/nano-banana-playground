@@ -46,7 +46,7 @@ const ImageDetailModal = lazy(() =>
   import('./components/image-detail/ImageDetailModal').then((module) => ({ default: module.ImageDetailModal })),
 )
 
-type SettingsTarget = 'generationConcurrency'
+type SettingsTarget = 'apiKeys' | 'generationConcurrency'
 type AgentPanelWideLayout = { fits: boolean; panelWidth: number; sideSpace: number }
 type MobileDetailNavTarget = { stackId: string; itemId: string }
 type MobileDetailState = { stackId: string; itemId?: string }
@@ -216,6 +216,7 @@ function App() {
     setSettingsOpen(true)
   }, [])
 
+  const handleOpenApiKeys = useCallback(() => openSettings('apiKeys'), [openSettings])
   const handleOpenGenerationSettings = useCallback(() => openSettings('generationConcurrency'), [openSettings])
 
   const switchInputMode = useCallback(
@@ -392,7 +393,7 @@ function App() {
                 apiKeyStatus={pg.apiKeyStatus}
                 keyStatuses={pg.keyStatuses}
                 showHeader={false}
-                onOpenApiKeys={() => openSettings()}
+                onOpenApiKeys={handleOpenApiKeys}
                 onInputModeChange={switchInputMode}
                 onSwitchModel={pg.switchModel}
                 onResolutionChange={pg.setResolution}
@@ -520,7 +521,7 @@ function App() {
               apiKeyStatus={pg.apiKeyStatus}
               keyStatuses={pg.keyStatuses}
               showAgentSessionSidebar={useWideAgentPanel}
-              onOpenApiKeys={() => openSettings()}
+              onOpenApiKeys={handleOpenApiKeys}
               onInputModeChange={switchInputMode}
               onSwitchModel={pg.switchModel}
               onResolutionChange={pg.setResolution}
