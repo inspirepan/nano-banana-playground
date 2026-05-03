@@ -71,6 +71,18 @@ export const apiKeysMessages: MessageDictionary = {
   'apiKeys.action.removeProviderKey': { 'zh-CN': '移除 {label}', en: 'Remove {label}' },
   'apiKeys.action.cancelEditingProvider': { 'zh-CN': '取消编辑 {label}', en: 'Cancel editing {label}' },
   'apiKeys.action.saveAndValidate': { 'zh-CN': '保存并验证 {label}', en: 'Save and verify {label}' },
+  'apiKeys.action.disabled.missingKey': {
+    'zh-CN': '需要先输入 API Key。',
+    en: 'Enter an API key first.',
+  },
+  'apiKeys.action.disabled.noChanges': {
+    'zh-CN': '没有可提交的改动：输入新密钥，或修改高级设置。',
+    en: 'No changes to submit: enter a new key or change advanced settings.',
+  },
+  'apiKeys.action.disabled.validating': {
+    'zh-CN': '正在验证，请稍候。',
+    en: 'Verification is already running.',
+  },
   'apiKeys.error.invalidOrExpired': {
     'zh-CN': '密钥无效或已过期，请重新输入。',
     en: 'The key is invalid or expired. Please enter it again.',

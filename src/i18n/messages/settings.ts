@@ -28,6 +28,14 @@ export const settingsMessages: MessageDictionary = {
   'settings.webTools.provider.tavily': { 'zh-CN': 'Tavily', en: 'Tavily' },
   'settings.webTools.provider.brave': { 'zh-CN': 'Brave', en: 'Brave' },
   'settings.webTools.provider.parallel': { 'zh-CN': 'Parallel', en: 'Parallel' },
+  'settings.webTools.provider.requiresKey': {
+    'zh-CN': '{provider} 需要先配置 API Key',
+    en: '{provider} requires an API key first',
+  },
+  'settings.webTools.provider.disabledAriaLabel': {
+    'zh-CN': '{provider} 未配置 API Key，暂不可选择',
+    en: '{provider} is not configured and cannot be selected',
+  },
   'settings.webTools.search.provider.none': { 'zh-CN': '关闭', en: 'Off' },
   'settings.webTools.search.provider.noneDescription': {
     'zh-CN': '不提供搜索能力。Agent 仍可抓取用户给出的 URL。',
@@ -66,6 +74,7 @@ export const settingsMessages: MessageDictionary = {
     'zh-CN': '使用 Parallel Extract API 抽取 LLM 优化 markdown 内容，经站点代理转发。',
     en: 'Uses the Parallel Extract API to extract LLM-optimized markdown content, forwarded via site proxy.',
   },
+  'settings.webTools.apiKeys.label': { 'zh-CN': 'Web API Keys', en: 'Web API keys' },
   'settings.webTools.key.configured': { 'zh-CN': '已配置', en: 'Configured' },
   'settings.webTools.key.notConfigured': { 'zh-CN': '未配置', en: 'Not configured' },
   'settings.webTools.key.getKey': { 'zh-CN': '获取 API Key', en: 'Get API key' },

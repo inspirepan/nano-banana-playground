@@ -2,6 +2,7 @@ import { useId, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 
 import { BrandIcon, Icon } from './Icon'
+import { Tooltip } from './Tooltip'
 import type { Provider } from '../config/models'
 import { PROVIDER_CONFIGS, getProviderConfig } from '../config/providers'
 import { useExternalSync, useWindowEvent } from '../hooks/effects'
@@ -275,7 +276,32 @@ function KeyRow({
   const hasBaseUrlChange = baseUrlDraft.trim() !== customBaseUrl
   const hasProxyChange = useProxyDraft !== useProxy
   const canSubmit = !isValidating && (hasDraftKey || (hasExistingKey && (hasBaseUrlChange || hasProxyChange)))
+  const submitDisabledReason = isValidating
+    ? t('apiKeys.action.disabled.validating')
+    : hasExistingKey
+      ? t('apiKeys.action.disabled.noChanges')
+      : t('apiKeys.action.disabled.missingKey')
   const advancedId = `${id}-advanced`
+  const submitButton = (
+    <button
+      type="button"
+      onClick={handleSubmit}
+      aria-label={t('apiKeys.action.saveAndValidate', { label })}
+      disabled={!canSubmit}
+      data-active="true"
+      className="chip text-sm"
+      style={{ height: 28, padding: '0 11px' }}
+    >
+      {isValidating ? (
+        <>
+          <span className="spinner" />
+          <span>{t('apiKeys.status.validating')}</span>
+        </>
+      ) : (
+        t('apiKeys.action.saveAndValidate', { label })
+      )}
+    </button>
+  )
 
   return (
     <div className={rowClass}>
@@ -426,24 +452,13 @@ function KeyRow({
                 {t('common.cancel')}
               </button>
             )}
-            <button
-              type="button"
-              onClick={handleSubmit}
-              aria-label={t('apiKeys.action.saveAndValidate', { label })}
-              disabled={!canSubmit}
-              data-active="true"
-              className="chip text-sm"
-              style={{ height: 28, padding: '0 11px' }}
-            >
-              {isValidating ? (
-                <>
-                  <span className="spinner" />
-                  <span>{t('apiKeys.status.validating')}</span>
-                </>
-              ) : (
-                t('apiKeys.action.saveAndValidate', { label })
-              )}
-            </button>
+            {canSubmit ? (
+              submitButton
+            ) : (
+              <Tooltip text={submitDisabledReason} placement="top" className="inline-flex">
+                {submitButton}
+              </Tooltip>
+            )}
           </div>
         </div>
       </div>
