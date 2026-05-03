@@ -305,7 +305,9 @@ export function AgentChatPanel({
   useWindowEvent(
     'pointerdown',
     (event) => {
-      if (!controlsRef.current?.contains(event.target as Node)) setOpenMenu(null)
+      const target = event.target
+      if (target instanceof Element && target.closest('[data-agent-menu], [data-agent-menu-trigger]')) return
+      if (!controlsRef.current?.contains(target as Node)) setOpenMenu(null)
     },
     undefined,
     true,
@@ -496,8 +498,10 @@ export function AgentChatPanel({
             canSend={canSend}
             showStop={showStop}
             isStreaming={isAwaitingAgentResponse}
+            history={history}
             onDraftChange={onDraftChange}
             onAddAttachments={onAddAttachments}
+            onAddImageAttachment={onAddImageAttachment}
             onRemoveAttachment={onRemoveAttachment}
             onClearAttachmentError={onClearAttachmentError}
             onToggleAutoApproveImageTasks={onToggleAutoApproveImageTasks}

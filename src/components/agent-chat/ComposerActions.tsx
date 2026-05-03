@@ -21,7 +21,9 @@ export function ComposerActions({
   canSend,
   showStop,
   isStreaming,
+  hasGalleryImages,
   onFileChange,
+  onOpenGalleryPicker,
   onSend,
   onStop,
 }: {
@@ -36,7 +38,9 @@ export function ComposerActions({
   canSend: boolean
   showStop: boolean
   isStreaming: boolean
+  hasGalleryImages: boolean
   onFileChange: (event: ChangeEvent<HTMLInputElement>) => void
+  onOpenGalleryPicker: () => void
   onSend: () => void
   onStop: () => void
 }) {
@@ -48,6 +52,12 @@ export function ComposerActions({
   const attachImageTitle = model.supportsImages
     ? t('agentChat.composer.attachImage')
     : t('agentChat.composer.attachImageUnsupported', { model: model.label })
+  const galleryPickerTitle = !model.supportsImages
+    ? t('agentChat.composer.attachImageUnsupported', { model: model.label })
+    : !hasGalleryImages
+      ? t('agentChat.composer.attachFromGalleryEmpty')
+      : t('agentChat.composer.attachFromGallery')
+  const galleryDisabled = !model.supportsImages || !hasGalleryImages
 
   return (
     <div className="flex items-center gap-1.5 px-2 pt-0.5 pb-2">
@@ -69,6 +79,16 @@ export function ComposerActions({
         aria-label={attachImageTitle}
       >
         <Icon name="plus" size={17} />
+      </button>
+      <button
+        type="button"
+        onClick={onOpenGalleryPicker}
+        disabled={galleryDisabled}
+        className="icon-btn"
+        title={galleryPickerTitle}
+        aria-label={galleryPickerTitle}
+      >
+        <Icon name="images" size={15} />
       </button>
       <div className="flex-1" />
       <button

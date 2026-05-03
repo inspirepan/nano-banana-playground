@@ -10,6 +10,7 @@ import {
   type SetStateAction,
 } from 'react'
 
+import { AgentGalleryPicker } from './AgentGalleryPicker'
 import { AgentOptionsMenu } from './AgentOptionsMenu'
 import { ComposerActions } from './ComposerActions'
 import { ComposerAttachments } from './ComposerAttachments'
@@ -22,6 +23,7 @@ import type { AgentModelConfig, AgentThinkingLevel } from '../../config/agentMod
 import type { Provider } from '../../config/models'
 import type { ApiKeyStatus } from '../../hooks/useApiKey'
 import { useI18n } from '../../i18n'
+import type { PlaygroundImage, PlaygroundImageMeta } from '../../lib/types'
 import { Icon } from '../Icon'
 import { SkillIcon } from '../SkillIcon'
 
@@ -80,8 +82,10 @@ type AgentChatComposerProps = {
   canSend: boolean
   showStop: boolean
   isStreaming: boolean
+  history: PlaygroundImageMeta[]
   onDraftChange: (value: string) => void
   onAddAttachments: (files: File[]) => void
+  onAddImageAttachment: (image: PlaygroundImage | PlaygroundImageMeta) => void
   onRemoveAttachment: (id: string) => void
   onClearAttachmentError: () => void
   onToggleAutoApproveImageTasks: (value: boolean) => void
@@ -117,8 +121,10 @@ export const AgentChatComposer = forwardRef<AgentChatComposerHandle, AgentChatCo
     canSend,
     showStop,
     isStreaming,
+    history,
     onDraftChange,
     onAddAttachments,
+    onAddImageAttachment,
     onRemoveAttachment,
     onClearAttachmentError,
     onToggleAutoApproveImageTasks,
@@ -333,12 +339,22 @@ export const AgentChatComposer = forwardRef<AgentChatComposerHandle, AgentChatCo
             canSend={canSend}
             showStop={showStop}
             isStreaming={isStreaming}
+            hasGalleryImages={history.length > 0}
             onFileChange={handleFileChange}
+            onOpenGalleryPicker={() => setOpenMenu('galleryPicker')}
             onSend={onSend}
             onStop={onStop}
           />
         </div>
       </div>
+
+      <AgentGalleryPicker
+        open={openMenu === 'galleryPicker'}
+        history={history}
+        attachedImageIds={new Set(attachments.map((item) => item.id))}
+        onPick={onAddImageAttachment}
+        onClose={() => setOpenMenu(null)}
+      />
     </>
   )
 })

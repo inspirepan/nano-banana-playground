@@ -18,6 +18,7 @@ import {
   Image as ImageIcon,
   ImageOff,
   ImagePlus,
+  Images as ImagesIcon,
   KeyRound,
   Lock,
   MapPin,
@@ -71,6 +72,7 @@ export type IconName =
   | 'help_circle'
   | 'image'
   | 'image_off'
+  | 'images'
   | 'key'
   | 'keyboard_arrow_up'
   | 'light_mode'
@@ -129,6 +131,7 @@ const ICONS = {
   help_circle: HelpCircle,
   image: ImageIcon,
   image_off: ImageOff,
+  images: ImagesIcon,
   key: KeyRound,
   keyboard_arrow_up: ChevronUp,
   light_mode: Sun,
