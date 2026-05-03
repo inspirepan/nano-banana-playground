@@ -15,7 +15,6 @@ import {
   injectAbandonedToolResults,
   metadataForAgentMessage,
   restoreAgentImageTasks,
-  toolTextResult,
 } from './messageRecovery'
 import { isAgentModelProvider } from './runtimeConfig'
 import {
@@ -35,7 +34,7 @@ import {
 } from './sessionStore'
 import type { AgentCompactionState, AgentSessionMessageMetadata, AgentSessionSummary } from './sessionTypes'
 import { AGENT_SYSTEM_PROMPT } from './systemPrompt'
-import { formatAskUserQuestionResult } from './tools'
+import { createAskUserQuestionResult } from './tools'
 import { useAgentAttachments } from './useAgentAttachments'
 import { useAgentCompaction } from './useAgentCompaction'
 import { useAgentImageRegistry } from './useAgentImageRegistry'
@@ -293,10 +292,7 @@ export function useAgentPlayground({
       for (const [, resolver] of runtime.questionResolvers) {
         try {
           resolver.resolve(
-            toolTextResult(formatAskUserQuestionResult(resolver.questions, [], { cancelled: true }), {
-              status: 'cancelled',
-              reason,
-            }),
+            createAskUserQuestionResult(resolver.questions, [], { cancelled: true, reason }),
           )
         } catch {
           // Ignore — caller may have moved on.

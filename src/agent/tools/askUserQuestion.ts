@@ -30,6 +30,13 @@ export type AskUserQuestionAnswer = {
   note: string
 }
 
+export type AskUserQuestionResultDetails = {
+  status: 'submitted' | 'cancelled' | 'decide_for_me'
+  questions: AskUserQuestionItem[]
+  answers: AskUserQuestionAnswer[]
+  reason?: string
+}
+
 export type AskUserQuestionExecutor = (
   toolCallId: string,
   args: PreparedAskUserQuestionToolArgs,
@@ -192,4 +199,22 @@ export function formatAskUserQuestionResult(
       return lines.join('\n')
     })
     .join('\n---\n')
+}
+
+export function createAskUserQuestionResult(
+  questions: AskUserQuestionItem[],
+  answers: AskUserQuestionAnswer[],
+  options?: { cancelled?: boolean; decideForUser?: boolean; reason?: string },
+): AgentToolResult {
+  const details: AskUserQuestionResultDetails = {
+    status: options?.decideForUser ? 'decide_for_me' : options?.cancelled ? 'cancelled' : 'submitted',
+    questions,
+    answers,
+    ...(options?.reason ? { reason: options.reason } : {}),
+  }
+
+  return {
+    content: [{ type: 'text', text: formatAskUserQuestionResult(questions, answers, options) }],
+    details,
+  }
 }

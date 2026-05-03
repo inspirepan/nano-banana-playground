@@ -29,9 +29,11 @@ function StatusDot({ done, failed }: { done: boolean; failed: boolean }) {
 export function ToolCallRow({
   call,
   result,
+  children,
 }: {
   call: AgentMessageToolCall
   result: AgentMessageToolResult | undefined
+  children?: ReactNode
 }) {
   const failed = result?.isError === true
   const done = Boolean(result)
@@ -39,7 +41,7 @@ export function ToolCallRow({
   const argsTooltip = formatToolArgsTooltip(call.arguments)
   return (
     <div className="flex items-start gap-2 rounded-[var(--radius-md)] px-1.5 py-1">
-      <span className="min-w-0 flex-1">
+      <div className="min-w-0 flex-1">
         <span className="flex min-w-0 items-center gap-1.5 text-sm">
           <StatusDot done={done} failed={failed} />
           <span className="max-w-[55%] shrink-0 truncate font-medium text-(--color-text-2)">
@@ -56,7 +58,8 @@ export function ToolCallRow({
         {result?.isError && (
           <span className="mt-1 block truncate text-sm text-(--color-danger)">{summarizeToolResult(result)}</span>
         )}
-      </span>
+        {children}
+      </div>
     </div>
   )
 }

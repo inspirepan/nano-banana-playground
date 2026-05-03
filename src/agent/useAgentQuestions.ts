@@ -6,8 +6,8 @@ import { type AgentPendingQuestion, type AgentQuestionResolver, type AgentSessio
 import { appendAgentSessionMessage } from './sessionStore'
 import type { AgentSessionSummary } from './sessionTypes'
 import {
+  createAskUserQuestionResult,
   formatAskUserQuestionArgumentError,
-  formatAskUserQuestionResult,
   type AgentToolResult,
   type AskUserQuestionAnswer,
   type PreparedAskUserQuestionToolArgs,
@@ -97,12 +97,7 @@ export function useAgentQuestions({
             () => {
               const stillPending = runtime.questionResolvers.get(toolCallId)
               if (!stillPending) return
-              stillPending.resolve(
-                toolTextResult(formatAskUserQuestionResult(questions, [], { cancelled: true }), {
-                  status: 'cancelled',
-                  reason: 'aborted',
-                }),
-              )
+              stillPending.resolve(createAskUserQuestionResult(questions, [], { cancelled: true, reason: 'aborted' }))
             },
             { once: true },
           )
@@ -121,7 +116,7 @@ export function useAgentQuestions({
     ) => {
       const pending = runtime.pendingQuestions.find((item) => item.toolCallId === toolCallId)
       if (!pending) return
-      const text = formatAskUserQuestionResult(pending.questions, answers, {
+      const result = createAskUserQuestionResult(pending.questions, answers, {
         cancelled: options.cancelled,
         decideForUser: options.decideForUser,
       })
@@ -129,7 +124,8 @@ export function useAgentQuestions({
         role: 'toolResult',
         toolCallId,
         toolName: 'AskUserQuestion',
-        content: [{ type: 'text', text }],
+        content: result.content,
+        details: result.details,
         isError: false,
         timestamp: Date.now(),
       } as unknown as AgentMessage
@@ -166,8 +162,7 @@ export function useAgentQuestions({
       if (!runtime) return
       const resolver = runtime.questionResolvers.get(toolCallId)
       if (resolver) {
-        const text = formatAskUserQuestionResult(resolver.questions, answers)
-        resolver.resolve(toolTextResult(text, { status: 'submitted', answers }))
+        resolver.resolve(createAskUserQuestionResult(resolver.questions, answers))
         return
       }
       finishRestoredAgentQuestion(runtime, toolCallId, answers, { cancelled: false })
@@ -182,8 +177,8 @@ export function useAgentQuestions({
       const resolver = runtime.questionResolvers.get(toolCallId)
       if (resolver) {
         resolver.resolve(
-          toolTextResult(formatAskUserQuestionResult(resolver.questions, [], { decideForUser: true }), {
-            status: 'decide_for_me',
+          createAskUserQuestionResult(resolver.questions, [], {
+            decideForUser: true,
             reason: 'user_delegated_decision',
           }),
         )
@@ -199,10 +194,7 @@ export function useAgentQuestions({
       const resolver = runtime.questionResolvers.get(question.toolCallId)
       if (resolver) {
         resolver.resolve(
-          toolTextResult(formatAskUserQuestionResult(resolver.questions, [], { cancelled: true }), {
-            status: 'cancelled',
-            reason: 'user_dismissed',
-          }),
+          createAskUserQuestionResult(resolver.questions, [], { cancelled: true, reason: 'user_dismissed' }),
         )
         return
       }

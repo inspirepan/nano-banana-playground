@@ -31,6 +31,7 @@ export type {
   AskUserQuestionExecutor,
   AskUserQuestionItem,
   AskUserQuestionOption,
+  AskUserQuestionResultDetails,
   AskUserQuestionToolArgs,
   CreateSkillExecutor,
   CreateSkillToolArgs,

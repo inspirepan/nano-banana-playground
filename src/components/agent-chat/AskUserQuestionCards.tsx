@@ -5,11 +5,74 @@ import type {
   AgentMessageToolResult,
   AskUserQuestionAnswer,
   AskUserQuestionItem,
+  AskUserQuestionResultDetails,
 } from '../../agent'
 import { useI18n } from '../../i18n'
 import { Icon } from '../Icon'
 
 type QuestionFormState = Record<number, { selected: string[]; note: string }>
+
+type RenderedQuestionAnswer = {
+  question: string
+  answer: string
+  note?: string
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
+
+function isAskUserQuestionResultStatus(value: unknown): value is AskUserQuestionResultDetails['status'] {
+  return value === 'submitted' || value === 'cancelled' || value === 'decide_for_me'
+}
+
+function readStringArray(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : []
+}
+
+function readQuestionResultDetails(details: unknown): AskUserQuestionResultDetails | null {
+  if (!isRecord(details) || !isAskUserQuestionResultStatus(details.status)) return null
+  if (!Array.isArray(details.questions) || !Array.isArray(details.answers)) return null
+
+  const questions = details.questions.flatMap((item) => {
+    if (!isRecord(item) || typeof item.question !== 'string') return []
+    const header = typeof item.header === 'string' ? item.header : item.question.slice(0, 12)
+    const options = Array.isArray(item.options) ? item.options : []
+    return [
+      {
+        question: item.question,
+        header,
+        options: options.flatMap((option) => {
+          if (!isRecord(option) || typeof option.label !== 'string') return []
+          return [
+            typeof option.description === 'string'
+              ? { label: option.label, description: option.description }
+              : { label: option.label },
+          ]
+        }),
+        multi_select: item.multi_select === true,
+      },
+    ]
+  })
+
+  const answers = details.answers.flatMap((item) => {
+    if (!isRecord(item) || typeof item.question !== 'string') return []
+    return [
+      {
+        question: item.question,
+        selectedLabels: readStringArray(item.selectedLabels),
+        note: typeof item.note === 'string' ? item.note : '',
+      },
+    ]
+  })
+
+  return {
+    status: details.status,
+    questions,
+    answers,
+    ...(typeof details.reason === 'string' ? { reason: details.reason } : {}),
+  }
+}
 
 function extractToolUseError(text: string): string | null {
   const match = text.match(/<tool_use_error>\s*([\s\S]*?)\s*<\/tool_use_error>/)
@@ -21,6 +84,20 @@ function removeExpectedShape(text: string): string {
     .replace(/\n\s*Expected shape:\s*[\s\S]*$/i, '')
     .replace(/\n\s*Received arguments:\s*[\s\S]*$/i, '')
     .trim()
+}
+
+function renderAnsweredQuestions(items: RenderedQuestionAnswer[]) {
+  return (
+    <div className="space-y-2">
+      {items.map((item, index) => (
+        <div key={index} className="space-y-0.5">
+          <div className="text-sm font-semibold text-(--color-text)">{item.question}</div>
+          <div className="whitespace-pre-wrap text-sm leading-[1.55] text-(--color-text-3)">{item.answer}</div>
+          {item.note ? <div className="text-sm leading-[1.55] text-(--color-text-3)">{item.note}</div> : null}
+        </div>
+      ))}
+    </div>
+  )
 }
 
 function buildInitialQuestionFormState(questions: AskUserQuestionItem[]): QuestionFormState {
@@ -219,7 +296,29 @@ export function AskUserQuestionResultCard({
   const toolUseError = extractToolUseError(result.text)
   const toolUseErrorDetail = toolUseError ? removeExpectedShape(toolUseError) : null
   const abandoned = result.text.includes('navigated away')
+  const structuredResult = readQuestionResultDetails(result.details)
   const hasFormatted = /\nAnswer:/.test(result.text) || result.text.startsWith('Question:')
+  const structuredAnswers = structuredResult
+    ? structuredResult.questions.map((question) => {
+        const answer = structuredResult.answers.find((item) => item.question === question.question)
+        const selected = answer?.selectedLabels ?? []
+        const answerText =
+          structuredResult.status === 'cancelled'
+            ? t('agentChat.question.dismissed')
+            : structuredResult.status === 'decide_for_me'
+              ? t('agentChat.question.decidedByAgent')
+              : selected.length > 0
+                ? question.multi_select || selected.length > 1
+                  ? selected.map((label) => `- ${label}`).join('\n')
+                  : selected[0]
+                : t('agentChat.question.emptyAnswer')
+        return {
+          question: question.question,
+          answer: answerText,
+          note: answer?.note.trim() ? t('agentChat.question.notePrefix', { note: answer.note.trim() }) : undefined,
+        }
+      })
+    : []
 
   if (toolUseErrorDetail) {
     return (
@@ -254,7 +353,9 @@ export function AskUserQuestionResultCard({
       className="m-1 w-fit max-w-full rounded-[var(--radius-md)] px-3.5 py-3 shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]"
       style={{ background: 'var(--color-accent-soft)' }}
     >
-      {!hasFormatted ? (
+      {structuredAnswers.length > 0 ? (
+        renderAnsweredQuestions(structuredAnswers)
+      ) : !hasFormatted ? (
         <div className="space-y-2">
           <div className="text-sm leading-[1.55] text-(--color-text-3)">
             {abandoned ? t('agentChat.question.noAnswerAfterNavigation') : t('agentChat.question.noAnswer')}
@@ -270,10 +371,10 @@ export function AskUserQuestionResultCard({
           ) : null}
         </div>
       ) : (
-        <div className="space-y-2">
-          {result.text.split(/\n---\n/).map((block, index) => {
+        renderAnsweredQuestions(
+          result.text.split(/\n---\n/).flatMap((block) => {
             const trimmed = block.trim()
-            if (!trimmed) return null
+            if (!trimmed) return []
             const lines = trimmed.split('\n')
             const questionLine = lines.find((line) => line.startsWith('Question:')) ?? ''
             const answerStart = lines.findIndex((line) => line.startsWith('Answer:'))
@@ -289,26 +390,23 @@ export function AskUserQuestionResultCard({
             const isDismissed = /User dismissed the form|dismissed the form/i.test(answerText)
             const isDecideForMe = /User chose "Decide for me"|Decide for me/i.test(answerText)
             const isEmpty = /^\(No (?:answer provided|option selected)\.\)$/i.test(answerText)
-            const displayAnswer = isDismissed
-              ? t('agentChat.question.dismissed')
-              : isDecideForMe
-                ? t('agentChat.question.decidedByAgent')
-                : isEmpty
-                  ? t('agentChat.question.emptyAnswer')
-                  : answerText
-            return (
-              <div key={index} className="space-y-0.5">
-                <div className="text-sm font-semibold text-(--color-text)">{questionText}</div>
-                <div className="whitespace-pre-wrap text-sm leading-[1.55] text-(--color-text-3)">{displayAnswer}</div>
-                {noteLine && (
-                  <div className="text-sm leading-[1.55] text-(--color-text-3)">
-                    {t('agentChat.question.notePrefix', { note: noteLine.replace(/^Note:\s*/, '') })}
-                  </div>
-                )}
-              </div>
-            )
-          })}
-        </div>
+            return [
+              {
+                question: questionText,
+                answer: isDismissed
+                  ? t('agentChat.question.dismissed')
+                  : isDecideForMe
+                    ? t('agentChat.question.decidedByAgent')
+                    : isEmpty
+                      ? t('agentChat.question.emptyAnswer')
+                      : answerText,
+                note: noteLine
+                  ? t('agentChat.question.notePrefix', { note: noteLine.replace(/^Note:\s*/, '') })
+                  : undefined,
+              },
+            ]
+          }),
+        )
       )}
     </div>
   )

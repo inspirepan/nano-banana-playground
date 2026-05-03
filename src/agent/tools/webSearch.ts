@@ -131,6 +131,12 @@ export async function runWebSearch(args: WebSearchToolArgs, signal?: AbortSignal
         query,
         maxResults,
         resultCount: result.results.length,
+        results: result.results.map((item) => ({
+          position: item.position,
+          title: item.title,
+          url: item.url,
+          snippet: item.snippet,
+        })),
         code: result.code,
         codeText: result.codeText,
         durationMs: Date.now() - start,

@@ -18,6 +18,7 @@ export { createReadImageTool, prepareReadImageArgs } from './readImage'
 export type { ReadImageExecutor, ReadImageToolArgs } from './readImage'
 export {
   createAskUserQuestionTool,
+  createAskUserQuestionResult,
   formatAskUserQuestionArgumentError,
   formatAskUserQuestionResult,
   prepareAskUserQuestionArgs,
@@ -27,6 +28,7 @@ export type {
   AskUserQuestionExecutor,
   AskUserQuestionItem,
   AskUserQuestionOption,
+  AskUserQuestionResultDetails,
   AskUserQuestionToolArgs,
   PreparedAskUserQuestionToolArgs,
 } from './askUserQuestion'

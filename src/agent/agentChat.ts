@@ -27,6 +27,7 @@ export type AgentMessageToolResult = {
   toolName: string
   text: string
   isError: boolean
+  details?: unknown
 }
 
 type AgentMessageRole = 'user' | 'assistant' | 'toolResult' | 'unknown'
@@ -37,6 +38,7 @@ type LlmLikeAgentMessage = AgentMessage & {
   toolCallId?: unknown
   toolName?: unknown
   isError?: unknown
+  details?: unknown
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -110,6 +112,7 @@ export function agentMessageToolResult(message: AgentMessage): AgentMessageToolR
     toolName: message.toolName,
     text: agentMessageText(message),
     isError: message.isError === true,
+    details: isRecord(message) ? message.details : undefined,
   }
 }
 

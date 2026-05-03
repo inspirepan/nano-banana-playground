@@ -19,6 +19,83 @@ import type {
 import { useI18n } from '../../i18n'
 import type { StackItem } from '../../lib/stacks'
 
+type WebSearchResultLink = {
+  position: number
+  title: string
+  url: string
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
+
+function textFromXmlElement(parent: Element, tagName: string): string {
+  return parent.querySelector(tagName)?.textContent?.trim() ?? ''
+}
+
+function readSearchResultsFromDetails(details: unknown): WebSearchResultLink[] {
+  if (!isRecord(details) || !Array.isArray(details.results)) return []
+  return details.results.flatMap((item, index) => {
+    if (!isRecord(item) || typeof item.url !== 'string' || item.url.trim() === '') return []
+    const title = typeof item.title === 'string' && item.title.trim() ? item.title.trim() : item.url.trim()
+    const position = typeof item.position === 'number' && Number.isFinite(item.position) ? item.position : index + 1
+    return [{ position, title, url: item.url.trim() }]
+  })
+}
+
+function readSearchResultsFromText(text: string): WebSearchResultLink[] {
+  const match = text.match(/<search_results>[\s\S]*?<\/search_results>/)
+  if (!match || typeof DOMParser === 'undefined') return []
+
+  const doc = new DOMParser().parseFromString(match[0], 'text/xml')
+  if (doc.querySelector('parsererror')) return []
+  return Array.from(doc.querySelectorAll('result')).flatMap((item, index) => {
+    const url = textFromXmlElement(item, 'url')
+    if (!url) return []
+    const title = textFromXmlElement(item, 'title') || url
+    const rawPosition = Number(item.getAttribute('position'))
+    return [{ position: Number.isFinite(rawPosition) ? rawPosition : index + 1, title, url }]
+  })
+}
+
+function formatSearchResultUrl(url: string): string {
+  try {
+    const parsed = new URL(url)
+    return `${parsed.hostname}${parsed.pathname === '/' ? '' : parsed.pathname}`
+  } catch {
+    return url
+  }
+}
+
+function WebSearchResultLinks({ result }: { result: AgentMessageToolResult }) {
+  if (result.isError) return null
+  const links = readSearchResultsFromDetails(result.details)
+  const results = links.length > 0 ? links : readSearchResultsFromText(result.text)
+  if (results.length === 0) return null
+
+  return (
+    <div className="mt-1.5 pl-3.5">
+      <ol className="space-y-1">
+        {results.map((item) => (
+          <li key={`${item.position}-${item.url}`} className="min-w-0">
+            <a
+              href={item.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block min-w-0 rounded-[var(--radius-sm)] px-1 py-0.5 text-(--color-text-2) transition-[background-color,color] duration-150 hover:bg-(--color-surface-2) hover:text-(--color-accent)"
+            >
+              <span className="block truncate text-sm font-medium text-current">{item.title}</span>
+              <span className="block truncate text-xs font-medium text-(--color-text-4)">
+                {formatSearchResultUrl(item.url)}
+              </span>
+            </a>
+          </li>
+        ))}
+      </ol>
+    </div>
+  )
+}
+
 export function ToolActivityCard({
   calls,
   results,
@@ -117,6 +194,15 @@ export function ToolActivityCard({
       } else {
         inlineNotices.push(<InlineToolDone key={call.id} label={t('agentChat.tool.readImage.done', { id: imageId })} />)
       }
+      continue
+    }
+    if (call.name === 'WebSearch') {
+      const result = resultByCallId.get(call.id)
+      compactRows.push(
+        <ToolCallRow key={call.id} call={call} result={result}>
+          {result ? <WebSearchResultLinks result={result} /> : null}
+        </ToolCallRow>,
+      )
       continue
     }
     compactRows.push(<ToolCallRow key={call.id} call={call} result={resultByCallId.get(call.id)} />)
