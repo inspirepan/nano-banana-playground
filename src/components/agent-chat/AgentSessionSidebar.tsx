@@ -79,6 +79,8 @@ export function AgentSessionSidebar({
           <div className="space-y-0.5">
             {sessions.map((session) => {
               const active = session.id === currentSessionId
+              const imageCount = session.imageCount ?? 0
+              const imageCountLabel = t('agentChat.header.generatedImageCount', { count: imageCount })
               return (
                 <div
                   key={session.id}
@@ -104,10 +106,18 @@ export function AgentSessionSidebar({
                       {session.title}
                     </span>
                   </button>
-                  <span
-                    className={`ml-2 shrink-0 text-sm ${active ? 'text-(--color-text-3)' : 'text-(--color-text-4)'}`}
-                  >
-                    {formatSessionTime(session.updatedAt)}
+                  <span className="ml-2 flex shrink-0 items-center gap-1.5 text-sm text-(--color-text-3)">
+                    {imageCount > 0 && (
+                      <span
+                        className="inline-flex h-[18px] shrink-0 items-center gap-1 rounded-full bg-(--color-surface-2) px-1.5 text-[11px] font-medium leading-none tabular-nums text-(--color-text-3) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]"
+                        title={imageCountLabel}
+                        aria-label={imageCountLabel}
+                      >
+                        <Icon name="image" size={11} className="opacity-80" />
+                        <span>{imageCount}</span>
+                      </span>
+                    )}
+                    <span>{formatSessionTime(session.updatedAt)}</span>
                   </span>
                   <button
                     type="button"

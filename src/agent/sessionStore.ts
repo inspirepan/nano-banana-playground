@@ -1,7 +1,7 @@
 import type { AppMessage as AgentMessage } from '@mariozechner/pi-agent'
 
 import { stripSystemDirectives, type AgentChatAttachment } from './agentChat'
-import type { AgentImageRegistryEntry } from './imageTasks'
+import { countReadyGeneratedAgentImages, type AgentImageRegistryEntry } from './imageTasks'
 import type {
   AgentSessionMessageEntry,
   AgentSessionRecord,
@@ -217,6 +217,7 @@ export function createAgentSessionRecord(params: CreateAgentSessionParams): Agen
     autoApproveImageTasks: params.autoApproveImageTasks,
     leafEntryId: null,
     messageCount: 0,
+    imageCount: 0,
     firstUserText: '',
     previewText: '',
   }
@@ -233,10 +234,18 @@ export async function createAgentSession(params: CreateAgentSessionParams): Prom
 
 export async function listAgentSessions(): Promise<AgentSessionRecord[]> {
   const db = await openNanoBananaDB()
-  const tx = db.transaction(AGENT_SESSION_STORE, 'readonly')
-  const store = tx.objectStore(AGENT_SESSION_STORE)
-  const records = await requestToPromise<AgentSessionRecord[]>(store.getAll())
-  return records.filter((record) => record.messageCount > 0).sort((a, b) => b.updatedAt - a.updatedAt)
+  const tx = db.transaction([AGENT_SESSION_STORE, AGENT_SESSION_SIDECAR_STORE], 'readonly')
+  const [records, sidecars] = await Promise.all([
+    requestToPromise<AgentSessionRecord[]>(tx.objectStore(AGENT_SESSION_STORE).getAll()),
+    requestToPromise<AgentSessionSidecarRecord[]>(tx.objectStore(AGENT_SESSION_SIDECAR_STORE).getAll()),
+  ])
+  const imageCounts = new Map(
+    sidecars.map((sidecar) => [sidecar.sessionId, countReadyGeneratedAgentImages(sidecar.imageRegistry)]),
+  )
+  return records
+    .filter((record) => record.messageCount > 0)
+    .map((record) => ({ ...record, imageCount: imageCounts.get(record.id) ?? record.imageCount ?? 0 }))
+    .sort((a, b) => b.updatedAt - a.updatedAt)
 }
 
 export async function appendAgentSessionMessage(params: {
@@ -286,6 +295,7 @@ export async function appendAgentSessionMessage(params: {
         updatedAt: now,
         leafEntryId: entryId,
         messageCount: record.messageCount + 1,
+        imageCount: record.imageCount ?? 0,
       }
       entryStore.put(entry)
       sessionStore.put(nextRecord)
@@ -320,7 +330,7 @@ export async function updateAgentSessionConfig(
         missing = true
         return
       }
-      next = { ...record, ...patch, updatedAt: Date.now() }
+      next = { ...record, imageCount: record.imageCount ?? 0, ...patch, updatedAt: Date.now() }
       store.put(next)
     }
     getReq.onerror = () => reject(getReq.error)
@@ -330,11 +340,14 @@ export async function updateAgentSessionConfig(
   })
 }
 
-export async function saveAgentSessionSidecar(params: SaveAgentSessionSidecarParams): Promise<void> {
+export async function saveAgentSessionSidecar(
+  params: SaveAgentSessionSidecarParams,
+): Promise<AgentSessionRecord | null> {
   const [attachments, imageRegistry] = await Promise.all([
     Promise.all(params.attachments.map((attachment) => persistAttachment(params.sessionId, 'draft', attachment))),
     Promise.all(params.imageRegistry.map((entry) => persistRegistryEntry(params.sessionId, entry))),
   ])
+  const imageCount = countReadyGeneratedAgentImages(imageRegistry)
   const record: AgentSessionSidecarRecord = {
     sessionId: params.sessionId,
     updatedAt: Date.now(),
@@ -348,9 +361,24 @@ export async function saveAgentSessionSidecar(params: SaveAgentSessionSidecarPar
     lastCompaction: params.lastCompaction,
   }
   const db = await openNanoBananaDB()
-  const tx = db.transaction(AGENT_SESSION_SIDECAR_STORE, 'readwrite')
-  tx.objectStore(AGENT_SESSION_SIDECAR_STORE).put(record)
-  await transactionDone(tx)
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction([AGENT_SESSION_STORE, AGENT_SESSION_SIDECAR_STORE], 'readwrite')
+    const sessionStore = tx.objectStore(AGENT_SESSION_STORE)
+    let nextRecord: AgentSessionRecord | null = null
+
+    tx.objectStore(AGENT_SESSION_SIDECAR_STORE).put(record)
+    const getReq = sessionStore.get(params.sessionId) as IDBRequest<AgentSessionRecord | undefined>
+    getReq.onsuccess = () => {
+      const sessionRecord = getReq.result
+      if (!sessionRecord || (sessionRecord.imageCount ?? 0) === imageCount) return
+      nextRecord = { ...sessionRecord, imageCount }
+      sessionStore.put(nextRecord)
+    }
+    getReq.onerror = () => reject(getReq.error)
+    tx.oncomplete = () => resolve(nextRecord)
+    tx.onerror = () => reject(tx.error)
+    tx.onabort = () => reject(tx.error)
+  })
 }
 
 export async function loadAgentSession(sessionId: string): Promise<HydratedAgentSession | null> {
@@ -369,6 +397,11 @@ export async function loadAgentSession(sessionId: string): Promise<HydratedAgent
     requestToPromise(sidecarReq),
   ])
   if (!record) return null
+
+  const normalizedRecord: AgentSessionRecord = {
+    ...record,
+    imageCount: sidecarRecord ? countReadyGeneratedAgentImages(sidecarRecord.imageRegistry) : (record.imageCount ?? 0),
+  }
 
   const sortedEntries = entries.slice().sort((a, b) => a.timestamp - b.timestamp)
   const lastCompaction = sidecarRecord?.lastCompaction
@@ -393,7 +426,7 @@ export async function loadAgentSession(sessionId: string): Promise<HydratedAgent
         lastCompaction: sidecarRecord.lastCompaction,
       }
     : emptySidecar()
-  return { record, messages: hydratedMessages, messageEntryIds, messageMetadata, sidecar }
+  return { record: normalizedRecord, messages: hydratedMessages, messageEntryIds, messageMetadata, sidecar }
 }
 
 export async function deleteAgentSession(sessionId: string): Promise<void> {

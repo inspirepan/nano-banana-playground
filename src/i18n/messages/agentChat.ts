@@ -30,6 +30,7 @@ export const agentChatMessages: MessageDictionary = {
   'agentChat.header.emptyHistory': { 'zh-CN': '暂无历史对话', en: 'No conversation history' },
   'agentChat.header.emptyConversation': { 'zh-CN': '空对话', en: 'Empty conversation' },
   'agentChat.header.deleteConversation': { 'zh-CN': '删除对话', en: 'Delete conversation' },
+  'agentChat.header.generatedImageCount': { 'zh-CN': '{count} 张生成图', en: '{count} generated images' },
   'agentChat.message.copy': { 'zh-CN': '复制', en: 'Copy' },
   'agentChat.message.copied': { 'zh-CN': '已复制', en: 'Copied' },
   'agentChat.message.queued': { 'zh-CN': '排队中', en: 'Queued' },

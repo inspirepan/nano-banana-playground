@@ -22,6 +22,7 @@ export type AgentSessionRecord = {
   autoApproveImageTasks: boolean
   leafEntryId: string | null
   messageCount: number
+  imageCount: number
   firstUserText: string
   previewText: string
 }

@@ -215,23 +215,29 @@ export function useAgentPlayground({
 
   const maybeDispatchAgentImageCallbacksRef = useRef<(runtime: AgentSessionRuntime) => void>(() => {})
 
-  const persistRuntimeSidecar = useCallback((runtime: AgentSessionRuntime) => {
-    if (!runtime.ready || !runtime.persisted) return Promise.resolve()
-    const payload = {
-      sessionId: runtime.sessionId,
-      draft: runtime.draft,
-      attachments: runtime.attachments,
-      imageTasks: runtime.imageTasks,
-      imageRegistry: Array.from(runtime.imageRegistry.values()),
-      turnCallbacks: Array.from(runtime.turnCallbacks.values()),
-      currentAgentTurnId: runtime.currentAgentTurnId,
-      pendingQuestions: runtime.pendingQuestions,
-      lastCompaction: runtime.lastCompaction,
-    }
-    const write = runtime.sidecarPersistQueue.then(() => saveAgentSessionSidecar(payload))
-    runtime.sidecarPersistQueue = write.catch(() => undefined)
-    return write.catch(() => undefined)
-  }, [])
+  const persistRuntimeSidecar = useCallback(
+    (runtime: AgentSessionRuntime) => {
+      if (!runtime.ready || !runtime.persisted) return Promise.resolve()
+      const payload = {
+        sessionId: runtime.sessionId,
+        draft: runtime.draft,
+        attachments: runtime.attachments,
+        imageTasks: runtime.imageTasks,
+        imageRegistry: Array.from(runtime.imageRegistry.values()),
+        turnCallbacks: Array.from(runtime.turnCallbacks.values()),
+        currentAgentTurnId: runtime.currentAgentTurnId,
+        pendingQuestions: runtime.pendingQuestions,
+        lastCompaction: runtime.lastCompaction,
+      }
+      const write = runtime.sidecarPersistQueue.then(async () => {
+        const record = await saveAgentSessionSidecar(payload)
+        if (record) upsertAgentSessionSummary(record)
+      })
+      runtime.sidecarPersistQueue = write.catch(() => undefined)
+      return write.catch(() => undefined)
+    },
+    [upsertAgentSessionSummary],
+  )
 
   const scheduleRuntimeSidecarPersist = useCallback(
     (runtime: AgentSessionRuntime) => {

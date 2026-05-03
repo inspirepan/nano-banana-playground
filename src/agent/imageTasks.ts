@@ -45,6 +45,16 @@ export type AgentImageRegistryEntry = {
   createdAt: number
 }
 
+export function countReadyGeneratedAgentImages(
+  entries: Iterable<Pick<AgentImageRegistryEntry, 'source' | 'status'>>,
+): number {
+  let count = 0
+  for (const entry of entries) {
+    if (entry.source === 'generated' && entry.status === 'ready') count += 1
+  }
+  return count
+}
+
 export type AgentTurnCallbackState = {
   agentTurnId: string
   taskIds: string[]

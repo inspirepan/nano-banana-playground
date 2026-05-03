@@ -91,6 +91,8 @@ export function AgentChatHeader({
             ) : (
               sessions.map((session) => {
                 const active = session.id === currentSessionId
+                const imageCount = session.imageCount ?? 0
+                const imageCountLabel = t('agentChat.header.generatedImageCount', { count: imageCount })
                 return (
                   <button
                     key={session.id}
@@ -110,8 +112,18 @@ export function AgentChatHeader({
                         {session.previewText || session.firstUserText || t('agentChat.header.emptyConversation')}
                       </span>
                     </span>
-                    <span className="shrink-0 text-sm text-(--color-text-3)">
-                      {formatSessionTime(session.updatedAt)}
+                    <span className="flex shrink-0 items-center gap-1.5 text-sm text-(--color-text-3)">
+                      {imageCount > 0 && (
+                        <span
+                          className="inline-flex h-[18px] shrink-0 items-center gap-1 rounded-full bg-(--color-surface-2) px-1.5 text-[11px] font-medium leading-none tabular-nums text-(--color-text-3) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]"
+                          title={imageCountLabel}
+                          aria-label={imageCountLabel}
+                        >
+                          <Icon name="image" size={11} className="opacity-80" />
+                          <span>{imageCount}</span>
+                        </span>
+                      )}
+                      <span>{formatSessionTime(session.updatedAt)}</span>
                     </span>
                     <span
                       role="button"
