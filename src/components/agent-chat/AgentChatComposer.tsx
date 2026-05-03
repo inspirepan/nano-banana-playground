@@ -240,7 +240,7 @@ export const AgentChatComposer = forwardRef<AgentChatComposerHandle, AgentChatCo
         setSlashActiveIndex((index) => (index - 1 + slashSuggestions.length) % slashSuggestions.length)
         return
       }
-      if (event.key === 'Tab' || (event.key === 'Enter' && !event.shiftKey)) {
+      if (event.key === 'Tab') {
         event.preventDefault()
         applySlashSuggestion(slashSuggestions[activeSlashIndex])
         return
@@ -251,7 +251,7 @@ export const AgentChatComposer = forwardRef<AgentChatComposerHandle, AgentChatCo
         return
       }
     }
-    if (event.key === 'Enter' && !event.shiftKey) {
+    if (event.key === 'Enter' && event.metaKey) {
       event.preventDefault()
       if (canSend) onSend()
     }
