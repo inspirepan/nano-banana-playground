@@ -27,13 +27,13 @@ export function DrawingSkillStarters({
             key={skill.name}
             type="button"
             onClick={() => onPick(skill)}
-            className="group relative h-[192px] w-[140px] shrink-0 snap-start overflow-hidden bg-(--color-accent-wash-2) text-left transition-[filter] hover:brightness-110 sm:w-[152px]"
+            className={`group relative h-[192px] w-[140px] shrink-0 snap-start overflow-hidden text-left transition-[filter] hover:brightness-110 sm:w-[152px] ${skill.previewImage ? 'bg-(--color-accent-wash-2)' : 'bg-(--color-bg)'}`}
           >
             {skill.previewImage ? (
               <img src={skill.previewImage} alt="" className="h-full w-full object-cover" loading="lazy" />
             ) : (
-              <span className="flex h-full w-full items-center justify-center text-(--color-accent)">
-                <SkillIcon name={skill.icon} size={28} strokeWidth={1.5} />
+              <span className="flex h-full w-full items-center justify-center text-(--color-text-3)">
+                <SkillIcon name={skill.icon} size={36} strokeWidth={1.25} />
               </span>
             )}
             <span

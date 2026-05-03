@@ -72,13 +72,9 @@ export function AgentSkillSettings({ skills, onEnabledChange, onDelete, onGetPac
                 <div className="flex min-w-0 items-start gap-3">
                   <span
                     aria-hidden
-                    className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-[var(--radius-sm)] text-(--color-accent)"
-                    style={{
-                      background: 'var(--color-accent-wash-2)',
-                      boxShadow: 'inset 0 0 0 1px var(--ring-edge-soft)',
-                    }}
+                    className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center text-(--color-text-3)"
                   >
-                    <SkillIcon name={skill.icon} size={14} strokeWidth={2} />
+                    <SkillIcon name={skill.icon} size={16} strokeWidth={1.5} />
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
