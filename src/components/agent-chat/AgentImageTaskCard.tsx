@@ -9,7 +9,7 @@ import type { StackItem } from '../../lib/stacks'
 import { Icon } from '../Icon'
 import { StackItemThumb } from '../StackItemThumb'
 
-const PROMPT_BOX_MAX_HEIGHT = 148
+const PROMPT_BOX_COLLAPSED_MAX_HEIGHT = 72
 
 function GenImageResultThumb({ id, flush = false }: { id: string; flush?: boolean }) {
   const { t } = useI18n()
@@ -44,18 +44,18 @@ function AgentImagePromptBox({ text, isStreaming }: { text: string; isStreaming:
   useLayoutEffect(() => {
     const el = ref.current
     if (!el) return
-    setOverflowing(el.scrollHeight > PROMPT_BOX_MAX_HEIGHT + 4)
+    setOverflowing(el.scrollHeight > PROMPT_BOX_COLLAPSED_MAX_HEIGHT + 4)
     if (isStreaming && !expanded) {
       el.scrollTop = el.scrollHeight
     }
   }, [expanded, isStreaming, text])
 
   return (
-    <div className="mt-2.5">
+    <div className="mt-2">
       <div
         ref={ref}
-        className="whitespace-pre-wrap rounded-[var(--radius-sm)] bg-(--color-surface) px-2.5 py-2 text-sm leading-[1.62] text-(--color-text-2) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]"
-        style={expanded ? undefined : { maxHeight: PROMPT_BOX_MAX_HEIGHT, overflowY: 'auto' }}
+        className="whitespace-pre-wrap rounded-[var(--radius-sm)] bg-(--color-surface) px-2 py-1.5 text-[13px] leading-[1.5] text-(--color-text-2) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]"
+        style={expanded ? undefined : { maxHeight: PROMPT_BOX_COLLAPSED_MAX_HEIGHT, overflowY: 'hidden' }}
       >
         {text}
       </div>
@@ -66,7 +66,7 @@ function AgentImagePromptBox({ text, isStreaming }: { text: string; isStreaming:
             event.stopPropagation()
             setExpanded((prev) => !prev)
           }}
-          className="mt-1.5 bg-transparent p-0 text-sm text-(--color-text-3) transition-colors hover:text-(--color-text)"
+          className="mt-1 bg-transparent p-0 text-[13px] text-(--color-text-3) transition-colors hover:text-(--color-text)"
         >
           {expanded ? t('agentChat.truncated.collapse') : t('agentChat.truncated.expand')}
         </button>
@@ -114,6 +114,9 @@ export function AgentImageTaskCard({
   const promptText = task?.request.prompt ?? promptFromArgs
   const referenceIds = task?.request.referenceImageIds ?? []
   const resultIds = task?.resultImageIds ?? []
+  const compact = task?.status !== 'completed'
+  const textSizeClass = compact ? 'text-[13px]' : 'text-sm'
+  const buttonStyle = compact ? { height: 26, padding: '0 10px' } : { height: 28, padding: '0 12px' }
   const taskDetail = task?.error
     ? task.error
     : task?.status === 'rejected'
@@ -159,17 +162,17 @@ export function AgentImageTaskCard({
             }
           : undefined
       }
-      className={`m-1 max-w-[560px] rounded-[var(--radius-lg)] bg-(--color-surface) px-3.5 py-3 shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-lift)] ${canFocus ? 'cursor-pointer transition-colors duration-150 hover:bg-[color-mix(in_srgb,var(--color-surface-2)_50%,var(--color-surface))]' : ''}`}
+      className={`m-1 rounded-[var(--radius-lg)] bg-(--color-surface) shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-lift)] ${compact ? 'max-w-[460px] px-3 py-2.5' : 'max-w-[560px] px-3.5 py-3'} ${canFocus ? 'cursor-pointer transition-colors duration-150 hover:bg-[color-mix(in_srgb,var(--color-surface-2)_50%,var(--color-surface))]' : ''}`}
     >
       <div className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1">
-        <span className="text-sm font-semibold text-(--color-text)">{t('agentChat.imageTask.title')}</span>
-        <span className="inline-flex items-center gap-1.5 text-sm" style={{ color: statusColor }}>
+        <span className={`${textSizeClass} font-semibold text-(--color-text)`}>{t('agentChat.imageTask.title')}</span>
+        <span className={`inline-flex items-center gap-1.5 ${textSizeClass}`} style={{ color: statusColor }}>
           <span className="h-1.5 w-1.5 rounded-full" style={{ background: 'currentColor' }} />
           {statusText}
         </span>
         {active && <span className="spinner" style={{ width: 10, height: 10 }} />}
         {headerIds.length > 0 && (
-          <span className="mono ml-auto min-w-0 truncate text-sm text-(--color-text-4)" title={headerIds.join(', ')}>
+          <span className="mono ml-auto min-w-0 truncate text-xs text-(--color-text-4)" title={headerIds.join(', ')}>
             {headerIds.join(', ')}
           </span>
         )}
@@ -180,7 +183,7 @@ export function AgentImageTaskCard({
       )}
 
       {task?.status !== 'completed' && (task || requestedFromArgs) && (
-        <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+        <div className={`mt-2 flex flex-wrap gap-x-3 gap-y-1 ${textSizeClass}`}>
           {modelName && (
             <span className="min-w-0">
               <span className="text-(--color-text-3)">{t('agentChat.imageTask.model')}</span>
@@ -282,18 +285,18 @@ export function AgentImageTaskCard({
         })()}
 
       {taskDetail && (
-        <div className="mt-2.5 text-sm leading-[1.45]" style={{ color: 'var(--color-danger)' }}>
+        <div className={`mt-2.5 ${textSizeClass} leading-[1.45]`} style={{ color: 'var(--color-danger)' }}>
           {taskDetail}
         </div>
       )}
       {!task && result?.isError && (
-        <div className="mt-2.5 text-sm leading-[1.45]" style={{ color: 'var(--color-danger)' }}>
+        <div className={`mt-2.5 ${textSizeClass} leading-[1.45]`} style={{ color: 'var(--color-danger)' }}>
           {summarizeToolResult(result)}
         </div>
       )}
 
       {(showApprove || showCancel) && task && (
-        <div className="mt-3 flex flex-wrap gap-1.5">
+        <div className="mt-2.5 flex flex-wrap gap-1.5">
           {showApprove && (
             <button
               type="button"
@@ -301,9 +304,9 @@ export function AgentImageTaskCard({
                 event.stopPropagation()
                 onApprove(task.id)
               }}
-              className="chip text-sm"
+              className={`chip ${textSizeClass}`}
               data-active
-              style={{ height: 28, padding: '0 12px' }}
+              style={buttonStyle}
             >
               {t('common.generate')}
             </button>
@@ -316,8 +319,8 @@ export function AgentImageTaskCard({
                 onToggleAutoApproveImageTasks(true)
                 onApprove(task.id)
               }}
-              className="chip flex items-center gap-1.5 text-sm"
-              style={{ height: 28, padding: '0 12px' }}
+              className={`chip flex items-center gap-1.5 ${textSizeClass}`}
+              style={buttonStyle}
               title={t('agentChat.imageTask.alwaysAutoApprove')}
             >
               <Icon name="circle_play" size={12} />
@@ -331,8 +334,8 @@ export function AgentImageTaskCard({
                 event.stopPropagation()
                 onCancel(task.id)
               }}
-              className="chip danger text-sm"
-              style={{ height: 28, padding: '0 12px' }}
+              className={`chip danger ${textSizeClass}`}
+              style={buttonStyle}
             >
               {t('common.cancel')}
             </button>
