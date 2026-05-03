@@ -6,7 +6,7 @@ import { translate } from '../../i18n'
 
 export type AskUserQuestionOption = {
   label: string
-  description: string
+  description?: string
 }
 
 export type AskUserQuestionItem = {
@@ -38,7 +38,7 @@ export type AskUserQuestionExecutor = (
 
 function normalizeOption(value: unknown, path: string, errors: string[]): AskUserQuestionOption | null {
   if (typeof value !== 'object' || value === null) {
-    errors.push(`${path} must be an object with label and description.`)
+    errors.push(`${path} must be an object with a label.`)
     return null
   }
   const record = value as Record<string, unknown>
@@ -48,7 +48,7 @@ function normalizeOption(value: unknown, path: string, errors: string[]): AskUse
     errors.push(`${path}.label is required.`)
     return null
   }
-  return { label, description: desc }
+  return desc ? { label, description: desc } : { label }
 }
 
 function normalizeQuestion(value: unknown, index: number, errors: string[]): AskUserQuestionItem | null {
@@ -109,8 +109,8 @@ export function formatAskUserQuestionArgumentError(errors: string[]): string {
             question: 'Full question text?',
             header: 'Short label',
             options: [
-              { label: 'Option A', description: 'What this option means.' },
-              { label: 'Option B', description: 'What this option means.' },
+              { label: 'Option A' },
+              { label: 'Option B', description: 'Optional explanation when the label is not self-evident.' },
             ],
             multi_select: false,
           },
@@ -143,7 +143,9 @@ export function createAskUserQuestionTool({
               Type.Array(
                 Type.Object({
                   label: Type.Optional(Type.String({ description: 'Concise option label (1-5 words).' })),
-                  description: Type.Optional(Type.String({ description: 'One-sentence explanation of the option.' })),
+                  description: Type.Optional(
+                    Type.String({ description: 'Optional short explanation. Omit it when the label is self-evident.' }),
+                  ),
                 }),
                 { description: '2-4 mutually exclusive options.' },
               ),

@@ -328,7 +328,7 @@ type AskUserQuestionToolArgs = {
   questions: {
     question: string
     header: string
-    options: { label: string; description: string }[]
+    options: { label: string; description?: string }[]
     multi_select: boolean
   }[]
 }
@@ -345,7 +345,7 @@ type AskUserQuestionToolArgs = {
 UI 规范：
 
 - 全部问题平铺渲染，不使用 tab 分页。
-- 每题展示 header chip、问题、多/单选标记、所有 option（含描述）。
+- 每题展示 header chip、问题、多/单选标记、所有 option；description 可省略，适合比例、数量、是否这类 label 已经足够清楚的简单问卷。
 - 每题底部固定一条自由备注 textarea；不要再让 LLM 自己加“其他”选项，备注就是用户表达自由回答的入口。
 - 至少在每题里勾了一个 option 或写了备注，提交按钮才可用；侧边的“跳过”按钮调用 `cancelAgentQuestion`。
 

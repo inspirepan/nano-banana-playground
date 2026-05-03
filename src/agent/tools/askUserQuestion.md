@@ -6,7 +6,7 @@ Each question must have:
 
 - A short `header` chip (max 12 characters), e.g. `风格`, `用途`, `比例`.
 - A clear `question` ending with a question mark.
-- 2-4 mutually exclusive (unless `multi_select` is true) `options`, each with a concise `label` and a one-sentence `description`.
+- 2-4 mutually exclusive (unless `multi_select` is true) `options`, each with a concise `label` and an optional short `description`.
 
 Do not include an "Other" option — the UI automatically lets the user type a free-text note for each question.
 
@@ -14,5 +14,7 @@ Notes:
 
 - Use the same language the user is using.
 - If you have a recommendation, list it first and add `（推荐）` at the end of its label.
+- Omit `description` when the label is self-evident, such as aspect ratios, counts, simple yes/no choices, or obvious style names.
+- Add a `description` only when the label needs clarification or the trade-off is not obvious.
 - Set `multi_select: true` only when the user can pick multiple options at the same time.
 - Keep questions tight; ask 1-4 at once at most.

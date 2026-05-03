@@ -123,19 +123,21 @@ export function AskUserQuestionForm({
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {question.options.map((option) => {
                   const checked = entry.selected.includes(option.label)
+                  const description = option.description?.trim()
                   const shapeClass = question.multi_select ? 'rounded-[var(--radius-sm)] px-2.5' : 'rounded-full px-5'
+                  const alignClass = description ? 'items-start py-1' : 'items-center py-1.5'
                   return (
                     <button
                       key={option.label}
                       type="button"
                       onClick={() => toggleOption(index, option.label, question.multi_select)}
                       data-active={checked || undefined}
-                      className={`group flex items-start gap-2 ${shapeClass} bg-(--color-surface) py-1 text-left shadow-[inset_0_0_0_1px_var(--ring-edge)] transition-[background,box-shadow,color] hover:bg-(--color-surface-2) hover:shadow-[inset_0_0_0_1px_var(--ring-edge-strong)] data-[active]:bg-(--color-accent-wash) data-[active]:shadow-[inset_0_0_0_1px_var(--ring-edge-soft)] data-[active]:hover:bg-(--color-accent-wash-2) data-[active]:hover:shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]`}
+                      className={`group flex gap-2 ${shapeClass} ${alignClass} bg-(--color-surface) text-left shadow-[inset_0_0_0_1px_var(--ring-edge)] transition-[background,box-shadow,color] hover:bg-(--color-surface-2) hover:shadow-[inset_0_0_0_1px_var(--ring-edge-strong)] data-[active]:bg-(--color-accent-wash) data-[active]:shadow-[inset_0_0_0_1px_var(--ring-edge-soft)] data-[active]:hover:bg-(--color-accent-wash-2) data-[active]:hover:shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]`}
                     >
                       {question.multi_select && (
                         <span
                           aria-hidden
-                          className="mt-[3px] inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-[3px] bg-(--color-surface) shadow-[inset_0_0_0_1px_var(--ring-edge-strong)] transition-colors group-data-[active]:bg-(--color-accent) group-data-[active]:shadow-none"
+                          className={`${description ? 'mt-[3px]' : ''} inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-[3px] bg-(--color-surface) shadow-[inset_0_0_0_1px_var(--ring-edge-strong)] transition-colors group-data-[active]:bg-(--color-accent) group-data-[active]:shadow-none`}
                         >
                           <Icon
                             name="check"
@@ -147,9 +149,9 @@ export function AskUserQuestionForm({
                         <span className="text-sm font-medium text-(--color-text-2) group-data-[active]:text-(--color-accent)">
                           {option.label}
                         </span>
-                        {option.description && (
+                        {description && (
                           <span className="text-[12px] leading-[1.35] text-(--color-text-3) group-data-[active]:text-(--color-text-2)">
-                            {option.description}
+                            {description}
                           </span>
                         )}
                       </span>
