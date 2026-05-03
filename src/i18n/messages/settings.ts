@@ -77,6 +77,25 @@ export const settingsMessages: MessageDictionary = {
     en: 'Leave empty to keep the current key, or enter a new one to replace it',
   },
   'settings.webTools.key.ariaLabel': { 'zh-CN': '{label} API Key', en: '{label} API key' },
+  'settings.webTools.notice.saved': {
+    'zh-CN': '已保存 {provider} API Key。',
+    en: 'Saved the {provider} API key.',
+  },
+  'settings.webTools.notice.savedSwitchedSearch': {
+    'zh-CN': '已保存 {provider} API Key，并已切换 WebSearch。',
+    en: 'Saved the {provider} API key and switched WebSearch.',
+  },
+  'settings.webTools.notice.savedSwitchedFetch': {
+    'zh-CN': '已保存 {provider} API Key，并已切换 WebFetch。',
+    en: 'Saved the {provider} API key and switched WebFetch.',
+  },
+  'settings.webTools.notice.savedSwitchedBoth': {
+    'zh-CN': '已保存 {provider} API Key，并已切换 WebSearch 和 WebFetch。',
+    en: 'Saved the {provider} API key and switched WebSearch and WebFetch.',
+  },
+  'settings.webTools.notice.useSearch': { 'zh-CN': '用于 WebSearch', en: 'Use for WebSearch' },
+  'settings.webTools.notice.useFetch': { 'zh-CN': '用于 WebFetch', en: 'Use for WebFetch' },
+  'settings.webTools.notice.undo': { 'zh-CN': '撤销切换', en: 'Undo switch' },
   'settings.webTools.note': {
     'zh-CN':
       'API Key 只保存在此浏览器。外部 Web 工具请求均经站点 Pages Function 代理转发。没有配置搜索后端时，Agent 没有 WebSearch 能力；没有配置抓取后端时，WebFetch 使用默认浏览器抓取，遇到 CORS 时通过站点代理兜底。',

@@ -13,6 +13,8 @@ import {
   WEB_API_PROVIDER_CONFIGS,
   WEB_FETCH_PROVIDER_OPTIONS,
   WEB_SEARCH_PROVIDER_OPTIONS,
+  getWebApiProviderConfig,
+  isWebFetchApiProvider,
   type WebApiProvider,
   type WebFetchProvider,
   type WebSearchProvider,
@@ -48,6 +50,17 @@ const SETTINGS_TABS: { id: SettingsTab; labelKey: string; icon: IconName }[] = [
 
 type SettingsFocusSection = 'apiKeys' | 'generationConcurrency'
 
+type WebProviderNotice = {
+  provider: WebApiProvider
+  providerLabel: string
+  previousSearchProvider: WebSearchProvider
+  previousFetchProvider: WebFetchProvider
+  switchedSearch: boolean
+  switchedFetch: boolean
+  canSwitchSearch: boolean
+  canSwitchFetch: boolean
+}
+
 function getInitialSettingsTab(focusSection: SettingsFocusSection | null | undefined): SettingsTab {
   if (focusSection === 'apiKeys') return 'api'
   if (focusSection === 'generationConcurrency') return 'generation'
@@ -74,6 +87,10 @@ function emptyWebProviderDrafts(): WebProviderApiKeys {
     drafts[provider.id] = ''
     return drafts
   }, {} as WebProviderApiKeys)
+}
+
+function hasConfiguredWebApiKey(apiKeys: WebProviderApiKeys, provider: WebSearchProvider | WebFetchProvider): boolean {
+  return provider !== 'none' && provider !== 'default' && apiKeys[provider].trim() !== ''
 }
 
 function formatBytes(bytes: number): string {
@@ -136,6 +153,7 @@ export function SettingsDialog({
   const [storageBreakdown, setStorageBreakdown] = useState<StorageBreakdown | null>(null)
   const [webProviderSettings, setWebProviderSettings] = useState(readWebProviderSettings)
   const [webProviderDrafts, setWebProviderDrafts] = useState<WebProviderApiKeys>(emptyWebProviderDrafts)
+  const [webProviderNotice, setWebProviderNotice] = useState<WebProviderNotice | null>(null)
 
   const refreshSiteDataUsage = useCallback(async () => {
     setSiteDataUsageLoading(true)
@@ -208,11 +226,13 @@ export function SettingsDialog({
 
   const handleWebSearchProviderChange = (provider: WebSearchProvider) => {
     writeWebSearchProviderPreference(provider)
+    setWebProviderNotice(null)
     setWebProviderSettings((current) => ({ ...current, searchProvider: provider }))
   }
 
   const handleWebFetchProviderChange = (provider: WebFetchProvider) => {
     writeWebFetchProviderPreference(provider)
+    setWebProviderNotice(null)
     setWebProviderSettings((current) => ({ ...current, fetchProvider: provider }))
   }
 
@@ -223,17 +243,45 @@ export function SettingsDialog({
   const handleSaveWebProviderApiKey = (provider: WebApiProvider) => {
     const apiKey = webProviderDrafts[provider].trim()
     if (!apiKey) return
+    const providerConfig = getWebApiProviderConfig(provider)
+    const currentSettings = webProviderSettings
+    const nextApiKeys = { ...currentSettings.apiKeys, [provider]: apiKey }
+    const shouldSwitchSearch =
+      providerConfig.supportsSearch &&
+      currentSettings.searchProvider !== provider &&
+      !hasConfiguredWebApiKey(currentSettings.apiKeys, currentSettings.searchProvider)
+    const shouldSwitchFetch =
+      isWebFetchApiProvider(provider) &&
+      currentSettings.fetchProvider !== provider &&
+      !hasConfiguredWebApiKey(currentSettings.apiKeys, currentSettings.fetchProvider)
+    const nextSearchProvider = shouldSwitchSearch ? provider : currentSettings.searchProvider
+    const nextFetchProvider = shouldSwitchFetch ? provider : currentSettings.fetchProvider
+
     writeWebProviderApiKey(provider, apiKey)
+    if (shouldSwitchSearch) writeWebSearchProviderPreference(provider)
+    if (shouldSwitchFetch) writeWebFetchProviderPreference(provider)
     setWebProviderDrafts((current) => ({ ...current, [provider]: '' }))
-    setWebProviderSettings((current) => ({
-      ...current,
-      apiKeys: { ...current.apiKeys, [provider]: apiKey },
-    }))
+    setWebProviderNotice({
+      provider,
+      providerLabel: providerConfig.shortLabel,
+      previousSearchProvider: currentSettings.searchProvider,
+      previousFetchProvider: currentSettings.fetchProvider,
+      switchedSearch: shouldSwitchSearch,
+      switchedFetch: shouldSwitchFetch,
+      canSwitchSearch: providerConfig.supportsSearch && nextSearchProvider !== provider,
+      canSwitchFetch: isWebFetchApiProvider(provider) && nextFetchProvider !== provider,
+    })
+    setWebProviderSettings({
+      searchProvider: nextSearchProvider,
+      fetchProvider: nextFetchProvider,
+      apiKeys: nextApiKeys,
+    })
   }
 
   const handleClearWebProviderApiKey = (provider: WebApiProvider) => {
     clearWebProviderApiKey(provider)
     setWebProviderDrafts((current) => ({ ...current, [provider]: '' }))
+    setWebProviderNotice(null)
     setWebProviderSettings((current) => ({
       searchProvider: current.searchProvider === provider ? 'none' : current.searchProvider,
       fetchProvider: current.fetchProvider === provider ? 'default' : current.fetchProvider,
@@ -241,6 +289,53 @@ export function SettingsDialog({
     }))
     if (webProviderSettings.searchProvider === provider) writeWebSearchProviderPreference('none')
     if (webProviderSettings.fetchProvider === provider) writeWebFetchProviderPreference('default')
+  }
+
+  const handleUndoWebProviderSwitch = () => {
+    if (!webProviderNotice) return
+    writeWebSearchProviderPreference(webProviderNotice.previousSearchProvider)
+    writeWebFetchProviderPreference(webProviderNotice.previousFetchProvider)
+    setWebProviderSettings((current) => ({
+      ...current,
+      searchProvider: webProviderNotice.previousSearchProvider,
+      fetchProvider: webProviderNotice.previousFetchProvider,
+    }))
+    setWebProviderNotice(null)
+  }
+
+  const handleUseWebProviderForSearch = () => {
+    if (!webProviderNotice) return
+    const previousSearchProvider = webProviderSettings.searchProvider
+    writeWebSearchProviderPreference(webProviderNotice.provider)
+    setWebProviderSettings((current) => ({ ...current, searchProvider: webProviderNotice.provider }))
+    setWebProviderNotice((current) =>
+      current
+        ? {
+            ...current,
+            previousSearchProvider,
+            switchedSearch: true,
+            canSwitchSearch: false,
+          }
+        : null,
+    )
+  }
+
+  const handleUseWebProviderForFetch = () => {
+    if (!webProviderNotice || !isWebFetchApiProvider(webProviderNotice.provider)) return
+    const provider = webProviderNotice.provider
+    const previousFetchProvider = webProviderSettings.fetchProvider
+    writeWebFetchProviderPreference(provider)
+    setWebProviderSettings((current) => ({ ...current, fetchProvider: provider }))
+    setWebProviderNotice((current) =>
+      current
+        ? {
+            ...current,
+            previousFetchProvider,
+            switchedFetch: true,
+            canSwitchFetch: false,
+          }
+        : null,
+    )
   }
 
   if (!open) return null
@@ -283,8 +378,7 @@ export function SettingsDialog({
               onClick={() => setSelectedTab(tab.id)}
               className="flex shrink-0 items-center gap-1.5 px-3 py-2.5 text-sm font-medium transition-colors"
               style={{
-                color:
-                  selectedTab === tab.id ? 'var(--color-text)' : 'var(--color-text-3)',
+                color: selectedTab === tab.id ? 'var(--color-text)' : 'var(--color-text-3)',
                 boxShadow: selectedTab === tab.id ? 'inset 0 -2px 0 var(--color-accent)' : undefined,
               }}
             >
@@ -301,49 +395,49 @@ export function SettingsDialog({
               <div>
                 <div className="label mb-1.5">{t('settings.language.label')}</div>
                 <div className="pl-2">
-                <div
-                  className="segmented"
-                  style={{
-                    ['--seg-count' as string]: LANGUAGE_PREFERENCES.length,
-                    ['--seg-index' as string]: LANGUAGE_PREFERENCES.findIndex((item) => item.id === language),
-                  }}
-                >
-                  {LANGUAGE_PREFERENCES.map((item) => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => onLanguageChange(item.id)}
-                      data-active={language === item.id}
-                    >
-                      <span>{item.label[resolvedLanguage]}</span>
-                    </button>
-                  ))}
-                </div>
+                  <div
+                    className="segmented"
+                    style={{
+                      ['--seg-count' as string]: LANGUAGE_PREFERENCES.length,
+                      ['--seg-index' as string]: LANGUAGE_PREFERENCES.findIndex((item) => item.id === language),
+                    }}
+                  >
+                    {LANGUAGE_PREFERENCES.map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => onLanguageChange(item.id)}
+                        data-active={language === item.id}
+                      >
+                        <span>{item.label[resolvedLanguage]}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
               <div>
                 <div className="label mb-1.5">{t('settings.theme.label')}</div>
                 <div className="pl-2">
-                <div
-                  className="segmented"
-                  style={{
-                    ['--seg-count' as string]: BRIGHTNESS.length,
-                    ['--seg-index' as string]: BRIGHTNESS.findIndex((item) => item.value === theme),
-                  }}
-                >
-                  {BRIGHTNESS.map(({ value, icon, labelKey }) => (
-                    <button
-                      key={value}
-                      type="button"
-                      onClick={() => onThemeChange(value)}
-                      data-active={theme === value}
-                    >
-                      <Icon name={icon} size={12} />
-                      <span>{t(labelKey)}</span>
-                    </button>
-                  ))}
-                </div>
+                  <div
+                    className="segmented"
+                    style={{
+                      ['--seg-count' as string]: BRIGHTNESS.length,
+                      ['--seg-index' as string]: BRIGHTNESS.findIndex((item) => item.value === theme),
+                    }}
+                  >
+                    {BRIGHTNESS.map(({ value, icon, labelKey }) => (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => onThemeChange(value)}
+                        data-active={theme === value}
+                      >
+                        <Icon name={icon} size={12} />
+                        <span>{t(labelKey)}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
@@ -421,6 +515,16 @@ export function SettingsDialog({
                   onChange={handleWebFetchProviderChange}
                 />
               </div>
+
+              {webProviderNotice && (
+                <WebProviderSavedNotice
+                  notice={webProviderNotice}
+                  onUseSearch={handleUseWebProviderForSearch}
+                  onUseFetch={handleUseWebProviderForFetch}
+                  onUndo={handleUndoWebProviderSwitch}
+                  onDismiss={() => setWebProviderNotice(null)}
+                />
+              )}
 
               {/* API key rows */}
               <div>
@@ -544,10 +648,7 @@ export function SettingsDialog({
 
               {/* Per-category breakdown */}
               {storageBreakdown && (
-                <StorageBreakdownTable
-                  items={storageBreakdown.items}
-                  total={siteDataUsage?.totalBytes ?? 0}
-                />
+                <StorageBreakdownTable items={storageBreakdown.items} total={siteDataUsage?.totalBytes ?? 0} />
               )}
 
               {/* Clear data */}
@@ -603,12 +704,7 @@ export function SettingsDialog({
   )
 }
 
-function StorageBreakdownTable({
-  items,
-}: {
-  items: import('../lib/siteData').StorageBreakdownItem[]
-  total: number
-}) {
+function StorageBreakdownTable({ items }: { items: import('../lib/siteData').StorageBreakdownItem[]; total: number }) {
   const { t } = useI18n()
   const nonZero = items.filter((item) => item.bytes > 0)
   if (nonZero.length === 0) return null
@@ -712,6 +808,89 @@ function WebProviderChipSelector<T extends WebSearchProvider | WebFetchProvider>
   )
 }
 
+function webProviderNoticeMessageKey(notice: WebProviderNotice): string {
+  if (notice.switchedSearch && notice.switchedFetch) return 'settings.webTools.notice.savedSwitchedBoth'
+  if (notice.switchedSearch) return 'settings.webTools.notice.savedSwitchedSearch'
+  if (notice.switchedFetch) return 'settings.webTools.notice.savedSwitchedFetch'
+  return 'settings.webTools.notice.saved'
+}
+
+function WebProviderSavedNotice({
+  notice,
+  onUseSearch,
+  onUseFetch,
+  onUndo,
+  onDismiss,
+}: {
+  notice: WebProviderNotice
+  onUseSearch: () => void
+  onUseFetch: () => void
+  onUndo: () => void
+  onDismiss: () => void
+}) {
+  const { t } = useI18n()
+  const switched = notice.switchedSearch || notice.switchedFetch
+
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      className="ml-2 rounded-[var(--radius-md)] bg-(--color-accent-wash) px-3 py-2.5 text-sm text-(--color-text) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]"
+    >
+      <div className="flex min-w-0 items-start gap-2.5">
+        <Icon name="check" size={13} strokeWidth={2.4} className="mt-0.5 shrink-0 text-(--color-accent)" />
+        <div className="min-w-0 flex-1 space-y-2">
+          <p className="leading-relaxed">
+            {t(webProviderNoticeMessageKey(notice), { provider: notice.providerLabel })}
+          </p>
+          {(notice.canSwitchSearch || notice.canSwitchFetch || switched) && (
+            <div className="flex flex-wrap gap-1.5">
+              {notice.canSwitchSearch && (
+                <button
+                  type="button"
+                  onClick={onUseSearch}
+                  className="chip text-sm"
+                  style={{ height: 26, padding: '0 8px' }}
+                >
+                  {t('settings.webTools.notice.useSearch')}
+                </button>
+              )}
+              {notice.canSwitchFetch && (
+                <button
+                  type="button"
+                  onClick={onUseFetch}
+                  className="chip text-sm"
+                  style={{ height: 26, padding: '0 8px' }}
+                >
+                  {t('settings.webTools.notice.useFetch')}
+                </button>
+              )}
+              {switched && (
+                <button
+                  type="button"
+                  onClick={onUndo}
+                  className="chip ghost text-sm"
+                  style={{ height: 26, padding: '0 8px' }}
+                >
+                  {t('settings.webTools.notice.undo')}
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={onDismiss}
+          className="icon-btn -mr-1 -mt-1 shrink-0"
+          aria-label={t('common.close')}
+        >
+          <Icon name="close" size={12} />
+        </button>
+      </div>
+    </div>
+  )
+}
+
 function WebApiKeyRow({
   provider,
   label,
@@ -749,18 +928,16 @@ function WebApiKeyRow({
               <span
                 className={`inline-block size-1.5 shrink-0 rounded-full ${configured ? 'bg-(--color-success)' : 'bg-(--color-text-4)'}`}
               />
-              <span>{configured ? t('settings.webTools.key.configured') : t('settings.webTools.key.notConfigured')}</span>
+              <span>
+                {configured ? t('settings.webTools.key.configured') : t('settings.webTools.key.notConfigured')}
+              </span>
               <span className="text-(--color-text-4)">·</span>
               <a href={apiKeyUrl} target="_blank" rel="noreferrer" className="text-(--color-accent) hover:underline">
                 {t('settings.webTools.key.getKey')}
               </a>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={() => setExpanded(true)}
-            className="action-soft -mr-1 shrink-0 text-sm"
-          >
+          <button type="button" onClick={() => setExpanded(true)} className="action-soft -mr-1 shrink-0 text-sm">
             {configured ? t('apiKeys.action.edit') : t('apiKeys.action.add')}
           </button>
         </div>
