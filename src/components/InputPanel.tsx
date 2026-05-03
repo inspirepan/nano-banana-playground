@@ -366,7 +366,7 @@ export function InputPanel({
       }
     >
       {showHeader && !useWideAgentSidebar && (
-        <div className="mb-[18px] flex min-h-[30px] items-center gap-2.5 pr-[var(--agent-panel-padding-x,18px)]">
+        <div className={`${inputMode === 'agent' ? 'mb-[10px]' : 'mb-[18px]'} flex min-h-[30px] items-center gap-2.5 pr-[var(--agent-panel-padding-x,18px)]`}>
           <div className="min-w-0 font-display text-lg font-semibold tracking-[-0.01em] text-(--color-text)">
             {t('app.name')}
           </div>

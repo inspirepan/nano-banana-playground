@@ -370,7 +370,7 @@ export function AgentChatPanel({
       ) : null}
 
       <div className={`flex min-h-0 min-w-0 flex-1 flex-col ${showSessionSidebar ? 'pt-8 pb-[18px]' : ''}`}>
-        <div className={contentRightPaddingClass}>
+        <div className={`${contentRightPaddingClass} pb-3 shadow-[inset_0_-1px_0_var(--ring-edge-soft)]`}>
           <AgentChatHeader
             sessions={sessions}
             currentSessionId={currentSessionId}
