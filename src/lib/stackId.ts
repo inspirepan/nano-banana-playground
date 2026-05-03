@@ -59,3 +59,13 @@ export function stackIdForGenerationRequest(params: {
 
   return `stack-${hashString(stableStringify(payload))}`
 }
+
+export function stackIdForAgentSession(sessionId: string): string {
+  const payload = {
+    version: 1,
+    source: 'agent_session',
+    sessionId,
+  }
+
+  return `stack-${hashString(stableStringify(payload))}`
+}

@@ -27,8 +27,13 @@ import { getProviderConfig } from '../config/providers'
 import { useExternalSync } from '../hooks/effects'
 import type { GenerationJob } from '../hooks/useGenerationQueue'
 import { translate } from '../i18n'
-import { stackIdForGenerationRequest } from '../lib/stackId'
+import { stackIdForAgentSession } from '../lib/stackId'
 import type { PlaygroundImage } from '../lib/types'
+
+function generatedImageStackId(image: PlaygroundImage): string | undefined {
+  if (image.source.type !== 'generated') return undefined
+  return image.source.stackId ?? image.source.batchId
+}
 
 export function useAgentImageTools({
   agentRuntimesRef,
@@ -246,17 +251,7 @@ export function useAgentImageTools({
         return { ok: false, message: translate('configLib.agent.taskCanceled') }
       }
 
-      const stackId =
-        task.request.stackId ??
-        stackIdForGenerationRequest({
-          model: modelConfig,
-          prompt: task.request.prompt,
-          referenceImages,
-          resolution: task.request.resolution,
-          aspectRatio: task.request.aspectRatio,
-          options: task.request.options,
-          batchCount: task.request.batchCount,
-        })
+      const stackId = task.request.stackId ?? stackIdForAgentSession(runtime.sessionId)
       const batchId = enqueueGenerationJob(
         {
           apiKey: credentials.apiKey,
@@ -377,7 +372,8 @@ export function useAgentImageTools({
         reserveAgentImageIdsForRuntime(runtime, args.image_id, batchCount),
       ])
       if (signal?.aborted) throw new Error('GenImage was aborted.')
-      const editSource = referenceImages.find((image) => image.source.type === 'generated')
+      const editSource = referenceImages.find((image) => generatedImageStackId(image))
+      const editStackId = editSource ? generatedImageStackId(editSource) : undefined
       try {
         const activeOptions = activeOptionsForModel(modelConfig, defaultOptionsFor(modelConfig))
         const task: AgentImageTask = {
@@ -396,10 +392,7 @@ export function useAgentImageTools({
             batchCount,
             referenceImageIds,
             options: activeOptions,
-            stackId:
-              editSource?.source.type === 'generated'
-                ? (editSource.source.stackId ?? editSource.source.batchId)
-                : undefined,
+            stackId: editStackId ?? stackIdForAgentSession(runtime.sessionId),
             parentImageId: editSource?.source.type === 'generated' ? editSource.id : undefined,
           },
           resultImageIds: [],
