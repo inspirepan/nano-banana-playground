@@ -112,6 +112,7 @@ export function SlotHero({
             ? t('imageDetail.queue.status.generating')
             : t('imageDetail.queue.status.queued')
   const detail = slot?.error ?? (slot?.status === 'canceled' ? t('imageDetail.queue.canceledDetail') : null)
+  const showKeepPageOpenNote = slot && ['queued', 'running', 'retrying'].includes(slot.status)
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-8 text-center text-(--color-text-3)">
       {slot?.status === 'failed' || slot?.status === 'canceled' ? (
@@ -120,6 +121,7 @@ export function SlotHero({
         <span className="spinner" />
       )}
       <div className="text-sm text-(--color-text-2)">{label}</div>
+      {showKeepPageOpenNote && <div className="text-sm text-(--color-text-3)">{t('imageDetail.queue.keepPageOpen')}</div>}
       {detail && <div className="max-w-[420px] text-sm leading-[1.5] text-(--color-text-2)">{detail}</div>}
       {slot &&
         job &&
@@ -363,6 +365,7 @@ export const StackStrip = memo(function StackStrip({
                             active={active}
                             outerRing
                             showImageIdLabel={false}
+                            compactSlotStatus
                             onSelect={onSelect}
                           />
                         </div>

@@ -159,6 +159,7 @@ export const imageDetailMessages: MessageDictionary = {
     'zh-CN': '生成没有完成。可能是你取消了任务，也可能是页面、浏览器或网络中断了请求。',
     en: 'Generation did not finish. It may have been canceled, or interrupted by the page, browser, or network.',
   },
+  'imageDetail.queue.keepPageOpen': { 'zh-CN': '请勿刷新或关闭网页', en: 'Please do not refresh or close this page' },
   'imageDetail.queue.status.completed': { 'zh-CN': '已完成', en: 'Completed' },
   'imageDetail.queue.status.failed': { 'zh-CN': '生成失败', en: 'Generation failed' },
   'imageDetail.queue.status.generating': { 'zh-CN': '生成中', en: 'Generating' },
