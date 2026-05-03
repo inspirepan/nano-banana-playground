@@ -1,11 +1,9 @@
 import { formatSessionTime } from './utils'
-import type { AgentSessionSummary } from '../../agent'
+import type { AgentSessionStatus, AgentSessionStatusMap, AgentSessionSummary } from '../../agent'
 import { useI18n } from '../../i18n'
 import { Icon } from '../Icon'
 
-export type AgentSessionSidebarStatus = 'running' | 'waiting_for_question' | 'generating_images' | null
-
-export function AgentSessionStatusBadge({ status }: { status: Exclude<AgentSessionSidebarStatus, null> }) {
+export function AgentSessionStatusBadge({ status }: { status: AgentSessionStatus }) {
   const { t } = useI18n()
   if (status === 'waiting_for_question') {
     return (
@@ -42,8 +40,8 @@ export function AgentSessionStatusBadge({ status }: { status: Exclude<AgentSessi
 
 export function AgentSessionSidebar({
   sessions,
+  sessionStatuses,
   currentSessionId,
-  currentSessionStatus,
   sessionsLoading,
   onNewSession,
   onSwitchSession,
@@ -52,8 +50,8 @@ export function AgentSessionSidebar({
   onOpenSettings,
 }: {
   sessions: AgentSessionSummary[]
+  sessionStatuses: AgentSessionStatusMap
   currentSessionId: string | null
-  currentSessionStatus: AgentSessionSidebarStatus
   sessionsLoading: boolean
   onNewSession: () => void
   onSwitchSession: (sessionId: string) => void
@@ -118,7 +116,7 @@ export function AgentSessionSidebar({
           <div className="space-y-0.5">
             {sessions.map((session) => {
               const active = session.id === currentSessionId
-              const status = active ? currentSessionStatus : null
+              const status = sessionStatuses[session.id] ?? null
               const imageCount = session.imageCount ?? 0
               const imageCountLabel = t('agentChat.header.generatedImageCount', { count: imageCount })
               return (

@@ -12,6 +12,8 @@ import {
   type AgentImageTask,
   type AgentPendingQuestion,
   type AgentQueuedUserMessage,
+  type AgentSessionStatus,
+  type AgentSessionStatusMap,
   type AgentSessionSummary,
   type AgentSkillSummary,
   type AskUserQuestionAnswer,
@@ -28,7 +30,7 @@ import { buildImageStacks, type StackItem } from '../lib/stacks'
 import type { PlaygroundImage, PlaygroundImageMeta } from '../lib/types'
 import { AgentChatComposer, type AgentChatComposerHandle } from './agent-chat/AgentChatComposer'
 import { AgentChatHeader } from './agent-chat/AgentChatHeader'
-import { AgentSessionSidebar, type AgentSessionSidebarStatus } from './agent-chat/AgentSessionSidebar'
+import { AgentSessionSidebar } from './agent-chat/AgentSessionSidebar'
 import { isDrawingSkill } from './agent-chat/drawingSkills'
 import { DrawingSkillStarters } from './agent-chat/DrawingSkillStarters'
 import { MessageBubble } from './agent-chat/MessageBubble'
@@ -48,6 +50,7 @@ type Props = {
   attachments: AgentChatAttachment[]
   attachmentError: string | null
   sessions: AgentSessionSummary[]
+  sessionStatuses: AgentSessionStatusMap
   currentSessionId: string | null
   sessionsLoading: boolean
   autoApproveImageTasks: boolean
@@ -108,6 +111,7 @@ export function AgentChatPanel({
   attachments,
   attachmentError,
   sessions,
+  sessionStatuses,
   currentSessionId,
   sessionsLoading,
   autoApproveImageTasks,
@@ -169,13 +173,23 @@ export function AgentChatPanel({
   const isWaitingForQuestionAnswer = pendingQuestions.length > 0
   const isAgentActivelyRunning = isAwaitingAgentResponse && !isWaitingForQuestionAnswer
   const hasGeneratingImageTask = imageTasks.some((task) => task.status === 'queued' || task.status === 'running')
-  const currentSessionSidebarStatus: AgentSessionSidebarStatus = isWaitingForQuestionAnswer
+  const currentSessionSidebarStatus: AgentSessionStatus | null = isWaitingForQuestionAnswer
     ? 'waiting_for_question'
     : isAgentActivelyRunning
       ? 'running'
       : hasGeneratingImageTask
         ? 'generating_images'
         : null
+  const visibleSessionStatuses = useMemo(() => {
+    const next = { ...sessionStatuses }
+    if (!currentSessionId) return next
+    if (currentSessionSidebarStatus) {
+      next[currentSessionId] = currentSessionSidebarStatus
+    } else {
+      delete next[currentSessionId]
+    }
+    return next
+  }, [currentSessionId, currentSessionSidebarStatus, sessionStatuses])
   const showStop = isAgentActivelyRunning && !hasComposerContent
   const showRunningIndicator = isAgentActivelyRunning
   const visibleMessages = useMemo(
@@ -360,8 +374,8 @@ export function AgentChatPanel({
       {showSessionSidebar ? (
         <AgentSessionSidebar
           sessions={sessions}
+          sessionStatuses={visibleSessionStatuses}
           currentSessionId={currentSessionId}
-          currentSessionStatus={currentSessionSidebarStatus}
           sessionsLoading={sessionsLoading}
           onNewSession={handleNewSession}
           onSwitchSession={onSwitchSession}
@@ -375,8 +389,8 @@ export function AgentChatPanel({
         <div className={`${contentRightPaddingClass} pb-3 shadow-[inset_0_-1px_0_var(--ring-edge-soft)]`}>
           <AgentChatHeader
             sessions={sessions}
+            sessionStatuses={visibleSessionStatuses}
             currentSessionId={currentSessionId}
-            currentSessionStatus={currentSessionSidebarStatus}
             sessionsLoading={sessionsLoading}
             compactSessionControls={showSessionSidebar}
             openMenu={openMenu}

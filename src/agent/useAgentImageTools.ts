@@ -56,6 +56,7 @@ export function useAgentImageTools({
   setRuntimeImageTasks,
   scheduleRuntimeSidecarPersist,
   syncRuntimeSnapshot,
+  syncRuntimeSessionStatus,
   isCurrentRuntime,
   setAgentImageTasksState,
 }: {
@@ -95,6 +96,7 @@ export function useAgentImageTools({
   ) => AgentImageTask[]
   scheduleRuntimeSidecarPersist: (runtime: AgentSessionRuntime) => void
   syncRuntimeSnapshot: (runtime: AgentSessionRuntime) => void
+  syncRuntimeSessionStatus: (runtime: AgentSessionRuntime) => void
   isCurrentRuntime: (runtime: AgentSessionRuntime) => boolean
   setAgentImageTasksState: (tasks: AgentImageTask[]) => void
 }) {
@@ -580,6 +582,7 @@ export function useAgentImageTools({
       if (!changed) continue
       runtime.imageTasks = next
       if (isCurrentRuntime(runtime)) setAgentImageTasksState(next)
+      syncRuntimeSessionStatus(runtime)
       scheduleRuntimeSidecarPersist(runtime)
       maybeDispatchAgentImageCallbacks(runtime, next)
     }
@@ -591,6 +594,7 @@ export function useAgentImageTools({
     maybeDispatchAgentImageCallbacks,
     scheduleRuntimeSidecarPersist,
     setAgentImageTasksState,
+    syncRuntimeSessionStatus,
   ])
 
   return {

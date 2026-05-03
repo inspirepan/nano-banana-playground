@@ -10,7 +10,7 @@ import {
   type ProviderCredentials,
 } from './runtimeTypes'
 import { updateAgentSessionConfig } from './sessionStore'
-import type { AgentSessionMessageMetadata, AgentSessionSummary } from './sessionTypes'
+import type { AgentSessionMessageMetadata, AgentSessionStatusMap, AgentSessionSummary } from './sessionTypes'
 import { useAgentAttachments } from './useAgentAttachments'
 import { useAgentCompaction } from './useAgentCompaction'
 import { useAgentImageRegistry } from './useAgentImageRegistry'
@@ -89,6 +89,7 @@ export function useAgentPlayground({
   const [agentImageTasks, setAgentImageTasksState] = useState<AgentImageTask[]>([])
   const [agentPendingQuestions, setAgentPendingQuestionsState] = useState<AgentPendingQuestion[]>([])
   const [agentSessions, setAgentSessions] = useState<AgentSessionSummary[]>([])
+  const [agentSessionStatuses, setAgentSessionStatuses] = useState<AgentSessionStatusMap>({})
   const [currentAgentSessionId, setCurrentAgentSessionId] = useState<string | null>(null)
   const [agentSessionsLoading, setAgentSessionsLoading] = useState(true)
   const {
@@ -119,6 +120,7 @@ export function useAgentPlayground({
   const {
     agentRuntimesRef,
     currentAgentSessionIdRef,
+    clearRuntimeSessionStatus,
     upsertAgentSessionSummary,
     getCurrentRuntime,
     isCurrentRuntime,
@@ -132,8 +134,10 @@ export function useAgentPlayground({
     setRuntimePendingQuestions,
     clearRuntimeQuestionResolvers,
     syncRuntimeSnapshot,
+    syncRuntimeSessionStatus,
   } = useAgentRuntimeStore({
     setAgentSessions,
+    setAgentSessionStatuses,
     setCurrentAgentSessionId,
     setAgentModelId,
     setAgentThinkingLevelState,
@@ -232,6 +236,7 @@ export function useAgentPlayground({
     flushRuntime,
     getCurrentRuntime,
     clearRuntimeQuestionResolvers,
+    clearRuntimeSessionStatus,
     cancelGenerationJob,
     dismissGenerationJob,
   })
@@ -297,6 +302,7 @@ export function useAgentPlayground({
     setRuntimeImageTasks,
     scheduleRuntimeSidecarPersist,
     syncRuntimeSnapshot,
+    syncRuntimeSessionStatus,
     isCurrentRuntime,
     setAgentImageTasksState,
   })
@@ -387,6 +393,7 @@ export function useAgentPlayground({
     agentAttachments,
     agentAttachmentError,
     agentSessions,
+    agentSessionStatuses,
     currentAgentSessionId,
     agentSessionsLoading,
     autoApproveAgentImageTasks,

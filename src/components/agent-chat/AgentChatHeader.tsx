@@ -1,16 +1,16 @@
 import { useMemo, type Dispatch, type SetStateAction } from 'react'
 
-import { AgentSessionStatusBadge, type AgentSessionSidebarStatus } from './AgentSessionSidebar'
+import { AgentSessionStatusBadge } from './AgentSessionSidebar'
 import type { AgentChatMenu } from './types'
 import { formatSessionTime } from './utils'
-import type { AgentSessionSummary } from '../../agent'
+import type { AgentSessionStatusMap, AgentSessionSummary } from '../../agent'
 import { useI18n } from '../../i18n'
 import { Icon } from '../Icon'
 
 type AgentChatHeaderProps = {
   sessions: AgentSessionSummary[]
+  sessionStatuses: AgentSessionStatusMap
   currentSessionId: string | null
-  currentSessionStatus: AgentSessionSidebarStatus
   sessionsLoading: boolean
   compactSessionControls?: boolean
   openMenu: AgentChatMenu
@@ -22,8 +22,8 @@ type AgentChatHeaderProps = {
 
 export function AgentChatHeader({
   sessions,
+  sessionStatuses,
   currentSessionId,
-  currentSessionStatus,
   sessionsLoading,
   compactSessionControls = false,
   openMenu,
@@ -94,7 +94,7 @@ export function AgentChatHeader({
             ) : (
               sessions.map((session) => {
                 const active = session.id === currentSessionId
-                const status = active ? currentSessionStatus : null
+                const status = sessionStatuses[session.id] ?? null
                 const imageCount = session.imageCount ?? 0
                 const imageCountLabel = t('agentChat.header.generatedImageCount', { count: imageCount })
                 return (

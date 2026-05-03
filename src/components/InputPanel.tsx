@@ -6,6 +6,7 @@ import type {
   AgentImageTask,
   AgentPendingQuestion,
   AgentQueuedUserMessage,
+  AgentSessionStatusMap,
   AgentSessionSummary,
   AgentSkillSummary,
   AskUserQuestionAnswer,
@@ -45,6 +46,7 @@ type Props = {
   agentAttachments: AgentChatAttachment[]
   agentAttachmentError: string | null
   agentSessions: AgentSessionSummary[]
+  agentSessionStatuses: AgentSessionStatusMap
   currentAgentSessionId: string | null
   agentSessionsLoading: boolean
   autoApproveAgentImageTasks: boolean
@@ -116,6 +118,7 @@ export function InputPanel({
   agentAttachments,
   agentAttachmentError,
   agentSessions,
+  agentSessionStatuses,
   currentAgentSessionId,
   agentSessionsLoading,
   autoApproveAgentImageTasks,
@@ -241,6 +244,7 @@ export function InputPanel({
           agentAttachments={agentAttachments}
           agentAttachmentError={agentAttachmentError}
           agentSessions={agentSessions}
+          agentSessionStatuses={agentSessionStatuses}
           currentAgentSessionId={currentAgentSessionId}
           agentSessionsLoading={agentSessionsLoading}
           autoApproveAgentImageTasks={autoApproveAgentImageTasks}

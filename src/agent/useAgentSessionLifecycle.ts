@@ -25,6 +25,7 @@ export function useAgentSessionLifecycle({
   flushRuntime,
   getCurrentRuntime,
   clearRuntimeQuestionResolvers,
+  clearRuntimeSessionStatus,
   cancelGenerationJob,
   dismissGenerationJob,
 }: {
@@ -42,6 +43,7 @@ export function useAgentSessionLifecycle({
   flushRuntime: (runtime: AgentSessionRuntime | null) => Promise<void>
   getCurrentRuntime: () => AgentSessionRuntime | null
   clearRuntimeQuestionResolvers: (runtime: AgentSessionRuntime, reason: string) => void
+  clearRuntimeSessionStatus: (sessionId: string) => void
   cancelGenerationJob: (jobId: string) => void
   dismissGenerationJob: (jobId: string) => void
 }) {
@@ -139,6 +141,7 @@ export function useAgentSessionLifecycle({
       previousRuntime.messages.length === 0
     ) {
       agentRuntimesRef.current.delete(previousRuntime.sessionId)
+      clearRuntimeSessionStatus(previousRuntime.sessionId)
     }
     const record = createAgentSessionRecord({
       modelId: getPreferredAgentModelId(),
@@ -165,7 +168,15 @@ export function useAgentSessionLifecycle({
       lastCompaction: undefined,
     })
     projectRuntimeToUi(runtime)
-  }, [agentRuntimesRef, autoApproveAgentImageTasks, createRuntime, flushRuntime, getCurrentRuntime, projectRuntimeToUi])
+  }, [
+    agentRuntimesRef,
+    autoApproveAgentImageTasks,
+    clearRuntimeSessionStatus,
+    createRuntime,
+    flushRuntime,
+    getCurrentRuntime,
+    projectRuntimeToUi,
+  ])
 
   const switchAgentSession = useCallback(
     (sessionId: string) => {
@@ -175,6 +186,7 @@ export function useAgentSessionLifecycle({
         await flushRuntime(previousRuntime)
         if (previousRuntime && !previousRuntime.persisted && previousRuntime.messages.length === 0) {
           agentRuntimesRef.current.delete(previousRuntime.sessionId)
+          clearRuntimeSessionStatus(previousRuntime.sessionId)
         }
         const runtime = agentRuntimesRef.current.get(sessionId)
         if (runtime) {
@@ -189,6 +201,7 @@ export function useAgentSessionLifecycle({
     [
       agentRuntimesRef,
       currentAgentSessionIdRef,
+      clearRuntimeSessionStatus,
       flushRuntime,
       getCurrentRuntime,
       loadAgentSessionIntoRuntime,
@@ -213,6 +226,7 @@ export function useAgentSessionLifecycle({
           }
           agentRuntimesRef.current.delete(sessionId)
         }
+        clearRuntimeSessionStatus(sessionId)
         await deleteAgentSession(sessionId)
         const nextSessions = (await listAgentSessions()).filter((session) => session.id !== sessionId)
         setAgentSessions(nextSessions)
@@ -233,6 +247,7 @@ export function useAgentSessionLifecycle({
       agentRuntimesRef,
       cancelGenerationJob,
       clearRuntimeQuestionResolvers,
+      clearRuntimeSessionStatus,
       createNewAgentSession,
       currentAgentSessionIdRef,
       dismissGenerationJob,

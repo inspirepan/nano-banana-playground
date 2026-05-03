@@ -2,7 +2,7 @@ import { Agent, type AppMessage as AgentMessage } from '@mariozechner/pi-agent'
 
 import type { AgentChatAttachment } from './agentChat'
 import type { AgentImageRegistryEntry, AgentImageTask, AgentTurnCallbackState } from './imageTasks'
-import type { AgentCompactionState, AgentSessionMessageMetadata } from './sessionTypes'
+import type { AgentCompactionState, AgentSessionMessageMetadata, AgentSessionStatus } from './sessionTypes'
 import type { AgentToolResult, AskUserQuestionItem } from './tools'
 import type { AgentThinkingLevel } from '../config/agentModels'
 
@@ -71,4 +71,12 @@ export type AgentSessionRuntime = {
   isCompacting: boolean
   compactionAbort: AbortController | null
   lastInjectedPreferredImageModelId: string | null | undefined
+}
+
+export function getAgentSessionStatus(runtime: AgentSessionRuntime): AgentSessionStatus | null {
+  if (runtime.pendingQuestions.length > 0) return 'waiting_for_question'
+  if (runtime.isStreaming) return 'running'
+  return runtime.imageTasks.some((task) => task.status === 'queued' || task.status === 'running')
+    ? 'generating_images'
+    : null
 }

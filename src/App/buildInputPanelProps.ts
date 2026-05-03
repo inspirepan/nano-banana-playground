@@ -48,6 +48,7 @@ export function buildSharedInputPanelProps({
     agentAttachments: pg.agentAttachments,
     agentAttachmentError: pg.agentAttachmentError,
     agentSessions: pg.agentSessions,
+    agentSessionStatuses: pg.agentSessionStatuses,
     currentAgentSessionId: pg.currentAgentSessionId,
     agentSessionsLoading: pg.agentSessionsLoading,
     autoApproveAgentImageTasks: pg.autoApproveAgentImageTasks,

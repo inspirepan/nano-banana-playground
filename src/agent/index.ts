@@ -69,6 +69,6 @@ export type {
   AgentTurnCallbackState,
   ReserveAgentImageIdsResult,
 } from './imageTasks'
-export type { AgentSessionSummary } from './sessionTypes'
+export type { AgentSessionStatus, AgentSessionStatusMap, AgentSessionSummary } from './sessionTypes'
 export { useAgentPlayground } from './useAgentPlayground'
 export type { AgentPendingQuestion, AgentQueuedUserMessage, UseAgentPlaygroundParams } from './useAgentPlayground'

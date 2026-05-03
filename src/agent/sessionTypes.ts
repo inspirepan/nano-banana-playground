@@ -29,6 +29,10 @@ export type AgentSessionRecord = {
 
 export type AgentSessionSummary = AgentSessionRecord
 
+export type AgentSessionStatus = 'running' | 'waiting_for_question' | 'generating_images'
+
+export type AgentSessionStatusMap = Partial<Record<string, AgentSessionStatus>>
+
 export type PersistedAgentMessage = Record<string, unknown>
 
 export type AgentSessionMessageMetadata = {

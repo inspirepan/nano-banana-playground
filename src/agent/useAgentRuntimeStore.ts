@@ -5,14 +5,20 @@ import type { AgentChatAttachment } from './agentChat'
 import type { AgentImageTask } from './imageTasks'
 import { isSameQueuedUserMessage } from './messageIdentity'
 import { getAgentError, getAgentStreamingMessage, metadataForAgentMessage } from './messageRecovery'
-import type { AgentPendingQuestion, AgentQueuedUserMessage, AgentSessionRuntime } from './runtimeTypes'
+import {
+  getAgentSessionStatus,
+  type AgentPendingQuestion,
+  type AgentQueuedUserMessage,
+  type AgentSessionRuntime,
+} from './runtimeTypes'
 import { saveAgentSessionSidecar } from './sessionStore'
-import type { AgentSessionMessageMetadata, AgentSessionSummary } from './sessionTypes'
+import type { AgentSessionMessageMetadata, AgentSessionStatusMap, AgentSessionSummary } from './sessionTypes'
 import { createAskUserQuestionResult } from './tools'
 import { type AgentThinkingLevel } from '../config/agentModels'
 
 export type UseAgentRuntimeStoreParams = {
   setAgentSessions: React.Dispatch<React.SetStateAction<AgentSessionSummary[]>>
+  setAgentSessionStatuses: React.Dispatch<React.SetStateAction<AgentSessionStatusMap>>
   setCurrentAgentSessionId: (sessionId: string | null) => void
   setAgentModelId: (modelId: string) => void
   setAgentThinkingLevelState: (level: AgentThinkingLevel) => void
@@ -33,6 +39,7 @@ export type UseAgentRuntimeStoreParams = {
 export function useAgentRuntimeStore(params: UseAgentRuntimeStoreParams) {
   const {
     setAgentSessions,
+    setAgentSessionStatuses,
     setCurrentAgentSessionId,
     setAgentModelId,
     setAgentThinkingLevelState,
@@ -52,6 +59,35 @@ export function useAgentRuntimeStore(params: UseAgentRuntimeStoreParams) {
 
   const agentRuntimesRef = useRef<Map<string, AgentSessionRuntime>>(new Map())
   const currentAgentSessionIdRef = useRef<string | null>(null)
+
+  const clearRuntimeSessionStatus = useCallback(
+    (sessionId: string) => {
+      setAgentSessionStatuses((prev) => {
+        if (!(sessionId in prev)) return prev
+        const next = { ...prev }
+        delete next[sessionId]
+        return next
+      })
+    },
+    [setAgentSessionStatuses],
+  )
+
+  const syncRuntimeSessionStatus = useCallback(
+    (runtime: AgentSessionRuntime) => {
+      const status = getAgentSessionStatus(runtime)
+      setAgentSessionStatuses((prev) => {
+        const prevStatus = prev[runtime.sessionId] ?? null
+        if (prevStatus === status) return prev
+        if (!status) {
+          const next = { ...prev }
+          delete next[runtime.sessionId]
+          return next
+        }
+        return { ...prev, [runtime.sessionId]: status }
+      })
+    },
+    [setAgentSessionStatuses],
+  )
 
   const upsertAgentSessionSummary = useCallback(
     (record: AgentSessionSummary) => {
@@ -91,6 +127,7 @@ export function useAgentRuntimeStore(params: UseAgentRuntimeStoreParams) {
       setAgentAttachmentError(runtime.attachmentError)
       setAgentImageTasksState(runtime.imageTasks)
       setAgentPendingQuestionsState(runtime.pendingQuestions)
+      syncRuntimeSessionStatus(runtime)
     },
     [
       setAgentAttachmentError,
@@ -103,6 +140,7 @@ export function useAgentRuntimeStore(params: UseAgentRuntimeStoreParams) {
       setAgentMessages,
       setAgentModelId,
       setAgentPendingQuestionsState,
+      syncRuntimeSessionStatus,
       setAgentQueuedMessages,
       setAgentStreamingMessage,
       setAgentThinkingLevelState,
@@ -180,10 +218,11 @@ export function useAgentRuntimeStore(params: UseAgentRuntimeStoreParams) {
       const next = updater(runtime.imageTasks)
       runtime.imageTasks = next
       if (isCurrentRuntime(runtime)) setAgentImageTasksState(next)
+      syncRuntimeSessionStatus(runtime)
       scheduleRuntimeSidecarPersist(runtime)
       return next
     },
-    [isCurrentRuntime, scheduleRuntimeSidecarPersist, setAgentImageTasksState],
+    [isCurrentRuntime, scheduleRuntimeSidecarPersist, setAgentImageTasksState, syncRuntimeSessionStatus],
   )
 
   const setRuntimePendingQuestions = useCallback(
@@ -191,10 +230,11 @@ export function useAgentRuntimeStore(params: UseAgentRuntimeStoreParams) {
       const next = updater(runtime.pendingQuestions)
       runtime.pendingQuestions = next
       if (isCurrentRuntime(runtime)) setAgentPendingQuestionsState(next)
+      syncRuntimeSessionStatus(runtime)
       scheduleRuntimeSidecarPersist(runtime)
       return next
     },
-    [isCurrentRuntime, scheduleRuntimeSidecarPersist, setAgentPendingQuestionsState],
+    [isCurrentRuntime, scheduleRuntimeSidecarPersist, setAgentPendingQuestionsState, syncRuntimeSessionStatus],
   )
 
   const clearRuntimeQuestionResolvers = useCallback(
@@ -228,6 +268,7 @@ export function useAgentRuntimeStore(params: UseAgentRuntimeStoreParams) {
       }
       runtime.isStreaming = runtime.promptPreparing || runtime.agent.state.isStreaming || runtime.isCompacting
       runtime.error = getAgentError(runtime.agent)
+      syncRuntimeSessionStatus(runtime)
       if (!isCurrentRuntime(runtime)) return
       setAgentMessages(runtime.messages)
       setAgentMessageMetadata(runtime.messageMetadata)
@@ -244,12 +285,14 @@ export function useAgentRuntimeStore(params: UseAgentRuntimeStoreParams) {
       setAgentMessages,
       setAgentQueuedMessages,
       setAgentStreamingMessage,
+      syncRuntimeSessionStatus,
     ],
   )
 
   return {
     agentRuntimesRef,
     currentAgentSessionIdRef,
+    clearRuntimeSessionStatus,
     upsertAgentSessionSummary,
     getCurrentRuntime,
     isCurrentRuntime,
@@ -263,5 +306,6 @@ export function useAgentRuntimeStore(params: UseAgentRuntimeStoreParams) {
     setRuntimePendingQuestions,
     clearRuntimeQuestionResolvers,
     syncRuntimeSnapshot,
+    syncRuntimeSessionStatus,
   }
 }

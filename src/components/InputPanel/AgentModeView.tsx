@@ -5,6 +5,7 @@ import type {
   AgentImageTask,
   AgentPendingQuestion,
   AgentQueuedUserMessage,
+  AgentSessionStatusMap,
   AgentSessionSummary,
   AgentSkillSummary,
   AskUserQuestionAnswer,
@@ -31,6 +32,7 @@ type Props = {
   agentAttachments: AgentChatAttachment[]
   agentAttachmentError: string | null
   agentSessions: AgentSessionSummary[]
+  agentSessionStatuses: AgentSessionStatusMap
   currentAgentSessionId: string | null
   agentSessionsLoading: boolean
   autoApproveAgentImageTasks: boolean
@@ -77,6 +79,7 @@ export function AgentModeView({
   agentAttachments,
   agentAttachmentError,
   agentSessions,
+  agentSessionStatuses,
   currentAgentSessionId,
   agentSessionsLoading,
   autoApproveAgentImageTasks,
@@ -120,6 +123,7 @@ export function AgentModeView({
       attachments={agentAttachments}
       attachmentError={agentAttachmentError}
       sessions={agentSessions}
+      sessionStatuses={agentSessionStatuses}
       currentSessionId={currentAgentSessionId}
       sessionsLoading={agentSessionsLoading}
       autoApproveImageTasks={autoApproveAgentImageTasks}
