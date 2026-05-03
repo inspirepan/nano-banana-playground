@@ -32,25 +32,25 @@ export const settingsMessages: MessageDictionary = {
     en: 'No search capability. The agent can still fetch URLs provided by the user.',
   },
   'settings.webTools.search.provider.exaDescription': {
-    'zh-CN': '语义搜索，返回标题、URL 和 highlights。',
-    en: 'Semantic search returning titles, URLs, and highlights.',
+    'zh-CN': '语义搜索，返回标题、URL 和 highlights，经站点代理转发。',
+    en: 'Semantic search returning titles, URLs, and highlights, forwarded via site proxy.',
   },
   'settings.webTools.search.provider.tavilyDescription': {
-    'zh-CN': '面向 LLM 的通用搜索结果和摘要片段。',
-    en: 'LLM-oriented web results and summary snippets.',
+    'zh-CN': '面向 LLM 的通用搜索结果和摘要片段，经站点代理转发。',
+    en: 'LLM-oriented web results and summary snippets, forwarded via site proxy.',
   },
-  'settings.webTools.fetch.provider.default': { 'zh-CN': '默认 + Jina', en: 'Default + Jina' },
+  'settings.webTools.fetch.provider.default': { 'zh-CN': '默认 + 代理', en: 'Default + Proxy' },
   'settings.webTools.fetch.provider.defaultDescription': {
-    'zh-CN': '浏览器直接抓取；遇到 CORS 时自动走 Jina Reader。',
-    en: 'Fetches directly in the browser, then falls back to Jina Reader on CORS failures.',
+    'zh-CN': '浏览器直接抓取；遇到 CORS 时自动通过站点代理兜底。',
+    en: 'Fetches directly in the browser, then falls back to the site proxy on CORS failures.',
   },
   'settings.webTools.fetch.provider.exaDescription': {
-    'zh-CN': '使用 Exa Contents API 抽取 markdown 内容。',
-    en: 'Uses Exa Contents API to extract markdown content.',
+    'zh-CN': '使用 Exa Contents API 抽取 markdown 内容，经站点代理转发。',
+    en: 'Uses Exa Contents API to extract markdown content, forwarded via site proxy.',
   },
   'settings.webTools.fetch.provider.tavilyDescription': {
-    'zh-CN': '使用 Tavily Extract API 抽取网页正文。',
-    en: 'Uses Tavily Extract API to extract page content.',
+    'zh-CN': '使用 Tavily Extract API 抽取网页正文，经站点代理转发。',
+    en: 'Uses Tavily Extract API to extract page content, forwarded via site proxy.',
   },
   'settings.webTools.key.configured': { 'zh-CN': '已配置', en: 'Configured' },
   'settings.webTools.key.notConfigured': { 'zh-CN': '未配置', en: 'Not configured' },
@@ -65,8 +65,8 @@ export const settingsMessages: MessageDictionary = {
   'settings.webTools.key.ariaLabel': { 'zh-CN': '{label} API Key', en: '{label} API key' },
   'settings.webTools.note': {
     'zh-CN':
-      'API Key 只保存在此浏览器。没有配置搜索后端时，Agent 没有 WebSearch 能力；没有配置抓取后端时，WebFetch 使用默认浏览器抓取 + Jina Reader 兜底。',
-    en: 'API keys are stored only in this browser. Without a search backend, the agent has no WebSearch capability; without a fetch backend, WebFetch uses browser fetch plus Jina Reader fallback.',
+      'API Key 只保存在此浏览器。Exa 和 Tavily 请求均经站点 Pages Function 代理转发。没有配置搜索后端时，Agent 没有 WebSearch 能力；没有配置抓取后端时，WebFetch 使用默认浏览器抓取，遇到 CORS 时通过站点代理兜底。',
+    en: 'API keys are stored only in this browser. Exa and Tavily requests are forwarded via the site Pages Function proxy. Without a search backend, the agent has no WebSearch capability; without a fetch backend, WebFetch uses browser fetch, falling back to the site proxy on CORS failures.',
   },
   'settings.appearance.title': { 'zh-CN': '外观', en: 'Appearance' },
   'settings.appearance.description': {

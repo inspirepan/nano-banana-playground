@@ -146,7 +146,7 @@ Web 工具后端分两类抽象：
 - `WebSearchProvider`: `none` / `exa` / `tavily`。
 - `WebFetchProvider`: `default` / `exa` / `tavily`。
 
-用户在 `SettingsDialog` 的 Web 工具区配置 API Key 和分别选择 `WebSearch` / `WebFetch` 后端。没有配置搜索后端时，`WebSearch` 返回未配置错误；没有配置抓取后端时，`WebFetch` 使用浏览器 direct fetch，并在 CORS 失败时自动 fallback 到 Jina Reader。Brave Search API 和 Parallel API 当前不支持本项目这种纯前端浏览器直连，已从可选后端中移除。
+用户在 `SettingsDialog` 的 Web 工具区配置 API Key 和分别选择 `WebSearch` / `WebFetch` 后端。没有配置搜索后端时，`WebSearch` 返回未配置错误；没有配置抓取后端时，`WebFetch` 先尝试浏览器 direct fetch，失败时自动 fallback 到站点代理（`/api/fetch` Pages Function）。Exa / Tavily 的 HTTP 请求也经由 `/api/exa` / `/api/tavily` Pages Function 转发，不存在 CORS 问题。Brave Search API 和 Parallel API 当前不支持（与代理层无关，纯粹未接入），已从可选后端中移除。
 
 真实网络调用测试使用根目录脚本：
 

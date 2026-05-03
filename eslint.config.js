@@ -33,7 +33,7 @@ export default defineConfig([
     settings: {
       'import/resolver': {
         typescript: {
-          project: ['./tsconfig.app.json', './tsconfig.node.json'],
+          project: ['./tsconfig.app.json', './tsconfig.node.json', './tsconfig.functions.json'],
           noWarnOnMultipleProjects: true,
         },
         node: {
@@ -140,6 +140,12 @@ export default defineConfig([
     files: ['src/hooks/effects.ts'],
     rules: {
       'no-restricted-imports': 'off',
+    },
+  },
+  {
+    files: ['functions/**/*.ts'],
+    languageOptions: {
+      globals: globals.browser,
     },
   },
   {

@@ -12,9 +12,11 @@ import { DEFAULT_BASE_URL, previewEndpoint } from '../lib/validateKey'
 export type KeyHook = {
   apiKey: string
   baseUrl: string
+  customBaseUrl: string
+  useProxy: boolean
   status: ApiKeyStatus
   error: string | null
-  submit: (key: string, baseUrl?: string) => void
+  submit: (key: string, customBaseUrl?: string, useProxy?: boolean) => void
   reset: () => void
   keepCurrent: () => void
   setBaseUrl: (baseUrl: string) => void
@@ -113,19 +115,25 @@ function KeyRow({
   const hint = t(providerConfig.keyHintKey)
   const apiKeyInputId = `${id}-api-key`
   const baseUrlInputId = `${id}-base-url`
-  const { apiKey, baseUrl, status, error, submit, reset, keepCurrent } = hook
+  const { apiKey, customBaseUrl, useProxy, status, error, submit, reset, keepCurrent } = hook
   const [draft, setDraft] = useState('')
-  const [baseUrlDraft, setBaseUrlDraft] = useState(baseUrl)
-  const [baseUrlSyncKey, setBaseUrlSyncKey] = useState(baseUrl)
-  if (baseUrl !== baseUrlSyncKey) {
-    setBaseUrlSyncKey(baseUrl)
-    setBaseUrlDraft(baseUrl)
+  const [baseUrlDraft, setBaseUrlDraft] = useState(customBaseUrl)
+  const [baseUrlSyncKey, setBaseUrlSyncKey] = useState(customBaseUrl)
+  if (customBaseUrl !== baseUrlSyncKey) {
+    setBaseUrlSyncKey(customBaseUrl)
+    setBaseUrlDraft(customBaseUrl)
   }
   const [justValidated, setJustValidated] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [advancedOpen, setAdvancedOpen] = useState(false)
   const prevStatusRef = useRef(status)
   const suppressValidFlashRef = useRef(false)
+  const [useProxyDraft, setUseProxyDraft] = useState(useProxy)
+  const [useProxySyncKey, setUseProxySyncKey] = useState(useProxy)
+  if (useProxy !== useProxySyncKey) {
+    setUseProxySyncKey(useProxy)
+    setUseProxyDraft(useProxy)
+  }
 
   // Detect the valid transition to briefly flash a success state on the primary button.
   useExternalSync(() => {
@@ -148,20 +156,22 @@ function KeyRow({
   const handleSubmit = () => {
     const key = draft.trim() || apiKey
     if (!key) return
-    submit(key, baseUrlDraft.trim())
+    submit(key, baseUrlDraft.trim(), useProxyDraft)
   }
 
   const handleEdit = () => {
     setDraft('')
-    setBaseUrlDraft(baseUrl)
+    setBaseUrlDraft(customBaseUrl)
     setAdvancedOpen(false)
     setJustValidated(false)
+    setUseProxyDraft(useProxy)
     setIsEditing(true)
   }
 
   const handleCancelEdit = () => {
     setDraft('')
-    setBaseUrlDraft(baseUrl)
+    setBaseUrlDraft(customBaseUrl)
+    setUseProxyDraft(useProxy)
     setAdvancedOpen(false)
     setIsEditing(false)
     setJustValidated(false)
@@ -195,7 +205,12 @@ function KeyRow({
         <div className="flex min-w-0 items-center gap-1.5 text-sm">
           <Icon name="check_circle" size={12} className="shrink-0 text-(--color-success)" strokeWidth={1.9} />
           <span className="mono min-w-0 truncate text-(--color-text-2)">{masked}</span>
-          {baseUrl ? (
+          {useProxy ? (
+            <>
+              <span className="shrink-0 text-(--color-text-4)">·</span>
+              <span className="shrink-0 text-(--color-accent)">{t('apiKeys.proxy.activeSuffix')}</span>
+            </>
+          ) : customBaseUrl ? (
             <>
               <span className="shrink-0 text-(--color-text-4)">·</span>
               <span className="shrink-0 text-(--color-text-3)">{t('apiKeys.baseUrl.customSuffix')}</span>
@@ -257,8 +272,9 @@ function KeyRow({
 
   const hasDraftKey = draft.trim() !== ''
   const hasBaseUrlDraft = baseUrlDraft.trim() !== ''
-  const hasBaseUrlChange = baseUrlDraft.trim() !== baseUrl
-  const canSubmit = !isValidating && (hasDraftKey || (hasExistingKey && hasBaseUrlChange))
+  const hasBaseUrlChange = baseUrlDraft.trim() !== customBaseUrl
+  const hasProxyChange = useProxyDraft !== useProxy
+  const canSubmit = !isValidating && (hasDraftKey || (hasExistingKey && (hasBaseUrlChange || hasProxyChange)))
   const advancedId = `${id}-advanced`
 
   return (
@@ -319,41 +335,67 @@ function KeyRow({
             <Icon name={advancedOpen ? 'chevron_down' : 'chevron_right'} size={12} />
           </button>
           {advancedOpen && (
-            <div id={advancedId} className="mt-1.5 space-y-1.5">
-              <div className="mb-1 flex items-baseline justify-between">
-                <label className="text-sm font-medium text-(--color-text-3)" htmlFor={baseUrlInputId}>
-                  {t('apiKeys.baseUrl.label')}
-                </label>
-                <span className="text-sm text-(--color-text-3)">{t('apiKeys.baseUrl.hint')}</span>
+            <div id={advancedId} className="mt-1.5 space-y-2.5">
+              <div className="flex items-start justify-between gap-3 py-0.5">
+                <div>
+                  <div className="text-sm font-medium text-(--color-text-2)">{t('apiKeys.proxy.label')}</div>
+                  <div className="mt-0.5 text-sm leading-snug text-(--color-text-3)">{t('apiKeys.proxy.hint')}</div>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={useProxyDraft}
+                  onClick={() => setUseProxyDraft((value) => !value)}
+                  disabled={isValidating}
+                  className={`relative mt-0.5 inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed ${
+                    useProxyDraft
+                      ? 'bg-(--color-accent) shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-accent)_55%,#000_10%)]'
+                      : 'bg-(--color-surface-2) shadow-[inset_0_0_0_1px_var(--ring-edge)]'
+                  }`}
+                >
+                  <span
+                    className={`pointer-events-none my-0.5 size-4 rounded-full bg-white shadow-sm transition-transform duration-150 ${
+                      useProxyDraft ? 'translate-x-[18px]' : 'translate-x-0.5'
+                    }`}
+                  />
+                </button>
               </div>
-              <input
-                id={baseUrlInputId}
-                type="url"
-                value={baseUrlDraft}
-                onChange={(e) => setBaseUrlDraft(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleSubmit()
-                }}
-                placeholder={baseUrlPlaceholder}
-                aria-label={t('apiKeys.baseUrl.ariaLabel', { label })}
-                spellCheck={false}
-                autoComplete="off"
-                disabled={isValidating}
-                className="mono w-full rounded-[var(--radius-sm)] bg-(--color-surface) px-2.5 py-1.5 text-base
+              <div>
+                <div className="mb-1 flex items-baseline justify-between">
+                  <label className="text-sm font-medium text-(--color-text-3)" htmlFor={baseUrlInputId}>
+                    {t('apiKeys.baseUrl.label')}
+                  </label>
+                  <span className="text-sm text-(--color-text-3)">{t('apiKeys.baseUrl.hint')}</span>
+                </div>
+                <input
+                  id={baseUrlInputId}
+                  type="url"
+                  value={baseUrlDraft}
+                  onChange={(e) => setBaseUrlDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSubmit()
+                  }}
+                  placeholder={baseUrlPlaceholder}
+                  aria-label={t('apiKeys.baseUrl.ariaLabel', { label })}
+                  spellCheck={false}
+                  autoComplete="off"
+                  disabled={isValidating}
+                  className="mono w-full rounded-[var(--radius-sm)] bg-(--color-surface) px-2.5 py-1.5 text-base
                            shadow-[inset_0_0_0_1px_var(--ring-edge)]
                            focus:shadow-[inset_0_0_0_1px_var(--color-accent),0_0_0_3px_var(--color-accent-wash)]
                            transition-[box-shadow,background]
                            placeholder:text-(--color-text-4)
                            disabled:opacity-60 disabled:cursor-not-allowed"
-              />
-              {hasBaseUrlDraft && (
-                <div className="flex items-start gap-1 text-sm leading-[1.5] text-(--color-text-3)">
-                  <span className="shrink-0">{t('apiKeys.baseUrl.previewLabel')}</span>
-                  <span className="mono min-w-0 flex-1 break-all text-(--color-text-3)">
-                    {previewEndpoint(provider, baseUrlDraft)}
-                  </span>
-                </div>
-              )}
+                />
+                {hasBaseUrlDraft && (
+                  <div className="flex items-start gap-1 text-sm leading-[1.5] text-(--color-text-3)">
+                    <span className="shrink-0">{t('apiKeys.baseUrl.previewLabel')}</span>
+                    <span className="mono min-w-0 flex-1 break-all text-(--color-text-3)">
+                      {previewEndpoint(provider, baseUrlDraft)}
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>

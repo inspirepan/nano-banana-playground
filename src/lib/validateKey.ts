@@ -27,8 +27,7 @@ export function resolveBaseUrl(provider: Provider, baseUrl?: string): string {
   if (trimmed.endsWith('#')) {
     return trimmed.slice(0, -1).replace(/\/+$/, '')
   }
-  const effective = (trimmed || getProviderConfig(provider).defaultBaseUrl).replace(/\/+$/, '')
-  const stripped = effective.replace(TRAILING_API_VERSION, '')
+  const stripped = stripTrailingApiVersion(trimmed || getProviderConfig(provider).defaultBaseUrl)
   if (provider === 'google') return stripped
   if (isOpenAICompatibleProvider(provider)) return `${stripped}/v1`
   return stripped
@@ -102,6 +101,25 @@ export async function validateApiKey(
     const msg = e instanceof Error ? e.message : String(e)
     return { valid: false, error: translate('configLib.validateKey.networkCorsError', { message: msg }) }
   }
+}
+
+function encodeBase64Url(value: string): string {
+  return btoa(value).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
+}
+
+function stripTrailingApiVersion(baseUrl: string): string {
+  return baseUrl.replace(/\/+$/, '').replace(TRAILING_API_VERSION, '')
+}
+
+// The trailing # keeps custom gateway paths exact after resolveBaseUrl().
+export function getProxyBaseUrl(provider: Provider, customBaseUrl?: string): string {
+  const trimmed = customBaseUrl?.trim() ?? ''
+  const preserveExactBase = trimmed.endsWith('#')
+  const targetBase = preserveExactBase ? trimmed.slice(0, -1).replace(/\/+$/, '') : stripTrailingApiVersion(trimmed)
+  const origin = typeof window !== 'undefined' ? window.location.origin : ''
+
+  if (!targetBase) return `${origin}/api/llm/${provider}`
+  return `${origin}/api/llm/${encodeBase64Url(targetBase)}${preserveExactBase ? '#' : ''}`
 }
 
 const KEY_INVALID_PATTERNS = [

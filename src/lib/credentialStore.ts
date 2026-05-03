@@ -44,3 +44,17 @@ export function saveProviderBaseUrl(provider: Provider, baseUrl: string): boolea
   clearProviderBaseUrl(provider)
   return true
 }
+
+const USE_PROXY_PREFIX = 'nbp-use-proxy:'
+
+export function readProviderUseProxy(provider: Provider): boolean {
+  return getStorageItem('localStorage', `${USE_PROXY_PREFIX}${provider}`) === 'true'
+}
+
+export function writeProviderUseProxy(provider: Provider, value: boolean): void {
+  if (value) {
+    setStorageItem('localStorage', `${USE_PROXY_PREFIX}${provider}`, 'true')
+  } else {
+    removeStorageItem('localStorage', `${USE_PROXY_PREFIX}${provider}`)
+  }
+}

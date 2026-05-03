@@ -9,9 +9,7 @@ import { translate } from '../../i18n'
 import { readWebProviderSettings } from '../../lib/webProviderStore'
 import { agentWebFetchVirtualPath, saveAgentVirtualFile } from '../virtualFiles'
 
-const JINA_READER_BASE_URL = 'https://r.jina.ai/'
-
-type WebFetchSource = 'direct' | 'jina_reader' | Exclude<WebFetchProvider, 'default'>
+type WebFetchSource = 'direct' | 'proxy' | Exclude<WebFetchProvider, 'default'>
 
 export type WebFetchToolArgs = {
   url: string
@@ -47,6 +45,44 @@ export function createWebFetchTool({ webFetch }: { webFetch: WebFetchExecutor })
     execute: (toolCallId: string, args: WebFetchToolArgs, signal?: AbortSignal) =>
       webFetch(toolCallId, prepareWebFetchArgs(args), signal),
   } as AgentRuntimeTool
+}
+
+type NormalizedFetch = {
+  source: WebFetchSource
+  status: number
+  statusText: string
+  contentType: string
+  body: string
+  finalUrl: string
+}
+
+async function tryDirectFetch(url: string, signal?: AbortSignal): Promise<NormalizedFetch> {
+  const response = await fetch(url, { signal, redirect: 'follow' })
+  const contentType = response.headers.get('content-type') ?? ''
+  const body = await response.text()
+  return { source: 'direct', status: response.status, statusText: response.statusText, contentType, body, finalUrl: response.url }
+}
+
+async function tryProxyFetch(url: string, signal?: AbortSignal): Promise<NormalizedFetch> {
+  const response = await fetch('/api/fetch', {
+    method: 'POST',
+    signal,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url }),
+  })
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({})) as { error?: string }
+    throw new Error(`Proxy error ${response.status}: ${data.error ?? response.statusText}`)
+  }
+  const data = await response.json() as { status: number; statusText: string; contentType: string; finalUrl: string; body: string }
+  return {
+    source: 'proxy',
+    status: data.status,
+    statusText: data.statusText ?? '',
+    contentType: data.contentType ?? '',
+    body: data.body ?? '',
+    finalUrl: data.finalUrl ?? url,
+  }
 }
 
 function decodeBasicEntities(input: string): string {
@@ -86,10 +122,6 @@ function isAbortError(error: unknown, signal?: AbortSignal): boolean {
     (error instanceof Error && error.name === 'AbortError') ||
     (typeof DOMException !== 'undefined' && error instanceof DOMException && error.name === 'AbortError'),
   )
-}
-
-function toJinaReaderUrl(url: string): string {
-  return `${JINA_READER_BASE_URL}${url}`
 }
 
 function errorResult(text: string, details: Record<string, unknown>): AgentToolResult {
@@ -214,66 +246,41 @@ async function runDefaultWebFetch(
   if (validationError) return validationError
 
   const start = Date.now()
-  let response: Response
-  let fetchSource: WebFetchSource = 'direct'
-  let fetchUrl = url
+  let result: NormalizedFetch
   let directFetchError: string | null = null
+
   try {
-    response = await fetch(url, { signal, redirect: 'follow' })
-  } catch (error) {
-    if (isAbortError(error, signal)) {
-      const message = getErrorMessage(error)
+    result = await tryDirectFetch(url, signal)
+  } catch (directError) {
+    if (isAbortError(directError, signal)) {
+      const message = getErrorMessage(directError)
       return errorResult(`Fetch aborted: ${message}`, { reason: 'aborted', url, message })
     }
-
-    directFetchError = getErrorMessage(error)
-    fetchSource = 'jina_reader'
-    fetchUrl = toJinaReaderUrl(url)
+    directFetchError = getErrorMessage(directError)
     try {
-      response = await fetch(fetchUrl, { signal, redirect: 'follow' })
-    } catch (fallbackError) {
-      const fallbackMessage = getErrorMessage(fallbackError)
-      if (isAbortError(fallbackError, signal)) {
-        return errorResult(`Fetch aborted: ${fallbackMessage}`, { reason: 'aborted', url, message: fallbackMessage })
+      result = await tryProxyFetch(url, signal)
+    } catch (proxyError) {
+      if (isAbortError(proxyError, signal)) {
+        const message = getErrorMessage(proxyError)
+        return errorResult(`Fetch aborted: ${message}`, { reason: 'aborted', url, message })
       }
-      return errorResult(`Fetch failed: ${directFetchError}. Reader fallback failed: ${fallbackMessage}`, {
+      const proxyMessage = getErrorMessage(proxyError)
+      return errorResult(`Fetch failed: ${directFetchError}. Proxy fallback failed: ${proxyMessage}`, {
         reason: 'fetch_failed',
         url,
         message: directFetchError,
-        fallback: {
-          source: fetchSource,
-          url: fetchUrl,
-          message: fallbackMessage,
-        },
+        fallback: { source: 'proxy', message: proxyMessage },
       })
     }
   }
 
-  const code = response.status
-  const codeText = response.statusText
-  const contentType = response.headers.get('content-type') ?? ''
-
-  let body: string
-  try {
-    body = await response.text()
-  } catch (error) {
-    const message = getErrorMessage(error)
-    return errorResult(`Failed to read response body: ${message}`, {
-      reason: 'body_read_failed',
-      url,
-      fetchSource,
-      fetchUrl,
-      code,
-      message,
-    })
-  }
-
+  const { source: fetchSource, status: code, statusText: codeText, contentType, body, finalUrl } = result
   const processedRaw = looksLikeHtml(contentType, body) ? htmlToText(body) : body
 
   const headerLine = [
     `URL: ${url}`,
     `Fetch-Source: ${fetchSource}`,
-    ...(response.url && response.url !== url ? [`Fetched-URL: ${response.url}`] : []),
+    ...(finalUrl && finalUrl !== url ? [`Fetched-URL: ${finalUrl}`] : []),
     ...(fallbackReason ? [`Provider-Fallback-Reason: ${fallbackReason}`] : []),
     ...(directFetchError ? [`Direct-Fetch-Error: ${directFetchError}`] : []),
     `Status: ${code}${codeText ? ` ${codeText}` : ''}`,
@@ -291,10 +298,10 @@ async function runDefaultWebFetch(
   return {
     content: [{ type: 'text', text }],
     details: {
-      status: response.ok ? 'ready' : 'http_error',
+      status: code >= 200 && code < 300 ? 'ready' : 'http_error',
       url,
       fetchSource,
-      fetchUrl,
+      fetchUrl: finalUrl,
       fallbackReason,
       directFetchError,
       code,

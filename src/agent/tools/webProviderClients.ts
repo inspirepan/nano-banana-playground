@@ -21,8 +21,9 @@ type JsonResponse = {
   data: unknown
 }
 
-const EXA_BASE_URL = 'https://api.exa.ai'
-const TAVILY_BASE_URL = 'https://api.tavily.com'
+const isBrowserRuntime = 'window' in globalThis
+const EXA_BASE_URL = isBrowserRuntime ? '/api/exa' : 'https://api.exa.ai'
+const TAVILY_BASE_URL = isBrowserRuntime ? '/api/tavily' : 'https://api.tavily.com'
 
 function asRecord(value: unknown): Record<string, unknown> {
   return typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : {}

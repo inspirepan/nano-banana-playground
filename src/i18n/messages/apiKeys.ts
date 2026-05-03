@@ -51,6 +51,12 @@ export const apiKeysMessages: MessageDictionary = {
   'apiKeys.baseUrl.previewLabel': { 'zh-CN': '实际调用', en: 'Actual endpoint' },
   'apiKeys.baseUrl.defaultSuffix': { 'zh-CN': '（默认）', en: '(default)' },
   'apiKeys.baseUrl.customSuffix': { 'zh-CN': '已使用自定义 Base URL', en: 'Custom Base URL enabled' },
+  'apiKeys.proxy.label': { 'zh-CN': '通过站点代理', en: 'Route through site proxy' },
+  'apiKeys.proxy.hint': {
+    'zh-CN': '调用经由站点 Pages Function 转发，可绕过浏览器 CORS 限制',
+    en: 'Calls are forwarded via the site Pages Function, bypassing browser CORS restrictions',
+  },
+  'apiKeys.proxy.activeSuffix': { 'zh-CN': '已用代理', en: 'Proxied' },
   'apiKeys.advanced.toggle': { 'zh-CN': '高级设置', en: 'Advanced settings' },
   'apiKeys.status.validated': { 'zh-CN': '验证成功', en: 'Verified' },
   'apiKeys.status.validating': { 'zh-CN': '验证中…', en: 'Verifying…' },

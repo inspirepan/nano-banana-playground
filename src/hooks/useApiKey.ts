@@ -6,10 +6,12 @@ import {
   clearProviderApiKey,
   readProviderApiKey,
   readProviderBaseUrl,
+  readProviderUseProxy,
   saveProviderBaseUrl,
   writeProviderApiKey,
+  writeProviderUseProxy,
 } from '../lib/credentialStore'
-import { validateApiKey } from '../lib/validateKey'
+import { getProxyBaseUrl, validateApiKey } from '../lib/validateKey'
 
 export type ApiKeyStatus = 'empty' | 'validating' | 'valid' | 'invalid'
 
@@ -19,22 +21,32 @@ export function useApiKey(provider: Provider) {
     return [key, key ? 'valid' : 'empty']
   })
   const [apiKey, setApiKeyRaw] = useState(initialApiKey)
-  const [baseUrl, setBaseUrlRaw] = useState(() => readProviderBaseUrl(provider))
+  const [customBaseUrl, setCustomBaseUrlRaw] = useState(() => readProviderBaseUrl(provider))
+  const [useProxy, setUseProxyRaw] = useState(() => readProviderUseProxy(provider))
   const [status, setStatus] = useState<ApiKeyStatus>(initialStatus)
   const [error, setError] = useState<string | null>(null)
 
+  // Effective base URL used by API calls: proxy path when proxy is on, custom URL otherwise.
+  const baseUrl = useProxy ? getProxyBaseUrl(provider, customBaseUrl) : customBaseUrl
+
   const submit = useCallback(
-    async (key: string, nextBaseUrl?: string) => {
+    async (key: string, nextCustomBaseUrl?: string, nextUseProxy?: boolean) => {
       setStatus('validating')
       setError(null)
-      const effectiveBaseUrl = nextBaseUrl !== undefined ? nextBaseUrl.trim() : baseUrl
+      const effectiveCustomUrl = nextCustomBaseUrl !== undefined ? nextCustomBaseUrl.trim() : customBaseUrl
+      const effectiveUseProxy = nextUseProxy ?? useProxy
+      const effectiveBaseUrl = effectiveUseProxy ? getProxyBaseUrl(provider, effectiveCustomUrl) : effectiveCustomUrl
       const result = await validateApiKey(provider, key, effectiveBaseUrl)
       if (result.valid) {
         setApiKeyRaw(key)
         writeProviderApiKey(provider, key)
-        if (nextBaseUrl !== undefined) {
-          setBaseUrlRaw(effectiveBaseUrl)
-          saveProviderBaseUrl(provider, effectiveBaseUrl)
+        if (nextCustomBaseUrl !== undefined) {
+          setCustomBaseUrlRaw(effectiveCustomUrl)
+          saveProviderBaseUrl(provider, effectiveCustomUrl)
+        }
+        if (nextUseProxy !== undefined) {
+          setUseProxyRaw(effectiveUseProxy)
+          writeProviderUseProxy(provider, effectiveUseProxy)
         }
         setStatus('valid')
       } else {
@@ -42,7 +54,7 @@ export function useApiKey(provider: Provider) {
         setStatus('invalid')
       }
     },
-    [baseUrl, provider],
+    [customBaseUrl, provider, useProxy],
   )
 
   const reset = useCallback(() => {
@@ -61,7 +73,7 @@ export function useApiKey(provider: Provider) {
   const setBaseUrl = useCallback(
     (next: string) => {
       const trimmed = next.trim()
-      setBaseUrlRaw(trimmed)
+      setCustomBaseUrlRaw(trimmed)
       saveProviderBaseUrl(provider, trimmed)
     },
     [provider],
@@ -72,7 +84,19 @@ export function useApiKey(provider: Provider) {
   }, [])
 
   return useMemo(
-    () => ({ apiKey, baseUrl, status, error, submit, reset, keepCurrent, setBaseUrl, invalidate }),
-    [apiKey, baseUrl, error, invalidate, keepCurrent, reset, setBaseUrl, status, submit],
+    () => ({
+      apiKey,
+      baseUrl,
+      customBaseUrl,
+      useProxy,
+      status,
+      error,
+      submit,
+      reset,
+      keepCurrent,
+      setBaseUrl,
+      invalidate,
+    }),
+    [apiKey, baseUrl, customBaseUrl, useProxy, error, invalidate, keepCurrent, reset, setBaseUrl, status, submit],
   )
 }

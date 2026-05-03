@@ -2,7 +2,7 @@
 
 ## 架构概览
 
-纯前端 SPA。无后端。浏览器直接调用 Gemini 和 OpenAI 图像接口；用户自己的 API Key 分 provider 保存在 localStorage。生成历史和图片数据保存在 IndexedDB，本地 blob/object URL 缓存由 `useImageSrc` 管理。
+纯前端 SPA + Cloudflare Pages Functions 代理层。浏览器直接调用图像接口；所有 LLM 调用、Web 搜索/抓取均可选择通过站点代理（Pages Functions）转发，规避浏览器 CORS 限制。用户自己的 API Key 分 provider 保存在 localStorage。生成历史和图片数据保存在 IndexedDB，本地 blob/object URL 缓存由 `useImageSrc` 管理。
 
 ```
 浏览器
@@ -20,6 +20,14 @@
   |           |-- prompt / referenceImages / generationPreview / history / error
   |           +-- URL sync + IndexedDB history + blob cache
   |
+  +-- Cloudflare Pages Functions (functions/)
+  |     |-- /api/exa/[[path]]     → https://api.exa.ai
+  |     |-- /api/tavily/[[path]]  → https://api.tavily.com
+  |     |-- /api/fetch            → 通用 URL 抓取代理（POST {url}）
+  |     +-- /api/llm/[[path]]     → LLM provider 透明代理
+  |           首段为 provider 名（google/openai/anthropic/moonshot-*）
+  |           或 base64url 编码的自定义 Base URL
+  |
   +-- Gemini REST API
   |     POST /v1beta/models/{model}:generateContent
   |
@@ -30,7 +38,7 @@
   |     图片元数据 + base64/blob
   |
   +-- localStorage
-        Google/OpenAI API Key + theme + color theme
+        API Key（各 provider）+ 代理开关 + theme + color theme
 ```
 
 核心设计决策：
@@ -56,6 +64,12 @@
 ## 项目结构
 
 ```
+functions/
+  api/
+    exa/[[path]].ts       # 透明代理 → https://api.exa.ai
+    tavily/[[path]].ts    # 透明代理 → https://api.tavily.com
+    fetch.ts              # 通用 URL 抓取代理（POST {url}）
+    llm/[[path]].ts       # LLM provider 代理（named provider 或 base64url 自定义 URL）
 src/
   config/
     models.ts                  # 图片模型/分辨率/比例/quality/价格/上限
@@ -75,7 +89,7 @@ src/
     pricing.ts                 # 预估价格 / 实际费用计算
     types.ts                   # PlaygroundImage / token usage
     exportImages.ts / downloadFileName.ts  # 图片导出与文件名生成
-    credentialStore.ts / preferenceStore.ts / webProviderStore.ts  # localStorage domain stores
+    credentialStore.ts / preferenceStore.ts / webProviderStore.ts  # localStorage domain stores（含 useProxy 开关）
     db.ts                      # IndexedDB 抽象层
   i18n/
     useI18n.ts                 # useI18n hook，组件调用入口
