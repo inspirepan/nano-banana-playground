@@ -86,6 +86,18 @@ function removeExpectedShape(text: string): string {
     .trim()
 }
 
+// Match the recommendation suffix prescribed by askUserQuestion.md,
+// in both Chinese "（推荐）" and English "(Recommended)" variants.
+const RECOMMENDATION_SUFFIX = /\s*[(（]\s*(推荐|recommend(?:ed)?)\s*[)）]\s*$/i
+
+function splitRecommendation(label: string): { label: string; recommendText: string | null } {
+  const match = label.match(RECOMMENDATION_SUFFIX)
+  if (!match) return { label, recommendText: null }
+  const raw = match[1].toLowerCase()
+  const recommendText = raw === '推荐' ? '推荐' : 'Recommended'
+  return { label: label.replace(RECOMMENDATION_SUFFIX, '').trim(), recommendText }
+}
+
 function renderAnsweredQuestions(items: RenderedQuestionAnswer[]) {
   return (
     <div className="space-y-2">
@@ -169,12 +181,11 @@ export function AskUserQuestionForm({
       <div className="flex min-w-0 items-center gap-2">
         <span
           aria-hidden
-          className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-(--color-accent-fg)"
-          style={{ background: 'var(--color-accent)' }}
+          className="inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-(--color-surface-2) text-(--color-accent) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]"
         >
-          <Icon name="help_circle" className="h-3.5 w-3.5" strokeWidth={2.2} />
+          <Icon name="help_circle" size={14} strokeWidth={2.2} />
         </span>
-        <span className="min-w-0 flex-1 text-base font-semibold text-(--color-text)">
+        <span className="min-w-0 flex-1 text-sm font-semibold text-(--color-text)">
           {t('agentChat.question.title')}
         </span>
         <button
@@ -196,13 +207,14 @@ export function AskUserQuestionForm({
       <div className="mt-3">
         {questions.map((question, index) => {
           const entry = form[index] ?? { selected: [], note: '' }
+          const hasAnyDescription = question.options.some((item) => Boolean(item.description?.trim()))
           return (
             <div key={index} className={index > 0 ? 'mt-3 pt-3 shadow-[inset_0_1px_0_var(--ring-edge-soft)]' : ''}>
               <div className="flex min-w-0 items-baseline gap-2">
                 <span
                   aria-hidden
-                  className="inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-[var(--radius-xs)] px-1 text-[11px] font-semibold text-(--color-text)"
-                  style={{ background: 'var(--color-bg)', fontVariantNumeric: 'tabular-nums' }}
+                  className="mono shrink-0 text-[12px] text-(--color-text-4)"
+                  style={{ fontVariantNumeric: 'tabular-nums' }}
                 >
                   {index + 1}
                 </span>
@@ -213,24 +225,23 @@ export function AskUserQuestionForm({
                   </span>
                 )}
               </div>
-              <div className="mt-2 flex flex-wrap gap-1.5">
+              <div className="mt-2 flex flex-wrap gap-2">
                 {question.options.map((option) => {
                   const checked = entry.selected.includes(option.label)
                   const description = option.description?.trim()
-                  const shapeClass = question.multi_select ? 'rounded-[var(--radius-sm)] px-2.5' : 'rounded-full px-5'
-                  const alignClass = description ? 'items-start py-1' : 'items-center py-1.5'
+                  const { label: cleanedLabel, recommendText } = splitRecommendation(option.label)
                   return (
                     <button
                       key={option.label}
                       type="button"
                       onClick={() => toggleOption(index, option.label, question.multi_select)}
                       data-active={checked || undefined}
-                      className={`group flex gap-2 ${shapeClass} ${alignClass} bg-(--color-surface) text-left shadow-[inset_0_0_0_1px_var(--ring-edge)] transition-[background,box-shadow,color] hover:bg-(--color-surface-2) hover:shadow-[inset_0_0_0_1px_var(--ring-edge-strong)] data-[active]:bg-(--color-accent-wash) data-[active]:shadow-[inset_0_0_0_1px_var(--ring-edge-soft)] data-[active]:hover:bg-(--color-accent-wash-2) data-[active]:hover:shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]`}
+                      className="group flex items-center gap-2 rounded-[var(--radius-sm)] bg-(--color-surface) px-2.5 py-1.5 text-left shadow-[0_0_0_1px_var(--ring-edge-soft),var(--shadow-lift)] transition-[background,box-shadow,color,transform] hover:bg-(--color-surface-2) hover:shadow-[0_0_0_1px_var(--ring-edge-strong),var(--shadow-float)] data-[active]:bg-(--color-accent-wash) data-[active]:shadow-[0_0_0_1px_var(--ring-edge-soft),var(--shadow-lift)] data-[active]:hover:bg-(--color-accent-wash-2) data-[active]:hover:shadow-[0_0_0_1px_var(--ring-edge-strong),var(--shadow-float)]"
                     >
                       {question.multi_select && (
                         <span
                           aria-hidden
-                          className={`${description ? 'mt-[3px]' : ''} inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-[3px] bg-(--color-surface) shadow-[inset_0_0_0_1px_var(--ring-edge-strong)] transition-colors group-data-[active]:bg-(--color-accent) group-data-[active]:shadow-none`}
+                          className="mt-px inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center self-start rounded-[3px] bg-(--color-surface) shadow-[inset_0_0_0_1px_var(--ring-edge-strong)] transition-colors group-data-[active]:bg-(--color-accent) group-data-[active]:shadow-none"
                         >
                           <Icon
                             name="check"
@@ -238,15 +249,24 @@ export function AskUserQuestionForm({
                           />
                         </span>
                       )}
-                      <span className="flex flex-col items-start">
-                        <span className="text-sm font-medium text-(--color-text-2) group-data-[active]:text-(--color-accent)">
-                          {option.label}
+                      <span className="flex flex-col items-start justify-center">
+                        <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-(--color-text-2) group-data-[active]:text-(--color-accent)">
+                          {cleanedLabel}
+                          {recommendText ? (
+                            <span className="tag accent group-data-[active]:bg-(--color-accent) group-data-[active]:text-(--color-accent-fg) group-data-[active]:shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-accent)_55%,#000_10%)]">
+                              {recommendText}
+                            </span>
+                          ) : null}
                         </span>
-                        {description && (
+                        {description ? (
                           <span className="text-[12px] leading-[1.35] text-(--color-text-3) group-data-[active]:text-(--color-text-2)">
                             {description}
                           </span>
-                        )}
+                        ) : hasAnyDescription ? (
+                          <span aria-hidden className="select-none text-[12px] leading-[1.35]">
+                            {'\u00A0'}
+                          </span>
+                        ) : null}
                       </span>
                     </button>
                   )
@@ -258,9 +278,7 @@ export function AskUserQuestionForm({
                 onChange={(event) => setNote(index, event.target.value)}
                 placeholder={t('agentChat.question.notePlaceholder')}
                 data-active={entry.note.trim().length > 0 || undefined}
-                className={`mt-2 h-7 min-w-[12em] max-w-full bg-(--color-surface) text-sm font-medium text-(--color-text) shadow-[inset_0_0_0_1px_var(--ring-edge)] transition-[background,box-shadow,color] placeholder:font-normal placeholder:text-(--color-text-4) focus:shadow-[inset_0_0_0_1px_var(--color-accent)] focus:outline-none data-[active]:bg-(--color-accent-wash) data-[active]:text-(--color-accent) data-[active]:shadow-[inset_0_0_0_1px_var(--ring-edge-soft)] ${
-                  question.multi_select ? 'rounded-[var(--radius-sm)] px-2.5' : 'rounded-full px-5'
-                }`}
+                className="mt-2 h-7 min-w-[12em] max-w-full rounded-[var(--radius-sm)] bg-(--color-surface) px-2.5 text-sm font-medium text-(--color-text) shadow-[inset_0_0_0_1px_var(--ring-edge)] transition-[background,box-shadow,color] placeholder:font-normal placeholder:text-(--color-text-4) focus:shadow-[inset_0_0_0_1px_var(--color-accent)] focus:outline-none data-[active]:bg-(--color-accent-wash) data-[active]:text-(--color-accent) data-[active]:shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]"
                 style={{ fieldSizing: 'content' } as CSSProperties}
               />
             </div>
@@ -309,8 +327,8 @@ export function AskUserQuestionResultCard({
               ? t('agentChat.question.decidedByAgent')
               : selected.length > 0
                 ? question.multi_select || selected.length > 1
-                  ? selected.map((label) => `- ${label}`).join('\n')
-                  : selected[0]
+                  ? selected.map((label) => `- ${splitRecommendation(label).label}`).join('\n')
+                  : splitRecommendation(selected[0]).label
                 : t('agentChat.question.emptyAnswer')
         return {
           question: question.question,
