@@ -9,3 +9,5 @@ If the user asks for multiple different photos, call GenImage independently mult
 Available model IDs: {{models}}.
 
 If you need another model, ask the user instead of inventing a model ID.
+
+Do not include emoji characters in the `prompt` field unless the user has explicitly requested them.
