@@ -50,7 +50,7 @@ display_description:
 - 分隔：极少量 `#E5E7EB` 发丝线，只用于分栏或列表分隔，不画完整线框卡片
 - 文字主色：`#1F2937` / 副色 `#6B7280`
 - 强调色（用户选 1 个，默认蓝 `#2563EB`）
-- 风格细节：Notion / Linear 式克制文档感，主要用浅灰浮层、轻微背景差、非常柔和的灰色 ambient shadow 建立层级；减少线条，禁止给模块画完整描边；卡片边界应像灰色纸片轻轻浮在白底上，而不是线框盒子；无渐变、无立体、无发光；装饰使用 checkbox / dot / 小型状态 pill / 短下划线。
+- 风格细节：Notion / Linear 式克制文档感，主要用浅灰浮层、轻微背景差、非常柔和的灰色 ambient shadow 建立层级；减少线条，禁止给模块画完整描边；卡片边界应像灰色纸片轻轻浮在白底上，而不是线框盒子；无渐变、无立体、无发光；装饰使用 checkbox / dot / 小型状态 pill / 短下划线。**信息密度要求**：每个内容区块内除文字要点外，应至少包含 1 个内嵌迷你视觉元素——可以是小型流程链、数值标注卡、关系示意节点、对比箭头图、迷你图示或小型分类矩阵；每区块文字量达到 2-3 条要点，让整张图视觉饱满、可扫描，而不是大片留白 + 单一图标。
 
 ### consulting-report（商业分析报告长图）
 
@@ -244,14 +244,14 @@ Hard rules:
 
 `STYLE_BLOCK`：
 
-- notion-line：`Notion / Linear style restrained document UI. Build hierarchy with pale gray floating surfaces, subtle background contrast and very soft gray ambient shadows. Use far fewer lines; do not draw full outline borders around modules. Hairline separators are allowed only for lists or columns. No gradients, no 3D effects, no glow.`
+- notion-line：`Notion / Linear style document UI — clean but information-dense. Build hierarchy with pale gray floating surfaces, subtle background contrast and very soft gray ambient shadows. Use far fewer lines; do not draw full outline borders around modules. Hairline separators are allowed only for lists or columns. No gradients, no 3D effects, no glow. Each content zone must feel visually full: include 2-3 bullet text lines AND at least one embedded mini-visual per zone — small inline diagrams, mini flow chains with nodes and arrows, numeric stat callouts with accent highlights, comparison spectrums, small relationship maps, compact classification grids, or small UI mockup illustrations (mini browser windows, mobile screen frames, dialog boxes, toggle switches, progress bars, code editor snippets, command-line terminal windows, settings panels, notification toasts, sidebar nav items). Do NOT leave a zone with only a single large icon and one line of text — that reads as empty. The overall infographic should be densely packed and scannable, matching the information richness of a well-designed Notion wiki page, not a sparse slide deck.`
 - sketch-notes：`Hand-drawn wobble on every line and shape, rounded macaron-color blocks as section backgrounds, color fills do not reach the outline edges (hand-painted gap), pastel mood, slight paper grain.`
 - chalkboard：`Chalk-textured strokes with subtle dust and faint smudges, slightly imperfect baselines, flat illustration only — no photorealistic blackboard frame, no wood, no studio lighting.`
 - consulting-report：`High-density premium consulting / business analysis infographic. Looks like a polished McKinsey / BCG / Bloomberg / Apple newsroom profile page: exact grid, crisp modular cards, dense but readable captions, real photo evidence, compact icon system, subtle shadows, restrained blue-gray palette. Avoid cute doodles, empty minimalist layouts, poster-only composition, loud gradients or decorative stock-photo mood.`
 
 `DECOR_BLOCK`：
 
-- notion-line：`small dot bullets, checkbox glyphs, tiny status pills, short underlines, very sparse arrows only when needed, no emoji, no stickers, no decorative outline boxes`
+- notion-line：`small dot bullets, checkbox glyphs, tiny status pills, short underlines; within each zone add inline mini-visuals: node-and-arrow flow chains, comparison spectrums or sliders, numeric percentage callout blocks, mini 2-column tables, compact relationship graphs with labeled nodes, step-by-step flow indicators; also encouraged: small flat UI illustrations — mini browser chrome with address bar and tabs, compact mobile phone frame with a simplified screen, small dialog or modal window, toggle switch or radio button group, progress bar or step indicator, mini code block or terminal window with a few lines of text, settings panel with a list of options, notification badge or toast, sidebar nav with active item highlight; keep all UI mockups flat and line-art style, matching the gray-surface aesthetic; arrows and connector lines are encouraged inside zones; no emoji, no stickers, no decorative outline border boxes around the whole module`
 - sketch-notes：`wavy hand-drawn arrows between zones, tiny stars, small hearts, checkmarks, doodle underlines`
 - chalkboard：`chalk stars, curved connector lines, small eraser smudges, occasional underlined keywords`
 - consulting-report：`small professional line icons, tiny category chips, quote marks, timeline dots, product thumbnails, publication / event thumbnail strips, compact metric callouts only when data is provided`
