@@ -95,7 +95,7 @@ export function ComposerActions({
         {preferredImageModel && (
           <>
             <span className="flex min-w-0 items-center gap-1.5">
-              <BrandIcon name={getProviderConfig(preferredImageModel.provider).brandIcon} size={11} />
+              <BrandIcon name={getProviderConfig(preferredImageModel.provider).brandIcon} size={13} className="shrink-0 text-(--color-text-3)" />
               <span className="min-w-0 truncate text-(--color-text-2)">{getModelShortLabel(preferredImageModel)}</span>
             </span>
             <span aria-hidden="true" className="h-4 w-px shrink-0 bg-(--ring-edge-soft)" />
