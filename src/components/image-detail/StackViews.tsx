@@ -307,13 +307,7 @@ export const StackStrip = memo(function StackStrip({
         {leadingNode && <div className="hidden shrink-0 md:flex">{leadingNode}</div>}
         <div
           ref={stripScrollRef}
-          className="-m-1 flex min-w-0 flex-1 items-stretch gap-2.5 overflow-x-auto py-1 pl-3 pr-3"
-          style={{
-            maskImage:
-              'linear-gradient(to right, transparent 0, black 12px, black calc(100% - 12px), transparent 100%)',
-            WebkitMaskImage:
-              'linear-gradient(to right, transparent 0, black 12px, black calc(100% - 12px), transparent 100%)',
-          }}
+          className="scroll-fade-x -m-1 flex min-w-0 flex-1 items-stretch gap-2.5 overflow-x-auto py-1 pl-3 pr-3 [--scroll-fade-end-size:0.9rem] [--scroll-fade-start-size:0.9rem]"
         >
           {batches.map((batch, batchIndex) => {
             const previousBatches = batches.slice(0, batchIndex)

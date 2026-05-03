@@ -1517,4 +1517,107 @@
   .tool-dot-running {
     animation: tool-dot-breathe 1.8s ease-in-out infinite;
   }
+
+  /*
+   * Edge-fade masks for scroll containers — Linear/Notion quality cues:
+   *   1. Fades begin at real `transparent` (not translucent black), so clipped
+   *      content reads as trailing off instead of fogged over.
+   *   2. A single linear stop (no intermediate alpha keypoints) — any extra
+   *      stop shows up as a visible slope change when the fade crosses a
+   *      high-contrast image. Long band + two stops is the Linear/Apple
+   *      recipe.
+   *   3. In browsers with scroll-driven animations each side collapses to 0
+   *      when the scroller is parked against that edge — a list with no
+   *      overflow simply has no fade, matching Linear's behaviour.
+   * Tune per call site with --scroll-fade-start-size / --scroll-fade-end-size.
+   * Use wider bands (>=3rem) on image-heavy rails; narrow (~1-2rem) on text.
+   */
+  @keyframes scroll-fade-start-in {
+    to {
+      --scroll-fade-start: var(--scroll-fade-start-size);
+    }
+  }
+  @keyframes scroll-fade-end-out {
+    from {
+      --scroll-fade-end: var(--scroll-fade-end-size);
+    }
+  }
+  .scroll-fade-y,
+  .scroll-fade-x {
+    --scroll-fade-start-size: 1.75rem;
+    --scroll-fade-end-size: 1.75rem;
+    --scroll-fade-start: var(--scroll-fade-start-size);
+    --scroll-fade-end: var(--scroll-fade-end-size);
+  }
+  .scroll-fade-y {
+    -webkit-mask-image: linear-gradient(
+      to bottom,
+      transparent 0,
+      #000 var(--scroll-fade-start),
+      #000 calc(100% - var(--scroll-fade-end)),
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      to bottom,
+      transparent 0,
+      #000 var(--scroll-fade-start),
+      #000 calc(100% - var(--scroll-fade-end)),
+      transparent 100%
+    );
+  }
+  .scroll-fade-x {
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent 0,
+      #000 var(--scroll-fade-start),
+      #000 calc(100% - var(--scroll-fade-end)),
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      to right,
+      transparent 0,
+      #000 var(--scroll-fade-start),
+      #000 calc(100% - var(--scroll-fade-end)),
+      transparent 100%
+    );
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    @supports (animation-timeline: scroll()) {
+      .scroll-fade-y {
+        --scroll-fade-start: 0px;
+        --scroll-fade-end: 0px;
+        animation:
+          scroll-fade-start-in linear both,
+          scroll-fade-end-out linear both;
+        animation-timeline: scroll(self block), scroll(self block);
+        animation-range:
+          0 var(--scroll-fade-start-size),
+          calc(100% - var(--scroll-fade-end-size)) 100%;
+      }
+      .scroll-fade-x {
+        --scroll-fade-start: 0px;
+        --scroll-fade-end: 0px;
+        animation:
+          scroll-fade-start-in linear both,
+          scroll-fade-end-out linear both;
+        animation-timeline: scroll(self inline), scroll(self inline);
+        animation-range:
+          0 var(--scroll-fade-start-size),
+          calc(100% - var(--scroll-fade-end-size)) 100%;
+      }
+    }
+  }
+}
+
+/* @property must live outside @layer so the length interpolation is registered
+   for the scroll-driven keyframes above. */
+@property --scroll-fade-start {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+@property --scroll-fade-end {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
 }

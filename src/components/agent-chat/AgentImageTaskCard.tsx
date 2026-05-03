@@ -228,57 +228,58 @@ export function AgentImageTaskCard({
         </div>
       )}
 
-      {resultIds.length > 0 && (() => {
-        // For completed tasks (edge-to-edge), only show images still in the library.
-        // This prevents a deleted image from expanding into a large empty square.
-        const visibleIds = resultsEdgeToEdge ? resultIds.filter((id) => stackItemByImageId.has(id)) : resultIds
-        const allDeleted = resultsEdgeToEdge && visibleIds.length === 0
-        if (allDeleted) {
+      {resultIds.length > 0 &&
+        (() => {
+          // For completed tasks (edge-to-edge), only show images still in the library.
+          // This prevents a deleted image from expanding into a large empty square.
+          const visibleIds = resultsEdgeToEdge ? resultIds.filter((id) => stackItemByImageId.has(id)) : resultIds
+          const allDeleted = resultsEdgeToEdge && visibleIds.length === 0
+          if (allDeleted) {
+            return (
+              <div className="mt-2.5 flex items-center gap-1.5 text-sm" style={{ color: 'var(--color-danger)' }}>
+                <Icon name="image_off" size={12} />
+                <span>{t('agentChat.imageTask.deleted')}</span>
+              </div>
+            )
+          }
           return (
-            <div className="mt-2.5 flex items-center gap-1.5 text-sm" style={{ color: 'var(--color-danger)' }}>
-              <Icon name="image_off" size={12} />
-              <span>{t('agentChat.imageTask.deleted')}</span>
+            <div
+              className={
+                resultsEdgeToEdge
+                  ? '-mx-3.5 -mb-3 mt-3 grid gap-px overflow-hidden rounded-b-[var(--radius-lg)] bg-(--ring-edge-soft) shadow-[inset_0_1px_0_var(--ring-edge-soft)]'
+                  : 'mt-3 grid gap-1.5'
+              }
+              style={{
+                gridTemplateColumns: resultsEdgeToEdge
+                  ? `repeat(${Math.min(visibleIds.length, 3)}, minmax(0, 1fr))`
+                  : 'repeat(auto-fill, minmax(72px, 1fr))',
+              }}
+            >
+              {visibleIds.map((id, index) => {
+                const item = stackItemByImageId.get(id)
+                return item ? (
+                  <StackItemThumb
+                    key={id}
+                    item={item}
+                    number={index + 1}
+                    outerRing
+                    hoverLift={false}
+                    className="aspect-square w-full"
+                    roundedClassName={resultsEdgeToEdge ? 'rounded-none' : undefined}
+                    numberBadgeInset={6}
+                    metaBadge={resultMetaBadge}
+                    metaBadgeTitle={resultMetaBadge}
+                    onSelect={() => {
+                      if (task && canFocus) onFocus?.(task)
+                    }}
+                  />
+                ) : (
+                  <GenImageResultThumb key={id} id={id} flush={false} />
+                )
+              })}
             </div>
           )
-        }
-        return (
-        <div
-          className={
-            resultsEdgeToEdge
-              ? '-mx-3.5 -mb-3 mt-3 grid gap-px overflow-hidden rounded-b-[var(--radius-lg)] bg-(--ring-edge-soft) shadow-[inset_0_1px_0_var(--ring-edge-soft)]'
-              : 'mt-3 grid gap-1.5'
-          }
-          style={{
-            gridTemplateColumns: resultsEdgeToEdge
-              ? `repeat(${Math.min(visibleIds.length, 3)}, minmax(0, 1fr))`
-              : 'repeat(auto-fill, minmax(72px, 1fr))',
-          }}
-        >
-          {visibleIds.map((id, index) => {
-            const item = stackItemByImageId.get(id)
-            return item ? (
-              <StackItemThumb
-                key={id}
-                item={item}
-                number={index + 1}
-                outerRing
-                hoverLift={false}
-                className="aspect-square w-full"
-                roundedClassName={resultsEdgeToEdge ? 'rounded-none' : undefined}
-                numberBadgeInset={6}
-                metaBadge={resultMetaBadge}
-                metaBadgeTitle={resultMetaBadge}
-                onSelect={() => {
-                  if (task && canFocus) onFocus?.(task)
-                }}
-              />
-            ) : (
-              <GenImageResultThumb key={id} id={id} flush={false} />
-            )
-          })}
-        </div>
-        )
-      })()}
+        })()}
 
       {taskDetail && (
         <div className="mt-2.5 text-sm leading-[1.45]" style={{ color: 'var(--color-danger)' }}>

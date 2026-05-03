@@ -107,7 +107,7 @@ export function AgentSessionSidebar({
         <span className="text-xs text-(--color-text-4) tabular-nums">{sessions.length}</span>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+      <div className="scroll-fade-y min-h-0 flex-1 overflow-y-auto pr-1 [--scroll-fade-end-size:1.5rem] [--scroll-fade-start-size:1.25rem]">
         {sessionsLoading ? (
           <div className="px-2 py-3 text-sm text-(--color-text-3)">{t('agentChat.header.loadingSessions')}</div>
         ) : sessions.length === 0 ? (

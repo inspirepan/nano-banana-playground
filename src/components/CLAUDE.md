@@ -44,6 +44,7 @@
 - **排版细节**：`.label` 是 eyebrow 语义但使用 sans；标题使用 `.font-display` 并保持轻微负 tracking。
 - **布局取舍**：工具型 SPA，不套用 hero、testimonial、canvas grid、大面积居中空态等 landing page 技巧。
 - **滚动条**：沿用 `src/index.css` 里的近乎不可见 Linear 风格滚动条。`[scrollbar-gutter:stable]` 只在右侧保留 gutter，会造成左右视觉不对称（macOS「始终显示滚动条」/ Windows 可见）。规则：① 容器有水平对称要求时改用 `[scrollbar-gutter:stable_both-edges]`；② 内容为 `h-full` 实际不会溢出时直接去掉，不需要 stable gutter。
+- **滚动边缘遮罩**：滚动容器的淡出边缘统一走 `src/index.css` 里的 `.scroll-fade-y` / `.scroll-fade-x` utility，band 尺寸用 `[--scroll-fade-start-size:…]` / `[--scroll-fade-end-size:…]` 按调用点覆盖。**禁止在组件里手写 `maskImage: 'linear-gradient(...)'`**。两条硬约束：① 渐变必须是单段 `transparent → #000`，不得塞任何中间 alpha stop——在高对比度图片上每个 stop 都会暴露成肉眼可见的斜率折点，「多段模拟 ease」是反模式，要更柔和就加长 band 而不是加 stop；② 只有**无 ring 的开放容器**（面板主内容区、侧栏、无边 rail）才加 fade，**带 `ring-edge` shadow / border 的卡片或浮层内部不加**——fade 会落在 ring 之内变成「卡片在吃自己的内容」。图片密集的 rail band 建议 ≥3rem，纯文本场景 1–2rem 即可；支持 `animation-timeline: scroll()` 的浏览器会随滚动位置动态收起 fade，无须另行处理。
 - **图标**：只用 Lucide，经 `Icon.tsx` 映射。
 - **暗色模式**：由 `<html>` 上的 `.dark` 控制；主色主题由 `.theme-*` 控制。
 - **复用 utility class**：优先使用 `.chip`、`.segmented`、`.aspect-tile`、`.card`、`.cta`、`.dropzone`、`.img-card`、`.icon-btn`、`.label`、`.mono`。

@@ -10,7 +10,6 @@ export function DrawingSkillStarters({
   onPick: (skill: AgentSkillSummary) => void
 }) {
   const { t, language } = useI18n()
-  const railMask = 'linear-gradient(to right, transparent 0, black 28px, black calc(100% - 28px), transparent 100%)'
   return (
     <div className="mx-auto w-full max-w-[960px]">
       <div className="mb-10 text-center">
@@ -19,8 +18,8 @@ export function DrawingSkillStarters({
         </span>
       </div>
       <div
-        className="flex snap-x gap-[2px] overflow-x-auto px-7 py-1.5 scroll-pl-7 [&::-webkit-scrollbar]:hidden"
-        style={{ scrollbarWidth: 'none', WebkitMaskImage: railMask, maskImage: railMask }}
+        className="scroll-fade-x flex snap-x gap-[2px] overflow-x-auto px-7 py-1.5 scroll-pl-7 [--scroll-fade-end-size:3rem] [--scroll-fade-start-size:3rem] [&::-webkit-scrollbar]:hidden"
+        style={{ scrollbarWidth: 'none' }}
       >
         {skills.map((skill) => (
           <button
