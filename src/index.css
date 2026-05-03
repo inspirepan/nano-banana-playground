@@ -182,43 +182,50 @@
 
 /* Dark theme — near-neutral dark, minimal purple-gray tint (Linear-style). */
 .dark {
-  --color-bg: #222225;
-  --color-bg-sunken: #1b1b1e;
-  --color-surface: #29292d;
-  --color-surface-2: #313135;
-  --color-surface-3: #39393e;
-  --color-border: #3c3c42;
-  --color-border-strong: #515158;
-  --color-text: #ecedef;
-  --color-text-2: #b8bcc2;
-  --color-text-3: #8b9097;
-  --color-text-4: #6a6f77;
+  --color-bg: #08090a;
+  --color-bg-sunken: #050607;
 
-  --color-accent: #6875f5;
-  --color-accent-hover: #7c86f7;
-  --color-accent-fg: #0f0f10;
-  --color-accent-soft: #1c1d35;
-  --color-accent-wash: color-mix(in srgb, #6875f5 18%, transparent);
-  --color-accent-wash-2: color-mix(in srgb, #6875f5 28%, transparent);
-  --color-accent-ring: color-mix(in srgb, var(--color-accent) 20%, transparent);
-  --color-accent-ring-hover: color-mix(in srgb, var(--color-accent) 24%, transparent);
+  --color-surface: #0f1011;
+  --color-surface-2: #17181a;
+  --color-surface-3: #202124;
 
-  --color-warning: #d6b056;
-  --color-warning-soft: #3a3220;
-  --color-danger: #e07a6e;
-  --color-danger-soft: #3a2624;
-  --color-success: #7ab48a;
-  --color-on-success: #14181c;
-  --color-error-dim: color-mix(in srgb, var(--color-danger) 12%, transparent);
+  --color-border: #2a2b2f;
+  --color-border-strong: #3a3c41;
 
-  --ring-edge: rgba(255, 255, 255, 0.06);
-  --ring-edge-elevated: rgba(255, 255, 255, 0.08);
-  --ring-edge-strong: rgba(255, 255, 255, 0.12);
-  --ring-edge-soft: rgba(255, 255, 255, 0.04);
-  --shadow-lift: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 1px 0 rgba(0, 0, 0, 0.18);
+  --color-text: #f7f8f8;
+  --color-text-2: #c9ccd1;
+  --color-text-3: #8f949b;
+  --color-text-4: #666b73;
+
+  --color-accent: #5e6ad2;
+  --color-accent-hover: #6e79e6;
+  --color-accent-fg: #ffffff;
+  --color-accent-soft: #171a33;
+  --color-accent-wash: color-mix(in srgb, #5e6ad2 16%, transparent);
+  --color-accent-wash-2: color-mix(in srgb, #5e6ad2 26%, transparent);
+  --color-accent-ring: color-mix(in srgb, var(--color-accent) 22%, transparent);
+  --color-accent-ring-hover: color-mix(in srgb, var(--color-accent) 30%, transparent);
+
+  --color-warning: #c9a86a;
+  --color-warning-soft: #2a2418;
+
+  --color-danger: #d96c5f;
+  --color-danger-soft: #2a1b19;
+
+  --color-success: #6fa37d;
+  --color-on-success: #08100b;
+
+  --color-error-dim: color-mix(in srgb, var(--color-danger) 14%, transparent);
+
+  --ring-edge: rgba(255, 255, 255, 0.045);
+  --ring-edge-elevated: rgba(255, 255, 255, 0.065);
+  --ring-edge-strong: rgba(255, 255, 255, 0.1);
+  --ring-edge-soft: rgba(255, 255, 255, 0.032);
+
+  --shadow-lift: inset 0 1px 0 rgba(255, 255, 255, 0.045), 0 1px 0 rgba(0, 0, 0, 0.28);
+
   --shadow-float:
-    inset 0 1px 0 rgba(255, 255, 255, 0.09), 0 8px 24px -20px rgba(0, 0, 0, 0.65), 0 2px 6px -3px rgba(0, 0, 0, 0.32);
-
+    inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 10px 28px -22px rgba(0, 0, 0, 0.85), 0 3px 8px -5px rgba(0, 0, 0, 0.55);
   /* Chat user bubble edge — dark mode: accent ring on the outer 1px, white
      highlight on the next 1px inside, giving a crisp double-line top edge. */
   --bubble-user-edge: inset 0 2px 0 -1px rgba(255, 255, 255, 0.16), inset 0 0 0 1px var(--color-accent-ring);
