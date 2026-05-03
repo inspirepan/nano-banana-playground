@@ -127,17 +127,11 @@ export function ToolActivityCard({
     }
   }
 
-  const showCompact =
-    compactRows.length > 0 || (calls.length === 0 && results.length === 0 && inlineNotices.length === 0)
+  const showCompact = compactRows.length > 0
 
   return (
     <div className="space-y-2">
-      {showCompact && (
-        <CompactToolGroup
-          rows={compactRows}
-          isStreaming={isStreaming && richCards.length === 0 && inlineNotices.length === 0}
-        />
-      )}
+      {showCompact && <CompactToolGroup rows={compactRows} />}
       {richCards.length > 0 ? <div className="space-y-2">{richCards}</div> : null}
       {inlineNotices}
     </div>

@@ -2,8 +2,6 @@ import type { ReactNode } from 'react'
 
 import { summarizeToolArgs, summarizeToolResult, toolLabel } from './utils'
 import type { AgentMessageToolCall, AgentMessageToolResult } from '../../agent'
-import { useI18n } from '../../i18n'
-import { Icon } from '../Icon'
 import { Tooltip } from '../Tooltip'
 
 function formatToolArgValue(value: unknown): string {
@@ -22,6 +20,12 @@ function formatToolArgsTooltip(args: Record<string, unknown>): string {
   return entries.map(([key, value]) => `${key}: ${formatToolArgValue(value)}`).join('\n')
 }
 
+function StatusDot({ done, failed }: { done: boolean; failed: boolean }) {
+  if (!done) return <span className="tool-dot-running h-1.5 w-1.5 shrink-0 rounded-full bg-(--color-text-4)" />
+  if (failed) return <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-(--color-danger)" />
+  return <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-(--color-success)" />
+}
+
 export function ToolCallRow({
   call,
   result,
@@ -35,20 +39,9 @@ export function ToolCallRow({
   const argsTooltip = formatToolArgsTooltip(call.arguments)
   return (
     <div className="flex items-start gap-2 rounded-[var(--radius-md)] px-1.5 py-1">
-      {failed && (
-        <span
-          className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-[var(--radius-xs)]"
-          style={{
-            background: 'var(--color-danger-soft)',
-            color: 'var(--color-danger)',
-            boxShadow: 'inset 0 0 0 1px var(--ring-edge-soft)',
-          }}
-        >
-          <Icon name="alert_circle" size={11} />
-        </span>
-      )}
       <span className="min-w-0 flex-1">
-        <span className="flex min-w-0 items-baseline gap-1.5 text-sm">
+        <span className="flex min-w-0 items-center gap-1.5 text-sm">
+          <StatusDot done={done} failed={failed} />
           <span className="max-w-[55%] shrink-0 truncate font-medium text-(--color-text-2)">
             {toolLabel(call.name)}
           </span>
@@ -59,7 +52,6 @@ export function ToolCallRow({
           ) : (
             <span className="min-w-0 flex-1 truncate text-(--color-text-3)">{args}</span>
           )}
-          {!done && <span className="spinner shrink-0 self-center" style={{ width: 10, height: 10 }} />}
         </span>
         {result?.isError && (
           <span className="mt-1 block truncate text-sm text-(--color-danger)">{summarizeToolResult(result)}</span>
@@ -72,13 +64,11 @@ export function ToolCallRow({
 export function StandaloneToolResultRow({ result }: { result: AgentMessageToolResult }) {
   return (
     <div className="flex items-start gap-2 rounded-[var(--radius-md)] px-1.5 py-1">
-      {result.isError && (
-        <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-[var(--radius-xs)] bg-(--color-danger-soft) text-(--color-danger) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
-          <Icon name="alert_circle" size={11} />
-        </span>
-      )}
       <span className="min-w-0 flex-1">
-        <span className="text-sm font-medium text-(--color-text-2)">{toolLabel(result.toolName)}</span>
+        <span className="flex items-center gap-1.5 text-sm font-medium text-(--color-text-2)">
+          <StatusDot done={true} failed={result.isError === true} />
+          {toolLabel(result.toolName)}
+        </span>
         {result.isError && (
           <span className="mt-0.5 block truncate text-sm text-(--color-danger)">{summarizeToolResult(result)}</span>
         )}
@@ -87,17 +77,12 @@ export function StandaloneToolResultRow({ result }: { result: AgentMessageToolRe
   )
 }
 
-export function CompactToolGroup({ rows, isStreaming }: { rows: ReactNode[]; isStreaming: boolean }) {
-  const { t } = useI18n()
-
+export function CompactToolGroup({ rows }: { rows: ReactNode[] }) {
   return (
     <div className="flex justify-start">
       <div className="ml-1 mr-3 max-w-[88%]">
         <div className="rounded-[var(--radius-lg)] bg-(--color-surface) px-2.5 py-2 shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-lift)]">
           <div className="space-y-1.5">{rows}</div>
-          {isStreaming && (
-            <div className="mt-1.5 px-1.5 text-sm text-(--color-text-3)">{t('agentChat.tool.waitingResult')}</div>
-          )}
         </div>
       </div>
     </div>

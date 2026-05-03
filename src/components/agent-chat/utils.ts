@@ -119,6 +119,7 @@ export function toolLabel(name: string): string {
   if (name === 'ReadSkillFile') return translate('agentChat.tool.label.readSkillFile')
   if (name === 'CreateSkill') return translate('agentChat.tool.label.createSkill')
   if (name === 'WebFetch') return translate('agentChat.tool.label.webFetch')
+  if (name === 'WebSearch') return translate('agentChat.tool.label.webSearch')
   return name
 }
 
