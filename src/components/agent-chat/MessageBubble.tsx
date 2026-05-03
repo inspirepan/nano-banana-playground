@@ -60,8 +60,7 @@ export function MessageBubble({
     ? visibleText
     : [visibleText, error].filter((part): part is string => Boolean(part)).join('\n\n')
   const isSystemEvent = isUser && visibleText === '' && trimmedText.startsWith('<system>')
-  const copyLineCount = copyText.trim() ? copyText.trim().split(/\r\n|\r|\n/).length : 0
-  const canCopy = isUser ? copyText.length > 0 : !isStreaming && (Boolean(error) || copyLineCount > 1)
+  const canCopy = isUser ? copyText.length > 0 : !isStreaming && copyText.trim().length > 0
   const showAssistantMarkdown = visibleText.trim() !== ''
   const hasAssistantTrailingContent = showAssistantMarkdown || Boolean(error)
   const showAssistantTitle = isAssistant && Boolean(assistantTitle)
@@ -87,7 +86,7 @@ export function MessageBubble({
   }
 
   return (
-    <div className={`flex ${isUser ? '' : 'justify-start'}`}>
+    <div className={`group/message flex ${isUser ? '' : 'justify-start'}`}>
       <div className={isUser ? 'w-full' : 'w-full pl-3'}>
         <div
           className={
@@ -163,7 +162,7 @@ export function MessageBubble({
           <div className="mt-1 flex justify-end pr-1">
             <button
               type="button"
-              className="inline-flex h-[26px] appearance-none items-center justify-center rounded-[var(--radius-sm)] border-0 bg-transparent px-2 text-xs font-medium text-(--color-text-4) transition-colors duration-150 hover:bg-(--color-surface-2) hover:text-(--color-text-3)"
+              className="pointer-events-none inline-flex h-[26px] appearance-none items-center justify-center rounded-[var(--radius-sm)] border-0 bg-transparent px-2 text-xs font-medium text-(--color-text-4) opacity-0 transition-[opacity,background-color,color] duration-150 hover:bg-(--color-surface-2) hover:text-(--color-text-3) group-hover/message:pointer-events-auto group-hover/message:opacity-100 group-focus-within/message:pointer-events-auto group-focus-within/message:opacity-100"
               onClick={handleCopy}
               title={copied ? t('agentChat.message.copied') : t('agentChat.message.copy')}
               aria-label={copied ? t('agentChat.message.copied') : t('agentChat.message.copy')}
