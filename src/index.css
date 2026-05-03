@@ -215,7 +215,7 @@
   --ring-edge-elevated: rgba(255, 255, 255, 0.08);
   --ring-edge-strong: rgba(255, 255, 255, 0.12);
   --ring-edge-soft: rgba(255, 255, 255, 0.04);
-  --shadow-lift: 0 12px 28px -18px rgba(0, 0, 0, 0.55), 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-lift: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 1px 0 rgba(0, 0, 0, 0.18);
   --shadow-float: 0 16px 36px -24px rgba(0, 0, 0, 0.65), 0 2px 6px rgba(0, 0, 0, 0.35);
 
   /* Chat user bubble edge — dark mode: accent ring on the outer 1px, white
