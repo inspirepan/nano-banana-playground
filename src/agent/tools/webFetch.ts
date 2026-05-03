@@ -5,6 +5,9 @@ import description from './webFetch.md?raw'
 import { translate } from '../../i18n'
 
 const MAX_RESULT_CHARS = 100_000
+const JINA_READER_BASE_URL = 'https://r.jina.ai/'
+
+type WebFetchSource = 'direct' | 'jina_reader'
 
 export type WebFetchToolArgs = {
   url: string
@@ -64,6 +67,22 @@ function looksLikeHtml(contentType: string, body: string): boolean {
   return /^\s*<(?:!doctype\s+html|html\b)/i.test(body)
 }
 
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error)
+}
+
+function isAbortError(error: unknown, signal?: AbortSignal): boolean {
+  return Boolean(
+    signal?.aborted ||
+    (error instanceof Error && error.name === 'AbortError') ||
+    (typeof DOMException !== 'undefined' && error instanceof DOMException && error.name === 'AbortError'),
+  )
+}
+
+function toJinaReaderUrl(url: string): string {
+  return `${JINA_READER_BASE_URL}${url}`
+}
+
 function errorResult(text: string, details: Record<string, unknown>): AgentToolResult {
   return {
     content: [{ type: 'text', text: `<tool_use_error>${text}</tool_use_error>` }],
@@ -91,11 +110,38 @@ export async function runWebFetch(args: WebFetchToolArgs, signal?: AbortSignal):
 
   const start = Date.now()
   let response: Response
+  let fetchSource: WebFetchSource = 'direct'
+  let fetchUrl = url
+  let directFetchError: string | null = null
   try {
     response = await fetch(url, { signal, redirect: 'follow' })
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error)
-    return errorResult(`Fetch failed: ${message}`, { reason: 'fetch_failed', url, message })
+    if (isAbortError(error, signal)) {
+      const message = getErrorMessage(error)
+      return errorResult(`Fetch aborted: ${message}`, { reason: 'aborted', url, message })
+    }
+
+    directFetchError = getErrorMessage(error)
+    fetchSource = 'jina_reader'
+    fetchUrl = toJinaReaderUrl(url)
+    try {
+      response = await fetch(fetchUrl, { signal, redirect: 'follow' })
+    } catch (fallbackError) {
+      const fallbackMessage = getErrorMessage(fallbackError)
+      if (isAbortError(fallbackError, signal)) {
+        return errorResult(`Fetch aborted: ${fallbackMessage}`, { reason: 'aborted', url, message: fallbackMessage })
+      }
+      return errorResult(`Fetch failed: ${directFetchError}. Reader fallback failed: ${fallbackMessage}`, {
+        reason: 'fetch_failed',
+        url,
+        message: directFetchError,
+        fallback: {
+          source: fetchSource,
+          url: fetchUrl,
+          message: fallbackMessage,
+        },
+      })
+    }
   }
 
   const code = response.status
@@ -106,10 +152,12 @@ export async function runWebFetch(args: WebFetchToolArgs, signal?: AbortSignal):
   try {
     body = await response.text()
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error)
+    const message = getErrorMessage(error)
     return errorResult(`Failed to read response body: ${message}`, {
       reason: 'body_read_failed',
       url,
+      fetchSource,
+      fetchUrl,
       code,
       message,
     })
@@ -121,6 +169,9 @@ export async function runWebFetch(args: WebFetchToolArgs, signal?: AbortSignal):
 
   const headerLine = [
     `URL: ${url}`,
+    `Fetch-Source: ${fetchSource}`,
+    ...(response.url && response.url !== url ? [`Fetched-URL: ${response.url}`] : []),
+    ...(directFetchError ? [`Direct-Fetch-Error: ${directFetchError}`] : []),
     `Status: ${code}${codeText ? ` ${codeText}` : ''}`,
     `Content-Type: ${contentType || 'unknown'}`,
     `Bytes: ${body.length}`,
@@ -135,6 +186,9 @@ export async function runWebFetch(args: WebFetchToolArgs, signal?: AbortSignal):
     details: {
       status: response.ok ? 'ready' : 'http_error',
       url,
+      fetchSource,
+      fetchUrl,
+      directFetchError,
       code,
       codeText,
       contentType,
