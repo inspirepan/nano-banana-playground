@@ -56,7 +56,7 @@ export const StackRow = memo(function StackRow({
     () => new Map(stack.items.map((item, index) => [item.id, index + 1])),
     [stack.items],
   )
-  const previewItems = stack.items
+  const previewItems = useMemo(() => stack.items.toReversed(), [stack.items])
   const canDelete = stack.images.length > 0 && activeStatusParts.length === 0
 
   return (
