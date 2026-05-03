@@ -91,7 +91,7 @@ export function StackItemThumb({
   const boxShadow = outerRing
     ? highlighted
       ? `0 0 0 1px var(--ring-edge-elevated), 0 0 0 3px color-mix(in srgb, var(--color-accent) 70%, transparent)${outerRingShadow}`
-      : `0 0 0 1px var(--ring-edge-elevated)${outerRingShadow}`
+      : slot ? undefined : 'var(--shadow-lift)'
     : highlighted
       ? '0 0 0 2px var(--color-surface), 0 0 0 3px var(--color-accent)'
       : 'inset 0 0 0 1px var(--ring-edge)'
@@ -243,6 +243,12 @@ export function StackItemThumb({
         >
           {selected && <Icon name="check" size={11} strokeWidth={2.4} />}
         </span>
+      )}
+      {outerRing && !highlighted && (
+        <span
+          className="pointer-events-none absolute inset-0 z-20"
+          style={{ borderRadius: 'inherit', boxShadow: 'inset 0 0 0 1px var(--ring-edge-soft)' }}
+        />
       )}
       {actions && (
         <div className="stack-thumb-actions absolute inset-x-1.5 bottom-1.5 z-10" style={actionStyle}>

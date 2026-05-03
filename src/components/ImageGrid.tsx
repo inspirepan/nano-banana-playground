@@ -137,8 +137,6 @@ export function GridCell({ children, aspectRatio, cols, rows }: GridCellProps) {
       style={{
         gridColumn: `span ${span.cols}`,
         gridRow: `span ${span.rows}`,
-        contentVisibility: 'auto',
-        containIntrinsicSize: '76px',
       }}
     >
       {children}
