@@ -18,7 +18,7 @@ export function DrawingSkillStarters({
         </span>
       </div>
       <div
-        className="scroll-fade-x flex snap-x gap-[2px] overflow-x-auto px-7 py-1.5 scroll-pl-7 [--scroll-fade-end-size:3rem] [--scroll-fade-start-size:3rem] [&::-webkit-scrollbar]:hidden"
+        className="scroll-fade-x grid auto-cols-[140px] grid-flow-col grid-rows-2 snap-x gap-[2px] overflow-x-auto px-7 py-1.5 scroll-pl-7 [--scroll-fade-end-size:3rem] [--scroll-fade-start-size:3rem] sm:auto-cols-[152px] [&::-webkit-scrollbar]:hidden"
         style={{ scrollbarWidth: 'none' }}
       >
         {skills.map((skill) => (
@@ -26,7 +26,7 @@ export function DrawingSkillStarters({
             key={skill.name}
             type="button"
             onClick={() => onPick(skill)}
-            className={`group relative h-[192px] w-[140px] shrink-0 snap-start overflow-hidden text-left transition-[filter] hover:brightness-110 sm:w-[152px] ${skill.previewImage ? 'bg-(--color-accent-wash-2)' : 'bg-(--color-bg)'}`}
+            className={`group relative h-[192px] w-full snap-start overflow-hidden text-left transition-[filter] hover:brightness-110 ${skill.previewImage ? 'bg-(--color-accent-wash-2)' : 'bg-(--color-bg)'}`}
           >
             {skill.previewImage ? (
               <img src={skill.previewImage} alt="" className="h-full w-full object-cover" loading="lazy" />
