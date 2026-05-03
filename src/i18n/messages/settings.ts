@@ -6,6 +6,11 @@ export const settingsMessages: MessageDictionary = {
     'zh-CN': '管理服务连接、外观和生成队列行为',
     en: 'Manage service connections, appearance, and generation queue behavior',
   },
+  'settings.tabs.appearance': { 'zh-CN': '外观', en: 'Appearance' },
+  'settings.tabs.api': { 'zh-CN': '服务', en: 'Connections' },
+  'settings.tabs.web': { 'zh-CN': 'Web 工具', en: 'Web tools' },
+  'settings.tabs.generation': { 'zh-CN': '生成', en: 'Generation' },
+  'settings.tabs.data': { 'zh-CN': '数据', en: 'Data' },
   'settings.apiKeys.title': { 'zh-CN': '服务连接', en: 'Service connections' },
   'settings.apiKeys.description': {
     'zh-CN': '配置固定支持服务的访问密钥。',
@@ -80,8 +85,8 @@ export const settingsMessages: MessageDictionary = {
     'zh-CN': '控制一次最多同时生成几张图。数字越大，排队更少，但更容易遇到接口限流。',
     en: 'Controls how many images can generate at the same time. Higher values reduce queueing but may hit API rate limits sooner.',
   },
-  'settings.generationConcurrency.imageSuffix': { 'zh-CN': '张', en: 'images' },
-  'settings.generationConcurrency.unlimited': { 'zh-CN': '不限', en: 'Unlimited' },
+  'settings.generationConcurrency.imageSuffix': { 'zh-CN': '张', en: '' },
+  'settings.generationConcurrency.unlimited': { 'zh-CN': '∞', en: '∞' },
   'settings.agentSkills.title': { 'zh-CN': 'Agent Skills', en: 'Agent Skills' },
   'settings.agentSkills.description': {
     'zh-CN':
@@ -171,6 +176,11 @@ export const settingsMessages: MessageDictionary = {
     'zh-CN': '多格漫画 / 分镜故事，single-sheet 一图多格或 multi-image 多张连贯。',
     en: 'Multi-panel comic strips and storyboards in single-sheet or multi-image mode.',
   },
+  'settings.data.breakdown.images': { 'zh-CN': '图片数据', en: 'Image data' },
+  'settings.data.breakdown.agentSessions': { 'zh-CN': 'Agent 会话', en: 'Agent sessions' },
+  'settings.data.breakdown.agentVirtualFiles': { 'zh-CN': '工具输出', en: 'Tool outputs' },
+  'settings.data.breakdown.userSkills': { 'zh-CN': '用户 Skill', en: 'User skills' },
+  'settings.data.breakdown.other': { 'zh-CN': '其他', en: 'Other' },
   'settings.data.title': { 'zh-CN': '数据', en: 'Data' },
   'settings.data.description': {
     'zh-CN': '清空当前站点保存在此浏览器里的所有数据。',

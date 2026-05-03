@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 
 import { Icon } from './Icon'
 import { SkillIcon } from './SkillIcon'
@@ -157,6 +157,7 @@ export function AgentSkillSettings({ skills, onEnabledChange, onDelete, onGetPac
 
       {inspectedSkill && selectedFile && (
         <SkillPackageViewer
+          key={inspectedSkill.name}
           skill={inspectedSkill}
           selectedPath={selectedFile.path}
           onSelectPath={setSelectedPath}
@@ -413,10 +414,19 @@ function SkillPackageViewer({
   onClose: () => void
 }) {
   const { t } = useI18n()
+  const viewerRef = useRef<HTMLDivElement>(null)
   const selectedFile = skill.files.find((file) => file.path === selectedPath) ?? skill.files[0]
+
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => {
+      viewerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    })
+    return () => cancelAnimationFrame(raf)
+  }, [])
+
   if (!selectedFile) return null
   return (
-    <div className="rounded-[var(--radius-md)] p-4 shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
+    <div ref={viewerRef} className="rounded-[var(--radius-md)] p-4 shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
       <div className="mb-3 flex items-center gap-2">
         <SkillIcon name={skill.icon} size={14} strokeWidth={2} className="text-(--color-accent)" />
         <div className="mono min-w-0 flex-1 truncate text-sm font-semibold text-(--color-text)">{skill.name}</div>

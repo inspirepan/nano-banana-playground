@@ -1,5 +1,30 @@
 import { translate } from '../i18n'
-import { clearStorage, getStorageEntries, getStorageLength } from './storage'
+import {
+  AGENT_SESSION_ENTRY_STORE,
+  AGENT_SESSION_SIDECAR_STORE,
+  AGENT_SESSION_STORE,
+  AGENT_VIRTUAL_FILE_STORE,
+  DB_NAME,
+  HISTORY_META_STORE,
+  IMAGE_BLOB_STORE,
+  IMAGE_PREVIEW_STORE,
+} from './db'
+import { clearStorage, getStorageEntries, getStorageLength, getStorageItem } from './storage'
+
+// Skill localStorage keys — keep in sync with src/agent/skills/storage.ts
+const USER_SKILLS_STORAGE_KEY = 'nano-banana-agent-user-skills-v1'
+const SKILL_SETTINGS_STORAGE_KEY = 'nano-banana-agent-skill-settings-v1'
+
+export type StorageBreakdownItem = {
+  id: 'images' | 'agentSessions' | 'agentVirtualFiles' | 'userSkills' | 'other'
+  labelKey: string
+  bytes: number
+  count?: number
+}
+
+export type StorageBreakdown = {
+  items: StorageBreakdownItem[]
+}
 
 const KNOWN_INDEXED_DB_NAMES = [
   'nano-banana-playground',
@@ -223,6 +248,90 @@ function deleteIndexedDB(name: string): Promise<void> {
       blockedTimer = window.setTimeout(() => resolveOnce(), 500)
     }
   })
+}
+
+function countObjectStore(store: IDBObjectStore): Promise<number> {
+  return new Promise((resolve) => {
+    const req = store.count()
+    req.onsuccess = () => resolve(req.result)
+    req.onerror = () => resolve(0)
+  })
+}
+
+async function measureStores(
+  storeNames: string[],
+): Promise<{ bytes: number; count: number }> {
+  const db = await openExistingIndexedDB(DB_NAME).catch(() => null)
+  if (!db) return { bytes: 0, count: 0 }
+  const available = storeNames.filter((name) => db.objectStoreNames.contains(name))
+  if (available.length === 0) {
+    db.close()
+    return { bytes: 0, count: 0 }
+  }
+  const tx = db.transaction(available, 'readonly')
+  const [bytesList, countList] = await Promise.all([
+    Promise.all(available.map((name) => estimateObjectStore(tx.objectStore(name)))),
+    Promise.all(available.map((name) => countObjectStore(tx.objectStore(name)))),
+  ])
+  db.close()
+  return {
+    bytes: bytesList.reduce((sum, b) => sum + b, 0),
+    count: countList.reduce((sum, c) => sum + c, 0),
+  }
+}
+
+function localStorageKeyBytes(key: string): number {
+  const value = getStorageItem('localStorage', key)
+  return value ? textBytes(key) + textBytes(value) : 0
+}
+
+export async function getStorageBreakdown(): Promise<StorageBreakdown> {
+  const [images, agentSessions, agentVirtualFiles] = await Promise.all([
+    measureStores([IMAGE_BLOB_STORE, HISTORY_META_STORE, IMAGE_PREVIEW_STORE]),
+    measureStores([AGENT_SESSION_STORE, AGENT_SESSION_ENTRY_STORE, AGENT_SESSION_SIDECAR_STORE]),
+    measureStores([AGENT_VIRTUAL_FILE_STORE]),
+  ])
+
+  const skillBytes = localStorageKeyBytes(USER_SKILLS_STORAGE_KEY) + localStorageKeyBytes(SKILL_SETTINGS_STORAGE_KEY)
+
+  const localStorageTotal = storageBytes(getStorageEntries('localStorage'))
+  const otherBytes =
+    Math.max(0, localStorageTotal - skillBytes) +
+    storageBytes(getStorageEntries('sessionStorage')) +
+    cookieBytes()
+
+  const items: StorageBreakdownItem[] = [
+    {
+      id: 'images',
+      labelKey: 'settings.data.breakdown.images',
+      bytes: images.bytes,
+      count: images.count > 0 ? images.count : undefined,
+    },
+    {
+      id: 'agentSessions',
+      labelKey: 'settings.data.breakdown.agentSessions',
+      bytes: agentSessions.bytes,
+      count: agentSessions.count > 0 ? agentSessions.count : undefined,
+    },
+    {
+      id: 'agentVirtualFiles',
+      labelKey: 'settings.data.breakdown.agentVirtualFiles',
+      bytes: agentVirtualFiles.bytes,
+      count: agentVirtualFiles.count > 0 ? agentVirtualFiles.count : undefined,
+    },
+    {
+      id: 'userSkills',
+      labelKey: 'settings.data.breakdown.userSkills',
+      bytes: skillBytes,
+    },
+    {
+      id: 'other',
+      labelKey: 'settings.data.breakdown.other',
+      bytes: otherBytes,
+    },
+  ]
+
+  return { items }
 }
 
 async function clearIndexedDBData() {
