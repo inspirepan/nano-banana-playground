@@ -166,8 +166,10 @@ export function AgentChatPanel({
   const hasComposerContent = draft.trim() !== '' || attachments.length > 0
   const canSend = isNewConversationCommand(draft) || (!keyMissing && hasComposerContent)
   const isAwaitingAgentResponse = isStreaming || optimisticRunning
-  const showStop = isStreaming && !hasComposerContent
-  const showRunningIndicator = isAwaitingAgentResponse
+  const isWaitingForQuestionAnswer = pendingQuestions.length > 0
+  const isAgentActivelyRunning = isAwaitingAgentResponse && !isWaitingForQuestionAnswer
+  const showStop = isAgentActivelyRunning && !hasComposerContent
+  const showRunningIndicator = isAgentActivelyRunning
   const visibleMessages = useMemo(
     () => (streamingMessage ? [...messages, streamingMessage] : messages),
     [messages, streamingMessage],
