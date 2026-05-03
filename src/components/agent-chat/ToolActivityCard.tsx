@@ -58,10 +58,10 @@ function readSearchResultsFromText(text: string): WebSearchResultLink[] {
   })
 }
 
-function formatSearchResultUrl(url: string): string {
+function formatSearchResultDomain(url: string): string {
   try {
     const parsed = new URL(url)
-    return `${parsed.hostname}${parsed.pathname === '/' ? '' : parsed.pathname}`
+    return parsed.hostname.replace(/^www\./, '')
   } catch {
     return url
   }
@@ -75,19 +75,18 @@ function WebSearchResultLinks({ result }: { result: AgentMessageToolResult }) {
 
   return (
     <div className="mt-1.5 pl-3.5">
-      <ol className="space-y-1">
+      <ol className="space-y-0.5">
         {results.map((item) => (
           <li key={`${item.position}-${item.url}`} className="min-w-0">
             <a
               href={item.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="block min-w-0 rounded-[var(--radius-sm)] px-1 py-0.5 text-(--color-text-2) transition-[background-color,color] duration-150 hover:bg-(--color-surface-2) hover:text-(--color-accent)"
+              className="block min-w-0 truncate rounded-[var(--radius-sm)] px-1 py-0.5 text-sm font-normal text-(--color-text-3) transition-[background-color,color] duration-150 hover:bg-(--color-surface-2) hover:text-(--color-text-2)"
             >
-              <span className="block truncate text-sm font-medium text-current">{item.title}</span>
-              <span className="block truncate text-xs font-medium text-(--color-text-4)">
-                {formatSearchResultUrl(item.url)}
-              </span>
+              <span className="font-normal text-(--color-text-3)">{formatSearchResultDomain(item.url)}</span>
+              <span className="mx-1 text-(--color-text-4)">·</span>
+              <span className="font-normal text-(--color-text-3)">{item.title}</span>
             </a>
           </li>
         ))}

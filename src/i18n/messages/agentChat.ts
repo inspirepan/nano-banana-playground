@@ -15,7 +15,7 @@ export const agentChatMessages: MessageDictionary = {
     'zh-CN': '输入需求、附加图片，或让它准备一组待审批的生图任务。',
     en: 'Describe what you need, attach images, or ask it to prepare image tasks for approval.',
   },
-  'agentChat.empty.skillStarter.title': { 'zh-CN': '心游万象', en: 'Imagine Everything' },
+  'agentChat.empty.skillStarter.title': { 'zh-CN': '从这里开始', en: 'Imagine Everything' },
   'agentChat.empty.skillStarter.prompt': {
     'zh-CN': '使用 {skill} Skill，帮我生成图片。',
     en: 'Use the {skill} skill to help me generate images.',
