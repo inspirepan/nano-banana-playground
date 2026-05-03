@@ -19,7 +19,13 @@ export function syncGeminiAgentBaseUrl(provider: AgentModelProvider, baseUrl: st
 }
 
 export function isAgentModelProvider(provider: string): provider is AgentModelProvider {
-  return provider === 'google' || provider === 'openai' || provider === 'anthropic'
+  return (
+    provider === 'google' ||
+    provider === 'openai' ||
+    provider === 'anthropic' ||
+    provider === 'moonshot-cn' ||
+    provider === 'moonshot-ai'
+  )
 }
 
 export function buildLanguageDirective(language: Language): string {

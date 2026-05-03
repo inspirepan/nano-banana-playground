@@ -11,9 +11,13 @@ export const DEFAULT_BASE_URL = Object.fromEntries(
 // Trailing `/v1`, `/v1beta`, `/v1alpha`, `/v2beta` etc.
 const TRAILING_API_VERSION = /\/v\d+(?:alpha|beta)?\/*$/i
 
+function isOpenAICompatibleProvider(provider: Provider): boolean {
+  return provider === 'openai' || provider === 'moonshot-cn' || provider === 'moonshot-ai'
+}
+
 // Normalize a user-entered base URL into the form our callers expect:
 //   - google: host root (versioned paths are appended per-endpoint)
-//   - openai: must end in `/v1` (all endpoints are relative to /v1)
+//   - OpenAI-compatible providers: must end in `/v1` (all endpoints are relative to /v1)
 //   - anthropic: host root (SDK appends its endpoint paths)
 // Whatever the user types (`xxx.com`, `xxx.com/v1`, `xxx.com/v1beta/`) is
 // reconciled to the canonical shape. Suffix `#` suppresses normalization so
@@ -26,7 +30,7 @@ export function resolveBaseUrl(provider: Provider, baseUrl?: string): string {
   const effective = (trimmed || getProviderConfig(provider).defaultBaseUrl).replace(/\/+$/, '')
   const stripped = effective.replace(TRAILING_API_VERSION, '')
   if (provider === 'google') return stripped
-  if (provider === 'openai') return `${stripped}/v1`
+  if (isOpenAICompatibleProvider(provider)) return `${stripped}/v1`
   return stripped
 }
 
@@ -36,6 +40,7 @@ export function previewEndpoint(provider: Provider, baseUrl?: string): string {
   const base = resolveBaseUrl(provider, baseUrl)
   if (provider === 'google') return `${base}/v1beta/models/{model}:generateContent`
   if (provider === 'anthropic') return `${base}/v1/messages`
+  if (provider === 'moonshot-cn' || provider === 'moonshot-ai') return `${base}/chat/completions`
   return `${base}/images/generations`
 }
 

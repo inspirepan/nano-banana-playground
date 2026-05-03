@@ -116,14 +116,32 @@ export function useAgentRuntimeConfig({
   const openaiBaseUrl = providerCredentials.openai.baseUrl
   const anthropicApiKey = providerCredentials.anthropic.apiKey
   const anthropicBaseUrl = providerCredentials.anthropic.baseUrl
+  const moonshotCnApiKey = providerCredentials['moonshot-cn'].apiKey
+  const moonshotCnBaseUrl = providerCredentials['moonshot-cn'].baseUrl
+  const moonshotAiApiKey = providerCredentials['moonshot-ai'].apiKey
+  const moonshotAiBaseUrl = providerCredentials['moonshot-ai'].baseUrl
 
   useExternalSync(() => {
     agentCredentialsRef.current = {
       google: { apiKey: googleApiKey, baseUrl: googleBaseUrl },
       openai: { apiKey: openaiApiKey, baseUrl: openaiBaseUrl },
       anthropic: { apiKey: anthropicApiKey, baseUrl: anthropicBaseUrl },
+      'moonshot-cn': { apiKey: moonshotCnApiKey, baseUrl: moonshotCnBaseUrl },
+      'moonshot-ai': { apiKey: moonshotAiApiKey, baseUrl: moonshotAiBaseUrl },
     }
-  }, [agentCredentialsRef, anthropicApiKey, anthropicBaseUrl, googleApiKey, googleBaseUrl, openaiApiKey, openaiBaseUrl])
+  }, [
+    agentCredentialsRef,
+    anthropicApiKey,
+    anthropicBaseUrl,
+    googleApiKey,
+    googleBaseUrl,
+    moonshotAiApiKey,
+    moonshotAiBaseUrl,
+    moonshotCnApiKey,
+    moonshotCnBaseUrl,
+    openaiApiKey,
+    openaiBaseUrl,
+  ])
 
   const getAgentBaseUrl = useCallback(
     (provider: AgentModelProvider) => agentCredentialsRef.current[provider].baseUrl,

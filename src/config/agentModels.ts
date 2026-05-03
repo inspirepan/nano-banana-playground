@@ -67,6 +67,34 @@ const GPT_5_4_MINI_MODEL: Model<Api> = {
   maxTokens: 128000,
 }
 
+function kimiK26Model(provider: Extract<Provider, 'moonshot-cn' | 'moonshot-ai'>): Model<Api> {
+  return {
+    id: 'kimi-k2.6',
+    name: 'Kimi K2.6',
+    api: 'openai-completions',
+    provider,
+    baseUrl: provider === 'moonshot-cn' ? 'https://api.moonshot.cn/v1' : 'https://api.moonshot.ai/v1',
+    reasoning: true,
+    input: ['text', 'image'],
+    cost: {
+      input: 0.95,
+      output: 4,
+      cacheRead: 0.16,
+      cacheWrite: 0,
+    },
+    contextWindow: 262144,
+    maxTokens: 262144,
+    compat: {
+      supportsStore: false,
+      supportsDeveloperRole: false,
+      maxTokensField: 'max_tokens',
+      thinkingFormat: 'deepseek',
+      requiresReasoningContentOnAssistantMessages: false,
+      supportsLongCacheRetention: false,
+    },
+  }
+}
+
 export const AGENT_MODEL_CONFIGS: AgentModelConfig[] = [
   {
     id: 'gemini-3-flash-preview',
@@ -91,6 +119,22 @@ export const AGENT_MODEL_CONFIGS: AgentModelConfig[] = [
     provider: 'openai',
     providerLabel: providerLabel('openai'),
     ...asAgentModel(GPT_5_4_MINI_MODEL),
+  },
+  {
+    id: 'moonshot-cn:kimi-k2.6',
+    label: 'Kimi K2.6 CN',
+    shortLabel: 'K2.6 CN',
+    provider: 'moonshot-cn',
+    providerLabel: providerLabel('moonshot-cn'),
+    ...asAgentModel(kimiK26Model('moonshot-cn')),
+  },
+  {
+    id: 'moonshot-ai:kimi-k2.6',
+    label: 'Kimi K2.6 AI',
+    shortLabel: 'K2.6 AI',
+    provider: 'moonshot-ai',
+    providerLabel: providerLabel('moonshot-ai'),
+    ...asAgentModel(kimiK26Model('moonshot-ai')),
   },
   {
     id: 'claude-haiku-4-5-20251001',

@@ -1,6 +1,6 @@
-export type Provider = 'google' | 'openai' | 'anthropic'
+export type Provider = 'google' | 'openai' | 'anthropic' | 'moonshot-cn' | 'moonshot-ai'
 
-export type ProviderBrandIconName = 'gemini' | 'openai' | 'claude'
+export type ProviderBrandIconName = 'gemini' | 'openai' | 'claude' | 'moonshot'
 
 export type ProviderConfig = {
   id: Provider
@@ -51,6 +51,30 @@ const PROVIDER_CONFIG_BY_ID: Record<Provider, ProviderConfig> = {
     keyLabelKey: 'apiKeys.provider.anthropic.label',
     keyPlaceholderKey: 'apiKeys.provider.anthropic.placeholder',
     keyHintKey: 'apiKeys.provider.anthropic.hint',
+  },
+  'moonshot-cn': {
+    id: 'moonshot-cn',
+    label: 'Moonshot CN',
+    shortLabel: 'Moonshot CN',
+    brandIcon: 'moonshot',
+    defaultBaseUrl: 'https://api.moonshot.cn/v1',
+    apiKeyStorageKey: 'nbp-api-key:moonshot-cn',
+    baseUrlStorageKey: 'nbp-base-url:moonshot-cn',
+    keyLabelKey: 'apiKeys.provider.moonshotCn.label',
+    keyPlaceholderKey: 'apiKeys.provider.moonshotCn.placeholder',
+    keyHintKey: 'apiKeys.provider.moonshotCn.hint',
+  },
+  'moonshot-ai': {
+    id: 'moonshot-ai',
+    label: 'Moonshot AI',
+    shortLabel: 'Moonshot AI',
+    brandIcon: 'moonshot',
+    defaultBaseUrl: 'https://api.moonshot.ai/v1',
+    apiKeyStorageKey: 'nbp-api-key:moonshot-ai',
+    baseUrlStorageKey: 'nbp-base-url:moonshot-ai',
+    keyLabelKey: 'apiKeys.provider.moonshotAi.label',
+    keyPlaceholderKey: 'apiKeys.provider.moonshotAi.placeholder',
+    keyHintKey: 'apiKeys.provider.moonshotAi.hint',
   },
 }
 

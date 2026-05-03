@@ -21,6 +21,24 @@ export const apiKeysMessages: MessageDictionary = {
     en: 'Paste your Anthropic API key',
   },
   'apiKeys.provider.anthropic.hint': { 'zh-CN': '用于 Claude Agent 模型', en: 'For Claude Agent models' },
+  'apiKeys.provider.moonshotCn.label': { 'zh-CN': 'Moonshot CN', en: 'Moonshot CN' },
+  'apiKeys.provider.moonshotCn.placeholder': {
+    'zh-CN': '粘贴你的 Moonshot CN API Key',
+    en: 'Paste your Moonshot CN API key',
+  },
+  'apiKeys.provider.moonshotCn.hint': {
+    'zh-CN': '用于 Kimi Agent 模型（中国区）',
+    en: 'For Kimi Agent models (China)',
+  },
+  'apiKeys.provider.moonshotAi.label': { 'zh-CN': 'Moonshot AI', en: 'Moonshot AI' },
+  'apiKeys.provider.moonshotAi.placeholder': {
+    'zh-CN': '粘贴你的 Moonshot AI API Key',
+    en: 'Paste your Moonshot AI API key',
+  },
+  'apiKeys.provider.moonshotAi.hint': {
+    'zh-CN': '用于 Kimi Agent 模型（国际区）',
+    en: 'For Kimi Agent models (global)',
+  },
   'apiKeys.apiKey.label': { 'zh-CN': 'API Key', en: 'API key' },
   'apiKeys.apiKey.ariaLabel': { 'zh-CN': '{label} 输入框', en: '{label} field' },
   'apiKeys.apiKey.placeholder.replaceExisting': {

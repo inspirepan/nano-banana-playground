@@ -109,6 +109,8 @@ export function useAgentPlayground({
   cancelGenerationJob,
   dismissGenerationJob,
 }: UseAgentPlaygroundParams) {
+  const moonshotCnKeyHook = keyHooks['moonshot-cn']
+  const moonshotAiKeyHook = keyHooks['moonshot-ai']
   const [agentModelId, setAgentModelId] = useState(getPreferredAgentModelId)
   const agentModel = resolveAgentModelConfig(agentModelId)
   const [agentThinkingLevel, setAgentThinkingLevelState] = useState<AgentThinkingLevel>(getPreferredAgentThinkingLevel)
@@ -156,6 +158,8 @@ export function useAgentPlayground({
     google: { apiKey: keyHooks.google.apiKey, baseUrl: keyHooks.google.baseUrl },
     openai: { apiKey: keyHooks.openai.apiKey, baseUrl: keyHooks.openai.baseUrl },
     anthropic: { apiKey: keyHooks.anthropic.apiKey, baseUrl: keyHooks.anthropic.baseUrl },
+    'moonshot-cn': { apiKey: moonshotCnKeyHook.apiKey, baseUrl: moonshotCnKeyHook.baseUrl },
+    'moonshot-ai': { apiKey: moonshotAiKeyHook.apiKey, baseUrl: moonshotAiKeyHook.baseUrl },
   })
   const agentToolHandlersRef = useRef(createInitialAgentToolHandlers())
 
@@ -309,6 +313,8 @@ export function useAgentPlayground({
       google: { apiKey: keyHooks.google.apiKey, baseUrl: keyHooks.google.baseUrl },
       openai: { apiKey: keyHooks.openai.apiKey, baseUrl: keyHooks.openai.baseUrl },
       anthropic: { apiKey: keyHooks.anthropic.apiKey, baseUrl: keyHooks.anthropic.baseUrl },
+      'moonshot-cn': { apiKey: moonshotCnKeyHook.apiKey, baseUrl: moonshotCnKeyHook.baseUrl },
+      'moonshot-ai': { apiKey: moonshotAiKeyHook.apiKey, baseUrl: moonshotAiKeyHook.baseUrl },
     }),
     [
       keyHooks.google.apiKey,
@@ -317,6 +323,10 @@ export function useAgentPlayground({
       keyHooks.openai.baseUrl,
       keyHooks.anthropic.apiKey,
       keyHooks.anthropic.baseUrl,
+      moonshotCnKeyHook.apiKey,
+      moonshotCnKeyHook.baseUrl,
+      moonshotAiKeyHook.apiKey,
+      moonshotAiKeyHook.baseUrl,
     ],
   )
 
@@ -750,8 +760,16 @@ export function useAgentPlayground({
       google: keyHooks.google.apiKey,
       openai: keyHooks.openai.apiKey,
       anthropic: keyHooks.anthropic.apiKey,
+      'moonshot-cn': moonshotCnKeyHook.apiKey,
+      'moonshot-ai': moonshotAiKeyHook.apiKey,
     }),
-    [keyHooks.google.apiKey, keyHooks.openai.apiKey, keyHooks.anthropic.apiKey],
+    [
+      keyHooks.google.apiKey,
+      keyHooks.openai.apiKey,
+      keyHooks.anthropic.apiKey,
+      moonshotCnKeyHook.apiKey,
+      moonshotAiKeyHook.apiKey,
+    ],
   )
 
   const {
