@@ -40,7 +40,7 @@ export function DrawingSkillStarters({
               className="absolute inset-x-0 bottom-0 px-2.5 pb-2 pt-6"
               style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.62) 0%, transparent 100%)' }}
             >
-              <span className="block truncate text-[13px] font-normal leading-tight text-white drop-shadow-sm">
+              <span className="block truncate text-xs font-normal leading-tight text-white drop-shadow-sm">
                 {displayNameForLanguage(skill, language)}
               </span>
             </span>
