@@ -46,44 +46,68 @@
   --text-xl: 0.9375rem; /* 15px */
   --text-xl--line-height: 1.35;
 
-  /* Neutrals — pure grayscale, no temperature tint. */
-  --color-bg: #fbfbfa;
-  --color-bg-sunken: #f3f3f3;
+
+  /* Linear-style light neutrals */
+  --color-bg: #f7f8f8;
+  --color-bg-sunken: #f0f1f2;
+
   --color-surface: #ffffff;
-  --color-surface-2: #f6f6f6;
-  --color-surface-3: #eeeeee;
-  --color-border: #e5e5e5;
-  --color-text: #1c1c1c;
-  --color-text-2: #525252;
-  --color-text-3: #848484;
-  --color-text-4: #afafaf;
+  --color-surface-2: #f5f6f7;
+  --color-surface-3: #eceef0;
 
-  /* Accent (default: deep ink blue). Themes below override via .theme-* classes. */
-  --color-accent: #1e4fa8;
-  --color-accent-hover: #18408b;
+  --color-border: #e1e4e8;
+  --color-border-strong: #cfd4dc;
+
+  --color-text: #1d1f23;
+  --color-text-2: #525866;
+  --color-text-3: #838b98;
+  --color-text-4: #a9b0bb;
+
+  /* Accent */
+  --color-accent: #2558b8;
+  --color-accent-hover: #1d479b;
   --color-accent-fg: #ffffff;
-  --color-accent-soft: #e6edf6;
-  --color-accent-wash: color-mix(in srgb, #1e4fa8 10%, transparent);
-  --color-accent-wash-2: color-mix(in srgb, #1e4fa8 16%, transparent);
-  --color-accent-ring: color-mix(in srgb, var(--color-accent) 11%, transparent);
-  --color-accent-ring-hover: color-mix(in srgb, var(--color-accent) 14%, transparent);
 
-  --color-danger: #c14545;
-  --color-danger-soft: #fbefef;
-  --color-success: #3a9e5d;
+  --color-accent-soft: #e8eefb;
+  --color-accent-soft-elevated: #dce7f8;
 
-  /* Edge rings — pure grayscale to match the light palette. */
-  --ring-edge: rgba(28, 28, 28, 0.08);
-  --ring-edge-elevated: rgba(28, 28, 28, 0.1);
-  --ring-edge-strong: rgba(28, 28, 28, 0.14);
-  --ring-edge-soft: rgba(28, 28, 28, 0.05);
-  --shadow-lift: 0 12px 28px -18px rgba(28, 28, 28, 0.18), 0 1px 2px rgba(28, 28, 28, 0.035);
-  --shadow-float: 0 16px 36px -24px rgba(28, 28, 28, 0.2), 0 2px 6px rgba(28, 28, 28, 0.055);
+  --color-accent-wash: color-mix(in srgb, #2558b8 10%, transparent);
+  --color-accent-wash-2: color-mix(in srgb, #2558b8 17%, transparent);
 
-  /* Chat user bubble — light mode leans on a bottom drop for lift. */
+  --color-accent-ring: color-mix(in srgb, var(--color-accent) 14%, transparent);
+  --color-accent-ring-hover: color-mix(in srgb, var(--color-accent) 20%, transparent);
+
+  --color-warning: #b7791f;
+  --color-warning-soft: #fff7e6;
+
+  --color-danger: #c84848;
+  --color-danger-soft: #fff0ef;
+
+  --color-success: #2f9d62;
+  --color-on-success: #ffffff;
+
+  --color-error-dim: color-mix(in srgb, var(--color-danger) 10%, transparent);
+
+  /* Edge rings */
+  --ring-edge: rgba(29, 31, 35, 0.075);
+  --ring-edge-elevated: rgba(29, 31, 35, 0.095);
+  --ring-edge-strong: rgba(29, 31, 35, 0.13);
+  --ring-edge-soft: rgba(29, 31, 35, 0.045);
+
+  --shadow-lift:
+    0 12px 28px -20px rgba(29, 31, 35, 0.18),
+    0 1px 2px rgba(29, 31, 35, 0.04);
+
+  --shadow-float:
+    0 18px 40px -26px rgba(29, 31, 35, 0.22),
+    0 2px 8px rgba(29, 31, 35, 0.055);
+
+  /* Chat user bubble */
   --bubble-user-bg: var(--color-accent-soft);
   --bubble-user-edge:
-    inset 0 0 0 1px var(--color-accent-ring), 0 1px 0 var(--color-accent-ring), 0 2px 3px -1px rgba(0, 0, 0, 0.05);
+    inset 0 0 0 1px var(--color-accent-ring),
+    0 1px 0 var(--color-accent-ring),
+    0 2px 4px -2px rgba(29, 31, 35, 0.08);
 
   --radius-xs: 4px;
   --radius-sm: 6px;
@@ -250,30 +274,45 @@
   --color-accent-wash: color-mix(in srgb, #f2f1ef 14%, transparent);
   --color-accent-wash-2: color-mix(in srgb, #f2f1ef 22%, transparent);
 }
-
-/* Warm neutrals — third base palette. Accent themes still layer on top. */
 .warm {
-  --color-bg: #faf8f5;
-  --color-bg-sunken: #f3efe8;
-  --color-surface: #ffffff;
-  --color-surface-2: #f6f2eb;
-  --color-surface-3: #ece6dc;
-  --color-border: #e6dfd2;
-  --color-text: #2a2622;
-  --color-text-2: #5b524a;
-  --color-text-3: #8a7e72;
-  --color-text-4: #b6aa9a;
+  --color-bg: #fbf8f3;
+  --color-bg-sunken: #f2ede5;
 
-  --color-danger: #b04a3b;
-  --color-danger-soft: #f6e3df;
-  --color-success: #5e8a4a;
+  --color-surface: #fffdf9;
+  --color-surface-2: #f7f1e9;
+  --color-surface-3: #eee6da;
 
-  --ring-edge: rgba(60, 40, 20, 0.08);
-  --ring-edge-elevated: rgba(60, 40, 20, 0.1);
-  --ring-edge-strong: rgba(60, 40, 20, 0.14);
-  --ring-edge-soft: rgba(60, 40, 20, 0.05);
-  --shadow-lift: 0 12px 28px -18px rgba(60, 40, 20, 0.22), 0 1px 2px rgba(60, 40, 20, 0.04);
-  --shadow-float: 0 16px 36px -24px rgba(60, 40, 20, 0.24), 0 2px 6px rgba(60, 40, 20, 0.06);
+  --color-border: #e3d9ca;
+  --color-border-strong: #cfc1ae;
+
+  --color-text: #25211d;
+  --color-text-2: #5a5148;
+  --color-text-3: #867a6c;
+  --color-text-4: #aa9d8d;
+
+  --color-warning: #a66a1f;
+  --color-warning-soft: #fff3df;
+
+  --color-danger: #b84d3f;
+  --color-danger-soft: #fae7e2;
+
+  --color-success: #5f8f55;
+  --color-on-success: #ffffff;
+
+  --color-error-dim: color-mix(in srgb, var(--color-danger) 10%, transparent);
+
+  --ring-edge: rgba(37, 33, 29, 0.075);
+  --ring-edge-elevated: rgba(37, 33, 29, 0.095);
+  --ring-edge-strong: rgba(37, 33, 29, 0.13);
+  --ring-edge-soft: rgba(37, 33, 29, 0.045);
+
+  --shadow-lift:
+    0 12px 28px -20px rgba(37, 33, 29, 0.2),
+    0 1px 2px rgba(37, 33, 29, 0.045);
+
+  --shadow-float:
+    0 18px 40px -26px rgba(37, 33, 29, 0.24),
+    0 2px 8px rgba(37, 33, 29, 0.06);
 
   color-scheme: light;
 }
