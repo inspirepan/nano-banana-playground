@@ -118,7 +118,7 @@ export const OutputPanel = memo(function OutputPanel({
   return (
     <div
       ref={scrollRef}
-      className="flex-1 md:flex-[2_1_0%] overflow-visible md:overflow-y-auto [scrollbar-gutter:stable] md:px-[26px] md:py-[22px] md:pb-[80px]"
+      className="flex-1 md:flex-[2_1_0%] overflow-visible md:overflow-y-auto md:[scrollbar-gutter:stable] md:px-[26px] md:py-[22px] md:pb-[80px]"
     >
       <div className="mb-5 space-y-3">
         <div className="flex items-start gap-3">

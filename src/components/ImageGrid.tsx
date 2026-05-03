@@ -5,7 +5,7 @@ import { useMediaQuery } from '../hooks/effects'
 const GRID_GAP = 8
 const TARGET_CELL_WIDTH = 76
 const MIN_GRID_COLS_DESKTOP = 6
-const MIN_GRID_COLS_MOBILE = 4
+const MIN_GRID_COLS_MOBILE = 6
 const MAX_GRID_COLS = 16
 const DEFAULT_GRID_COLS = 8
 
@@ -25,11 +25,11 @@ function parseAspectRatio(ratio: string): number {
   return Number.isFinite(value) && value > 0 ? value : 1
 }
 
-function getGridSpan(aspectRatio: string, isMobile: boolean): GridSpan {
+function getGridSpan(aspectRatio: string): GridSpan {
   const ratio = parseAspectRatio(aspectRatio)
-  if (ratio >= 0.95 && ratio <= 1.05) return isMobile ? { cols: 2, rows: 2 } : { cols: 3, rows: 3 }
-  // Give desktop 2:3 portraits the same column weight as other primary thumbnails.
-  if (ratio >= 0.62 && ratio <= 0.7) return isMobile ? { cols: 2, rows: 3 } : { cols: 3, rows: 5 }
+  if (ratio >= 0.95 && ratio <= 1.05) return { cols: 3, rows: 3 }
+  // Give 2:3 portraits the same column weight as other primary thumbnails.
+  if (ratio >= 0.62 && ratio <= 0.7) return { cols: 3, rows: 5 }
   if (ratio <= 0.35) return { cols: 2, rows: 4 }
   if (ratio >= 2.85) return { cols: 4, rows: 2 }
 
@@ -61,9 +61,9 @@ function normalizeGridSpan(span: GridSpan, gridCols: number): GridSpan {
   }
 }
 
-type GridContext = { cols: number; isMobile: boolean }
+type GridContext = { cols: number }
 
-const GridColsContext = createContext<GridContext>({ cols: DEFAULT_GRID_COLS, isMobile: false })
+const GridColsContext = createContext<GridContext>({ cols: DEFAULT_GRID_COLS })
 
 type ImageGridProps = {
   children: ReactNode
@@ -78,7 +78,7 @@ export function ImageGrid({ children, maxRowHeight }: ImageGridProps) {
   const [rowHeight, setRowHeight] = useState(TARGET_CELL_WIDTH)
   const isMobile = useMediaQuery('(max-width: 767px)')
   const minCols = isMobile ? MIN_GRID_COLS_MOBILE : MIN_GRID_COLS_DESKTOP
-  const contextValue = useMemo(() => ({ cols: gridCols, isMobile }), [gridCols, isMobile])
+  const contextValue = useMemo(() => ({ cols: gridCols }), [gridCols])
 
   useLayoutEffect(() => {
     const element = ref.current
@@ -128,8 +128,8 @@ type GridCellProps = {
 }
 
 export function GridCell({ children, aspectRatio, cols, rows }: GridCellProps) {
-  const { cols: gridCols, isMobile } = useContext(GridColsContext)
-  const baseSpan = aspectRatio ? getGridSpan(aspectRatio, isMobile) : { cols: cols ?? 1, rows: rows ?? 1 }
+  const { cols: gridCols } = useContext(GridColsContext)
+  const baseSpan = aspectRatio ? getGridSpan(aspectRatio) : { cols: cols ?? 1, rows: rows ?? 1 }
   const span = normalizeGridSpan(baseSpan, gridCols)
 
   return (
