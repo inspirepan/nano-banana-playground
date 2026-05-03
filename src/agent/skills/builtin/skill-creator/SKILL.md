@@ -20,15 +20,15 @@ This skill provides guidance for creating and improving effective skills inside 
 
 Design skills around the tools this app actually exposes:
 
-| Tool | Use it for | Boundary |
-| --- | --- | --- |
-| `AskUserQuestion` | Ask a compact form before running a workflow; collect style / layout / source / output dimensions | 1-4 questions, each with 2-4 real options; use notes for optional details, not as the only input path |
-| `GenImage` | Create approved, resumable image generation tasks | Use real existing `image_id` values only; do not invent paths or local files |
-| `ReadImage` | Inspect current session, history, reference, or generated images | Requires a known image ID |
-| `WebSearch` / `WebFetch` | Search and fetch web material when provider settings allow it | Long fetched content may be saved as `agent://...` virtual files |
-| `ReadAgentFile` | Page through long virtual tool outputs | Reads current-session `agent://...` files, not local filesystem paths |
-| `Skill` / `ReadSkillFile` | Load or inspect existing virtual skills | Read markdown skill files only |
-| `CreateSkill` | Create or update a user skill in the browser's virtual library | Cannot overwrite built-in system skills; creates text-only virtual files |
+| Tool                      | Use it for                                                                                        | Boundary                                                                                              |
+| ------------------------- | ------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `AskUserQuestion`         | Ask a compact form before running a workflow; collect style / layout / source / output dimensions | 1-4 questions, each with 2-4 real options; use notes for optional details, not as the only input path |
+| `GenImage`                | Create approved, resumable image generation tasks                                                 | Use real existing `image_id` values only; do not invent paths or local files                          |
+| `ReadImage`               | Inspect current session, history, reference, or generated images                                  | Requires a known image ID                                                                             |
+| `WebSearch` / `WebFetch`  | Search and fetch web material when provider settings allow it                                     | Long fetched content may be saved as `agent://...` virtual files                                      |
+| `ReadAgentFile`           | Page through long virtual tool outputs                                                            | Reads current-session `agent://...` files, not local filesystem paths                                 |
+| `Skill` / `ReadSkillFile` | Load or inspect existing virtual skills                                                           | Read markdown skill files only                                                                        |
+| `CreateSkill`             | Create or update a user skill in the browser's virtual library                                    | Cannot overwrite built-in system skills; creates text-only virtual files                              |
 
 ## Preferred skill pattern
 
@@ -36,13 +36,13 @@ Most built-in creative skills in this project use the same pattern: **capability
 
 For a new skill, prefer defining 3-5 orthogonal dimensions such as:
 
-| Dimension | Example values | Purpose |
-| --- | --- | --- |
-| `mode` | create / edit / review / diagnose | Selects the primary workflow |
-| `style` | minimal / editorial / playful / enterprise | Selects tone or visual treatment |
-| `structure` | dense / list / flow / comparison / report | Selects layout or information architecture |
-| `source` | user-notes / web / image-id / prior-output | Selects where evidence comes from and which tools are needed |
-| `output` | markdown / image / outline / table / checklist | Selects final shape |
+| Dimension   | Example values                                 | Purpose                                                      |
+| ----------- | ---------------------------------------------- | ------------------------------------------------------------ |
+| `mode`      | create / edit / review / diagnose              | Selects the primary workflow                                 |
+| `style`     | minimal / editorial / playful / enterprise     | Selects tone or visual treatment                             |
+| `structure` | dense / list / flow / comparison / report      | Selects layout or information architecture                   |
+| `source`    | user-notes / web / image-id / prior-output     | Selects where evidence comes from and which tools are needed |
+| `output`    | markdown / image / outline / table / checklist | Selects final shape                                          |
 
 Keep dimensions orthogonal. Do not make `style` secretly control layout, palette, and output count at the same time. If a value can be inferred from the user's topic, put it in an auto-recommendation table instead of asking another question.
 
@@ -114,6 +114,7 @@ Every SKILL.md consists of:
     en: One-line English UI description
   icon: lucide-kebab-icon
   ```
+
 - **Body** (Markdown): Instructions and guidance for using the skill. Only loaded AFTER the
   skill triggers (if at all).
 

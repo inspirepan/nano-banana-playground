@@ -47,7 +47,6 @@ type DetailSidebarProps = {
   onDownload: () => void
   onCopyPrompt: () => void
   onRemove: (id: string) => void | Promise<void>
-  onClose: () => void
 }
 
 export function DetailSidebar({
@@ -73,7 +72,6 @@ export function DetailSidebar({
   onDownload,
   onCopyPrompt,
   onRemove,
-  onClose,
 }: DetailSidebarProps) {
   const { language, t } = useI18n()
   const prompt = currentMeta?.prompt ?? currentJob?.request.prompt ?? null
@@ -360,7 +358,6 @@ export function DetailSidebar({
           }}
           onClick={() => {
             void onRemove(currentImage.id)
-            onClose()
           }}
         >
           <Icon name="trash" size={12} strokeWidth={1.8} /> {t('imageDetail.action.deleteFromHistory')}

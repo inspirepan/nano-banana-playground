@@ -258,9 +258,7 @@ function countObjectStore(store: IDBObjectStore): Promise<number> {
   })
 }
 
-async function measureStores(
-  storeNames: string[],
-): Promise<{ bytes: number; count: number }> {
+async function measureStores(storeNames: string[]): Promise<{ bytes: number; count: number }> {
   const db = await openExistingIndexedDB(DB_NAME).catch(() => null)
   if (!db) return { bytes: 0, count: 0 }
   const available = storeNames.filter((name) => db.objectStoreNames.contains(name))
@@ -296,9 +294,7 @@ export async function getStorageBreakdown(): Promise<StorageBreakdown> {
 
   const localStorageTotal = storageBytes(getStorageEntries('localStorage'))
   const otherBytes =
-    Math.max(0, localStorageTotal - skillBytes) +
-    storageBytes(getStorageEntries('sessionStorage')) +
-    cookieBytes()
+    Math.max(0, localStorageTotal - skillBytes) + storageBytes(getStorageEntries('sessionStorage')) + cookieBytes()
 
   const items: StorageBreakdownItem[] = [
     {

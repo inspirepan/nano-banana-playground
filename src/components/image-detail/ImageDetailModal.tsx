@@ -245,6 +245,24 @@ export function ImageDetailModal({
     }
   }, [currentIdx, nextStackTarget, onNavigateToStackItem, resetDetailTab, selectStackItem, stack.items])
 
+  const handleRemoveCurrent = useCallback(
+    (id: string) => {
+      const nextImageItem = stack.items.find(
+        (item, index) => index > currentIdx && item.type === 'image' && item.id !== id,
+      )
+      const prevImageItem = stack.items.findLast(
+        (item, index) => index < currentIdx && item.type === 'image' && item.id !== id,
+      )
+      const replacement = nextImageItem ?? prevImageItem ?? null
+
+      if (replacement) selectStackItem(replacement)
+      else onClose()
+
+      void Promise.resolve(onRemove(id))
+    },
+    [currentIdx, onClose, onRemove, selectStackItem, stack.items],
+  )
+
   useExternalSync(() => {
     if (!currentImage) return
     void ensureBlobLoaded(currentImage.id, currentImage.mimeType).catch(() => {})
@@ -776,8 +794,7 @@ export function ImageDetailModal({
                       onReroll={handleRerollAction}
                       onDownload={handleDownload}
                       onCopyPrompt={handleCopyPrompt}
-                      onRemove={onRemove}
-                      onClose={onClose}
+                      onRemove={handleRemoveCurrent}
                     />
                   </div>
                 </div>

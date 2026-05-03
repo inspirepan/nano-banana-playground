@@ -54,7 +54,6 @@ type DetailSidePanelProps = {
   onDownload: () => void
   onCopyPrompt: () => void
   onRemove: (id: string) => void | Promise<void>
-  onClose: () => void
 }
 
 export function DetailSidePanel({
@@ -101,7 +100,6 @@ export function DetailSidePanel({
   onDownload,
   onCopyPrompt,
   onRemove,
-  onClose,
 }: DetailSidePanelProps) {
   const { t } = useI18n()
 
@@ -207,7 +205,6 @@ export function DetailSidePanel({
             onDownload={onDownload}
             onCopyPrompt={onCopyPrompt}
             onRemove={onRemove}
-            onClose={onClose}
           />
         )}
       </div>

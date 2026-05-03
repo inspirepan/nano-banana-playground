@@ -60,7 +60,14 @@ async function tryDirectFetch(url: string, signal?: AbortSignal): Promise<Normal
   const response = await fetch(url, { signal, redirect: 'follow' })
   const contentType = response.headers.get('content-type') ?? ''
   const body = await response.text()
-  return { source: 'direct', status: response.status, statusText: response.statusText, contentType, body, finalUrl: response.url }
+  return {
+    source: 'direct',
+    status: response.status,
+    statusText: response.statusText,
+    contentType,
+    body,
+    finalUrl: response.url,
+  }
 }
 
 async function tryProxyFetch(url: string, signal?: AbortSignal): Promise<NormalizedFetch> {
@@ -71,10 +78,16 @@ async function tryProxyFetch(url: string, signal?: AbortSignal): Promise<Normali
     body: JSON.stringify({ url }),
   })
   if (!response.ok) {
-    const data = await response.json().catch(() => ({})) as { error?: string }
+    const data = (await response.json().catch(() => ({}))) as { error?: string }
     throw new Error(`Proxy error ${response.status}: ${data.error ?? response.statusText}`)
   }
-  const data = await response.json() as { status: number; statusText: string; contentType: string; finalUrl: string; body: string }
+  const data = (await response.json()) as {
+    status: number
+    statusText: string
+    contentType: string
+    finalUrl: string
+    body: string
+  }
   return {
     source: 'proxy',
     status: data.status,

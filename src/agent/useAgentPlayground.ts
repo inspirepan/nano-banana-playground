@@ -291,9 +291,7 @@ export function useAgentPlayground({
       if (runtime.questionResolvers.size === 0) return
       for (const [, resolver] of runtime.questionResolvers) {
         try {
-          resolver.resolve(
-            createAskUserQuestionResult(resolver.questions, [], { cancelled: true, reason }),
-          )
+          resolver.resolve(createAskUserQuestionResult(resolver.questions, [], { cancelled: true, reason }))
         } catch {
           // Ignore — caller may have moved on.
         }

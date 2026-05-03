@@ -91,7 +91,9 @@ export function StackItemThumb({
   const boxShadow = outerRing
     ? highlighted
       ? `0 0 0 1px var(--ring-edge-elevated), 0 0 0 3px color-mix(in srgb, var(--color-accent) 70%, transparent)${outerRingShadow}`
-      : slot ? undefined : 'var(--shadow-lift)'
+      : slot
+        ? undefined
+        : 'var(--shadow-lift)'
     : highlighted
       ? '0 0 0 2px var(--color-surface), 0 0 0 3px var(--color-accent)'
       : 'inset 0 0 0 1px var(--ring-edge)'
