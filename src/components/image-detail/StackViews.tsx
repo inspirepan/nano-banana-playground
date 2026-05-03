@@ -158,21 +158,76 @@ type StackStripBatch = {
   createdAt: number
   items: StackItem[]
   prompt: string | null
+  imageIdLabel: string | null
+  imageIdTitle: string | null
   kind: 'initial' | 'edit'
+}
+
+function agentImageIdOf(item: StackItem): string | null {
+  if (item.type === 'image') {
+    return item.image.source.type === 'generated' && item.image.source.imageIdSource === 'agent' ? item.image.id : null
+  }
+
+  if (item.job.request.outputImageIdSource !== 'agent') return null
+  return item.slot.outputImageId ?? item.job.request.outputImageIds?.[item.slot.index] ?? null
+}
+
+function numericSuffixCandidates(id: string): string[] {
+  const candidates = [id]
+  let current = id
+  while (true) {
+    const match = /^(.*)_\d+$/.exec(current)
+    if (!match?.[1]) return candidates
+    current = match[1]
+    candidates.push(current)
+  }
+}
+
+function matchesNumericSequence(id: string, base: string): boolean {
+  if (id === base) return true
+  if (!id.startsWith(`${base}_`)) return false
+  return /^\d+$/.test(id.slice(base.length + 1))
+}
+
+function batchImageIdLabel(ids: string[]): string | null {
+  const uniqueIds = Array.from(new Set(ids.filter(Boolean)))
+  if (uniqueIds.length === 0) return null
+  if (uniqueIds.length === 1) return uniqueIds[0]
+
+  return (
+    numericSuffixCandidates(uniqueIds[0]).find((candidate) =>
+      uniqueIds.every((id) => matchesNumericSequence(id, candidate)),
+    ) ?? uniqueIds[0]
+  )
 }
 
 function buildStackStripBatches(items: StackItem[]): StackStripBatch[] {
   const map = new Map<string, StackStripBatch>()
   const order: string[] = []
+  const imageIdsByBatch = new Map<string, string[]>()
   for (const item of items) {
     let batch = map.get(item.batchId)
     if (!batch) {
-      batch = { id: item.batchId, createdAt: item.timestamp, items: [], prompt: null, kind: 'initial' }
+      batch = {
+        id: item.batchId,
+        createdAt: item.timestamp,
+        items: [],
+        prompt: null,
+        imageIdLabel: null,
+        imageIdTitle: null,
+        kind: 'initial',
+      }
       map.set(item.batchId, batch)
       order.push(item.batchId)
     }
     batch.items.push(item)
     batch.createdAt = Math.min(batch.createdAt, item.timestamp)
+    const imageId = agentImageIdOf(item)
+    if (imageId) {
+      const ids = imageIdsByBatch.get(item.batchId) ?? []
+      ids.push(imageId)
+      imageIdsByBatch.set(item.batchId, ids)
+    }
     if (
       (item.type === 'image' && item.image.source.type === 'generated' && item.image.source.parentImageId) ||
       (item.type === 'slot' && item.job.parentImageId)
@@ -187,7 +242,16 @@ function buildStackStripBatches(items: StackItem[]): StackStripBatch[] {
       }
     }
   }
-  return order.map((id) => map.get(id) as StackStripBatch)
+  return order.map((id) => {
+    const batch = map.get(id) as StackStripBatch
+    const imageIds = imageIdsByBatch.get(id) ?? []
+    const label = batchImageIdLabel(imageIds)
+    return {
+      ...batch,
+      imageIdLabel: label,
+      imageIdTitle: imageIds.length > 1 ? Array.from(new Set(imageIds)).join(', ') : label,
+    }
+  })
 }
 
 function formatHourMinute(ts: number): string {
@@ -277,12 +341,22 @@ export const StackStrip = memo(function StackStrip({
                       <span className="text-(--color-text-4)">·</span>
                       <span className="text-(--color-text-3)">{formatHourMinute(batch.createdAt)}</span>
                     </div>
-                    <div
-                      className="mt-0.5 truncate text-sm leading-[1.35] text-(--color-text-3)"
-                      title={batch.prompt ?? undefined}
-                    >
-                      {batch.prompt ?? '—'}
-                    </div>
+                    {batch.imageIdLabel && (
+                      <div
+                        className="mono mt-0.5 truncate text-xs leading-[1.35] text-(--color-text-3)"
+                        title={batch.imageIdTitle ?? batch.imageIdLabel}
+                      >
+                        {batch.imageIdLabel}
+                      </div>
+                    )}
+                    {!batch.imageIdLabel && (
+                      <div
+                        className="mt-0.5 truncate text-xs leading-[1.35] text-(--color-text-3)"
+                        title={batch.prompt ?? undefined}
+                      >
+                        {batch.prompt ?? '—'}
+                      </div>
+                    )}
                   </div>
                   <div className="flex items-center gap-2">
                     {batch.items.map((item) => {
