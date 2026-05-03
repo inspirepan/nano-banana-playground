@@ -162,7 +162,7 @@ export function MessageBubble({
           <div className="mt-1 flex justify-end pr-1">
             <button
               type="button"
-              className="pointer-events-none inline-flex h-[26px] appearance-none items-center justify-center rounded-[var(--radius-sm)] border-0 bg-transparent px-2 text-xs font-medium text-(--color-text-4) opacity-0 transition-[opacity,background-color,color] duration-150 hover:bg-(--color-surface-2) hover:text-(--color-text-3) group-hover/message:pointer-events-auto group-hover/message:opacity-100 group-focus-within/message:pointer-events-auto group-focus-within/message:opacity-100"
+              className="inline-flex h-[26px] appearance-none items-center justify-center rounded-[var(--radius-sm)] border-0 bg-transparent px-2 text-xs font-medium text-(--color-text-4) opacity-100 transition-[opacity,background-color,color] duration-150 hover:bg-(--color-surface-2) hover:text-(--color-text-3) md:pointer-events-none md:opacity-0 md:group-hover/message:pointer-events-auto md:group-hover/message:opacity-100 md:group-focus-within/message:pointer-events-auto md:group-focus-within/message:opacity-100"
               onClick={handleCopy}
               title={copied ? t('agentChat.message.copied') : t('agentChat.message.copy')}
               aria-label={copied ? t('agentChat.message.copied') : t('agentChat.message.copy')}

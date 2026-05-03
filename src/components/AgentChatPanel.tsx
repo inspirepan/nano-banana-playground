@@ -374,6 +374,7 @@ export function AgentChatPanel({
           <AgentChatHeader
             sessions={sessions}
             currentSessionId={currentSessionId}
+            currentSessionStatus={currentSessionSidebarStatus}
             sessionsLoading={sessionsLoading}
             compactSessionControls={showSessionSidebar}
             openMenu={openMenu}

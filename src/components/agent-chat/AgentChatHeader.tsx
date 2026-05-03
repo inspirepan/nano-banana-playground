@@ -1,5 +1,6 @@
 import { useMemo, type Dispatch, type SetStateAction } from 'react'
 
+import { AgentSessionStatusBadge, type AgentSessionSidebarStatus } from './AgentSessionSidebar'
 import type { AgentChatMenu } from './types'
 import { formatSessionTime } from './utils'
 import type { AgentSessionSummary } from '../../agent'
@@ -9,6 +10,7 @@ import { Icon } from '../Icon'
 type AgentChatHeaderProps = {
   sessions: AgentSessionSummary[]
   currentSessionId: string | null
+  currentSessionStatus: AgentSessionSidebarStatus
   sessionsLoading: boolean
   compactSessionControls?: boolean
   openMenu: AgentChatMenu
@@ -21,6 +23,7 @@ type AgentChatHeaderProps = {
 export function AgentChatHeader({
   sessions,
   currentSessionId,
+  currentSessionStatus,
   sessionsLoading,
   compactSessionControls = false,
   openMenu,
@@ -91,6 +94,7 @@ export function AgentChatHeader({
             ) : (
               sessions.map((session) => {
                 const active = session.id === currentSessionId
+                const status = active ? currentSessionStatus : null
                 const imageCount = session.imageCount ?? 0
                 const imageCountLabel = t('agentChat.header.generatedImageCount', { count: imageCount })
                 return (
@@ -113,6 +117,7 @@ export function AgentChatHeader({
                       </span>
                     </span>
                     <span className="flex shrink-0 items-center gap-1.5 text-sm text-(--color-text-3)">
+                      {status && <AgentSessionStatusBadge status={status} />}
                       {imageCount > 0 && (
                         <span
                           className="inline-flex h-[18px] shrink-0 items-center gap-1 rounded-full bg-(--color-surface-2) px-1.5 text-[11px] font-medium leading-none tabular-nums text-(--color-text-3) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]"

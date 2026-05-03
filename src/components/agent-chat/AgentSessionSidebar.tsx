@@ -5,7 +5,7 @@ import { Icon } from '../Icon'
 
 export type AgentSessionSidebarStatus = 'running' | 'waiting_for_question' | 'generating_images' | null
 
-function AgentSessionStatusBadge({ status }: { status: Exclude<AgentSessionSidebarStatus, null> }) {
+export function AgentSessionStatusBadge({ status }: { status: Exclude<AgentSessionSidebarStatus, null> }) {
   const { t } = useI18n()
   if (status === 'waiting_for_question') {
     return (
