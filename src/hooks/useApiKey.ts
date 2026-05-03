@@ -1,42 +1,25 @@
 import { useCallback, useMemo, useState } from 'react'
 
 import type { Provider } from '../config/models'
-import { getProviderConfig } from '../config/providers'
 import { translate } from '../i18n'
-import { getStorageItem, removeStorageItem, setStorageItem } from '../lib/storage'
+import {
+  clearProviderApiKey,
+  readProviderApiKey,
+  readProviderBaseUrl,
+  saveProviderBaseUrl,
+  writeProviderApiKey,
+} from '../lib/credentialStore'
 import { validateApiKey } from '../lib/validateKey'
 
 export type ApiKeyStatus = 'empty' | 'validating' | 'valid' | 'invalid'
 
-// Migrate the legacy single-key slot (pre multi-provider) into the google bucket.
-function readStoredKey(provider: Provider): string {
-  const config = getProviderConfig(provider)
-  const current = getStorageItem('localStorage', config.apiKeyStorageKey)
-  if (current) return current
-  if (provider === 'google') {
-    const legacy = getStorageItem('localStorage', 'nano-banana-api-key')
-    if (legacy) {
-      const migrated = setStorageItem('localStorage', config.apiKeyStorageKey, legacy)
-      if (migrated && getStorageItem('localStorage', config.apiKeyStorageKey) === legacy) {
-        removeStorageItem('localStorage', 'nano-banana-api-key')
-      }
-      return legacy
-    }
-  }
-  return ''
-}
-
-function readStoredBaseUrl(provider: Provider): string {
-  return getStorageItem('localStorage', getProviderConfig(provider).baseUrlStorageKey) ?? ''
-}
-
 export function useApiKey(provider: Provider) {
   const [[initialApiKey, initialStatus]] = useState<[string, ApiKeyStatus]>(() => {
-    const key = readStoredKey(provider)
+    const key = readProviderApiKey(provider)
     return [key, key ? 'valid' : 'empty']
   })
   const [apiKey, setApiKeyRaw] = useState(initialApiKey)
-  const [baseUrl, setBaseUrlRaw] = useState(() => readStoredBaseUrl(provider))
+  const [baseUrl, setBaseUrlRaw] = useState(() => readProviderBaseUrl(provider))
   const [status, setStatus] = useState<ApiKeyStatus>(initialStatus)
   const [error, setError] = useState<string | null>(null)
 
@@ -48,12 +31,10 @@ export function useApiKey(provider: Provider) {
       const result = await validateApiKey(provider, key, effectiveBaseUrl)
       if (result.valid) {
         setApiKeyRaw(key)
-        setStorageItem('localStorage', getProviderConfig(provider).apiKeyStorageKey, key)
+        writeProviderApiKey(provider, key)
         if (nextBaseUrl !== undefined) {
           setBaseUrlRaw(effectiveBaseUrl)
-          const config = getProviderConfig(provider)
-          if (effectiveBaseUrl) setStorageItem('localStorage', config.baseUrlStorageKey, effectiveBaseUrl)
-          else removeStorageItem('localStorage', config.baseUrlStorageKey)
+          saveProviderBaseUrl(provider, effectiveBaseUrl)
         }
         setStatus('valid')
       } else {
@@ -66,7 +47,7 @@ export function useApiKey(provider: Provider) {
 
   const reset = useCallback(() => {
     setApiKeyRaw('')
-    removeStorageItem('localStorage', getProviderConfig(provider).apiKeyStorageKey)
+    clearProviderApiKey(provider)
     setError(null)
     setStatus('empty')
   }, [provider])
@@ -81,9 +62,7 @@ export function useApiKey(provider: Provider) {
     (next: string) => {
       const trimmed = next.trim()
       setBaseUrlRaw(trimmed)
-      const config = getProviderConfig(provider)
-      if (trimmed) setStorageItem('localStorage', config.baseUrlStorageKey, trimmed)
-      else removeStorageItem('localStorage', config.baseUrlStorageKey)
+      saveProviderBaseUrl(provider, trimmed)
     },
     [provider],
   )

@@ -22,9 +22,9 @@ import { useI18n } from '../../i18n'
 import { copyEditState, setEditItems } from '../../lib/editStateCache'
 import { downloadImagePng } from '../../lib/exportImages'
 import { loadImageMetas } from '../../lib/history'
+import { readDetailSidebarCollapsedPreference, writeDetailSidebarCollapsedPreference } from '../../lib/preferenceStore'
 import { getActualCost } from '../../lib/pricing'
 import type { ImageStack, StackItem } from '../../lib/stacks'
-import { getStorageItem, setStorageItem } from '../../lib/storage'
 import type { PlaygroundImageMeta } from '../../lib/types'
 
 type Props = {
@@ -380,13 +380,13 @@ export function ImageDetailModal({
   // Desktop-only: collapse the right metadata sidebar to give the canvas more room.
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     if (typeof window === 'undefined') return false
-    return getStorageItem('localStorage', 'nano-banana-detail-sidebar-collapsed') === '1'
+    return readDetailSidebarCollapsedPreference()
   })
 
   const toggleSidebar = useCallback(() => {
     setSidebarCollapsed((prev) => {
       const next = !prev
-      setStorageItem('localStorage', 'nano-banana-detail-sidebar-collapsed', next ? '1' : '0')
+      writeDetailSidebarCollapsedPreference(next)
       return next
     })
   }, [])

@@ -6,7 +6,7 @@ import type { ModelConfig } from '../config/models'
 import { translate } from '../i18n'
 import { GENERATE_MAX_ATTEMPTS, generateImage } from '../lib/api'
 import { deleteFromHistory, saveToHistory } from '../lib/history'
-import { getStorageItem, setStorageItem } from '../lib/storage'
+import { readGenerationConcurrencyPreference, writeGenerationConcurrencyPreference } from '../lib/preferenceStore'
 import type { PlaygroundImage } from '../lib/types'
 import { isKeyError } from '../lib/validateKey'
 
@@ -74,7 +74,6 @@ type UseGenerationQueueParams = {
   onImageSaved: (image: PlaygroundImage) => void
 }
 
-const GENERATION_CONCURRENCY_KEY = 'nano-banana-generation-concurrency'
 const DEFAULT_GENERATION_CONCURRENCY = 2
 const MAX_STANDARD_GENERATION_CONCURRENCY = 4
 const UNLIMITED_GENERATION_CONCURRENCY = 999
@@ -85,7 +84,7 @@ export function clampGenerationConcurrency(value: number): number {
 }
 
 function initialGenerationConcurrency(): number {
-  const raw = getStorageItem('localStorage', GENERATION_CONCURRENCY_KEY)
+  const raw = readGenerationConcurrencyPreference()
   const parsed = raw ? Number.parseInt(raw, 10) : DEFAULT_GENERATION_CONCURRENCY
   return clampGenerationConcurrency(Number.isFinite(parsed) ? parsed : DEFAULT_GENERATION_CONCURRENCY)
 }
@@ -401,7 +400,7 @@ export function useGenerationQueue({
     const next = clampGenerationConcurrency(value)
     generationConcurrencyRef.current = next
     setGenerationConcurrencyState(next)
-    setStorageItem('localStorage', GENERATION_CONCURRENCY_KEY, String(next))
+    writeGenerationConcurrencyPreference(next)
     pumpQueueRef.current()
   }, [])
 

@@ -35,8 +35,8 @@ import type { ColorThemeId, Theme } from './config/theme'
 import { useExternalSync, useMountEffect, useWindowEvent } from './hooks/effects'
 import { usePlayground } from './hooks/usePlayground'
 import { createTranslator, I18nProvider } from './i18n'
+import { writeAgentPanelWidePreference, writeAgentWideTipDismissedPreference } from './lib/preferenceStore'
 import { buildImageStacks } from './lib/stacks'
-import { setStorageItem } from './lib/storage'
 import type { PlaygroundImageMeta } from './lib/types'
 
 const SettingsDialog = lazy(() =>
@@ -142,13 +142,13 @@ function App() {
 
   const dismissAgentWideTip = useCallback(() => {
     setAgentWideTipDismissed(true)
-    setStorageItem('localStorage', 'nano-banana-agent-panel-wide-tip', '1')
+    writeAgentWideTipDismissedPreference()
   }, [])
 
   const toggleAgentPanelWide = useCallback(() => {
     setAgentPanelWide((prev) => {
       const next = !prev
-      setStorageItem('localStorage', 'nano-banana-agent-panel-wide', next ? '1' : '0')
+      writeAgentPanelWidePreference(next)
       return next
     })
     dismissAgentWideTip()

@@ -257,7 +257,7 @@ export function usePlayground() {
     return () => window.clearTimeout(urlDebounceRef.current)
   }, [model, resolution, aspectRatio, batchCount, prompt, options, inputMode, agent.currentAgentSessionId])
 
-  // Persist draft reference images to IndexedDB + sessionStorage on change
+  // Persist draft reference images so editing can survive a page refresh.
   const draftRefsDebounceRef = useRef<number>(0)
   useExternalSync(() => {
     if (!draftRefsLoadedRef.current) return // skip initial save before load completes
