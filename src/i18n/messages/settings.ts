@@ -26,6 +26,8 @@ export const settingsMessages: MessageDictionary = {
   'settings.webTools.fetch.label': { 'zh-CN': 'WebFetch 后端', en: 'WebFetch backend' },
   'settings.webTools.provider.exa': { 'zh-CN': 'Exa', en: 'Exa' },
   'settings.webTools.provider.tavily': { 'zh-CN': 'Tavily', en: 'Tavily' },
+  'settings.webTools.provider.brave': { 'zh-CN': 'Brave', en: 'Brave' },
+  'settings.webTools.provider.parallel': { 'zh-CN': 'Parallel', en: 'Parallel' },
   'settings.webTools.search.provider.none': { 'zh-CN': '关闭', en: 'Off' },
   'settings.webTools.search.provider.noneDescription': {
     'zh-CN': '不提供搜索能力。Agent 仍可抓取用户给出的 URL。',
@@ -38,6 +40,14 @@ export const settingsMessages: MessageDictionary = {
   'settings.webTools.search.provider.tavilyDescription': {
     'zh-CN': '面向 LLM 的通用搜索结果和摘要片段，经站点代理转发。',
     en: 'LLM-oriented web results and summary snippets, forwarded via site proxy.',
+  },
+  'settings.webTools.search.provider.braveDescription': {
+    'zh-CN': '使用 Brave LLM Context API 返回搜索结果和引用片段，经站点代理转发。',
+    en: 'Uses the Brave LLM Context API for search results and cited snippets, forwarded via site proxy.',
+  },
+  'settings.webTools.search.provider.parallelDescription': {
+    'zh-CN': '使用 Parallel Search API 返回适合 LLM 阅读的长片段，经站点代理转发。',
+    en: 'Uses the Parallel Search API for LLM-ready long excerpts, forwarded via site proxy.',
   },
   'settings.webTools.fetch.provider.default': { 'zh-CN': '默认 + 代理', en: 'Default + Proxy' },
   'settings.webTools.fetch.provider.defaultDescription': {
@@ -52,6 +62,10 @@ export const settingsMessages: MessageDictionary = {
     'zh-CN': '使用 Tavily Extract API 抽取网页正文，经站点代理转发。',
     en: 'Uses Tavily Extract API to extract page content, forwarded via site proxy.',
   },
+  'settings.webTools.fetch.provider.parallelDescription': {
+    'zh-CN': '使用 Parallel Extract API 抽取 LLM 优化 markdown 内容，经站点代理转发。',
+    en: 'Uses the Parallel Extract API to extract LLM-optimized markdown content, forwarded via site proxy.',
+  },
   'settings.webTools.key.configured': { 'zh-CN': '已配置', en: 'Configured' },
   'settings.webTools.key.notConfigured': { 'zh-CN': '未配置', en: 'Not configured' },
   'settings.webTools.key.getKey': { 'zh-CN': '获取 API Key', en: 'Get API key' },
@@ -65,8 +79,8 @@ export const settingsMessages: MessageDictionary = {
   'settings.webTools.key.ariaLabel': { 'zh-CN': '{label} API Key', en: '{label} API key' },
   'settings.webTools.note': {
     'zh-CN':
-      'API Key 只保存在此浏览器。Exa 和 Tavily 请求均经站点 Pages Function 代理转发。没有配置搜索后端时，Agent 没有 WebSearch 能力；没有配置抓取后端时，WebFetch 使用默认浏览器抓取，遇到 CORS 时通过站点代理兜底。',
-    en: 'API keys are stored only in this browser. Exa and Tavily requests are forwarded via the site Pages Function proxy. Without a search backend, the agent has no WebSearch capability; without a fetch backend, WebFetch uses browser fetch, falling back to the site proxy on CORS failures.',
+      'API Key 只保存在此浏览器。外部 Web 工具请求均经站点 Pages Function 代理转发。没有配置搜索后端时，Agent 没有 WebSearch 能力；没有配置抓取后端时，WebFetch 使用默认浏览器抓取，遇到 CORS 时通过站点代理兜底。',
+    en: 'API keys are stored only in this browser. External web tool requests are forwarded via the site Pages Function proxy. Without a search backend, the agent has no WebSearch capability; without a fetch backend, WebFetch uses browser fetch, falling back to the site proxy on CORS failures.',
   },
   'settings.appearance.title': { 'zh-CN': '外观', en: 'Appearance' },
   'settings.appearance.description': {

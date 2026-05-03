@@ -12,6 +12,8 @@ function requireEnv(name: string): string | null {
 describe('web provider clients real network', () => {
   const exaApiKey = requireEnv('EXA_API_KEY')
   const tavilyApiKey = requireEnv('TAVILY_API_KEY')
+  const braveApiKey = requireEnv('BRAVE_API_KEY')
+  const parallelApiKey = requireEnv('PARALLEL_API_KEY')
 
   ;(exaApiKey ? it : it.skip)('searches with Exa when EXA_API_KEY is set', async () => {
     const result = await searchWithWebProvider(
@@ -43,6 +45,34 @@ describe('web provider clients real network', () => {
   })
   ;(tavilyApiKey ? it : it.skip)('fetches page content with Tavily when TAVILY_API_KEY is set', async () => {
     const result = await fetchWithWebProvider('tavily', tavilyApiKey as string, TEST_URL)
+
+    expect(result.document.content).toContain('Testing Vue components in the browser')
+    expect(result.document.url).toMatch(/^https?:\/\//)
+  })
+  ;(braveApiKey ? it : it.skip)('searches with Brave when BRAVE_API_KEY is set', async () => {
+    const result = await searchWithWebProvider(
+      'brave',
+      braveApiKey as string,
+      'Julia Evans Vue browser component testing',
+      3,
+    )
+
+    expect(result.results.length).toBeGreaterThan(0)
+    expect(result.results[0]?.url).toMatch(/^https?:\/\//)
+  })
+  ;(parallelApiKey ? it : it.skip)('searches with Parallel when PARALLEL_API_KEY is set', async () => {
+    const result = await searchWithWebProvider(
+      'parallel',
+      parallelApiKey as string,
+      'Julia Evans Vue browser component testing',
+      3,
+    )
+
+    expect(result.results.length).toBeGreaterThan(0)
+    expect(result.results[0]?.url).toMatch(/^https?:\/\//)
+  })
+  ;(parallelApiKey ? it : it.skip)('fetches page content with Parallel when PARALLEL_API_KEY is set', async () => {
+    const result = await fetchWithWebProvider('parallel', parallelApiKey as string, TEST_URL)
 
     expect(result.document.content).toContain('Testing Vue components in the browser')
     expect(result.document.url).toMatch(/^https?:\/\//)

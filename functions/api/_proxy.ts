@@ -15,8 +15,10 @@ const REQUEST_HEADER_ALLOWLIST = new Set([
   'content-type',
   'openai-organization',
   'openai-project',
+  'parallel-beta',
   'x-api-key',
   'x-goog-api-key',
+  'x-subscription-token',
 ])
 
 const RESPONSE_HEADER_ALLOWLIST = new Set([

@@ -23,6 +23,8 @@
   +-- Cloudflare Pages Functions (functions/)
   |     |-- /api/exa/[[path]]     → https://api.exa.ai
   |     |-- /api/tavily/[[path]]  → https://api.tavily.com
+  |     |-- /api/brave/[[path]]   → https://api.search.brave.com
+  |     |-- /api/parallel/[[path]] → https://api.parallel.ai
   |     |-- /api/fetch            → 通用 URL 抓取代理（POST {url}）
   |     +-- /api/llm/[[path]]     → LLM provider 透明代理
   |           首段为 provider 名（google/openai/anthropic/moonshot-*）
@@ -68,6 +70,8 @@ functions/
   api/
     exa/[[path]].ts       # 透明代理 → https://api.exa.ai
     tavily/[[path]].ts    # 透明代理 → https://api.tavily.com
+    brave/[[path]].ts     # 透明代理 → https://api.search.brave.com
+    parallel/[[path]].ts  # 透明代理 → https://api.parallel.ai
     fetch.ts              # 通用 URL 抓取代理（POST {url}）
     llm/[[path]].ts       # LLM provider 代理（named provider 或 base64url 自定义 URL）
 src/
@@ -75,7 +79,7 @@ src/
     models.ts                  # 图片模型/分辨率/比例/quality/价格/上限
     agentModels.ts             # Agent LLM 模型列表（Gemini / OpenAI / Anthropic / Moonshot 等）
     providers.ts               # API provider 定义（鉴权 key、标签、提示等）
-    webProviders.ts            # Web 工具后端（Exa / Tavily）配置
+    webProviders.ts            # Web 工具后端（Exa / Tavily / Brave / Parallel）配置
     agentPreferences.ts        # Agent 偏好（默认图片模型等）
     fonts.ts / theme.ts / languages.ts  # 外观和语言选项
   hooks/

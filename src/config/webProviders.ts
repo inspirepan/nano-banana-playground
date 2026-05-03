@@ -1,8 +1,10 @@
-export type WebApiProvider = 'exa' | 'tavily'
+export type WebApiProvider = 'exa' | 'tavily' | 'brave' | 'parallel'
+
+export type WebFetchApiProvider = Exclude<WebApiProvider, 'brave'>
 
 export type WebSearchProvider = 'none' | WebApiProvider
 
-export type WebFetchProvider = 'default' | WebApiProvider
+export type WebFetchProvider = 'default' | WebFetchApiProvider
 
 export type WebApiProviderConfig = {
   id: WebApiProvider
@@ -36,6 +38,22 @@ export const WEB_API_PROVIDER_CONFIGS: WebApiProviderConfig[] = [
     supportsSearch: true,
     supportsFetch: true,
   },
+  {
+    id: 'brave',
+    label: 'Brave Search',
+    shortLabel: 'Brave',
+    apiKeyUrl: 'https://api-dashboard.search.brave.com/app/keys',
+    supportsSearch: true,
+    supportsFetch: false,
+  },
+  {
+    id: 'parallel',
+    label: 'Parallel',
+    shortLabel: 'Parallel',
+    apiKeyUrl: 'https://platform.parallel.ai/settings/api-keys',
+    supportsSearch: true,
+    supportsFetch: true,
+  },
 ]
 
 export const WEB_SEARCH_PROVIDER_OPTIONS: WebProviderOption<WebSearchProvider>[] = [
@@ -53,6 +71,16 @@ export const WEB_SEARCH_PROVIDER_OPTIONS: WebProviderOption<WebSearchProvider>[]
     id: 'tavily',
     labelKey: 'settings.webTools.provider.tavily',
     descriptionKey: 'settings.webTools.search.provider.tavilyDescription',
+  },
+  {
+    id: 'brave',
+    labelKey: 'settings.webTools.provider.brave',
+    descriptionKey: 'settings.webTools.search.provider.braveDescription',
+  },
+  {
+    id: 'parallel',
+    labelKey: 'settings.webTools.provider.parallel',
+    descriptionKey: 'settings.webTools.search.provider.parallelDescription',
   },
 ]
 
@@ -72,6 +100,11 @@ export const WEB_FETCH_PROVIDER_OPTIONS: WebProviderOption<WebFetchProvider>[] =
     labelKey: 'settings.webTools.provider.tavily',
     descriptionKey: 'settings.webTools.fetch.provider.tavilyDescription',
   },
+  {
+    id: 'parallel',
+    labelKey: 'settings.webTools.provider.parallel',
+    descriptionKey: 'settings.webTools.fetch.provider.parallelDescription',
+  },
 ]
 
 export function isWebApiProvider(value: string): value is WebApiProvider {
@@ -82,8 +115,12 @@ export function isWebSearchProvider(value: string): value is WebSearchProvider {
   return value === 'none' || isWebApiProvider(value)
 }
 
+export function isWebFetchApiProvider(value: string): value is WebFetchApiProvider {
+  return isWebApiProvider(value) && getWebApiProviderConfig(value).supportsFetch
+}
+
 export function isWebFetchProvider(value: string): value is WebFetchProvider {
-  return value === 'default' || isWebApiProvider(value)
+  return value === 'default' || isWebFetchApiProvider(value)
 }
 
 export function getWebApiProviderConfig(provider: WebApiProvider): WebApiProviderConfig {

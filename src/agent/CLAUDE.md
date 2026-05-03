@@ -50,7 +50,7 @@ src/agent/
     askUserQuestion.ts    # AskUserQuestion schema, arg normalization, result formatting
     webSearch.ts          # WebSearch schema normalization and provider-backed runtime wrapper
     webFetch.ts           # WebFetch schema normalization and provider/default runtime wrapper
-    webProviderClients.ts # Exa / Tavily HTTP adapters
+    webProviderClients.ts # Exa / Tavily / Brave / Parallel HTTP adapters
     shared.ts             # shared runtime tool result/types
 ```
 
@@ -121,8 +121,8 @@ LLM transcript 中的 `toolCall` 保持 provider 原生形状；审批、生成�
 - `ReadAgentFile` — 分页读取 `agent://...` 虚拟文件
 - `ReadImage` — 读取图片内容和生成提示词（见下方专节）
 - `AskUserQuestion` — 向用户提问并等待回答（阻塞，见下方专节）
-- `WebSearch` — 网页搜索（Exa / Tavily）
-- `WebFetch` — 网页抓取（Exa / Tavily / 浏览器 direct fetch）
+- `WebSearch` — 网页搜索（Exa / Tavily / Brave / Parallel）
+- `WebFetch` — 网页抓取（Exa / Tavily / Parallel / 浏览器 direct fetch）
 - `CreateSkill` — 创建自定义 skill
 - `ReadSkillFile` — 读取 skill 定义文件
 - `Skill` — 加载并执行已有 skill
@@ -143,10 +143,10 @@ Web 搜索和抓取能力走 `WebSearch` / `WebFetch`，不要引入 `web_search
 
 Web 工具后端分两类抽象：
 
-- `WebSearchProvider`: `none` / `exa` / `tavily`。
-- `WebFetchProvider`: `default` / `exa` / `tavily`。
+- `WebSearchProvider`: `none` / `exa` / `tavily` / `brave` / `parallel`。
+- `WebFetchProvider`: `default` / `exa` / `tavily` / `parallel`。
 
-用户在 `SettingsDialog` 的 Web 工具区配置 API Key 和分别选择 `WebSearch` / `WebFetch` 后端。没有配置搜索后端时，`WebSearch` 返回未配置错误；没有配置抓取后端时，`WebFetch` 先尝试浏览器 direct fetch，失败时自动 fallback 到站点代理（`/api/fetch` Pages Function）。Exa / Tavily 的 HTTP 请求也经由 `/api/exa` / `/api/tavily` Pages Function 转发，不存在 CORS 问题。Brave Search API 和 Parallel API 当前不支持（与代理层无关，纯粹未接入），已从可选后端中移除。
+用户在 `SettingsDialog` 的 Web 工具区配置 API Key 和分别选择 `WebSearch` / `WebFetch` 后端。没有配置搜索后端时，`WebSearch` 返回未配置错误；没有配置抓取后端时，`WebFetch` 先尝试浏览器 direct fetch，失败时自动 fallback 到站点代理（`/api/fetch` Pages Function）。外部 Web 工具 HTTP 请求经由对应 `/api/{provider}` Pages Function 转发，不存在 CORS 问题。Brave 只支持搜索；Parallel 支持搜索和抓取。
 
 真实网络调用测试使用根目录脚本：
 
@@ -154,7 +154,7 @@ Web 工具后端分两类抽象：
 npm run test:network
 ```
 
-这组测试只在对应环境变量存在时执行：`EXA_API_KEY` 覆盖 Exa search/fetch，`TAVILY_API_KEY` 覆盖 Tavily search/fetch。不要把真实网络测试并入默认 `npm test`。
+这组测试只在对应环境变量存在时执行：`EXA_API_KEY` 覆盖 Exa search/fetch，`TAVILY_API_KEY` 覆盖 Tavily search/fetch，`BRAVE_API_KEY` 覆盖 Brave search，`PARALLEL_API_KEY` 覆盖 Parallel search/fetch。不要把真实网络测试并入默认 `npm test`。
 
 ## `GenImage` 工具准则
 
