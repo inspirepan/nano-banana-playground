@@ -251,6 +251,11 @@ export const AgentChatComposer = forwardRef<AgentChatComposerHandle, AgentChatCo
         applySlashSuggestion(slashSuggestions[activeSlashIndex])
         return
       }
+      if (event.key === 'Enter' && !event.shiftKey && !event.metaKey && !event.ctrlKey && !event.altKey) {
+        event.preventDefault()
+        applySlashSuggestion(slashSuggestions[activeSlashIndex])
+        return
+      }
       if (event.key === 'Escape') {
         event.preventDefault()
         setComposerFocused(false)
