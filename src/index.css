@@ -216,7 +216,8 @@
   --ring-edge-strong: rgba(255, 255, 255, 0.12);
   --ring-edge-soft: rgba(255, 255, 255, 0.04);
   --shadow-lift: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 1px 0 rgba(0, 0, 0, 0.18);
-  --shadow-float: 0 16px 36px -24px rgba(0, 0, 0, 0.65), 0 2px 6px rgba(0, 0, 0, 0.35);
+  --shadow-float:
+    inset 0 1px 0 rgba(255, 255, 255, 0.09), 0 8px 24px -20px rgba(0, 0, 0, 0.65), 0 2px 6px -3px rgba(0, 0, 0, 0.32);
 
   /* Chat user bubble edge — dark mode: accent ring on the outer 1px, white
      highlight on the next 1px inside, giving a crisp double-line top edge. */
@@ -761,7 +762,9 @@
       border-radius: var(--radius-sm);
       background: var(--color-surface);
       color: var(--color-text-3);
-      box-shadow: inset 0 0 0 1px var(--ring-edge-soft);
+      box-shadow:
+        0 0 0 1px var(--ring-edge),
+        var(--shadow-float);
       transition:
         right 280ms cubic-bezier(0.22, 0.8, 0.4, 1),
         background 120ms,
@@ -774,7 +777,9 @@
     .sidebar-edge-toggle:hover {
       background: var(--color-surface-2);
       color: var(--color-text);
-      box-shadow: inset 0 0 0 1px var(--ring-edge-strong);
+      box-shadow:
+        0 0 0 1px var(--ring-edge-strong),
+        var(--shadow-float);
     }
 
     .agent-panel-width-toggle {
@@ -791,7 +796,9 @@
       border-radius: var(--radius-sm);
       background: var(--color-surface);
       color: var(--color-text-3);
-      box-shadow: inset 0 0 0 1px var(--ring-edge-soft);
+      box-shadow:
+        0 0 0 1px var(--ring-edge),
+        var(--shadow-float);
       transition:
         left 280ms cubic-bezier(0.22, 0.8, 0.4, 1),
         background 120ms,
@@ -801,7 +808,9 @@
     .agent-panel-width-toggle:hover {
       background: var(--color-surface-2);
       color: var(--color-text);
-      box-shadow: inset 0 0 0 1px var(--ring-edge-strong);
+      box-shadow:
+        0 0 0 1px var(--ring-edge-strong),
+        var(--shadow-float);
     }
 
     .agent-panel-width-tip {
