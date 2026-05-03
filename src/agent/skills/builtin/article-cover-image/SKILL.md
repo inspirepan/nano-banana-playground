@@ -2,6 +2,7 @@
 name: article-cover-image
 description: Generate article cover images / blog hero images / 公众号封面 / 文章配图 with a 5-dimension system (type, palette, rendering, text, mood) plus font selection. Use this skill whenever the user asks to "generate cover image", "create article cover", "make a blog hero", "design a banner for this post", or in Chinese "生成封面 / 文章封面 / 公众号封面 / 配图 / 头图 / 题图". Supports cinematic 2.35:1, widescreen 16:9, square 1:1, and 4:3 aspect ratios. Do NOT use this skill for: 小红书多图卡片 (use xhs-card-series), 漫画分镜 (comic-strip), 知识科普长信息图 (knowledge-infographic), 单张电影场景 (scene-cinematic), 海报/印刷品 (editorial-poster); also skip for product photo, avatar, logo design, icon set, or pure text rewriting.
 icon: image
+preview_image: /skill-previews/article-cover-image.jpg
 display_name:
   zh-CN: 文章封面图
   en: Article Cover Image

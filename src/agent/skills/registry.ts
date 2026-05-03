@@ -49,6 +49,7 @@ function userSkillToAgentSkill(skill: ReturnType<typeof loadStoredUserSkills>[nu
     displayName: parsed.frontmatter.displayName ?? skill.displayName ?? {},
     displayDescription,
     icon: normalizeSkillIcon(parsed.frontmatter.icon ?? skill.icon),
+    previewImage: parsed.frontmatter.previewImage,
     source: 'user',
     enabled: skill.enabled,
     files,

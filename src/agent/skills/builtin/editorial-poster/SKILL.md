@@ -2,6 +2,7 @@
 name: editorial-poster
 description: Generate screen-print and duotone style editorial posters for movie posters, book cover posters, concert posters, cultural commentary covers, and limited-edition art prints. Use whenever the user mentions movie poster, book cover poster, editorial poster, screen-print, silkscreen, duotone, halftone, concert poster, alternative poster art, Mondo style, or 影评海报、书评封面、电影海报、演唱会海报、文化评论封面、丝网印刷海报、双色调海报. Strong visual core is screen-print silhouettes plus duotone color blocks plus halftone grain plus typography-as-composition. Do NOT use for slide decks, flowcharts, infographics, product photography, UI screenshots, or photorealistic key art.
 icon: film
+preview_image: /skill-previews/editorial-poster.jpg
 display_name:
   zh-CN: 影评海报
   en: Editorial Poster

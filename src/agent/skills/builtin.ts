@@ -51,6 +51,7 @@ export function getBuiltinAgentSkills(): AgentSkill[] {
             description,
         },
         icon: normalizeSkillIcon(parsed.frontmatter.icon),
+        previewImage: parsed.frontmatter.previewImage,
         source: 'system',
         enabled: true,
         files,

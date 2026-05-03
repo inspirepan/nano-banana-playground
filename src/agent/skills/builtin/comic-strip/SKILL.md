@@ -2,6 +2,7 @@
 name: comic-strip
 description: Multi-panel comic strip and storyboard generator. Use when the user wants to turn a story, joke, dialogue, tutorial bit, or short scene into a comic strip, manga panels, story panels, graphic novel page, storyboard, 漫画, 分镜, 四格漫画, 故事板, 短漫. Supports two output modes — single-sheet (one image with 2/3/4/6 panels) or multi-image (N sequential images linked by an anchor reference). Do not use for single cover art, infographics, posters, or single illustrations.
 icon: book-open
+preview_image: /skill-previews/comic-strip.jpg
 display_name:
   zh-CN: 多格漫画
   en: Comic Strip

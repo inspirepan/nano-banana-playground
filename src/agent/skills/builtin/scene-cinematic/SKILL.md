@@ -2,6 +2,7 @@
 name: scene-cinematic
 description: Create a single wide cinematic scene image with strong atmosphere, mood lighting, and aerial perspective. Use for cinematic scene, narrative illustration, atmospheric scene, wide-angle scene, sci-fi mood, blog hero, podcast wide cover, story configuration. 用于电影感、氛围图、场景插画、宽幅故事图、叙事配图、博客头图、AI/sci-fi 主题首图。Do NOT use for 干货知识卡 / 信息图 / 海报排版 / 产品图 / UI 截图 / 四象限图。
 icon: clapperboard
+preview_image: /skill-previews/scene-cinematic.jpg
 display_name:
   zh-CN: 电影感场景
   en: Cinematic Scene

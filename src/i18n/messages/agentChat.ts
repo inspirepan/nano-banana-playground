@@ -15,7 +15,7 @@ export const agentChatMessages: MessageDictionary = {
     'zh-CN': '输入需求、附加图片，或让它准备一组待审批的生图任务。',
     en: 'Describe what you need, attach images, or ask it to prepare image tasks for approval.',
   },
-  'agentChat.empty.skillStarter.title': { 'zh-CN': '挑一个起点', en: 'Pick a starting point' },
+  'agentChat.empty.skillStarter.title': { 'zh-CN': '心游万象', en: 'Imagine Everything' },
   'agentChat.empty.skillStarter.prompt': {
     'zh-CN': '使用 {skill} Skill，帮我生成图片。',
     en: 'Use the {skill} skill to help me generate images.',
@@ -145,6 +145,7 @@ export const agentChatMessages: MessageDictionary = {
   'agentChat.tool.label.readSkillFile': { 'zh-CN': '读取 Skill 文件', en: 'Read skill file' },
   'agentChat.tool.label.createSkill': { 'zh-CN': '创建 Skill', en: 'Create skill' },
   'agentChat.tool.label.webFetch': { 'zh-CN': '抓取网页', en: 'Fetch web page' },
+  'agentChat.tool.label.webSearch': { 'zh-CN': '搜索网页', en: 'Web search' },
   'agentChat.tool.unknown': { 'zh-CN': '工具', en: 'Tool' },
   'agentChat.tool.args.unnamed': { 'zh-CN': '未命名', en: 'Untitled' },
   'agentChat.tool.args.image': { 'zh-CN': '图片', en: 'Image' },

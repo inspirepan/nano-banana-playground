@@ -17,6 +17,7 @@ export type AgentSkill = {
   displayName: AgentSkillDisplayName
   displayDescription: AgentSkillDisplayDescription
   icon: AgentSkillIconName
+  previewImage?: string
   source: AgentSkillSource
   enabled: boolean
   files: AgentSkillFile[]
@@ -31,6 +32,7 @@ export type AgentSkillSummary = Pick<
   | 'displayName'
   | 'displayDescription'
   | 'icon'
+  | 'previewImage'
   | 'source'
   | 'enabled'
   | 'createdAt'

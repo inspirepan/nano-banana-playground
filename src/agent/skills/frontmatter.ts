@@ -8,6 +8,7 @@ export type SkillFrontmatter = {
   displayName?: FrontmatterLocalizedText
   displayDescription?: FrontmatterLocalizedText
   icon?: string
+  previewImage?: string
 }
 
 function readYamlString(lines: string[], startIndex: number): { value: string; nextIndex: number } {
@@ -93,6 +94,12 @@ export function parseSkillFrontmatter(markdown: string): { frontmatter: SkillFro
     if (/^\s*icon\s*:/.test(line)) {
       const result = readYamlString(lines, index)
       frontmatter.icon = result.value
+      index = result.nextIndex
+      continue
+    }
+    if (/^\s*(preview[-_]?image|previewImage|thumbnail)\s*:/.test(line)) {
+      const result = readYamlString(lines, index)
+      frontmatter.previewImage = result.value
       index = result.nextIndex
       continue
     }
