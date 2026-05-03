@@ -22,7 +22,7 @@ describe('imageDownloadFileName', () => {
 
     const fileName = imageDownloadFileName(image, 'png')
 
-    expect(fileName).toContain('-gpt-image-2-abcdef12.png')
+    expect(fileName).toContain('-gpt-image-2-abcdef123456.png')
     expect(fileName).not.toContain('nano-banana')
   })
 })

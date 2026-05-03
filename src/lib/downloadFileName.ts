@@ -27,5 +27,5 @@ function modelSlug(image: PlaygroundImageMeta): string {
 }
 
 export function imageDownloadFileName(image: PlaygroundImageMeta, extension: string): string {
-  return `${formatDownloadTimestamp(image.timestamp)}-${modelSlug(image)}-${image.id.slice(0, 8)}.${extension}`
+  return `${formatDownloadTimestamp(image.timestamp)}-${modelSlug(image)}-${image.id.slice(0, 12)}.${extension}`
 }
