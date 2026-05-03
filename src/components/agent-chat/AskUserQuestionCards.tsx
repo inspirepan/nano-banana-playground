@@ -17,7 +17,10 @@ function extractToolUseError(text: string): string | null {
 }
 
 function removeExpectedShape(text: string): string {
-  return text.replace(/\n\s*Expected shape:\s*[\s\S]*$/i, '').trim()
+  return text
+    .replace(/\n\s*Expected shape:\s*[\s\S]*$/i, '')
+    .replace(/\n\s*Received arguments:\s*[\s\S]*$/i, '')
+    .trim()
 }
 
 function buildInitialQuestionFormState(questions: AskUserQuestionItem[]): QuestionFormState {
