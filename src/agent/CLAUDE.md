@@ -117,12 +117,15 @@ LLM transcript 中的 `toolCall` 保持 provider 原生形状；审批、生成�
 
 当前 Agent 工具集合：
 
-- `GenImage`
-- `ReadAgentFile`
-- `ReadImage`
-- `AskUserQuestion`
-- `WebSearch`
-- `WebFetch`
+- `GenImage` — 创建图片生成任务（非阻塞，见下方专节）
+- `ReadAgentFile` — 分页读取 `agent://...` 虚拟文件
+- `ReadImage` — 读取图片内容和生成提示词（见下方专节）
+- `AskUserQuestion` — 向用户提问并等待回答（阻塞，见下方专节）
+- `WebSearch` — 网页搜索（Exa / Tavily）
+- `WebFetch` — 网页抓取（Exa / Tavily / 浏览器 direct fetch）
+- `CreateSkill` — 创建自定义 skill
+- `ReadSkillFile` — 读取 skill 定义文件
+- `Skill` — 加载并执行已有 skill
 
 不要再引入 `image_gen`、`read_image`、`read_image_prompt` 这组旧命名。提示词读取能力并入 `ReadImage`；引导用户决策走 `AskUserQuestion`。
 Web 搜索和抓取能力走 `WebSearch` / `WebFetch`，不要引入 `web_search` / `web_fetch` 这类 snake_case 工具名。长工具输出和 WebFetch 全文通过 `ReadAgentFile` 读取，不要把它命名成通用本地文件读取工具。
