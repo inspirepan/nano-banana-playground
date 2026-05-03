@@ -35,7 +35,7 @@ export function MobilePreviewFullscreen({
           initialView={initialView}
           onSwipeLeft={onSwipeLeft}
           onSwipeRight={onSwipeRight}
-          onPinchZoomOutToFit={onClose}
+          onZoomOutToFit={onClose}
         />
       ) : (
         <div className="flex h-full items-center justify-center">
