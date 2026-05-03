@@ -9,6 +9,7 @@ export function MobilePreviewFullscreen({
   onClose,
   onSwipeLeft,
   onSwipeRight,
+  onViewChange,
 }: {
   src: string
   alt: string
@@ -16,6 +17,7 @@ export function MobilePreviewFullscreen({
   onClose: () => void
   onSwipeLeft?: () => void
   onSwipeRight?: () => void
+  onViewChange?: (view: ZoomableImageViewState) => void
 }) {
   const { t } = useI18n()
 
@@ -36,6 +38,7 @@ export function MobilePreviewFullscreen({
           onSwipeLeft={onSwipeLeft}
           onSwipeRight={onSwipeRight}
           onZoomOutToFit={onClose}
+          onViewChange={onViewChange}
         />
       ) : (
         <div className="flex h-full items-center justify-center">

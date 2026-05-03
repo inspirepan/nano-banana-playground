@@ -17,6 +17,7 @@ type DetailCanvasProps = {
   currentMeta: GeneratedSource | null
   currentSrc: string | null
   displayImage: { id: string; src: string; alt: string } | null
+  initialView?: ZoomableImageViewState | null
   refDetailId: string | null
   refDetailSrc: string | null
   hasPrev: boolean
@@ -59,6 +60,7 @@ export function DetailCanvas({
   currentMeta,
   currentSrc,
   displayImage,
+  initialView,
   refDetailId,
   refDetailSrc,
   hasPrev,
@@ -148,6 +150,7 @@ export function DetailCanvas({
           <ZoomableImageView
             src={displayImage?.src ?? currentSrc ?? ''}
             alt={displayImage?.alt ?? currentMeta?.prompt ?? ''}
+            initialView={initialView}
             onSwipeLeft={hasNext ? onGoNext : undefined}
             onSwipeRight={hasPrev ? onGoPrev : undefined}
             onPinchZoom={onPinchZoom}

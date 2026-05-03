@@ -52,6 +52,7 @@ export function ZoomableImageView({
   onSwipeRight,
   onPinchZoom,
   onZoomOutToFit,
+  onViewChange,
 }: {
   src: string
   alt: string
@@ -61,6 +62,7 @@ export function ZoomableImageView({
   onSwipeRight?: () => void
   onPinchZoom?: (view: ZoomableImageViewState) => void
   onZoomOutToFit?: () => void
+  onViewChange?: (view: ZoomableImageViewState) => void
 }) {
   const { t } = useI18n()
   const containerRef = useRef<HTMLDivElement>(null)
@@ -92,7 +94,7 @@ export function ZoomableImageView({
   const [isInteracting, setIsInteracting] = useState(false)
 
   const applyView = useCallback(
-    (nextScale: number, nextOffset: Point) => {
+    (nextScale: number, nextOffset: Point, options: { notifyZoomOutToFit?: boolean } = {}) => {
       const previousScale = scaleRef.current
       const clampedScale = clamp(nextScale, MIN_SCALE, MAX_SCALE)
       const viewport = getViewportSize(containerRef.current)
@@ -110,7 +112,24 @@ export function ZoomableImageView({
       setScale(clampedScale)
       setOffset(clampedOffset)
 
-      if (onZoomOutToFit && previousScale > FIT_SCALE && clampedScale <= FIT_EXIT_SCALE && !fitExitActiveRef.current) {
+      const fitSize = fitSizeRef.current
+      if (fitSize.width && fitSize.height) {
+        onViewChange?.({
+          scale: clampedScale,
+          focalPoint: {
+            x: clamp(0.5 - clampedOffset.x / (fitSize.width * clampedScale), 0, 1),
+            y: clamp(0.5 - clampedOffset.y / (fitSize.height * clampedScale), 0, 1),
+          },
+        })
+      }
+
+      if (
+        options.notifyZoomOutToFit &&
+        onZoomOutToFit &&
+        previousScale > FIT_SCALE &&
+        clampedScale <= FIT_EXIT_SCALE &&
+        !fitExitActiveRef.current
+      ) {
         fitExitActiveRef.current = true
         onZoomOutToFit()
         window.setTimeout(() => {
@@ -118,7 +137,7 @@ export function ZoomableImageView({
         }, 300)
       }
     },
-    [onZoomOutToFit],
+    [onViewChange, onZoomOutToFit],
   )
 
   const getViewState = useCallback((): ZoomableImageViewState | null => {
@@ -147,6 +166,10 @@ export function ZoomableImageView({
     })
     return true
   }, [applyView, initialView, initialViewKey])
+
+  useExternalSync(() => {
+    applyInitialView()
+  }, [applyInitialView])
 
   const clearInteractionState = useCallback(() => {
     activePointersRef.current.clear()
@@ -194,7 +217,7 @@ export function ZoomableImageView({
 
   const resetView = useCallback(() => {
     clearInteractionState()
-    applyView(FIT_SCALE, { x: 0, y: 0 })
+    applyView(FIT_SCALE, { x: 0, y: 0 }, { notifyZoomOutToFit: true })
   }, [applyView, clearInteractionState])
 
   const zoomAtPoint = useCallback(
@@ -203,10 +226,14 @@ export function ZoomableImageView({
       const nextScale = clamp(targetScale, MIN_SCALE, MAX_SCALE)
       const ratio = nextScale / currentScale
       const currentOffset = offsetRef.current
-      applyView(nextScale, {
-        x: anchor.x - ratio * (anchor.x - currentOffset.x),
-        y: anchor.y - ratio * (anchor.y - currentOffset.y),
-      })
+      applyView(
+        nextScale,
+        {
+          x: anchor.x - ratio * (anchor.x - currentOffset.x),
+          y: anchor.y - ratio * (anchor.y - currentOffset.y),
+        },
+        { notifyZoomOutToFit: true },
+      )
     },
     [applyView],
   )
@@ -428,7 +455,8 @@ export function ZoomableImageView({
                 width: event.currentTarget.naturalWidth,
                 height: event.currentTarget.naturalHeight,
               }
-              resetView()
+              clearInteractionState()
+              applyView(FIT_SCALE, { x: 0, y: 0 })
               syncFitSize()
             }}
             className="shrink-0 object-contain"

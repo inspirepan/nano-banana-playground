@@ -75,6 +75,9 @@ export function DetailSidebar({
 }: DetailSidebarProps) {
   const { language, t } = useI18n()
   const prompt = currentMeta?.prompt ?? currentJob?.request.prompt ?? null
+  const semanticImageId =
+    currentImage?.source.type === 'generated' && currentImage.source.imageIdSource === 'agent' ? currentImage.id : null
+  const semanticImageIdDisplay = semanticImageId ? Array.from(semanticImageId).slice(0, 20).join('') : null
 
   return (
     <>
@@ -356,11 +359,22 @@ export function DetailSidebar({
             e.currentTarget.style.background = 'var(--color-surface)'
             e.currentTarget.style.boxShadow = 'inset 0 0 0 1px var(--ring-edge)'
           }}
-          onClick={() => {
+          onClick={(e) => {
+            e.currentTarget.blur()
             void onRemove(currentImage.id)
           }}
         >
-          <Icon name="trash" size={12} strokeWidth={1.8} /> {t('imageDetail.action.deleteFromHistory')}
+          <Icon name="trash" size={12} strokeWidth={1.8} />
+          <span>{t('imageDetail.action.deleteFromHistory')}</span>
+          {semanticImageIdDisplay && (
+            <span
+              className="mono min-w-0 max-w-[120px] truncate rounded-[var(--radius-xs)] px-1.5 py-0.5 text-[11px] font-normal leading-none"
+              style={{ background: 'color-mix(in srgb, var(--color-danger) 10%, transparent)' }}
+              title={semanticImageId ?? undefined}
+            >
+              {semanticImageIdDisplay}
+            </span>
+          )}
         </button>
       )}
     </>

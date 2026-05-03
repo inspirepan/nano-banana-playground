@@ -24,6 +24,7 @@ import type { ImageStack } from '../../lib/stacks'
 import type { PlaygroundImageMeta } from '../../lib/types'
 
 type StackNavigationTarget = { stackId: string; itemId: string }
+type ImageViewSnapshot = { imageId: string; view: ZoomableImageViewState }
 
 type Props = {
   stack: ImageStack
@@ -152,7 +153,19 @@ export function ImageDetailModal({
   const [toast, setToast] = useState<string | null>(null)
   const [copiedPrompt, setCopiedPrompt] = useState(false)
   const [mobilePreviewInitialView, setMobilePreviewInitialView] = useState<ZoomableImageViewState | null>(null)
+  const [canvasViewSnapshot, setCanvasViewSnapshot] = useState<ImageViewSnapshot | null>(null)
+  const mobilePreviewViewRef = useRef<ZoomableImageViewState | null>(null)
   const detailScrollRef = useRef<HTMLDivElement | null>(null)
+  const canvasInitialView =
+    currentImage && canvasViewSnapshot?.imageId === currentImage.id ? canvasViewSnapshot.view : null
+
+  const handleRemoveCurrentAndRevealImage = useCallback(
+    (id: string) => {
+      handleRemoveCurrent(id)
+      detailScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
+    },
+    [handleRemoveCurrent],
+  )
 
   useImageDetailKeyboard({
     editing,
@@ -226,6 +239,7 @@ export function ImageDetailModal({
 
   const openMobilePreview = useCallback(
     (initialView: ZoomableImageViewState | null = null) => {
+      mobilePreviewViewRef.current = initialView
       setMobilePreviewInitialView(initialView)
       setMobilePreviewOpen(true)
     },
@@ -233,19 +247,29 @@ export function ImageDetailModal({
   )
 
   const closeMobilePreview = useCallback(() => {
+    if (currentImage && mobilePreviewViewRef.current) {
+      setCanvasViewSnapshot({ imageId: currentImage.id, view: mobilePreviewViewRef.current })
+    }
+    mobilePreviewViewRef.current = null
     setMobilePreviewOpen(false)
     setMobilePreviewInitialView(null)
-  }, [setMobilePreviewOpen])
+  }, [currentImage, setMobilePreviewOpen])
 
   const goToPrevFromMobilePreview = useCallback(() => {
+    mobilePreviewViewRef.current = null
     setMobilePreviewInitialView(null)
     goToPrev()
   }, [goToPrev])
 
   const goToNextFromMobilePreview = useCallback(() => {
+    mobilePreviewViewRef.current = null
     setMobilePreviewInitialView(null)
     goToNext()
   }, [goToNext])
+
+  const handleMobilePreviewViewChange = useCallback((view: ZoomableImageViewState) => {
+    mobilePreviewViewRef.current = view
+  }, [])
 
   const handleRegenerateAction = () => {
     if (!currentImage) return
@@ -399,6 +423,7 @@ export function ImageDetailModal({
             toggleSidebar={toggleSidebar}
             currentSrc={currentSrc}
             displayImage={displayImage}
+            canvasInitialView={canvasInitialView}
             refDetailId={refDetailId}
             refDetailSrc={refDetailSrc}
             setRefDetailId={setRefDetailId}
@@ -441,7 +466,7 @@ export function ImageDetailModal({
             onDownload={handleDownload}
             onCopyPrompt={handleCopyPrompt}
             onRemove={onRemove}
-            onRemoveCurrent={handleRemoveCurrent}
+            onRemoveCurrent={handleRemoveCurrentAndRevealImage}
             onEditImage={onEditImage}
             onCancelGenerationJob={onCancelGenerationJob}
             onDismissGenerationJob={onDismissGenerationJob}
@@ -484,6 +509,7 @@ export function ImageDetailModal({
             onClose={closeMobilePreview}
             onSwipeLeft={hasNext ? goToNextFromMobilePreview : undefined}
             onSwipeRight={hasPrev ? goToPrevFromMobilePreview : undefined}
+            onViewChange={handleMobilePreviewViewChange}
           />
         )}
       </div>

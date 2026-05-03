@@ -45,6 +45,7 @@ type DetailLayoutProps = {
   // Image data
   currentSrc: string | null
   displayImage: DisplayImage | null
+  canvasInitialView?: ZoomableImageViewState | null
   refDetailId: string | null
   refDetailSrc: string | null
   setRefDetailId: Dispatch<SetStateAction<string | null>>
@@ -133,6 +134,7 @@ export function DetailLayout({
   toggleSidebar,
   currentSrc,
   displayImage,
+  canvasInitialView,
   refDetailId,
   refDetailSrc,
   setRefDetailId,
@@ -294,6 +296,7 @@ export function DetailLayout({
                 currentMeta={currentMeta}
                 currentSrc={currentSrc}
                 displayImage={displayImage}
+                initialView={canvasInitialView}
                 refDetailId={refDetailId}
                 refDetailSrc={refDetailSrc}
                 hasPrev={hasPrev}
