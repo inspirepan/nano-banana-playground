@@ -2,7 +2,7 @@
 
 A pure frontend playground for Gemini and GPT Image generation. No backend — your API keys stay in the browser.
 
-![Screenshot](docs/screenshot.png)
+![Screenshot](docs/screenshot.jpg)
 
 ## Features
 
