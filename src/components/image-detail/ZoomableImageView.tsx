@@ -50,6 +50,7 @@ export function ZoomableImageView({
   onSwipeLeft,
   onSwipeRight,
   onPinchZoom,
+  onPinchZoomOutToFit,
 }: {
   src: string
   alt: string
@@ -58,6 +59,7 @@ export function ZoomableImageView({
   onSwipeLeft?: () => void
   onSwipeRight?: () => void
   onPinchZoom?: (view: ZoomableImageViewState) => void
+  onPinchZoomOutToFit?: () => void
 }) {
   const { t } = useI18n()
   const containerRef = useRef<HTMLDivElement>(null)
@@ -73,8 +75,11 @@ export function ZoomableImageView({
   const lastTapRef = useRef<{ at: number; point: Point } | null>(null)
   const didPinchRef = useRef(false)
   const touchPinchStartDistanceRef = useRef<number | null>(null)
+  const touchPinchStartScaleRef = useRef(FIT_SCALE)
   const pinchHandoffActiveRef = useRef(false)
   const pinchHandoffPendingRef = useRef(false)
+  const pinchFitExitActiveRef = useRef(false)
+  const pinchFitExitPendingRef = useRef(false)
   const wheelHandoffTimerRef = useRef<number | null>(null)
   const initialViewAppliedKeyRef = useRef<string | null>(null)
   const initialViewKey = initialView
@@ -138,7 +143,9 @@ export function ZoomableImageView({
     dragStartRef.current = null
     pinchStartRef.current = null
     touchPinchStartDistanceRef.current = null
+    touchPinchStartScaleRef.current = FIT_SCALE
     pinchHandoffPendingRef.current = false
+    pinchFitExitPendingRef.current = false
     didPinchRef.current = false
     setIsDragging(false)
     setIsInteracting(false)
@@ -157,6 +164,19 @@ export function ZoomableImageView({
       pinchHandoffActiveRef.current = false
     }, 300)
   }, [clearInteractionState, getViewState, onPinchZoom])
+
+  const commitPinchFitExit = useCallback(() => {
+    if (!onPinchZoomOutToFit || pinchFitExitActiveRef.current || !pinchFitExitPendingRef.current) return false
+    pinchFitExitPendingRef.current = false
+    if (scaleRef.current > FIT_SCALE) return false
+    pinchFitExitActiveRef.current = true
+    clearInteractionState()
+    onPinchZoomOutToFit()
+    window.setTimeout(() => {
+      pinchFitExitActiveRef.current = false
+    }, 300)
+    return true
+  }, [clearInteractionState, onPinchZoomOutToFit])
 
   const scheduleWheelHandoff = useCallback(() => {
     if (!onPinchZoom) return
@@ -294,6 +314,14 @@ export function ZoomableImageView({
             ) {
               pinchHandoffPendingRef.current = true
             }
+            if (
+              onPinchZoomOutToFit &&
+              start.scale > FIT_SCALE &&
+              nextScale <= FIT_SCALE &&
+              distance < start.distance / PINCH_HANDOFF_THRESHOLD
+            ) {
+              pinchFitExitPendingRef.current = true
+            }
             return
           }
 
@@ -354,6 +382,7 @@ export function ZoomableImageView({
           }
 
           if (event.pointerType === 'touch' && wasPinching && activePointersRef.current.size === 0) {
+            if (commitPinchFitExit()) return
             commitPinchHandoff()
             return
           }
@@ -364,11 +393,19 @@ export function ZoomableImageView({
           clearInteractionState()
         }}
         onTouchStart={(event) => {
-          if (!onPinchZoom || event.touches.length < 2) return
+          if ((!onPinchZoom && !onPinchZoomOutToFit) || event.touches.length < 2) return
           touchPinchStartDistanceRef.current = getTouchDistance(event.touches)
+          touchPinchStartScaleRef.current = scaleRef.current
         }}
         onTouchMove={(event) => {
-          if (!onPinchZoom || pinchHandoffActiveRef.current || event.touches.length < 2) return
+          if (
+            (!onPinchZoom && !onPinchZoomOutToFit) ||
+            pinchHandoffActiveRef.current ||
+            pinchFitExitActiveRef.current ||
+            event.touches.length < 2
+          ) {
+            return
+          }
           const distance = getTouchDistance(event.touches)
           if (!distance) return
           const startDistance = touchPinchStartDistanceRef.current
@@ -377,20 +414,36 @@ export function ZoomableImageView({
             return
           }
           // touch-none CSS already prevents default scroll; no preventDefault() needed
-          if (distance > startDistance * PINCH_HANDOFF_THRESHOLD) {
+          if (onPinchZoom && distance > startDistance * PINCH_HANDOFF_THRESHOLD) {
             if (scaleRef.current >= PINCH_FULLSCREEN_SCALE) pinchHandoffPendingRef.current = true
+          }
+          if (
+            onPinchZoomOutToFit &&
+            touchPinchStartScaleRef.current > FIT_SCALE &&
+            distance < startDistance / PINCH_HANDOFF_THRESHOLD
+          ) {
+            if (scaleRef.current <= FIT_SCALE) pinchFitExitPendingRef.current = true
           }
         }}
         onTouchEnd={(event) => {
-          if (event.touches.length < 2) touchPinchStartDistanceRef.current = null
+          if (event.touches.length < 2) {
+            touchPinchStartDistanceRef.current = null
+            touchPinchStartScaleRef.current = FIT_SCALE
+          }
           if (event.touches.length === 0) {
+            if (commitPinchFitExit()) return
             commitPinchHandoff()
             pinchHandoffActiveRef.current = false
+            pinchFitExitActiveRef.current = false
           }
         }}
         onTouchCancel={() => {
           touchPinchStartDistanceRef.current = null
+          touchPinchStartScaleRef.current = FIT_SCALE
+          pinchHandoffPendingRef.current = false
+          pinchFitExitPendingRef.current = false
           pinchHandoffActiveRef.current = false
+          pinchFitExitActiveRef.current = false
         }}
         style={{ cursor: scale > FIT_SCALE ? (isDragging ? 'grabbing' : 'grab') : 'zoom-in' }}
       >
