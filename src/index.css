@@ -269,12 +269,12 @@
   --color-accent: #111111;
   --color-accent-hover: #000000;
   --color-accent-fg: #ffffff;
-  --color-accent-soft: #f0f0f0;
-  --color-accent-wash: color-mix(in srgb, #111111 8%, transparent);
-  --color-accent-wash-2: color-mix(in srgb, #111111 14%, transparent);
+  --color-accent-soft: #ebebeb;
+  --color-accent-wash: color-mix(in srgb, #111111 5%, transparent);
+  --color-accent-wash-2: color-mix(in srgb, #111111 9%, transparent);
+  --color-accent-ring: color-mix(in srgb, #111111 9%, transparent);
+  --color-accent-ring-hover: color-mix(in srgb, #111111 14%, transparent);
   --color-title: var(--color-accent);
-  --bubble-user-bg: var(--color-surface);
-  --bubble-user-edge: inset 0 0 0 1px var(--ring-edge-strong);
 }
 .dark.theme-mono {
   --color-accent: #f2f1ef;
