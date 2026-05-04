@@ -13,7 +13,6 @@ import type {
 } from '../agent'
 import { AgentModeView } from './InputPanel/AgentModeView'
 import { GenerateModeView } from './InputPanel/GenerateModeView'
-import { InputPanelHeader } from './InputPanel/InputPanelHeader'
 import { autoResizeTextarea } from './InputPanel/textarea'
 import { usePanelDropAndPaste } from './InputPanel/usePanelDropAndPaste'
 import { usePromptHistory } from './InputPanel/usePromptHistory'
@@ -60,9 +59,6 @@ type Props = {
   apiKey: string
   apiKeyStatus?: ApiKeyStatus
   keyStatuses: Record<Provider, ApiKeyStatus>
-  showHeader?: boolean
-  showInputModeSwitcher?: boolean
-  showAgentSessionSidebar?: boolean
   onOpenApiKeys: () => void
   onInputModeChange: (mode: InputMode) => void
   onSwitchModel: (id: string) => void
@@ -131,11 +127,7 @@ export function InputPanel({
   referenceImageError,
   apiKey,
   keyStatuses,
-  showHeader = true,
-  showInputModeSwitcher = true,
-  showAgentSessionSidebar = false,
   onOpenApiKeys,
-  onInputModeChange,
   onSwitchModel,
   onResolutionChange,
   onAspectRatioChange,
@@ -202,8 +194,6 @@ export function InputPanel({
     onAddReferenceImage,
   })
 
-  const useWideAgentSidebar = inputMode === 'agent' && showAgentSessionSidebar
-
   return (
     <div
       ref={panelRef}
@@ -214,21 +204,10 @@ export function InputPanel({
       onPaste={inputMode === 'generate' ? handlePanelPaste : undefined}
       className={
         inputMode === 'agent'
-          ? useWideAgentSidebar
-            ? 'relative flex h-full flex-col p-0'
-            : 'relative flex h-full flex-col pt-2 pb-[18px]'
-          : 'relative px-[var(--input-panel-padding-x,18px)] py-[18px] pb-[120px]'
+          ? 'relative flex h-full flex-col pb-[var(--panel-pad-bottom)]'
+          : 'relative px-[var(--panel-pad-x)] pb-[var(--panel-pad-bottom)]'
       }
     >
-      {showHeader && !useWideAgentSidebar && (
-        <InputPanelHeader
-          inputMode={inputMode}
-          showInputModeSwitcher={showInputModeSwitcher}
-          onInputModeChange={onInputModeChange}
-          onOpenApiKeys={onOpenApiKeys}
-        />
-      )}
-
       {inputMode === 'agent' ? (
         <AgentModeView
           agentModels={agentModels}
@@ -254,7 +233,6 @@ export function InputPanel({
           history={history}
           generationJobs={generationJobs}
           keyStatuses={keyStatuses}
-          showSessionSidebar={useWideAgentSidebar}
           onOpenApiKeys={onOpenApiKeys}
           onAgentDraftChange={onAgentDraftChange}
           onAddAgentAttachments={onAddAgentAttachments}
@@ -264,7 +242,6 @@ export function InputPanel({
           onCreateAgentSession={onCreateAgentSession}
           onSwitchAgentSession={onSwitchAgentSession}
           onDeleteAgentSession={onDeleteAgentSession}
-          onInputModeChange={onInputModeChange}
           onToggleAutoApproveAgentImageTasks={onToggleAutoApproveAgentImageTasks}
           onApproveAgentImageTask={onApproveAgentImageTask}
           onCancelAgentImageTask={onCancelAgentImageTask}

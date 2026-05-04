@@ -7,9 +7,8 @@ import type { InputMode, usePlayground } from '../hooks/usePlayground'
 type InputPanelProps = ComponentProps<typeof InputPanel>
 
 // Subset of InputPanel props that mobile + desktop share. Both layouts spread
-// this and only override the few diverging fields (inputMode, showHeader,
-// showAgentSessionSidebar).
-export type SharedInputPanelProps = Omit<InputPanelProps, 'inputMode' | 'showHeader' | 'showAgentSessionSidebar'>
+// this and only override inputMode.
+export type SharedInputPanelProps = Omit<InputPanelProps, 'inputMode'>
 
 type Pg = ReturnType<typeof usePlayground>
 

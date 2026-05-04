@@ -14,7 +14,7 @@ import type { AgentSessionMessageMetadata } from '../../agent/sessionTypes'
 import type { AgentModelConfig, AgentThinkingLevel } from '../../config/agentModels'
 import type { Provider } from '../../config/models'
 import type { ApiKeyStatus } from '../../hooks/useApiKey'
-import type { GenerationJob, InputMode } from '../../hooks/usePlayground'
+import type { GenerationJob } from '../../hooks/usePlayground'
 import type { PlaygroundImage, PlaygroundImageMeta } from '../../lib/types'
 import { AgentChatPanel } from '../AgentChatPanel'
 
@@ -42,7 +42,6 @@ type Props = {
   history: PlaygroundImageMeta[]
   generationJobs: GenerationJob[]
   keyStatuses: Record<Provider, ApiKeyStatus>
-  showSessionSidebar: boolean
   onOpenApiKeys: () => void
   onAgentDraftChange: (v: string) => void
   onAddAgentAttachments: (files: File[]) => void
@@ -52,7 +51,6 @@ type Props = {
   onCreateAgentSession: () => void
   onSwitchAgentSession: (sessionId: string) => void
   onDeleteAgentSession: (sessionId: string) => void
-  onInputModeChange: (mode: InputMode) => void
   onToggleAutoApproveAgentImageTasks: (value: boolean) => void
   onApproveAgentImageTask: (taskId: string) => void
   onCancelAgentImageTask: (taskId: string) => void
@@ -89,7 +87,6 @@ export function AgentModeView({
   history,
   generationJobs,
   keyStatuses,
-  showSessionSidebar,
   onOpenApiKeys,
   onAgentDraftChange,
   onAddAgentAttachments,
@@ -99,7 +96,6 @@ export function AgentModeView({
   onCreateAgentSession,
   onSwitchAgentSession,
   onDeleteAgentSession,
-  onInputModeChange,
   onToggleAutoApproveAgentImageTasks,
   onApproveAgentImageTask,
   onCancelAgentImageTask,
@@ -136,7 +132,6 @@ export function AgentModeView({
       models={agentModels}
       thinkingLevel={agentThinkingLevel}
       keyStatuses={keyStatuses}
-      showSessionSidebar={showSessionSidebar}
       onOpenApiKeys={onOpenApiKeys}
       onDraftChange={onAgentDraftChange}
       onAddAttachments={onAddAgentAttachments}
@@ -146,7 +141,6 @@ export function AgentModeView({
       onNewSession={onCreateAgentSession}
       onSwitchSession={onSwitchAgentSession}
       onDeleteSession={onDeleteAgentSession}
-      onSwitchToGenerate={() => onInputModeChange('generate')}
       onToggleAutoApproveImageTasks={onToggleAutoApproveAgentImageTasks}
       onApproveImageTask={onApproveAgentImageTask}
       onCancelImageTask={onCancelAgentImageTask}

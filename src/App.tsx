@@ -60,7 +60,6 @@ function App() {
     agentPanelSidebarFits,
     useWideAgentPanel,
     desktopInputPanelWidth,
-    agentPanelSideSpace,
     showAgentWideTip,
     toggleAgentPanelWide,
     dismissAgentWideTip,
@@ -166,7 +165,6 @@ function App() {
         inputMode={pg.inputMode}
         inputPanelProps={sharedInputPanelProps}
         desktopInputPanelWidth={desktopInputPanelWidth}
-        agentPanelSideSpace={agentPanelSideSpace}
         useWideAgentPanel={useWideAgentPanel}
         agentPanelSidebarFits={agentPanelSidebarFits}
         agentPanelWide={agentPanelWide}

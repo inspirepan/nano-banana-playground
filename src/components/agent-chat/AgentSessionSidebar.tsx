@@ -46,8 +46,6 @@ export function AgentSessionSidebar({
   onNewSession,
   onSwitchSession,
   onDeleteSession,
-  onSwitchToGenerate,
-  onOpenSettings,
 }: {
   sessions: AgentSessionSummary[]
   sessionStatuses: AgentSessionStatusMap
@@ -56,55 +54,11 @@ export function AgentSessionSidebar({
   onNewSession: () => void
   onSwitchSession: (sessionId: string) => void
   onDeleteSession: (sessionId: string) => void
-  onSwitchToGenerate?: () => void
-  onOpenSettings: () => void
 }) {
   const { t } = useI18n()
 
   return (
-    <aside className="hidden w-[264px] shrink-0 flex-col bg-(--color-bg) py-6 pr-2 pl-4 shadow-[inset_-1px_0_0_var(--ring-edge-soft)] md:flex">
-      <div className="mb-5 flex items-center gap-2">
-        <div className="min-w-0 flex-1 truncate font-display text-lg font-semibold tracking-[-0.01em] text-(--color-text)">
-          {t('app.name')}
-        </div>
-        <button
-          type="button"
-          onClick={onOpenSettings}
-          className="icon-btn"
-          title={t('common.settings')}
-          aria-label={t('common.settings')}
-        >
-          <Icon name="settings" size={14} />
-        </button>
-      </div>
-
-      <div
-        role="tablist"
-        aria-label={t('input.mode.aria')}
-        className="mb-4 flex w-full items-center gap-1 rounded-[var(--radius-md)] bg-(--color-surface-3) p-[2px]"
-      >
-        <button
-          type="button"
-          role="tab"
-          aria-selected={false}
-          onClick={onSwitchToGenerate}
-          disabled={!onSwitchToGenerate}
-          className="inline-flex h-[26px] min-w-0 flex-1 items-center justify-center gap-1.5 rounded-[var(--radius-sm)] px-2 text-base font-medium text-(--color-text-3) transition-[color,background-color,box-shadow] duration-150 hover:text-(--color-text) disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:text-(--color-text-3)"
-        >
-          <Icon name="wand" size={13} className="shrink-0 opacity-80" />
-          <span className="truncate">{t('input.mode.generate')}</span>
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected
-          className="inline-flex h-[26px] min-w-0 flex-1 items-center justify-center gap-1.5 rounded-[var(--radius-sm)] bg-(--color-surface) px-2 text-base font-medium text-(--color-text) shadow-[inset_0_0_0_1px_var(--ring-edge)] transition-[color,background-color,box-shadow] duration-150"
-        >
-          <Icon name="bot" size={13} className="shrink-0 opacity-80" />
-          <span className="truncate">{t('common.agent')}</span>
-        </button>
-      </div>
-
+    <aside className="flex h-full min-h-0 flex-col bg-(--color-bg) pr-2 pb-6 pl-[18px]">
       <button
         type="button"
         onClick={onNewSession}

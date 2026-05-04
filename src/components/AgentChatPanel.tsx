@@ -30,7 +30,6 @@ import { buildImageStacks, type StackItem } from '../lib/stacks'
 import type { PlaygroundImage, PlaygroundImageMeta } from '../lib/types'
 import { AgentChatComposer, type AgentChatComposerHandle } from './agent-chat/AgentChatComposer'
 import { AgentChatHeader } from './agent-chat/AgentChatHeader'
-import { AgentSessionSidebar } from './agent-chat/AgentSessionSidebar'
 import { isDrawingSkill } from './agent-chat/drawingSkills'
 import { DrawingSkillStarters } from './agent-chat/DrawingSkillStarters'
 import { MessageBubble } from './agent-chat/MessageBubble'
@@ -63,7 +62,6 @@ type Props = {
   models: AgentModelConfig[]
   thinkingLevel: AgentThinkingLevel
   keyStatuses: Record<Provider, ApiKeyStatus>
-  showSessionSidebar?: boolean
   onOpenApiKeys: () => void
   onDraftChange: (value: string) => void
   onAddAttachments: (files: File[]) => void
@@ -73,7 +71,6 @@ type Props = {
   onNewSession: () => void
   onSwitchSession: (sessionId: string) => void
   onDeleteSession: (sessionId: string) => void
-  onSwitchToGenerate?: () => void
   onToggleAutoApproveImageTasks: (value: boolean) => void
   onApproveImageTask: (taskId: string) => void
   onCancelImageTask: (taskId: string) => void
@@ -84,6 +81,7 @@ type Props = {
   onThinkingLevelChange: (level: AgentThinkingLevel) => void
   onSend: () => boolean
   onStop: () => void
+  wideLayout?: boolean
 }
 
 function AgentRunningIndicator({ label }: { label: string }) {
@@ -124,7 +122,6 @@ export function AgentChatPanel({
   models,
   thinkingLevel,
   keyStatuses,
-  showSessionSidebar = false,
   onOpenApiKeys,
   onDraftChange,
   onAddAttachments,
@@ -134,7 +131,6 @@ export function AgentChatPanel({
   onNewSession,
   onSwitchSession,
   onDeleteSession,
-  onSwitchToGenerate,
   onToggleAutoApproveImageTasks,
   onApproveImageTask,
   onCancelImageTask,
@@ -145,6 +141,7 @@ export function AgentChatPanel({
   onThinkingLevelChange,
   onSend,
   onStop,
+  wideLayout = false,
 }: Props) {
   const { t, language } = useI18n()
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -238,15 +235,25 @@ export function AgentChatPanel({
     for (const task of imageTasks) map.set(task.toolCallId, task)
     return map
   }, [imageTasks])
+  const imageStacks = useMemo(() => buildImageStacks(history, generationJobs), [generationJobs, history])
   const stackItemByImageId = useMemo(() => {
     const map = new Map<string, StackItem>()
-    for (const stack of buildImageStacks(history, generationJobs)) {
+    for (const stack of imageStacks) {
       for (const item of stack.items) {
         if (item.type === 'image') map.set(item.image.id, item)
       }
     }
     return map
-  }, [generationJobs, history])
+  }, [imageStacks])
+  const stackItemNumberByImageId = useMemo(() => {
+    const map = new Map<string, number>()
+    for (const stack of imageStacks) {
+      stack.items.forEach((item, index) => {
+        if (item.type === 'image') map.set(item.image.id, index + 1)
+      })
+    }
+    return map
+  }, [imageStacks])
   const pendingQuestionByToolCallId = useMemo(() => {
     const map = new Map<string, AgentPendingQuestion>()
     for (const question of pendingQuestions) map.set(question.toolCallId, question)
@@ -338,14 +345,12 @@ export function AgentChatPanel({
     onAddImageAttachment(image)
     return true
   }
-  const contentRightPaddingClass = showSessionSidebar
-    ? 'pr-[var(--agent-panel-wide-side-space,128px)]'
-    : 'px-[var(--agent-panel-padding-x,18px)]'
+  const contentRightPaddingClass = 'px-[var(--panel-pad-x)]'
 
   return (
     <div
       ref={controlsRef}
-      className={`flex h-full md:h-auto md:min-h-[560px] md:flex-1 ${showSessionSidebar ? 'min-h-0 flex-row gap-[var(--agent-panel-wide-side-space,128px)]' : 'flex-col'}`}
+      className={`flex h-full flex-col md:h-auto md:min-h-[560px] md:flex-1 ${wideLayout ? 'md:py-[22px]' : ''}`}
       onDragOver={(event) => event.preventDefault()}
       onDrop={(event) => {
         event.preventDefault()
@@ -371,28 +376,14 @@ export function AgentChatPanel({
         onAddAttachments(files)
       }}
     >
-      {showSessionSidebar ? (
-        <AgentSessionSidebar
-          sessions={sessions}
-          sessionStatuses={visibleSessionStatuses}
-          currentSessionId={currentSessionId}
-          sessionsLoading={sessionsLoading}
-          onNewSession={handleNewSession}
-          onSwitchSession={onSwitchSession}
-          onDeleteSession={onDeleteSession}
-          onSwitchToGenerate={onSwitchToGenerate}
-          onOpenSettings={onOpenApiKeys}
-        />
-      ) : null}
-
-      <div className={`flex min-h-0 min-w-0 flex-1 flex-col ${showSessionSidebar ? 'pt-3 pb-[18px]' : ''}`}>
-        <div className={`${contentRightPaddingClass} ${showSessionSidebar ? 'pb-2' : 'pb-3'}`}>
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <div className={`${contentRightPaddingClass} pb-3`}>
           <AgentChatHeader
             sessions={sessions}
             sessionStatuses={visibleSessionStatuses}
             currentSessionId={currentSessionId}
             sessionsLoading={sessionsLoading}
-            compactSessionControls={showSessionSidebar}
+            centeredTitle={wideLayout}
             openMenu={openMenu}
             setOpenMenu={setOpenMenu}
             onNewSession={handleNewSession}
@@ -472,6 +463,7 @@ export function AgentChatPanel({
                       results={item.results}
                       imageTaskByToolCallId={imageTaskByToolCallId}
                       stackItemByImageId={stackItemByImageId}
+                      stackItemNumberByImageId={stackItemNumberByImageId}
                       pendingQuestionByToolCallId={pendingQuestionByToolCallId}
                       isStreaming={item.isStreaming}
                       autoApproveImageTasks={autoApproveImageTasks}

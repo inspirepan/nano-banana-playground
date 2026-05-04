@@ -100,6 +100,7 @@ export function ToolActivityCard({
   results,
   imageTaskByToolCallId,
   stackItemByImageId,
+  stackItemNumberByImageId,
   pendingQuestionByToolCallId,
   isStreaming,
   autoApproveImageTasks,
@@ -114,6 +115,7 @@ export function ToolActivityCard({
   results: AgentMessageToolResult[]
   imageTaskByToolCallId: Map<string, AgentImageTask>
   stackItemByImageId: Map<string, StackItem>
+  stackItemNumberByImageId: Map<string, number>
   pendingQuestionByToolCallId: Map<string, AgentPendingQuestion>
   isStreaming: boolean
   autoApproveImageTasks: boolean
@@ -143,6 +145,7 @@ export function ToolActivityCard({
           call={call}
           task={imageTaskByToolCallId.get(call.id)}
           stackItemByImageId={stackItemByImageId}
+          stackItemNumberByImageId={stackItemNumberByImageId}
           result={resultByCallId.get(call.id)}
           isStreaming={isStreaming}
           autoApproveImageTasks={autoApproveImageTasks}

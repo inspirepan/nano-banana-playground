@@ -82,17 +82,15 @@ export function MobileLayout({
       <div ref={mobilePanelScrollRef} className="min-h-0 flex-1 overflow-y-auto">
         {mobileTab !== 'gallery' ? (
           <div
-            className="h-full px-3"
+            className="h-full px-3 pt-[var(--panel-pad-top)]"
             style={{
-              ['--agent-panel-padding-x' as string]: '12px',
-              ['--input-panel-padding-x' as string]: '12px',
+              // Mobile panel layout tokens. See `--panel-*` in src/index.css.
+              ['--panel-pad-x' as string]: '12px',
+              ['--panel-pad-top' as string]: '18px',
+              ['--panel-pad-bottom' as string]: mobileTab === 'agent' ? '18px' : '120px',
             }}
           >
-            <InputPanel
-              {...inputPanelProps}
-              inputMode={mobileTab === 'agent' ? 'agent' : 'generate'}
-              showHeader={false}
-            />
+            <InputPanel {...inputPanelProps} inputMode={mobileTab === 'agent' ? 'agent' : 'generate'} />
           </div>
         ) : (
           <div className="px-3 py-[18px]">

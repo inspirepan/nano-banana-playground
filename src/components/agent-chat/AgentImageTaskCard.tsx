@@ -66,10 +66,11 @@ function SkeletonSlot({
       className={`relative w-full overflow-hidden shadow-[inset_0_0_0_1px_var(--ring-edge-soft)] ${flush ? 'rounded-none' : 'rounded-[var(--radius-sm)]'}`}
       style={{
         aspectRatio: aspectRatio ?? '1 / 1',
-        background:
-          'repeating-linear-gradient(-45deg, var(--color-surface-2) 0 6px, var(--color-surface-3) 6px 12px)',
+        background: 'repeating-linear-gradient(-45deg, var(--color-surface-2) 0 6px, var(--color-surface-3) 6px 12px)',
       }}
-      title={compact ? `${t('imageDetail.queue.status.generating')} · ${t('imageDetail.queue.keepPageOpen')}` : undefined}
+      title={
+        compact ? `${t('imageDetail.queue.status.generating')} · ${t('imageDetail.queue.keepPageOpen')}` : undefined
+      }
     >
       <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 px-2 text-(--color-text-3)">
         <span className="spinner" style={{ width: 12, height: 12 }} />
@@ -140,6 +141,7 @@ export function AgentImageTaskCard({
   call,
   task,
   stackItemByImageId,
+  stackItemNumberByImageId,
   result,
   isStreaming,
   autoApproveImageTasks,
@@ -151,6 +153,7 @@ export function AgentImageTaskCard({
   call: AgentMessageToolCall
   task: AgentImageTask | undefined
   stackItemByImageId: Map<string, StackItem>
+  stackItemNumberByImageId: Map<string, number>
   result?: AgentMessageToolResult
   isStreaming: boolean
   autoApproveImageTasks: boolean
@@ -248,7 +251,7 @@ export function AgentImageTaskCard({
             <StackItemThumb
               key={id}
               item={item}
-              number={index + 1}
+              number={stackItemNumberByImageId.get(id)}
               outerRing
               hoverLift={false}
               className="aspect-square w-full"
@@ -276,9 +279,7 @@ export function AgentImageTaskCard({
       <div
         className="mt-2.5 grid gap-1.5"
         style={{
-          gridTemplateColumns: singleBox
-            ? `${singleBox.width}px`
-            : `repeat(${Math.min(slots, 3)}, minmax(0, 1fr))`,
+          gridTemplateColumns: singleBox ? `${singleBox.width}px` : `repeat(${Math.min(slots, 3)}, minmax(0, 1fr))`,
         }}
       >
         {items}
@@ -311,13 +312,13 @@ export function AgentImageTaskCard({
         className="grid gap-px overflow-hidden bg-(--ring-edge-soft)"
         style={{ gridTemplateColumns: `repeat(${Math.min(visibleIds.length, 3)}, minmax(0, 1fr))` }}
       >
-        {visibleIds.map((id, index) => {
+        {visibleIds.map((id) => {
           const item = stackItemByImageId.get(id)!
           return (
             <StackItemThumb
               key={id}
               item={item}
-              number={index + 1}
+              number={stackItemNumberByImageId.get(id)}
               outerRing
               hoverLift={false}
               className="aspect-square w-full"
@@ -397,7 +398,6 @@ export function AgentImageTaskCard({
               <Icon name="alert_circle" size={13} />
             </span>
           )}
-          {isActiveGenerating && <span className="spinner" style={{ width: 10, height: 10 }} />}
           {targetIdNode}
         </div>
       )}

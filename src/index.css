@@ -106,6 +106,16 @@
   --radius-sm: 6px;
   --radius-md: 8px;
   --radius-lg: 10px;
+
+  /* Panel layout tokens — set on the layout root (MobileLayout / DesktopLayout)
+     for each of the six panel layouts (mobile generate / agent / gallery,
+     desktop generate / narrow-agent / wide-agent). Inner panel components
+     read these instead of branching on inputMode. The fallbacks below assume
+     a desktop generate panel; layout roots override per layout. */
+  --panel-pad-x: 18px;
+  --panel-pad-top: 18px;
+  --panel-pad-bottom: 18px;
+  --panel-header-mb: 18px;
 }
 
 .font-sans-geist {
@@ -789,6 +799,7 @@
         var(--shadow-float);
       transition:
         left 280ms cubic-bezier(0.22, 0.8, 0.4, 1),
+        transform 120ms cubic-bezier(0.23, 1, 0.32, 1),
         background 120ms,
         color 120ms,
         box-shadow 120ms;
@@ -799,6 +810,10 @@
       box-shadow:
         0 0 0 1px var(--ring-edge-strong),
         var(--shadow-float);
+    }
+
+    .agent-panel-width-toggle:active {
+      transform: translateX(-50%) scale(0.97);
     }
 
     .agent-panel-width-tip {
