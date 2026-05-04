@@ -8,9 +8,9 @@ function renderInline(text: string): ReactNode[] {
   const nodes: ReactNode[] = []
   const pattern = /(`[^`]+`|\*\*[^*]+\*\*)/g
   let lastIndex = 0
-  let match: RegExpExecArray | null
+  let match = pattern.exec(text)
 
-  while ((match = pattern.exec(text))) {
+  while (match) {
     if (match.index > lastIndex) nodes.push(text.slice(lastIndex, match.index))
     const token = match[0]
     if (token.startsWith('`')) {
@@ -30,6 +30,7 @@ function renderInline(text: string): ReactNode[] {
       )
     }
     lastIndex = match.index + token.length
+    match = pattern.exec(text)
   }
 
   if (lastIndex < text.length) nodes.push(text.slice(lastIndex))

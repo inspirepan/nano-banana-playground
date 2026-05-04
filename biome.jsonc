@@ -1,0 +1,133 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.4.14/schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true,
+  },
+  "files": {
+    "includes": ["**", "!!**/dist", "!!**/coverage", "!!package-lock.json", "!!pnpm-lock.yaml", "!!docs/refs"],
+  },
+  "css": {
+    "parser": {
+      "tailwindDirectives": true,
+    },
+  },
+  "html": {
+    "linter": {
+      "enabled": false,
+    },
+  },
+  "linter": {
+    "enabled": true,
+    "domains": {
+      "project": "recommended",
+      "react": "recommended",
+      "types": "recommended",
+    },
+    "rules": {
+      "recommended": true,
+      "a11y": {
+        "recommended": false,
+        "noAutofocus": "off",
+        "noLabelWithoutControl": "off",
+        "noStaticElementInteractions": "off",
+        "useButtonType": "off",
+      },
+      "complexity": {
+        "noForEach": "off",
+        "noUselessTernary": "off",
+        "useOptionalChain": "off",
+        "useArrowFunction": "off",
+      },
+      "correctness": {
+        "noUndeclaredDependencies": {
+          "level": "error",
+          "options": {
+            "devDependencies": [
+              "**/*.test.ts",
+              "**/*.test.tsx",
+              "**/__tests__/**",
+              "vite.config.ts",
+              "vitest.config.ts",
+              "vitest.network.config.ts",
+              "tests/network/**",
+            ],
+          },
+        },
+        "noUnusedImports": "error",
+        "noUnusedVariables": {
+          "level": "error",
+          "options": {
+            "ignoreRestSiblings": false,
+          },
+        },
+        "useExhaustiveDependencies": {
+          "level": "error",
+          "options": {
+            "hooks": [{ "name": "useExternalSync", "closureIndex": 0, "dependenciesIndex": 1 }],
+            "reportUnnecessaryDependencies": false,
+          },
+        },
+      },
+      "nursery": {
+        "noFloatingPromises": "error",
+        "noForIn": "error",
+      },
+      "performance": {
+        "noReExportAll": "error",
+      },
+      "security": {
+        "noDangerouslySetInnerHtml": "off",
+      },
+      "style": {
+        "noCommonJs": "error",
+        "noNonNullAssertion": "off",
+        "noRestrictedImports": {
+          "level": "warn",
+          "options": {
+            "paths": {
+              "react": {
+                "importNames": ["useEffect"],
+                "message": "Do not add direct useEffect in product code. Prefer derived state, event handlers, key-based remounts, or a focused external-sync hook.",
+              },
+            },
+          },
+        },
+        "useImportType": "off",
+        "useTemplate": "off",
+      },
+      "suspicious": {
+        "noConsole": "error",
+        "noConfusingVoidType": "off",
+        "noExplicitAny": "error",
+        "noArrayIndexKey": "off",
+        "noDocumentCookie": "off",
+        "noGlobalIsNan": "off",
+        "useIterableCallbackReturn": "off",
+      },
+    },
+  },
+  "overrides": [
+    {
+      "includes": ["src/hooks/effects.ts"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": "off",
+          },
+        },
+      },
+    },
+    {
+      "includes": ["vite.config.ts", "vitest.config.ts", "vitest.network.config.ts", "tests/network/**"],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "noUndeclaredDependencies": "off",
+          },
+        },
+      },
+    },
+  ],
+}

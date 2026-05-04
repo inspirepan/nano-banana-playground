@@ -11,14 +11,14 @@ export function useLatestRef<T>(value: T): RefObject<T> {
 }
 
 export function useMountEffect(effect: () => Cleanup): void {
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- deliberate mount/unmount boundary
+  // biome-ignore lint/correctness/useExhaustiveDependencies: deliberate mount/unmount boundary
   useEffect(effect, [])
 }
 
 export function useExternalSync(effect: () => Cleanup, deps: DependencyList): void {
   // Thin adapter for explicit external-system synchronization. Callers should
   // prefer narrower hooks such as useWindowEvent/useResizeObserver when possible.
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- dependency list is owned by the caller
+  // biome-ignore lint/correctness/useExhaustiveDependencies: dependency list is owned by the caller
   useEffect(effect, deps)
 }
 

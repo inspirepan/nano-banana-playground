@@ -266,6 +266,7 @@ export function AgentChatPanel({
     return () => el.removeEventListener('scroll', handle)
   }, [])
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies(nearBottom): intentionally excluded during smooth scroll
   useLayoutEffect(() => {
     if (!nearBottom) return
     const el = scrollRef.current
@@ -273,7 +274,6 @@ export function AgentChatPanel({
     el.scrollTop = el.scrollHeight
     // Note: nearBottom is intentionally excluded from deps — flipping it true
     // mid-smooth-scroll would otherwise snap the animation to its end.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visibleMessages.length, queuedMessages.length, streamingMessage, showRunningIndicator])
 
   const scrollToBottom = useCallback(() => {

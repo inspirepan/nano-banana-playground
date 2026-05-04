@@ -8,8 +8,8 @@
     "build": "tsc -b && vite build",
     "test": "vitest run",
     "test:network": "vitest run --config vitest.network.config.ts",
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
+    "lint": "biome lint .",
+    "lint:fix": "biome lint --write .",
     "format": "prettier . --write",
     "format:check": "prettier . --check",
     "preview": "vite preview"
@@ -28,25 +28,15 @@
     "streamdown": "^2.5.0"
   },
   "devDependencies": {
-    "@eslint/js": "^9.39.4",
+    "@biomejs/biome": "^2.4.14",
     "@tailwindcss/vite": "^4.2.1",
     "@types/node": "^24.12.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.0",
-    "eslint": "^9.39.4",
-    "eslint-config-prettier": "^10.1.8",
-    "eslint-import-resolver-typescript": "^4.4.4",
-    "eslint-plugin-eslint-comments": "^3.2.0",
-    "eslint-plugin-import": "^2.32.0",
-    "eslint-plugin-react-hooks": "^7.0.1",
-    "eslint-plugin-react-refresh": "^0.5.2",
-    "eslint-plugin-unused-imports": "^4.4.1",
-    "globals": "^17.4.0",
     "prettier": "^3.8.3",
     "tailwindcss": "^4.2.1",
     "typescript": "~5.9.3",
-    "typescript-eslint": "^8.56.1",
     "vite": "^8.0.0",
     "vitest": "^4.1.0"
   }

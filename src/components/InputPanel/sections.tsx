@@ -97,6 +97,7 @@ export function ToggleGroupSection({
           const active = values[opt.id] === true
           const button = (
             <button
+              key={opt.id}
               type="button"
               role="checkbox"
               aria-checked={active}
