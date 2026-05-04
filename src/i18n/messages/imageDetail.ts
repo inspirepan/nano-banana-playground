@@ -104,9 +104,17 @@ export const imageDetailMessages: MessageDictionary = {
     'zh-CN': '{images} 张图片，{active} 个生成中',
     en: '{images} images, {active} generating',
   },
+  'imageDetail.gallery.summarySimple': {
+    'zh-CN': '{images} 张图片',
+    en: '{images} images',
+  },
   'imageDetail.gallery.summarySelected': {
     'zh-CN': '{images} 张图片，{active} 个生成中，已选 {selected} 张',
     en: '{images} images, {active} generating, {selected} selected',
+  },
+  'imageDetail.gallery.summarySelectedSimple': {
+    'zh-CN': '{images} 张图片，已选 {selected} 张',
+    en: '{images} images, {selected} selected',
   },
   'imageDetail.header.imageGroup': { 'zh-CN': '图片组', en: 'Image group' },
   'imageDetail.header.generationTask': { 'zh-CN': '生成任务', en: 'Generation task' },
