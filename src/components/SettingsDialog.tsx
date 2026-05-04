@@ -329,12 +329,12 @@ export function SettingsDialog({
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={handleClose}>
-      <div className="absolute inset-0 bg-black/20 backdrop-blur-[2px] dark:bg-black/60" />
+      <div className="modal-backdrop-pop absolute inset-0 bg-black/20 backdrop-blur-[2px] dark:bg-black/60" />
       <div
         role="dialog"
         aria-modal="true"
         aria-label={t('settings.title')}
-        className="relative flex h-[min(720px,calc(100dvh-32px))] w-full max-w-3xl flex-col overflow-hidden rounded-[var(--radius-lg)] bg-(--color-surface) shadow-[0_0_0_1px_var(--ring-edge-elevated),var(--shadow-float)]"
+        className="modal-pop relative flex h-[min(720px,calc(100dvh-32px))] w-full max-w-3xl flex-col overflow-hidden rounded-[var(--radius-lg)] bg-(--color-surface) shadow-[0_0_0_1px_var(--ring-edge-elevated),var(--shadow-float)]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}

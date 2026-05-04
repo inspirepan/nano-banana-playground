@@ -180,7 +180,7 @@ export const ImageCard = memo(function ImageCard({
 
       {/* Copied toast */}
       <div
-        className={`pointer-events-none absolute inset-x-0 top-1/2 z-10 flex -translate-y-1/2 justify-center transition-all duration-300 ${toast ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}`}
+        className={`pointer-events-none absolute inset-x-0 top-1/2 z-10 flex -translate-y-1/2 justify-center transition-[opacity,transform] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-none ${toast ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}
       >
         <div
           className="rounded-[var(--radius-sm)] px-3 py-1.5 text-base font-medium"
@@ -247,7 +247,7 @@ export const ImageCard = memo(function ImageCard({
           <div
             style={{ top: menu.y, left: menu.x }}
             onMouseDown={(e) => e.stopPropagation()}
-            className="fixed z-[120] min-w-[140px] rounded-[var(--radius-md)] bg-(--color-surface) p-1 shadow-[0_0_0_1px_var(--ring-edge-elevated),var(--shadow-float)]"
+            className="popover-pop fixed z-[120] min-w-[140px] origin-top-left rounded-[var(--radius-md)] bg-(--color-surface) p-1 shadow-[0_0_0_1px_var(--ring-edge-elevated),var(--shadow-float)]"
           >
             {actionItems.map((item) => (
               <button

@@ -412,7 +412,7 @@ function SlashCommandSuggestions({
   return (
     <div
       data-agent-menu
-      className="absolute bottom-[calc(100%+8px)] left-2 z-50 w-[320px] max-w-[calc(100vw-32px)] rounded-[var(--radius-lg)] bg-(--color-surface) p-1 shadow-[0_0_0_1px_var(--ring-edge-elevated),var(--shadow-float)]"
+      className="popover-pop absolute bottom-[calc(100%+8px)] left-2 z-50 w-[320px] max-w-[calc(100vw-32px)] origin-bottom-left rounded-[var(--radius-lg)] bg-(--color-surface) p-1 shadow-[0_0_0_1px_var(--ring-edge-elevated),var(--shadow-float)]"
     >
       {suggestions.map((suggestion, index) => (
         <button

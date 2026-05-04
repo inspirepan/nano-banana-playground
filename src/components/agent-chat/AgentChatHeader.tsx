@@ -84,7 +84,7 @@ export function AgentChatHeader({
       {openMenu === 'sessions' && (
         <div
           data-agent-menu
-          className="absolute top-[40px] left-0 z-50 w-full rounded-[var(--radius-lg)] bg-(--color-surface) p-1 shadow-[0_0_0_1px_var(--ring-edge-elevated),var(--shadow-float)]"
+          className="popover-pop absolute top-[40px] left-0 z-50 w-full origin-top rounded-[var(--radius-lg)] bg-(--color-surface) p-1 shadow-[0_0_0_1px_var(--ring-edge-elevated),var(--shadow-float)]"
         >
           <div className="px-2 py-1.5 text-sm font-medium text-(--color-text-3)">{t('agentChat.header.history')}</div>
           <div className="max-h-[260px] space-y-0.5 overflow-y-auto py-0.5">

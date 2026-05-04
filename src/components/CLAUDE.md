@@ -48,5 +48,11 @@
 - **滚动边缘遮罩**：滚动容器的淡出边缘统一走 `src/index.css` 里的 `.scroll-fade-y` / `.scroll-fade-x` utility，band 尺寸用 `[--scroll-fade-start-size:…]` / `[--scroll-fade-end-size:…]` 按调用点覆盖。**禁止在组件里手写 `maskImage: 'linear-gradient(...)'`**。两条硬约束：① 渐变必须是单段 `transparent → #000`，不得塞任何中间 alpha stop——在高对比度图片上每个 stop 都会暴露成肉眼可见的斜率折点，「多段模拟 ease」是反模式，要更柔和就加长 band 而不是加 stop；② 只有**无 ring 的开放容器**（面板主内容区、侧栏、无边 rail）才加 fade，**带 `ring-edge` shadow / border 的卡片或浮层内部不加**——fade 会落在 ring 之内变成「卡片在吃自己的内容」。图片密集的 rail band 建议 ≥3rem，纯文本场景 1–2rem 即可；支持 `animation-timeline: scroll()` 的浏览器会随滚动位置动态收起 fade，无须另行处理。
 - **图标**：只用 Lucide，经 `Icon.tsx` 映射。
 - **暗色模式**：由 `<html>` 上的 `.dark` 控制；主色主题由 `.theme-*` 控制。
-- **复用 utility class**：优先使用 `.chip`、`.segmented`、`.aspect-tile`、`.card`、`.cta`、`.dropzone`、`.img-card`、`.icon-btn`、`.label`、`.mono`。
-- **动效**：过渡保持短促（约 120ms 到 260ms），优先 CSS `transition` / `@keyframes`，避免夸张弹簧、长位移动画。
+- **复用 utility class**：优先使用 `.chip`、`.segmented`、`.aspect-tile`、`.card`、`.cta`、`.dropzone`、`.img-card`、`.icon-btn`、`.label`、`.mono`；浮层入场用 `.popover-pop` / `.modal-pop` / `.modal-backdrop-pop`。
+- **动效**：过渡保持短促（约 120ms 到 260ms），优先 CSS `transition` / `@keyframes`，避免夸张弹簧、长位移动画。具体硬约束：
+  - **easing token**：所有过渡的曲线一律引用 `var(--ease-out)`（默认，入场 / 出场 / hover）/ `var(--ease-in-out)`（屏内移动）/ `var(--ease-drawer)`（抽屉、grid-row 展开）。**禁止再写裸 `cubic-bezier(...)`**；`ease-in` 在 UI 里禁止使用——它把延迟摆在用户最专注的那一刻，体感反而更慢。
+  - **按下反馈**：可点击控件的 `:active` 用 `transform: scale(0.92~0.98)` 表达，不用 `translateY(0.5px)` 这类亚像素位移（hi-DPI 屏看不见）。`.chip / .aspect-tile / .cta / .media-action` 用 0.97~0.98，`.icon-btn` 这种 24px 小图标按钮用 0.92。
+  - **弹窗 / 浮层入场**：dialog 走 `.modal-pop` + `.modal-backdrop-pop`（`scale 0.96 → 1` + opacity，200ms，origin 默认 center 即可）；下拉菜单 / context menu / popover 走 `.popover-pop`（160ms）+ 必须显式声明 `origin-*`（`origin-top-right` / `origin-bottom-left` 等），让浮层从触发器位置长出来，**不要保留默认的 `transform-origin: center`**。两个 utility 都基于 `@starting-style`，组件挂上 class 即可，不用写 `useEffect` 设 `mounted`。
+  - **进入态起点**：禁止从 `scale(0)` 进入；`scale(0.95~0.97)` + `opacity: 0` 才符合"现实里没有凭空冒出来的物体"。toast / overlay 同理。
+  - **频繁动作不加动画**：键盘快捷键触发的状态切换（command palette toggle 等）每天会被触发上百次，加动画只会拖慢手感，直接零过渡。
+  - **`prefers-reduced-motion`**：自定义 keyframes / scale 入场必须带 `@media (prefers-reduced-motion: reduce)` 兜底（参见 `index.css` 里 `.popover-pop / .modal-pop` 的范式）；hover 上的 transform 还要加 `@media (hover: hover) and (pointer: fine)` 守卫，否则触屏点击会触发假 hover。

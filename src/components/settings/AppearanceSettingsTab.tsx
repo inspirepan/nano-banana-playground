@@ -106,7 +106,7 @@ export function AppearanceSettingsTab({
                 title={ct.name}
                 aria-label={ct.name}
                 onClick={() => onColorThemeChange(ct.id)}
-                className="h-7 w-7 rounded-[var(--radius-sm)] transition-all"
+                className="h-7 w-7 rounded-[var(--radius-sm)] transition-[box-shadow,transform] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.92]"
                 style={{
                   background: swatch,
                   boxShadow:

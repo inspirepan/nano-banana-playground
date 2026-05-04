@@ -97,6 +97,14 @@
 
   --shadow-float: 0 18px 40px -26px rgba(29, 31, 35, 0.22), 0 2px 8px rgba(29, 31, 35, 0.055);
 
+  /* Easing curves — built-in CSS easings are too weak. These give animations
+     the punch that makes them feel intentional. Use --ease-out for any
+     enter/exit motion (most UI), --ease-in-out for on-screen movement, and
+     --ease-drawer for sheet-like, momentum-feeling motion. Never ease-in. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+
   /* Chat user bubble */
   --bubble-user-bg: var(--color-accent-soft);
   --bubble-user-edge:
@@ -438,8 +446,12 @@
     transition:
       background 120ms,
       box-shadow 120ms,
-      color 120ms;
+      color 120ms,
+      transform 140ms var(--ease-out);
     white-space: nowrap;
+  }
+  .chip:active:not(:disabled) {
+    transform: scale(0.97);
   }
   .chip:hover:not(:disabled) {
     background: var(--color-surface-2);
@@ -716,12 +728,16 @@
     border: 0;
     transition:
       background 120ms,
-      color 120ms;
+      color 120ms,
+      transform 140ms var(--ease-out);
     flex-shrink: 0;
   }
   .icon-btn:hover:not(:disabled) {
     background: var(--color-surface-2);
     color: var(--color-text);
+  }
+  .icon-btn:active:not(:disabled) {
+    transform: scale(0.92);
   }
   .icon-btn:disabled {
     opacity: 0.4;
@@ -897,7 +913,7 @@
     gap: 10px;
     transition:
       filter 120ms,
-      transform 60ms,
+      transform 140ms var(--ease-out),
       background 120ms;
     box-shadow:
       0 0 0 1px color-mix(in srgb, var(--color-accent) 50%, #000 8%),
@@ -908,7 +924,7 @@
     filter: brightness(1.06);
   }
   .cta:active:not(:disabled) {
-    transform: translateY(0.5px);
+    transform: scale(0.98);
   }
   .cta:disabled {
     background: var(--color-surface-3);
@@ -1023,10 +1039,14 @@
     transition:
       background 120ms,
       box-shadow 120ms,
-      color 120ms;
+      color 120ms,
+      transform 140ms var(--ease-out);
     position: relative;
     padding: 0 6px;
     gap: 6px;
+  }
+  .aspect-tile:active:not(:disabled) {
+    transform: scale(0.97);
   }
   .aspect-tile:hover {
     color: var(--color-text-2);
@@ -1220,7 +1240,7 @@
     transition:
       background 120ms,
       box-shadow 120ms,
-      transform 60ms;
+      transform 140ms var(--ease-out);
   }
   .media-action:hover:not(:disabled) {
     background: rgba(40, 40, 40, 0.92);
@@ -1262,7 +1282,7 @@
     background: rgba(0, 0, 0, 0.66);
   }
   .media-action:active:not(:disabled) {
-    transform: translateY(0.5px);
+    transform: scale(0.97);
   }
   .media-action.light {
     background: rgba(255, 255, 255, 0.9);
@@ -1367,7 +1387,65 @@
     }
   }
   .fade-in {
-    animation: fadeSlide 200ms ease-out;
+    animation: fadeSlide 200ms var(--ease-out);
+  }
+
+  /* Popover / dropdown menu enter animation. Uses `@starting-style` so the
+     element transitions from a barely-deflated state when first inserted into
+     the DOM. Components should add this class together with `transform-origin:
+     <anchor>` (e.g. `[transform-origin:top_right]`) so the menu visibly grows
+     out of its trigger rather than from an arbitrary center point. Exit is
+     instant because dropdowns are dismissed by clicks/keys and a slow exit
+     would feel laggy. */
+  .popover-pop {
+    opacity: 1;
+    transform: scale(1);
+    transition:
+      opacity 160ms var(--ease-out),
+      transform 160ms var(--ease-out);
+  }
+  @starting-style {
+    .popover-pop {
+      opacity: 0;
+      transform: scale(0.96);
+    }
+  }
+
+  /* Modal content enter — slightly slower + slightly more deflation than a
+     popover, since modals are more deliberate. transform-origin stays default
+     (`center`): the dialog is centered in the viewport, not anchored to a
+     trigger. */
+  .modal-pop {
+    opacity: 1;
+    transform: scale(1);
+    transition:
+      opacity 200ms var(--ease-out),
+      transform 200ms var(--ease-out);
+  }
+  @starting-style {
+    .modal-pop {
+      opacity: 0;
+      transform: scale(0.96);
+    }
+  }
+
+  /* Modal backdrop fade-in — paired with `.modal-pop`. */
+  .modal-backdrop-pop {
+    opacity: 1;
+    transition: opacity 200ms var(--ease-out);
+  }
+  @starting-style {
+    .modal-backdrop-pop {
+      opacity: 0;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .popover-pop,
+    .modal-pop,
+    .modal-backdrop-pop {
+      transition: none;
+    }
   }
 
   @keyframes agent-running-dot {
