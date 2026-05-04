@@ -40,10 +40,11 @@ export function AgentChatHeader({
     : (currentSession?.title ?? t('agentChat.header.newConversation'))
 
   if (centeredTitle) {
+    if (!centeredDisplayTitle) return null
     return (
       <div className="mb-1.5 flex min-h-[30px] items-center justify-center text-center">
         <div className="w-full min-w-0 max-w-[min(960px,100%)] truncate font-display text-lg font-semibold tracking-[-0.01em] text-(--color-text)">
-          {centeredDisplayTitle || title}
+          {centeredDisplayTitle}
         </div>
       </div>
     )

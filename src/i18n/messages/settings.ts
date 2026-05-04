@@ -233,13 +233,13 @@ export const settingsMessages: MessageDictionary = {
   },
   'settings.composerSubmitMode.cmdEnter.label': { 'zh-CN': '⌘/Ctrl+Enter 发送', en: 'Send with ⌘/Ctrl+Enter' },
   'settings.composerSubmitMode.cmdEnter.description': {
-    'zh-CN': 'Enter 换行,⌘/Ctrl+Enter 发送。',
-    en: 'Enter inserts a newline, ⌘/Ctrl+Enter sends.',
+    'zh-CN': 'Enter 换行',
+    en: 'Enter inserts a newline',
   },
   'settings.composerSubmitMode.enter.label': { 'zh-CN': 'Enter 发送', en: 'Send with Enter' },
   'settings.composerSubmitMode.enter.description': {
-    'zh-CN': 'Shift+Enter 换行,Enter 发送。',
-    en: 'Shift+Enter inserts a newline, Enter sends.',
+    'zh-CN': 'Shift+Enter 换行',
+    en: 'Shift+Enter inserts a newline',
   },
   'settings.agentSkills.title': { 'zh-CN': 'Agent Skills', en: 'Agent Skills' },
   'settings.agentSkills.description': {

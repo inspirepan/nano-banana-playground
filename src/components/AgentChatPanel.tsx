@@ -312,6 +312,14 @@ export function AgentChatPanel({
     scrollToBottomAfterSend()
   }, [draft, handleNewSession, onDraftChange, onSend, scrollToBottomAfterSend])
 
+  useWindowEvent('keydown', (event) => {
+    if (!event.metaKey || !event.shiftKey || event.altKey || event.ctrlKey || event.key.toLowerCase() !== 'o') return
+    if (event.repeat) return
+    if (!controlsRef.current?.getClientRects().length) return
+    event.preventDefault()
+    handleNewSession()
+  })
+
   useWindowEvent(
     'pointerdown',
     (event) => {
