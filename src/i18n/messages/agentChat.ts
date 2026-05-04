@@ -165,6 +165,16 @@ export const agentChatMessages: MessageDictionary = {
   'agentChat.tool.result.status.done': { 'zh-CN': '完成', en: 'Done' },
   'agentChat.tool.askUserQuestion.preparing': { 'zh-CN': '正在准备问卷…', en: 'Preparing questions…' },
   'agentChat.tool.readImage.reading': { 'zh-CN': '正在读取图片…', en: 'Reading image…' },
+  'agentChat.tool.preparing.readAgentFile': { 'zh-CN': '正在准备读取文件…', en: 'Preparing file read…' },
+  'agentChat.tool.preparing.skill': { 'zh-CN': '正在加载 Skill…', en: 'Loading skill…' },
+  'agentChat.tool.preparing.readSkillFile': {
+    'zh-CN': '正在准备读取 Skill 文件…',
+    en: 'Preparing skill file read…',
+  },
+  'agentChat.tool.preparing.createSkill': { 'zh-CN': '正在准备创建 Skill…', en: 'Preparing skill creation…' },
+  'agentChat.tool.preparing.webFetch': { 'zh-CN': '正在准备抓取网页…', en: 'Preparing web fetch…' },
+  'agentChat.tool.preparing.webSearch': { 'zh-CN': '正在准备搜索网页…', en: 'Preparing web search…' },
+  'agentChat.tool.preparing.generic': { 'zh-CN': '正在准备工具参数…', en: 'Preparing tool arguments…' },
   'agentChat.tool.readImage.failed': {
     'zh-CN': '读取图片 {id} 失败：{error}',
     en: 'Failed to read image {id}: {error}',

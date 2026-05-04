@@ -17,7 +17,7 @@ import type {
   AgentPendingQuestion,
   AskUserQuestionAnswer,
 } from '../../agent'
-import { useI18n } from '../../i18n'
+import { useI18n, type Translate } from '../../i18n'
 import type { StackItem } from '../../lib/stacks'
 
 type WebSearchResultLink = {
@@ -57,6 +57,57 @@ function readSearchResultsFromText(text: string): WebSearchResultLink[] {
     const rawPosition = Number(item.getAttribute('position'))
     return [{ position: Number.isFinite(rawPosition) ? rawPosition : index + 1, title, url }]
   })
+}
+
+function hasNonEmptyString(value: unknown): boolean {
+  return typeof value === 'string' && value.trim() !== ''
+}
+
+function hasSkillDisplayString(args: Record<string, unknown>, snakeKey: string, camelKey: string): boolean {
+  return hasNonEmptyString(args[snakeKey]) || hasNonEmptyString(args[camelKey])
+}
+
+function hasRenderableSkillFile(value: unknown): boolean {
+  return (
+    Array.isArray(value) &&
+    value.length > 0 &&
+    value.every((item) => isRecord(item) && hasNonEmptyString(item.path) && hasNonEmptyString(item.content))
+  )
+}
+
+function hasCompleteToolArguments(call: AgentMessageToolCall): boolean {
+  const args = call.arguments
+  if (call.name === 'AskUserQuestion') return Array.isArray(args.questions) && args.questions.length > 0
+  if (call.name === 'ReadImage') return hasNonEmptyString(args.image_id)
+  if (call.name === 'ReadAgentFile') return hasNonEmptyString(args.path)
+  if (call.name === 'Skill') return hasNonEmptyString(args.skill)
+  if (call.name === 'ReadSkillFile') return hasNonEmptyString(args.skill) && hasNonEmptyString(args.path)
+  if (call.name === 'CreateSkill') {
+    return (
+      hasNonEmptyString(args.name) &&
+      hasSkillDisplayString(args, 'agent_description', 'agentDescription') &&
+      hasSkillDisplayString(args, 'display_name_zh', 'displayNameZh') &&
+      hasSkillDisplayString(args, 'display_name_en', 'displayNameEn') &&
+      hasSkillDisplayString(args, 'display_description_zh', 'displayDescriptionZh') &&
+      hasSkillDisplayString(args, 'display_description_en', 'displayDescriptionEn') &&
+      hasRenderableSkillFile(args.files)
+    )
+  }
+  if (call.name === 'WebFetch') return hasNonEmptyString(args.url)
+  if (call.name === 'WebSearch') return hasNonEmptyString(args.query)
+  return Object.keys(args).length > 0
+}
+
+function preparingToolLabel(call: AgentMessageToolCall, t: Translate): string {
+  if (call.name === 'AskUserQuestion') return t('agentChat.tool.askUserQuestion.preparing')
+  if (call.name === 'ReadImage') return t('agentChat.tool.readImage.reading')
+  if (call.name === 'ReadAgentFile') return t('agentChat.tool.preparing.readAgentFile')
+  if (call.name === 'Skill') return t('agentChat.tool.preparing.skill')
+  if (call.name === 'ReadSkillFile') return t('agentChat.tool.preparing.readSkillFile')
+  if (call.name === 'CreateSkill') return t('agentChat.tool.preparing.createSkill')
+  if (call.name === 'WebFetch') return t('agentChat.tool.preparing.webFetch')
+  if (call.name === 'WebSearch') return t('agentChat.tool.preparing.webSearch')
+  return t('agentChat.tool.preparing.generic')
 }
 
 function formatSearchResultDomain(url: string): string {
@@ -130,15 +181,14 @@ export function ToolActivityCard({
   const { t } = useI18n()
   const resultByCallId = useMemo(() => new Map(results.map((result) => [result.toolCallId, result])), [results])
 
-  // GenImage calls render as standalone rich cards; AskUserQuestion renders a
-  // form or result card; ReadImage / AskUserQuestion mid-stream collapse into a
-  // single gray "system event" line; everything else falls into the compact
-  // AGENT tool group.
+  // GenImage calls render as standalone rich cards; tools with incomplete
+  // streaming arguments collapse into a single gray "system event" line.
   const compactRows: ReactNode[] = []
   const richCards: ReactNode[] = []
   const inlineNotices: ReactNode[] = []
 
   for (const call of calls) {
+    const result = resultByCallId.get(call.id)
     if (call.name === 'GenImage') {
       richCards.push(
         <AgentImageTaskCard
@@ -147,7 +197,7 @@ export function ToolActivityCard({
           task={imageTaskByToolCallId.get(call.id)}
           stackItemByImageId={stackItemByImageId}
           stackItemNumberByImageId={stackItemNumberByImageId}
-          result={resultByCallId.get(call.id)}
+          result={result}
           isStreaming={isStreaming}
           autoApproveImageTasks={autoApproveImageTasks}
           onApprove={onApproveImageTask}
@@ -158,9 +208,13 @@ export function ToolActivityCard({
       )
       continue
     }
+    if (isStreaming && !result && !hasCompleteToolArguments(call)) {
+      inlineNotices.push(<InlineToolNotice key={call.id} label={preparingToolLabel(call, t)} />)
+      continue
+    }
     if (call.name === 'AskUserQuestion') {
       const pending = pendingQuestionByToolCallId.get(call.id)
-      const finished = resultByCallId.get(call.id)
+      const finished = result
       if (pending) {
         richCards.push(
           <AskUserQuestionForm
@@ -179,7 +233,7 @@ export function ToolActivityCard({
       continue
     }
     if (call.name === 'ReadImage') {
-      const finished = resultByCallId.get(call.id)
+      const finished = result
       if (!finished) {
         inlineNotices.push(<InlineToolNotice key={call.id} label={t('agentChat.tool.readImage.reading')} />)
         continue
@@ -200,7 +254,6 @@ export function ToolActivityCard({
       continue
     }
     if (call.name === 'WebSearch') {
-      const result = resultByCallId.get(call.id)
       compactRows.push(
         <ToolCallRow key={call.id} call={call} result={result}>
           {result ? <WebSearchResultLinks result={result} /> : null}
@@ -208,7 +261,7 @@ export function ToolActivityCard({
       )
       continue
     }
-    compactRows.push(<ToolCallRow key={call.id} call={call} result={resultByCallId.get(call.id)} />)
+    compactRows.push(<ToolCallRow key={call.id} call={call} result={result} />)
   }
   if (calls.length === 0) {
     for (const result of results) {
