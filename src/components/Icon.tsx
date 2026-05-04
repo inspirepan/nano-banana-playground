@@ -22,6 +22,7 @@ import {
   ImagePlus,
   Images as ImagesIcon,
   KeyRound,
+  ListChecks,
   Lock,
   MapPin,
   Maximize2,
@@ -80,6 +81,7 @@ export type IconName =
   | 'key'
   | 'keyboard_arrow_up'
   | 'light_mode'
+  | 'list_checks'
   | 'lock'
   | 'maximize'
   | 'map_pin'
@@ -141,6 +143,7 @@ const ICONS = {
   key: KeyRound,
   keyboard_arrow_up: ChevronUp,
   light_mode: Sun,
+  list_checks: ListChecks,
   lock: Lock,
   maximize: Maximize2,
   map_pin: MapPin,

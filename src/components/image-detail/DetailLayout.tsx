@@ -1,6 +1,7 @@
 import type { Dispatch, RefObject, SetStateAction } from 'react'
 
 import { Icon } from '../Icon'
+import { Tooltip } from '../Tooltip'
 import type { BrushPresetId } from './annotationPresets'
 import { DetailCanvas } from './DetailCanvas'
 import { DetailFooter } from './DetailFooter'
@@ -249,29 +250,28 @@ export function DetailLayout({
               leadingNode={
                 <button
                   type="button"
-                  className="icon-btn"
+                  className="icon-btn h-8 w-8"
                   onClick={onClose}
                   title={t('imageDetail.action.closeEsc')}
-                  style={{ width: 32, height: 32 }}
                 >
-                  <Icon name="close" size={13} strokeWidth={1.8} />
+                  <Icon name="close" size={14} strokeWidth={1.8} />
                 </button>
               }
               trailingNode={
-                <button
-                  type="button"
-                  className="chip ghost shrink-0 font-normal text-(--color-text-3)"
-                  onClick={() => {
-                    setGalleryInitialMode('manage')
-                    setGalleryReturnTarget('detail')
-                    setViewMode('gallery')
-                  }}
-                  title={t('imageDetail.action.openBatchManage')}
-                  style={{ height: 24, padding: '0 6px' }}
-                >
-                  <Icon name="check_circle" size={12} strokeWidth={1.8} />
-                  <span>{t('imageDetail.action.manageBatch')}</span>
-                </button>
+                <Tooltip text={t('imageDetail.action.openBatchManage')}>
+                  <button
+                    type="button"
+                    className="icon-btn h-8 w-8 shrink-0"
+                    onClick={() => {
+                      setGalleryInitialMode('manage')
+                      setGalleryReturnTarget('detail')
+                      setViewMode('gallery')
+                    }}
+                    aria-label={t('imageDetail.action.manageBatch')}
+                  >
+                    <Icon name="list_checks" size={14} strokeWidth={1.8} />
+                  </button>
+                </Tooltip>
               }
             />
 

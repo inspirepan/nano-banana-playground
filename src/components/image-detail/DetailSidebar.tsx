@@ -6,6 +6,7 @@ import type { GenerationJob, GenerationSlot } from '../../hooks/usePlayground'
 import { useI18n, type Translate } from '../../i18n'
 import type { GeneratedSource, GroundingMetadata, PlaygroundImageMeta } from '../../lib/types'
 import { Icon } from '../Icon'
+import { Tooltip } from '../Tooltip'
 
 const HIGHLIGHT_LABELS = [
   '参考图说明',
@@ -82,11 +83,62 @@ export function DetailSidebar({
   return (
     <>
       {currentImage && (
-        <div className="mb-[18px]">
-          <div className="detail-mobile-actions -mx-1 flex items-center">
+        <>
+          {/* Desktop: tight icon-only cluster */}
+          <div className="mb-[18px] hidden items-center justify-end gap-1 md:flex">
+            <Tooltip text={t('imageDetail.action.addReference')}>
+              <button
+                type="button"
+                className="icon-btn h-7 w-7"
+                onClick={onAddRef}
+                disabled={!currentImage}
+                aria-label={t('imageDetail.action.addReference')}
+              >
+                <Icon name="plus" size={14} strokeWidth={1.8} />
+              </button>
+            </Tooltip>
+            <Tooltip text={t('common.download')}>
+              <button type="button" className="icon-btn h-7 w-7" onClick={onDownload} aria-label={t('common.download')}>
+                <Icon name="download" size={14} strokeWidth={1.8} />
+              </button>
+            </Tooltip>
+            {onStartEdit ? (
+              <Tooltip text={t('common.edit')}>
+                <button type="button" className="icon-btn h-7 w-7" onClick={onStartEdit} aria-label={t('common.edit')}>
+                  <Icon name="wand" size={14} strokeWidth={1.8} />
+                </button>
+              </Tooltip>
+            ) : (
+              <Tooltip text={t('imageDetail.action.restoreParams')}>
+                <button
+                  type="button"
+                  className="icon-btn h-7 w-7"
+                  onClick={onRegenerate}
+                  disabled={!currentMeta?.prompt}
+                  aria-label={t('imageDetail.action.restoreParams')}
+                >
+                  <Icon name="undo" size={14} strokeWidth={1.8} />
+                </button>
+              </Tooltip>
+            )}
+            <Tooltip text={t('imageDetail.action.redoOriginal')}>
+              <button
+                type="button"
+                className="icon-btn h-7 w-7"
+                onClick={onReroll}
+                disabled={!currentMeta?.prompt}
+                aria-label={t('imageDetail.action.redoOriginal')}
+              >
+                <Icon name="refresh" size={14} strokeWidth={1.8} />
+              </button>
+            </Tooltip>
+          </div>
+
+          {/* Mobile: 4-up card grid (icon + label) */}
+          <div className="detail-mobile-actions mb-[18px] -mx-1 md:hidden">
             <button
               type="button"
-              className="action-soft detail-mobile-action flex-1"
+              className="action-soft detail-mobile-action"
               onClick={onAddRef}
               disabled={!currentImage}
               title={t('imageDetail.action.addReferenceTitle')}
@@ -96,7 +148,7 @@ export function DetailSidebar({
             </button>
             <button
               type="button"
-              className="action-soft detail-mobile-action flex-1"
+              className="action-soft detail-mobile-action"
               onClick={onDownload}
               title={t('imageDetail.action.downloadPng')}
             >
@@ -106,7 +158,7 @@ export function DetailSidebar({
             {onStartEdit ? (
               <button
                 type="button"
-                className="action-soft detail-mobile-action flex-1"
+                className="action-soft detail-mobile-action"
                 onClick={onStartEdit}
                 title={t('imageDetail.action.editImage')}
               >
@@ -116,7 +168,7 @@ export function DetailSidebar({
             ) : (
               <button
                 type="button"
-                className="action-soft detail-mobile-action flex-1"
+                className="action-soft detail-mobile-action"
                 onClick={onRegenerate}
                 disabled={!currentMeta?.prompt}
                 title={t('imageDetail.action.restoreParams')}
@@ -127,7 +179,7 @@ export function DetailSidebar({
             )}
             <button
               type="button"
-              className="action-soft detail-mobile-action flex-1"
+              className="action-soft detail-mobile-action"
               onClick={onReroll}
               disabled={!currentMeta?.prompt}
               title={t('imageDetail.action.regenerateOriginal')}
@@ -136,7 +188,7 @@ export function DetailSidebar({
               {t('imageDetail.action.redoOriginal')}
             </button>
           </div>
-        </div>
+        </>
       )}
 
       {prompt && (
@@ -144,24 +196,16 @@ export function DetailSidebar({
           <div className="flex items-center mb-1.5">
             <span className="label">{t('imageDetail.section.prompt')}</span>
             <div className="flex-1" />
-            <button
-              type="button"
-              className="action-soft shrink-0"
-              style={{ height: 26 }}
-              onClick={onCopyPrompt}
-              title={t('imageDetail.action.copyPrompt')}
-            >
-              {/* Safari ignores flex layout on <button>; nesting fixes it. */}
-              <span className="inline-flex items-center gap-1.5">
-                <Icon
-                  name={copiedPrompt ? 'check' : 'copy'}
-                  size={12}
-                  strokeWidth={copiedPrompt ? 2.2 : 1.8}
-                  className="action-soft-icon"
-                />
-                {copiedPrompt ? t('imageDetail.status.copied') : t('imageDetail.action.copy')}
-              </span>
-            </button>
+            <Tooltip text={copiedPrompt ? t('imageDetail.status.copied') : t('imageDetail.action.copyPrompt')}>
+              <button
+                type="button"
+                className="icon-btn shrink-0 max-md:h-8 max-md:w-8"
+                onClick={onCopyPrompt}
+                aria-label={t('imageDetail.action.copyPrompt')}
+              >
+                <Icon name={copiedPrompt ? 'check' : 'copy'} size={12} strokeWidth={copiedPrompt ? 2.2 : 1.8} />
+              </button>
+            </Tooltip>
           </div>
           <div
             className="rounded-[var(--radius-md)] p-3 text-sm leading-[1.6] text-(--color-text-2)"
@@ -493,7 +537,7 @@ function MetaRow({ label, value, mono, last }: { label: string; value: ReactNode
       className="flex items-baseline gap-3 py-1.5"
       style={{ borderBottom: last ? 'none' : '1px solid var(--color-border)' }}
     >
-      <div className="w-[76px] shrink-0 text-sm font-medium text-(--color-text-3)">{label}</div>
+      <div className="min-w-[76px] shrink-0 whitespace-nowrap text-sm font-medium text-(--color-text-3)">{label}</div>
       <div className={`${mono ? 'mono' : ''} flex-1 break-words text-right text-sm text-(--color-text)`}>{value}</div>
     </div>
   )

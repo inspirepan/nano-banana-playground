@@ -2,7 +2,7 @@ import type { MessageDictionary } from '../types'
 
 export const imageDetailMessages: MessageDictionary = {
   'imageDetail.action.addReference': { 'zh-CN': '参考', en: 'Reference' },
-  'imageDetail.action.addReferenceTitle': { 'zh-CN': '加为参考', en: 'Add as reference' },
+  'imageDetail.action.addReferenceTitle': { 'zh-CN': '加参考到生成区', en: 'Add as reference for generation' },
   'imageDetail.action.backToDetail': { 'zh-CN': '返回详情', en: 'Back to details' },
   'imageDetail.action.backToPreview': { 'zh-CN': '回到预览', en: 'Back to preview' },
   'imageDetail.action.clearAnnotations': { 'zh-CN': '清空标注', en: 'Clear annotations' },
@@ -29,7 +29,7 @@ export const imageDetailMessages: MessageDictionary = {
   'imageDetail.action.previousImage': { 'zh-CN': '上一张', en: 'Previous image' },
   'imageDetail.action.redoOriginal': { 'zh-CN': '重抽', en: 'Reroll' },
   'imageDetail.action.regenerateOriginal': { 'zh-CN': '按原参数重新生成', en: 'Regenerate with original settings' },
-  'imageDetail.action.restoreParams': { 'zh-CN': '还原参数', en: 'Restore settings' },
+  'imageDetail.action.restoreParams': { 'zh-CN': '还原参数到生成区', en: 'Restore settings to generate panel' },
   'imageDetail.action.retryOriginal': { 'zh-CN': '按原参数重试', en: 'Retry with original settings' },
   'imageDetail.action.selectAll': { 'zh-CN': '全选', en: 'Select all' },
   'imageDetail.action.startAnnotation': { 'zh-CN': '标注', en: 'Annotate' },

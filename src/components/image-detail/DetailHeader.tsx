@@ -2,6 +2,7 @@ import type { GenerationSlot } from '../../hooks/usePlayground'
 import { useI18n } from '../../i18n'
 import type { GeneratedSource, PlaygroundImageMeta } from '../../lib/types'
 import { Icon } from '../Icon'
+import { Tooltip } from '../Tooltip'
 
 type ModalViewMode = 'detail' | 'gallery'
 
@@ -92,14 +93,16 @@ export function DetailHeader({
       <div className="flex-1" />
 
       {viewMode === 'detail' && (
-        <button
-          className="chip ghost shrink-0 text-sm font-normal text-(--color-text-3) md:text-[13px]"
-          onClick={onOpenManageGallery}
-          title={t('imageDetail.action.openBatchManage')}
-        >
-          <Icon name="check_circle" size={14} strokeWidth={1.8} />
-          <span>{t('imageDetail.action.manageBatch')}</span>
-        </button>
+        <Tooltip text={t('imageDetail.action.openBatchManage')}>
+          <button
+            type="button"
+            className="icon-btn shrink-0 max-md:h-8 max-md:w-8"
+            onClick={onOpenManageGallery}
+            aria-label={t('imageDetail.action.manageBatch')}
+          >
+            <Icon name="list_checks" size={14} strokeWidth={1.8} />
+          </button>
+        </Tooltip>
       )}
       {viewMode === 'detail' && currentImage && (
         <>
