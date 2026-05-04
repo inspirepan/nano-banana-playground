@@ -43,7 +43,7 @@ export function AppearanceSettingsTab({
     <div className="space-y-4 px-5 py-4">
       <div>
         <div className="label mb-1.5">{t('settings.language.label')}</div>
-        <div className="pl-2">
+        <div className="pl-1">
           <div
             className="segmented"
             style={{
@@ -67,7 +67,7 @@ export function AppearanceSettingsTab({
 
       <div>
         <div className="label mb-1.5">{t('settings.theme.label')}</div>
-        <div className="pl-2">
+        <div className="pl-1">
           <div
             className="segmented"
             style={{
@@ -87,7 +87,7 @@ export function AppearanceSettingsTab({
 
       <div>
         <div className="label mb-1.5">{t('settings.colorTheme.label')}</div>
-        <div className="flex gap-2 pl-2">
+        <div className="flex gap-2 pl-1">
           {COLOR_THEMES.map((ct) => {
             const swatch =
               ct.id === 'mono'
@@ -151,7 +151,7 @@ function FontChoiceGroup<T extends string>({
   return (
     <div>
       <div className="label mb-1.5">{label}</div>
-      <div className="grid grid-cols-2 gap-2 pl-2 sm:grid-cols-3">
+      <div className="grid grid-cols-2 gap-2 pl-1 sm:grid-cols-3">
         {fonts.map((font) => (
           <button
             key={font.id}

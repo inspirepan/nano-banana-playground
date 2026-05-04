@@ -22,7 +22,7 @@ export function SkillsSettingsTab({
   return (
     <div className="px-5 py-4">
       <p className="mb-3 text-sm leading-relaxed text-(--color-text-3)">{t('settings.agentSkills.description')}</p>
-      <div className="pl-2">
+      <div className="pl-1">
         <AgentSkillSettings
           skills={agentSkills}
           onEnabledChange={onAgentSkillEnabledChange}

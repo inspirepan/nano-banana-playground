@@ -42,7 +42,7 @@ export function GenerationSettingsTab({
         <p className="mb-2.5 text-sm leading-relaxed text-(--color-text-3)">
           {t('settings.generationConcurrency.description')}
         </p>
-        <div className="pl-2">
+        <div className="pl-1">
           <div
             className="segmented w-fit"
             style={{
@@ -75,7 +75,7 @@ export function GenerationSettingsTab({
         <p className="mb-2.5 text-sm leading-relaxed text-(--color-text-3)">
           {t('settings.composerSubmitMode.description')}
         </p>
-        <div className="grid gap-2 pl-2 sm:grid-cols-2">
+        <div className="grid gap-2 pl-1 sm:grid-cols-2">
           {COMPOSER_SUBMIT_MODE_CHOICES.map((choice) => {
             const active = composerSubmitMode === choice.value
             return (

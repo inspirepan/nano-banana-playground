@@ -87,7 +87,7 @@ export function WebToolsSettingsTab({
 
       <div>
         <div className="label mb-2">{t('settings.webTools.apiKeys.label')}</div>
-        <div className="overflow-hidden rounded-[var(--radius-md)] bg-(--color-surface) pl-2 shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
+        <div className="overflow-hidden rounded-[var(--radius-md)] bg-(--color-surface) pl-1 shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
           {WEB_API_PROVIDER_CONFIGS.map((provider, index) => (
             <WebApiKeyRow
               key={provider.id}
@@ -129,7 +129,7 @@ function WebProviderChipSelector<T extends WebSearchProvider | WebFetchProvider>
   return (
     <div>
       <div className="label mb-1.5">{label}</div>
-      <div className="flex flex-wrap gap-1.5 pl-2">
+      <div className="flex flex-wrap gap-1.5 pl-1">
         {options.map((option) => {
           const apiProvider = option.id !== 'none' && option.id !== 'default' ? (option.id as WebApiProvider) : null
           const configured = !apiProvider || apiKeys[apiProvider].trim() !== ''
@@ -172,7 +172,7 @@ function WebProviderChipSelector<T extends WebSearchProvider | WebFetchProvider>
         })}
       </div>
       {selectedOption && (
-        <p className="mt-1.5 pl-2 text-sm text-(--color-text-3)">{t(selectedOption.descriptionKey)}</p>
+        <p className="mt-1.5 pl-1 text-sm text-(--color-text-3)">{t(selectedOption.descriptionKey)}</p>
       )}
     </div>
   )
@@ -205,7 +205,7 @@ function WebProviderSavedNotice({
     <div
       role="status"
       aria-live="polite"
-      className="ml-2 rounded-[var(--radius-md)] bg-(--color-accent-wash) px-3 py-2.5 text-sm text-(--color-text) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]"
+      className="ml-1 rounded-[var(--radius-md)] bg-(--color-accent-wash) px-3 py-2.5 text-sm text-(--color-text) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]"
     >
       <div className="flex min-w-0 items-start gap-2.5">
         <Icon name="check" size={13} strokeWidth={2.4} className="mt-0.5 shrink-0 text-(--color-accent)" />
