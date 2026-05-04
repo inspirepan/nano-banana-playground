@@ -82,8 +82,11 @@ export function MobileLayout({
       <div ref={mobilePanelScrollRef} className="min-h-0 flex-1 overflow-y-auto">
         {mobileTab !== 'gallery' ? (
           <div
-            className={`h-full ${mobileTab === 'agent' ? 'px-0' : 'px-3'}`}
-            style={{ ['--agent-panel-padding-x' as string]: mobileTab === 'agent' ? '10px' : undefined }}
+            className="h-full px-3"
+            style={{
+              ['--agent-panel-padding-x' as string]: '12px',
+              ['--input-panel-padding-x' as string]: '12px',
+            }}
           >
             <InputPanel
               {...inputPanelProps}

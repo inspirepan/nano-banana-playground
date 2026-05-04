@@ -215,9 +215,9 @@ export function InputPanel({
       className={
         inputMode === 'agent'
           ? useWideAgentSidebar
-            ? 'relative flex h-full flex-col p-0 transition-[padding] duration-[220ms] ease-[cubic-bezier(0.22,0.8,0.4,1)] motion-reduce:transition-none'
-            : 'relative flex h-full flex-col py-[18px] transition-[padding] duration-[220ms] ease-[cubic-bezier(0.22,0.8,0.4,1)] motion-reduce:transition-none'
-          : 'relative px-[18px] py-[18px] pb-[120px]'
+            ? 'relative flex h-full flex-col p-0'
+            : 'relative flex h-full flex-col pt-2 pb-[18px]'
+          : 'relative px-[var(--input-panel-padding-x,18px)] py-[18px] pb-[120px]'
       }
     >
       {showHeader && !useWideAgentSidebar && (

@@ -1,5 +1,6 @@
 import {
   ArrowUp,
+  Bot,
   Brush,
   Check,
   ChevronDown,
@@ -55,6 +56,7 @@ import type { ProviderBrandIconName } from '../config/providers'
 export type IconName =
   | 'add_photo_alternate'
   | 'alert_circle'
+  | 'bot'
   | 'brush'
   | 'check'
   | 'check_circle'
@@ -115,6 +117,7 @@ type BrandIconProps = Omit<SVGProps<SVGSVGElement>, 'name'> & {
 const ICONS = {
   add_photo_alternate: ImagePlus,
   alert_circle: CircleAlert,
+  bot: Bot,
   brush: Brush,
   check: Check,
   check_circle: CircleCheck,

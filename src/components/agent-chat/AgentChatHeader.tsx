@@ -36,9 +36,11 @@ export function AgentChatHeader({
   const currentSession = useMemo(() => sessions.find((s) => s.id === currentSessionId), [sessions, currentSessionId])
 
   return (
-    <div className="relative mb-1.5 flex items-center gap-2">
+    <div
+      className={`relative flex items-center gap-2 ${compactSessionControls ? 'mb-0 justify-center' : 'mb-1.5'}`}
+    >
       {compactSessionControls ? (
-        <div className="flex h-[34px] min-w-0 items-center rounded-[var(--radius-md)] px-1">
+        <div className="flex h-[28px] min-w-0 items-center px-1">
           <span className="min-w-0 truncate text-base font-medium text-(--color-text-2)">
             {sessionsLoading
               ? t('agentChat.header.loadingSessions')
@@ -69,7 +71,7 @@ export function AgentChatHeader({
           </span>
         </button>
       )}
-      <div className="flex-1" />
+      {!compactSessionControls && <div className="flex-1" />}
       {!compactSessionControls && (
         <button
           type="button"

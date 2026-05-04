@@ -21,19 +21,35 @@ export function InputPanelHeader({ inputMode, showInputModeSwitcher, onInputMode
       <div className="flex-1" />
       {showInputModeSwitcher && (
         <div
-          className="segmented w-[172px] shrink-0"
-          style={{
-            ['--seg-count' as string]: 2,
-            ['--seg-index' as string]: inputMode === 'generate' ? 0 : 1,
-          }}
+          role="tablist"
           aria-label={t('input.mode.aria')}
+          className="flex w-[208px] shrink-0 items-center gap-1 rounded-[var(--radius-md)] bg-(--color-surface-3) p-[2px]"
         >
-          <button type="button" data-active={inputMode === 'generate'} onClick={() => onInputModeChange('generate')}>
-            <span>{t('input.mode.generate')}</span>
-          </button>
-          <button type="button" data-active={inputMode === 'agent'} onClick={() => onInputModeChange('agent')}>
-            <span>{t('common.agent')}</span>
-          </button>
+          {(
+            [
+              { mode: 'generate' as InputMode, label: t('input.mode.generate'), icon: 'wand' as const },
+              { mode: 'agent' as InputMode, label: t('common.agent'), icon: 'bot' as const },
+            ]
+          ).map(({ mode, label, icon }) => {
+            const active = inputMode === mode
+            return (
+              <button
+                key={mode}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                onClick={() => onInputModeChange(mode)}
+                className={`inline-flex h-[26px] min-w-0 flex-1 items-center justify-center gap-1.5 rounded-[var(--radius-sm)] px-2 text-base font-medium transition-[color,background-color,box-shadow] duration-150 ${
+                  active
+                    ? 'bg-(--color-surface) text-(--color-text) shadow-[inset_0_0_0_1px_var(--ring-edge)]'
+                    : 'text-(--color-text-3) hover:text-(--color-text)'
+                }`}
+              >
+                <Icon name={icon} size={13} className="shrink-0 opacity-80" />
+                <span className="truncate">{label}</span>
+              </button>
+            )
+          })}
         </div>
       )}
       <button

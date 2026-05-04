@@ -79,15 +79,29 @@ export function AgentSessionSidebar({
       </div>
 
       <div
-        className="segmented mb-4 w-full"
-        style={{ ['--seg-count' as string]: 2, ['--seg-index' as string]: 1 }}
+        role="tablist"
         aria-label={t('input.mode.aria')}
+        className="mb-4 flex w-full items-center gap-1 rounded-[var(--radius-md)] bg-(--color-surface-3) p-[2px]"
       >
-        <button type="button" data-active={false} onClick={onSwitchToGenerate} disabled={!onSwitchToGenerate}>
-          <span>{t('input.mode.generate')}</span>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={false}
+          onClick={onSwitchToGenerate}
+          disabled={!onSwitchToGenerate}
+          className="inline-flex h-[26px] min-w-0 flex-1 items-center justify-center gap-1.5 rounded-[var(--radius-sm)] px-2 text-base font-medium text-(--color-text-3) transition-[color,background-color,box-shadow] duration-150 hover:text-(--color-text) disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:text-(--color-text-3)"
+        >
+          <Icon name="wand" size={13} className="shrink-0 opacity-80" />
+          <span className="truncate">{t('input.mode.generate')}</span>
         </button>
-        <button type="button" data-active>
-          <span>{t('common.agent')}</span>
+        <button
+          type="button"
+          role="tab"
+          aria-selected
+          className="inline-flex h-[26px] min-w-0 flex-1 items-center justify-center gap-1.5 rounded-[var(--radius-sm)] bg-(--color-surface) px-2 text-base font-medium text-(--color-text) shadow-[inset_0_0_0_1px_var(--ring-edge)] transition-[color,background-color,box-shadow] duration-150"
+        >
+          <Icon name="bot" size={13} className="shrink-0 opacity-80" />
+          <span className="truncate">{t('common.agent')}</span>
         </button>
       </div>
 
