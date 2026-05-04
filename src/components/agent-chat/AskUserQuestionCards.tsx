@@ -175,8 +175,7 @@ export function AskUserQuestionForm({
 
   return (
     <div
-      className="m-1 rounded-[var(--radius-lg)] p-3 shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]"
-      style={{ background: 'var(--color-bg-sunken)' }}
+      className="m-1 rounded-[var(--radius-lg)] bg-(--color-bg-sunken) p-3 shadow-[inset_0_0_0_1px_var(--ring-edge-soft)] dark:bg-[color-mix(in_srgb,var(--color-surface)_48%,var(--color-bg))] dark:shadow-[inset_0_0_0_1px_var(--ring-edge)]"
     >
       <div className="flex min-w-0 items-center gap-2">
         <span
@@ -236,7 +235,7 @@ export function AskUserQuestionForm({
                       type="button"
                       onClick={() => toggleOption(index, option.label, question.multi_select)}
                       data-active={checked || undefined}
-                      className="group flex items-center gap-2 rounded-[var(--radius-sm)] bg-(--color-surface) px-2.5 py-1.5 text-left shadow-[0_0_0_1px_var(--ring-edge-soft),var(--shadow-lift)] transition-[background,box-shadow,color,transform] hover:bg-(--color-surface-2) hover:shadow-[0_0_0_1px_var(--ring-edge-strong),var(--shadow-float)] data-[active]:bg-(--color-accent-wash) data-[active]:shadow-[0_0_0_1px_var(--ring-edge-soft),var(--shadow-lift)] data-[active]:hover:bg-(--color-accent-wash-2) data-[active]:hover:shadow-[0_0_0_1px_var(--ring-edge-strong),var(--shadow-float)]"
+                      className="group flex items-center gap-2 rounded-[var(--radius-sm)] bg-(--color-surface) px-2.5 py-1.5 text-left shadow-[0_0_0_1px_var(--ring-edge-soft),var(--shadow-lift)] transition-[background,box-shadow,color,transform] hover:bg-(--color-surface-2) hover:shadow-[0_0_0_1px_var(--ring-edge-strong),var(--shadow-float)] data-[active]:bg-(--color-accent-wash) data-[active]:shadow-[0_0_0_1px_var(--ring-edge-soft),var(--shadow-lift)] data-[active]:hover:bg-(--color-accent-wash-2) data-[active]:hover:shadow-[0_0_0_1px_var(--ring-edge-strong),var(--shadow-float)] dark:bg-(--color-surface-2) dark:hover:bg-(--color-surface-3) dark:data-[active]:bg-[color-mix(in_srgb,var(--color-accent)_22%,var(--color-surface))] dark:data-[active]:hover:bg-[color-mix(in_srgb,var(--color-accent)_30%,var(--color-surface))]"
                     >
                       {question.multi_select && (
                         <span
