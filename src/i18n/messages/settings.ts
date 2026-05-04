@@ -6,6 +6,11 @@ export const settingsMessages: MessageDictionary = {
     'zh-CN': '管理服务连接、外观和生成队列行为',
     en: 'Manage service connections, appearance, and generation queue behavior',
   },
+  'settings.loadError.title': { 'zh-CN': '设置面板需要刷新', en: 'Settings need a refresh' },
+  'settings.loadError.description': {
+    'zh-CN': '页面还在使用旧版本资源，设置面板的新版文件没有加载成功。刷新页面即可恢复。',
+    en: 'This page is still using an older app bundle, and the settings panel file did not load. Refresh the page to recover.',
+  },
   'settings.tabs.appearance': { 'zh-CN': '外观', en: 'Appearance' },
   'settings.tabs.api': { 'zh-CN': '服务', en: 'Connections' },
   'settings.tabs.web': { 'zh-CN': 'Web 工具', en: 'Web tools' },
