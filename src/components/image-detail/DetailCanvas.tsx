@@ -166,7 +166,7 @@ export function DetailCanvas({
                 background: 'color-mix(in srgb, var(--color-surface) 92%, transparent)',
                 color: 'var(--color-text-2)',
                 backdropFilter: 'blur(10px)',
-                boxShadow: '0 0 0 1px var(--ring-edge), 0 1px 2px rgba(0,0,0,0.04)',
+                boxShadow: '0 0 0 1px var(--ring-edge), var(--shadow-lift)',
               }}
             >
               <Icon name="maximize" size={14} strokeWidth={1.8} />
@@ -230,7 +230,7 @@ export function DetailCanvas({
             background: 'color-mix(in srgb, var(--color-surface) 90%, transparent)',
             color: 'var(--color-text-2)',
             backdropFilter: 'blur(8px)',
-            boxShadow: '0 0 0 1px var(--ring-edge), 0 1px 2px rgba(0,0,0,0.04)',
+            boxShadow: '0 0 0 1px var(--ring-edge), var(--shadow-lift)',
           }}
         >
           <Icon name="chevron_left" size={14} strokeWidth={1.8} />
@@ -245,7 +245,7 @@ export function DetailCanvas({
             background: 'color-mix(in srgb, var(--color-surface) 90%, transparent)',
             color: 'var(--color-text-2)',
             backdropFilter: 'blur(8px)',
-            boxShadow: '0 0 0 1px var(--ring-edge), 0 1px 2px rgba(0,0,0,0.04)',
+            boxShadow: '0 0 0 1px var(--ring-edge), var(--shadow-lift)',
           }}
         >
           <Icon name="chevron_right" size={14} strokeWidth={1.8} />

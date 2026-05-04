@@ -465,8 +465,7 @@ export function ZoomableImageView({
               height: fitSize.height || undefined,
               transform: `translate3d(${offset.x}px, ${offset.y}px, 0) scale(${scale})`,
               transformOrigin: 'center center',
-              boxShadow:
-                '0 0 0 1px var(--ring-edge-strong), 0 30px 60px -24px rgba(0,0,0,0.3), 0 4px 10px rgba(0,0,0,0.06)',
+              boxShadow: '0 0 0 1px var(--ring-edge-strong), var(--shadow-float)',
               opacity: fitSize.width ? 1 : 0,
               transition:
                 isDragging || isInteracting
@@ -493,7 +492,7 @@ export function ZoomableImageView({
           background: 'color-mix(in srgb, var(--color-surface) 92%, transparent)',
           borderRadius: 8,
           padding: 3,
-          boxShadow: '0 0 0 1px var(--ring-edge), 0 1px 2px rgba(0,0,0,0.04)',
+          boxShadow: '0 0 0 1px var(--ring-edge), var(--shadow-lift)',
           backdropFilter: 'blur(10px)',
         }}
       >

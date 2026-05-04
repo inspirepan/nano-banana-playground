@@ -589,9 +589,7 @@ export const DrawableLayer = forwardRef<DrawableLayerHandle, Props>(function Dra
           maxWidth: '100%',
           maxHeight: '100%',
           overflow: 'hidden',
-          boxShadow: ready
-            ? '0 0 0 1px var(--ring-edge-strong), 0 30px 60px -24px rgba(0,0,0,0.3), 0 4px 10px rgba(0,0,0,0.06)'
-            : 'none',
+          boxShadow: ready ? '0 0 0 1px var(--ring-edge-strong), var(--shadow-float)' : 'none',
           transform: `translate3d(${transform.offset.x}px, ${transform.offset.y}px, 0) scale(${transform.scale})`,
           transformOrigin: 'center center',
         }}

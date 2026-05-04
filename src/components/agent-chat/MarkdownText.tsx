@@ -17,7 +17,10 @@ const MARKDOWN_COMPONENTS = {
   ol: (props: JSX.IntrinsicElements['ol']) => <ol className="list-decimal space-y-1.5 pl-5" {...props} />,
   li: (props: JSX.IntrinsicElements['li']) => <li {...props} />,
   blockquote: (props: JSX.IntrinsicElements['blockquote']) => (
-    <blockquote className="border-l-2 border-(--ring-edge-strong) pl-3 text-(--color-text-3) italic" {...props} />
+    <blockquote
+      className="pl-[14px] text-(--color-text-3) italic shadow-[inset_2px_0_0_var(--ring-edge-strong)]"
+      {...props}
+    />
   ),
   h1: (props: JSX.IntrinsicElements['h1']) => (
     <h1 className="font-display text-lg font-semibold tracking-[-0.01em] text-(--color-text)" {...props} />
@@ -28,7 +31,7 @@ const MARKDOWN_COMPONENTS = {
   h3: (props: JSX.IntrinsicElements['h3']) => (
     <h3 className="font-display text-sm font-semibold text-(--color-text)" {...props} />
   ),
-  hr: (props: JSX.IntrinsicElements['hr']) => <hr className="border-(--ring-edge-soft)" {...props} />,
+  hr: (props: JSX.IntrinsicElements['hr']) => <hr className="h-px border-0 bg-(--ring-edge-soft)" {...props} />,
   inlineCode: (props: JSX.IntrinsicElements['code']) => (
     <code className="rounded-[var(--radius-xs)] bg-(--color-surface-2) px-1 py-0.5 mono text-[0.92em]" {...props} />
   ),

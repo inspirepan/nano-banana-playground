@@ -56,7 +56,7 @@ export function MobilePreviewFullscreen({
           color: 'var(--color-text-2)',
           backdropFilter: 'blur(10px)',
           WebkitBackdropFilter: 'blur(10px)',
-          boxShadow: '0 0 0 1px var(--ring-edge), 0 1px 2px rgba(0,0,0,0.06)',
+          boxShadow: '0 0 0 1px var(--ring-edge), var(--shadow-lift)',
         }}
       >
         <Icon name="close" size={15} strokeWidth={1.8} />

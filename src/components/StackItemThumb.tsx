@@ -125,7 +125,7 @@ export const StackItemThumb = memo(function StackItemThumb({
     ? {
         background: 'color-mix(in srgb, var(--color-surface) 88%, transparent)',
         color: 'var(--color-text-2)',
-        boxShadow: 'inset 0 0 0 1px var(--ring-edge-strong), 0 1px 2px rgba(0,0,0,0.04)',
+        boxShadow: 'inset 0 0 0 1px var(--ring-edge-strong), var(--shadow-lift)',
       }
     : {
         background: 'rgba(0,0,0,0.56)',

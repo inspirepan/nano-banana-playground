@@ -437,7 +437,7 @@ export function AgentChatPanel({
                     <div className="font-display text-lg font-semibold tracking-[-0.01em] text-(--color-text)">
                       {t('agentChat.empty.title')}
                     </div>
-                    <div className="mx-auto mt-1 max-w-[250px] text-sm leading-[1.5] text-(--color-text-3)">
+                    <div className="mx-auto mt-1 max-w-[32ch] text-sm leading-[1.5] text-pretty text-(--color-text-3)">
                       {t('agentChat.empty.description')}
                     </div>
                   </>

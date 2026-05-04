@@ -8,13 +8,15 @@
 
 ## 色彩系统
 
-基础盘是 warm-stone 中性色，强调色默认 indigo，可通过 `.theme-*` 类切到 blue / green / yellow / pink / orange / purple。优先复用 `--color-bg`、`--color-surface*`、`--color-border*`、`--color-text*`、`--color-accent*`，不要到处写裸十六进制。
+默认基础盘是 Linear 风格的冷中性灰（`--color-bg: #f7f8f8` / 暗色 `#08090a`），`.warm` 是可选的暖石色主题（`#fbf8f3`），不是默认。强调色默认是 Linear 蓝（`#2558b8`，暗色 `#5e6ad2`），可通过 `.theme-green / orange / mono` 切换。优先复用 `--color-bg`、`--color-surface*`、`--color-border*`、`--color-text*`、`--color-accent*`，不要到处写裸十六进制。
 
 ## 排版
 
-正文 `Geist Variable`（`--font-sans`），标题（品牌名 / 弹窗标题 / 面板 header）挂 `.font-display`。数字、分辨率、费用、时间、计数等常规信息使用 sans；`.mono` 固定为 Roboto Mono，只用于模型 API ID、stack / image 短 ID、API Key 等机器字符串。全局基线是 **13px**。
+正文 `Geist Variable`（`--font-sans`），标题（品牌名 / 弹窗标题 / 面板 header）挂 `.font-display`——它内部已经包含 `letter-spacing: -0.015em` + `text-wrap: balance`，已经覆盖了"标题轻微负 tracking + 短句 balance"两件事，调用方不需要重复。数字、分辨率、费用、时间、计数等常规信息使用 sans；`.mono` 固定为 Roboto Mono，只用于模型 API ID、stack / image 短 ID、API Key 等机器字符串。`.label` eyebrow 用 sans（`text-sm` + 600 + `letter-spacing: 0.07em` + uppercase）。全局基线是 **13px**。
 
 中文字体回退顺序：`PingFang SC -> Hiragino Sans GB -> Microsoft YaHei -> Source Han Sans / Noto Sans CJK`。Geist 相关 `font-feature-settings` 只使用 `kern`、`liga`、`calt`、`tnum`、`zero`，不要加回会切换 CJK 字形的 `ss*` / `cv*` 变体 tag。
+
+文本换行和宽度：非 `.font-display` 的多行说明（dialog body、agent 消息正文、markdown 段落）挂 `text-pretty` 防孤词。对话气泡、说明文段、settings 描述等 prose 容器用字符宽度 `max-w-[60ch]` / `max-w-[72ch]` 控制行长，而非 `max-w-3xl` 这类断点尺寸。
 
 ## 边缘定义（Schoger ring，强约束）
 
@@ -31,17 +33,16 @@
 
 ## 圆角 token（强约束）
 
-`index.css` 定义了 `--radius-xs(4) / sm(6) / md(8) / lg(10) / xl(14)` 五档，**所有 `rounded-[...]` 必须引用 token**，不写裸 px：
+`index.css` 定义了 `--radius-xs(4) / sm(6) / md(8) / lg(10)` 四档，**所有 `rounded-[...]` 必须引用 token**，不写裸 px：
 
 - ✅ `rounded-[var(--radius-md)]` / ❌ `rounded-[8px]` / ❌ 任何偏离 token 的字面值。
 - **同心圆角**：外层 radius - padding = 内层 radius。常见组合：外层 `lg(10)` / 内层 `sm(6)` / badge `xs(4)`。
-- **已知例外**（改前先确认）：`MessageBubble.tsx` 用户气泡 + `AgentChatComposer.tsx` 输入区用 `rounded-[12px]`，是聊天序列精调过的视觉例外；`AskUserQuestionCards.tsx` 内部 14×14 多选指示器保留 `rounded-[3px]`。
+- **已知例外**（改前先确认）：`MessageBubble.tsx` 用户气泡 + `AgentChatComposer.tsx` 输入区用 `rounded-[12px]`，是聊天序列精调过的视觉例外；`AskUserQuestionCards.tsx` 内部 14×14 多选指示器保留 `rounded-[3px]`。这两个数值不是 token 缺漏，新增组件不要把它当作"第五档"复用。
 
 ## 其他规范
 
 - **按钮形态**：主 CTA 维持 `36px` 高度和 pill 形态；普通 chip / segmented / icon button 维持紧凑工具型尺寸。
 - **容器层级**：大多数控件保持 flat surface；只有图库图片、弹窗、toast、上下文菜单才使用轻量阴影。
-- **排版细节**：`.label` 是 eyebrow 语义但使用 sans；标题使用 `.font-display` 并保持轻微负 tracking。
 - **布局取舍**：工具型 SPA，不套用 hero、testimonial、canvas grid、大面积居中空态等 landing page 技巧。
 - **滚动条**：沿用 `src/index.css` 里的近乎不可见 Linear 风格滚动条。`[scrollbar-gutter:stable]` 只在右侧保留 gutter，会造成左右视觉不对称（macOS「始终显示滚动条」/ Windows 可见）。规则：① 容器有水平对称要求时改用 `[scrollbar-gutter:stable_both-edges]`；② 内容为 `h-full` 实际不会溢出时直接去掉，不需要 stable gutter。
 - **滚动边缘遮罩**：滚动容器的淡出边缘统一走 `src/index.css` 里的 `.scroll-fade-y` / `.scroll-fade-x` utility，band 尺寸用 `[--scroll-fade-start-size:…]` / `[--scroll-fade-end-size:…]` 按调用点覆盖。**禁止在组件里手写 `maskImage: 'linear-gradient(...)'`**。两条硬约束：① 渐变必须是单段 `transparent → #000`，不得塞任何中间 alpha stop——在高对比度图片上每个 stop 都会暴露成肉眼可见的斜率折点，「多段模拟 ease」是反模式，要更柔和就加长 band 而不是加 stop；② 只有**无 ring 的开放容器**（面板主内容区、侧栏、无边 rail）才加 fade，**带 `ring-edge` shadow / border 的卡片或浮层内部不加**——fade 会落在 ring 之内变成「卡片在吃自己的内容」。图片密集的 rail band 建议 ≥3rem，纯文本场景 1–2rem 即可；支持 `animation-timeline: scroll()` 的浏览器会随滚动位置动态收起 fade，无须另行处理。
