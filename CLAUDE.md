@@ -153,27 +153,27 @@ src/
 每次提交前必须对本次改动涉及的文件运行 lint 和 format 检查，并修复所有相关问题。可按需使用：
 
 ```bash
-npm run lint
-npm run format:check
+pnpm lint
+pnpm format:check
 ```
 
 需要自动修复时使用：
 
 ```bash
-npm run lint:fix
-npm run format
+pnpm lint:fix
+pnpm format
 ```
 
 每次提交前至少执行：
 
 ```bash
-npm run build
+pnpm build
 ```
 
 如果改了 `src/lib/urlState.ts` 或 URL 恢复逻辑，再执行：
 
 ```bash
-npm test
+pnpm test
 ```
 
 构建失败不得提交。
