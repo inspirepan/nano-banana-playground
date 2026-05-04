@@ -325,7 +325,7 @@ export function AgentChatPanel({
     (event) => {
       const target = event.target
       if (target instanceof Element && target.closest('[data-agent-menu], [data-agent-menu-trigger]')) return
-      if (!controlsRef.current?.contains(target as Node)) setOpenMenu(null)
+      setOpenMenu(null)
     },
     undefined,
     openMenu !== null,
