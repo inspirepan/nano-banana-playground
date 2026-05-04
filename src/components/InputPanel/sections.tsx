@@ -1,10 +1,37 @@
 import type { ReactNode } from 'react'
 
 import type { ModelOption, ModelToggleOption } from '../../config/models'
-import { useI18n } from '../../i18n'
 import { ChipGroup } from '../ChipGroup'
 import { Icon } from '../Icon'
 import { Tooltip } from '../Tooltip'
+
+// Bool options render as a chip (same pattern as resolution / quality / ratio
+// selectors around them). "Enabled" = chip's active state; no extra checkbox,
+// no two-row card. The leading `icon` from ModelToggleOption gives each toggle
+// a visual hook.
+function ToggleChip({
+  option,
+  active,
+  onToggle,
+}: {
+  option: ModelToggleOption
+  active: boolean
+  onToggle: () => void
+}) {
+  return (
+    <button
+      type="button"
+      role="checkbox"
+      aria-checked={active}
+      className="chip justify-center w-full"
+      data-active={active}
+      onClick={onToggle}
+    >
+      {option.icon && <Icon name={option.icon} size={13} />}
+      <span>{option.label}</span>
+    </button>
+  )
+}
 
 export const INPUT_LABEL_CLASS = 'text-base font-semibold tracking-normal text-(--color-text-3)'
 
@@ -42,8 +69,6 @@ export function OptionSection({
   value: unknown
   onChange: (v: unknown) => void
 }) {
-  const { t } = useI18n()
-
   if (option.type === 'select') {
     const current = typeof value === 'string' ? value : option.default
     const values = option.choices.map((c) => c.value)
@@ -65,14 +90,10 @@ export function OptionSection({
   }
 
   const active = value === true
-  const button = (
-    <button type="button" className="chip justify-center w-full" data-active={active} onClick={() => onChange(!active)}>
-      <span>{active ? t('input.option.enabled') : t('input.option.disabled')}</span>
-    </button>
-  )
+  const chip = <ToggleChip option={option} active={active} onToggle={() => onChange(!active)} />
   return (
     <Section label={option.label} hint={option.hint}>
-      {option.tooltip ? <Tooltip text={option.tooltip}>{button}</Tooltip> : button}
+      {option.tooltip ? <Tooltip text={option.tooltip}>{chip}</Tooltip> : chip}
     </Section>
   )
 }
@@ -95,36 +116,15 @@ export function ToggleGroupSection({
       <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${options.length}, 1fr)` }}>
         {options.map((opt) => {
           const active = values[opt.id] === true
-          const button = (
-            <button
-              key={opt.id}
-              type="button"
-              role="checkbox"
-              aria-checked={active}
-              className="chip justify-center w-full"
-              data-active={active}
-              onClick={() => onChange(opt.id, !active)}
-            >
-              <span
-                aria-hidden
-                className="inline-flex items-center justify-center w-[13px] h-[13px] rounded-[var(--radius-xs)] transition-colors"
-                style={{
-                  background: active ? 'var(--color-accent)' : 'var(--color-surface)',
-                  boxShadow: active ? 'inset 0 0 0 1px var(--color-accent)' : 'inset 0 0 0 1px var(--ring-edge)',
-                }}
-              >
-                {active && <Icon name="check" size={9} strokeWidth={3} style={{ color: 'var(--color-accent-fg)' }} />}
-              </span>
-              <span>{opt.label}</span>
-            </button>
-          )
-          return opt.tooltip ? (
-            <Tooltip key={opt.id} text={opt.tooltip}>
-              {button}
-            </Tooltip>
-          ) : (
-            <div key={opt.id}>{button}</div>
-          )
+          const onToggle = () => onChange(opt.id, !active)
+          if (opt.tooltip) {
+            return (
+              <Tooltip key={opt.id} text={opt.tooltip}>
+                <ToggleChip option={opt} active={active} onToggle={onToggle} />
+              </Tooltip>
+            )
+          }
+          return <ToggleChip key={opt.id} option={opt} active={active} onToggle={onToggle} />
         })}
       </div>
     </Section>

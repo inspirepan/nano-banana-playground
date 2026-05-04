@@ -456,6 +456,7 @@
     color: var(--color-accent);
     box-shadow: inset 0 0 0 1px var(--color-accent-ring-hover);
   }
+
   .annotation-tool-btn,
   .annotation-dot-btn,
   .annotation-finish-btn {
@@ -1051,18 +1052,20 @@
   }
   .aspect-tile .glyph {
     display: inline-block;
-    background: var(--color-surface-3);
+    background: transparent;
     border-radius: 2px;
     flex-shrink: 0;
+    box-shadow: inset 0 0 0 1px var(--color-border-strong);
   }
-  .aspect-tile[data-active='true'] .glyph {
+  /* Hairline glyphs (<=2px on the short axis) are effectively a line already;
+     fill them so they don't read as an empty slot. */
+  .aspect-tile .glyph[data-thin='true'] {
+    background: var(--color-border-strong);
+  }
+  .aspect-tile[data-active='true'] .glyph,
+  .aspect-tile[data-active='true'] .glyph[data-thin='true'] {
     background: var(--color-accent);
-  }
-  .dark .aspect-tile .glyph {
-    background: #4a4a4a;
-  }
-  .dark .aspect-tile[data-active='true'] .glyph {
-    background: var(--color-accent);
+    box-shadow: inset 0 0 0 1px var(--color-accent);
   }
 
   /* Prompt textarea wrapper */

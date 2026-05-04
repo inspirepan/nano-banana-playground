@@ -147,16 +147,7 @@ export function GenerateModeView({
         label={t('common.model')}
         right={<span className="mono text-sm text-(--color-text-4)">{model.apiModel}</span>}
       >
-        <div
-          className="segmented"
-          style={{
-            ['--seg-count' as string]: MODEL_CONFIGS.length,
-            ['--seg-index' as string]: Math.max(
-              0,
-              MODEL_CONFIGS.findIndex((m) => m.id === model.id),
-            ),
-          }}
-        >
+        <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${MODEL_CONFIGS.length}, 1fr)` }}>
           {MODEL_CONFIGS.map((m) => (
             <button
               key={m.id}
@@ -164,6 +155,7 @@ export function GenerateModeView({
               data-active={model.id === m.id}
               onClick={() => onSwitchModel(m.id)}
               title={m.name}
+              className="chip justify-center"
             >
               <BrandIcon name={getProviderConfig(m.provider).brandIcon} size={12} />
               <span>{getModelShortLabel(m)}</span>
@@ -316,38 +308,42 @@ export function GenerateModeView({
 
       {/* CTA */}
       <div className="relative">
-        <div className="mb-2.5 pt-2.5 shadow-[inset_0_1px_0_var(--ring-edge-soft)]">
-          <div className="flex items-baseline justify-between mb-2">
-            <span className={INPUT_LABEL_CLASS}>{t('input.summary.title')}</span>
+        {/* Secondary summary block — smaller type, muted colors, light divider.
+            Sits under the controls above and 20px above the CTA so it reads
+            as supporting metadata rather than a second card competing with
+            the primary action. */}
+        <div className="mb-5 pt-3 shadow-[inset_0_1px_0_var(--ring-edge-soft)]">
+          <div className="flex items-baseline justify-between mb-1.5">
+            <span className="text-sm text-(--color-text-4)">{t('input.summary.title')}</span>
             {estimatedCost !== null && (
-              <span className="text-base text-(--color-text-2) tabular-nums">≈ ${estimatedCost.toFixed(3)}</span>
+              <span className="text-sm text-(--color-text-3) tabular-nums">≈ ${estimatedCost.toFixed(3)}</span>
             )}
           </div>
-          <dl className="grid grid-cols-[52px_1fr] gap-x-3 gap-y-[5px] text-sm leading-[1.5]">
-            <dt className="text-(--color-text-3)">{t('common.model')}</dt>
-            <dd className="text-(--color-text-2)">{model.name}</dd>
-            <dt className="text-(--color-text-3)">{t('input.summary.size')}</dt>
-            <dd className="text-(--color-text-2) tabular-nums">
+          <dl className="grid grid-cols-[52px_1fr] gap-x-3 gap-y-[3px] text-sm leading-[1.5]">
+            <dt className="text-(--color-text-4)">{t('common.model')}</dt>
+            <dd className="text-(--color-text-3)">{model.name}</dd>
+            <dt className="text-(--color-text-4)">{t('input.summary.size')}</dt>
+            <dd className="text-(--color-text-3) tabular-nums">
               <span>{resolution}</span>
               <span className="mx-1.5 text-(--color-text-4)">/</span>
               <span>{aspectRatio}</span>
             </dd>
-            <dt className="text-(--color-text-3)">{t('input.count.label')}</dt>
-            <dd className="text-(--color-text-2) tabular-nums">
+            <dt className="text-(--color-text-4)">{t('input.count.label')}</dt>
+            <dd className="text-(--color-text-3) tabular-nums">
               <span>×{batchCount}</span>
             </dd>
             {referenceImages.length > 0 && (
               <>
-                <dt className="text-(--color-text-3)">{t('input.summary.referenceImages')}</dt>
-                <dd className="text-(--color-text-2) tabular-nums">
+                <dt className="text-(--color-text-4)">{t('input.summary.referenceImages')}</dt>
+                <dd className="text-(--color-text-3) tabular-nums">
                   {t('input.summary.referenceImageCount', { count: referenceImages.length })}
                 </dd>
               </>
             )}
             {optionSummaryLabels.length > 0 && (
               <>
-                <dt className="text-(--color-text-3)">{t('input.summary.options')}</dt>
-                <dd className="text-(--color-text-2)">{optionSummary}</dd>
+                <dt className="text-(--color-text-4)">{t('input.summary.options')}</dt>
+                <dd className="text-(--color-text-3)">{optionSummary}</dd>
               </>
             )}
           </dl>

@@ -31,12 +31,24 @@ function defaultPixelLabel(ratio: string, resolution: string): string {
   return `${px}×${py}`
 }
 
+// Ratio glyphs are sized against a 14x14 slot. Shapes fall into three visual
+// tiers so the chip row reads as a real ratio ladder instead of near-identical
+// placeholders:
+// - square (1:1) sits slightly inset from the slot for breathing room
+// - standard portrait/landscape scales the long axis to 14 and derives the
+//   short axis from the ratio
+// - extreme ratios (>= 4:1 or <= 1:4) clamp to a 2px hairline bar so 1:4 vs
+//   1:8 still read as "thin" rather than bloating back toward a rectangle
 function glyphSize(ratio: string): { w: number; h: number } {
-  const max = 14
   const [w, h] = ratio.split(':').map(Number)
+  const max = 14
   const r = w / h
-  if (r >= 1) return { w: max, h: Math.max(3, Math.round(max / r)) }
-  return { w: Math.max(3, Math.round(max * r)), h: max }
+
+  if (r === 1) return { w: 11, h: 11 }
+  if (r >= 4) return { w: max, h: 2 }
+  if (r <= 0.25) return { w: 2, h: max }
+  if (r > 1) return { w: max, h: Math.max(4, Math.round(max / r)) }
+  return { w: Math.max(4, Math.round(max * r)), h: max }
 }
 
 export function AspectRatioSelector({
@@ -65,6 +77,7 @@ export function AspectRatioSelector({
       <div className="grid grid-cols-4 gap-1.5">
         {options.map((option, idx) => {
           const { w, h } = glyphSize(option)
+          const isThin = w <= 2 || h <= 2
           const [left, right] = option.split(':')
           const isActive = value === option
           const pixelText = pixelLabel(option, resolution)
@@ -81,7 +94,7 @@ export function AspectRatioSelector({
               >
                 {/* fixed 14x14 glyph slot — center the rectangle inside */}
                 <span className="inline-flex items-center justify-center shrink-0" style={{ width: 14, height: 14 }}>
-                  <span className="glyph" style={{ width: w, height: h }} />
+                  <span className="glyph" data-thin={isThin || undefined} style={{ width: w, height: h }} />
                 </span>
                 {/* ratio digits — fixed 2ch slots keep every colon column-aligned */}
                 <span className="inline-flex items-center text-base">

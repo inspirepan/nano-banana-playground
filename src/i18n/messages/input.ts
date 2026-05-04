@@ -1,8 +1,6 @@
 import type { MessageDictionary } from '../types'
 
 export const inputMessages: MessageDictionary = {
-  'input.option.enabled': { 'zh-CN': '已启用', en: 'Enabled' },
-  'input.option.disabled': { 'zh-CN': '未启用', en: 'Disabled' },
   'input.mode.aria': { 'zh-CN': '输入模式', en: 'Input mode' },
   'input.mode.generate': { 'zh-CN': '直接生成', en: 'Generator' },
   'input.apiKey.missingTitle': { 'zh-CN': '当前模型未配置 API 密钥', en: 'API key missing for the current model' },

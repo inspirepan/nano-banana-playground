@@ -81,7 +81,16 @@ export function MobileLayout({
     <div className="flex h-[100dvh] flex-col overflow-hidden bg-(--color-bg) md:hidden">
       <Topbar mobileTab={mobileTab} onMobileTabChange={onMobileTabChange} onOpenSettings={onOpenSettings} />
 
-      <div ref={mobilePanelScrollRef} className="min-h-0 flex-1 overflow-y-auto">
+      <div
+        ref={mobilePanelScrollRef}
+        // Gallery is image-dense so it needs a wider fade band; InputPanel
+        // (generate / agent) is text-dense, 1.25rem is enough.
+        className={`scroll-fade-y min-h-0 flex-1 overflow-y-auto ${
+          mobileTab === 'gallery'
+            ? '[--scroll-fade-start-size:3rem] [--scroll-fade-end-size:3rem]'
+            : '[--scroll-fade-start-size:1.25rem] [--scroll-fade-end-size:1.25rem]'
+        }`}
+      >
         {mobileTab !== 'gallery' ? (
           <div
             className="h-full px-3 pt-[var(--panel-pad-top)]"

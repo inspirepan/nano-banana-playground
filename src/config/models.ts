@@ -1,3 +1,4 @@
+import type { IconName } from '../components/Icon'
 import { translate } from '../i18n'
 import type { Provider } from './providers'
 
@@ -25,6 +26,8 @@ export type ModelToggleOption = {
   hint?: string
   // Detailed description shown in a hover tooltip on the toggle chip.
   tooltip?: string
+  // Optional leading icon for the toggle chip.
+  icon?: IconName
   // Adjacent options sharing the same `group` render inside one Section using
   // `groupLabel` (first occurrence wins). Used for e.g. the search tools pair.
   group?: string
@@ -93,6 +96,7 @@ const SEARCH_WEB_OPTION: ModelToggleOption = {
   },
   default: false,
   urlKey: 'ws',
+  icon: 'search',
   group: 'searchTools',
   get groupLabel() {
     return translate('configLib.models.searchTools.groupLabel')
@@ -110,6 +114,7 @@ const SEARCH_IMAGE_OPTION: ModelToggleOption = {
   },
   default: false,
   urlKey: 'is',
+  icon: 'images',
   group: 'searchTools',
   get groupLabel() {
     return translate('configLib.models.searchTools.groupLabel')

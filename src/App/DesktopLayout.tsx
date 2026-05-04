@@ -202,7 +202,10 @@ export function DesktopLayout({
               onOpenApiKeys={inputPanelProps.onOpenApiKeys}
             />
           </div>
-          <div ref={inputBodyRef} className="flex-1 min-h-0 overflow-y-auto [scrollbar-gutter:stable]">
+          <div
+            ref={inputBodyRef}
+            className="scroll-fade-y flex-1 min-h-0 overflow-y-auto [scrollbar-gutter:stable] [--scroll-fade-start-size:1.25rem] [--scroll-fade-end-size:1.25rem]"
+          >
             {showWideAgentStructure ? (
               <AgentSessionSidebar
                 sessions={inputPanelProps.agentSessions}
