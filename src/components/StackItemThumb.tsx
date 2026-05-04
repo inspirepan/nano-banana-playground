@@ -85,11 +85,13 @@ export function StackItemThumb({
   const highlighted = selected || active
   const itemNumber = number ?? item.order + 1
   const slotReason = showSlotReason && slot ? slotReasonText(slot, t) : null
-  const slotStatusLabel = slotReason ?? (showSlotReason && slot?.status === 'running' ? t('imageDetail.queue.status.generating') : null)
+  const slotStatusLabel =
+    slotReason ?? (showSlotReason && slot?.status === 'running' ? t('imageDetail.queue.status.generating') : null)
   const showKeepPageOpenNote = showSlotReason && slot && ['queued', 'running', 'retrying'].includes(slot.status)
   const keepPageOpenNote = showKeepPageOpenNote ? t('imageDetail.queue.keepPageOpen') : null
   const compactSlotIndicator = compactSlotStatus && slot && !slotStatusLabel && !keepPageOpenNote
-  const title = image?.source.type === 'generated' ? image.source.prompt : (slotStatusLabel ?? keepPageOpenNote ?? undefined)
+  const title =
+    image?.source.type === 'generated' ? image.source.prompt : (slotStatusLabel ?? keepPageOpenNote ?? undefined)
   const ariaLabel = image
     ? t('input.stack.selectImage', { number: itemNumber })
     : t('input.stack.selectSlot', { number: itemNumber })
@@ -177,10 +179,10 @@ export function StackItemThumb({
           )
         ) : (
           <div className="flex h-full w-full flex-col items-center justify-center gap-1 px-3 text-(--color-text-3)">
-            <div className={compactSlotIndicator ? 'translate-y-1.5' : undefined}>
-              {slotStatusIcon}
-            </div>
-            {!compactSlotIndicator && !slotStatusLabel && <span className="text-sm">#{(slot?.index ?? item.order) + 1}</span>}
+            <div className={compactSlotIndicator ? 'translate-y-1.5' : undefined}>{slotStatusIcon}</div>
+            {!compactSlotIndicator && !slotStatusLabel && (
+              <span className="text-sm">#{(slot?.index ?? item.order) + 1}</span>
+            )}
             {slotStatusLabel && slot && (
               <span
                 className="mt-1 max-w-full text-center text-sm font-normal leading-[1.45]"

@@ -121,7 +121,9 @@ export function SlotHero({
         <span className="spinner" />
       )}
       <div className="text-sm text-(--color-text-2)">{label}</div>
-      {showKeepPageOpenNote && <div className="text-sm text-(--color-text-3)">{t('imageDetail.queue.keepPageOpen')}</div>}
+      {showKeepPageOpenNote && (
+        <div className="text-sm text-(--color-text-3)">{t('imageDetail.queue.keepPageOpen')}</div>
+      )}
       {detail && <div className="max-w-[420px] text-sm leading-[1.5] text-(--color-text-2)">{detail}</div>}
       {slot &&
         job &&

@@ -1,6 +1,6 @@
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 
-import { summarizeToolResult, taskStatusLabel } from './utils'
+import { summarizeToolResult } from './utils'
 import type { AgentImageTask, AgentMessageToolCall, AgentMessageToolResult } from '../../agent'
 import { MODEL_CONFIGS } from '../../config/models'
 import { useImageSrc } from '../../hooks/useImageSrc'
@@ -35,6 +35,37 @@ function GenImageResultThumb({ id, flush = false }: { id: string; flush?: boolea
   )
 }
 
+function SkeletonSlot({ flush = false }: { flush?: boolean }) {
+  const { t } = useI18n()
+  return (
+    <div
+      className={`relative aspect-square w-full overflow-hidden shadow-[inset_0_0_0_1px_var(--ring-edge-soft)] ${flush ? 'rounded-none' : 'rounded-[var(--radius-sm)]'}`}
+      style={{
+        background:
+          'repeating-linear-gradient(-45deg, var(--color-surface-2) 0 6px, var(--color-surface-3) 6px 12px)',
+      }}
+    >
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 px-2 text-(--color-text-3)">
+        <span className="spinner" style={{ width: 12, height: 12 }} />
+        <span className="text-sm leading-[1.4]">{t('imageDetail.queue.status.generating')}</span>
+        <span className="text-center text-xs leading-[1.35] text-(--color-text-4)">
+          {t('imageDetail.queue.keepPageOpen')}
+        </span>
+      </div>
+    </div>
+  )
+}
+
+function Tag({ children, mono = false, bold = false }: { children: ReactNode; mono?: boolean; bold?: boolean }) {
+  return (
+    <span
+      className={`inline-flex items-center rounded-[var(--radius-xs)] bg-(--color-surface-2) px-1.5 py-0.5 text-sm leading-none text-(--color-text-2) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)] ${mono ? 'mono' : ''} ${bold ? 'font-semibold text-(--color-text)' : ''}`}
+    >
+      {children}
+    </span>
+  )
+}
+
 function AgentImagePromptBox({ text, isStreaming }: { text: string; isStreaming: boolean }) {
   const { t } = useI18n()
   const [expanded, setExpanded] = useState(false)
@@ -54,7 +85,7 @@ function AgentImagePromptBox({ text, isStreaming }: { text: string; isStreaming:
     <div className="mt-2">
       <div
         ref={ref}
-        className="whitespace-pre-wrap rounded-[var(--radius-sm)] bg-(--color-surface) px-2 py-1.5 text-[13px] leading-[1.5] text-(--color-text-2) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]"
+        className="whitespace-pre-wrap rounded-[var(--radius-sm)] bg-(--color-surface) px-2 py-1.5 text-base leading-[1.5] text-(--color-text-2) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]"
         style={expanded ? undefined : { maxHeight: PROMPT_BOX_COLLAPSED_MAX_HEIGHT, overflowY: 'hidden' }}
       >
         {text}
@@ -66,7 +97,7 @@ function AgentImagePromptBox({ text, isStreaming }: { text: string; isStreaming:
             event.stopPropagation()
             setExpanded((prev) => !prev)
           }}
-          className="mt-1 bg-transparent p-0 text-[13px] text-(--color-text-3) transition-colors hover:text-(--color-text)"
+          className="mt-1 bg-transparent p-0 text-sm text-(--color-text-3) transition-colors hover:text-(--color-text)"
         >
           {expanded ? t('agentChat.truncated.collapse') : t('agentChat.truncated.expand')}
         </button>
@@ -99,24 +130,30 @@ export function AgentImageTaskCard({
   onFocus?: (task: AgentImageTask) => void
 }) {
   const { t } = useI18n()
+
   const isComposingPrompt = isStreaming && !task && !result
   const status: AgentImageTask['status'] = task?.status ?? (result?.isError ? 'failed' : 'pending_approval')
-  const danger = status === 'failed' || status === 'rejected' || status === 'canceled'
-  const active = isComposingPrompt || status === 'queued' || status === 'running'
+  const isCompleted = status === 'completed'
+  const isFailed = status === 'failed'
+  const isDimmed = status === 'rejected' || status === 'canceled'
+  const isActiveGenerating = status === 'approved' || status === 'queued' || status === 'running'
+
   const reservedIds = task?.request.reservedImageIds ?? []
-  const modelName = task
-    ? (MODEL_CONFIGS.find((item) => item.id === task.request.modelId)?.name ?? task.request.modelId)
-    : null
   const requestedFromArgs = typeof call.arguments.image_id === 'string' ? call.arguments.image_id : undefined
   const requestedCountFromArgs = typeof call.arguments.n === 'number' ? call.arguments.n : 1
   const promptFromArgs = typeof call.arguments.prompt === 'string' ? call.arguments.prompt : ''
-  const headerIds = reservedIds.length > 0 ? reservedIds : requestedFromArgs ? [requestedFromArgs] : []
+  const targetIds = reservedIds.length > 0 ? reservedIds : requestedFromArgs ? [requestedFromArgs] : []
+  const targetIdLabel = targetIds.length > 0 ? targetIds.join(', ') : null
+
   const promptText = task?.request.prompt ?? promptFromArgs
   const referenceIds = task?.request.referenceImageIds ?? []
   const resultIds = task?.resultImageIds ?? []
-  const compact = task?.status !== 'completed'
-  const textSizeClass = compact ? 'text-[13px]' : 'text-sm'
-  const buttonStyle = compact ? { height: 26, padding: '0 10px' } : { height: 28, padding: '0 12px' }
+  const batchCount = task?.request.batchCount ?? requestedCountFromArgs
+
+  const modelName = task
+    ? (MODEL_CONFIGS.find((item) => item.id === task.request.modelId)?.name ?? task.request.modelId)
+    : null
+
   const taskDetail = task?.error
     ? task.error
     : task?.status === 'rejected'
@@ -124,18 +161,16 @@ export function AgentImageTaskCard({
       : task?.status === 'canceled'
         ? t('agentChat.imageTask.canceledDetail')
         : undefined
-  const showApprove = task ? task.status === 'pending_approval' : false
+  const noTaskErrorText = !task && result?.isError ? summarizeToolResult(result) : undefined
+
+  const showApprove = task?.status === 'pending_approval'
   const showCancel = task
     ? task.status === 'pending_approval' ||
       task.status === 'queued' ||
       task.status === 'running' ||
       task.status === 'approved'
     : false
-  const statusColor = danger ? 'var(--color-danger)' : active ? 'var(--color-accent)' : 'var(--color-text-3)'
-  const statusText = isComposingPrompt ? t('agentChat.taskStatus.prompting') : taskStatusLabel(status)
-  const resultMetaBadge =
-    task && modelName ? `${modelName} · ${task.request.resolution} · ${task.request.aspectRatio}` : undefined
-  const resultsEdgeToEdge = task?.status === 'completed'
+
   const canFocus = Boolean(
     onFocus &&
     task &&
@@ -147,6 +182,145 @@ export function AgentImageTaskCard({
   )
   const handleCardClick = canFocus && task ? () => onFocus?.(task) : undefined
 
+  // Param chip row, shared by all post-composing states. Renders nothing in
+  // composing because we don't know the model/resolution yet.
+  const paramTags =
+    task && modelName ? (
+      <>
+        <Tag bold={isActiveGenerating}>{modelName}</Tag>
+        <Tag>{task.request.resolution}</Tag>
+        <Tag>{task.request.aspectRatio}</Tag>
+        {batchCount > 1 && <Tag>{`×${batchCount}`}</Tag>}
+      </>
+    ) : null
+
+  const targetIdNode = targetIdLabel ? (
+    <span className="mono ml-auto min-w-0 truncate text-sm text-(--color-text-4)" title={targetIdLabel}>
+      {targetIdLabel}
+    </span>
+  ) : null
+
+  // Result / skeleton grid for non-completed, active states.
+  const renderInProgressGrid = () => {
+    if (!task) return null
+    if (!isActiveGenerating && !isFailed) return null
+    const filledCount = resultIds.length
+    const slots = Math.max(filledCount, batchCount)
+    if (slots <= 0) return null
+    const items: ReactNode[] = []
+    for (let index = 0; index < slots; index += 1) {
+      const id = resultIds[index]
+      if (id) {
+        const item = stackItemByImageId.get(id)
+        items.push(
+          item ? (
+            <StackItemThumb
+              key={id}
+              item={item}
+              number={index + 1}
+              outerRing
+              hoverLift={false}
+              className="aspect-square w-full"
+              numberBadgeInset={6}
+              onSelect={() => {
+                if (canFocus) onFocus?.(task)
+              }}
+            />
+          ) : (
+            <GenImageResultThumb key={id} id={id} />
+          ),
+        )
+      } else if (isActiveGenerating) {
+        items.push(<SkeletonSlot key={`skeleton-${index}`} />)
+      }
+    }
+    if (items.length === 0) return null
+    return (
+      <div
+        className="mt-2.5 grid gap-1.5"
+        style={{ gridTemplateColumns: `repeat(${Math.min(slots, 3)}, minmax(0, 1fr))` }}
+      >
+        {items}
+      </div>
+    )
+  }
+
+  // Edge-to-edge result grid for completed. The StackItemThumb top-right
+  // metaBadge already carries model + resolution + aspect ratio, so the card
+  // doesn't need a separate footer.
+  const completedMetaBadge =
+    task && modelName ? `${modelName} · ${task.request.resolution} · ${task.request.aspectRatio}` : undefined
+  const renderCompletedGrid = () => {
+    if (!isCompleted || resultIds.length === 0) return null
+    const visibleIds = resultIds.filter((id) => stackItemByImageId.has(id))
+    const allDeleted = visibleIds.length === 0
+    if (allDeleted) {
+      return (
+        <div
+          className="flex items-center justify-center gap-1.5 px-3.5 py-6 text-base"
+          style={{ color: 'var(--color-danger)' }}
+        >
+          <Icon name="image_off" size={12} />
+          <span>{t('agentChat.imageTask.deleted')}</span>
+        </div>
+      )
+    }
+    return (
+      <div
+        className="grid gap-px overflow-hidden bg-(--ring-edge-soft)"
+        style={{ gridTemplateColumns: `repeat(${Math.min(visibleIds.length, 3)}, minmax(0, 1fr))` }}
+      >
+        {visibleIds.map((id, index) => {
+          const item = stackItemByImageId.get(id)!
+          return (
+            <StackItemThumb
+              key={id}
+              item={item}
+              number={index + 1}
+              outerRing
+              hoverLift={false}
+              className="aspect-square w-full"
+              roundedClassName="rounded-none"
+              numberBadgeInset={6}
+              metaBadge={completedMetaBadge}
+              metaBadgeTitle={completedMetaBadge}
+              onSelect={() => {
+                if (task && canFocus) onFocus?.(task)
+              }}
+            />
+          )
+        })}
+      </div>
+    )
+  }
+
+  // ─────────────────────────── Completed layout ───────────────────────────
+  // Edge-to-edge images only. Image id, index and metaBadge are already shown
+  // as overlays inside StackItemThumb, so the card needs no header or footer.
+  if (isCompleted) {
+    return (
+      <div
+        role={canFocus ? 'button' : undefined}
+        tabIndex={canFocus ? 0 : undefined}
+        onClick={handleCardClick}
+        onKeyDown={
+          canFocus
+            ? (event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault()
+                  handleCardClick?.()
+                }
+              }
+            : undefined
+        }
+        className={`m-1 max-w-[460px] overflow-hidden rounded-[var(--radius-lg)] bg-(--color-surface) shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-lift)] ${canFocus ? 'cursor-pointer' : ''}`}
+      >
+        {renderCompletedGrid()}
+      </div>
+    )
+  }
+
+  // ─────────────────────── Non-completed layout ───────────────────────────
   return (
     <div
       role={canFocus ? 'button' : undefined}
@@ -162,136 +336,55 @@ export function AgentImageTaskCard({
             }
           : undefined
       }
-      className={`m-1 rounded-[var(--radius-lg)] bg-(--color-surface) shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-lift)] ${compact ? 'max-w-[460px] px-3 py-2.5' : 'max-w-[560px] px-3.5 py-3'} ${canFocus ? 'cursor-pointer transition-colors duration-150 hover:bg-[color-mix(in_srgb,var(--color-surface-2)_50%,var(--color-surface))]' : ''}`}
+      className={`m-1 max-w-[460px] rounded-[var(--radius-lg)] bg-(--color-surface) px-3 py-2.5 shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-lift)] ${canFocus ? 'cursor-pointer transition-colors duration-150 hover:bg-[color-mix(in_srgb,var(--color-surface-2)_50%,var(--color-surface))]' : ''} ${isDimmed ? 'opacity-60' : ''}`}
     >
-      <div className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1">
-        <span className={`${textSizeClass} font-semibold text-(--color-text)`}>{t('agentChat.imageTask.title')}</span>
-        <span className={`inline-flex items-center gap-1.5 ${textSizeClass}`} style={{ color: statusColor }}>
-          <span className="h-1.5 w-1.5 rounded-full" style={{ background: 'currentColor' }} />
-          {statusText}
-        </span>
-        {active && <span className="spinner" style={{ width: 10, height: 10 }} />}
-        {headerIds.length > 0 && (
-          <span className="mono ml-auto min-w-0 truncate text-xs text-(--color-text-4)" title={headerIds.join(', ')}>
-            {headerIds.join(', ')}
-          </span>
-        )}
-      </div>
-
-      {promptText && task?.status !== 'completed' && (
-        <AgentImagePromptBox text={promptText} isStreaming={isComposingPrompt} />
-      )}
-
-      {task?.status !== 'completed' && (task || requestedFromArgs) && (
-        <div className={`mt-2 flex flex-wrap gap-x-3 gap-y-1 ${textSizeClass}`}>
-          {modelName && (
-            <span className="min-w-0">
-              <span className="text-(--color-text-3)">{t('agentChat.imageTask.model')}</span>
-              <span className="text-(--color-text)">{modelName}</span>
-            </span>
-          )}
-          {task && (
-            <>
-              <span>
-                <span className="text-(--color-text-3)">{t('agentChat.imageTask.size')}</span>
-                <span className="text-(--color-text) tabular-nums">
-                  {task.request.resolution} · {task.request.aspectRatio}
-                </span>
-              </span>
-              <span>
-                <span className="text-(--color-text-3)">{t('agentChat.imageTask.count')}</span>
-                <span className="text-(--color-text) tabular-nums">
-                  {t('agentChat.imageTask.countValue', { count: task.request.batchCount })}
-                </span>
-              </span>
-            </>
-          )}
-          {!task && (
-            <>
-              {requestedFromArgs && (
-                <span className="min-w-0 truncate" title={requestedFromArgs}>
-                  <span className="text-(--color-text-3)">{t('agentChat.imageTask.target')}</span>
-                  <span className="mono text-(--color-text)">{requestedFromArgs}</span>
-                </span>
-              )}
-              <span>
-                <span className="text-(--color-text-3)">{t('agentChat.imageTask.count')}</span>
-                <span className="text-(--color-text)">
-                  {t('agentChat.imageTask.countValue', { count: requestedCountFromArgs })}
-                </span>
-              </span>
-            </>
-          )}
-          {referenceIds.length > 0 && (
-            <span className="min-w-0 truncate" title={referenceIds.join(', ')}>
-              <span className="text-(--color-text-3)">{t('agentChat.imageTask.reference')}</span>
-              <span className="mono text-(--color-text)">{referenceIds.join(', ')}</span>
-            </span>
-          )}
+      {/* Composing micro header (only state that gets a header) */}
+      {isComposingPrompt && (
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="spinner" style={{ width: 10, height: 10 }} />
+          <span className="text-sm text-(--color-text-3)">{t('agentChat.taskStatus.prompting')}</span>
+          {targetIdNode}
         </div>
       )}
 
-      {resultIds.length > 0 &&
-        (() => {
-          // For completed tasks (edge-to-edge), only show images still in the library.
-          // This prevents a deleted image from expanding into a large empty square.
-          const visibleIds = resultsEdgeToEdge ? resultIds.filter((id) => stackItemByImageId.has(id)) : resultIds
-          const allDeleted = resultsEdgeToEdge && visibleIds.length === 0
-          if (allDeleted) {
-            return (
-              <div className="mt-2.5 flex items-center gap-1.5 text-sm" style={{ color: 'var(--color-danger)' }}>
-                <Icon name="image_off" size={12} />
-                <span>{t('agentChat.imageTask.deleted')}</span>
-              </div>
-            )
-          }
-          return (
-            <div
-              className={
-                resultsEdgeToEdge
-                  ? '-mx-3.5 -mb-3 mt-3 grid gap-px overflow-hidden rounded-b-[var(--radius-lg)] bg-(--ring-edge-soft) shadow-[inset_0_1px_0_var(--ring-edge-soft)]'
-                  : 'mt-3 grid gap-1.5'
-              }
-              style={{
-                gridTemplateColumns: resultsEdgeToEdge
-                  ? `repeat(${Math.min(visibleIds.length, 3)}, minmax(0, 1fr))`
-                  : 'repeat(auto-fill, minmax(72px, 1fr))',
-              }}
-            >
-              {visibleIds.map((id, index) => {
-                const item = stackItemByImageId.get(id)
-                return item ? (
-                  <StackItemThumb
-                    key={id}
-                    item={item}
-                    number={index + 1}
-                    outerRing
-                    hoverLift={false}
-                    className="aspect-square w-full"
-                    roundedClassName={resultsEdgeToEdge ? 'rounded-none' : undefined}
-                    numberBadgeInset={6}
-                    metaBadge={resultMetaBadge}
-                    metaBadgeTitle={resultMetaBadge}
-                    onSelect={() => {
-                      if (task && canFocus) onFocus?.(task)
-                    }}
-                  />
-                ) : (
-                  <GenImageResultThumb key={id} id={id} flush={false} />
-                )
-              })}
-            </div>
-          )
-        })()}
+      {/* Param chips + right-aligned target id */}
+      {!isComposingPrompt && (paramTags || targetIdNode) && (
+        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+          {paramTags}
+          {isFailed && (
+            <span className="inline-flex items-center" style={{ color: 'var(--color-danger)' }}>
+              <Icon name="alert_circle" size={13} />
+            </span>
+          )}
+          {isActiveGenerating && <span className="spinner" style={{ width: 10, height: 10 }} />}
+          {targetIdNode}
+        </div>
+      )}
+
+      {promptText && <AgentImagePromptBox text={promptText} isStreaming={isComposingPrompt} />}
+
+      {referenceIds.length > 0 && (
+        <div className="mt-2 flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-(--color-text-3)">
+          <span className="text-(--color-text-3)">{t('agentChat.imageTask.reference')}</span>
+          <span className="mono truncate text-(--color-text-4)" title={referenceIds.join(', ')}>
+            {referenceIds.join(', ')}
+          </span>
+        </div>
+      )}
+
+      {renderInProgressGrid()}
 
       {taskDetail && (
-        <div className={`mt-2.5 ${textSizeClass} leading-[1.45]`} style={{ color: 'var(--color-danger)' }}>
+        <div
+          className="mt-2.5 text-base leading-[1.45]"
+          style={{ color: isFailed ? 'var(--color-danger)' : 'var(--color-text-3)' }}
+        >
           {taskDetail}
         </div>
       )}
-      {!task && result?.isError && (
-        <div className={`mt-2.5 ${textSizeClass} leading-[1.45]`} style={{ color: 'var(--color-danger)' }}>
-          {summarizeToolResult(result)}
+      {noTaskErrorText && (
+        <div className="mt-2.5 text-base leading-[1.45]" style={{ color: 'var(--color-danger)' }}>
+          {noTaskErrorText}
         </div>
       )}
 
@@ -304,9 +397,8 @@ export function AgentImageTaskCard({
                 event.stopPropagation()
                 onApprove(task.id)
               }}
-              className={`chip ${textSizeClass}`}
+              className="chip text-base"
               data-active
-              style={buttonStyle}
             >
               {t('common.generate')}
             </button>
@@ -319,8 +411,7 @@ export function AgentImageTaskCard({
                 onToggleAutoApproveImageTasks(true)
                 onApprove(task.id)
               }}
-              className={`chip flex items-center gap-1.5 ${textSizeClass}`}
-              style={buttonStyle}
+              className="chip flex items-center gap-1.5 text-base"
               title={t('agentChat.imageTask.alwaysAutoApprove')}
             >
               <Icon name="circle_play" size={12} />
@@ -334,8 +425,7 @@ export function AgentImageTaskCard({
                 event.stopPropagation()
                 onCancel(task.id)
               }}
-              className={`chip danger ${textSizeClass}`}
-              style={buttonStyle}
+              className="chip danger text-base"
             >
               {t('common.cancel')}
             </button>

@@ -46,7 +46,6 @@
   --text-xl: 0.9375rem; /* 15px */
   --text-xl--line-height: 1.35;
 
-
   /* Linear-style light neutrals */
   --color-bg: #f7f8f8;
   --color-bg-sunken: #f0f1f2;
@@ -94,20 +93,14 @@
   --ring-edge-strong: rgba(29, 31, 35, 0.13);
   --ring-edge-soft: rgba(29, 31, 35, 0.045);
 
-  --shadow-lift:
-    0 12px 28px -20px rgba(29, 31, 35, 0.18),
-    0 1px 2px rgba(29, 31, 35, 0.04);
+  --shadow-lift: 0 12px 28px -20px rgba(29, 31, 35, 0.18), 0 1px 2px rgba(29, 31, 35, 0.04);
 
-  --shadow-float:
-    0 18px 40px -26px rgba(29, 31, 35, 0.22),
-    0 2px 8px rgba(29, 31, 35, 0.055);
+  --shadow-float: 0 18px 40px -26px rgba(29, 31, 35, 0.22), 0 2px 8px rgba(29, 31, 35, 0.055);
 
   /* Chat user bubble */
   --bubble-user-bg: var(--color-accent-soft);
   --bubble-user-edge:
-    inset 0 0 0 1px var(--color-accent-ring),
-    0 1px 0 var(--color-accent-ring),
-    0 2px 4px -2px rgba(29, 31, 35, 0.08);
+    inset 0 0 0 1px var(--color-accent-ring), 0 1px 0 var(--color-accent-ring), 0 2px 4px -2px rgba(29, 31, 35, 0.08);
 
   --radius-xs: 4px;
   --radius-sm: 6px;
@@ -306,13 +299,9 @@
   --ring-edge-strong: rgba(37, 33, 29, 0.13);
   --ring-edge-soft: rgba(37, 33, 29, 0.045);
 
-  --shadow-lift:
-    0 12px 28px -20px rgba(37, 33, 29, 0.2),
-    0 1px 2px rgba(37, 33, 29, 0.045);
+  --shadow-lift: 0 12px 28px -20px rgba(37, 33, 29, 0.2), 0 1px 2px rgba(37, 33, 29, 0.045);
 
-  --shadow-float:
-    0 18px 40px -26px rgba(37, 33, 29, 0.24),
-    0 2px 8px rgba(37, 33, 29, 0.06);
+  --shadow-float: 0 18px 40px -26px rgba(37, 33, 29, 0.24), 0 2px 8px rgba(37, 33, 29, 0.06);
 
   color-scheme: light;
 }
