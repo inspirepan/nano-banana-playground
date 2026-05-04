@@ -95,6 +95,16 @@ function kimiK26Model(provider: Extract<Provider, 'moonshot-cn' | 'moonshot-ai'>
   }
 }
 
+function withClaudeEagerToolInputStreaming(model: Model<'anthropic-messages'>): Model<'anthropic-messages'> {
+  return {
+    ...model,
+    compat: {
+      ...model.compat,
+      supportsEagerToolInputStreaming: true,
+    },
+  }
+}
+
 export const AGENT_MODEL_CONFIGS: AgentModelConfig[] = [
   {
     id: 'gemini-3-flash-preview',
@@ -142,7 +152,11 @@ export const AGENT_MODEL_CONFIGS: AgentModelConfig[] = [
     shortLabel: 'Haiku 4.5',
     provider: 'anthropic',
     providerLabel: providerLabel('anthropic'),
-    ...asAgentModel(getModel('anthropic', 'claude-haiku-4-5-20251001') as Model<Api>),
+    ...asAgentModel(
+      withClaudeEagerToolInputStreaming(
+        getModel('anthropic', 'claude-haiku-4-5-20251001') as Model<'anthropic-messages'>,
+      ),
+    ),
   },
   {
     id: 'claude-sonnet-4-6',
@@ -150,7 +164,9 @@ export const AGENT_MODEL_CONFIGS: AgentModelConfig[] = [
     shortLabel: 'Sonnet 4.6',
     provider: 'anthropic',
     providerLabel: providerLabel('anthropic'),
-    ...asAgentModel(getModel('anthropic', 'claude-sonnet-4-6') as Model<Api>),
+    ...asAgentModel(
+      withClaudeEagerToolInputStreaming(getModel('anthropic', 'claude-sonnet-4-6') as Model<'anthropic-messages'>),
+    ),
   },
   {
     id: 'claude-opus-4-7',
@@ -158,7 +174,9 @@ export const AGENT_MODEL_CONFIGS: AgentModelConfig[] = [
     shortLabel: 'Opus 4.7',
     provider: 'anthropic',
     providerLabel: providerLabel('anthropic'),
-    ...asAgentModel(getModel('anthropic', 'claude-opus-4-7') as Model<Api>),
+    ...asAgentModel(
+      withClaudeEagerToolInputStreaming(getModel('anthropic', 'claude-opus-4-7') as Model<'anthropic-messages'>),
+    ),
   },
 ]
 
