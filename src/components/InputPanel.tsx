@@ -174,7 +174,9 @@ export function InputPanel({
 
   useLayoutEffect(() => {
     if (textareaRef.current) autoResizeTextarea(textareaRef.current)
-  }, [prompt])
+    // `inputMode` is a dep so when switching back from agent mode the freshly
+    // remounted textarea gets resized even though `prompt` is unchanged.
+  }, [prompt, inputMode])
 
   // Cmd+Enter shortcut
   useWindowEvent(
