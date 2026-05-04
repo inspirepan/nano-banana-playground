@@ -35,22 +35,52 @@ function GenImageResultThumb({ id, flush = false }: { id: string; flush?: boolea
   )
 }
 
-function SkeletonSlot({ flush = false }: { flush?: boolean }) {
+function parseAspectRatioCss(value: string | undefined): string {
+  if (!value) return '1 / 1'
+  const match = value.match(/^(\d+)\s*:\s*(\d+)$/)
+  if (!match) return '1 / 1'
+  return `${match[1]} / ${match[2]}`
+}
+
+// Largest WxH box that fits within `max` on both sides for the given ratio.
+function fitWithinBox(aspectRatioCss: string, max: number): { width: number; height: number } {
+  const [w, h] = aspectRatioCss.split('/').map((part) => Number(part.trim()))
+  if (!w || !h) return { width: max, height: max }
+  const ratio = w / h
+  if (ratio >= 1) return { width: max, height: Math.round(max / ratio) }
+  return { width: Math.round(max * ratio), height: max }
+}
+
+function SkeletonSlot({
+  flush = false,
+  aspectRatio,
+  compact = false,
+}: {
+  flush?: boolean
+  aspectRatio?: string
+  compact?: boolean
+}) {
   const { t } = useI18n()
   return (
     <div
-      className={`relative aspect-square w-full overflow-hidden shadow-[inset_0_0_0_1px_var(--ring-edge-soft)] ${flush ? 'rounded-none' : 'rounded-[var(--radius-sm)]'}`}
+      className={`relative w-full overflow-hidden shadow-[inset_0_0_0_1px_var(--ring-edge-soft)] ${flush ? 'rounded-none' : 'rounded-[var(--radius-sm)]'}`}
       style={{
+        aspectRatio: aspectRatio ?? '1 / 1',
         background:
           'repeating-linear-gradient(-45deg, var(--color-surface-2) 0 6px, var(--color-surface-3) 6px 12px)',
       }}
+      title={compact ? `${t('imageDetail.queue.status.generating')} · ${t('imageDetail.queue.keepPageOpen')}` : undefined}
     >
       <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 px-2 text-(--color-text-3)">
         <span className="spinner" style={{ width: 12, height: 12 }} />
-        <span className="text-sm leading-[1.4]">{t('imageDetail.queue.status.generating')}</span>
-        <span className="text-center text-xs leading-[1.35] text-(--color-text-4)">
-          {t('imageDetail.queue.keepPageOpen')}
-        </span>
+        {!compact && (
+          <>
+            <span className="text-sm leading-[1.4]">{t('imageDetail.queue.status.generating')}</span>
+            <span className="text-center text-xs leading-[1.35] text-(--color-text-4)">
+              {t('imageDetail.queue.keepPageOpen')}
+            </span>
+          </>
+        )}
       </div>
     </div>
   )
@@ -207,6 +237,7 @@ export function AgentImageTaskCard({
     const filledCount = resultIds.length
     const slots = Math.max(filledCount, batchCount)
     if (slots <= 0) return null
+    const aspectRatioCss = parseAspectRatioCss(task.request.aspectRatio)
     const items: ReactNode[] = []
     for (let index = 0; index < slots; index += 1) {
       const id = resultIds[index]
@@ -231,14 +262,24 @@ export function AgentImageTaskCard({
           ),
         )
       } else if (isActiveGenerating) {
-        items.push(<SkeletonSlot key={`skeleton-${index}`} />)
+        items.push(<SkeletonSlot key={`skeleton-${index}`} aspectRatio={aspectRatioCss} compact />)
       }
     }
     if (items.length === 0) return null
+    // Single-slot placeholder is bounded by both width and height so tall
+    // ratios (9:16) don't dominate the card. We compute the largest WxH that
+    // fits inside an 80px box for the requested ratio, then size the grid
+    // column to that exact width and let aspect-ratio drive the height.
+    const isSingle = slots === 1
+    const singleBox = isSingle ? fitWithinBox(aspectRatioCss, 80) : null
     return (
       <div
         className="mt-2.5 grid gap-1.5"
-        style={{ gridTemplateColumns: `repeat(${Math.min(slots, 3)}, minmax(0, 1fr))` }}
+        style={{
+          gridTemplateColumns: singleBox
+            ? `${singleBox.width}px`
+            : `repeat(${Math.min(slots, 3)}, minmax(0, 1fr))`,
+        }}
       >
         {items}
       </div>
