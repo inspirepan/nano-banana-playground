@@ -21,7 +21,11 @@ function resolveStackIdForTask(task: AgentImageTask, generationJobs: GenerationJ
   return generationJobs.find((item) => item.id === task.generationJobId)?.stackId
 }
 
-function resolveTaskDetailItemId(task: AgentImageTask, stack: ImageStack, requestedItemId: string | undefined): string | undefined {
+function resolveTaskDetailItemId(
+  task: AgentImageTask,
+  stack: ImageStack,
+  requestedItemId: string | undefined,
+): string | undefined {
   if (requestedItemId && stack.items.some((item) => item.id === requestedItemId)) return requestedItemId
   const resultIds = new Set(task.resultImageIds)
   let newestTaskImage: PlaygroundImageMeta | undefined

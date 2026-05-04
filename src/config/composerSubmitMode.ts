@@ -1,7 +1,4 @@
-import {
-  readComposerSubmitModePreference,
-  writeComposerSubmitModePreference,
-} from '../lib/preferenceStore'
+import { readComposerSubmitModePreference, writeComposerSubmitModePreference } from '../lib/preferenceStore'
 
 export type ComposerSubmitMode = 'cmdEnter' | 'enter'
 
