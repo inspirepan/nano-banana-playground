@@ -338,7 +338,7 @@ export function AgentImageTaskCard({
     const singleBox = isSingle ? fitWithinBox(aspectRatioCss, 80) : null
     return (
       <div
-        className="mt-2.5 grid gap-1.5"
+        className="mt-2.5 grid gap-1.5 px-2"
         style={{
           gridTemplateColumns: singleBox ? `${singleBox.width}px` : `repeat(${Math.min(slots, 3)}, minmax(0, 1fr))`,
         }}
@@ -475,7 +475,7 @@ export function AgentImageTaskCard({
       {promptText && <AgentImagePromptBox text={promptText} />}
 
       {referenceIds.length > 0 && (
-        <div className="mt-2 flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-(--color-text-3)">
+        <div className="mt-2 flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 px-2 text-sm text-(--color-text-3)">
           <span className="text-(--color-text-3)">{t('agentChat.imageTask.reference')}</span>
           <span className="mono truncate text-(--color-text-4)" title={referenceIds.join(', ')}>
             {referenceIds.join(', ')}
@@ -487,20 +487,20 @@ export function AgentImageTaskCard({
 
       {taskDetail && (
         <div
-          className="mt-2.5 text-base leading-[1.45]"
+          className="mt-2.5 px-2 text-base leading-[1.45]"
           style={{ color: isFailed ? 'var(--color-danger)' : 'var(--color-text-3)' }}
         >
           {taskDetail}
         </div>
       )}
       {noTaskErrorText && (
-        <div className="mt-2.5 text-base leading-[1.45]" style={{ color: 'var(--color-danger)' }}>
+        <div className="mt-2.5 px-2 text-base leading-[1.45]" style={{ color: 'var(--color-danger)' }}>
           {noTaskErrorText}
         </div>
       )}
 
       {(showApprove || showCancel) && task && (
-        <div className="mt-2.5 flex flex-wrap gap-1.5">
+        <div className="mt-2.5 flex flex-wrap gap-1.5 px-2">
           {showApprove && (
             <button
               type="button"
