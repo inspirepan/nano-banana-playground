@@ -11,6 +11,7 @@ import {
   agentMessageRole,
   agentMessageText,
   agentMessageThinking,
+  agentMessageToolCalls,
   imageDataUrl,
   stripSystemDirectives,
 } from '../../agent'
@@ -54,13 +55,16 @@ export function MessageBubble({
   const error = agentMessageError(message)
   const isUser = role === 'user'
   const isAssistant = role === 'assistant'
+  const hasToolCalls = agentMessageToolCalls(message).length > 0
   const trimmedText = text.trim()
   const visibleText = stripSystemDirectives(text)
   const copyText = isUser
     ? visibleText
     : [visibleText, error].filter((part): part is string => Boolean(part)).join('\n\n')
   const isSystemEvent = isUser && visibleText === '' && trimmedText.startsWith('<system>')
-  const canCopy = isUser ? copyText.length > 0 : !isStreaming && copyText.trim().length > 0
+  const canCopy = isUser
+    ? copyText.length > 0
+    : isAssistant && !hasToolCalls && !isStreaming && copyText.trim().length > 0
   const showAssistantMarkdown = visibleText.trim() !== ''
   const hasAssistantTrailingContent = showAssistantMarkdown || Boolean(error)
   const showAssistantTitle = isAssistant && Boolean(assistantTitle)
