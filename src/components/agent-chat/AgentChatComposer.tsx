@@ -99,6 +99,7 @@ type AgentChatComposerProps = {
 
 export type AgentChatComposerHandle = {
   focus: () => void
+  activate: () => void
 }
 
 export const AgentChatComposer = forwardRef<AgentChatComposerHandle, AgentChatComposerProps>(function AgentChatComposer(
@@ -177,6 +178,14 @@ export const AgentChatComposer = forwardRef<AgentChatComposerHandle, AgentChatCo
     ref,
     () => ({
       focus: () => textareaRef.current?.focus({ preventScroll: true }),
+      activate: () => {
+        const textarea = textareaRef.current
+        if (!textarea) return
+        const cursor = textarea.value.length
+        textarea.focus({ preventScroll: true })
+        textarea.setSelectionRange(cursor, cursor)
+        setCursorOffset(cursor)
+      },
     }),
     [],
   )
