@@ -334,7 +334,7 @@ export function SettingsDialog({
         role="dialog"
         aria-modal="true"
         aria-label={t('settings.title')}
-        className="relative flex h-[min(720px,calc(100dvh-32px))] w-full max-w-3xl flex-col overflow-hidden rounded-[var(--radius-lg)] bg-(--color-surface) shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-float)]"
+        className="relative flex h-[min(720px,calc(100dvh-32px))] w-full max-w-3xl flex-col overflow-hidden rounded-[var(--radius-lg)] bg-(--color-surface) shadow-[0_0_0_1px_var(--ring-edge-elevated),var(--shadow-float)]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}

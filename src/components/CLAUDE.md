@@ -23,7 +23,7 @@
 1px 边缘一律用 `box-shadow` 的 ring 表达，**禁止 `border: 1px solid` 与 shadow 共存**——border 会让 shadow 在边线处出现 "muddy" 浊边。
 
 - **扁平 surface**（chip / button / card / option / aspect-tile / 输入框）：只写 `shadow-[inset_0_0_0_1px_var(--ring-edge)]`，hover 提到 `--ring-edge-strong`，淡色或带主色调容器降到 `--ring-edge-soft`。**不要再叠 drop shadow**。
-- **真正浮起的层级**（弹窗、context menu、tooltip、`.img-card`、悬浮按钮）：用 `shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-lift)]` 或 `var(--shadow-float)`——外环 + token 阴影一次性写完。
+- **真正浮起的层级**（弹窗、context menu、tooltip、`.img-card`、悬浮按钮）：外环 + token 阴影一次性写完。**搭配按 drop shadow 强度区分 ring 浓度**：① 走 `var(--shadow-float)` 的弹窗 / dialog / popover / context menu 配 `var(--ring-edge-elevated)`（≈9.5%），因为 18px 大软投会把 7.5% 的边线"halo 模糊掉"，需要稍重边线把轮廓拉回；② 走 `var(--shadow-lift)` 的轻浮起（`.img-card` 静态、悬浮 toolbar、缩略图角标）配 `var(--ring-edge)`（≈7.5%）即可，1-2px 小投影本身不会吃掉边缘。
 - **轻浮起卡片**（引导卡 / starter 卡）：套 `.img-card` 配方：静态 `shadow-[0_0_0_1px_var(--ring-edge-soft),var(--shadow-lift)]`，hover 升到 `shadow-[0_0_0_1px_var(--ring-edge-strong),var(--shadow-float)]`，可叠 `hover:-translate-y-px`，过渡写 `transition-[box-shadow,background-color,transform]`。密集 chip / 列表项仍走扁平 inset ring。
 - **分隔线**：一律用 `shadow-[inset_0_1px_0_var(--ring-edge-soft)]`（顶）或 `inset_0_-1px_0_…`（底），不写 `border-t/b`。唯一例外是 markdown 表格 `<th>/<td>`（`border-collapse` 必须用 `border-b`）。
 - **选中态——主色填充版**：`bg-(--color-accent)` + `shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-accent)_55%,#000_10%)]`。适合单一强调动作（提交按钮、单点 CTA）。

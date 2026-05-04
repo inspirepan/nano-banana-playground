@@ -43,7 +43,7 @@ export function AgentOptionsMenu({
   return (
     <div
       data-agent-menu
-      className="absolute right-2 bottom-[46px] z-50 w-[320px] max-w-[calc(100vw-32px)] rounded-[var(--radius-lg)] bg-(--color-surface) p-1 shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-float)]"
+      className="absolute right-2 bottom-[46px] z-50 w-[320px] max-w-[calc(100vw-32px)] rounded-[var(--radius-lg)] bg-(--color-surface) p-1 shadow-[0_0_0_1px_var(--ring-edge-elevated),var(--shadow-float)]"
     >
       <button
         type="button"

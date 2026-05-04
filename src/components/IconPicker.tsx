@@ -68,7 +68,7 @@ export function IconPicker({ value, onChange }: Props) {
       </button>
 
       {open && (
-        <div className="absolute right-0 z-30 mt-1 w-[320px] rounded-[var(--radius-md)] bg-(--color-surface) p-2 shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-float)]">
+        <div className="absolute right-0 z-30 mt-1 w-[320px] rounded-[var(--radius-md)] bg-(--color-surface) p-2 shadow-[0_0_0_1px_var(--ring-edge-elevated),var(--shadow-float)]">
           <div className="relative">
             <Icon
               name="search"

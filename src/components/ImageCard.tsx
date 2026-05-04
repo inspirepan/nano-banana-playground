@@ -247,7 +247,7 @@ export const ImageCard = memo(function ImageCard({
           <div
             style={{ top: menu.y, left: menu.x }}
             onMouseDown={(e) => e.stopPropagation()}
-            className="fixed z-[120] min-w-[140px] rounded-[var(--radius-md)] bg-(--color-surface) p-1 shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-float)]"
+            className="fixed z-[120] min-w-[140px] rounded-[var(--radius-md)] bg-(--color-surface) p-1 shadow-[0_0_0_1px_var(--ring-edge-elevated),var(--shadow-float)]"
           >
             {actionItems.map((item) => (
               <button

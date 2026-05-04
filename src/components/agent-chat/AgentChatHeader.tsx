@@ -84,10 +84,10 @@ export function AgentChatHeader({
       {openMenu === 'sessions' && (
         <div
           data-agent-menu
-          className="absolute top-[40px] left-0 z-50 w-full rounded-[var(--radius-lg)] bg-(--color-surface) p-1 shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-float)]"
+          className="absolute top-[40px] left-0 z-50 w-full rounded-[var(--radius-lg)] bg-(--color-surface) p-1 shadow-[0_0_0_1px_var(--ring-edge-elevated),var(--shadow-float)]"
         >
           <div className="px-2 py-1.5 text-sm font-medium text-(--color-text-3)">{t('agentChat.header.history')}</div>
-          <div className="max-h-[260px] overflow-y-auto py-0.5">
+          <div className="max-h-[260px] space-y-0.5 overflow-y-auto py-0.5">
             {sessions.length === 0 ? (
               <div className="px-2 py-4 text-center text-sm text-(--color-text-3)">
                 {t('agentChat.header.emptyHistory')}
@@ -99,25 +99,34 @@ export function AgentChatHeader({
                 const imageCount = session.imageCount ?? 0
                 const imageCountLabel = t('agentChat.header.generatedImageCount', { count: imageCount })
                 return (
-                  <button
+                  <div
                     key={session.id}
-                    type="button"
-                    onClick={() => {
-                      onSwitchSession(session.id)
-                      setOpenMenu(null)
-                    }}
-                    className="group flex w-full items-center gap-2 rounded-[var(--radius-md)] px-2 py-1.5 text-left transition-colors hover:bg-(--color-surface-2)"
+                    className={`group relative flex h-[32px] items-center rounded-[var(--radius-md)] px-2 transition-[background-color,box-shadow] ${
+                      active
+                        ? 'bg-(--color-accent-wash) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]'
+                        : 'hover:bg-(--color-surface-2)'
+                    }`}
                   >
-                    <span className="min-w-0 flex-1">
-                      <span className="flex min-w-0 items-center gap-1.5">
-                        <span className="truncate text-sm font-medium text-(--color-text-2)">{session.title}</span>
-                        {active && <Icon name="check" size={12} className="shrink-0 text-(--color-accent)" />}
+                    {active && (
+                      <span className="absolute top-1.5 bottom-1.5 left-1 w-0.5 rounded-[var(--radius-xs)] bg-(--color-accent)" />
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onSwitchSession(session.id)
+                        setOpenMenu(null)
+                      }}
+                      className="min-w-0 flex-1 bg-transparent pl-2 text-left"
+                      aria-current={active ? 'true' : undefined}
+                      title={session.title}
+                    >
+                      <span
+                        className={`block truncate text-sm ${active ? 'font-semibold text-(--color-text)' : 'font-medium text-(--color-text-2)'}`}
+                      >
+                        {session.title}
                       </span>
-                      <span className="mt-0.5 block truncate text-sm text-(--color-text-3)">
-                        {session.previewText || session.firstUserText || t('agentChat.header.emptyConversation')}
-                      </span>
-                    </span>
-                    <span className="flex shrink-0 items-center gap-1.5 text-sm text-(--color-text-3)">
+                    </button>
+                    <span className="ml-2 flex shrink-0 items-center gap-1.5 text-sm text-(--color-text-3)">
                       {status && <AgentSessionStatusBadge status={status} />}
                       {imageCount > 0 && (
                         <span
@@ -131,25 +140,22 @@ export function AgentChatHeader({
                       )}
                       <span>{formatSessionTime(session.updatedAt)}</span>
                     </span>
-                    <span
-                      role="button"
-                      tabIndex={0}
+                    <button
+                      type="button"
                       onClick={(event) => {
                         event.stopPropagation()
                         onDeleteSession(session.id)
                       }}
-                      onKeyDown={(event) => {
-                        if (event.key !== 'Enter' && event.key !== ' ') return
-                        event.preventDefault()
-                        event.stopPropagation()
-                        onDeleteSession(session.id)
-                      }}
-                      className="flex h-6 w-6 shrink-0 items-center justify-center rounded-[var(--radius-sm)] text-(--color-text-4) transition-colors hover:bg-(--color-surface-3) hover:text-(--color-danger)"
+                      className={`absolute right-1 flex h-6 w-6 items-center justify-center rounded-[var(--radius-sm)] opacity-0 transition-[opacity,background-color,color] hover:bg-(--color-surface-3) hover:text-(--color-danger) group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none ${
+                        active
+                          ? 'bg-(--color-surface) text-(--color-text-3) shadow-[-10px_0_12px_color-mix(in_srgb,var(--color-accent-wash)_72%,transparent)]'
+                          : 'bg-(--color-surface-2) text-(--color-text-4) shadow-[-10px_0_12px_var(--color-surface-2)]'
+                      }`}
                       aria-label={t('agentChat.header.deleteConversation')}
                     >
                       <Icon name="trash" size={12} />
-                    </span>
-                  </button>
+                    </button>
+                  </div>
                 )
               })
             )}

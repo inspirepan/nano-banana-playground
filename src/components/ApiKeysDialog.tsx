@@ -55,7 +55,7 @@ export function ApiKeysDialog({ open, keyHooks, onClose }: Props) {
         role="dialog"
         aria-modal="true"
         aria-label={t('apiKeys.title')}
-        className="relative w-full max-w-md rounded-[var(--radius-lg)] bg-(--color-surface) shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-float)]"
+        className="relative w-full max-w-md rounded-[var(--radius-lg)] bg-(--color-surface) shadow-[0_0_0_1px_var(--ring-edge-elevated),var(--shadow-float)]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-5 pt-4 pb-3 shadow-[inset_0_-1px_0_var(--ring-edge-soft)]">
