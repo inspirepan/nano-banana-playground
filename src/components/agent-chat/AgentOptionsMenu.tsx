@@ -57,7 +57,7 @@ export function AgentOptionsMenu({
       </button>
       <div className="my-1 h-px bg-(--ring-edge-soft)" />
       <div className="flex items-baseline gap-2 px-2 py-1">
-        <span className="text-sm font-medium text-(--color-text-3)">{t('agentChat.options.preferredImageModel')}</span>
+        <span className="text-xs font-medium text-(--color-text-3)">{t('agentChat.options.preferredImageModel')}</span>
         <span className="text-xs text-(--color-text-3) opacity-65">
           {t('agentChat.options.preferredImageModel.hint')}
         </span>
@@ -67,6 +67,7 @@ export function AgentOptionsMenu({
         onClick={() => setPreferredImageModelId(null)}
         className="flex h-7 w-full items-center gap-2 rounded-[var(--radius-sm)] px-2 text-left text-sm font-medium text-(--color-text-2) transition-colors hover:bg-(--color-surface-2)"
       >
+        <Icon name="circle_dashed" size={12} className="text-(--color-text-3)" />
         <span className="min-w-0 flex-1 truncate">{t('agentChat.options.preferredImageModel.none')}</span>
         {preferredImageModelId === null && <Icon name="check" size={13} />}
       </button>
@@ -89,6 +90,9 @@ export function AgentOptionsMenu({
         onChange={onThinkingLevelChange}
       />
       <div className="my-1 h-px bg-(--ring-edge-soft)" />
+      <div className="px-2 py-1 text-xs font-medium text-(--color-text-3)">
+        {t('agentChat.options.agentModel')}
+      </div>
       {models.map((item) => {
         const needsKey = keyStatuses[item.provider] === 'empty'
         return (
@@ -97,8 +101,10 @@ export function AgentOptionsMenu({
             type="button"
             onClick={() => {
               onModelChange(item.id)
-              setOpenMenu(null)
-              if (needsKey) onOpenApiKeys()
+              if (needsKey) {
+                setOpenMenu(null)
+                onOpenApiKeys()
+              }
             }}
             className="flex h-7 w-full items-center gap-2 rounded-[var(--radius-sm)] px-2 text-left text-sm font-medium text-(--color-text-2) transition-colors hover:bg-(--color-surface-2)"
             data-active={model.id === item.id}
@@ -164,7 +170,7 @@ function ThinkingSlider({
 
   return (
     <div className="px-2 py-1.5" style={{ opacity: disabled ? 0.5 : 1, pointerEvents: disabled ? 'none' : undefined }}>
-      <div className="mb-1.5 px-1 text-sm font-medium text-(--color-text-3)">{t('agentChat.options.thinking')}</div>
+      <div className="mb-1.5 px-1 text-xs font-medium text-(--color-text-3)">{t('agentChat.options.thinking')}</div>
       <div
         className="segmented"
         style={{
