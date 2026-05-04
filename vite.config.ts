@@ -136,11 +136,52 @@ function applyResponseHeaders(response: Response, res: ServerResponse): void {
   })
 }
 
+function waitForDrain(res: ServerResponse): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const cleanup = () => {
+      res.off('drain', handleDrain)
+      res.off('error', handleError)
+      res.off('close', handleClose)
+    }
+    const handleDrain = () => {
+      cleanup()
+      resolve()
+    }
+    const handleError = (error: Error) => {
+      cleanup()
+      reject(error)
+    }
+    const handleClose = () => {
+      cleanup()
+      reject(new Error('Response closed'))
+    }
+    res.once('drain', handleDrain)
+    res.once('error', handleError)
+    res.once('close', handleClose)
+  })
+}
+
 async function sendProxyResponse(response: Response, res: ServerResponse): Promise<void> {
   res.statusCode = response.status
   res.statusMessage = response.statusText
   applyResponseHeaders(response, res)
-  res.end(Buffer.from(await response.arrayBuffer()))
+  if (!response.body) {
+    res.end()
+    return
+  }
+
+  const reader = response.body.getReader()
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done || res.destroyed) break
+      if (value.byteLength === 0) continue
+      if (!res.write(Buffer.from(value))) await waitForDrain(res)
+    }
+    if (!res.destroyed) res.end()
+  } finally {
+    reader.releaseLock()
+  }
 }
 
 async function forwardRequest(targetUrl: URL, req: IncomingMessage, res: ServerResponse): Promise<void> {
