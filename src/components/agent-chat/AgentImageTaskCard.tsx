@@ -10,7 +10,19 @@ import { Icon } from '../Icon'
 import { StackItemThumb } from '../StackItemThumb'
 import type { AgentImageTaskFocusHandler } from './types'
 
-const PROMPT_BOX_COLLAPSED_MAX_HEIGHT = 72
+const PROMPT_BOX_COLLAPSED_LINE_COUNT = 3
+
+type PromptBoxMeasurement = {
+  overflowing: boolean
+  hiddenLineCount: number
+  collapsedTextMaxHeight: number
+}
+
+const DEFAULT_PROMPT_BOX_MEASUREMENT: PromptBoxMeasurement = {
+  overflowing: false,
+  hiddenLineCount: 0,
+  collapsedTextMaxHeight: 72,
+}
 
 function GenImageResultThumb({ id, flush = false }: { id: string; flush?: boolean }) {
   const { t } = useI18n()
@@ -98,40 +110,81 @@ function Tag({ children, mono = false, bold = false }: { children: ReactNode; mo
   )
 }
 
-function AgentImagePromptBox({ text, isStreaming }: { text: string; isStreaming: boolean }) {
+function AgentImagePromptBox({ text }: { text: string }) {
   const { t } = useI18n()
   const [expanded, setExpanded] = useState(false)
-  const [overflowing, setOverflowing] = useState(false)
+  const [measurement, setMeasurement] = useState<PromptBoxMeasurement>(DEFAULT_PROMPT_BOX_MEASUREMENT)
   const ref = useRef<HTMLDivElement>(null)
 
   useLayoutEffect(() => {
     const el = ref.current
     if (!el) return
-    setOverflowing(el.scrollHeight > PROMPT_BOX_COLLAPSED_MAX_HEIGHT + 4)
-    if (isStreaming && !expanded) {
-      el.scrollTop = el.scrollHeight
+
+    let frame: number | null = null
+    const measure = () => {
+      if (frame !== null) window.cancelAnimationFrame(frame)
+      frame = window.requestAnimationFrame(() => {
+        frame = null
+
+        const styles = window.getComputedStyle(el)
+        const fontSize = Number.parseFloat(styles.fontSize) || 13
+        const rawLineHeight = Number.parseFloat(styles.lineHeight)
+        const lineHeight = Number.isFinite(rawLineHeight) ? rawLineHeight : fontSize * 1.5
+        const lineCount = Math.max(1, Math.round(el.scrollHeight / lineHeight))
+        const hiddenLineCount = Math.max(0, lineCount - PROMPT_BOX_COLLAPSED_LINE_COUNT)
+        const nextMeasurement = {
+          overflowing: hiddenLineCount > 0,
+          hiddenLineCount,
+          collapsedTextMaxHeight: Math.floor(lineHeight * PROMPT_BOX_COLLAPSED_LINE_COUNT),
+        }
+
+        setMeasurement((prev) =>
+          prev.overflowing === nextMeasurement.overflowing &&
+          prev.hiddenLineCount === nextMeasurement.hiddenLineCount &&
+          prev.collapsedTextMaxHeight === nextMeasurement.collapsedTextMaxHeight
+            ? prev
+            : nextMeasurement,
+        )
+      })
     }
-  }, [expanded, isStreaming, text])
+
+    measure()
+
+    const resizeObserver = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure)
+    resizeObserver?.observe(el)
+
+    return () => {
+      if (frame !== null) window.cancelAnimationFrame(frame)
+      resizeObserver?.disconnect()
+    }
+  }, [text])
+
+  const collapsed = measurement.overflowing && !expanded
 
   return (
-    <div className="mt-2">
-      <div
-        ref={ref}
-        className="whitespace-pre-wrap rounded-[var(--radius-sm)] bg-(--color-surface) px-2 py-1.5 text-base leading-[1.5] text-(--color-text-2) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]"
-        style={expanded ? undefined : { maxHeight: PROMPT_BOX_COLLAPSED_MAX_HEIGHT, overflowY: 'hidden' }}
-      >
-        {text}
+    <div className="mt-2 max-w-[432px]">
+      <div className="rounded-[var(--radius-sm)] bg-(--color-surface) px-2 pt-1.5 pb-2 text-base leading-[1.5] text-(--color-text-2) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
+        <div
+          ref={ref}
+          className="whitespace-pre-wrap"
+          style={collapsed ? { maxHeight: measurement.collapsedTextMaxHeight, overflowY: 'hidden' } : undefined}
+        >
+          {text}
+        </div>
       </div>
-      {overflowing && (
+      {measurement.overflowing && (
         <button
           type="button"
+          aria-expanded={expanded}
           onClick={(event) => {
             event.stopPropagation()
             setExpanded((prev) => !prev)
           }}
-          className="mt-1 bg-transparent p-0 text-sm text-(--color-text-3) transition-colors hover:text-(--color-text)"
+          className="mt-1 bg-transparent py-0 pr-0 pl-2 text-sm text-(--color-text-3) transition-colors hover:text-(--color-text)"
         >
-          {expanded ? t('agentChat.truncated.collapse') : t('agentChat.truncated.expand')}
+          {expanded
+            ? t('agentChat.truncated.collapse')
+            : t('agentChat.truncated.expandMoreLines', { count: measurement.hiddenLineCount })}
         </button>
       )}
     </div>
@@ -351,7 +404,7 @@ export function AgentImageTaskCard({
     return (
       <div
         onClick={handleShellClick}
-        className={`group relative m-1 max-w-[460px] overflow-hidden rounded-[var(--radius-lg)] bg-(--color-surface) shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-lift)] ${canFocus ? 'cursor-pointer' : ''}`}
+        className={`group relative w-full overflow-hidden rounded-[var(--radius-lg)] bg-(--color-surface) shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-lift)] md:m-1 md:max-w-[460px] ${canFocus ? 'cursor-pointer' : ''}`}
       >
         {renderCompletedGrid()}
         {canFocus && (
@@ -389,7 +442,7 @@ export function AgentImageTaskCard({
             }
           : undefined
       }
-      className={`m-1 max-w-[460px] rounded-[var(--radius-lg)] bg-(--color-surface) px-3 py-2.5 shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-lift)] ${canFocus ? 'cursor-pointer transition-colors duration-150 hover:bg-[color-mix(in_srgb,var(--color-surface-2)_50%,var(--color-surface))]' : ''} ${isDimmed ? 'opacity-60' : ''}`}
+      className={`w-full rounded-[var(--radius-lg)] bg-(--color-surface) px-3 py-2.5 shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-lift)] md:m-1 md:max-w-[460px] ${canFocus ? 'cursor-pointer transition-colors duration-150 hover:bg-[color-mix(in_srgb,var(--color-surface-2)_50%,var(--color-surface))]' : ''} ${isDimmed ? 'opacity-60' : ''}`}
     >
       {/* Composing micro header (only state that gets a header) */}
       {isComposingPrompt && (
@@ -413,7 +466,7 @@ export function AgentImageTaskCard({
         </div>
       )}
 
-      {promptText && <AgentImagePromptBox text={promptText} isStreaming={isComposingPrompt} />}
+      {promptText && <AgentImagePromptBox text={promptText} />}
 
       {referenceIds.length > 0 && (
         <div className="mt-2 flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-(--color-text-3)">

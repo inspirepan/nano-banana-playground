@@ -29,13 +29,10 @@ export function Topbar({
   return (
     <div className="shrink-0 px-3 pt-3 pb-2">
       <div className="flex min-h-[30px] items-center gap-2.5">
-        <div className="shrink-0 font-display text-base font-semibold tracking-[-0.01em] text-(--color-text)">
-          Imagine
-        </div>
         <div
           role="tablist"
           aria-label={t('app.mobilePanel')}
-          className="flex min-w-0 flex-1 items-center gap-1 rounded-[var(--radius-md)] bg-(--color-surface-3) p-[2px]"
+          className="ml-3 flex min-w-0 w-[264px] max-w-[calc(100%-46px)] items-center gap-1 rounded-[var(--radius-md)] bg-(--color-surface-3) p-[2px]"
         >
           {tabs.map((tab) => {
             const active = mobileTab === tab.key
@@ -61,7 +58,7 @@ export function Topbar({
         <button
           type="button"
           onClick={onOpenSettings}
-          className="icon-btn shrink-0"
+          className="icon-btn ml-auto shrink-0"
           title={t('common.settings')}
           aria-label={t('common.settings')}
         >

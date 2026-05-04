@@ -415,7 +415,7 @@ export function AgentChatPanel({
 
         <div
           ref={scrollRef}
-          className="scroll-fade-y min-h-0 flex-1 overflow-y-auto pt-5 pb-8 [scrollbar-gutter:stable_both-edges] [--scroll-fade-end-size:2.25rem] [--scroll-fade-start-size:1.5rem]"
+          className="scroll-fade-y min-h-0 flex-1 overflow-y-auto pt-5 pb-8 md:[scrollbar-gutter:stable_both-edges] [--scroll-fade-end-size:2.25rem] [--scroll-fade-start-size:1.5rem]"
         >
           <div className={`space-y-4 ${contentRightPaddingClass}`}>
             {renderItems.length === 0 && queuedMessages.length === 0 && !showRunningIndicator ? (

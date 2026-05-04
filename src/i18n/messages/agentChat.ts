@@ -88,6 +88,7 @@ export const agentChatMessages: MessageDictionary = {
   'agentChat.thinking.high': { 'zh-CN': '超高', en: 'Extra high' },
   'agentChat.imageAlt.message': { 'zh-CN': '消息图片 {index}', en: 'Message image {index}' },
   'agentChat.truncated.expand': { 'zh-CN': '展开', en: 'Expand' },
+  'agentChat.truncated.expandMoreLines': { 'zh-CN': '展开更多 {count} 行', en: 'Expand {count} more lines' },
   'agentChat.truncated.collapse': { 'zh-CN': '收起', en: 'Collapse' },
   'agentChat.imageTask.title': { 'zh-CN': '生成图片', en: 'Generate image' },
   'agentChat.imageTask.model': { 'zh-CN': '模型 ', en: 'Model ' },
