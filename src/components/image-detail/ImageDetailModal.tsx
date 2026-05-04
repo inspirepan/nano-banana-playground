@@ -45,6 +45,7 @@ type Props = {
   onDismissGenerationJob: (jobId: string) => void
   onCancelGenerationSlot: (slotId: string) => void
   onRetryGenerationSlot: (jobId: string, slotId: string) => { ok: boolean; message: string }
+  onRetryFailedGenerationImage: (image: PlaygroundImageMeta) => Promise<{ ok: boolean; message: string }>
   onRemove: (id: string) => void | Promise<void>
 }
 
@@ -67,6 +68,7 @@ export function ImageDetailModal({
   onDismissGenerationJob,
   onCancelGenerationSlot,
   onRetryGenerationSlot,
+  onRetryFailedGenerationImage,
   onRemove,
 }: Props) {
   const { t } = useI18n()
@@ -285,10 +287,27 @@ export function ImageDetailModal({
   }
 
   const handleRetrySlotAction = () => {
+    if (selectedItem?.type === 'slot' && selectedItem.failureImage) {
+      void onRetryFailedGenerationImage(selectedItem.failureImage).then((result) => {
+        flash(result.ok ? t('imageDetail.toast.retryQueued') : result.message)
+      })
+      return
+    }
     if (!currentJob || !currentSlot) return
     const result = onRetryGenerationSlot(currentJob.id, currentSlot.id)
     flash(result.ok ? t('imageDetail.toast.retryQueued') : result.message)
   }
+
+  const handleDismissSlotJob = useCallback(
+    (jobId: string) => {
+      if (selectedItem?.type === 'slot' && selectedItem.failureImage && selectedItem.job.id === jobId) {
+        void onRemove(selectedItem.failureImage.id)
+        return
+      }
+      onDismissGenerationJob(jobId)
+    },
+    [onDismissGenerationJob, onRemove, selectedItem],
+  )
 
   const hasDrawableMarks = drawableCounts.annotate > 0 || drawableCounts.mask > 0
   const desktopAnnotationActive = editing && editMode !== 'view' && !isMobileLayout && !mobileDrawOpen
@@ -469,7 +488,7 @@ export function ImageDetailModal({
             onRemoveCurrent={handleRemoveCurrentAndRevealImage}
             onEditImage={onEditImage}
             onCancelGenerationJob={onCancelGenerationJob}
-            onDismissGenerationJob={onDismissGenerationJob}
+            onDismissGenerationJob={handleDismissSlotJob}
             onCancelGenerationSlot={onCancelGenerationSlot}
             onRetryGenerationSlot={handleRetrySlotAction}
             selectStackItem={selectStackItem}

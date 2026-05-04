@@ -299,7 +299,22 @@ export function DetailSidebar({
                 value={`${currentSlot.attempt}/${currentSlot.maxAttempts}`}
               />
             )}
-            {currentSlot.error && <MetaRow label={t('imageDetail.meta.error')} value={currentSlot.error} />}
+            {currentSlot.attemptErrors?.length ? (
+              <MetaRow
+                label={t('imageDetail.meta.attemptErrors')}
+                value={
+                  <span className="inline-flex flex-col gap-1 text-right">
+                    {currentSlot.attemptErrors.map((item) => (
+                      <span key={`${item.attempt}-${item.timestamp}`}>
+                        {t('imageDetail.queue.attemptError', { attempt: item.attempt, error: item.error })}
+                      </span>
+                    ))}
+                  </span>
+                }
+              />
+            ) : (
+              currentSlot.error && <MetaRow label={t('imageDetail.meta.error')} value={currentSlot.error} />
+            )}
           </>
         )}
         {currentImage?.source.type === 'upload' && (

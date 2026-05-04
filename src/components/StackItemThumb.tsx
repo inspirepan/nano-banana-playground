@@ -32,6 +32,11 @@ function slotReasonText(slot: Slot, t: Translate): string | null {
   if (slot.status === 'queued') return t('input.stack.status.queued')
   if (slot.status === 'canceled') return t('input.stack.status.canceled')
   if (slot.status === 'failed') {
+    if (slot.attemptErrors?.length) {
+      return slot.attemptErrors
+        .map((item) => t('imageDetail.queue.attemptError', { attempt: item.attempt, error: item.error }))
+        .join('\n')
+    }
     return slot.error
       ? t('input.stack.status.failedWithError', { error: slot.error })
       : t('input.stack.status.failedUnknown')
@@ -75,7 +80,7 @@ export const StackItemThumb = memo(function StackItemThumb({
     image?.source.type === 'generated' && image.source.imageIdSource === 'agent'
       ? image.id
       : item.type === 'slot'
-        ? item.job.request.outputImageIds?.[item.slot.index]
+        ? (item.slot.outputImageId ?? item.job.request.outputImageIds?.[item.slot.index])
         : undefined
   const imageIdDisplay = imageIdLabel ? Array.from(imageIdLabel).slice(0, 20).join('') : undefined
   const inlineData = image && 'data' in image && typeof image.data === 'string' ? image.data : undefined

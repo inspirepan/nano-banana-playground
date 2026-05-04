@@ -27,6 +27,7 @@ type Props = {
   onDismissGenerationJob: (jobId: string) => void
   onCancelGenerationSlot: (slotId: string) => void
   onRetryGenerationSlot: (jobId: string, slotId: string) => { ok: boolean; message: string }
+  onRetryFailedGenerationImage: (image: PlaygroundImageMeta) => Promise<{ ok: boolean; message: string }>
   onAddToRef: (image: PlaygroundImageMeta) => void
   onRegenerate: (image: PlaygroundImageMeta) => void
   onReroll: (image: PlaygroundImageMeta) => Promise<{ ok: boolean; message: string }>
@@ -58,6 +59,7 @@ export const OutputPanel = memo(function OutputPanel({
   onDismissGenerationJob,
   onCancelGenerationSlot,
   onRetryGenerationSlot,
+  onRetryFailedGenerationImage,
   onAddToRef,
   onRegenerate,
   onReroll,
@@ -71,6 +73,10 @@ export const OutputPanel = memo(function OutputPanel({
 }: Props) {
   const { t } = useI18n()
   const stacks = useMemo(() => buildImageStacks(history, generationJobs), [history, generationJobs])
+  const exportableHistory = useMemo(
+    () => history.filter((image) => image.source.type !== 'generation-failure'),
+    [history],
+  )
   const generatedImageCount = useMemo(() => {
     let total = 0
     for (const stack of stacks) total += stack.images.length
@@ -96,7 +102,9 @@ export const OutputPanel = memo(function OutputPanel({
     onExternalDetailTargetConsumed?.()
   }, [externalDetailTarget, onExternalDetailTargetConsumed, setDetailTarget])
 
-  const { exporting, exportingStackId, handleExportAll, handleExportStack } = useStackExporting({ history })
+  const { exporting, exportingStackId, handleExportAll, handleExportStack } = useStackExporting({
+    history: exportableHistory,
+  })
 
   const handleCancelStackGeneration = useCallback(
     (stack: ImageStack) => {
@@ -112,8 +120,22 @@ export const OutputPanel = memo(function OutputPanel({
       for (const job of stack.jobs) {
         if (canDismissFailedGenerationJob(job)) onDismissGenerationJob(job.id)
       }
+      for (const item of stack.items) {
+        if (item.type === 'slot' && item.failureImage) void onRemove(item.failureImage.id)
+      }
     },
-    [onDismissGenerationJob],
+    [onDismissGenerationJob, onRemove],
+  )
+
+  const handleRetryStackFailedSlots = useCallback(
+    (stack: ImageStack) => {
+      for (const item of stack.items) {
+        if (item.type !== 'slot' || item.slot.status !== 'failed') continue
+        if (item.failureImage) void onRetryFailedGenerationImage(item.failureImage)
+        else onRetryGenerationSlot(item.job.id, item.slot.id)
+      }
+    },
+    [onRetryFailedGenerationImage, onRetryGenerationSlot],
   )
 
   const {
@@ -141,7 +163,7 @@ export const OutputPanel = memo(function OutputPanel({
             </div>
           </div>
           <div className="flex-1" />
-          {history.length > 0 && (
+          {exportableHistory.length > 0 && (
             <button type="button" onClick={handleExportAll} disabled={exporting} className="chip shrink-0">
               <Icon name="download" size={12} /> {exporting ? t('output.exporting') : t('output.exportZip')}
             </button>
@@ -177,6 +199,7 @@ export const OutputPanel = memo(function OutputPanel({
                     onOpenGallery={openStackGallery}
                     onDownloadStack={handleExportStack}
                     onCancelStackGeneration={handleCancelStackGeneration}
+                    onRetryStackFailedSlots={handleRetryStackFailedSlots}
                     onDismissStackFailedJobs={handleDismissStackFailedJobs}
                     onOpenGenerationSettings={onOpenGenerationSettings}
                     onDeleteStack={handleDeleteStackClick}
@@ -227,6 +250,7 @@ export const OutputPanel = memo(function OutputPanel({
             onDismissGenerationJob={onDismissGenerationJob}
             onCancelGenerationSlot={onCancelGenerationSlot}
             onRetryGenerationSlot={onRetryGenerationSlot}
+            onRetryFailedGenerationImage={onRetryFailedGenerationImage}
             onRemove={onRemove}
           />
         </Suspense>

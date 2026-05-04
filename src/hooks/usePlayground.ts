@@ -21,12 +21,13 @@ import {
   deleteFromHistory,
   loadImageBlobs,
   loadImageMetas,
+  saveHistoryMeta,
   saveDraftRefs,
   loadDraftRefs,
   clearDraftRefs,
 } from '../lib/history'
 import { stackIdForGenerationRequest } from '../lib/stackId'
-import type { GeneratedSource, PlaygroundImage, PlaygroundImageMeta } from '../lib/types'
+import type { GenerationFailureSource, GeneratedSource, PlaygroundImage, PlaygroundImageMeta } from '../lib/types'
 import { AGENT_MODE_SENTINEL, readSimpleUrlParams, updateUrl } from '../lib/urlState'
 
 export type {
@@ -42,9 +43,12 @@ export type RerollGeneratedImageResult =
   | { status: 'unsupported-mask' }
   | { status: 'unavailable' }
 
+export type RetryFailedGenerationImageResult = RerollGeneratedImageResult
+
 export type InputMode = 'generate' | 'agent'
 
 const HISTORY_PAGE_SIZE = 20
+const GENERATION_FAILURE_MIME_TYPE = 'application/x.nano-banana-generation-failure'
 
 // Read simple URL params once at module load to safely init useState
 const _initial = readSimpleUrlParams()
@@ -66,7 +70,10 @@ function initialOptionsFor(model: ModelConfig, rawParams: Record<string, string>
   return bag
 }
 
-function optionsForGeneratedSource(model: ModelConfig, source: GeneratedSource): Record<string, unknown> {
+function optionsForGeneratedSource(
+  model: ModelConfig,
+  source: GeneratedSource | GenerationFailureSource,
+): Record<string, unknown> {
   const next = defaultOptionsFor(model)
   for (const opt of model.options ?? []) {
     if (source.options && opt.id in source.options) {
@@ -80,6 +87,47 @@ function optionsForGeneratedSource(model: ModelConfig, source: GeneratedSource):
     }
   }
   return next
+}
+
+function generationFailureImageId(jobId: string, slotId: string): string {
+  return `generation-failure:${jobId}:${slotId}`
+}
+
+function isGenerationFailureImage(
+  image: PlaygroundImageMeta,
+): image is PlaygroundImageMeta & { source: GenerationFailureSource } {
+  return image.source.type === 'generation-failure'
+}
+
+function generationFailureMetaFromSlot(job: GenerationJob, slot: GenerationJob['slots'][number]): PlaygroundImageMeta {
+  const failedAt = Date.now()
+  return {
+    id: generationFailureImageId(job.id, slot.id),
+    mimeType: GENERATION_FAILURE_MIME_TYPE,
+    source: {
+      type: 'generation-failure',
+      modelId: job.request.model.id,
+      prompt: job.request.prompt,
+      resolution: job.request.resolution,
+      aspectRatio: job.request.aspectRatio,
+      referenceImageIds: job.request.referenceImages.map((image) => image.id),
+      batchId: job.id,
+      batchCreatedAt: job.createdAt,
+      stackId: job.stackId,
+      parentImageId: job.parentImageId,
+      slotIndex: slot.index,
+      imageIdSource: job.request.outputImageIdSource,
+      options: job.request.options,
+      usesMask: Boolean(job.request.mask),
+      error: slot.error ?? '',
+      attemptErrors: slot.attemptErrors,
+      attempt: slot.attempt,
+      maxAttempts: slot.maxAttempts,
+      failedAt,
+      outputImageId: slot.outputImageId,
+    },
+    timestamp: failedAt,
+  }
 }
 
 export function usePlayground() {
@@ -178,6 +226,49 @@ export function usePlayground() {
     onImageSaved: onGeneratedImageSaved,
   })
 
+  const recordedFailureIdsRef = useRef(new Set<string>())
+
+  useExternalSync(() => {
+    const metas: PlaygroundImageMeta[] = []
+    for (const job of generationJobs) {
+      if (job.request.outputImageIdSource === 'agent') continue
+      for (const slot of job.slots) {
+        if (slot.status !== 'failed') continue
+        const id = generationFailureImageId(job.id, slot.id)
+        if (recordedFailureIdsRef.current.has(id)) continue
+        recordedFailureIdsRef.current.add(id)
+        metas.push(generationFailureMetaFromSlot(job, slot))
+      }
+    }
+    if (metas.length === 0) return
+    setHistory((prev) => {
+      const seen = new Set(prev.map((image) => image.id))
+      const missing = metas.filter((meta) => !seen.has(meta.id))
+      return missing.length > 0 ? [...missing, ...prev] : prev
+    })
+    for (const meta of metas) void saveHistoryMeta(meta).catch(() => {})
+  }, [generationJobs, setHistory])
+
+  const dismissGenerationJobWithFailures = useCallback(
+    (jobId: string) => {
+      const job = generationJobs.find((item) => item.id === jobId)
+      const jobHasActiveSlots = job?.slots.some(
+        (slot) => slot.status === 'queued' || slot.status === 'running' || slot.status === 'retrying',
+      )
+      const failureIds =
+        !job || jobHasActiveSlots || job.request.outputImageIdSource === 'agent'
+          ? []
+          : job.slots
+              .filter((slot) => slot.status === 'failed')
+              .map((slot) => generationFailureImageId(job.id, slot.id))
+      dismissGenerationJob(jobId)
+      if (failureIds.length === 0) return
+      setHistory((prev) => prev.filter((image) => !failureIds.includes(image.id)))
+      for (const id of failureIds) void deleteFromHistory(id).catch(() => {})
+    },
+    [dismissGenerationJob, generationJobs, setHistory],
+  )
+
   const agent = useAgentPlayground({
     initialSessionId: _initial.agentSessionId,
     keyHooks,
@@ -188,7 +279,7 @@ export function usePlayground() {
     invalidateGenerationKey,
     enqueueGenerationJob,
     cancelGenerationJob,
-    dismissGenerationJob,
+    dismissGenerationJob: dismissGenerationJobWithFailures,
   })
 
   // Load first page of history on mount
@@ -470,6 +561,63 @@ export function usePlayground() {
     ],
   )
 
+  const retryFailedGenerationImage = useCallback(
+    async (image: PlaygroundImageMeta): Promise<RetryFailedGenerationImageResult> => {
+      if (!isGenerationFailureImage(image)) return { status: 'unavailable' }
+      const source = image.source
+      const targetModel = findModelConfig(source.modelId)
+      if (!targetModel) return { status: 'unavailable' }
+      if (targetModel.provider === 'openai' && source.parentImageId && source.usesMask !== false) {
+        return { status: 'unsupported-mask' }
+      }
+      const keyHook = keyHooks[targetModel.provider]
+      if (!keyHook.apiKey) return { status: 'unavailable' }
+
+      const trimmed = source.prompt.trim()
+      if (!trimmed) return { status: 'unavailable' }
+
+      const refMetas = await resolveReferenceMetas(source.referenceImageIds)
+      if (refMetas.length !== source.referenceImageIds.length) return { status: 'unavailable' }
+      const refs = await resolveFullImages(refMetas)
+      if (refs.length !== source.referenceImageIds.length) return { status: 'unavailable' }
+
+      const maxTotal = targetModel.maxReferenceImages + targetModel.maxCharacterImages
+      if (refs.length > maxTotal) return { status: 'unavailable' }
+
+      const stackId = source.stackId ?? source.batchId
+      const parentImageId = source.parentImageId
+      const outputImageIds = source.outputImageId ? [source.outputImageId] : undefined
+      const request: GenerationJob['request'] = {
+        apiKey: keyHook.apiKey,
+        baseUrl: keyHook.baseUrl,
+        model: targetModel,
+        prompt: trimmed,
+        referenceImages: refs,
+        resolution: normalizeResolution(targetModel, source.resolution),
+        aspectRatio: normalizeAspectRatio(targetModel, source.aspectRatio),
+        options: optionsForGeneratedSource(targetModel, source),
+        outputImageIds,
+        outputImageIdSource: source.imageIdSource,
+      }
+      const activeJob = findActiveGenerationJob({ request, stackId, parentImageId })
+      if (activeJob) {
+        const slotId = appendGenerationSlot(activeJob.id, source.outputImageId)
+        if (slotId) return { status: 'queued', batchId: activeJob.id }
+      }
+
+      const batchId = enqueueGenerationJob(request, 1, stackId, parentImageId)
+      return { status: 'queued', batchId }
+    },
+    [
+      appendGenerationSlot,
+      enqueueGenerationJob,
+      findActiveGenerationJob,
+      keyHooks,
+      resolveFullImages,
+      resolveReferenceMetas,
+    ],
+  )
+
   const currentApiKey = apiKeyHook.apiKey
   const currentBaseUrl = apiKeyHook.baseUrl
 
@@ -653,12 +801,13 @@ export function usePlayground() {
     restoreSession,
     restoreGeneratedImageParams,
     rerollGeneratedImage,
+    retryFailedGenerationImage,
     retryGenerationSlot,
     resolveFullImages,
     generate,
     editImage,
     cancelGenerationJob,
-    dismissGenerationJob,
+    dismissGenerationJob: dismissGenerationJobWithFailures,
     cancelGenerationSlot,
     addToReferences,
     removeFromHistory,

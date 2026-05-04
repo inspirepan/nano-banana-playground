@@ -21,7 +21,13 @@ type SettingsTarget = 'apiKeys' | 'generationConcurrency'
 
 function App() {
   const pg = usePlayground()
-  const { addToReferences, restoreGeneratedImageParams, rerollGeneratedImage, retryGenerationSlot } = pg
+  const {
+    addToReferences,
+    restoreGeneratedImageParams,
+    rerollGeneratedImage,
+    retryGenerationSlot,
+    retryFailedGenerationImage,
+  } = pg
 
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [settingsTarget, setSettingsTarget] = useState<SettingsTarget | null>(null)
@@ -65,12 +71,14 @@ function App() {
     dismissAgentWideTip,
   } = useAgentWideLayout(pg.inputMode)
 
-  const { regenToast, handleRegenerate, handleReroll, handleRetryGenerationSlot } = useRegenerationToast({
-    restoreGeneratedImageParams,
-    rerollGeneratedImage,
-    retryGenerationSlot,
-    t,
-  })
+  const { regenToast, handleRegenerate, handleReroll, handleRetryGenerationSlot, handleRetryFailedGenerationImage } =
+    useRegenerationToast({
+      restoreGeneratedImageParams,
+      rerollGeneratedImage,
+      retryGenerationSlot,
+      retryFailedGenerationImage,
+      t,
+    })
 
   const {
     highlightStackId,
@@ -155,6 +163,7 @@ function App() {
         onDismissGenerationJob={pg.dismissGenerationJob}
         onCancelGenerationSlot={pg.cancelGenerationSlot}
         onRetryGenerationSlot={handleRetryGenerationSlot}
+        onRetryFailedGenerationImage={handleRetryFailedGenerationImage}
         onRemove={pg.removeFromHistory}
         onLoadMore={pg.loadMoreHistory}
         onOpenGenerationSettings={handleOpenGenerationSettings}
@@ -183,6 +192,7 @@ function App() {
         onDismissGenerationJob={pg.dismissGenerationJob}
         onCancelGenerationSlot={pg.cancelGenerationSlot}
         onRetryGenerationSlot={handleRetryGenerationSlot}
+        onRetryFailedGenerationImage={handleRetryFailedGenerationImage}
         onAddToRef={handleAddToRef}
         onRegenerate={handleRegenerate}
         onReroll={handleReroll}

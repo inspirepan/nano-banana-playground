@@ -21,6 +21,7 @@ export const outputMessages: MessageDictionary = {
   'output.imageCount': { 'zh-CN': '{count} 张', en: '{count} images' },
   'output.noImages': { 'zh-CN': '暂无图片', en: 'No images yet' },
   'output.packaging': { 'zh-CN': '打包中…', en: 'Packaging…' },
+  'output.retryFailed': { 'zh-CN': '重试失败项', en: 'Retry failed' },
   'output.status.generatingCount': { 'zh-CN': '{count} 项生成中', en: '{count} generating' },
   'output.status.queuedCount': { 'zh-CN': '{count} 项排队中', en: '{count} queued' },
   'output.status.retryingCount': { 'zh-CN': '{count} 项重试中', en: '{count} retrying' },

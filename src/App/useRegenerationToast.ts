@@ -10,6 +10,7 @@ type Params = {
   restoreGeneratedImageParams: Pg['restoreGeneratedImageParams']
   rerollGeneratedImage: Pg['rerollGeneratedImage']
   retryGenerationSlot: Pg['retryGenerationSlot']
+  retryFailedGenerationImage: Pg['retryFailedGenerationImage']
   t: Translate
 }
 
@@ -22,6 +23,7 @@ export function useRegenerationToast({
   restoreGeneratedImageParams,
   rerollGeneratedImage,
   retryGenerationSlot,
+  retryFailedGenerationImage,
   t,
 }: Params) {
   const [regenToast, setRegenToast] = useState<string | null>(null)
@@ -74,5 +76,15 @@ export function useRegenerationToast({
     [retryGenerationSlot, showToast, t],
   )
 
-  return { regenToast, handleRegenerate, handleReroll, handleRetryGenerationSlot }
+  const handleRetryFailedGenerationImage = useCallback(
+    async (image: PlaygroundImageMeta) => {
+      const result = await retryFailedGenerationImage(image).catch(() => ({ status: 'unavailable' as const }))
+      const message = result.status === 'queued' ? t('app.toast.retryQueued') : t('app.toast.retryFailed')
+      showToast(message)
+      return { ok: result.status === 'queued', message }
+    },
+    [retryFailedGenerationImage, showToast, t],
+  )
+
+  return { regenToast, handleRegenerate, handleReroll, handleRetryGenerationSlot, handleRetryFailedGenerationImage }
 }

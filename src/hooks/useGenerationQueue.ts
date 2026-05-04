@@ -7,7 +7,7 @@ import { translate } from '../i18n'
 import { GENERATE_MAX_ATTEMPTS, generateImage } from '../lib/api'
 import { deleteFromHistory, saveToHistory } from '../lib/history'
 import { readGenerationConcurrencyPreference, writeGenerationConcurrencyPreference } from '../lib/preferenceStore'
-import type { PlaygroundImage } from '../lib/types'
+import type { GenerationAttemptError, PlaygroundImage } from '../lib/types'
 import { isKeyError } from '../lib/validateKey'
 
 export type GenerationSlotStatus = 'queued' | 'running' | 'retrying' | 'succeeded' | 'failed' | 'canceled'
@@ -21,6 +21,7 @@ export type GenerationSlot = {
   maxAttempts: number
   image?: PlaygroundImage
   error?: string
+  attemptErrors?: GenerationAttemptError[]
   retryDelayMs?: number
   retryAt?: number
   outputImageId?: string
@@ -148,6 +149,18 @@ function toDisplayError(e: unknown): string {
   if (err.name === 'TimeoutError') return translate('configLib.generationQueue.timeout')
   if (err.name === 'AbortError') return translate('configLib.generationQueue.requestAborted')
   return err.message
+}
+
+function appendAttemptError(
+  attemptErrors: GenerationAttemptError[] | undefined,
+  attempt: number,
+  error: string,
+): GenerationAttemptError[] {
+  const nextError: GenerationAttemptError = { attempt, error, timestamp: Date.now() }
+  if (!attemptErrors || attemptErrors.length === 0) return [nextError]
+  const last = attemptErrors[attemptErrors.length - 1]
+  if (last?.attempt === attempt && last.error === error) return attemptErrors
+  return [...attemptErrors, nextError]
 }
 
 function stableStringify(value: unknown): string {
@@ -278,6 +291,7 @@ export function useGenerationQueue({
                   ...current,
                   status: 'running' as const,
                   error: undefined,
+                  attemptErrors: undefined,
                   retryDelayMs: undefined,
                   retryAt: undefined,
                 }
@@ -314,6 +328,7 @@ export function useGenerationQueue({
                     status: 'retrying',
                     attempt: event.nextAttempt,
                     error: event.error,
+                    attemptErrors: appendAttemptError(current.attemptErrors, event.attempt, event.error),
                     retryDelayMs: event.delayMs,
                     retryAt: Date.now() + event.delayMs,
                   }
@@ -355,6 +370,7 @@ export function useGenerationQueue({
                 ...current,
                 status: 'failed',
                 error: msg,
+                attemptErrors: appendAttemptError(current.attemptErrors, current.attempt, msg),
                 retryDelayMs: undefined,
                 retryAt: undefined,
               }
@@ -367,6 +383,7 @@ export function useGenerationQueue({
             ...current,
             status: 'failed',
             error: msg,
+            attemptErrors: appendAttemptError(current.attemptErrors, current.attempt, msg),
             retryDelayMs: undefined,
             retryAt: undefined,
           }))

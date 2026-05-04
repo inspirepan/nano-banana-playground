@@ -1,4 +1,6 @@
+import { DEFAULT_MODEL, MODEL_CONFIGS } from '../config/models'
 import type { PlaygroundImageMeta } from './types'
+import { isGeneratedLikeSource, type GenerationFailureSource } from './types'
 import type { GenerationJob, GenerationSlot } from '../hooks/usePlayground'
 
 export type StackImageItem = {
@@ -18,6 +20,7 @@ export type StackSlotItem = {
   batchId: string
   slot: GenerationSlot
   job: GenerationJob
+  failureImage?: PlaygroundImageMeta & { source: GenerationFailureSource }
   timestamp: number
   order: number
 }
@@ -40,8 +43,61 @@ function isActiveSlot(slot: GenerationSlot): boolean {
 }
 
 export function stackIdForImage(image: PlaygroundImageMeta): string | null {
-  if (image.source.type !== 'generated') return null
+  if (!isGeneratedLikeSource(image.source)) return null
   return image.source.stackId ?? image.source.batchId
+}
+
+function modelForFailure(source: GenerationFailureSource) {
+  const found = MODEL_CONFIGS.find((model) => model.id === source.modelId)
+  return found ?? { ...DEFAULT_MODEL, id: source.modelId, name: source.modelId }
+}
+
+function slotItemForFailureImage(image: PlaygroundImageMeta & { source: GenerationFailureSource }): StackSlotItem {
+  const source = image.source
+  const slotIndex = source.slotIndex ?? 0
+  const attemptErrors = source.attemptErrors ?? []
+  const latestAttempt = attemptErrors.length > 0 ? Math.max(...attemptErrors.map((item) => item.attempt)) : 1
+  const slot: GenerationSlot = {
+    id: image.id,
+    index: slotIndex,
+    status: 'failed',
+    attempt: source.attempt ?? latestAttempt,
+    maxAttempts: source.maxAttempts ?? Math.max(latestAttempt, 1),
+    error: source.error,
+    attemptErrors: source.attemptErrors,
+    outputImageId: source.outputImageId,
+  }
+  const job: GenerationJob = {
+    id: source.batchId,
+    stackId: source.stackId ?? source.batchId,
+    parentImageId: source.parentImageId,
+    createdAt: source.batchCreatedAt ?? image.timestamp,
+    finishedAt: source.failedAt,
+    status: 'failed',
+    request: {
+      apiKey: '',
+      model: modelForFailure(source),
+      prompt: source.prompt,
+      referenceImages: [],
+      resolution: source.resolution,
+      aspectRatio: source.aspectRatio,
+      options: source.options ?? {},
+      outputImageIds: source.outputImageId ? [source.outputImageId] : undefined,
+      outputImageIdSource: source.imageIdSource,
+    },
+    slots: [slot],
+  }
+  return {
+    type: 'slot',
+    id: image.id,
+    stackId: source.stackId ?? source.batchId,
+    batchId: source.batchId,
+    slot,
+    job,
+    failureImage: image,
+    timestamp: source.batchCreatedAt ?? image.timestamp,
+    order: slotIndex,
+  }
 }
 
 function ensureStack(map: Map<string, ImageStack>, id: string, timestamp: number): ImageStack {
@@ -70,7 +126,7 @@ function compareStackItems(a: StackItem, b: StackItem): number {
 }
 
 function batchTimestampForImage(image: PlaygroundImageMeta): number {
-  if (image.source.type !== 'generated') return image.timestamp
+  if (!isGeneratedLikeSource(image.source)) return image.timestamp
   return image.source.batchCreatedAt ?? image.timestamp
 }
 
@@ -83,7 +139,7 @@ export function buildImageStacks(history: PlaygroundImageMeta[], generationJobs:
   // images of the same batch to a stable visual time.
   const batchTimestamps = new Map<string, number>()
   for (const image of history) {
-    if (image.source.type !== 'generated') continue
+    if (!isGeneratedLikeSource(image.source)) continue
     if (jobBatchIds.has(image.source.batchId)) continue
     const ts = batchTimestampForImage(image)
     const current = batchTimestamps.get(image.source.batchId)
@@ -94,7 +150,7 @@ export function buildImageStacks(history: PlaygroundImageMeta[], generationJobs:
   // dedup against future job slot images without an extra full filter pass.
   const seenIdsByStack = new Map<string, Set<string>>()
   for (const image of history) {
-    if (image.source.type !== 'generated') continue
+    if (!isGeneratedLikeSource(image.source)) continue
     const batchId = image.source.batchId
     if (jobBatchIds.has(batchId)) continue
     const stackId = stackIdForImage(image)
@@ -108,6 +164,13 @@ export function buildImageStacks(history: PlaygroundImageMeta[], generationJobs:
     }
     if (seen.has(image.id)) continue
     seen.add(image.id)
+    if (image.source.type === 'generation-failure') {
+      stack.failedSlotCount++
+      const failureItem = slotItemForFailureImage(image as PlaygroundImageMeta & { source: GenerationFailureSource })
+      stack.jobs.push(failureItem.job)
+      stack.items.push(failureItem)
+      continue
+    }
     stack.images.push(image)
     stack.items.push({
       type: 'image',

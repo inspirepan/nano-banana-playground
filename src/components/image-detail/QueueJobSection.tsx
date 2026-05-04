@@ -8,8 +8,7 @@ import { ImageGrid, GridCell } from '../ImageGrid'
 
 function StatusCard({ slot, onCancel }: { slot: GenerationSlot; onCancel: (slotId: string) => void }) {
   const { t } = useI18n()
-  if (slot.status === 'failed')
-    return <FailedCard index={slot.index} error={slot.error ?? t('imageDetail.queue.status.failed')} />
+  if (slot.status === 'failed') return <FailedCard slot={slot} />
   if (slot.status === 'canceled') return <CanceledCard index={slot.index} />
 
   const retrying = slot.status === 'retrying'
@@ -65,8 +64,13 @@ function StatusCard({ slot, onCancel }: { slot: GenerationSlot; onCancel: (slotI
   )
 }
 
-function FailedCard({ index, error }: { index: number; error: string }) {
+function FailedCard({ slot }: { slot: GenerationSlot }) {
   const { t } = useI18n()
+  const attemptErrors = slot.attemptErrors?.length
+    ? slot.attemptErrors
+    : slot.error
+      ? [{ attempt: slot.attempt, error: slot.error }]
+      : []
 
   return (
     <div
@@ -88,11 +92,15 @@ function FailedCard({ index, error }: { index: number; error: string }) {
             ×
           </div>
           <div className="text-base" style={{ color: 'var(--color-danger)' }}>
-            {t('imageDetail.queue.failedIndexed', { index: index + 1 })}
+            {t('imageDetail.queue.failedIndexed', { index: slot.index + 1 })}
           </div>
         </div>
         <div className="flex-1 min-h-0 overflow-y-auto text-sm leading-[1.55] break-words text-(--color-text-2) whitespace-pre-wrap">
-          {error}
+          {attemptErrors.length > 0
+            ? attemptErrors
+                .map((item) => t('imageDetail.queue.attemptError', { attempt: item.attempt, error: item.error }))
+                .join('\n')
+            : t('imageDetail.queue.status.failed')}
         </div>
       </div>
     </div>

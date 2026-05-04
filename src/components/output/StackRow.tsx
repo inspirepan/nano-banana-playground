@@ -21,6 +21,7 @@ export type StackRowProps = {
   onOpenGallery: (stack: ImageStack) => void
   onDownloadStack: (stack: ImageStack) => void
   onCancelStackGeneration: (stack: ImageStack) => void
+  onRetryStackFailedSlots: (stack: ImageStack) => void
   onDismissStackFailedJobs: (stack: ImageStack) => void
   onOpenGenerationSettings: () => void
   onDeleteStack: (stack: ImageStack) => void
@@ -75,6 +76,7 @@ export const StackRow = memo(function StackRow({
   onOpenGallery,
   onDownloadStack,
   onCancelStackGeneration,
+  onRetryStackFailedSlots,
   onDismissStackFailedJobs,
   onOpenGenerationSettings,
   onDeleteStack,
@@ -166,6 +168,15 @@ export const StackRow = memo(function StackRow({
               <span className="text-base" style={{ color: 'var(--color-danger)' }}>
                 {t('output.failedCount', { count: stack.failedSlotCount })}
               </span>
+              <span className="meta-dot text-(--color-text-4)" aria-hidden />
+              <button
+                type="button"
+                onClick={() => onRetryStackFailedSlots(stack)}
+                className="bg-transparent p-0 text-base font-semibold transition-colors hover:text-(--color-text-2)"
+                style={{ color: 'var(--color-text-3)' }}
+              >
+                {t('output.retryFailed')}
+              </button>
               {hasDismissibleFailures && (
                 <>
                   <span className="meta-dot text-(--color-text-4)" aria-hidden />

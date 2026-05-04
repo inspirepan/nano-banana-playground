@@ -24,6 +24,16 @@ export async function saveToHistory(image: PlaygroundImage): Promise<void> {
   })
 }
 
+export async function saveHistoryMeta(image: PlaygroundImageMeta): Promise<void> {
+  const db = await openDB()
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(META_STORE, 'readwrite')
+    tx.objectStore(META_STORE).put(image)
+    tx.oncomplete = () => resolve()
+    tx.onerror = () => reject(tx.error)
+  })
+}
+
 // Load a page of metadata (no blob data), sorted by timestamp descending
 export async function loadHistoryPage(
   offset: number,

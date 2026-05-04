@@ -27,7 +27,13 @@ export function AgentGalleryPicker({ open, history, attachedImageIds, onPick, on
     open,
   )
 
-  const items = useMemo(() => [...history].sort((a, b) => b.timestamp - a.timestamp), [history])
+  const items = useMemo(
+    () =>
+      history
+        .filter((image) => image.source.type !== 'generation-failure')
+        .toSorted((a, b) => b.timestamp - a.timestamp),
+    [history],
+  )
 
   if (!open) return null
 
@@ -86,7 +92,9 @@ function GalleryPickerItem({
   const title =
     image.source.type === 'generated'
       ? `${image.source.prompt}${titleSuffix}`
-      : `${image.source.fileName}${titleSuffix}`
+      : image.source.type === 'upload'
+        ? `${image.source.fileName}${titleSuffix}`
+        : image.id
 
   return (
     <button

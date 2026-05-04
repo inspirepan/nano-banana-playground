@@ -57,7 +57,29 @@ export type GeneratedSource = {
   }
 }
 
-export type ImageSource = UploadSource | GeneratedSource
+export type GenerationAttemptError = {
+  attempt: number
+  error: string
+  timestamp: number
+}
+
+export type GenerationFailureSource = Omit<GeneratedSource, 'type' | 'tokenUsage' | 'groundingMetadata'> & {
+  type: 'generation-failure'
+  error: string
+  attemptErrors?: GenerationAttemptError[]
+  attempt?: number
+  maxAttempts?: number
+  failedAt: number
+  outputImageId?: string
+}
+
+export type GeneratedLikeSource = GeneratedSource | GenerationFailureSource
+
+export type ImageSource = UploadSource | GeneratedSource | GenerationFailureSource
+
+export function isGeneratedLikeSource(source: ImageSource): source is GeneratedLikeSource {
+  return source.type === 'generated' || source.type === 'generation-failure'
+}
 
 // Metadata only — no binary data
 export type PlaygroundImageMeta = {
