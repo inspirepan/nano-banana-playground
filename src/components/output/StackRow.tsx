@@ -1,4 +1,4 @@
-import { memo, useMemo } from 'react'
+import { memo, useCallback, useMemo } from 'react'
 
 import {
   activeStackStatusParts,
@@ -9,15 +9,15 @@ import {
 import type { Translate } from '../../i18n'
 import { downloadImagePng } from '../../lib/exportImages'
 import { formatTime } from '../../lib/queueJobDisplay'
-import type { ImageStack, StackItem } from '../../lib/stacks'
+import type { ImageStack, StackItem, StackImageItem } from '../../lib/stacks'
 import { Icon } from '../Icon'
 import { GridCell, ImageGrid } from '../ImageGrid'
 import { StackItemThumb } from '../StackItemThumb'
 
 export type StackRowProps = {
   stack: ImageStack
-  onOpenItem: (stack: ImageStack, item: StackItem) => void
-  onEditItem: (stack: ImageStack, item: StackItem) => void
+  onOpenItem: (stackId: string, item: StackItem) => void
+  onEditItem: (stackId: string, item: StackItem) => void
   onOpenGallery: (stack: ImageStack) => void
   onDownloadStack: (stack: ImageStack) => void
   onCancelStackGeneration: (stack: ImageStack) => void
@@ -31,6 +31,42 @@ export type StackRowProps = {
   onCancelDeleteConfirm: () => void
   t: Translate
 }
+
+type StackThumbActionsProps = {
+  item: StackImageItem
+  stackId: string
+  onEditItem: (stackId: string, item: StackItem) => void
+  t: Translate
+}
+
+const StackThumbActions = memo(function StackThumbActions({ item, stackId, onEditItem, t }: StackThumbActionsProps) {
+  return (
+    <div className="pointer-events-none hidden items-center gap-1 opacity-[0.001] transition-opacity md:flex md:group-hover:pointer-events-auto md:group-hover:opacity-100 md:group-focus-within:pointer-events-auto md:group-focus-within:opacity-100">
+      <button
+        type="button"
+        onClick={(event) => {
+          event.stopPropagation()
+          onEditItem(stackId, item)
+        }}
+        className="media-action flex-1"
+      >
+        <Icon name="wand" size={11} strokeWidth={1.8} />
+        {t('common.edit')}
+      </button>
+      <button
+        type="button"
+        onClick={(event) => {
+          event.stopPropagation()
+          void downloadImagePng(item.image)
+        }}
+        className="media-action flex-1"
+      >
+        <Icon name="download" size={11} strokeWidth={1.8} />
+        PNG
+      </button>
+    </div>
+  )
+})
 
 export const StackRow = memo(function StackRow({
   stack,
@@ -58,6 +94,8 @@ export const StackRow = memo(function StackRow({
   )
   const previewItems = useMemo(() => stack.items.toReversed(), [stack.items])
   const canDelete = stack.images.length > 0 && activeStatusParts.length === 0
+  const stackId = stack.id
+  const handleSelectItem = useCallback((item: StackItem) => onOpenItem(stackId, item), [onOpenItem, stackId])
 
   return (
     <div className="min-w-0">
@@ -199,33 +237,10 @@ export const StackRow = memo(function StackRow({
                       numberBadgeInset={8}
                       metaBadge={metaBadge}
                       metaBadgeTitle={metaBadge}
-                      onSelect={(next) => onOpenItem(stack, next)}
+                      onSelect={handleSelectItem}
                       actions={
                         item.type === 'image' ? (
-                          <div className="pointer-events-none hidden items-center gap-1 opacity-[0.001] transition-opacity md:flex md:group-hover:pointer-events-auto md:group-hover:opacity-100 md:group-focus-within:pointer-events-auto md:group-focus-within:opacity-100">
-                            <button
-                              type="button"
-                              onClick={(event) => {
-                                event.stopPropagation()
-                                onEditItem(stack, item)
-                              }}
-                              className="media-action flex-1"
-                            >
-                              <Icon name="wand" size={11} strokeWidth={1.8} />
-                              {t('common.edit')}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={(event) => {
-                                event.stopPropagation()
-                                void downloadImagePng(item.image)
-                              }}
-                              className="media-action flex-1"
-                            >
-                              <Icon name="download" size={11} strokeWidth={1.8} />
-                              PNG
-                            </button>
-                          </div>
+                          <StackThumbActions item={item} stackId={stackId} onEditItem={onEditItem} t={t} />
                         ) : undefined
                       }
                     />

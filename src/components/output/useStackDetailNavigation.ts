@@ -21,8 +21,8 @@ type Result = {
   detailStack: ImageStack | null
   previousStackTarget: DetailNavigationTarget | null
   nextStackTarget: DetailNavigationTarget | null
-  openStackItem: (stack: ImageStack, item: StackItem) => void
-  editStackItem: (stack: ImageStack, item: StackItem) => void
+  openStackItem: (stackId: string, item: StackItem) => void
+  editStackItem: (stackId: string, item: StackItem) => void
   openStackGallery: (stack: ImageStack) => void
   navigateDetailToTarget: (target: DetailNavigationTarget) => void
 }
@@ -38,13 +38,13 @@ export function useStackDetailNavigation({ stacks, stackIndexById }: Params): Re
       ? firstStackItemTarget(stacks[detailStackIndex + 1])
       : null
 
-  const openStackItem = useCallback((stack: ImageStack, item: StackItem) => {
-    setDetailTarget({ stackId: stack.id, itemId: item.id, viewMode: 'detail' })
+  const openStackItem = useCallback((stackId: string, item: StackItem) => {
+    setDetailTarget({ stackId, itemId: item.id, viewMode: 'detail' })
   }, [])
 
-  const editStackItem = useCallback((stack: ImageStack, item: StackItem) => {
+  const editStackItem = useCallback((stackId: string, item: StackItem) => {
     if (item.type !== 'image') return
-    setDetailTarget({ stackId: stack.id, itemId: item.id, viewMode: 'detail', initialEditing: true })
+    setDetailTarget({ stackId, itemId: item.id, viewMode: 'detail', initialEditing: true })
   }, [])
 
   const openStackGallery = useCallback((stack: ImageStack) => {

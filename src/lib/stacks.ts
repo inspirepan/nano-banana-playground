@@ -76,33 +76,38 @@ function batchTimestampForImage(image: PlaygroundImageMeta): number {
 
 export function buildImageStacks(history: PlaygroundImageMeta[], generationJobs: GenerationJob[]): ImageStack[] {
   const stacks = new Map<string, ImageStack>()
-  const jobBatchIds = new Set(generationJobs.map((job) => job.id))
-  const batchTimestamps = new Map<string, number>()
-  const generatedHistoryItems: Array<{ image: PlaygroundImageMeta; stackId: string; batchId: string; order: number }> =
-    []
+  const jobBatchIds = new Set<string>()
+  for (const job of generationJobs) jobBatchIds.add(job.id)
 
+  // Pass 1: gather earliest batch timestamp per batchId so we can attach all
+  // images of the same batch to a stable visual time.
+  const batchTimestamps = new Map<string, number>()
   for (const image of history) {
     if (image.source.type !== 'generated') continue
     if (jobBatchIds.has(image.source.batchId)) continue
-    const stackId = stackIdForImage(image)
-    if (!stackId) continue
-    const batchTimestamp = batchTimestampForImage(image)
+    const ts = batchTimestampForImage(image)
     const current = batchTimestamps.get(image.source.batchId)
-    batchTimestamps.set(
-      image.source.batchId,
-      current === undefined ? batchTimestamp : Math.min(current, batchTimestamp),
-    )
-    generatedHistoryItems.push({
-      image,
-      stackId,
-      batchId: image.source.batchId,
-      order: image.source.slotIndex ?? image.timestamp,
-    })
+    if (current === undefined || ts < current) batchTimestamps.set(image.source.batchId, ts)
   }
 
-  for (const { image, stackId, batchId, order } of generatedHistoryItems) {
+  // Pass 2: bucket history images into stacks. Track seen ids per stack to
+  // dedup against future job slot images without an extra full filter pass.
+  const seenIdsByStack = new Map<string, Set<string>>()
+  for (const image of history) {
+    if (image.source.type !== 'generated') continue
+    const batchId = image.source.batchId
+    if (jobBatchIds.has(batchId)) continue
+    const stackId = stackIdForImage(image)
+    if (!stackId) continue
     const batchTimestamp = batchTimestamps.get(batchId) ?? batchTimestampForImage(image)
     const stack = ensureStack(stacks, stackId, batchTimestamp)
+    let seen = seenIdsByStack.get(stackId)
+    if (!seen) {
+      seen = new Set<string>()
+      seenIdsByStack.set(stackId, seen)
+    }
+    if (seen.has(image.id)) continue
+    seen.add(image.id)
     stack.images.push(image)
     stack.items.push({
       type: 'image',
@@ -111,30 +116,39 @@ export function buildImageStacks(history: PlaygroundImageMeta[], generationJobs:
       batchId,
       image,
       timestamp: batchTimestamp,
-      order,
+      order: image.source.slotIndex ?? image.timestamp,
     })
   }
 
+  // Pass 3: fold active jobs (and their slots) into the stacks.
   for (const job of generationJobs) {
     const stack = ensureStack(stacks, job.stackId, job.createdAt)
     stack.jobs.push(job)
-    stack.updatedAt = Math.max(stack.updatedAt, job.createdAt)
+    if (job.createdAt > stack.updatedAt) stack.updatedAt = job.createdAt
+    let seen = seenIdsByStack.get(job.stackId)
+    if (!seen) {
+      seen = new Set<string>()
+      seenIdsByStack.set(job.stackId, seen)
+    }
 
     for (const slot of job.slots) {
       if (isActiveSlot(slot)) stack.activeSlotCount++
       if (slot.status === 'failed') stack.failedSlotCount++
 
       if (slot.status === 'succeeded' && slot.image) {
-        stack.images.push(slot.image)
-        stack.items.push({
-          type: 'image',
-          id: slot.image.id,
-          stackId: job.stackId,
-          batchId: job.id,
-          image: slot.image,
-          timestamp: job.createdAt,
-          order: slot.index,
-        })
+        if (!seen.has(slot.image.id)) {
+          seen.add(slot.image.id)
+          stack.images.push(slot.image)
+          stack.items.push({
+            type: 'image',
+            id: slot.image.id,
+            stackId: job.stackId,
+            batchId: job.id,
+            image: slot.image,
+            timestamp: job.createdAt,
+            order: slot.index,
+          })
+        }
       } else {
         stack.items.push({
           type: 'slot',
@@ -151,14 +165,7 @@ export function buildImageStacks(history: PlaygroundImageMeta[], generationJobs:
   }
 
   for (const stack of stacks.values()) {
-    const seenImages = new Set<string>()
-    stack.images = stack.images
-      .filter((image) => {
-        if (seenImages.has(image.id)) return false
-        seenImages.add(image.id)
-        return true
-      })
-      .sort((a, b) => a.timestamp - b.timestamp)
+    stack.images.sort((a, b) => a.timestamp - b.timestamp)
     stack.items.sort(compareStackItems)
   }
 

@@ -36,7 +36,7 @@ export function useImageDetailBlobs({
   const [displayImage, setDisplayImage] = useState<DisplayImage | null>(null)
 
   // Resolve missing refs from IndexedDB
-  const [dbRefMetas, setDbRefMetas] = useState<Map<string, PlaygroundImageMeta>>(new Map())
+  const [dbRefMetas, setDbRefMetas] = useState<Map<string, PlaygroundImageMeta>>(() => new Map())
   const historyMetaById = useMemo(() => new Map(history.map((image) => [image.id, image])), [history])
   const missingRefIds = useMemo(() => {
     if (!currentMeta) return []
@@ -54,7 +54,7 @@ export function useImageDetailBlobs({
     return (id: string): PlaygroundImageMeta | undefined => historyMetaById.get(id) ?? dbRefMetas.get(id)
   }, [historyMetaById, dbRefMetas])
 
-  const [refSrcMap, setRefSrcMap] = useState<Map<string, string>>(new Map())
+  const [refSrcMap, setRefSrcMap] = useState<Map<string, string>>(() => new Map())
   const refDetailSrc = refDetailId ? (refSrcMap.get(refDetailId) ?? null) : null
 
   useExternalSync(() => {

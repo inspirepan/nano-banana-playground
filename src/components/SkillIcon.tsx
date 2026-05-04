@@ -1,4 +1,5 @@
 import { DynamicIcon } from 'lucide-react/dynamic'
+import { useCallback } from 'react'
 
 import { Icon } from './Icon'
 import { normalizeSkillIcon, type AgentSkillIconName } from '../agent/skills/icons'
@@ -11,11 +12,14 @@ type Props = {
 }
 
 export function SkillIcon({ name, size = 14, className, strokeWidth = 1.8 }: Props) {
-  const Fallback = () => <Icon name="sparkles" size={size} strokeWidth={strokeWidth} className={className} />
+  const fallback = useCallback(
+    () => <Icon name="sparkles" size={size} strokeWidth={strokeWidth} className={className} />,
+    [size, strokeWidth, className],
+  )
   return (
     <DynamicIcon
       name={normalizeSkillIcon(name)}
-      fallback={Fallback}
+      fallback={fallback}
       size={size}
       strokeWidth={strokeWidth}
       className={className}

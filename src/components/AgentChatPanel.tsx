@@ -151,17 +151,6 @@ export function AgentChatPanel({
   const [nearBottom, setNearBottom] = useState(true)
   const [optimisticRunning, setOptimisticRunning] = useState(false)
 
-  useWindowEvent(
-    'pointerdown',
-    (event) => {
-      const target = event.target
-      if (!(target instanceof Element)) return
-      if (target.closest('[data-agent-menu], [data-agent-menu-trigger]')) return
-      setOpenMenu(null)
-    },
-    undefined,
-    openMenu !== null,
-  )
   const currentKeyStatus = keyStatuses[model.provider]
   const keyMissing = currentKeyStatus === 'empty'
   const hasComposerContent = draft.trim() !== '' || attachments.length > 0
@@ -331,7 +320,7 @@ export function AgentChatPanel({
       if (!controlsRef.current?.contains(target as Node)) setOpenMenu(null)
     },
     undefined,
-    true,
+    openMenu !== null,
   )
 
   const addFiles = (files: FileList | File[]) => {

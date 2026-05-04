@@ -71,10 +71,11 @@ export const OutputPanel = memo(function OutputPanel({
 }: Props) {
   const { t } = useI18n()
   const stacks = useMemo(() => buildImageStacks(history, generationJobs), [history, generationJobs])
-  const generatedImageCount = useMemo(
-    () => history.reduce((count, img) => count + (img.source.type === 'generated' ? 1 : 0), 0),
-    [history],
-  )
+  const generatedImageCount = useMemo(() => {
+    let total = 0
+    for (const stack of stacks) total += stack.images.length
+    return total
+  }, [stacks])
   const stackIndexById = useMemo(() => new Map(stacks.map((stack, index) => [stack.id, index])), [stacks])
 
   const {

@@ -185,26 +185,22 @@ export function useImageSrc(
 ): { ref: React.RefObject<HTMLDivElement | null>; src: string | null; failed: boolean } {
   const variant = options?.variant ?? 'full'
 
-  if (inlineData) {
-    blobCache.set(id, inlineData)
-  }
-
-  const [src, setSrc] = useState<string | null>(() => {
-    return cachedSrcFor(id, mimeType, variant, inlineData)
-  })
+  const [src, setSrc] = useState<string | null>(() => cachedSrcFor(id, mimeType, variant, inlineData))
   const [failed, setFailed] = useState(false)
 
   const ref = useRef<HTMLDivElement | null>(null)
 
-  // Sync src from cache when inputs change (render-time state adjustment)
-  const [prevInputs, setPrevInputs] = useState({ id, variant, mimeType, inlineData })
-  if (
-    prevInputs.id !== id ||
-    prevInputs.variant !== variant ||
-    prevInputs.mimeType !== mimeType ||
-    prevInputs.inlineData !== inlineData
-  ) {
-    setPrevInputs({ id, variant, mimeType, inlineData })
+  // Sync src from cache when inputs change (derived state during render).
+  // Track each input as a primitive to avoid allocating a wrapper object per render.
+  const [prevId, setPrevId] = useState(id)
+  const [prevVariant, setPrevVariant] = useState(variant)
+  const [prevMimeType, setPrevMimeType] = useState(mimeType)
+  const [prevInlineData, setPrevInlineData] = useState(inlineData)
+  if (prevId !== id || prevVariant !== variant || prevMimeType !== mimeType || prevInlineData !== inlineData) {
+    setPrevId(id)
+    setPrevVariant(variant)
+    setPrevMimeType(mimeType)
+    setPrevInlineData(inlineData)
 
     const cached = cachedSrcFor(id, mimeType, variant, inlineData)
     if (cached) {
@@ -215,6 +211,13 @@ export function useImageSrc(
       if (failed) setFailed(false)
     }
   }
+
+  // Mirror inlineData into the module cache so other callers asking for the same
+  // id without inlineData can resolve immediately. Done in an effect to keep the
+  // render body free of side effects.
+  useExternalSync(() => {
+    if (inlineData) blobCache.set(id, inlineData)
+  }, [id, inlineData])
 
   useExternalSync(() => {
     // Skip if cache already has it (sync path handled it)

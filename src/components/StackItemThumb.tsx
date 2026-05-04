@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode } from 'react'
+import { memo, type CSSProperties, type ReactNode } from 'react'
 
 import { Icon } from './Icon'
 import { getBlobFromCache, useImageSrc } from '../hooks/useImageSrc'
@@ -49,7 +49,7 @@ function slotReasonColor(slot: Slot): string {
   return 'var(--color-text-3)'
 }
 
-export function StackItemThumb({
+export const StackItemThumb = memo(function StackItemThumb({
   item,
   number,
   active = false,
@@ -277,4 +277,4 @@ export function StackItemThumb({
       )}
     </div>
   )
-}
+})

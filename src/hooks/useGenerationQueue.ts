@@ -382,13 +382,23 @@ export function useGenerationQueue({
   )
 
   const pumpGenerationQueue = useCallback(() => {
+    const findQueuedSlot = (): { jobId: string; slotId: string } | null => {
+      // Walk jobs oldest-first (the array stores newest-first), and pick the
+      // first queued slot. Equivalent to the previous reverse+flatMap+find but
+      // avoids allocating intermediate arrays on every pump tick.
+      const jobs = generationJobsRef.current
+      for (let i = jobs.length - 1; i >= 0; i--) {
+        const job = jobs[i]
+        for (const slot of job.slots) {
+          if (slot.status === 'queued') return { jobId: job.id, slotId: slot.id }
+        }
+      }
+      return null
+    }
     while (activeSlotIdsRef.current.size < generationConcurrencyRef.current) {
-      const next = [...generationJobsRef.current]
-        .reverse()
-        .flatMap((job) => job.slots.map((slot) => ({ job, slot })))
-        .find(({ slot }) => slot.status === 'queued')
+      const next = findQueuedSlot()
       if (!next) return
-      startGenerationSlot(next.job.id, next.slot.id)
+      startGenerationSlot(next.jobId, next.slotId)
     }
   }, [startGenerationSlot])
 
