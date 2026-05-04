@@ -98,6 +98,7 @@ export function AgentChatHeader({
                 const status = sessionStatuses[session.id] ?? null
                 const imageCount = session.imageCount ?? 0
                 const imageCountLabel = t('agentChat.header.generatedImageCount', { count: imageCount })
+                const displayTitle = session.firstUserText.replace(/\s+/g, ' ').trim() || session.title
                 return (
                   <div
                     key={session.id}
@@ -118,12 +119,12 @@ export function AgentChatHeader({
                       }}
                       className="min-w-0 flex-1 bg-transparent pl-2 text-left"
                       aria-current={active ? 'true' : undefined}
-                      title={session.title}
+                      title={displayTitle}
                     >
                       <span
                         className={`block truncate text-sm ${active ? 'font-semibold text-(--color-text)' : 'font-medium text-(--color-text-2)'}`}
                       >
-                        {session.title}
+                        {displayTitle}
                       </span>
                     </button>
                     <span className="ml-2 flex shrink-0 items-center gap-1.5 text-sm text-(--color-text-3)">

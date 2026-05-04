@@ -78,7 +78,7 @@ function extractMessageText(message: AgentMessage): string {
 function titleFromText(text: string): string {
   const normalized = text.replace(/\s+/g, ' ').trim()
   if (!normalized) return defaultSessionTitle()
-  return normalized.length > 28 ? `${normalized.slice(0, 28)}…` : normalized
+  return normalized.length > 60 ? `${normalized.slice(0, 60)}…` : normalized
 }
 
 async function persistMessageValue(value: unknown, blobPrefix: string): Promise<unknown> {
