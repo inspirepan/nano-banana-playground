@@ -48,6 +48,16 @@ export function useAgentWideLayout(inputMode: InputMode) {
     writeAgentWideTipDismissedPreference()
   }, [])
 
+  const setAgentPanelWidePreference = useCallback((wide: boolean) => {
+    setAgentPanelWide(wide)
+    writeAgentPanelWidePreference(wide)
+  }, [])
+
+  const setAgentWideTipDismissedPreference = useCallback((dismissed: boolean) => {
+    setAgentWideTipDismissed(dismissed)
+    writeAgentWideTipDismissedPreference(dismissed)
+  }, [])
+
   const toggleAgentPanelWide = useCallback(() => {
     setAgentPanelWide((prev) => {
       const next = !prev
@@ -67,5 +77,7 @@ export function useAgentWideLayout(inputMode: InputMode) {
     showAgentWideTip,
     toggleAgentPanelWide,
     dismissAgentWideTip,
+    setAgentPanelWidePreference,
+    setAgentWideTipDismissedPreference,
   }
 }

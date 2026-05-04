@@ -9,6 +9,7 @@ import {
   readProviderUseProxy,
   saveProviderBaseUrl,
   writeProviderApiKey,
+  writeProviderBaseUrl,
   writeProviderUseProxy,
 } from '../lib/credentialStore'
 import { getProxyBaseUrl, validateApiKey } from '../lib/validateKey'
@@ -83,6 +84,39 @@ export function useApiKey(provider: Provider) {
     setStatus('invalid')
   }, [])
 
+  const importCredentials = useCallback(
+    (
+      nextApiKey: string | null | undefined,
+      nextCustomBaseUrl: string | null | undefined,
+      nextUseProxy: boolean | null,
+    ) => {
+      if (nextApiKey !== undefined && nextApiKey !== null) {
+        const trimmedKey = nextApiKey.trim()
+        setApiKeyRaw(trimmedKey)
+        if (trimmedKey) {
+          writeProviderApiKey(provider, trimmedKey)
+          setStatus('valid')
+        } else {
+          clearProviderApiKey(provider)
+          setStatus('empty')
+        }
+      }
+
+      if (nextCustomBaseUrl !== undefined && nextCustomBaseUrl !== null) {
+        const trimmedBaseUrl = nextCustomBaseUrl.trim()
+        setCustomBaseUrlRaw(trimmedBaseUrl)
+        writeProviderBaseUrl(provider, trimmedBaseUrl)
+      }
+
+      if (nextUseProxy !== null) {
+        setUseProxyRaw(nextUseProxy)
+        writeProviderUseProxy(provider, nextUseProxy)
+      }
+      setError(null)
+    },
+    [provider],
+  )
+
   return useMemo(
     () => ({
       apiKey,
@@ -96,7 +130,21 @@ export function useApiKey(provider: Provider) {
       keepCurrent,
       setBaseUrl,
       invalidate,
+      importCredentials,
     }),
-    [apiKey, baseUrl, customBaseUrl, useProxy, error, invalidate, keepCurrent, reset, setBaseUrl, status, submit],
+    [
+      apiKey,
+      baseUrl,
+      customBaseUrl,
+      useProxy,
+      error,
+      importCredentials,
+      invalidate,
+      keepCurrent,
+      reset,
+      setBaseUrl,
+      status,
+      submit,
+    ],
   )
 }

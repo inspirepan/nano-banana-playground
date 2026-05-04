@@ -69,6 +69,8 @@ function App() {
     showAgentWideTip,
     toggleAgentPanelWide,
     dismissAgentWideTip,
+    setAgentPanelWidePreference,
+    setAgentWideTipDismissedPreference,
   } = useAgentWideLayout(pg.inputMode)
 
   const { regenToast, handleRegenerate, handleReroll, handleRetryGenerationSlot, handleRetryFailedGenerationImage } =
@@ -230,6 +232,8 @@ function App() {
             onSansFontChange={setSansFont}
             onLanguageChange={setLanguagePreference}
             onGenerationConcurrencyChange={pg.setGenerationConcurrency}
+            onAgentPanelWidePreferenceChange={setAgentPanelWidePreference}
+            onAgentWideTipDismissedPreferenceChange={setAgentWideTipDismissedPreference}
             onAgentSkillEnabledChange={pg.setAgentSkillEnabled}
             onDeleteAgentSkill={pg.deleteAgentSkill}
             onGetAgentSkillPackage={pg.getAgentSkillPackage}

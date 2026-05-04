@@ -21,6 +21,11 @@ export type KeyHook = {
   reset: () => void
   keepCurrent: () => void
   setBaseUrl: (baseUrl: string) => void
+  importCredentials: (
+    apiKey: string | null | undefined,
+    customBaseUrl: string | null | undefined,
+    useProxy: boolean | null,
+  ) => void
 }
 
 type Props = {

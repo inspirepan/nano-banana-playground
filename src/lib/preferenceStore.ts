@@ -69,8 +69,8 @@ export function readAgentWideTipDismissedPreference(): boolean {
   return readAgentPanelWidePreference() || read(AGENT_PANEL_WIDE_TIP_KEY) === '1'
 }
 
-export function writeAgentWideTipDismissedPreference(): boolean {
-  return write(AGENT_PANEL_WIDE_TIP_KEY, '1')
+export function writeAgentWideTipDismissedPreference(dismissed = true): boolean {
+  return write(AGENT_PANEL_WIDE_TIP_KEY, dismissed ? '1' : '0')
 }
 
 export function readGenerationConcurrencyPreference(): string | null {

@@ -8,6 +8,7 @@ import { ApiSettingsTab } from './settings/ApiSettingsTab'
 import { AppearanceSettingsTab } from './settings/AppearanceSettingsTab'
 import { DataSettingsTab } from './settings/DataSettingsTab'
 import { GenerationSettingsTab } from './settings/GenerationSettingsTab'
+import { SettingsBackupTab } from './settings/SettingsBackupTab'
 import { SkillsSettingsTab } from './settings/SkillsSettingsTab'
 import { WebToolsSettingsTab, type WebProviderNotice } from './settings/WebToolsSettingsTab'
 import type { SansFontId } from '../config/fonts'
@@ -40,7 +41,7 @@ import {
   type WebProviderApiKeys,
 } from '../lib/webProviderStore'
 
-type SettingsTab = 'appearance' | 'api' | 'web' | 'generation' | 'skills' | 'data'
+type SettingsTab = 'appearance' | 'api' | 'web' | 'generation' | 'skills' | 'backup' | 'data'
 
 const SETTINGS_TABS: { id: SettingsTab; labelKey: string; icon: IconName }[] = [
   { id: 'api', labelKey: 'settings.tabs.api', icon: 'key' },
@@ -48,6 +49,7 @@ const SETTINGS_TABS: { id: SettingsTab; labelKey: string; icon: IconName }[] = [
   { id: 'web', labelKey: 'settings.tabs.web', icon: 'search' },
   { id: 'generation', labelKey: 'settings.tabs.generation', icon: 'sparkles' },
   { id: 'skills', labelKey: 'settings.tabs.skills', icon: 'wand' },
+  { id: 'backup', labelKey: 'settings.tabs.backup', icon: 'download' },
   { id: 'data', labelKey: 'settings.tabs.data', icon: 'settings' },
 ]
 
@@ -85,6 +87,8 @@ type Props = {
   onSansFontChange: (id: SansFontId) => void
   onLanguageChange: (id: LanguagePreference) => void
   onGenerationConcurrencyChange: (value: number) => void
+  onAgentPanelWidePreferenceChange: (wide: boolean) => void
+  onAgentWideTipDismissedPreferenceChange: (dismissed: boolean) => void
   onAgentSkillEnabledChange: (name: string, enabled: boolean) => void
   onDeleteAgentSkill: (name: string) => void
   onGetAgentSkillPackage: (name: string) => AgentSkill | null
@@ -107,6 +111,8 @@ export function SettingsDialog({
   onSansFontChange,
   onLanguageChange,
   onGenerationConcurrencyChange,
+  onAgentPanelWidePreferenceChange,
+  onAgentWideTipDismissedPreferenceChange,
   onAgentSkillEnabledChange,
   onDeleteAgentSkill,
   onGetAgentSkillPackage,
@@ -262,6 +268,14 @@ export function SettingsDialog({
     if (webProviderSettings.fetchProvider === provider) writeWebFetchProviderPreference('default')
   }
 
+  const handleImportWebProviderApiKey = (provider: WebApiProvider, apiKey: string) => {
+    writeWebProviderApiKey(provider, apiKey)
+    setWebProviderSettings((current) => ({
+      ...current,
+      apiKeys: { ...current.apiKeys, [provider]: apiKey },
+    }))
+  }
+
   const handleUndoWebProviderSwitch = () => {
     if (!webProviderNotice) return
     writeWebSearchProviderPreference(webProviderNotice.previousSearchProvider)
@@ -320,7 +334,7 @@ export function SettingsDialog({
         role="dialog"
         aria-modal="true"
         aria-label={t('settings.title')}
-        className="relative flex h-[min(720px,calc(100dvh-32px))] w-full max-w-2xl flex-col overflow-hidden rounded-[var(--radius-lg)] bg-(--color-surface) shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-float)]"
+        className="relative flex h-[min(720px,calc(100dvh-32px))] w-full max-w-3xl flex-col overflow-hidden rounded-[var(--radius-lg)] bg-(--color-surface) shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-float)]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -403,6 +417,24 @@ export function SettingsDialog({
               onAgentSkillEnabledChange={onAgentSkillEnabledChange}
               onDeleteAgentSkill={onDeleteAgentSkill}
               onGetAgentSkillPackage={onGetAgentSkillPackage}
+              onCreateAgentSkill={onCreateAgentSkill}
+            />
+          )}
+
+          {selectedTab === 'backup' && (
+            <SettingsBackupTab
+              keyHooks={keyHooks}
+              onThemeChange={onThemeChange}
+              onColorThemeChange={onColorThemeChange}
+              onSansFontChange={onSansFontChange}
+              onLanguageChange={onLanguageChange}
+              onGenerationConcurrencyChange={onGenerationConcurrencyChange}
+              onAgentPanelWidePreferenceChange={onAgentPanelWidePreferenceChange}
+              onAgentWideTipDismissedPreferenceChange={onAgentWideTipDismissedPreferenceChange}
+              onWebSearchProviderChange={handleWebSearchProviderChange}
+              onWebFetchProviderChange={handleWebFetchProviderChange}
+              onImportWebProviderApiKey={handleImportWebProviderApiKey}
+              onAgentSkillEnabledChange={onAgentSkillEnabledChange}
               onCreateAgentSkill={onCreateAgentSkill}
             />
           )}
