@@ -65,7 +65,10 @@ export function AgentSessionSidebar({
         className="mb-7 flex h-[34px] w-full items-center gap-2 rounded-[var(--radius-md)] bg-(--color-surface-2) px-3 text-left text-base font-medium text-(--color-text-2) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)] transition-[background-color,color] hover:bg-(--color-surface-3) hover:text-(--color-text) focus-visible:bg-(--color-surface-3) focus-visible:text-(--color-text) focus-visible:outline-none"
       >
         <Icon name="plus" size={13} />
-        <span>{t('agentChat.header.newConversation')}</span>
+        <span className="min-w-0 flex-1 truncate">{t('agentChat.header.newConversation')}</span>
+        <kbd className="shrink-0" aria-hidden="true">
+          ⌘⇧O
+        </kbd>
       </button>
 
       <div className="mb-2 flex items-center gap-2 px-1">
