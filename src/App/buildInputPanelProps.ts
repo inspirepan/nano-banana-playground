@@ -1,6 +1,6 @@
 import type { ComponentProps } from 'react'
 
-import type { AgentImageTask } from '../agent'
+import type { AgentImageTaskFocusHandler } from '../components/agent-chat/types'
 import type { InputPanel } from '../components/InputPanel'
 import type { InputMode, usePlayground } from '../hooks/usePlayground'
 
@@ -16,7 +16,7 @@ type Params = {
   pg: Pg
   onOpenApiKeys: () => void
   onInputModeChange: (mode: InputMode) => void
-  onFocusAgentImageTask: (task: AgentImageTask) => void
+  onFocusAgentImageTask: AgentImageTaskFocusHandler
   onGenerate: () => void
 }
 

@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { useLayoutEffect, useRef, useState, type MouseEvent, type ReactNode } from 'react'
 
 import { summarizeToolResult } from './utils'
 import type { AgentImageTask, AgentMessageToolCall, AgentMessageToolResult } from '../../agent'
@@ -8,6 +8,7 @@ import { useI18n } from '../../i18n'
 import type { StackItem } from '../../lib/stacks'
 import { Icon } from '../Icon'
 import { StackItemThumb } from '../StackItemThumb'
+import type { AgentImageTaskFocusHandler } from './types'
 
 const PROMPT_BOX_COLLAPSED_MAX_HEIGHT = 72
 
@@ -160,7 +161,7 @@ export function AgentImageTaskCard({
   onApprove: (taskId: string) => void
   onCancel: (taskId: string) => void
   onToggleAutoApproveImageTasks: (value: boolean) => void
-  onFocus?: (task: AgentImageTask) => void
+  onFocus?: AgentImageTaskFocusHandler
 }) {
   const { t } = useI18n()
 
@@ -213,7 +214,14 @@ export function AgentImageTaskCard({
       task.status === 'approved' ||
       task.status === 'completed'),
   )
-  const handleCardClick = canFocus && task ? () => onFocus?.(task) : undefined
+  const handleCardClick = canFocus && task ? () => onFocus?.(task, { behavior: 'open' }) : undefined
+  const handleLocateClick = canFocus && task ? () => onFocus?.(task, { behavior: 'locate' }) : undefined
+  const handleShellClick = canFocus
+    ? (event: MouseEvent<HTMLDivElement>) => {
+        if (event.target instanceof Element && event.target.closest('[data-stack-item-thumb]')) return
+        handleCardClick?.()
+      }
+    : undefined
 
   // Param chip row, shared by all post-composing states. Renders nothing in
   // composing because we don't know the model/resolution yet.
@@ -257,7 +265,7 @@ export function AgentImageTaskCard({
               className="aspect-square w-full"
               numberBadgeInset={6}
               onSelect={() => {
-                if (canFocus) onFocus?.(task)
+                if (canFocus) onFocus?.(task, { behavior: 'open' })
               }}
             />
           ) : (
@@ -326,8 +334,8 @@ export function AgentImageTaskCard({
               numberBadgeInset={6}
               metaBadge={completedMetaBadge}
               metaBadgeTitle={completedMetaBadge}
-              onSelect={() => {
-                if (task && canFocus) onFocus?.(task)
+              onSelect={(item) => {
+                if (task && canFocus) onFocus?.(task, { behavior: 'open', itemId: item.id })
               }}
             />
           )
@@ -342,22 +350,24 @@ export function AgentImageTaskCard({
   if (isCompleted) {
     return (
       <div
-        role={canFocus ? 'button' : undefined}
-        tabIndex={canFocus ? 0 : undefined}
-        onClick={handleCardClick}
-        onKeyDown={
-          canFocus
-            ? (event) => {
-                if (event.key === 'Enter' || event.key === ' ') {
-                  event.preventDefault()
-                  handleCardClick?.()
-                }
-              }
-            : undefined
-        }
-        className={`m-1 max-w-[460px] overflow-hidden rounded-[var(--radius-lg)] bg-(--color-surface) shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-lift)] ${canFocus ? 'cursor-pointer' : ''}`}
+        onClick={handleShellClick}
+        className={`group relative m-1 max-w-[460px] overflow-hidden rounded-[var(--radius-lg)] bg-(--color-surface) shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-lift)] ${canFocus ? 'cursor-pointer' : ''}`}
       >
         {renderCompletedGrid()}
+        {canFocus && (
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation()
+              handleLocateClick?.()
+            }}
+            className="media-action absolute bottom-1.5 right-1.5 z-30 min-h-[24px] px-2 opacity-0 transition-opacity duration-150 group-hover:opacity-100 focus:opacity-100"
+            title={t('agentChat.imageTask.locateInGallery')}
+            aria-label={t('agentChat.imageTask.locateInGallery')}
+          >
+            <Icon name="map_pin" size={12} />
+          </button>
+        )}
       </div>
     )
   }
@@ -367,10 +377,11 @@ export function AgentImageTaskCard({
     <div
       role={canFocus ? 'button' : undefined}
       tabIndex={canFocus ? 0 : undefined}
-      onClick={handleCardClick}
+      onClick={handleShellClick}
       onKeyDown={
         canFocus
           ? (event) => {
+              if (event.target !== event.currentTarget) return
               if (event.key === 'Enter' || event.key === ' ') {
                 event.preventDefault()
                 handleCardClick?.()

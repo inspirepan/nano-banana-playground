@@ -1,7 +1,7 @@
 import { lazy, memo, Suspense, useCallback, useMemo } from 'react'
 
 import { Icon } from './Icon'
-import { hasActiveGenerationSlots, canDismissFailedGenerationJob } from './output/outputPanelHelpers'
+import { canDismissFailedGenerationJob, hasActiveGenerationSlots, type DetailTarget } from './output/outputPanelHelpers'
 import { StackRow } from './output/StackRow'
 import { useInfiniteScrollSentinel } from './output/useInfiniteScrollSentinel'
 import { useStackDeletion } from './output/useStackDeletion'
@@ -9,6 +9,7 @@ import { useStackDetailNavigation } from './output/useStackDetailNavigation'
 import { useStackExporting } from './output/useStackExporting'
 import { useStackScrollSync } from './output/useStackScrollSync'
 import type { ModelConfig } from '../config/models'
+import { useExternalSync } from '../hooks/effects'
 import type { GenerationJob } from '../hooks/usePlayground'
 import { useI18n } from '../i18n'
 import { buildImageStacks, type ImageStack } from '../lib/stacks'
@@ -45,6 +46,8 @@ type Props = {
   onLoadMore: () => void
   onOpenGenerationSettings: () => void
   highlightStackId?: string | null
+  externalDetailTarget?: DetailTarget | null
+  onExternalDetailTargetConsumed?: () => void
 }
 
 export const OutputPanel = memo(function OutputPanel({
@@ -63,6 +66,8 @@ export const OutputPanel = memo(function OutputPanel({
   onLoadMore,
   onOpenGenerationSettings,
   highlightStackId,
+  externalDetailTarget,
+  onExternalDetailTargetConsumed,
 }: Props) {
   const { t } = useI18n()
   const stacks = useMemo(() => buildImageStacks(history, generationJobs), [history, generationJobs])
@@ -83,6 +88,12 @@ export const OutputPanel = memo(function OutputPanel({
     openStackGallery,
     navigateDetailToTarget,
   } = useStackDetailNavigation({ stacks, stackIndexById })
+
+  useExternalSync(() => {
+    if (!externalDetailTarget) return
+    setDetailTarget(externalDetailTarget)
+    onExternalDetailTargetConsumed?.()
+  }, [externalDetailTarget, onExternalDetailTargetConsumed, setDetailTarget])
 
   const { exporting, exportingStackId, handleExportAll, handleExportStack } = useStackExporting({ history })
 

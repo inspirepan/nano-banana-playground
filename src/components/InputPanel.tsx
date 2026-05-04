@@ -17,6 +17,7 @@ import { autoResizeTextarea } from './InputPanel/textarea'
 import { usePanelDropAndPaste } from './InputPanel/usePanelDropAndPaste'
 import { usePromptHistory } from './InputPanel/usePromptHistory'
 import type { AgentSessionMessageMetadata } from '../agent/sessionTypes'
+import type { AgentImageTaskFocusHandler } from './agent-chat/types'
 import type { AgentModelConfig, AgentThinkingLevel } from '../config/agentModels'
 import { type ModelConfig, type Provider } from '../config/models'
 import { useWindowEvent } from '../hooks/effects'
@@ -80,7 +81,7 @@ type Props = {
   onCancelAgentImageTask: (taskId: string) => void
   onSubmitAgentQuestionAnswers: (toolCallId: string, answers: AskUserQuestionAnswer[]) => void
   onCancelAgentQuestion: (toolCallId: string) => void
-  onFocusAgentImageTask?: (task: AgentImageTask) => void
+  onFocusAgentImageTask?: AgentImageTaskFocusHandler
   onSendAgentMessage: () => boolean
   onStopAgentMessage: () => void
   onBatchCountChange: (v: number) => void

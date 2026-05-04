@@ -34,7 +34,7 @@ import { isDrawingSkill } from './agent-chat/drawingSkills'
 import { DrawingSkillStarters } from './agent-chat/DrawingSkillStarters'
 import { MessageBubble } from './agent-chat/MessageBubble'
 import { ToolActivityCard } from './agent-chat/ToolActivityCard'
-import type { AgentChatMenu } from './agent-chat/types'
+import type { AgentChatMenu, AgentImageTaskFocusHandler } from './agent-chat/types'
 import { buildChatRenderItems, isImageFile, parseDraggedPlaygroundImage } from './agent-chat/utils'
 import { Icon } from './Icon'
 
@@ -76,7 +76,7 @@ type Props = {
   onCancelImageTask: (taskId: string) => void
   onSubmitQuestionAnswers: (toolCallId: string, answers: AskUserQuestionAnswer[]) => void
   onCancelQuestion: (toolCallId: string) => void
-  onFocusImageTask?: (task: AgentImageTask) => void
+  onFocusImageTask?: AgentImageTaskFocusHandler
   onModelChange: (id: string) => void
   onThinkingLevelChange: (level: AgentThinkingLevel) => void
   onSend: () => boolean

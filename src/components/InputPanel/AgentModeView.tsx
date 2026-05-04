@@ -16,6 +16,7 @@ import type { Provider } from '../../config/models'
 import type { ApiKeyStatus } from '../../hooks/useApiKey'
 import type { GenerationJob } from '../../hooks/usePlayground'
 import type { PlaygroundImage, PlaygroundImageMeta } from '../../lib/types'
+import type { AgentImageTaskFocusHandler } from '../agent-chat/types'
 import { AgentChatPanel } from '../AgentChatPanel'
 
 type Props = {
@@ -56,7 +57,7 @@ type Props = {
   onCancelAgentImageTask: (taskId: string) => void
   onSubmitAgentQuestionAnswers: (toolCallId: string, answers: AskUserQuestionAnswer[]) => void
   onCancelAgentQuestion: (toolCallId: string) => void
-  onFocusAgentImageTask?: (task: AgentImageTask) => void
+  onFocusAgentImageTask?: AgentImageTaskFocusHandler
   onAgentModelChange: (id: string) => void
   onAgentThinkingLevelChange: (level: AgentThinkingLevel) => void
   onSendAgentMessage: () => boolean

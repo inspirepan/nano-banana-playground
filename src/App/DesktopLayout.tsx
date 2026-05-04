@@ -25,6 +25,8 @@ type Props = {
   toggleAgentPanelWide: () => void
   dismissAgentWideTip: () => void
   highlightStackId: OutputPanelProps['highlightStackId']
+  externalDetailTarget: OutputPanelProps['externalDetailTarget']
+  onExternalDetailTargetConsumed: OutputPanelProps['onExternalDetailTargetConsumed']
   history: OutputPanelProps['history']
   historyHasMore: OutputPanelProps['historyHasMore']
   generationJobs: OutputPanelProps['generationJobs']
@@ -53,6 +55,8 @@ export function DesktopLayout({
   toggleAgentPanelWide,
   dismissAgentWideTip,
   highlightStackId,
+  externalDetailTarget,
+  onExternalDetailTargetConsumed,
   history,
   historyHasMore,
   generationJobs,
@@ -172,6 +176,8 @@ export function DesktopLayout({
       onLoadMore={onLoadMore}
       onOpenGenerationSettings={onOpenGenerationSettings}
       highlightStackId={highlightStackId}
+      externalDetailTarget={externalDetailTarget}
+      onExternalDetailTargetConsumed={onExternalDetailTargetConsumed}
     />
   )
 

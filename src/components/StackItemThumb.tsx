@@ -148,6 +148,7 @@ export function StackItemThumb({
   return (
     <div
       role="button"
+      data-stack-item-thumb
       tabIndex={0}
       draggable={Boolean(image)}
       onDragStart={(event) => {

@@ -9,6 +9,7 @@ import {
   StandaloneToolResultRow,
   ToolCallRow,
 } from './CompactToolGroup'
+import type { AgentImageTaskFocusHandler } from './types'
 import type {
   AgentImageTask,
   AgentMessageToolCall,
@@ -124,7 +125,7 @@ export function ToolActivityCard({
   onToggleAutoApproveImageTasks: (value: boolean) => void
   onSubmitQuestionAnswers: (toolCallId: string, answers: AskUserQuestionAnswer[]) => void
   onCancelQuestion: (toolCallId: string) => void
-  onFocusImageTask?: (task: AgentImageTask) => void
+  onFocusImageTask?: AgentImageTaskFocusHandler
 }) {
   const { t } = useI18n()
   const resultByCallId = useMemo(() => new Map(results.map((result) => [result.toolCallId, result])), [results])

@@ -74,12 +74,14 @@ function App() {
 
   const {
     highlightStackId,
+    desktopDetailTarget,
     mobileDetailState,
     mobileDetailStack,
     mobilePrevStackTarget,
     mobileNextStackTarget,
     handleMobileNavigateToStackItem,
     handleCloseMobileDetail,
+    handleDesktopDetailTargetConsumed,
     handleFocusAgentImageTask,
   } = useMobileDetailModal({ history: pg.history, generationJobs: pg.generationJobs })
 
@@ -172,6 +174,8 @@ function App() {
         toggleAgentPanelWide={toggleAgentPanelWide}
         dismissAgentWideTip={dismissAgentWideTip}
         highlightStackId={highlightStackId}
+        externalDetailTarget={desktopDetailTarget}
+        onExternalDetailTargetConsumed={handleDesktopDetailTargetConsumed}
         history={pg.history}
         historyHasMore={pg.historyHasMore}
         generationJobs={pg.generationJobs}
