@@ -436,10 +436,12 @@ export function AgentChatPanel({
                   <DrawingSkillStarters
                     skills={drawingSkills}
                     onPick={(skill) => {
-                      onDraftChange(
-                        `/${skill.name} ${t('agentChat.empty.skillStarter.prompt', { skill: displayNameForLanguage(skill, language) })}`,
-                      )
-                      composerRef.current?.focus()
+                      flushSync(() => {
+                        onDraftChange(
+                          `/${skill.name} ${t('agentChat.empty.skillStarter.prompt', { skill: displayNameForLanguage(skill, language) })}`,
+                        )
+                      })
+                      composerRef.current?.activate()
                     }}
                   />
                 ) : (

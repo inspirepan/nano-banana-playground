@@ -252,11 +252,7 @@ export function AskUserQuestionForm({
                       <span className="flex flex-col items-start justify-center">
                         <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-(--color-text-2) group-data-[active]:text-(--color-accent)">
                           {cleanedLabel}
-                          {recommendText ? (
-                            <span className="tag accent group-data-[active]:bg-(--color-accent) group-data-[active]:text-(--color-accent-fg) group-data-[active]:shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-accent)_55%,#000_10%)]">
-                              {recommendText}
-                            </span>
-                          ) : null}
+                          {recommendText ? <span className="tag accent">{recommendText}</span> : null}
                         </span>
                         {description ? (
                           <span className="text-[12px] leading-[1.35] text-(--color-text-3) group-data-[active]:text-(--color-text-2)">

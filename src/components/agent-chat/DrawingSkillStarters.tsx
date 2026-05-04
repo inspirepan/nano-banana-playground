@@ -18,7 +18,7 @@ export function DrawingSkillStarters({
         </span>
       </div>
       <div
-        className="scroll-fade-x grid auto-cols-[140px] grid-flow-col grid-rows-2 snap-x gap-[2px] overflow-x-auto px-7 py-1.5 scroll-pl-7 [--scroll-fade-end-size:3rem] [--scroll-fade-start-size:3rem] sm:auto-cols-[152px] [&::-webkit-scrollbar]:hidden"
+        className="scroll-fade-x grid auto-cols-[140px] grid-flow-col grid-rows-1 snap-x gap-[2px] overflow-x-auto px-7 py-1.5 scroll-pl-7 [--scroll-fade-end-size:3rem] [--scroll-fade-start-size:3rem] sm:auto-cols-[152px] md:grid-rows-2 [&::-webkit-scrollbar]:hidden"
         style={{ scrollbarWidth: 'none' }}
       >
         {skills.map((skill) => (
