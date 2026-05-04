@@ -22,6 +22,7 @@ import { displayNameForLanguage, type AgentChatAttachment, type AgentSkillSummar
 import type { AgentModelConfig, AgentThinkingLevel } from '../../config/agentModels'
 import type { Provider } from '../../config/models'
 import type { ApiKeyStatus } from '../../hooks/useApiKey'
+import { useComposerSubmitMode } from '../../hooks/useComposerSubmitMode'
 import { useI18n } from '../../i18n'
 import type { PlaygroundImage, PlaygroundImageMeta } from '../../lib/types'
 import { Icon } from '../Icon'
@@ -139,6 +140,7 @@ export const AgentChatComposer = forwardRef<AgentChatComposerHandle, AgentChatCo
   ref,
 ) {
   const { t, language } = useI18n()
+  const { composerSubmitMode } = useComposerSubmitMode()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const composerRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -272,6 +274,18 @@ export const AgentChatComposer = forwardRef<AgentChatComposerHandle, AgentChatCo
       }
     }
     if (event.key === 'Enter' && event.metaKey) {
+      event.preventDefault()
+      if (canSend) onSend()
+      return
+    }
+    if (
+      composerSubmitMode === 'enter' &&
+      event.key === 'Enter' &&
+      !event.shiftKey &&
+      !event.ctrlKey &&
+      !event.altKey &&
+      !event.metaKey
+    ) {
       event.preventDefault()
       if (canSend) onSend()
     }

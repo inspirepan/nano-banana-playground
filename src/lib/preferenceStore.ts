@@ -15,6 +15,7 @@ const DETAIL_SIDEBAR_COLLAPSED_KEY = 'nano-banana-detail-sidebar-collapsed'
 const PREFERRED_IMAGE_MODEL_KEY = 'nano-banana-preferred-image-model'
 const PREFERRED_AGENT_MODEL_KEY = 'nano-banana-agent-model'
 const PREFERRED_AGENT_THINKING_LEVEL_KEY = 'nano-banana-agent-thinking-level'
+const COMPOSER_SUBMIT_MODE_KEY = 'nano-banana-composer-submit-mode'
 
 function read(key: string): string | null {
   return getStorageItem('localStorage', key)
@@ -114,4 +115,12 @@ export function readPreferredAgentThinkingLevelPreference(): string | null {
 
 export function writePreferredAgentThinkingLevelPreference(level: AgentThinkingLevel): boolean {
   return write(PREFERRED_AGENT_THINKING_LEVEL_KEY, level)
+}
+
+export function readComposerSubmitModePreference(): string | null {
+  return read(COMPOSER_SUBMIT_MODE_KEY)
+}
+
+export function writeComposerSubmitModePreference(mode: string): boolean {
+  return write(COMPOSER_SUBMIT_MODE_KEY, mode)
 }
