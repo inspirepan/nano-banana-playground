@@ -163,7 +163,7 @@ function AgentImagePromptBox({ text }: { text: string }) {
 
   return (
     <div className="mt-2 max-w-[432px]">
-      <div className="rounded-[var(--radius-sm)] bg-(--color-surface) px-2 pt-1.5 pb-2 text-base leading-[1.5] text-(--color-text-2) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
+      <div className="rounded-[var(--radius-sm)] bg-(--color-surface) px-2 pt-1.5 pb-2 text-base leading-[1.5] text-(--color-text-3) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
         <div
           ref={ref}
           className="whitespace-pre-wrap"
@@ -289,7 +289,7 @@ export function AgentImageTaskCard({
     ) : null
 
   const targetIdNode = targetIdLabel ? (
-    <span className="mono ml-auto min-w-0 truncate text-sm text-(--color-text-4)" title={targetIdLabel}>
+    <span className="mono min-w-0 truncate text-sm font-medium text-(--color-text)" title={targetIdLabel}>
       {targetIdLabel}
     </span>
   ) : null
@@ -446,23 +446,29 @@ export function AgentImageTaskCard({
     >
       {/* Composing micro header (only state that gets a header) */}
       {isComposingPrompt && (
-        <div className="flex min-w-0 items-center gap-2">
-          <span className="spinner" style={{ width: 10, height: 10 }} />
-          <span className="text-sm text-(--color-text-3)">{t('agentChat.taskStatus.prompting')}</span>
+        <div className="flex max-w-[432px] min-w-0 items-center justify-between gap-2 px-2">
           {targetIdNode}
+          <span className="ml-auto inline-flex shrink-0 items-center gap-2 text-sm text-(--color-text-3)">
+            <span className="spinner" style={{ width: 10, height: 10 }} />
+            <span>{t('agentChat.taskStatus.prompting')}</span>
+          </span>
         </div>
       )}
 
-      {/* Param chips + right-aligned target id */}
+      {/* Target id on the left, generation parameter tags on the right. */}
       {!isComposingPrompt && (paramTags || targetIdNode) && (
-        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-          {paramTags}
-          {isFailed && (
-            <span className="inline-flex items-center" style={{ color: 'var(--color-danger)' }}>
-              <Icon name="alert_circle" size={13} />
-            </span>
-          )}
+        <div className="flex max-w-[432px] min-w-0 items-start justify-between gap-2 px-2">
           {targetIdNode}
+          {(paramTags || isFailed) && (
+            <div className="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-x-2 gap-y-1">
+              {paramTags}
+              {isFailed && (
+                <span className="inline-flex items-center" style={{ color: 'var(--color-danger)' }}>
+                  <Icon name="alert_circle" size={13} />
+                </span>
+              )}
+            </div>
+          )}
         </div>
       )}
 
