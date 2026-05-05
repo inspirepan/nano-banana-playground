@@ -4,7 +4,11 @@ import { DesktopAnnotationToolbar } from './annotationControls'
 import type { BrushPresetId } from './annotationPresets'
 import { DrawableLayer, type DrawableLayerHandle, type DrawMode, type DrawTool } from './DrawableLayer'
 import { SlotHero } from './StackViews'
-import { ZoomableImageView, type ZoomableImageViewState } from './ZoomableImageView'
+import {
+  ZoomableImageView,
+  type ZoomableImageViewHandoffReason,
+  type ZoomableImageViewState,
+} from './ZoomableImageView'
 import { useI18n } from '../../i18n'
 import type { ItemCounts } from '../../lib/editStateCache'
 import type { StackItem } from '../../lib/stacks'
@@ -51,7 +55,7 @@ type DetailCanvasProps = {
   onCancelGenerationJob: (jobId: string) => void
   onDismissGenerationJob: (jobId: string) => void
   onRetryGenerationSlot: () => void
-  onPinchZoom?: (view: ZoomableImageViewState) => void
+  onRequestFullscreen?: (view: ZoomableImageViewState, reason: ZoomableImageViewHandoffReason) => void
 }
 
 export function DetailCanvas({
@@ -94,7 +98,7 @@ export function DetailCanvas({
   onCancelGenerationJob,
   onDismissGenerationJob,
   onRetryGenerationSlot,
-  onPinchZoom,
+  onRequestFullscreen,
 }: DetailCanvasProps) {
   const { t } = useI18n()
 
@@ -153,7 +157,7 @@ export function DetailCanvas({
             initialView={initialView}
             onSwipeLeft={hasNext ? onGoNext : undefined}
             onSwipeRight={hasPrev ? onGoPrev : undefined}
-            onPinchZoom={onPinchZoom}
+            onRequestFullscreen={onRequestFullscreen}
           />
           {!refDetailId && isMobileLayout && (
             <button

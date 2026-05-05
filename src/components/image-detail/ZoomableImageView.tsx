@@ -22,11 +22,14 @@ const PINCH_HANDOFF_THRESHOLD = 1.05
 const PINCH_FULLSCREEN_SCALE = 1.25
 const FIT_EXIT_SCALE = 1.01
 const CTRL_WHEEL_HANDOFF_DELAY = 180
+const DOUBLE_TAP_SCALE = 2.5
 
 export type ZoomableImageViewState = {
   scale: number
   focalPoint: Point
 }
+
+export type ZoomableImageViewHandoffReason = 'pinch' | 'double-tap' | 'wheel' | 'reset'
 
 type TouchListLike = {
   item: (index: number) => { clientX: number; clientY: number } | null
@@ -50,8 +53,8 @@ export function ZoomableImageView({
   initialView,
   onSwipeLeft,
   onSwipeRight,
-  onPinchZoom,
-  onZoomOutToFit,
+  onRequestFullscreen,
+  onRequestInline,
   onViewChange,
 }: {
   src: string
@@ -60,8 +63,8 @@ export function ZoomableImageView({
   initialView?: ZoomableImageViewState | null
   onSwipeLeft?: () => void
   onSwipeRight?: () => void
-  onPinchZoom?: (view: ZoomableImageViewState) => void
-  onZoomOutToFit?: () => void
+  onRequestFullscreen?: (view: ZoomableImageViewState, reason: ZoomableImageViewHandoffReason) => void
+  onRequestInline?: (view: ZoomableImageViewState, reason: ZoomableImageViewHandoffReason) => void
   onViewChange?: (view: ZoomableImageViewState) => void
 }) {
   const { t } = useI18n()
@@ -93,12 +96,41 @@ export function ZoomableImageView({
   const [isDragging, setIsDragging] = useState(false)
   const [isInteracting, setIsInteracting] = useState(false)
 
+  const getViewStateFor = useCallback((nextScale: number, nextOffset: Point): ZoomableImageViewState | null => {
+    const fitSize = fitSizeRef.current
+    if (!fitSize.width || !fitSize.height || nextScale <= 0) return null
+    return {
+      scale: nextScale,
+      focalPoint: {
+        x: clamp(0.5 - nextOffset.x / (fitSize.width * nextScale), 0, 1),
+        y: clamp(0.5 - nextOffset.y / (fitSize.height * nextScale), 0, 1),
+      },
+    }
+  }, [])
+
+  const requestInline = useCallback(
+    (reason: ZoomableImageViewHandoffReason) => {
+      if (!onRequestInline || fitExitActiveRef.current) return
+      fitExitActiveRef.current = true
+      onRequestInline({ scale: FIT_SCALE, focalPoint: { x: 0.5, y: 0.5 } }, reason)
+      window.setTimeout(() => {
+        fitExitActiveRef.current = false
+      }, 300)
+    },
+    [onRequestInline],
+  )
+
   const applyView = useCallback(
-    (nextScale: number, nextOffset: Point, options: { notifyZoomOutToFit?: boolean } = {}) => {
+    (
+      nextScale: number,
+      nextOffset: Point,
+      options: { requestInlineAtFit?: boolean; requestInlineReason?: ZoomableImageViewHandoffReason } = {},
+    ) => {
       const previousScale = scaleRef.current
       const clampedScale = clamp(nextScale, MIN_SCALE, MAX_SCALE)
       const viewport = getViewportSize(containerRef.current)
       const clampedOffset = clampOffset(nextOffset, clampedScale, viewport, fitSizeRef.current)
+      const view = getViewStateFor(clampedScale, clampedOffset)
 
       scaleRef.current = clampedScale
       offsetRef.current = clampedOffset
@@ -112,32 +144,19 @@ export function ZoomableImageView({
       setScale(clampedScale)
       setOffset(clampedOffset)
 
-      const fitSize = fitSizeRef.current
-      if (fitSize.width && fitSize.height) {
-        onViewChange?.({
-          scale: clampedScale,
-          focalPoint: {
-            x: clamp(0.5 - clampedOffset.x / (fitSize.width * clampedScale), 0, 1),
-            y: clamp(0.5 - clampedOffset.y / (fitSize.height * clampedScale), 0, 1),
-          },
-        })
-      }
+      if (view) onViewChange?.(view)
 
       if (
-        options.notifyZoomOutToFit &&
-        onZoomOutToFit &&
+        options.requestInlineAtFit &&
         previousScale > FIT_SCALE &&
-        clampedScale <= FIT_EXIT_SCALE &&
-        !fitExitActiveRef.current
+        clampedScale <= FIT_EXIT_SCALE
       ) {
-        fitExitActiveRef.current = true
-        onZoomOutToFit()
-        window.setTimeout(() => {
-          fitExitActiveRef.current = false
-        }, 300)
+        requestInline(options.requestInlineReason ?? 'reset')
       }
+
+      return view
     },
-    [onViewChange, onZoomOutToFit],
+    [getViewStateFor, onViewChange, requestInline],
   )
 
   const getViewState = useCallback((): ZoomableImageViewState | null => {
@@ -145,14 +164,8 @@ export function ZoomableImageView({
     const offset = offsetRef.current
     const fitSize = fitSizeRef.current
     if (!fitSize.width || !fitSize.height || scale <= 0) return null
-    return {
-      scale,
-      focalPoint: {
-        x: clamp(0.5 - offset.x / (fitSize.width * scale), 0, 1),
-        y: clamp(0.5 - offset.y / (fitSize.height * scale), 0, 1),
-      },
-    }
-  }, [])
+    return getViewStateFor(scale, offset)
+  }, [getViewStateFor])
 
   const applyInitialView = useCallback(() => {
     if (!initialView || initialViewAppliedKeyRef.current === initialViewKey) return false
@@ -183,28 +196,40 @@ export function ZoomableImageView({
     setIsInteracting(false)
   }, [])
 
+  const commitFullscreenHandoff = useCallback(
+    (reason: ZoomableImageViewHandoffReason) => {
+      if (!onRequestFullscreen || pinchHandoffActiveRef.current || !pinchHandoffPendingRef.current) return
+      pinchHandoffPendingRef.current = false
+      if (scaleRef.current < PINCH_FULLSCREEN_SCALE) return
+      const view = getViewState()
+      if (!view) return
+      pinchHandoffActiveRef.current = true
+      clearInteractionState()
+      onRequestFullscreen(view, reason)
+      window.setTimeout(() => {
+        pinchHandoffActiveRef.current = false
+      }, 300)
+    },
+    [clearInteractionState, getViewState, onRequestFullscreen],
+  )
+
   const commitPinchHandoff = useCallback(() => {
-    if (!onPinchZoom || pinchHandoffActiveRef.current || !pinchHandoffPendingRef.current) return
-    pinchHandoffPendingRef.current = false
-    if (scaleRef.current < PINCH_FULLSCREEN_SCALE) return
-    const view = getViewState()
-    if (!view) return
-    pinchHandoffActiveRef.current = true
-    clearInteractionState()
-    onPinchZoom(view)
-    window.setTimeout(() => {
-      pinchHandoffActiveRef.current = false
-    }, 300)
-  }, [clearInteractionState, getViewState, onPinchZoom])
+    if (onRequestInline && scaleRef.current <= FIT_EXIT_SCALE) {
+      requestInline('pinch')
+      return
+    }
+    if (!onRequestFullscreen || !pinchHandoffPendingRef.current) return
+    commitFullscreenHandoff('pinch')
+  }, [commitFullscreenHandoff, onRequestFullscreen, onRequestInline, requestInline])
 
   const scheduleWheelHandoff = useCallback(() => {
-    if (!onPinchZoom) return
+    if (!onRequestFullscreen) return
     if (wheelHandoffTimerRef.current !== null) window.clearTimeout(wheelHandoffTimerRef.current)
     wheelHandoffTimerRef.current = window.setTimeout(() => {
       wheelHandoffTimerRef.current = null
-      commitPinchHandoff()
+      commitFullscreenHandoff('wheel')
     }, CTRL_WHEEL_HANDOFF_DELAY)
-  }, [commitPinchHandoff, onPinchZoom])
+  }, [commitFullscreenHandoff, onRequestFullscreen])
 
   const syncFitSize = useCallback(() => {
     const viewport = getViewportSize(containerRef.current)
@@ -217,7 +242,7 @@ export function ZoomableImageView({
 
   const resetView = useCallback(() => {
     clearInteractionState()
-    applyView(FIT_SCALE, { x: 0, y: 0 }, { notifyZoomOutToFit: true })
+    applyView(FIT_SCALE, { x: 0, y: 0 }, { requestInlineAtFit: true, requestInlineReason: 'reset' })
   }, [applyView, clearInteractionState])
 
   const zoomAtPoint = useCallback(
@@ -226,16 +251,37 @@ export function ZoomableImageView({
       const nextScale = clamp(targetScale, MIN_SCALE, MAX_SCALE)
       const ratio = nextScale / currentScale
       const currentOffset = offsetRef.current
-      applyView(
+      return applyView(
         nextScale,
         {
           x: anchor.x - ratio * (anchor.x - currentOffset.x),
           y: anchor.y - ratio * (anchor.y - currentOffset.y),
         },
-        { notifyZoomOutToFit: true },
+        { requestInlineAtFit: true, requestInlineReason: 'wheel' },
       )
     },
     [applyView],
+  )
+
+  const getZoomedViewAtPoint = useCallback(
+    (targetScale: number, anchor: Point) => {
+      const currentScale = scaleRef.current
+      const nextScale = clamp(targetScale, MIN_SCALE, MAX_SCALE)
+      const ratio = nextScale / currentScale
+      const currentOffset = offsetRef.current
+      const viewport = getViewportSize(containerRef.current)
+      const nextOffset = clampOffset(
+        {
+          x: anchor.x - ratio * (anchor.x - currentOffset.x),
+          y: anchor.y - ratio * (anchor.y - currentOffset.y),
+        },
+        nextScale,
+        viewport,
+        fitSizeRef.current,
+      )
+      return getViewStateFor(nextScale, nextOffset)
+    },
+    [getViewStateFor],
   )
 
   const zoomOutFromControl = useCallback(() => {
@@ -257,14 +303,14 @@ export function ZoomableImageView({
       const delta = Math.exp(-event.deltaY * factor)
       const nextScale = scaleRef.current * delta
       zoomAtPoint(nextScale, point)
-      if (onPinchZoom && event.ctrlKey && delta > 1 && nextScale >= PINCH_FULLSCREEN_SCALE) {
+      if (onRequestFullscreen && event.ctrlKey && delta > 1 && nextScale >= PINCH_FULLSCREEN_SCALE) {
         pinchHandoffPendingRef.current = true
         scheduleWheelHandoff()
       }
     }
     element.addEventListener('wheel', handleWheel, { passive: false })
     return () => element.removeEventListener('wheel', handleWheel)
-  }, [onPinchZoom, scheduleWheelHandoff, zoomAtPoint])
+  }, [onRequestFullscreen, scheduleWheelHandoff, zoomAtPoint])
 
   // Keyboard 0 = reset
   useWindowEvent('keydown', (e) => {
@@ -283,12 +329,25 @@ export function ZoomableImageView({
         ref={containerRef}
         className="relative flex h-full w-full items-center justify-center overflow-hidden touch-none select-none"
         onDoubleClick={(event) => {
+          event.preventDefault()
+          event.stopPropagation()
           const point = getRelativePoint(containerRef.current, event.clientX, event.clientY)
+          if (onRequestInline) {
+            clearInteractionState()
+            applyView(FIT_SCALE, { x: 0, y: 0 })
+            requestInline('double-tap')
+            return
+          }
+          if (onRequestFullscreen) {
+            const view = getZoomedViewAtPoint(DOUBLE_TAP_SCALE, point)
+            if (view) onRequestFullscreen(view, 'double-tap')
+            return
+          }
           if (scaleRef.current > FIT_SCALE) {
             resetView()
             return
           }
-          zoomAtPoint(2.5, point)
+          zoomAtPoint(DOUBLE_TAP_SCALE, point)
         }}
         onPointerDown={(event) => {
           if (event.pointerType === 'mouse' && event.button !== 0) return
@@ -335,7 +394,7 @@ export function ZoomableImageView({
               y: center.y - ratio * (start.center.y - start.offset.y),
             })
             if (
-              onPinchZoom &&
+              onRequestFullscreen &&
               nextScale >= PINCH_FULLSCREEN_SCALE &&
               distance > start.distance * PINCH_HANDOFF_THRESHOLD
             ) {
@@ -377,8 +436,15 @@ export function ZoomableImageView({
             const now = Date.now()
             const lastTap = lastTapRef.current
             if (lastTap && now - lastTap.at < 280 && getDistance(lastTap.point, endPoint) < 28) {
-              if (scaleRef.current > FIT_SCALE) resetView()
-              else zoomAtPoint(2.5, endPoint)
+              if (onRequestInline) {
+                clearInteractionState()
+                applyView(FIT_SCALE, { x: 0, y: 0 })
+                requestInline('double-tap')
+              } else if (onRequestFullscreen) {
+                const view = getZoomedViewAtPoint(DOUBLE_TAP_SCALE, endPoint)
+                if (view) onRequestFullscreen(view, 'double-tap')
+              } else if (scaleRef.current > FIT_SCALE) resetView()
+              else zoomAtPoint(DOUBLE_TAP_SCALE, endPoint)
               lastTapRef.current = null
             } else {
               lastTapRef.current = { at: now, point: endPoint }
@@ -411,11 +477,11 @@ export function ZoomableImageView({
           clearInteractionState()
         }}
         onTouchStart={(event) => {
-          if (!onPinchZoom || event.touches.length < 2) return
+          if ((!onRequestFullscreen && !onRequestInline) || event.touches.length < 2) return
           touchPinchStartDistanceRef.current = getTouchDistance(event.touches)
         }}
         onTouchMove={(event) => {
-          if (!onPinchZoom || pinchHandoffActiveRef.current || event.touches.length < 2) return
+          if (!onRequestFullscreen || pinchHandoffActiveRef.current || event.touches.length < 2) return
           const distance = getTouchDistance(event.touches)
           if (!distance) return
           const startDistance = touchPinchStartDistanceRef.current
@@ -429,8 +495,9 @@ export function ZoomableImageView({
           }
         }}
         onTouchEnd={(event) => {
+          const wasTouchPinching = touchPinchStartDistanceRef.current !== null
           if (event.touches.length < 2) touchPinchStartDistanceRef.current = null
-          if (event.touches.length === 0) {
+          if (event.touches.length === 0 && wasTouchPinching) {
             commitPinchHandoff()
             pinchHandoffActiveRef.current = false
             fitExitActiveRef.current = false

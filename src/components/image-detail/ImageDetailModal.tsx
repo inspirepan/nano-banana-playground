@@ -248,14 +248,29 @@ export function ImageDetailModal({
     [setMobilePreviewOpen],
   )
 
-  const closeMobilePreview = useCallback(() => {
-    if (currentImage && mobilePreviewViewRef.current) {
-      setCanvasViewSnapshot({ imageId: currentImage.id, view: mobilePreviewViewRef.current })
-    }
-    mobilePreviewViewRef.current = null
-    setMobilePreviewOpen(false)
-    setMobilePreviewInitialView(null)
-  }, [currentImage, setMobilePreviewOpen])
+  const closeMobilePreview = useCallback(
+    (view?: ZoomableImageViewState | null) => {
+      const viewToPersist = view ?? mobilePreviewViewRef.current
+      if (currentImage && viewToPersist) {
+        setCanvasViewSnapshot({ imageId: currentImage.id, view: viewToPersist })
+      }
+      mobilePreviewViewRef.current = null
+      setMobilePreviewOpen(false)
+      setMobilePreviewInitialView(null)
+    },
+    [currentImage, setMobilePreviewOpen],
+  )
+
+  const handleMobilePreviewRequestInline = useCallback(
+    (view: ZoomableImageViewState) => {
+      closeMobilePreview(view)
+    },
+    [closeMobilePreview],
+  )
+
+  const closeMobilePreviewFromButton = useCallback(() => {
+    closeMobilePreview()
+  }, [closeMobilePreview])
 
   const goToPrevFromMobilePreview = useCallback(() => {
     mobilePreviewViewRef.current = null
@@ -525,7 +540,8 @@ export function ImageDetailModal({
             src={displayImage?.src ?? currentSrc ?? ''}
             alt={displayImage?.alt ?? currentMeta?.prompt ?? ''}
             initialView={mobilePreviewInitialView}
-            onClose={closeMobilePreview}
+            onClose={closeMobilePreviewFromButton}
+            onRequestInline={handleMobilePreviewRequestInline}
             onSwipeLeft={hasNext ? goToNextFromMobilePreview : undefined}
             onSwipeRight={hasPrev ? goToPrevFromMobilePreview : undefined}
             onViewChange={handleMobilePreviewViewChange}

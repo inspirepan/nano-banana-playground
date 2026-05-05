@@ -11,7 +11,7 @@ import type { DrawableLayerHandle, DrawMode, DrawTool } from './DrawableLayer'
 import type { EditImageHandler } from './EditSidebar'
 import { StackGallery, StackStrip } from './StackViews'
 import type { EditMode, GalleryMode, GalleryReturnTarget, ModalViewMode } from './useImageDetailModalState'
-import type { ZoomableImageViewState } from './ZoomableImageView'
+import type { ZoomableImageViewHandoffReason, ZoomableImageViewState } from './ZoomableImageView'
 import type { ModelConfig } from '../../config/models'
 import type { GenerationJob, GenerationSlot } from '../../hooks/usePlayground'
 import { useI18n } from '../../i18n'
@@ -52,7 +52,7 @@ type DetailLayoutProps = {
   setRefDetailId: Dispatch<SetStateAction<string | null>>
   // Mobile preview
   isMobileLayout: boolean
-  openMobilePreview: (initialView?: ZoomableImageViewState | null) => void
+  openMobilePreview: (initialView?: ZoomableImageViewState | null, reason?: ZoomableImageViewHandoffReason) => void
   // Drawing / edit state
   editing: boolean
   setEditing: (editing: boolean) => void
@@ -330,7 +330,7 @@ export function DetailLayout({
                 onCancelGenerationJob={onCancelGenerationJob}
                 onDismissGenerationJob={onDismissGenerationJob}
                 onRetryGenerationSlot={onRetryGenerationSlot}
-                onPinchZoom={isMobileLayout ? openMobilePreview : undefined}
+                onRequestFullscreen={isMobileLayout ? openMobilePreview : undefined}
               />
 
               <DetailSidePanel

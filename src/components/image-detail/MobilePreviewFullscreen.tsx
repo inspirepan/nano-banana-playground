@@ -1,5 +1,9 @@
 import { Icon } from '../Icon'
-import { ZoomableImageView, type ZoomableImageViewState } from './ZoomableImageView'
+import {
+  ZoomableImageView,
+  type ZoomableImageViewHandoffReason,
+  type ZoomableImageViewState,
+} from './ZoomableImageView'
 import { useI18n } from '../../i18n'
 
 export function MobilePreviewFullscreen({
@@ -7,6 +11,7 @@ export function MobilePreviewFullscreen({
   alt,
   initialView,
   onClose,
+  onRequestInline,
   onSwipeLeft,
   onSwipeRight,
   onViewChange,
@@ -15,6 +20,7 @@ export function MobilePreviewFullscreen({
   alt: string
   initialView?: ZoomableImageViewState | null
   onClose: () => void
+  onRequestInline?: (view: ZoomableImageViewState, reason: ZoomableImageViewHandoffReason) => void
   onSwipeLeft?: () => void
   onSwipeRight?: () => void
   onViewChange?: (view: ZoomableImageViewState) => void
@@ -37,7 +43,7 @@ export function MobilePreviewFullscreen({
           initialView={initialView}
           onSwipeLeft={onSwipeLeft}
           onSwipeRight={onSwipeRight}
-          onZoomOutToFit={onClose}
+          onRequestInline={onRequestInline}
           onViewChange={onViewChange}
         />
       ) : (
