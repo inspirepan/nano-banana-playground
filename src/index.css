@@ -1018,8 +1018,13 @@
   .segmented button[data-active='true'] {
     color: var(--color-text);
   }
-  .segmented button:hover:not([data-active='true']):not(:disabled) {
+  .segmented button:hover:not([data-active='true']):not(:disabled):not([aria-disabled='true']) {
     color: var(--color-text);
+  }
+  .segmented button:disabled,
+  .segmented button[aria-disabled='true'] {
+    opacity: 0.42;
+    cursor: not-allowed;
   }
 
   /* Aspect preview tile */

@@ -64,10 +64,23 @@ export function AgentSkillSettings({ skills, onEnabledChange, onDelete, onGetPac
             const hasDisplayName = displayName !== skill.name
             const description = displayDescriptionForLanguage(skill, language)
             const isLast = index === skills.length - 1
+            const isInspected = inspectedSkill?.name === skill.name
             return (
               <div
                 key={skill.name}
-                className={`px-3.5 py-3 ${isLast ? '' : 'shadow-[inset_0_-1px_0_var(--ring-edge-soft)]'}`}
+                role="button"
+                tabIndex={0}
+                aria-label={t('settings.agentSkills.viewPackage')}
+                aria-pressed={isInspected}
+                data-active={isInspected || undefined}
+                onClick={() => openPackage(skill.name)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault()
+                    openPackage(skill.name)
+                  }
+                }}
+                className={`cursor-pointer px-3.5 py-3 transition-colors hover:bg-(--color-surface-2) data-[active]:bg-(--color-accent-wash) ${isLast ? '' : 'shadow-[inset_0_-1px_0_var(--ring-edge-soft)]'}`}
               >
                 <div className="flex min-w-0 items-start gap-3">
                   <span
@@ -98,20 +111,15 @@ export function AgentSkillSettings({ skills, onEnabledChange, onDelete, onGetPac
                   <div className="flex shrink-0 items-center gap-1.5">
                     <button
                       type="button"
-                      className="chip h-7 px-2 text-xs"
-                      onClick={() => openPackage(skill.name)}
-                      aria-label={t('settings.agentSkills.viewPackage')}
-                    >
-                      {t('settings.agentSkills.view')}
-                    </button>
-                    <button
-                      type="button"
                       role="switch"
                       aria-checked={skill.enabled}
                       aria-label={
                         skill.enabled ? t('settings.agentSkills.enabled') : t('settings.agentSkills.disabled')
                       }
-                      onClick={() => onEnabledChange(skill.name, !skill.enabled)}
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        onEnabledChange(skill.name, !skill.enabled)
+                      }}
                       className="group inline-flex items-center rounded-[var(--radius-sm)] p-1 transition-colors hover:bg-(--color-surface-2)"
                     >
                       <span
@@ -130,7 +138,8 @@ export function AgentSkillSettings({ skills, onEnabledChange, onDelete, onGetPac
                     </button>
                     <button
                       type="button"
-                      onClick={() => {
+                      onClick={(event) => {
+                        event.stopPropagation()
                         onDelete(skill.name)
                         if (inspectedSkill?.name === skill.name) setInspectedSkill(null)
                       }}

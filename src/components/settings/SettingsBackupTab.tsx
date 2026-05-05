@@ -34,6 +34,7 @@ import {
 } from '../../lib/preferenceStore'
 import { Icon } from '../Icon'
 import type { KeyHook } from '../ApiKeysDialog'
+import { SettingsSection } from './SettingsSection'
 
 type SettingsBackupTabProps = {
   keyHooks: Record<Provider, KeyHook>
@@ -193,35 +194,39 @@ export function SettingsBackupTab({
     )
   }
 
+  const exportedAt = plan
+    ? Number.isNaN(Date.parse(plan.bundle.exportedAt))
+      ? plan.bundle.exportedAt
+      : new Date(plan.bundle.exportedAt).toLocaleString()
+    : ''
+
   return (
     <div className="space-y-5 px-5 py-4">
-      <section className="space-y-3">
-        <div>
-          <div className="label mb-1">{t('settings.backup.export.title')}</div>
-          <p className="text-sm leading-relaxed text-(--color-text-3)">{t('settings.backup.export.description')}</p>
+      <SettingsSection label={t('settings.backup.export.title')} hint={t('settings.backup.export.description')}>
+        <div className="overflow-hidden rounded-[var(--radius-md)] bg-(--color-surface) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
+          <label className="flex items-start gap-2 px-3 py-2.5 text-sm text-(--color-text-2)">
+            <input
+              type="checkbox"
+              checked={includeApiKeys}
+              onChange={(event) => setIncludeApiKeys(event.currentTarget.checked)}
+              className="mt-0.5"
+            />
+            <span>
+              <span className="font-medium text-(--color-text)">{t('settings.backup.export.includeApiKeys')}</span>
+              <span className="mt-0.5 block text-(--color-text-3)">
+                {t('settings.backup.export.includeApiKeysHint')}
+              </span>
+            </span>
+          </label>
+          <div className="flex px-3 py-2.5 shadow-[inset_0_1px_0_var(--ring-edge-soft)]">
+            <button type="button" onClick={handleExport} className="chip">
+              <Icon name="download" size={12} /> {t('settings.backup.export.download')}
+            </button>
+          </div>
         </div>
-        <label className="flex items-start gap-2 rounded-[var(--radius-md)] bg-(--color-surface) px-3 py-2.5 text-sm text-(--color-text-2) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
-          <input
-            type="checkbox"
-            checked={includeApiKeys}
-            onChange={(event) => setIncludeApiKeys(event.currentTarget.checked)}
-            className="mt-0.5"
-          />
-          <span>
-            <span className="font-medium text-(--color-text)">{t('settings.backup.export.includeApiKeys')}</span>
-            <span className="mt-0.5 block text-(--color-text-3)">{t('settings.backup.export.includeApiKeysHint')}</span>
-          </span>
-        </label>
-        <button type="button" onClick={handleExport} className="chip">
-          <Icon name="download" size={12} /> {t('settings.backup.export.download')}
-        </button>
-      </section>
+      </SettingsSection>
 
-      <section className="space-y-3 pt-4 shadow-[inset_0_1px_0_var(--ring-edge-soft)]">
-        <div>
-          <div className="label mb-1">{t('settings.backup.import.title')}</div>
-          <p className="text-sm leading-relaxed text-(--color-text-3)">{t('settings.backup.import.description')}</p>
-        </div>
+      <SettingsSection label={t('settings.backup.import.title')} hint={t('settings.backup.import.description')} divider>
         <div className="flex flex-wrap gap-2">
           <input ref={fileInputRef} type="file" accept="application/json,.json" onChange={handleFileChange} hidden />
           <button type="button" onClick={() => fileInputRef.current?.click()} className="chip">
@@ -243,16 +248,38 @@ export function SettingsBackupTab({
             {applyNotice}
           </p>
         )}
-      </section>
+      </SettingsSection>
 
       {plan && (
-        <section className="space-y-3 pt-4 shadow-[inset_0_1px_0_var(--ring-edge-soft)]">
-          <ImportPlanHeader
-            plan={plan}
-            selectedCount={selectedCount}
-            onSelectAll={() => setSelectableItems(true)}
-            onSelectNone={() => setSelectableItems(false)}
-          />
+        <SettingsSection
+          divider
+          label={t('settings.backup.preview.title')}
+          hint={t('settings.backup.preview.exportedAt', { date: exportedAt })}
+          actions={
+            <>
+              <button type="button" onClick={() => setSelectableItems(true)} className="chip ghost">
+                {t('settings.backup.preview.selectAll')}
+              </button>
+              <button type="button" onClick={() => setSelectableItems(false)} className="chip ghost">
+                {t('settings.backup.preview.selectNone')}
+              </button>
+            </>
+          }
+        >
+          <div className="grid overflow-hidden rounded-[var(--radius-md)] bg-(--color-surface) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)] sm:grid-cols-3">
+            <SummaryCell tone="selected" label={t('settings.backup.preview.selected', { count: selectedCount })} />
+            <SummaryCell
+              tone="changed"
+              label={t('settings.backup.preview.overwrites', { count: plan.summary.changed })}
+            />
+            <SummaryCell tone="added" label={t('settings.backup.preview.additions', { count: plan.summary.added })} />
+            {plan.summary.invalid > 0 && (
+              <SummaryCell
+                tone="invalid"
+                label={t('settings.backup.preview.invalidItems', { count: plan.summary.invalid })}
+              />
+            )}
+          </div>
 
           <div className="space-y-3">
             {GROUP_ORDER.flatMap((group) => {
@@ -277,56 +304,8 @@ export function SettingsBackupTab({
             </button>
             <p className="text-sm text-(--color-text-3)">{t('settings.backup.import.applyHint')}</p>
           </div>
-        </section>
+        </SettingsSection>
       )}
-    </div>
-  )
-}
-
-function ImportPlanHeader({
-  plan,
-  selectedCount,
-  onSelectAll,
-  onSelectNone,
-}: {
-  plan: SettingsImportPlan
-  selectedCount: number
-  onSelectAll: () => void
-  onSelectNone: () => void
-}) {
-  const { t } = useI18n()
-  const exportedAt = Number.isNaN(Date.parse(plan.bundle.exportedAt))
-    ? plan.bundle.exportedAt
-    : new Date(plan.bundle.exportedAt).toLocaleString()
-  return (
-    <div className="space-y-2">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <div className="label mb-1">{t('settings.backup.preview.title')}</div>
-          <p className="text-sm text-(--color-text-3)">
-            {t('settings.backup.preview.exportedAt', { date: exportedAt })}
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-1.5">
-          <button type="button" onClick={onSelectAll} className="chip ghost">
-            {t('settings.backup.preview.selectAll')}
-          </button>
-          <button type="button" onClick={onSelectNone} className="chip ghost">
-            {t('settings.backup.preview.selectNone')}
-          </button>
-        </div>
-      </div>
-      <div className="grid overflow-hidden rounded-[var(--radius-md)] bg-(--color-surface) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)] sm:grid-cols-3">
-        <SummaryCell tone="selected" label={t('settings.backup.preview.selected', { count: selectedCount })} />
-        <SummaryCell tone="changed" label={t('settings.backup.preview.overwrites', { count: plan.summary.changed })} />
-        <SummaryCell tone="added" label={t('settings.backup.preview.additions', { count: plan.summary.added })} />
-        {plan.summary.invalid > 0 && (
-          <SummaryCell
-            tone="invalid"
-            label={t('settings.backup.preview.invalidItems', { count: plan.summary.invalid })}
-          />
-        )}
-      </div>
     </div>
   )
 }

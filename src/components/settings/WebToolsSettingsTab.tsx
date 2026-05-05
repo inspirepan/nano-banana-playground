@@ -12,7 +12,8 @@ import {
 import { useI18n } from '../../i18n'
 import type { WebProviderApiKeys, WebProviderSettings } from '../../lib/webProviderStore'
 import { Icon } from '../Icon'
-import { Tooltip } from '../Tooltip'
+import { Segmented, type SegmentedOption } from './Segmented'
+import { SettingsField } from './SettingsField'
 
 export type WebProviderNotice = {
   provider: WebApiProvider
@@ -59,14 +60,14 @@ export function WebToolsSettingsTab({
   return (
     <div className="space-y-4 px-5 py-4">
       <div className="space-y-3">
-        <WebProviderChipSelector
+        <WebProviderSegmentedField
           label={t('settings.webTools.search.label')}
           options={WEB_SEARCH_PROVIDER_OPTIONS}
           value={webProviderSettings.searchProvider}
           apiKeys={webProviderSettings.apiKeys}
           onChange={onWebSearchProviderChange}
         />
-        <WebProviderChipSelector
+        <WebProviderSegmentedField
           label={t('settings.webTools.fetch.label')}
           options={WEB_FETCH_PROVIDER_OPTIONS}
           value={webProviderSettings.fetchProvider}
@@ -85,9 +86,8 @@ export function WebToolsSettingsTab({
         />
       )}
 
-      <div>
-        <div className="label mb-2">{t('settings.webTools.apiKeys.label')}</div>
-        <div className="overflow-hidden rounded-[var(--radius-md)] bg-(--color-surface) pl-1 shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
+      <SettingsField label={t('settings.webTools.apiKeys.label')}>
+        <div className="overflow-hidden rounded-[var(--radius-md)] bg-(--color-surface) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
           {WEB_API_PROVIDER_CONFIGS.map((provider, index) => (
             <WebApiKeyRow
               key={provider.id}
@@ -103,14 +103,14 @@ export function WebToolsSettingsTab({
             />
           ))}
         </div>
-      </div>
+      </SettingsField>
 
       <p className="text-sm leading-relaxed text-(--color-text-3)">{t('settings.webTools.note')}</p>
     </div>
   )
 }
 
-function WebProviderChipSelector<T extends WebSearchProvider | WebFetchProvider>({
+function WebProviderSegmentedField<T extends WebSearchProvider | WebFetchProvider>({
   label,
   options,
   value,
@@ -126,55 +126,25 @@ function WebProviderChipSelector<T extends WebSearchProvider | WebFetchProvider>
   const { t } = useI18n()
   const selectedOption = options.find((option) => option.id === value)
 
+  const segOptions: SegmentedOption<T>[] = options.map((option) => {
+    const apiProvider = option.id !== 'none' && option.id !== 'default' ? (option.id as WebApiProvider) : null
+    const configured = !apiProvider || apiKeys[apiProvider].trim() !== ''
+    const labelText = t(option.labelKey)
+    return {
+      value: option.id,
+      label: labelText,
+      disabled: !configured,
+      disabledTooltip: t('settings.webTools.provider.requiresKey', { provider: labelText }),
+    }
+  })
+
   return (
-    <div>
-      <div className="label mb-1.5">{label}</div>
-      <div className="flex flex-wrap gap-1.5 pl-1">
-        {options.map((option) => {
-          const apiProvider = option.id !== 'none' && option.id !== 'default' ? (option.id as WebApiProvider) : null
-          const configured = !apiProvider || apiKeys[apiProvider].trim() !== ''
-          const active = value === option.id
-          const labelText = t(option.labelKey)
-          const disabledTooltip = t('settings.webTools.provider.requiresKey', { provider: labelText })
-          const disabledAriaLabel = t('settings.webTools.provider.disabledAriaLabel', { provider: labelText })
-          const button = (
-            <button
-              key={option.id}
-              type="button"
-              onClick={() => onChange(option.id)}
-              disabled={!configured}
-              aria-pressed={active}
-              aria-label={configured ? labelText : disabledAriaLabel}
-              className="chip"
-              style={{
-                ...(active
-                  ? {
-                      background: 'var(--color-surface-2)',
-                      color: 'var(--color-text)',
-                      boxShadow: 'inset 0 0 0 1px var(--ring-edge-strong)',
-                    }
-                  : {}),
-                ...(!configured ? { opacity: 0.48 } : {}),
-              }}
-            >
-              {active && <Icon name="check" size={10} strokeWidth={2.5} className="text-(--color-text-2)" />}
-              {labelText}
-            </button>
-          )
-
-          if (configured) return button
-
-          return (
-            <Tooltip key={option.id} text={disabledTooltip} placement="top" className="inline-flex">
-              {button}
-            </Tooltip>
-          )
-        })}
+    <SettingsField label={label}>
+      <div className="space-y-1.5">
+        <Segmented options={segOptions} value={value} onChange={onChange} ariaLabel={label} />
+        {selectedOption && <p className="text-sm text-(--color-text-3)">{t(selectedOption.descriptionKey)}</p>}
       </div>
-      {selectedOption && (
-        <p className="mt-1.5 pl-1 text-sm text-(--color-text-3)">{t(selectedOption.descriptionKey)}</p>
-      )}
-    </div>
+    </SettingsField>
   )
 }
 

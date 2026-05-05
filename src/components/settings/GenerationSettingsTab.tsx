@@ -1,6 +1,9 @@
 import type { ComposerSubmitMode } from '../../config/composerSubmitMode'
 import { useComposerSubmitMode } from '../../hooks/useComposerSubmitMode'
 import { useI18n } from '../../i18n'
+import { CardChoice, type CardChoiceOption } from './CardChoice'
+import { Segmented, type SegmentedOption } from './Segmented'
+import { SettingsField } from './SettingsField'
 
 const GENERATION_CONCURRENCY_CHOICES = [
   { value: 1, label: '1', suffixKey: 'settings.generationConcurrency.imageSuffix' },
@@ -35,67 +38,43 @@ export function GenerationSettingsTab({
   const { t } = useI18n()
   const { composerSubmitMode, setComposerSubmitMode } = useComposerSubmitMode()
 
+  const concurrencyOptions: SegmentedOption<number>[] = GENERATION_CONCURRENCY_CHOICES.map((choice) => {
+    const head = choice.labelKey ? t(choice.labelKey) : choice.label
+    const suffix = choice.suffixKey ? t(choice.suffixKey) : ''
+    return {
+      value: choice.value,
+      label: suffix ? `${head} ${suffix}` : head,
+    }
+  })
+
+  const submitOptions: CardChoiceOption<ComposerSubmitMode>[] = COMPOSER_SUBMIT_MODE_CHOICES.map((choice) => ({
+    value: choice.value,
+    title: t(choice.labelKey),
+    description: t(choice.descriptionKey),
+  }))
+
   return (
     <div className="space-y-5 px-5 py-4">
-      <div>
-        <div className="label mb-1.5">{t('settings.generationConcurrency.title')}</div>
-        <p className="mb-2.5 text-sm leading-relaxed text-(--color-text-3)">
-          {t('settings.generationConcurrency.description')}
-        </p>
-        <div className="pl-1">
-          <div
-            className="segmented w-fit"
-            style={{
-              ['--seg-count' as string]: GENERATION_CONCURRENCY_CHOICES.length,
-              ['--seg-index' as string]: Math.max(
-                0,
-                GENERATION_CONCURRENCY_CHOICES.findIndex((choice) => choice.value === generationConcurrency),
-              ),
-            }}
-          >
-            {GENERATION_CONCURRENCY_CHOICES.map((choice) => (
-              <button
-                key={choice.value}
-                type="button"
-                onClick={() => onGenerationConcurrencyChange(choice.value)}
-                data-active={generationConcurrency === choice.value}
-              >
-                <span>
-                  <span className="text-base">{choice.labelKey ? t(choice.labelKey) : choice.label}</span>
-                  {choice.suffixKey && t(choice.suffixKey) ? ` ${t(choice.suffixKey)}` : null}
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
+      <SettingsField
+        label={t('settings.generationConcurrency.title')}
+        hint={t('settings.generationConcurrency.description')}
+      >
+        <Segmented
+          options={concurrencyOptions}
+          value={generationConcurrency}
+          onChange={onGenerationConcurrencyChange}
+          ariaLabel={t('settings.generationConcurrency.title')}
+        />
+      </SettingsField>
 
-      <div>
-        <div className="label mb-1.5">{t('settings.composerSubmitMode.title')}</div>
-        <p className="mb-2.5 text-sm leading-relaxed text-(--color-text-3)">
-          {t('settings.composerSubmitMode.description')}
-        </p>
-        <div className="grid gap-2 pl-1 sm:grid-cols-2">
-          {COMPOSER_SUBMIT_MODE_CHOICES.map((choice) => {
-            const active = composerSubmitMode === choice.value
-            return (
-              <button
-                key={choice.value}
-                type="button"
-                onClick={() => setComposerSubmitMode(choice.value)}
-                data-active={active || undefined}
-                className="flex flex-col items-start gap-1 rounded-[var(--radius-sm)] bg-(--color-surface) px-3 py-2 text-left transition-colors hover:bg-(--color-surface-2)"
-                style={{
-                  boxShadow: active ? 'inset 0 0 0 1.5px var(--color-accent)' : 'inset 0 0 0 1px var(--ring-edge-soft)',
-                }}
-              >
-                <span className="text-sm font-medium text-(--color-text)">{t(choice.labelKey)}</span>
-                <span className="text-sm text-(--color-text-3)">{t(choice.descriptionKey)}</span>
-              </button>
-            )
-          })}
-        </div>
-      </div>
+      <SettingsField label={t('settings.composerSubmitMode.title')} hint={t('settings.composerSubmitMode.description')}>
+        <CardChoice
+          options={submitOptions}
+          value={composerSubmitMode}
+          onChange={setComposerSubmitMode}
+          ariaLabel={t('settings.composerSubmitMode.title')}
+        />
+      </SettingsField>
     </div>
   )
 }

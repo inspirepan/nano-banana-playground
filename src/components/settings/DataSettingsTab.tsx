@@ -1,6 +1,7 @@
 import { useI18n } from '../../i18n'
 import type { SiteDataUsage, StorageBreakdown, StorageBreakdownItem } from '../../lib/siteData'
 import { Icon } from '../Icon'
+import { SettingsSection } from './SettingsSection'
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
@@ -79,8 +80,7 @@ export function DataSettingsTab({
 
       {storageBreakdown && <StorageBreakdownTable items={storageBreakdown.items} />}
 
-      <div className="space-y-2 pt-4 shadow-[inset_0_1px_0_var(--ring-edge-soft)]">
-        <p className="text-sm leading-relaxed text-(--color-text-3)">{t('settings.data.clearDescription')}</p>
+      <SettingsSection divider hint={t('settings.data.clearDescription')}>
         {clearDataError && (
           <p className="text-sm leading-relaxed" style={{ color: 'var(--color-danger)' }}>
             {clearDataError}
@@ -103,7 +103,7 @@ export function DataSettingsTab({
             </button>
           )}
         </div>
-      </div>
+      </SettingsSection>
     </div>
   )
 }
