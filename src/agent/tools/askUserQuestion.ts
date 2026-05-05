@@ -71,11 +71,11 @@ function normalizeQuestion(value: unknown, index: number, errors: string[]): Ask
   if (header.length > 12) errors.push(`${path}.header must be 12 characters or fewer.`)
 
   if (!Array.isArray(record.options)) {
-    errors.push(`${path}.options must be an array with 2-4 options.`)
+    errors.push(`${path}.options must be an array with at least 2 options.`)
     return null
   }
-  if (record.options.length < 2 || record.options.length > 4) {
-    errors.push(`${path}.options must contain 2-4 options.`)
+  if (record.options.length < 2) {
+    errors.push(`${path}.options must contain at least 2 options.`)
   }
   const options = record.options
     .map((option, optionIndex) => normalizeOption(option, `${path}.options[${optionIndex}]`, errors))
@@ -109,9 +109,9 @@ export function formatAskUserQuestionArgumentError(errors: string[]): string {
     ...errors.map((error) => `- ${error}`),
     '',
     'Rules:',
-    '- Every questions[i].options array must contain 2-4 options. A single "I will write in notes" option is invalid.',
+    '- Every questions[i].options array must contain at least 2 options. A single "I will write in notes" option is invalid.',
     '- Use options for real choices. Use the free-text note field only for optional details after a choice.',
-    '- If you mainly need open-ended text, ask in normal chat or provide 2-4 meaningful choices such as "自由发挥" and "我补充细节".',
+    '- If you mainly need open-ended text, ask in normal chat or provide meaningful choices such as "自由发挥" and "我补充细节".',
     '',
     '</tool_use_error>',
   ]
@@ -141,9 +141,8 @@ export function createAskUserQuestionTool({
             }),
             {
               description:
-                'Required 2-4 answer options. Use real choices; never provide only one note/free-text option.',
+                'Required answer options. Provide at least 2 real choices; never provide only one note/free-text option.',
               minItems: 2,
-              maxItems: 4,
             },
           ),
           multi_select: Type.Boolean({ description: 'Allow multiple selections when true; otherwise false.' }),

@@ -6,15 +6,16 @@ Each question must have:
 
 - A short `header` chip (max 12 characters), e.g. `风格`, `用途`, `比例`.
 - A clear `question` ending with a question mark.
-- 2-4 mutually exclusive (unless `multi_select` is true) `options`, each with a concise `label` and an optional short `description`.
+- At least 2 mutually exclusive (unless `multi_select` is true) `options`, each with a concise `label` and an optional short `description`.
 
 Do not include an "Other" option — the UI automatically lets the user type a free-text note for each question.
-Do not create a question with only one option such as "我写在备注里". That is invalid. If you mainly need free-form text (story outline, dialogue, character appearance), either ask in normal chat or provide 2-4 meaningful choices such as "自由发挥" / "我补充细节" / "沿用参考图" and let the user add details in the note field.
+Do not create a question with only one option such as "我写在备注里". That is invalid. If you mainly need free-form text (story outline, dialogue, character appearance), either ask in normal chat or provide meaningful choices such as "自由发挥" / "我补充细节" / "沿用参考图" and let the user add details in the note field.
 
 Notes:
 
 - Use the same language the user is using.
 - If you have a recommendation, list it first and add `（推荐）` at the end of its label.
+- Prefer 2-6 options for quick decisions, but use more when the choices are a natural complete set such as aspect ratios, styles, use cases, counts, or model-supported values.
 - Omit `description` when the label is self-evident, such as aspect ratios, counts, simple yes/no choices, or obvious style names.
 - Add a `description` only when the label needs clarification or the trade-off is not obvious.
 - Set `multi_select: true` only when the user can pick multiple options at the same time.
