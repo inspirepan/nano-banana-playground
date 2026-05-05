@@ -42,7 +42,7 @@ const RESPONSE_HEADER_ALLOWLIST = new Set([
 
 const MAX_FETCH_BYTES = 2_000_000
 const MAX_REDIRECTS = 5
-const FETCH_TIMEOUT_MS = 30_000
+const FETCH_TIMEOUT_MS = 5 * 60 * 1000
 const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308])
 
 export type ProxyFetchResponse = {
