@@ -18,11 +18,14 @@ import { useExternalSync, useResizeObserver, useWindowEvent } from '../../hooks/
 import { useI18n } from '../../i18n'
 import { Icon } from '../Icon'
 
-const PINCH_HANDOFF_THRESHOLD = 1.05
-const PINCH_FULLSCREEN_SCALE = 1.25
-const FIT_EXIT_SCALE = 1.01
+const PINCH_HANDOFF_THRESHOLD = 1.01
+const PINCH_FULLSCREEN_SCALE = 1.02
+const FIT_EXIT_SCALE = 0.995
 const CTRL_WHEEL_HANDOFF_DELAY = 180
 const DOUBLE_TAP_SCALE = 2.5
+const SYNTHETIC_DOUBLE_CLICK_SUPPRESS_MS = 650
+
+let suppressSyntheticDoubleClickUntil = 0
 
 export type ZoomableImageViewState = {
   scale: number
@@ -80,7 +83,9 @@ export function ZoomableImageView({
   const offsetRef = useRef<Point>({ x: 0, y: 0 })
   const lastTapRef = useRef<{ at: number; point: Point } | null>(null)
   const didPinchRef = useRef(false)
+  const pinchGestureActiveRef = useRef(false)
   const touchPinchStartDistanceRef = useRef<number | null>(null)
+  const touchPinchGestureActiveRef = useRef(false)
   const pinchHandoffActiveRef = useRef(false)
   const pinchHandoffPendingRef = useRef(false)
   const fitExitActiveRef = useRef(false)
@@ -190,7 +195,9 @@ export function ZoomableImageView({
     dragStartRef.current = null
     pinchStartRef.current = null
     touchPinchStartDistanceRef.current = null
+    touchPinchGestureActiveRef.current = false
     pinchHandoffPendingRef.current = false
+    pinchGestureActiveRef.current = false
     didPinchRef.current = false
     setIsDragging(false)
     setIsInteracting(false)
@@ -288,6 +295,26 @@ export function ZoomableImageView({
     zoomAtPoint(scaleRef.current * 0.8, { x: 0, y: 0 })
   }, [zoomAtPoint])
 
+  const handleTouchDoubleTap = useCallback(
+    (point: Point) => {
+      suppressSyntheticDoubleClickUntil = Date.now() + SYNTHETIC_DOUBLE_CLICK_SUPPRESS_MS
+      if (onRequestInline) {
+        clearInteractionState()
+        applyView(FIT_SCALE, { x: 0, y: 0 })
+        requestInline('double-tap')
+        return
+      }
+      if (onRequestFullscreen) {
+        const view = getZoomedViewAtPoint(DOUBLE_TAP_SCALE, point)
+        if (view) onRequestFullscreen(view, 'double-tap')
+        return
+      }
+      if (scaleRef.current > FIT_SCALE) resetView()
+      else zoomAtPoint(DOUBLE_TAP_SCALE, point)
+    },
+    [applyView, clearInteractionState, getZoomedViewAtPoint, onRequestFullscreen, onRequestInline, requestInline, resetView, zoomAtPoint],
+  )
+
   useResizeObserver(containerRef, syncFitSize)
 
   useExternalSync(() => {
@@ -331,6 +358,7 @@ export function ZoomableImageView({
         onDoubleClick={(event) => {
           event.preventDefault()
           event.stopPropagation()
+          if (Date.now() < suppressSyntheticDoubleClickUntil) return
           const point = getRelativePoint(containerRef.current, event.clientX, event.clientY)
           if (onRequestInline) {
             clearInteractionState()
@@ -374,6 +402,7 @@ export function ZoomableImageView({
             }
             dragStartRef.current = null
             didPinchRef.current = true
+            pinchGestureActiveRef.current = true
             setIsDragging(false)
           }
         }}
@@ -415,7 +444,7 @@ export function ZoomableImageView({
           const endPoint = getRelativePoint(containerRef.current, event.clientX, event.clientY)
           const startPoint = pointerStartsRef.current.get(event.pointerId)
           const wasTap = startPoint ? getDistance(startPoint, endPoint) < 12 : false
-          const wasPinching = didPinchRef.current
+          const wasPinching = pinchGestureActiveRef.current
 
           activePointersRef.current.delete(event.pointerId)
           pointerStartsRef.current.delete(event.pointerId)
@@ -436,15 +465,7 @@ export function ZoomableImageView({
             const now = Date.now()
             const lastTap = lastTapRef.current
             if (lastTap && now - lastTap.at < 280 && getDistance(lastTap.point, endPoint) < 28) {
-              if (onRequestInline) {
-                clearInteractionState()
-                applyView(FIT_SCALE, { x: 0, y: 0 })
-                requestInline('double-tap')
-              } else if (onRequestFullscreen) {
-                const view = getZoomedViewAtPoint(DOUBLE_TAP_SCALE, endPoint)
-                if (view) onRequestFullscreen(view, 'double-tap')
-              } else if (scaleRef.current > FIT_SCALE) resetView()
-              else zoomAtPoint(DOUBLE_TAP_SCALE, endPoint)
+              handleTouchDoubleTap(endPoint)
               lastTapRef.current = null
             } else {
               lastTapRef.current = { at: now, point: endPoint }
@@ -468,10 +489,15 @@ export function ZoomableImageView({
 
           if (event.pointerType === 'touch' && wasPinching && activePointersRef.current.size === 0) {
             commitPinchHandoff()
+            pinchGestureActiveRef.current = false
+            didPinchRef.current = false
             return
           }
 
-          if (activePointersRef.current.size < 2) didPinchRef.current = false
+          if (activePointersRef.current.size === 0) {
+            pinchGestureActiveRef.current = false
+            didPinchRef.current = false
+          }
         }}
         onPointerCancel={() => {
           clearInteractionState()
@@ -479,6 +505,7 @@ export function ZoomableImageView({
         onTouchStart={(event) => {
           if ((!onRequestFullscreen && !onRequestInline) || event.touches.length < 2) return
           touchPinchStartDistanceRef.current = getTouchDistance(event.touches)
+          touchPinchGestureActiveRef.current = true
         }}
         onTouchMove={(event) => {
           if (!onRequestFullscreen || pinchHandoffActiveRef.current || event.touches.length < 2) return
@@ -495,16 +522,18 @@ export function ZoomableImageView({
           }
         }}
         onTouchEnd={(event) => {
-          const wasTouchPinching = touchPinchStartDistanceRef.current !== null
+          const wasTouchPinching = touchPinchGestureActiveRef.current
           if (event.touches.length < 2) touchPinchStartDistanceRef.current = null
           if (event.touches.length === 0 && wasTouchPinching) {
             commitPinchHandoff()
+            touchPinchGestureActiveRef.current = false
             pinchHandoffActiveRef.current = false
             fitExitActiveRef.current = false
           }
         }}
         onTouchCancel={() => {
           touchPinchStartDistanceRef.current = null
+          touchPinchGestureActiveRef.current = false
           pinchHandoffPendingRef.current = false
           pinchHandoffActiveRef.current = false
           fitExitActiveRef.current = false
