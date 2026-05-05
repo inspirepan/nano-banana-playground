@@ -20,12 +20,10 @@ export function AgentSessionStatusBadge({ status }: { status: AgentSessionStatus
   if (status === 'generating_images') {
     return (
       <span
-        className="inline-flex size-[18px] shrink-0 items-center justify-center rounded-full bg-(--color-accent-wash) text-(--color-accent) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]"
+        className="agent-session-running-dot"
         title={t('agentChat.status.generatingImages')}
         aria-label={t('agentChat.status.generatingImages')}
-      >
-        <Icon name="image" size={11} strokeWidth={2.2} />
-      </span>
+      />
     )
   }
 

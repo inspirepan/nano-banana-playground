@@ -1616,16 +1616,12 @@
     height: 7px;
     border-radius: 50%;
     background: var(--color-accent);
-  }
-  .agent-session-running-dot,
-  .agent-session-running-pulse {
     transform-origin: center;
     animation: agent-session-running-pulse 1050ms var(--ease-in-out) infinite;
   }
   @media (prefers-reduced-motion: reduce) {
     .agent-running-token > span,
-    .agent-session-running-dot,
-    .agent-session-running-pulse {
+    .agent-session-running-dot {
       animation: none;
       opacity: 0.72;
       transform: none;
