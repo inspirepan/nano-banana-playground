@@ -1,9 +1,7 @@
-import { SANS_FONTS, type SansFontId } from '../../config/fonts'
 import { LANGUAGE_PREFERENCES, type LanguagePreference } from '../../config/languages'
 import { COLOR_THEMES, type ColorThemeId, type Theme } from '../../config/theme'
 import { useI18n } from '../../i18n'
 import { type IconName } from '../Icon'
-import { CardChoice, type CardChoiceOption } from './CardChoice'
 import { Segmented, type SegmentedOption } from './Segmented'
 import { SettingsField } from './SettingsField'
 
@@ -16,22 +14,18 @@ const BRIGHTNESS: { value: Theme; icon: IconName; labelKey: string }[] = [
 type AppearanceSettingsTabProps = {
   theme: Theme
   colorTheme: ColorThemeId
-  sansFont: SansFontId
   language: LanguagePreference
   onThemeChange: (theme: Theme) => void
   onColorThemeChange: (id: ColorThemeId) => void
-  onSansFontChange: (id: SansFontId) => void
   onLanguageChange: (id: LanguagePreference) => void
 }
 
 export function AppearanceSettingsTab({
   theme,
   colorTheme,
-  sansFont,
   language,
   onThemeChange,
   onColorThemeChange,
-  onSansFontChange,
   onLanguageChange,
 }: AppearanceSettingsTabProps) {
   const { t, language: resolvedLanguage } = useI18n()
@@ -48,17 +42,6 @@ export function AppearanceSettingsTab({
     value: item.value,
     label: t(item.labelKey),
     icon: item.icon,
-  }))
-
-  const fontOptions: CardChoiceOption<SansFontId>[] = SANS_FONTS.map((font) => ({
-    value: font.id,
-    title: font.name,
-    description: (
-      <>
-        <span className="font-semibold">Image2</span> Render 3:1 · 4K
-      </>
-    ),
-    style: { fontFamily: font.cssFamily },
   }))
 
   return (
@@ -113,16 +96,6 @@ export function AppearanceSettingsTab({
             )
           })}
         </div>
-      </SettingsField>
-
-      <SettingsField label={t('settings.font.label')}>
-        <CardChoice
-          options={fontOptions}
-          value={sansFont}
-          onChange={onSansFontChange}
-          columns={3}
-          ariaLabel={t('settings.font.label')}
-        />
       </SettingsField>
     </div>
   )

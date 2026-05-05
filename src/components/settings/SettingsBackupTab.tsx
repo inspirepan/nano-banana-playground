@@ -7,7 +7,6 @@ import type { LanguagePreference } from '../../config/languages'
 import type { Provider } from '../../config/models'
 import type { ColorThemeId, Theme } from '../../config/theme'
 import type { WebApiProvider, WebFetchProvider, WebSearchProvider } from '../../config/webProviders'
-import type { SansFontId } from '../../config/fonts'
 import type { StoredUserSkill } from '../../agent/skills/types'
 import { setPreferredImageModelId } from '../../config/preferredImageModel'
 import { useI18n } from '../../i18n'
@@ -40,7 +39,6 @@ type SettingsBackupTabProps = {
   keyHooks: Record<Provider, KeyHook>
   onThemeChange: (theme: Theme) => void
   onColorThemeChange: (id: ColorThemeId) => void
-  onSansFontChange: (id: SansFontId) => void
   onLanguageChange: (id: LanguagePreference) => void
   onGenerationConcurrencyChange: (value: number) => void
   onAgentPanelWidePreferenceChange: (wide: boolean) => void
@@ -66,7 +64,6 @@ export function SettingsBackupTab({
   keyHooks,
   onThemeChange,
   onColorThemeChange,
-  onSansFontChange,
   onLanguageChange,
   onGenerationConcurrencyChange,
   onAgentPanelWidePreferenceChange,
@@ -169,7 +166,6 @@ export function SettingsBackupTab({
           keyHooks,
           onThemeChange,
           onColorThemeChange,
-          onSansFontChange,
           onLanguageChange,
           onGenerationConcurrencyChange,
           onAgentPanelWidePreferenceChange,
@@ -549,9 +545,6 @@ function applyPreference(
       return
     case 'colorTheme':
       context.onColorThemeChange(payload.value as ColorThemeId)
-      return
-    case 'sansFont':
-      context.onSansFontChange(payload.value as SansFontId)
       return
     case 'language':
       context.onLanguageChange(payload.value as LanguagePreference)

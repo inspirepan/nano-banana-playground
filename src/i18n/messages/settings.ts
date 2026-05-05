@@ -85,7 +85,6 @@ export const settingsMessages: MessageDictionary = {
   'settings.backup.group.secrets': { 'zh-CN': 'API Keys', en: 'API keys' },
   'settings.backup.item.theme': { 'zh-CN': '模式', en: 'Mode' },
   'settings.backup.item.colorTheme': { 'zh-CN': '主色', en: 'Accent color' },
-  'settings.backup.item.sansFont': { 'zh-CN': '正文字体', en: 'Body font' },
   'settings.backup.item.language': { 'zh-CN': '语言', en: 'Language' },
   'settings.backup.item.generationConcurrency': { 'zh-CN': '生成并发', en: 'Generation concurrency' },
   'settings.backup.item.detailSidebarCollapsed': { 'zh-CN': '详情侧栏折叠', en: 'Detail sidebar collapsed' },
@@ -222,7 +221,6 @@ export const settingsMessages: MessageDictionary = {
   'settings.theme.dark': { 'zh-CN': '深色', en: 'Dark' },
   'settings.theme.system': { 'zh-CN': '自动', en: 'Auto' },
   'settings.colorTheme.label': { 'zh-CN': '主色', en: 'Accent color' },
-  'settings.font.label': { 'zh-CN': '正文字体', en: 'Body font' },
   'settings.generationConcurrency.title': { 'zh-CN': '同时生成的最大并发数', en: 'Maximum concurrent generations' },
   'settings.generationConcurrency.description': {
     'zh-CN': '控制一次最多同时生成几张图。数字越大，排队更少，但更容易遇到接口限流。',
