@@ -96,17 +96,20 @@ export function InlineToolNotice({ label }: { label: string }) {
   return (
     <div className="flex justify-start">
       <div className="mr-3 flex max-w-[94%] items-center gap-2 pl-3 text-(--color-text-4)">
-        <span className="spinner" style={{ width: 10, height: 10 }} />
         <span>{label}</span>
+        <span className="spinner" style={{ width: 10, height: 10 }} />
       </div>
     </div>
   )
 }
 
-export function InlineToolDone({ label }: { label: string }) {
+export function InlineToolDone({ label, children }: { label: string; children?: ReactNode }) {
   return (
     <div className="flex justify-start">
-      <div className="mr-3 max-w-[94%] pl-3 text-(--color-text-3)">{label}</div>
+      <div className="mr-3 max-w-[94%] pl-3 text-(--color-text-3)">
+        <div>{label}</div>
+        {children}
+      </div>
     </div>
   )
 }

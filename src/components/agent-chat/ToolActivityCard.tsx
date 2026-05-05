@@ -2,14 +2,9 @@ import { useMemo, type ReactNode } from 'react'
 
 import { AgentImageTaskCard } from './AgentImageTaskCard'
 import { AskUserQuestionForm, AskUserQuestionResultCard } from './AskUserQuestionCards'
-import {
-  CompactToolGroup,
-  InlineToolDone,
-  InlineToolNotice,
-  StandaloneToolResultRow,
-  ToolCallRow,
-} from './CompactToolGroup'
+import { InlineToolDone, InlineToolNotice } from './CompactToolGroup'
 import type { AgentImageTaskFocusHandler } from './types'
+import { summarizeToolArgs, toolLabel } from './utils'
 import type {
   AgentImageTask,
   AgentMessageToolCall,
@@ -98,16 +93,63 @@ function hasCompleteToolArguments(call: AgentMessageToolCall): boolean {
   return Object.keys(args).length > 0
 }
 
-function preparingToolLabel(call: AgentMessageToolCall, t: Translate): string {
+function toolErrorText(result: AgentMessageToolResult, t: Translate): string {
+  return result.text?.trim() || t('agentChat.tool.result.failed')
+}
+
+function toolPreparingLabel(call: AgentMessageToolCall, t: Translate): string {
   if (call.name === 'AskUserQuestion') return t('agentChat.tool.askUserQuestion.preparing')
-  if (call.name === 'ReadImage') return t('agentChat.tool.readImage.reading')
-  if (call.name === 'ReadAgentFile') return t('agentChat.tool.preparing.readAgentFile')
-  if (call.name === 'Skill') return t('agentChat.tool.preparing.skill')
-  if (call.name === 'ReadSkillFile') return t('agentChat.tool.preparing.readSkillFile')
-  if (call.name === 'CreateSkill') return t('agentChat.tool.preparing.createSkill')
-  if (call.name === 'WebFetch') return t('agentChat.tool.preparing.webFetch')
-  if (call.name === 'WebSearch') return t('agentChat.tool.preparing.webSearch')
+  if (call.name === 'ReadImage') return t('agentChat.tool.readImage.preparing')
+  if (call.name === 'ReadAgentFile') return t('agentChat.tool.readAgentFile.preparing')
+  if (call.name === 'Skill') return t('agentChat.tool.skill.preparing')
+  if (call.name === 'ReadSkillFile') return t('agentChat.tool.readSkillFile.preparing')
+  if (call.name === 'CreateSkill') return t('agentChat.tool.createSkill.preparing')
+  if (call.name === 'WebFetch') return t('agentChat.tool.webFetch.preparing')
+  if (call.name === 'WebSearch') return t('agentChat.tool.webSearch.preparing')
   return t('agentChat.tool.preparing.generic')
+}
+
+function toolRunningLabel(call: AgentMessageToolCall, t: Translate): string {
+  const args = summarizeToolArgs(call)
+  if (call.name === 'ReadImage') return t('agentChat.tool.readImage.running', { id: args })
+  if (call.name === 'ReadAgentFile') return t('agentChat.tool.readAgentFile.running', { path: args })
+  if (call.name === 'Skill') return t('agentChat.tool.skill.running', { name: args })
+  if (call.name === 'ReadSkillFile') return t('agentChat.tool.readSkillFile.running', { path: args })
+  if (call.name === 'CreateSkill') return t('agentChat.tool.createSkill.running', { name: args })
+  if (call.name === 'WebFetch') return t('agentChat.tool.webFetch.running', { url: args })
+  if (call.name === 'WebSearch') return t('agentChat.tool.webSearch.running', { query: args })
+  return `${toolLabel(call.name)}: ${args}`
+}
+
+function toolDoneLabel(call: AgentMessageToolCall, result: AgentMessageToolResult, t: Translate): string {
+  const args = summarizeToolArgs(call)
+  if (result.isError) {
+    const error = toolErrorText(result, t)
+    if (call.name === 'ReadImage') return t('agentChat.tool.readImage.failed', { id: args, error })
+    if (call.name === 'ReadAgentFile') return t('agentChat.tool.readAgentFile.failed', { path: args, error })
+    if (call.name === 'Skill') return t('agentChat.tool.skill.failed', { name: args, error })
+    if (call.name === 'ReadSkillFile') return t('agentChat.tool.readSkillFile.failed', { path: args, error })
+    if (call.name === 'CreateSkill') return t('agentChat.tool.createSkill.failed', { name: args, error })
+    if (call.name === 'WebFetch') return t('agentChat.tool.webFetch.failed', { url: args, error })
+    if (call.name === 'WebSearch') return t('agentChat.tool.webSearch.failed', { query: args, error })
+    return `${toolLabel(call.name)} ${t('agentChat.tool.result.failed')}: ${error}`
+  }
+  if (call.name === 'ReadImage') return t('agentChat.tool.readImage.done', { id: args })
+  if (call.name === 'ReadAgentFile') return t('agentChat.tool.readAgentFile.done', { path: args })
+  if (call.name === 'Skill') return t('agentChat.tool.skill.done', { name: args })
+  if (call.name === 'ReadSkillFile') return t('agentChat.tool.readSkillFile.done', { path: args })
+  if (call.name === 'CreateSkill') return t('agentChat.tool.createSkill.done', { name: args })
+  if (call.name === 'WebFetch') return t('agentChat.tool.webFetch.done', { url: args })
+  if (call.name === 'WebSearch') return t('agentChat.tool.webSearch.done', { query: args })
+  return `${toolLabel(call.name)} ${t('agentChat.tool.result.completed')}`
+}
+
+function standaloneResultLabel(result: AgentMessageToolResult, t: Translate): string {
+  const label = toolLabel(result.toolName)
+  if (result.isError) {
+    return t('agentChat.tool.standalone.failed', { tool: label, error: toolErrorText(result, t) })
+  }
+  return t('agentChat.tool.standalone.done', { tool: label })
 }
 
 function formatSearchResultDomain(url: string): string {
@@ -119,6 +161,18 @@ function formatSearchResultDomain(url: string): string {
   }
 }
 
+function TreeConnector({ isLast }: { isLast: boolean }) {
+  return (
+    <div className="relative w-4 shrink-0 self-stretch">
+      <div
+        className="absolute left-[7px] w-px bg-(--color-text-4)"
+        style={isLast ? { top: 0, height: '50%' } : { top: 0, bottom: 0 }}
+      />
+      <div className="absolute left-[7px] top-1/2 h-px w-2 bg-(--color-text-4)" />
+    </div>
+  )
+}
+
 function WebSearchResultLinks({ result }: { result: AgentMessageToolResult }) {
   if (result.isError) return null
   const links = readSearchResultsFromDetails(result.details)
@@ -126,22 +180,26 @@ function WebSearchResultLinks({ result }: { result: AgentMessageToolResult }) {
   if (results.length === 0) return null
 
   return (
-    <div className="mt-1.5 pl-3.5">
-      <ol className="space-y-0.5">
-        {results.map((item) => (
-          <li key={`${item.position}-${item.url}`} className="min-w-0">
-            <a
-              href={item.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block min-w-0 truncate rounded-[var(--radius-sm)] px-1 py-0.5 text-sm font-normal text-(--color-text-3) transition-[background-color,color] duration-150 hover:bg-(--color-surface-2) hover:text-(--color-text-2)"
-            >
-              <span className="font-normal text-(--color-text-3)">{formatSearchResultDomain(item.url)}</span>
-              <span className="mx-1 text-(--color-text-4)">·</span>
-              <span className="font-normal text-(--color-text-3)">{item.title}</span>
-            </a>
-          </li>
-        ))}
+    <div className="mt-1.5">
+      <ol>
+        {results.map((item, index) => {
+          const isLast = index === results.length - 1
+          return (
+            <li key={`${item.position}-${item.url}`} className="flex items-start">
+              <TreeConnector isLast={isLast} />
+              <a
+                href={item.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block min-w-0 truncate rounded-[var(--radius-sm)] px-1 py-0.5 text-sm font-normal text-(--color-text-3) transition-[background-color,color] duration-150 hover:bg-(--color-surface-2) hover:text-(--color-text-2)"
+              >
+                <span className="font-normal text-(--color-text-3)">{formatSearchResultDomain(item.url)}</span>
+                <span className="mx-1 text-(--color-text-4)">·</span>
+                <span className="font-normal text-(--color-text-3)">{item.title}</span>
+              </a>
+            </li>
+          )
+        })}
       </ol>
     </div>
   )
@@ -181,9 +239,9 @@ export function ToolActivityCard({
   const { t } = useI18n()
   const resultByCallId = useMemo(() => new Map(results.map((result) => [result.toolCallId, result])), [results])
 
-  // GenImage calls render as standalone rich cards; tools with incomplete
-  // streaming arguments collapse into a single gray "system event" line.
-  const compactRows: ReactNode[] = []
+  // GenImage and AskUserQuestion render as standalone rich cards because they
+  // require user interaction (approval / form submission). All other tools use
+  // lightweight inline rows to minimize card clutter.
   const richCards: ReactNode[] = []
   const inlineNotices: ReactNode[] = []
 
@@ -209,7 +267,7 @@ export function ToolActivityCard({
       continue
     }
     if (isStreaming && !result && !hasCompleteToolArguments(call)) {
-      inlineNotices.push(<InlineToolNotice key={call.id} label={preparingToolLabel(call, t)} />)
+      inlineNotices.push(<InlineToolNotice key={call.id} label={toolPreparingLabel(call, t)} />)
       continue
     }
     if (call.name === 'AskUserQuestion') {
@@ -232,48 +290,30 @@ export function ToolActivityCard({
       }
       continue
     }
-    if (call.name === 'ReadImage') {
-      const finished = result
-      if (!finished) {
-        inlineNotices.push(<InlineToolNotice key={call.id} label={t('agentChat.tool.readImage.reading')} />)
-        continue
-      }
-      const imageId =
-        typeof call.arguments.image_id === 'string' ? call.arguments.image_id : t('agentChat.tool.args.image')
-      if (finished.isError) {
-        const errText = finished.text?.trim() || t('agentChat.tool.result.failed')
-        inlineNotices.push(
-          <InlineToolDone
-            key={call.id}
-            label={t('agentChat.tool.readImage.failed', { id: imageId, error: errText })}
-          />,
-        )
-      } else {
-        inlineNotices.push(<InlineToolDone key={call.id} label={t('agentChat.tool.readImage.done', { id: imageId })} />)
-      }
+
+    // Unified inline treatment for all remaining tools.
+    if (!result) {
+      inlineNotices.push(<InlineToolNotice key={call.id} label={toolRunningLabel(call, t)} />)
       continue
     }
     if (call.name === 'WebSearch') {
-      compactRows.push(
-        <ToolCallRow key={call.id} call={call} result={result}>
-          {result ? <WebSearchResultLinks result={result} /> : null}
-        </ToolCallRow>,
+      inlineNotices.push(
+        <InlineToolDone key={call.id} label={toolDoneLabel(call, result, t)}>
+          {!result.isError && <WebSearchResultLinks result={result} />}
+        </InlineToolDone>,
       )
-      continue
+    } else {
+      inlineNotices.push(<InlineToolDone key={call.id} label={toolDoneLabel(call, result, t)} />)
     }
-    compactRows.push(<ToolCallRow key={call.id} call={call} result={result} />)
   }
   if (calls.length === 0) {
     for (const result of results) {
-      compactRows.push(<StandaloneToolResultRow key={result.toolCallId} result={result} />)
+      inlineNotices.push(<InlineToolDone key={result.toolCallId} label={standaloneResultLabel(result, t)} />)
     }
   }
 
-  const showCompact = compactRows.length > 0
-
   return (
     <div className="space-y-2">
-      {showCompact && <CompactToolGroup rows={compactRows} />}
       {richCards.length > 0 ? <div className="space-y-2">{richCards}</div> : null}
       {inlineNotices}
     </div>
