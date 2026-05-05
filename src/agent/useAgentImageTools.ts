@@ -306,6 +306,13 @@ export function useAgentImageTools({
     [getCurrentRuntime, startAgentImageTask],
   )
 
+  const approvePendingAgentImageTasks = useCallback(() => {
+    const runtime = getCurrentRuntime()
+    if (!runtime) return
+    const pendingTasks = runtime.imageTasks.filter((task) => task.status === 'pending_approval')
+    for (const task of pendingTasks) void startAgentImageTask(runtime, task)
+  }, [getCurrentRuntime, startAgentImageTask])
+
   const cancelAgentImageTask = useCallback(
     (taskId: string) => {
       const runtime = getCurrentRuntime()
@@ -603,6 +610,7 @@ export function useAgentImageTools({
     runGenImageTool,
     runReadImageTool,
     approveAgentImageTask,
+    approvePendingAgentImageTasks,
     cancelAgentImageTask,
   }
 }

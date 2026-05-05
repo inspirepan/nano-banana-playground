@@ -280,6 +280,7 @@ export function useAgentPlayground({
     runGenImageTool,
     runReadImageTool,
     approveAgentImageTask,
+    approvePendingAgentImageTasks,
     cancelAgentImageTask,
   } = useAgentImageTools({
     agentRuntimesRef,
@@ -371,12 +372,13 @@ export function useAgentPlayground({
       runtime.autoApproveImageTasks = value
       setAutoApproveAgentImageTasksState(value)
       scheduleRuntimeSidecarPersist(runtime)
+      if (value) approvePendingAgentImageTasks()
       if (!runtime.persisted) return
       void updateAgentSessionConfig(runtime.sessionId, { autoApproveImageTasks: value }).then((record) => {
         if (record) upsertAgentSessionSummary(record)
       })
     },
-    [getCurrentRuntime, scheduleRuntimeSidecarPersist, upsertAgentSessionSummary],
+    [approvePendingAgentImageTasks, getCurrentRuntime, scheduleRuntimeSidecarPersist, upsertAgentSessionSummary],
   )
 
   return {

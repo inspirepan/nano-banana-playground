@@ -224,6 +224,7 @@ export function AgentImageTaskCard({
   const isFailed = status === 'failed'
   const isDimmed = status === 'rejected' || status === 'canceled'
   const isActiveGenerating = status === 'approved' || status === 'queued' || status === 'running'
+  const isPendingApproval = task?.status === 'pending_approval'
 
   const reservedIds = task?.request.reservedImageIds ?? []
   const requestedFromArgs = typeof call.arguments.image_id === 'string' ? call.arguments.image_id : undefined
@@ -275,6 +276,9 @@ export function AgentImageTaskCard({
         handleCardClick?.()
       }
     : undefined
+  const shellShadowClass = isPendingApproval
+    ? 'shadow-[0_0_0_1px_var(--color-warning),0_0_0_3px_color-mix(in_srgb,var(--color-warning)_16%,transparent),var(--shadow-lift)]'
+    : 'shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-lift)]'
 
   // Param chip row, shared by all post-composing states. Renders nothing in
   // composing because we don't know the model/resolution yet.
@@ -291,6 +295,11 @@ export function AgentImageTaskCard({
   const targetIdNode = targetIdLabel ? (
     <span className="mono min-w-0 truncate text-sm font-medium text-(--color-text)" title={targetIdLabel}>
       {targetIdLabel}
+    </span>
+  ) : null
+  const approvalStatusNode = isPendingApproval ? (
+    <span className="inline-flex items-center rounded-[var(--radius-xs)] bg-[color-mix(in_srgb,var(--color-warning)_12%,transparent)] px-1.5 py-0.5 text-xs leading-none font-semibold text-(--color-warning) shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-warning)_20%,transparent)]">
+      <span>{t('agentChat.taskStatus.pendingApproval')}</span>
     </span>
   ) : null
 
@@ -442,7 +451,7 @@ export function AgentImageTaskCard({
             }
           : undefined
       }
-      className={`w-full rounded-[var(--radius-lg)] bg-(--color-surface) px-3 py-2.5 shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-lift)] md:m-1 md:max-w-[460px] ${canFocus ? 'cursor-pointer transition-colors duration-150 hover:bg-[color-mix(in_srgb,var(--color-surface-2)_50%,var(--color-surface))]' : ''} ${isDimmed ? 'opacity-60' : ''}`}
+      className={`w-full rounded-[var(--radius-lg)] bg-(--color-surface) px-3 py-2.5 ${shellShadowClass} md:m-1 md:max-w-[460px] ${isPendingApproval ? 'agent-image-task-card-pending' : ''} ${canFocus ? 'cursor-pointer transition-colors duration-150 hover:bg-[color-mix(in_srgb,var(--color-surface-2)_50%,var(--color-surface))]' : ''} ${isDimmed ? 'opacity-60' : ''}`}
     >
       {/* Composing micro header (only state that gets a header) */}
       {isComposingPrompt && (
@@ -456,9 +465,14 @@ export function AgentImageTaskCard({
       )}
 
       {/* Target id on the left, generation parameter tags on the right. */}
-      {!isComposingPrompt && (paramTags || targetIdNode) && (
+      {!isComposingPrompt && (approvalStatusNode || paramTags || targetIdNode) && (
         <div className="flex max-w-[432px] min-w-0 items-start justify-between gap-2 px-2">
-          {targetIdNode}
+          {(targetIdNode || approvalStatusNode) && (
+            <div className="flex min-w-0 items-center gap-1.5">
+              {targetIdNode}
+              {approvalStatusNode}
+            </div>
+          )}
           {(paramTags || isFailed) && (
             <div className="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-x-2 gap-y-1">
               {paramTags}
@@ -508,7 +522,7 @@ export function AgentImageTaskCard({
                 event.stopPropagation()
                 onApprove(task.id)
               }}
-              className="chip text-base"
+              className="chip accent-active agent-image-task-approve text-base"
               data-active
             >
               {t('common.generate')}

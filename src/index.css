@@ -1440,6 +1440,75 @@
     animation: fadeSlide 200ms var(--ease-out);
   }
 
+  @keyframes agent-image-task-approval-ring {
+    0%,
+    100% {
+      opacity: 0.3;
+    }
+    50% {
+      opacity: 0.78;
+    }
+  }
+
+  @keyframes agent-image-task-approval-cta {
+    0%,
+    100% {
+      opacity: 0.18;
+    }
+    50% {
+      opacity: 0.46;
+    }
+  }
+
+  .agent-image-task-card-pending {
+    position: relative;
+    isolation: isolate;
+  }
+
+  .agent-image-task-card-pending::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    box-shadow:
+      0 0 0 1px var(--color-warning),
+      0 0 0 4px color-mix(in srgb, var(--color-warning) 16%, transparent);
+    opacity: 0.3;
+    animation: agent-image-task-approval-ring 1800ms var(--ease-in-out) infinite;
+  }
+
+  .agent-image-task-approve {
+    position: relative;
+    isolation: isolate;
+  }
+
+  .agent-image-task-approve::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-warning) 14%, transparent);
+    opacity: 0.18;
+    animation: agent-image-task-approval-cta 1600ms var(--ease-in-out) infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .agent-image-task-card-pending::before,
+    .agent-image-task-approve::after {
+      animation: none;
+    }
+
+    .agent-image-task-card-pending::before {
+      opacity: 0.72;
+    }
+
+    .agent-image-task-approve::after {
+      opacity: 0.28;
+    }
+  }
+
   /* Popover / dropdown menu enter animation. Uses `@starting-style` so the
      element transitions from a barely-deflated state when first inserted into
      the DOM. Components should add this class together with `transform-origin:
@@ -1547,11 +1616,16 @@
     height: 7px;
     border-radius: 50%;
     background: var(--color-accent);
-    animation: agent-session-running-pulse 1050ms ease-in-out infinite;
+  }
+  .agent-session-running-dot,
+  .agent-session-running-pulse {
+    transform-origin: center;
+    animation: agent-session-running-pulse 1050ms var(--ease-in-out) infinite;
   }
   @media (prefers-reduced-motion: reduce) {
     .agent-running-token > span,
-    .agent-session-running-dot {
+    .agent-session-running-dot,
+    .agent-session-running-pulse {
       animation: none;
       opacity: 0.72;
       transform: none;
