@@ -1,6 +1,7 @@
 import { lazy, memo, Suspense, useCallback, useMemo } from 'react'
 
 import { Icon } from './Icon'
+import { LazyChunkLoadErrorBoundary } from './LazyChunkLoadErrorBoundary'
 import { canDismissFailedGenerationJob, hasActiveGenerationSlots, type DetailTarget } from './output/outputPanelHelpers'
 import { StackRow } from './output/StackRow'
 import { useInfiniteScrollSentinel } from './output/useInfiniteScrollSentinel'
@@ -13,10 +14,13 @@ import { useExternalSync } from '../hooks/effects'
 import type { GenerationJob } from '../hooks/usePlayground'
 import { useI18n } from '../i18n'
 import { buildImageStacks, type ImageStack } from '../lib/stacks'
+import { recoverFromLazyChunkLoadError } from '../lib/lazyChunkRecovery'
 import type { PlaygroundImage, PlaygroundImageMeta } from '../lib/types'
 
 const ImageDetailModal = lazy(() =>
-  import('./image-detail/ImageDetailModal').then((module) => ({ default: module.ImageDetailModal })),
+  import('./image-detail/ImageDetailModal')
+    .then((module) => ({ default: module.ImageDetailModal }))
+    .catch((error: unknown) => recoverFromLazyChunkLoadError(error, 'ImageDetailModal')),
 )
 
 type Props = {
@@ -230,30 +234,38 @@ export const OutputPanel = memo(function OutputPanel({
       )}
 
       {detailStack && (
-        <Suspense fallback={null}>
-          <ImageDetailModal
-            stack={detailStack}
-            initialItemId={detailTarget?.itemId}
-            initialViewMode={detailTarget?.viewMode}
-            initialEditing={detailTarget?.initialEditing}
-            previousStackTarget={previousStackTarget}
-            nextStackTarget={nextStackTarget}
-            history={history}
-            generationJobs={generationJobs}
-            onNavigateToStackItem={navigateDetailToTarget}
-            onClose={() => setDetailTarget(null)}
-            onAddToRef={onAddToRef}
-            onRegenerate={onRegenerate}
-            onReroll={onReroll}
-            onEditImage={onEditImage}
-            onCancelGenerationJob={onCancelGenerationJob}
-            onDismissGenerationJob={onDismissGenerationJob}
-            onCancelGenerationSlot={onCancelGenerationSlot}
-            onRetryGenerationSlot={onRetryGenerationSlot}
-            onRetryFailedGenerationImage={onRetryFailedGenerationImage}
-            onRemove={onRemove}
-          />
-        </Suspense>
+        <LazyChunkLoadErrorBoundary
+          title={t('imageDetail.loadError.title')}
+          description={t('imageDetail.loadError.description')}
+          closeLabel={t('common.close')}
+          refreshLabel={t('common.refresh')}
+          onClose={() => setDetailTarget(null)}
+        >
+          <Suspense fallback={null}>
+            <ImageDetailModal
+              stack={detailStack}
+              initialItemId={detailTarget?.itemId}
+              initialViewMode={detailTarget?.viewMode}
+              initialEditing={detailTarget?.initialEditing}
+              previousStackTarget={previousStackTarget}
+              nextStackTarget={nextStackTarget}
+              history={history}
+              generationJobs={generationJobs}
+              onNavigateToStackItem={navigateDetailToTarget}
+              onClose={() => setDetailTarget(null)}
+              onAddToRef={onAddToRef}
+              onRegenerate={onRegenerate}
+              onReroll={onReroll}
+              onEditImage={onEditImage}
+              onCancelGenerationJob={onCancelGenerationJob}
+              onDismissGenerationJob={onDismissGenerationJob}
+              onCancelGenerationSlot={onCancelGenerationSlot}
+              onRetryGenerationSlot={onRetryGenerationSlot}
+              onRetryFailedGenerationImage={onRetryFailedGenerationImage}
+              onRemove={onRemove}
+            />
+          </Suspense>
+        </LazyChunkLoadErrorBoundary>
       )}
     </div>
   )

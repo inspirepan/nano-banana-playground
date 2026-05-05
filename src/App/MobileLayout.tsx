@@ -4,11 +4,16 @@ import type { SharedInputPanelProps } from './buildInputPanelProps'
 import { Topbar, type MobileTab } from './Topbar'
 import type { MobileDetailNavTarget } from './useMobileDetailModal'
 import { InputPanel } from '../components/InputPanel'
+import { LazyChunkLoadErrorBoundary } from '../components/LazyChunkLoadErrorBoundary'
 import { OutputPanel } from '../components/OutputPanel'
+import { useI18n } from '../i18n'
+import { recoverFromLazyChunkLoadError } from '../lib/lazyChunkRecovery'
 import type { ImageStack } from '../lib/stacks'
 
 const ImageDetailModal = lazy(() =>
-  import('../components/image-detail/ImageDetailModal').then((module) => ({ default: module.ImageDetailModal })),
+  import('../components/image-detail/ImageDetailModal')
+    .then((module) => ({ default: module.ImageDetailModal }))
+    .catch((error: unknown) => recoverFromLazyChunkLoadError(error, 'ImageDetailModal')),
 )
 
 type OutputPanelProps = ComponentProps<typeof OutputPanel>
@@ -71,6 +76,7 @@ export function MobileLayout({
   onNavigateToStackItem,
   onCloseDetail,
 }: Props) {
+  const { t } = useI18n()
   const mobilePanelScrollRef = useRef<HTMLDivElement>(null)
 
   useLayoutEffect(() => {
@@ -128,28 +134,36 @@ export function MobileLayout({
       </div>
 
       {mobileDetailStack && (
-        <Suspense fallback={null}>
-          <ImageDetailModal
-            stack={mobileDetailStack}
-            initialItemId={mobileDetailItemId}
-            history={history}
-            generationJobs={generationJobs}
-            previousStackTarget={mobilePrevStackTarget}
-            nextStackTarget={mobileNextStackTarget}
-            onNavigateToStackItem={onNavigateToStackItem}
-            onClose={onCloseDetail}
-            onAddToRef={onAddToRef}
-            onRegenerate={onRegenerate}
-            onReroll={onReroll}
-            onEditImage={onEditImage}
-            onCancelGenerationJob={onCancelGenerationJob}
-            onDismissGenerationJob={onDismissGenerationJob}
-            onCancelGenerationSlot={onCancelGenerationSlot}
-            onRetryGenerationSlot={onRetryGenerationSlot}
-            onRetryFailedGenerationImage={onRetryFailedGenerationImage}
-            onRemove={onRemove}
-          />
-        </Suspense>
+        <LazyChunkLoadErrorBoundary
+          title={t('imageDetail.loadError.title')}
+          description={t('imageDetail.loadError.description')}
+          closeLabel={t('common.close')}
+          refreshLabel={t('common.refresh')}
+          onClose={onCloseDetail}
+        >
+          <Suspense fallback={null}>
+            <ImageDetailModal
+              stack={mobileDetailStack}
+              initialItemId={mobileDetailItemId}
+              history={history}
+              generationJobs={generationJobs}
+              previousStackTarget={mobilePrevStackTarget}
+              nextStackTarget={mobileNextStackTarget}
+              onNavigateToStackItem={onNavigateToStackItem}
+              onClose={onCloseDetail}
+              onAddToRef={onAddToRef}
+              onRegenerate={onRegenerate}
+              onReroll={onReroll}
+              onEditImage={onEditImage}
+              onCancelGenerationJob={onCancelGenerationJob}
+              onDismissGenerationJob={onDismissGenerationJob}
+              onCancelGenerationSlot={onCancelGenerationSlot}
+              onRetryGenerationSlot={onRetryGenerationSlot}
+              onRetryFailedGenerationImage={onRetryFailedGenerationImage}
+              onRemove={onRemove}
+            />
+          </Suspense>
+        </LazyChunkLoadErrorBoundary>
       )}
     </div>
   )

@@ -98,6 +98,11 @@ export const imageDetailMessages: MessageDictionary = {
   'imageDetail.footer.wheelZoom': { 'zh-CN': '滚轮 缩放', en: 'Wheel zoom' },
   'imageDetail.gallery.allImages': { 'zh-CN': '全部图片', en: 'All images' },
   'imageDetail.gallery.confirmDelete': { 'zh-CN': '确认删除 {count} 张', en: 'Confirm delete {count}' },
+  'imageDetail.loadError.title': { 'zh-CN': '图片详情需要刷新', en: 'Image details need a refresh' },
+  'imageDetail.loadError.description': {
+    'zh-CN': '页面还在使用旧版本资源，图片详情文件没有加载成功。刷新页面即可恢复。',
+    en: 'This page is still using an older app bundle, and the image details file did not load. Refresh the page to recover.',
+  },
   'imageDetail.gallery.downloadZip': { 'zh-CN': '下载 ZIP', en: 'Download ZIP' },
   'imageDetail.gallery.exportingZip': { 'zh-CN': '打包中…', en: 'Packaging…' },
   'imageDetail.gallery.summary': {
