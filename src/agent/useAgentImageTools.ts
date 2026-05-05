@@ -1,6 +1,6 @@
 import { useCallback, type RefObject } from 'react'
 
-import { compressImageForAgentInput } from './imageCompression'
+import { compressImageForAgentInput, compressImageForGenerationReference } from './imageCompression'
 import {
   AGENT_PROMPT_DEFAULT_LINE_LIMIT,
   formatPromptLines,
@@ -253,6 +253,17 @@ export function useAgentImageTools({
         return { ok: false, message: translate('configLib.agent.taskCanceled') }
       }
 
+      const generationReferenceImages = await Promise.all(
+        referenceImages.map(async (image) => {
+          const compressed = await compressImageForGenerationReference({ data: image.data, mimeType: image.mimeType })
+          return { ...image, data: compressed.data, mimeType: compressed.mimeType }
+        }),
+      )
+
+      if (!runtime.ready || agentRuntimesRef.current.get(runtime.sessionId) !== runtime) {
+        return { ok: false, message: translate('configLib.agent.sessionDeleted') }
+      }
+
       const stackId = task.request.stackId ?? stackIdForAgentSession(runtime.sessionId)
       const batchId = enqueueGenerationJob(
         {
@@ -260,7 +271,7 @@ export function useAgentImageTools({
           baseUrl: credentials.baseUrl,
           model: modelConfig,
           prompt: task.request.prompt,
-          referenceImages,
+          referenceImages: generationReferenceImages,
           resolution: task.request.resolution,
           aspectRatio: task.request.aspectRatio,
           options: task.request.options,
