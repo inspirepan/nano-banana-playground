@@ -4,6 +4,7 @@ export const PROVIDER_TARGETS: Record<string, string> = {
   anthropic: 'https://api.anthropic.com',
   'moonshot-cn': 'https://api.moonshot.cn',
   'moonshot-ai': 'https://api.moonshot.ai',
+  doubao: 'https://ark.cn-beijing.volces.com/api/v3',
 }
 
 const REQUEST_HEADER_ALLOWLIST = new Set([
@@ -103,7 +104,7 @@ export function decodeBase64Url(value: string): string {
 }
 
 export function getPathSegments(path: string | string[] | undefined): string[] {
-  return Array.isArray(path) ? path : path ? [path] : []
+  return Array.isArray(path) ? path : path ? path.split('/').filter(Boolean) : []
 }
 
 export function filterRequestHeaders(headers: Headers): Headers {

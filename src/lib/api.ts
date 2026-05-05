@@ -1,3 +1,4 @@
+import { generateImageDoubao } from './imageApi/doubao'
 import { generateImageGoogle } from './imageApi/google'
 import { generateImageOpenAI } from './imageApi/openai'
 import { GENERATE_MAX_ATTEMPTS, REQUEST_TIMEOUT_MS } from './imageApi/retry'
@@ -14,6 +15,9 @@ export async function generateImage(
 ): Promise<PlaygroundImage> {
   if (params.model.provider === 'openai') {
     return generateImageOpenAI(params, signal, callbacks)
+  }
+  if (params.model.provider === 'doubao') {
+    return generateImageDoubao(params, signal, callbacks)
   }
   return generateImageGoogle(params, signal, callbacks)
 }

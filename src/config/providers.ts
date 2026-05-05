@@ -1,6 +1,6 @@
-export type Provider = 'google' | 'openai' | 'anthropic' | 'moonshot-cn' | 'moonshot-ai'
+export type Provider = 'google' | 'openai' | 'anthropic' | 'moonshot-cn' | 'moonshot-ai' | 'doubao'
 
-export type ProviderBrandIconName = 'gemini' | 'openai' | 'claude' | 'moonshot'
+export type ProviderBrandIconName = 'gemini' | 'openai' | 'claude' | 'moonshot' | 'doubao'
 
 export type ProviderConfig = {
   id: Provider
@@ -75,6 +75,18 @@ const PROVIDER_CONFIG_BY_ID: Record<Provider, ProviderConfig> = {
     keyLabelKey: 'apiKeys.provider.moonshotAi.label',
     keyPlaceholderKey: 'apiKeys.provider.moonshotAi.placeholder',
     keyHintKey: 'apiKeys.provider.moonshotAi.hint',
+  },
+  doubao: {
+    id: 'doubao',
+    label: 'Doubao Seedream',
+    shortLabel: 'Doubao',
+    brandIcon: 'doubao',
+    defaultBaseUrl: 'https://ark.cn-beijing.volces.com/api/v3',
+    apiKeyStorageKey: 'nbp-api-key:doubao',
+    baseUrlStorageKey: 'nbp-base-url:doubao',
+    keyLabelKey: 'apiKeys.provider.doubao.label',
+    keyPlaceholderKey: 'apiKeys.provider.doubao.placeholder',
+    keyHintKey: 'apiKeys.provider.doubao.hint',
   },
 }
 

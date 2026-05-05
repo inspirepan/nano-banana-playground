@@ -147,7 +147,7 @@ export function GenerateModeView({
         label={t('common.model')}
         right={<span className="mono text-sm text-(--color-text-4)">{model.apiModel}</span>}
       >
-        <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${MODEL_CONFIGS.length}, 1fr)` }}>
+        <div className="grid grid-cols-3 gap-1.5">
           {MODEL_CONFIGS.map((m) => (
             <button
               key={m.id}
@@ -155,10 +155,10 @@ export function GenerateModeView({
               data-active={model.id === m.id}
               onClick={() => onSwitchModel(m.id)}
               title={m.name}
-              className="chip justify-center"
+              className="chip min-w-0 justify-center px-2"
             >
               <BrandIcon name={getProviderConfig(m.provider).brandIcon} size={12} />
-              <span>{getModelShortLabel(m)}</span>
+              <span className="min-w-0 truncate">{getModelShortLabel(m)}</span>
             </button>
           ))}
         </div>

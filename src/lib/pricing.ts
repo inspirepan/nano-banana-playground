@@ -13,6 +13,7 @@ export function getPricePerImage(
   if (model.provider === 'google') {
     return model.imagePriceByResolution[resolution] ?? null
   }
+  if (model.provider === 'doubao') return null
   const size = openAISize(resolution, aspectRatio)
   const quality = typeof options.quality === 'string' ? options.quality : 'auto'
   return gptImage2PricePerImage(size, quality)
@@ -31,6 +32,8 @@ export function getActualCost(model: ModelConfig, usage: TokenUsage | undefined)
     const textCost = (usage.textOutputTokens * model.textOutputPricePerMillion) / 1_000_000
     return inputCost + imageCost + textCost
   }
+
+  if (model.provider === 'doubao') return null
 
   const imageInputTokens = usage.inputImageTokens ?? 0
   const textInputTokens = usage.inputTextTokens ?? Math.max(usage.inputTokens - imageInputTokens, 0)

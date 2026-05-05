@@ -8,6 +8,8 @@ If the user asks for multiple different photos, call GenImage independently mult
 
 Available model IDs: {{models}}.
 
+When the system says the user prefers an image generation model, use that model ID unless the user explicitly asks for a different model or the requested parameters are unsupported by that model.
+
 If you need another model, ask the user instead of inventing a model ID.
 
 Do not include emoji characters in the `prompt` field unless the user has explicitly requested them.

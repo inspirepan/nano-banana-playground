@@ -5,7 +5,7 @@ import { getProviderConfig, type Provider } from './providers'
 import { translate } from '../i18n'
 import { resolveBaseUrl } from '../lib/validateKey'
 
-export type AgentModelProvider = Provider
+export type AgentModelProvider = Exclude<Provider, 'doubao'>
 export type AgentThinkingLevel = Extract<AgentCoreThinkingLevel, 'off' | 'minimal' | 'low' | 'medium' | 'high'>
 
 export type AgentModelConfig = {

@@ -39,6 +39,15 @@ export const apiKeysMessages: MessageDictionary = {
     'zh-CN': '用于 Kimi Agent 模型（国际区）',
     en: 'For Kimi Agent models (global)',
   },
+  'apiKeys.provider.doubao.label': { 'zh-CN': 'Doubao Seedream', en: 'Doubao Seedream' },
+  'apiKeys.provider.doubao.placeholder': {
+    'zh-CN': '粘贴你的火山方舟 API Key',
+    en: 'Paste your Volcengine Ark API key',
+  },
+  'apiKeys.provider.doubao.hint': {
+    'zh-CN': '用于 Doubao Seedream 图像生成模型',
+    en: 'For Doubao Seedream image generation models',
+  },
   'apiKeys.apiKey.label': { 'zh-CN': 'API Key', en: 'API key' },
   'apiKeys.apiKey.ariaLabel': { 'zh-CN': '{label} 输入框', en: '{label} field' },
   'apiKeys.apiKey.placeholder.replaceExisting': {

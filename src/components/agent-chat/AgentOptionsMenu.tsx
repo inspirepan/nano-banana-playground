@@ -71,18 +71,31 @@ export function AgentOptionsMenu({
         <span className="min-w-0 flex-1 truncate">{t('agentChat.options.preferredImageModel.none')}</span>
         {preferredImageModelId === null && <Icon name="check" size={13} />}
       </button>
-      {MODEL_CONFIGS.map((item) => (
-        <button
-          key={item.id}
-          type="button"
-          onClick={() => setPreferredImageModelId(item.id)}
-          className="flex h-7 w-full items-center gap-2 rounded-[var(--radius-sm)] px-2 text-left text-sm font-medium text-(--color-text-2) transition-colors hover:bg-(--color-surface-2)"
-        >
-          <BrandIcon name={getProviderConfig(item.provider).brandIcon} size={12} />
-          <span className="min-w-0 flex-1 truncate">{getModelShortLabel(item)}</span>
-          {preferredImageModelId === item.id && <Icon name="check" size={13} />}
-        </button>
-      ))}
+      {MODEL_CONFIGS.map((item) => {
+        const needsKey = keyStatuses[item.provider] === 'empty'
+        return (
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => {
+              setPreferredImageModelId(item.id)
+              if (needsKey) {
+                setOpenMenu(null)
+                onOpenApiKeys()
+              }
+            }}
+            className="flex h-7 w-full items-center gap-2 rounded-[var(--radius-sm)] px-2 text-left text-sm font-medium text-(--color-text-2) transition-colors hover:bg-(--color-surface-2)"
+          >
+            <BrandIcon name={getProviderConfig(item.provider).brandIcon} size={12} />
+            <span className="min-w-0 flex-1 truncate">{getModelShortLabel(item)}</span>
+            {needsKey ? (
+              <MissingKeyBadge label={t('agentChat.apiKeyMissing.action')} />
+            ) : (
+              preferredImageModelId === item.id && <Icon name="check" size={13} />
+            )}
+          </button>
+        )
+      })}
       <div className="my-1 h-px bg-(--ring-edge-soft)" />
       <ThinkingSlider
         value={effectiveThinkingLevel}
@@ -110,16 +123,7 @@ export function AgentOptionsMenu({
             <AgentModelIcon model={item} />
             <span className="min-w-0 flex-1 truncate">{item.label}</span>
             {needsKey ? (
-              <span
-                className="shrink-0 rounded-[var(--radius-xs)] px-1.5 py-0.5 text-xs leading-[1.25]"
-                style={{
-                  color: 'var(--color-danger)',
-                  background: 'var(--color-danger-soft)',
-                  boxShadow: 'inset 0 0 0 1px color-mix(in srgb, var(--color-danger) 20%, transparent)',
-                }}
-              >
-                {t('agentChat.apiKeyMissing.action')}
-              </span>
+              <MissingKeyBadge label={t('agentChat.apiKeyMissing.action')} />
             ) : (
               model.id === item.id && <Icon name="check" size={13} />
             )}
@@ -127,6 +131,21 @@ export function AgentOptionsMenu({
         )
       })}
     </div>
+  )
+}
+
+function MissingKeyBadge({ label }: { label: string }) {
+  return (
+    <span
+      className="shrink-0 rounded-[var(--radius-xs)] px-1.5 py-0.5 text-xs leading-[1.25]"
+      style={{
+        color: 'var(--color-danger)',
+        background: 'var(--color-danger-soft)',
+        boxShadow: 'inset 0 0 0 1px color-mix(in srgb, var(--color-danger) 20%, transparent)',
+      }}
+    >
+      {label}
+    </span>
   )
 }
 

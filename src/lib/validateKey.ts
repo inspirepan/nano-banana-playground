@@ -15,6 +15,18 @@ function isOpenAICompatibleProvider(provider: Provider): boolean {
   return provider === 'openai' || provider === 'moonshot-cn' || provider === 'moonshot-ai'
 }
 
+function resolveDoubaoBaseUrl(baseUrl?: string): string {
+  const trimmed = baseUrl?.trim() || getProviderConfig('doubao').defaultBaseUrl
+  if (trimmed.startsWith('/')) return trimmed.replace(/\/+$/, '')
+  const raw = (/^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`).replace(/\/+$/, '')
+  const parsed = new URL(raw)
+  if (parsed.pathname.startsWith('/api/llm/')) return raw
+  if (parsed.hostname === 'ark.cn-beijing.volces.com' && (parsed.pathname === '' || parsed.pathname === '/')) {
+    return `${raw}/api/v3`
+  }
+  return raw
+}
+
 // Normalize a user-entered base URL into the form our callers expect:
 //   - google: host root (versioned paths are appended per-endpoint)
 //   - OpenAI-compatible providers: must end in `/v1` (all endpoints are relative to /v1)
@@ -27,6 +39,7 @@ export function resolveBaseUrl(provider: Provider, baseUrl?: string): string {
   if (trimmed.endsWith('#')) {
     return trimmed.slice(0, -1).replace(/\/+$/, '')
   }
+  if (provider === 'doubao') return resolveDoubaoBaseUrl(trimmed)
   const stripped = stripTrailingApiVersion(trimmed || getProviderConfig(provider).defaultBaseUrl)
   if (provider === 'google') return stripped
   if (isOpenAICompatibleProvider(provider)) return `${stripped}/v1`
@@ -39,6 +52,7 @@ export function previewEndpoint(provider: Provider, baseUrl?: string): string {
   const base = resolveBaseUrl(provider, baseUrl)
   if (provider === 'google') return `${base}/v1beta/models/{model}:generateContent`
   if (provider === 'anthropic') return `${base}/v1/messages`
+  if (provider === 'doubao') return `${base}/images/generations`
   if (provider === 'moonshot-cn' || provider === 'moonshot-ai') return `${base}/chat/completions`
   return `${base}/images/generations`
 }
@@ -83,6 +97,18 @@ export async function validateApiKey(
       return { valid: true }
     }
 
+    if (provider === 'doubao') {
+      const res = await fetch(`${base}/models`, {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${apiKey}` },
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => null)
+        return { valid: false, error: data?.error?.message || `HTTP ${res.status}` }
+      }
+      return { valid: true }
+    }
+
     // OpenAI-compatible providers: a cheap idempotent GET that only requires a valid key.
     const res = await fetch(`${base}/models`, {
       method: 'GET',
@@ -115,7 +141,13 @@ function stripTrailingApiVersion(baseUrl: string): string {
 export function getProxyBaseUrl(provider: Provider, customBaseUrl?: string): string {
   const trimmed = customBaseUrl?.trim() ?? ''
   const preserveExactBase = trimmed.endsWith('#')
-  const targetBase = preserveExactBase ? trimmed.slice(0, -1).replace(/\/+$/, '') : stripTrailingApiVersion(trimmed)
+  const targetBase = preserveExactBase
+    ? trimmed.slice(0, -1).replace(/\/+$/, '')
+    : provider === 'doubao'
+      ? trimmed
+        ? resolveDoubaoBaseUrl(trimmed)
+        : ''
+      : stripTrailingApiVersion(trimmed)
   const origin = typeof window !== 'undefined' ? window.location.origin : ''
 
   if (!targetBase) return `${origin}/api/llm/${provider}`

@@ -77,12 +77,17 @@ export type OpenAIModelConfig = BaseModelConfig & {
   provider: 'openai'
 }
 
-export type ModelConfig = GoogleModelConfig | OpenAIModelConfig
+export type DoubaoModelConfig = BaseModelConfig & {
+  provider: 'doubao'
+}
+
+export type ModelConfig = GoogleModelConfig | OpenAIModelConfig | DoubaoModelConfig
 
 // Trim the "Nano " brand prefix off Google model names so the segmented
 // control reads tighter; OpenAI names stay verbatim.
 export function getModelShortLabel(model: ModelConfig): string {
   if (model.provider === 'openai') return model.name
+  if (model.provider === 'doubao') return model.name.replace(/^Doubao\s+/, '')
   return model.name.replace(/^Nano\s+/, '')
 }
 
@@ -258,6 +263,33 @@ export const MODEL_CONFIGS: ModelConfig[] = [
     maxCharacterImages: 0,
     maxBatchCount: 4,
     options: [QUALITY_OPTION],
+  },
+  {
+    id: 'doubao-seedream-4-5',
+    name: 'Doubao Seedream 4.5',
+    provider: 'doubao',
+    apiModel: 'doubao-seedream-4-5-251128',
+    resolutions: ['2K', '4K'],
+    defaultResolution: '2K',
+    aspectRatios: ['1:1', '2:3', '3:2', '3:4', '4:3', '4:5', '5:4', '9:16', '16:9', '21:9', '1:4', '4:1', '1:8', '8:1'],
+    defaultAspectRatio: '1:1',
+    maxReferenceImages: 14,
+    maxCharacterImages: 0,
+    maxBatchCount: 4,
+  },
+  {
+    id: 'doubao-seedream-5-0-260128',
+    name: 'Doubao Seedream 5.0 Lite',
+    provider: 'doubao',
+    apiModel: 'doubao-seedream-5-0-260128',
+    resolutions: ['2K', '3K'],
+    defaultResolution: '2K',
+    aspectRatios: ['1:1', '2:3', '3:2', '3:4', '4:3', '4:5', '5:4', '9:16', '16:9', '21:9', '1:4', '4:1', '1:8', '8:1'],
+    defaultAspectRatio: '1:1',
+    maxReferenceImages: 14,
+    maxCharacterImages: 0,
+    maxBatchCount: 4,
+    options: [SEARCH_WEB_OPTION],
   },
 ]
 

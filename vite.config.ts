@@ -11,6 +11,7 @@ const PROVIDER_TARGETS: Record<string, string> = {
   anthropic: 'https://api.anthropic.com',
   'moonshot-cn': 'https://api.moonshot.cn',
   'moonshot-ai': 'https://api.moonshot.ai',
+  doubao: 'https://ark.cn-beijing.volces.com/api/v3',
 }
 
 const DEV_PROXY_TARGETS = [
@@ -27,8 +28,10 @@ const REQUEST_HEADER_ALLOWLIST = new Set([
   'content-type',
   'openai-organization',
   'openai-project',
+  'parallel-beta',
   'x-api-key',
   'x-goog-api-key',
+  'x-subscription-token',
 ])
 
 const RESPONSE_HEADER_ALLOWLIST = new Set([

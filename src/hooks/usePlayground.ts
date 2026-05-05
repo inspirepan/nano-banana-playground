@@ -136,6 +136,7 @@ export function usePlayground() {
   const anthropicKeyHook = useApiKey('anthropic')
   const moonshotCnKeyHook = useApiKey('moonshot-cn')
   const moonshotAiKeyHook = useApiKey('moonshot-ai')
+  const doubaoKeyHook = useApiKey('doubao')
   const keyHooks: Record<Provider, ReturnType<typeof useApiKey>> = useMemo(
     () => ({
       google: googleKeyHook,
@@ -143,8 +144,9 @@ export function usePlayground() {
       anthropic: anthropicKeyHook,
       'moonshot-cn': moonshotCnKeyHook,
       'moonshot-ai': moonshotAiKeyHook,
+      doubao: doubaoKeyHook,
     }),
-    [anthropicKeyHook, googleKeyHook, moonshotAiKeyHook, moonshotCnKeyHook, openaiKeyHook],
+    [anthropicKeyHook, doubaoKeyHook, googleKeyHook, moonshotAiKeyHook, moonshotCnKeyHook, openaiKeyHook],
   )
   const [model, setModel] = useState<ModelConfig>(() => resolveModel(_initial.modelId))
   const apiKeyHook = keyHooks[model.provider]
@@ -767,6 +769,7 @@ export function usePlayground() {
       anthropic: anthropicKeyHook.status,
       'moonshot-cn': moonshotCnKeyHook.status,
       'moonshot-ai': moonshotAiKeyHook.status,
+      doubao: doubaoKeyHook.status,
     } satisfies Record<Provider, ReturnType<typeof useApiKey>['status']>,
     model,
     resolution,
