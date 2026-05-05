@@ -1,11 +1,3 @@
-import {
-  DEFAULT_SANS_FONT,
-  SANS_FONT_IDS,
-  SANS_FONTS,
-  googleFontPreviewsHref,
-  googleFontsHref,
-  type SansFontId,
-} from '../config/fonts'
 import { isLanguagePreference, type Language, type LanguagePreference } from '../config/languages'
 import { COLOR_THEME_IDS, type ColorThemeId, type Theme } from '../config/theme'
 import {
@@ -13,21 +5,16 @@ import {
   readAgentWideTipDismissedPreference,
   readColorThemePreference,
   readLanguagePreference,
-  readSansFontPreference,
   readThemePreference,
   writeColorThemePreference,
   writeLanguagePreference,
-  writeSansFontPreference,
   writeThemePreference,
 } from '../lib/preferenceStore'
 
-export type { SansFontId } from '../config/fonts'
 export type { LanguagePreference } from '../config/languages'
 
 export const BASE_TITLE = 'Imagine Playground'
 export const TITLE_RESET_DELAY_MS = 8000
-export const GOOGLE_FONTS_LINK_ID = 'nano-banana-google-fonts'
-export const GOOGLE_FONT_PREVIEWS_LINK_ID = 'nano-banana-google-font-previews'
 export const DESKTOP_INPUT_PANEL_WIDTH_PX = 480
 export const DESKTOP_INPUT_PANEL_WIDTH = `${DESKTOP_INPUT_PANEL_WIDTH_PX}px`
 export const DESKTOP_AGENT_PANEL_OUTPUT_MIN_WIDTH_PX = 300
@@ -53,15 +40,6 @@ export function getInitialColorTheme(): ColorThemeId {
   return id
 }
 
-export function getInitialSansFont(): SansFontId {
-  const stored = readSansFontPreference()
-  const id = stored && (SANS_FONT_IDS as string[]).includes(stored) ? (stored as SansFontId) : DEFAULT_SANS_FONT
-  document.documentElement.classList.add(
-    SANS_FONTS.find((font) => font.id === id)?.className ?? SANS_FONTS[0].className,
-  )
-  return id
-}
-
 export function getInitialLanguagePreference(): LanguagePreference {
   const stored = readLanguagePreference()
   return isLanguagePreference(stored) ? stored : 'auto'
@@ -75,57 +53,11 @@ export function getInitialAgentWideTipDismissed(): boolean {
   return readAgentWideTipDismissedPreference()
 }
 
-export function ensureGoogleFontsPreconnect() {
-  let preconnect = document.querySelector<HTMLLinkElement>('link[data-nano-banana-fonts-preconnect="fonts-googleapis"]')
-  if (!preconnect) {
-    preconnect = document.createElement('link')
-    preconnect.rel = 'preconnect'
-    preconnect.href = 'https://fonts.googleapis.com'
-    preconnect.dataset.nanoBananaFontsPreconnect = 'fonts-googleapis'
-    document.head.appendChild(preconnect)
-  }
-
-  let gstatic = document.querySelector<HTMLLinkElement>('link[data-nano-banana-fonts-preconnect="fonts-gstatic"]')
-  if (!gstatic) {
-    gstatic = document.createElement('link')
-    gstatic.rel = 'preconnect'
-    gstatic.href = 'https://fonts.gstatic.com'
-    gstatic.crossOrigin = 'anonymous'
-    gstatic.dataset.nanoBananaFontsPreconnect = 'fonts-gstatic'
-    document.head.appendChild(gstatic)
-  }
-}
-
-export function ensureGoogleFontsLink(id: string, href: string) {
-  ensureGoogleFontsPreconnect()
-  let link = document.getElementById(id) as HTMLLinkElement | null
-  if (!link) {
-    link = document.createElement('link')
-    link.id = id
-    link.rel = 'stylesheet'
-    document.head.appendChild(link)
-  }
-  link.href = href
-}
-
 export function applyColorThemePreference(colorTheme: ColorThemeId) {
   const root = document.documentElement
   COLOR_THEME_IDS.forEach((id) => root.classList.remove(`theme-${id}`))
   if (colorTheme !== 'default') root.classList.add(`theme-${colorTheme}`)
   writeColorThemePreference(colorTheme)
-}
-
-export function applySansFontPreference(sansFont: SansFontId, loadPreviews: boolean) {
-  const root = document.documentElement
-  SANS_FONTS.forEach((font) => root.classList.remove(font.className))
-  root.classList.add(SANS_FONTS.find((font) => font.id === sansFont)?.className ?? SANS_FONTS[0].className)
-  ensureGoogleFontsLink(GOOGLE_FONTS_LINK_ID, googleFontsHref(sansFont))
-  if (loadPreviews) {
-    ensureGoogleFontsLink(GOOGLE_FONT_PREVIEWS_LINK_ID, googleFontPreviewsHref())
-  } else {
-    document.getElementById(GOOGLE_FONT_PREVIEWS_LINK_ID)?.remove()
-  }
-  writeSansFontPreference(sansFont)
 }
 
 export function applyLanguagePreference(languagePreference: LanguagePreference, language: Language) {

@@ -20,6 +20,13 @@
   font-display: swap;
   src: url('../node_modules/geist/dist/fonts/geist-sans/Geist-Italic[wght].woff2') format('woff2-variations');
 }
+@font-face {
+  font-family: 'Geist Mono';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('../node_modules/geist/dist/fonts/geist-mono/GeistMono-Variable.woff2') format('woff2-variations');
+}
 
 @theme {
   --font-cjk-sans:
@@ -30,7 +37,7 @@
   --font-sans: 'Geist', var(--font-cjk-sans);
   /* tnum is opt-in via `tabular-nums` — only ratio / resolution / dimension UI needs it. */
   --font-sans--font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1, 'case' 1;
-  --font-mono: 'Roboto Mono', var(--font-cjk-mono);
+  --font-mono: 'Geist Mono', var(--font-cjk-mono);
   --font-mono--font-feature-settings: 'liga' 0, 'calt' 0, 'tnum' 1, 'zero' 1;
   --font-display: var(--font-sans);
 
@@ -170,63 +177,6 @@
   --uchu-blue-7: oklch(47.36% 0.185 259.89);
   --uchu-blue-8: oklch(43.48% 0.17 260.2);
   --uchu-blue-9: oklch(39.53% 0.15 259.87);
-}
-
-.font-sans-geist {
-  --font-sans: 'Geist', var(--font-cjk-sans);
-  --font-sans--font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1, 'case' 1;
-}
-
-.font-sans-system-ui {
-  --font-sans: var(--font-cjk-sans);
-  --font-sans--font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1, 'case' 1;
-}
-
-.font-sans-inter {
-  --font-sans: 'Inter', var(--font-cjk-sans);
-  --font-sans--font-feature-settings: 'calt' 1, 'case' 1;
-}
-
-.font-sans-instrument-sans {
-  --font-sans: 'Instrument Sans', var(--font-cjk-sans);
-  --font-sans--font-feature-settings: 'calt' 1, 'case' 1;
-}
-
-.font-sans-hanken-grotesk {
-  --font-sans: 'Hanken Grotesk', var(--font-cjk-sans);
-  --font-sans--font-feature-settings: 'calt' 1, 'case' 1;
-}
-
-.font-sans-google-sans-flex {
-  --font-sans: 'Google Sans Flex', var(--font-cjk-sans);
-  --font-sans--font-feature-settings: 'calt' 1, 'case' 1;
-}
-
-/* Google Sans Flex has no real italic, only a slnt axis.
-   Map italic to oblique so the browser drives slnt instead of synthesizing. */
-.font-sans-google-sans-flex em,
-.font-sans-google-sans-flex i,
-.font-sans-google-sans-flex cite,
-.font-sans-google-sans-flex .italic {
-  font-style: oblique 10deg;
-  font-synthesis: none;
-}
-
-/* Onest ships no italic and no slnt axis. The global
-   `font-synthesis: none` (set on body for PingFang SC) would otherwise
-   suppress italic entirely — re-enable style synthesis here so italic
-   text at least renders skewed instead of plain upright. Geist is
-   self-hosted with a real italic variable file, so it doesn't need this. */
-.font-sans-onest em,
-.font-sans-onest i,
-.font-sans-onest cite,
-.font-sans-onest .italic {
-  font-synthesis: style;
-}
-
-.font-sans-onest {
-  --font-sans: 'Onest', var(--font-cjk-sans);
-  --font-sans--font-feature-settings: 'calt' 1, 'case' 1;
 }
 
 /* Dark theme — near-neutral dark, minimal purple-gray tint (Linear-style). */

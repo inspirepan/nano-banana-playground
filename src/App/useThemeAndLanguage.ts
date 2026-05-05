@@ -3,25 +3,21 @@ import { useLayoutEffect, useState } from 'react'
 import {
   applyColorThemePreference,
   applyLanguagePreference,
-  applySansFontPreference,
   getInitialColorTheme,
   getInitialLanguagePreference,
-  getInitialSansFont,
   getInitialTheme,
   syncThemePreference,
   type LanguagePreference,
-  type SansFontId,
 } from './initThemePrefs'
 import { resolveLanguagePreference } from '../config/languages'
 import type { ColorThemeId, Theme } from '../config/theme'
 import { useExternalSync } from '../hooks/effects'
 
-// Centralizes theme / color theme / sans font / language state and the
+// Centralizes theme / color theme / language state and the
 // external syncs that mirror those preferences to <html> classes and storage.
-export function useThemeAndLanguage(settingsOpen: boolean) {
+export function useThemeAndLanguage() {
   const [theme, setTheme] = useState<Theme>(getInitialTheme)
   const [colorTheme, setColorTheme] = useState<ColorThemeId>(getInitialColorTheme)
-  const [sansFont, setSansFont] = useState<SansFontId>(getInitialSansFont)
   const [languagePreference, setLanguagePreference] = useState<LanguagePreference>(getInitialLanguagePreference)
   const [browserLanguages, setBrowserLanguages] = useState<readonly string[]>(() => navigator.languages)
 
@@ -30,10 +26,6 @@ export function useThemeAndLanguage(settingsOpen: boolean) {
   useLayoutEffect(() => {
     applyColorThemePreference(colorTheme)
   }, [colorTheme])
-
-  useLayoutEffect(() => {
-    applySansFontPreference(sansFont, settingsOpen)
-  }, [sansFont, settingsOpen])
 
   useLayoutEffect(() => {
     applyLanguagePreference(languagePreference, language)
@@ -54,8 +46,6 @@ export function useThemeAndLanguage(settingsOpen: boolean) {
     setTheme,
     colorTheme,
     setColorTheme,
-    sansFont,
-    setSansFont,
     languagePreference,
     setLanguagePreference,
     language,

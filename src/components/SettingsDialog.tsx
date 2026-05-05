@@ -11,7 +11,6 @@ import { GenerationSettingsTab } from './settings/GenerationSettingsTab'
 import { SettingsBackupTab } from './settings/SettingsBackupTab'
 import { SkillsSettingsTab } from './settings/SkillsSettingsTab'
 import { WebToolsSettingsTab, type WebProviderNotice } from './settings/WebToolsSettingsTab'
-import type { SansFontId } from '../config/fonts'
 import type { LanguagePreference } from '../config/languages'
 import type { Provider } from '../config/models'
 import type { ColorThemeId, Theme } from '../config/theme'
@@ -77,14 +76,12 @@ type Props = {
   keyHooks: Record<Provider, KeyHook>
   theme: Theme
   colorTheme: ColorThemeId
-  sansFont: SansFontId
   language: LanguagePreference
   generationConcurrency: number
   agentSkills: AgentSkillSummary[]
   focusSection?: SettingsFocusSection | null
   onThemeChange: (theme: Theme) => void
   onColorThemeChange: (id: ColorThemeId) => void
-  onSansFontChange: (id: SansFontId) => void
   onLanguageChange: (id: LanguagePreference) => void
   onGenerationConcurrencyChange: (value: number) => void
   onAgentPanelWidePreferenceChange: (wide: boolean) => void
@@ -101,14 +98,12 @@ export function SettingsDialog({
   keyHooks,
   theme,
   colorTheme,
-  sansFont,
   language,
   generationConcurrency,
   agentSkills,
   focusSection,
   onThemeChange,
   onColorThemeChange,
-  onSansFontChange,
   onLanguageChange,
   onGenerationConcurrencyChange,
   onAgentPanelWidePreferenceChange,
@@ -376,11 +371,9 @@ export function SettingsDialog({
             <AppearanceSettingsTab
               theme={theme}
               colorTheme={colorTheme}
-              sansFont={sansFont}
               language={language}
               onThemeChange={onThemeChange}
               onColorThemeChange={onColorThemeChange}
-              onSansFontChange={onSansFontChange}
               onLanguageChange={onLanguageChange}
             />
           )}
@@ -426,7 +419,6 @@ export function SettingsDialog({
               keyHooks={keyHooks}
               onThemeChange={onThemeChange}
               onColorThemeChange={onColorThemeChange}
-              onSansFontChange={onSansFontChange}
               onLanguageChange={onLanguageChange}
               onGenerationConcurrencyChange={onGenerationConcurrencyChange}
               onAgentPanelWidePreferenceChange={onAgentPanelWidePreferenceChange}

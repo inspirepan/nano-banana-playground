@@ -1,6 +1,5 @@
 import { AGENT_MODEL_CONFIGS, AGENT_THINKING_OPTIONS, type AgentThinkingLevel } from '../config/agentModels'
 import { getComposerSubmitMode, type ComposerSubmitMode } from '../config/composerSubmitMode'
-import { SANS_FONT_IDS, type SansFontId } from '../config/fonts'
 import { isLanguagePreference, type LanguagePreference } from '../config/languages'
 import { MODEL_CONFIGS, type Provider } from '../config/models'
 import { PROVIDER_CONFIGS, getProviderConfig } from '../config/providers'
@@ -27,7 +26,6 @@ import {
   readPreferredAgentModelPreference,
   readPreferredAgentThinkingLevelPreference,
   readPreferredImageModelPreference,
-  readSansFontPreference,
   readThemePreference,
 } from './preferenceStore'
 import { readProviderApiKey, readProviderBaseUrl, readProviderUseProxy } from './credentialStore'
@@ -74,7 +72,6 @@ export type ExportedSecrets = {
 export type PreferenceImportKey =
   | 'theme'
   | 'colorTheme'
-  | 'sansFont'
   | 'language'
   | 'agentPanelWide'
   | 'agentWideTipDismissed'
@@ -180,14 +177,6 @@ const PREFERENCE_DESCRIPTORS: PreferenceDescriptor[] = [
     read: readColorThemePreference,
     normalize: (value) =>
       typeof value === 'string' && (COLOR_THEME_IDS as string[]).includes(value) ? (value as ColorThemeId) : null,
-  },
-  {
-    key: 'sansFont',
-    group: 'appearance',
-    labelKey: 'settings.backup.item.sansFont',
-    read: readSansFontPreference,
-    normalize: (value) =>
-      typeof value === 'string' && (SANS_FONT_IDS as string[]).includes(value) ? (value as SansFontId) : null,
   },
   {
     key: 'language',

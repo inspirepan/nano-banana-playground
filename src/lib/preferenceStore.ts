@@ -1,12 +1,10 @@
 import { getStorageItem, removeStorageItem, setStorageItem } from './storage'
 import type { AgentThinkingLevel } from '../config/agentModels'
-import type { SansFontId } from '../config/fonts'
 import type { LanguagePreference } from '../config/languages'
 import type { ColorThemeId, Theme } from '../config/theme'
 
 const THEME_KEY = 'nano-banana-theme'
 const COLOR_THEME_KEY = 'nano-banana-color-theme'
-const SANS_FONT_KEY = 'nano-banana-sans-font'
 const LANGUAGE_KEY = 'nano-banana-language'
 const AGENT_PANEL_WIDE_KEY = 'nano-banana-agent-panel-wide'
 const AGENT_PANEL_WIDE_TIP_KEY = 'nano-banana-agent-panel-wide-tip'
@@ -39,14 +37,6 @@ export function readColorThemePreference(): string | null {
 
 export function writeColorThemePreference(colorTheme: ColorThemeId): boolean {
   return write(COLOR_THEME_KEY, colorTheme)
-}
-
-export function readSansFontPreference(): string | null {
-  return read(SANS_FONT_KEY)
-}
-
-export function writeSansFontPreference(sansFont: SansFontId): boolean {
-  return write(SANS_FONT_KEY, sansFont)
 }
 
 export function readLanguagePreference(): string | null {

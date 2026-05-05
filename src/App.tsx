@@ -89,13 +89,11 @@ function App() {
     setTheme,
     colorTheme,
     setColorTheme,
-    sansFont,
-    setSansFont,
     languagePreference,
     setLanguagePreference,
     language,
     browserLanguages,
-  } = useThemeAndLanguage(settingsOpen)
+  } = useThemeAndLanguage()
 
   const t = useMemo(() => createTranslator(language), [language])
 
@@ -274,14 +272,12 @@ function App() {
               keyHooks={pg.keyHooks}
               theme={theme}
               colorTheme={colorTheme}
-              sansFont={sansFont}
               language={languagePreference}
               generationConcurrency={pg.generationConcurrency}
               agentSkills={pg.agentSkills}
               focusSection={settingsTarget}
               onThemeChange={setTheme}
               onColorThemeChange={setColorTheme}
-              onSansFontChange={setSansFont}
               onLanguageChange={setLanguagePreference}
               onGenerationConcurrencyChange={pg.setGenerationConcurrency}
               onAgentPanelWidePreferenceChange={setAgentPanelWidePreference}
