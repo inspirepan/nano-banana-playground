@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { type MouseEvent, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 
 import { useWindowEvent } from '../../hooks/effects'
@@ -37,6 +37,11 @@ export function AgentGalleryPicker({ open, history, attachedImageIds, onPick, on
 
   if (!open) return null
 
+  const handleCanvasClick = (event: MouseEvent<HTMLDivElement>) => {
+    if (event.target instanceof Element && event.target.closest('[data-gallery-picker-item]')) return
+    onClose()
+  }
+
   return createPortal(
     <div data-agent-menu className="fade-in fixed inset-0 z-[120] flex flex-col bg-(--color-bg)">
       <div className="flex shrink-0 items-center justify-between px-4 py-3 shadow-[inset_0_-1px_0_var(--ring-edge-soft)]">
@@ -48,7 +53,7 @@ export function AgentGalleryPicker({ open, history, attachedImageIds, onPick, on
         </button>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3 sm:px-4 sm:py-4">
+      <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3 sm:px-4 sm:py-4" onClick={handleCanvasClick}>
         {items.length === 0 ? (
           <div className="flex h-full min-h-[240px] flex-col items-center justify-center gap-2 text-center text-(--color-text-3)">
             <Icon name="image_off" size={28} strokeWidth={1.4} />
@@ -101,6 +106,7 @@ function GalleryPickerItem({
       type="button"
       onClick={onPick}
       disabled={attached}
+      data-gallery-picker-item
       title={title}
       aria-label={title}
       className="group relative aspect-square overflow-hidden rounded-[var(--radius-md)] shadow-[inset_0_0_0_1px_var(--ring-edge)] transition-shadow hover:shadow-[inset_0_0_0_1px_var(--ring-edge-strong)] disabled:cursor-not-allowed"
