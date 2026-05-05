@@ -69,15 +69,18 @@ function getCompletedGridColumnCount(count: number): number {
   if (count === 4) return 2
   if (count <= 6) return 3
 
-  return [3, 4].reduce((best, columns) => {
-    const rows = Math.ceil(count / columns)
-    const emptySlots = rows * columns - count
-    const lastRowCount = count % columns || columns
-    const orphanPenalty = lastRowCount === 1 ? 4 : 0
-    const score = emptySlots * 3 + rows + orphanPenalty
+  return [3, 4].reduce(
+    (best, columns) => {
+      const rows = Math.ceil(count / columns)
+      const emptySlots = rows * columns - count
+      const lastRowCount = count % columns || columns
+      const orphanPenalty = lastRowCount === 1 ? 4 : 0
+      const score = emptySlots * 3 + rows + orphanPenalty
 
-    return score < best.score ? { columns, score } : best
-  }, { columns: 3, score: Number.POSITIVE_INFINITY }).columns
+      return score < best.score ? { columns, score } : best
+    },
+    { columns: 3, score: Number.POSITIVE_INFINITY },
+  ).columns
 }
 
 function SkeletonSlot({
