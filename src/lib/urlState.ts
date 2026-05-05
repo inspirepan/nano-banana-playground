@@ -28,7 +28,7 @@ export function readSimpleUrlParams(): SimpleUrlParams {
   for (const [k, v] of params.entries()) rawParams[k] = v
   const agentRaw = params.get('agent')
   const agentMode = agentRaw !== null && agentRaw !== ''
-  const agentSessionId = agentMode && agentRaw !== AGENT_MODE_SENTINEL ? agentRaw : null
+  const agentSessionId = agentMode ? agentRaw : null
   return {
     modelId: params.get('m'),
     resolution: params.get('r'),

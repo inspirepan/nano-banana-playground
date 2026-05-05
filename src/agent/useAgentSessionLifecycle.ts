@@ -9,6 +9,7 @@ import type { AgentSessionMessageMetadata, AgentSessionSummary } from './session
 import type { CreateRuntimeParams } from './useAgentRuntimeFactory'
 import { getPreferredAgentModelId, getPreferredAgentThinkingLevel } from '../config/agentPreferences'
 import { useMountEffect } from '../hooks/effects'
+import { AGENT_MODE_SENTINEL } from '../lib/urlState'
 
 export function useAgentSessionLifecycle({
   initialSessionId,
@@ -263,6 +264,11 @@ export function useAgentSessionLifecycle({
       setAgentSessionsLoading(true)
       const sessions = await listAgentSessions()
       setAgentSessions(sessions)
+      if (initialSessionId === AGENT_MODE_SENTINEL) {
+        await createNewAgentSession()
+        setAgentSessionsLoading(false)
+        return
+      }
       const initialSession = initialSessionId
         ? (sessions.find((session) => session.id === initialSessionId) ?? null)
         : null

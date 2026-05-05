@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 
-import { readSimpleUrlParams, updateUrl } from '../urlState'
+import { AGENT_MODE_SENTINEL, readSimpleUrlParams, updateUrl } from '../urlState'
 
 // Stubs window for URL-related tests. Returns the replaceState spy.
 function mockWindow(search = '') {
@@ -59,11 +59,11 @@ describe('readSimpleUrlParams', () => {
     expect(params.agentSessionId).toBe('session-123')
   })
 
-  it('treats agent=new sentinel as agent mode without a session', () => {
+  it('preserves agent=new as the reserved new-session id', () => {
     mockWindow('?agent=new')
     const params = readSimpleUrlParams()
     expect(params.agentMode).toBe(true)
-    expect(params.agentSessionId).toBeNull()
+    expect(params.agentSessionId).toBe(AGENT_MODE_SENTINEL)
   })
 
   it('returns null batchCount for non-numeric n', () => {
