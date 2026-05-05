@@ -106,6 +106,18 @@ export type SettingsImportItemKind =
   | 'providerApiKey'
   | 'webApiKey'
 
+export type SettingsImportItemDependency = {
+  id: string
+  itemId?: string
+  reasonKey: string
+  reasonParams?: TranslationParams
+}
+
+export type SettingsImportItemIssue = {
+  reasonKey: string
+  reasonParams?: TranslationParams
+}
+
 export type SettingsImportPlanItem = {
   id: string
   kind: SettingsImportItemKind
@@ -118,6 +130,8 @@ export type SettingsImportPlanItem = {
   sensitive?: boolean
   defaultSelected: boolean
   reasonKey?: string
+  reasonParams?: TranslationParams
+  dependencies?: SettingsImportItemDependency[]
   payload:
     | { key: PreferenceImportKey; value: string | number | boolean }
     | { provider: Provider; value: string }
@@ -431,6 +445,7 @@ export function parseSettingsExportJson(text: string): SettingsExportBundle {
 export function buildSettingsImportPlan(bundle: SettingsExportBundle): SettingsImportPlan {
   const items: SettingsImportPlanItem[] = []
   const incomingPreferences = isRecord(bundle.settings.preferences) ? bundle.settings.preferences : {}
+  const incomingWebApiKeys = readIncomingWebApiKeys(bundle)
 
   for (const descriptor of PREFERENCE_DESCRIPTORS) {
     if (!(descriptor.key in incomingPreferences)) continue
@@ -465,7 +480,7 @@ export function buildSettingsImportPlan(bundle: SettingsExportBundle): SettingsI
   }
 
   addServiceProviderItems(items, bundle)
-  addWebToolItems(items, bundle)
+  addWebToolItems(items, bundle, incomingWebApiKeys)
   addSkillItems(items, bundle)
   addSecretItems(items, bundle)
 
@@ -516,13 +531,19 @@ function addServiceProviderItems(items: SettingsImportPlanItem[], bundle: Settin
   }
 }
 
-function addWebToolItems(items: SettingsImportPlanItem[], bundle: SettingsExportBundle) {
+function addWebToolItems(
+  items: SettingsImportPlanItem[],
+  bundle: SettingsExportBundle,
+  incomingWebApiKeys: Partial<Record<WebApiProvider, string>>,
+) {
   const webTools = isRecord(bundle.settings.webTools) ? bundle.settings.webTools : {}
   const current = readWebProviderSettings()
   if ('searchProvider' in webTools) {
     const incoming = normalizeString(webTools.searchProvider)
     const valid = incoming !== null && isWebSearchProvider(incoming)
-    const missingKey = valid && incoming !== 'none' && !current.apiKeys[incoming]?.trim()
+    const dependency =
+      valid && incoming !== 'none' ? webApiKeyDependency(incoming, current.apiKeys, incomingWebApiKeys) : null
+    const missingKey = dependency !== null && dependency.itemId === undefined
     const status = valid ? statusFor(current.searchProvider, incoming) : 'invalid'
     addPlanItem(items, {
       id: 'webTools:searchProvider',
@@ -538,13 +559,16 @@ function addWebToolItems(items: SettingsImportPlanItem[], bundle: SettingsExport
           : undefined
         : 'settings.backup.reason.invalidValue',
       defaultSelected: missingKey ? false : defaultSelected(status),
+      dependencies: dependency ? [dependency] : undefined,
       payload: { key: 'searchProvider', value: valid ? incoming : 'none' },
     })
   }
   if ('fetchProvider' in webTools) {
     const incoming = normalizeString(webTools.fetchProvider)
     const valid = incoming !== null && isWebFetchProvider(incoming)
-    const missingKey = valid && incoming !== 'default' && !current.apiKeys[incoming]?.trim()
+    const dependency =
+      valid && incoming !== 'default' ? webApiKeyDependency(incoming, current.apiKeys, incomingWebApiKeys) : null
+    const missingKey = dependency !== null && dependency.itemId === undefined
     const status = valid ? statusFor(current.fetchProvider, incoming) : 'invalid'
     addPlanItem(items, {
       id: 'webTools:fetchProvider',
@@ -560,9 +584,34 @@ function addWebToolItems(items: SettingsImportPlanItem[], bundle: SettingsExport
           : undefined
         : 'settings.backup.reason.invalidValue',
       defaultSelected: missingKey ? false : defaultSelected(status),
+      dependencies: dependency ? [dependency] : undefined,
       payload: { key: 'fetchProvider', value: valid ? incoming : 'default' },
     })
   }
+}
+
+function webApiKeyDependency(
+  provider: WebApiProvider,
+  currentApiKeys: Partial<Record<WebApiProvider, string>>,
+  incomingWebApiKeys: Partial<Record<WebApiProvider, string>>,
+): SettingsImportItemDependency | null {
+  if (currentApiKeys[provider]?.trim()) return null
+  return {
+    id: `webApiKey:${provider}`,
+    itemId: incomingWebApiKeys[provider]?.trim() ? `secret:webApiKey:${provider}` : undefined,
+    reasonKey: 'settings.backup.reason.requiresWebApiKey',
+  }
+}
+
+function readIncomingWebApiKeys(bundle: SettingsExportBundle): Partial<Record<WebApiProvider, string>> {
+  const webApiKeys = isRecord(bundle.secrets?.webApiKeys) ? bundle.secrets.webApiKeys : {}
+  const result: Partial<Record<WebApiProvider, string>> = {}
+  for (const [providerId, rawApiKey] of Object.entries(webApiKeys)) {
+    if (!isWebApiProvider(providerId)) continue
+    const incoming = normalizeString(rawApiKey)?.trim()
+    if (incoming) result[providerId] = incoming
+  }
+  return result
 }
 
 function addSkillItems(items: SettingsImportPlanItem[], bundle: SettingsExportBundle) {
@@ -655,4 +704,139 @@ function summarizeImportItems(items: SettingsImportPlanItem[]): Record<SettingsI
   const summary: Record<SettingsImportItemStatus, number> = { added: 0, changed: 0, unchanged: 0, invalid: 0 }
   for (const item of items) summary[item.status]++
   return summary
+}
+
+export function createDefaultSettingsImportSelection(plan: SettingsImportPlan): Set<string> {
+  const selectedIds = new Set(plan.items.filter((item) => item.defaultSelected).map((item) => item.id))
+  return includeRequiredImportDependencies(plan, selectedIds)
+}
+
+export function selectSettingsImportItems(
+  plan: SettingsImportPlan,
+  currentSelectedIds: Set<string>,
+  itemIds: Iterable<string>,
+): Set<string> {
+  const nextSelectedIds = new Set(currentSelectedIds)
+  const itemById = importItemMap(plan)
+  for (const itemId of itemIds) {
+    const item = itemById.get(itemId)
+    if (!item || !isSettingsImportItemSelectable(item)) continue
+    nextSelectedIds.add(item.id)
+    includeRequiredImportDependencies(plan, nextSelectedIds)
+  }
+  return pruneUnsatisfiedImportDependents(plan, nextSelectedIds)
+}
+
+export function deselectSettingsImportItems(
+  plan: SettingsImportPlan,
+  currentSelectedIds: Set<string>,
+  itemIds: Iterable<string>,
+): Set<string> {
+  const nextSelectedIds = new Set(currentSelectedIds)
+  for (const itemId of itemIds) nextSelectedIds.delete(itemId)
+  return pruneUnsatisfiedImportDependents(plan, nextSelectedIds)
+}
+
+export function isSettingsImportItemSelectable(item: SettingsImportPlanItem): boolean {
+  if (item.status === 'invalid' || item.status === 'unchanged') return false
+  return !(item.dependencies ?? []).some((dependency) => dependency.itemId === undefined)
+}
+
+export function getSettingsImportItemIssue(
+  item: SettingsImportPlanItem,
+  selectedIds: Set<string>,
+): SettingsImportItemIssue | null {
+  if (item.reasonKey) return { reasonKey: item.reasonKey, reasonParams: item.reasonParams }
+  if (!selectedIds.has(item.id)) return null
+  const unsatisfiedDependency = (item.dependencies ?? []).find(
+    (dependency) => !dependency.itemId || !selectedIds.has(dependency.itemId),
+  )
+  return unsatisfiedDependency
+    ? {
+        reasonKey: unsatisfiedDependency.reasonKey,
+        reasonParams: unsatisfiedDependency.reasonParams,
+      }
+    : null
+}
+
+export function getSelectedSettingsImportItemsForApply(
+  plan: SettingsImportPlan,
+  selectedIds: Set<string>,
+): SettingsImportPlanItem[] {
+  const selectedItems = plan.items.filter(
+    (item) =>
+      selectedIds.has(item.id) && item.status !== 'invalid' && getSettingsImportItemIssue(item, selectedIds) === null,
+  )
+  return sortImportItemsByDependencies(selectedItems)
+}
+
+function includeRequiredImportDependencies(plan: SettingsImportPlan, selectedIds: Set<string>): Set<string> {
+  const itemById = importItemMap(plan)
+  let changed = true
+  while (changed) {
+    changed = false
+    for (const itemId of Array.from(selectedIds)) {
+      const item = itemById.get(itemId)
+      if (!item) continue
+      for (const dependency of item.dependencies ?? []) {
+        if (!dependency.itemId || selectedIds.has(dependency.itemId)) continue
+        const dependencyItem = itemById.get(dependency.itemId)
+        if (!dependencyItem || !isSettingsImportItemSelectable(dependencyItem)) continue
+        selectedIds.add(dependency.itemId)
+        changed = true
+      }
+    }
+  }
+  return selectedIds
+}
+
+function pruneUnsatisfiedImportDependents(plan: SettingsImportPlan, selectedIds: Set<string>): Set<string> {
+  const itemById = importItemMap(plan)
+  let changed = true
+  while (changed) {
+    changed = false
+    for (const itemId of Array.from(selectedIds)) {
+      const item = itemById.get(itemId)
+      if (!item) {
+        selectedIds.delete(itemId)
+        changed = true
+        continue
+      }
+      const unsatisfied = (item.dependencies ?? []).some(
+        (dependency) => !dependency.itemId || !selectedIds.has(dependency.itemId),
+      )
+      if (unsatisfied || !isSettingsImportItemSelectable(item)) {
+        selectedIds.delete(item.id)
+        changed = true
+      }
+    }
+  }
+  return selectedIds
+}
+
+function sortImportItemsByDependencies(items: SettingsImportPlanItem[]): SettingsImportPlanItem[] {
+  const itemById = new Map(items.map((item) => [item.id, item]))
+  const orderedItems: SettingsImportPlanItem[] = []
+  const visitedIds = new Set<string>()
+  const visitingIds = new Set<string>()
+
+  const visit = (item: SettingsImportPlanItem) => {
+    if (visitedIds.has(item.id) || visitingIds.has(item.id)) return
+    visitingIds.add(item.id)
+    for (const dependency of item.dependencies ?? []) {
+      if (!dependency.itemId) continue
+      const dependencyItem = itemById.get(dependency.itemId)
+      if (dependencyItem) visit(dependencyItem)
+    }
+    visitingIds.delete(item.id)
+    visitedIds.add(item.id)
+    orderedItems.push(item)
+  }
+
+  for (const item of items) visit(item)
+  return orderedItems
+}
+
+function importItemMap(plan: SettingsImportPlan): Map<string, SettingsImportPlanItem> {
+  return new Map(plan.items.map((item) => [item.id, item]))
 }

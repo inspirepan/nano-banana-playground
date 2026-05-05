@@ -13,8 +13,14 @@ import { setPreferredImageModelId } from '../../config/preferredImageModel'
 import { useI18n } from '../../i18n'
 import {
   buildSettingsImportPlan,
+  createDefaultSettingsImportSelection,
+  deselectSettingsImportItems,
+  getSelectedSettingsImportItemsForApply,
+  getSettingsImportItemIssue,
+  isSettingsImportItemSelectable,
   createSettingsExportBundle,
   parseSettingsExportJson,
+  selectSettingsImportItems,
   type PreferenceImportKey,
   type SettingsImportGroup,
   type SettingsImportItemStatus,
@@ -89,7 +95,7 @@ export function SettingsBackupTab({
     try {
       const nextPlan = buildSettingsImportPlan(parseSettingsExportJson(text))
       setPlan(nextPlan)
-      setSelectedIds(new Set(nextPlan.items.filter((item) => item.defaultSelected).map((item) => item.id)))
+      setSelectedIds(createDefaultSettingsImportSelection(nextPlan))
     } catch (error) {
       setPlan(null)
       setSelectedIds(new Set())
@@ -121,25 +127,21 @@ export function SettingsBackupTab({
   }
 
   const toggleItem = (id: string) => {
+    if (!plan) return
     setSelectedIds((current) => {
-      const next = new Set(current)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
+      if (current.has(id)) return deselectSettingsImportItems(plan, current, [id])
+      return selectSettingsImportItems(plan, current, [id])
     })
   }
 
   const toggleGroup = (items: SettingsImportPlanItem[]) => {
-    const selectableIds = items.filter((item) => item.status !== 'invalid').map((item) => item.id)
+    if (!plan) return
+    const selectableIds = items.filter(isSettingsImportItemSelectable).map((item) => item.id)
     if (selectableIds.length === 0) return
     setSelectedIds((current) => {
       const allSelected = selectableIds.every((id) => current.has(id))
-      const next = new Set(current)
-      for (const id of selectableIds) {
-        if (allSelected) next.delete(id)
-        else next.add(id)
-      }
-      return next
+      if (allSelected) return deselectSettingsImportItems(plan, current, selectableIds)
+      return selectSettingsImportItems(plan, current, selectableIds)
     })
   }
 
@@ -147,10 +149,10 @@ export function SettingsBackupTab({
     if (!plan) return
     setSelectedIds(
       selected
-        ? new Set(
-            plan.items
-              .filter((item) => item.status !== 'invalid' && item.status !== 'unchanged')
-              .map((item) => item.id),
+        ? selectSettingsImportItems(
+            plan,
+            new Set(),
+            plan.items.filter(isSettingsImportItemSelectable).map((item) => item.id),
           )
         : new Set(),
     )
@@ -160,8 +162,7 @@ export function SettingsBackupTab({
     if (!plan || selectedIds.size === 0) return
     let applied = 0
     let failed = 0
-    for (const item of plan.items) {
-      if (!selectedIds.has(item.id) || item.status === 'invalid') continue
+    for (const item of getSelectedSettingsImportItemsForApply(plan, selectedIds)) {
       try {
         applyImportItem(item, {
           keyHooks,
@@ -366,7 +367,7 @@ function ImportPlanGroup({
   onToggleGroup: (items: SettingsImportPlanItem[]) => void
 }) {
   const { t } = useI18n()
-  const selectable = items.filter((item) => item.status !== 'invalid')
+  const selectable = items.filter(isSettingsImportItemSelectable)
   const selectedInGroup = selectable.filter((item) => selectedIds.has(item.id)).length
   const groupChecked = selectable.length > 0 && selectedInGroup === selectable.length
   return (
@@ -392,6 +393,7 @@ function ImportPlanGroup({
           key={item.id}
           item={item}
           selected={selectedIds.has(item.id)}
+          selectedIds={selectedIds}
           last={index === items.length - 1}
           onToggle={onToggle}
         />
@@ -403,16 +405,19 @@ function ImportPlanGroup({
 function ImportPlanRow({
   item,
   selected,
+  selectedIds,
   last,
   onToggle,
 }: {
   item: SettingsImportPlanItem
   selected: boolean
+  selectedIds: Set<string>
   last: boolean
   onToggle: (id: string) => void
 }) {
   const { t } = useI18n()
-  const disabled = item.status === 'invalid' || item.status === 'unchanged'
+  const disabled = !isSettingsImportItemSelectable(item)
+  const issue = getSettingsImportItemIssue(item, selectedIds)
   return (
     <label
       className={`grid min-w-0 grid-cols-[auto_minmax(120px,1fr)_auto_minmax(0,1.15fr)_auto_minmax(0,1.15fr)] items-center gap-3 px-3 py-2 ${last ? '' : 'shadow-[inset_0_-1px_0_var(--ring-edge-soft)]'} ${
@@ -428,7 +433,9 @@ function ImportPlanRow({
       />
       <div className="min-w-0">
         <div className="truncate text-sm font-medium text-(--color-text)">{t(item.labelKey, item.labelParams)}</div>
-        {item.reasonKey && <div className="truncate text-xs text-(--color-danger)">{t(item.reasonKey)}</div>}
+        {issue && (
+          <div className="truncate text-xs text-(--color-danger)">{t(issue.reasonKey, issue.reasonParams)}</div>
+        )}
       </div>
       <StatusPill status={item.status} sensitive={item.sensitive} />
       <span
