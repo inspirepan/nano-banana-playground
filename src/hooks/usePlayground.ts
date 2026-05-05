@@ -231,7 +231,6 @@ export function usePlayground() {
   useExternalSync(() => {
     const metas: PlaygroundImageMeta[] = []
     for (const job of generationJobs) {
-      if (job.request.outputImageIdSource === 'agent') continue
       for (const slot of job.slots) {
         if (slot.status !== 'failed') continue
         const id = generationFailureImageId(job.id, slot.id)
