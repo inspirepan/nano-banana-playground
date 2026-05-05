@@ -2,7 +2,6 @@ import type { Dispatch, RefObject, SetStateAction } from 'react'
 
 import type { DrawableLayerHandle } from './DrawableLayer'
 import type { EditMode, GalleryReturnTarget, ModalViewMode } from './useImageDetailModalState'
-import type { ZoomableImageViewState } from './ZoomableImageView'
 import { useWindowEvent } from '../../hooks/effects'
 
 export function useImageDetailKeyboard({
@@ -19,7 +18,6 @@ export function useImageDetailKeyboard({
   setViewMode,
   setGalleryReturnTarget,
   setMobilePreviewOpen,
-  setMobilePreviewInitialView,
   setMobileDrawOpen,
   exitEdit,
   onClose,
@@ -39,7 +37,6 @@ export function useImageDetailKeyboard({
   setViewMode: Dispatch<SetStateAction<ModalViewMode>>
   setGalleryReturnTarget: Dispatch<SetStateAction<GalleryReturnTarget>>
   setMobilePreviewOpen: Dispatch<SetStateAction<boolean>>
-  setMobilePreviewInitialView: Dispatch<SetStateAction<ZoomableImageViewState | null>>
   setMobileDrawOpen: Dispatch<SetStateAction<boolean>>
   exitEdit: () => void
   onClose: () => void
@@ -63,7 +60,6 @@ export function useImageDetailKeyboard({
     if (e.key === 'Escape') {
       if (mobilePreviewOpen) {
         setMobilePreviewOpen(false)
-        setMobilePreviewInitialView(null)
         return
       }
       if (mobileDrawOpen) {

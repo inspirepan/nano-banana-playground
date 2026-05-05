@@ -55,6 +55,7 @@ export function ZoomableImageView({
   label,
   initialView,
   initialViewRevision = 0,
+  disableViewTransition = false,
   onSwipeLeft,
   onSwipeRight,
   onRequestFullscreen,
@@ -66,6 +67,7 @@ export function ZoomableImageView({
   label?: string
   initialView?: ZoomableImageViewState | null
   initialViewRevision?: number
+  disableViewTransition?: boolean
   onSwipeLeft?: () => void
   onSwipeRight?: () => void
   onRequestFullscreen?: (view: ZoomableImageViewState, reason: ZoomableImageViewHandoffReason) => void
@@ -272,27 +274,6 @@ export function ZoomableImageView({
     [applyView],
   )
 
-  const getZoomedViewAtPoint = useCallback(
-    (targetScale: number, anchor: Point) => {
-      const currentScale = scaleRef.current
-      const nextScale = clamp(targetScale, MIN_SCALE, MAX_SCALE)
-      const ratio = nextScale / currentScale
-      const currentOffset = offsetRef.current
-      const viewport = getViewportSize(containerRef.current)
-      const nextOffset = clampOffset(
-        {
-          x: anchor.x - ratio * (anchor.x - currentOffset.x),
-          y: anchor.y - ratio * (anchor.y - currentOffset.y),
-        },
-        nextScale,
-        viewport,
-        fitSizeRef.current,
-      )
-      return getViewStateFor(nextScale, nextOffset)
-    },
-    [getViewStateFor],
-  )
-
   const zoomOutFromControl = useCallback(() => {
     zoomAtPoint(scaleRef.current * 0.8, { x: 0, y: 0 })
   }, [zoomAtPoint])
@@ -307,23 +288,14 @@ export function ZoomableImageView({
         return
       }
       if (onRequestFullscreen) {
-        const view = getZoomedViewAtPoint(DOUBLE_TAP_SCALE, point)
+        const view = zoomAtPoint(DOUBLE_TAP_SCALE, point)
         if (view) onRequestFullscreen(view, 'double-tap')
         return
       }
       if (scaleRef.current > FIT_SCALE) resetView()
       else zoomAtPoint(DOUBLE_TAP_SCALE, point)
     },
-    [
-      applyView,
-      clearInteractionState,
-      getZoomedViewAtPoint,
-      onRequestFullscreen,
-      onRequestInline,
-      requestInline,
-      resetView,
-      zoomAtPoint,
-    ],
+    [applyView, clearInteractionState, onRequestFullscreen, onRequestInline, requestInline, resetView, zoomAtPoint],
   )
 
   useResizeObserver(containerRef, syncFitSize)
@@ -378,7 +350,7 @@ export function ZoomableImageView({
             return
           }
           if (onRequestFullscreen) {
-            const view = getZoomedViewAtPoint(DOUBLE_TAP_SCALE, point)
+            const view = zoomAtPoint(DOUBLE_TAP_SCALE, point)
             if (view) onRequestFullscreen(view, 'double-tap')
             return
           }
@@ -575,7 +547,7 @@ export function ZoomableImageView({
               boxShadow: '0 0 0 1px var(--ring-edge-strong), var(--shadow-float)',
               opacity: fitSize.width ? 1 : 0,
               transition:
-                isDragging || isInteracting
+                disableViewTransition || isDragging || isInteracting
                   ? 'none'
                   : fitSize.width
                     ? 'transform 160ms ease-out, opacity 120ms ease-out'

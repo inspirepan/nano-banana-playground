@@ -21,8 +21,7 @@ type DetailCanvasProps = {
   currentMeta: GeneratedSource | null
   currentSrc: string | null
   displayImage: { id: string; src: string; alt: string } | null
-  initialView?: ZoomableImageViewState | null
-  initialViewRevision?: number
+  mobilePreviewAnchorRef?: RefObject<HTMLDivElement | null>
   refDetailId: string | null
   refDetailSrc: string | null
   hasPrev: boolean
@@ -65,8 +64,7 @@ export function DetailCanvas({
   currentMeta,
   currentSrc,
   displayImage,
-  initialView,
-  initialViewRevision,
+  mobilePreviewAnchorRef,
   refDetailId,
   refDetailSrc,
   hasPrev,
@@ -106,6 +104,7 @@ export function DetailCanvas({
 
   return (
     <div
+      ref={mobilePreviewAnchorRef}
       className="relative min-h-0 min-w-0 overflow-hidden md:flex-1"
       style={{
         flex: isMobileLayout ? '0 0 min(48dvh, 420px)' : '1 1 0%',
@@ -153,15 +152,15 @@ export function DetailCanvas({
               underneath the drawable overlay means entering/exiting
               annotation never blanks the canvas — the bottom view simply
               gets re-revealed when the drawable layer unmounts. */}
-          <ZoomableImageView
-            src={displayImage?.src ?? currentSrc ?? ''}
-            alt={displayImage?.alt ?? currentMeta?.prompt ?? ''}
-            initialView={initialView}
-            initialViewRevision={initialViewRevision}
-            onSwipeLeft={hasNext ? onGoNext : undefined}
-            onSwipeRight={hasPrev ? onGoPrev : undefined}
-            onRequestFullscreen={onRequestFullscreen}
-          />
+          {!isMobileLayout && (
+            <ZoomableImageView
+              src={displayImage?.src ?? currentSrc ?? ''}
+              alt={displayImage?.alt ?? currentMeta?.prompt ?? ''}
+              onSwipeLeft={hasNext ? onGoNext : undefined}
+              onSwipeRight={hasPrev ? onGoPrev : undefined}
+              onRequestFullscreen={onRequestFullscreen}
+            />
+          )}
           {!refDetailId && isMobileLayout && (
             <button
               type="button"

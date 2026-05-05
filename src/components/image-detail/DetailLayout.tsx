@@ -46,13 +46,12 @@ type DetailLayoutProps = {
   // Image data
   currentSrc: string | null
   displayImage: DisplayImage | null
-  canvasInitialView?: ZoomableImageViewState | null
-  canvasInitialViewRevision?: number
   refDetailId: string | null
   refDetailSrc: string | null
   setRefDetailId: Dispatch<SetStateAction<string | null>>
   // Mobile preview
   isMobileLayout: boolean
+  mobilePreviewAnchorRef: RefObject<HTMLDivElement | null>
   openMobilePreview: (initialView?: ZoomableImageViewState | null, reason?: ZoomableImageViewHandoffReason) => void
   // Drawing / edit state
   editing: boolean
@@ -136,12 +135,11 @@ export function DetailLayout({
   toggleSidebar,
   currentSrc,
   displayImage,
-  canvasInitialView,
-  canvasInitialViewRevision,
   refDetailId,
   refDetailSrc,
   setRefDetailId,
   isMobileLayout,
+  mobilePreviewAnchorRef,
   openMobilePreview,
   editing,
   setEditing,
@@ -298,8 +296,7 @@ export function DetailLayout({
                 currentMeta={currentMeta}
                 currentSrc={currentSrc}
                 displayImage={displayImage}
-                initialView={canvasInitialView}
-                initialViewRevision={canvasInitialViewRevision}
+                mobilePreviewAnchorRef={mobilePreviewAnchorRef}
                 refDetailId={refDetailId}
                 refDetailSrc={refDetailSrc}
                 hasPrev={hasPrev}
