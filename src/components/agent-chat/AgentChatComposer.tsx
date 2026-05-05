@@ -29,6 +29,7 @@ import { Icon } from '../Icon'
 import { SkillIcon } from '../SkillIcon'
 
 const MAX_COMPOSER_HEIGHT = 150
+const MOBILE_COMPOSER_AUTOFOCUS_QUERY = '(max-width: 767px), (hover: none) and (pointer: coarse)'
 
 type SlashCompletionContext = {
   start: number
@@ -51,6 +52,10 @@ function autoResizeComposer(el: HTMLTextAreaElement) {
 
   el.style.height = 'auto'
   el.style.height = `${Math.min(el.scrollHeight + 1, MAX_COMPOSER_HEIGHT)}px`
+}
+
+function shouldSkipProgrammaticComposerFocus() {
+  return typeof window !== 'undefined' && window.matchMedia(MOBILE_COMPOSER_AUTOFOCUS_QUERY).matches
 }
 
 function getSlashCompletionContext(value: string, cursor: number): SlashCompletionContext | null {
@@ -179,10 +184,13 @@ export const AgentChatComposer = forwardRef<AgentChatComposerHandle, AgentChatCo
   useImperativeHandle(
     ref,
     () => ({
-      focus: () => textareaRef.current?.focus({ preventScroll: true }),
+      focus: () => {
+        if (shouldSkipProgrammaticComposerFocus()) return
+        textareaRef.current?.focus({ preventScroll: true })
+      },
       activate: () => {
         const textarea = textareaRef.current
-        if (!textarea) return
+        if (!textarea || shouldSkipProgrammaticComposerFocus()) return
         const cursor = textarea.value.length
         textarea.focus({ preventScroll: true })
         textarea.setSelectionRange(cursor, cursor)
@@ -239,8 +247,10 @@ export const AgentChatComposer = forwardRef<AgentChatComposerHandle, AgentChatCo
     setSlashActiveIndex(0)
     setCursorOffset(cursor)
     requestAnimationFrame(() => {
-      textareaRef.current?.focus({ preventScroll: true })
-      textareaRef.current?.setSelectionRange(cursor, cursor)
+      const textarea = textareaRef.current
+      if (!textarea) return
+      if (!shouldSkipProgrammaticComposerFocus()) textarea.focus({ preventScroll: true })
+      textarea.setSelectionRange(cursor, cursor)
     })
   }
 
