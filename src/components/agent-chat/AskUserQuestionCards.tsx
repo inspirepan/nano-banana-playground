@@ -174,9 +174,7 @@ export function AskUserQuestionForm({
   const topicText = topics.join(t('agentChat.question.topicSeparator'))
 
   return (
-    <div
-      className="m-1 rounded-[var(--radius-lg)] bg-(--color-bg-sunken) p-3 shadow-[inset_0_0_0_1px_var(--ring-edge-soft)] dark:bg-[color-mix(in_srgb,var(--color-surface)_48%,var(--color-bg))] dark:shadow-[inset_0_0_0_1px_var(--ring-edge)]"
-    >
+    <div className="m-1 rounded-[var(--radius-lg)] bg-(--color-bg-sunken) p-3 shadow-[inset_0_0_0_1px_var(--ring-edge-soft)] dark:bg-[color-mix(in_srgb,var(--color-surface)_48%,var(--color-bg))] dark:shadow-[inset_0_0_0_1px_var(--ring-edge)]">
       <div className="flex min-w-0 items-center gap-2">
         <span
           aria-hidden
