@@ -6,6 +6,7 @@ import type { ModelConfig } from '../config/models'
 import { translate } from '../i18n'
 import { GENERATE_MAX_ATTEMPTS, generateImage } from '../lib/api'
 import { deleteFromHistory, saveToHistory } from '../lib/history'
+import { generationNetworkErrorMessage } from '../lib/imageApi/retry'
 import { readGenerationConcurrencyPreference, writeGenerationConcurrencyPreference } from '../lib/preferenceStore'
 import type { GenerationAttemptError, PlaygroundImage } from '../lib/types'
 import { isKeyError } from '../lib/validateKey'
@@ -148,6 +149,7 @@ function toDisplayError(e: unknown): string {
   const err = e instanceof Error ? e : new Error(String(e))
   if (err.name === 'TimeoutError') return translate('configLib.generationQueue.timeout')
   if (err.name === 'AbortError') return translate('configLib.generationQueue.requestAborted')
+  if (err instanceof TypeError) return generationNetworkErrorMessage(err)
   return err.message
 }
 

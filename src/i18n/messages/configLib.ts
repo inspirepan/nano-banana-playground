@@ -62,6 +62,10 @@ export const configLibMessages: MessageDictionary = {
     'zh-CN': '请求被浏览器或网络中断，请检查网络连接或代理配置后重试',
     en: 'The request was interrupted by the browser or network. Check your connection or proxy settings, then try again.',
   },
+  'configLib.generationQueue.networkCorsError': {
+    'zh-CN': '网络或 CORS 错误：请求没有收到有效响应。请检查网络、代理/网关跨域设置或浏览器拦截。原始错误：{message}',
+    en: 'Network or CORS error: the request did not receive a valid response. Check your network, proxy/gateway CORS settings, or browser blocking. Original error: {message}',
+  },
 
   'configLib.exportImages.shareTitle': { 'zh-CN': 'Nano Banana 图片', en: 'Nano Banana images' },
 
