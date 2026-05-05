@@ -122,7 +122,7 @@ src/
 | 页面区域                        | 组件                                      |
 | ------------------------------- | ----------------------------------------- |
 | 顶栏                            | `App/Topbar.tsx`                          |
-| 全局设置 / 外观 / 主色          | `SettingsDialog`                          |
+| 全局设置 / 外观                 | `SettingsDialog`                          |
 | API Key 管理                    | `ApiKeysDialog`                           |
 | 模型切换                        | `InputPanel` 内 segmented control         |
 | 分辨率 / Quality / 批次数量     | `InputPanel` + `ChipGroup`                |

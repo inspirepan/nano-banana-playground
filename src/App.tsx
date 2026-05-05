@@ -84,16 +84,8 @@ function App() {
   const [settingsTarget, setSettingsTarget] = useState<SettingsTarget | null>(null)
   const [mobileTab, setMobileTab] = useState<MobileTab>(() => (pg.inputMode === 'agent' ? 'agent' : 'generate'))
 
-  const {
-    theme,
-    setTheme,
-    colorTheme,
-    setColorTheme,
-    languagePreference,
-    setLanguagePreference,
-    language,
-    browserLanguages,
-  } = useThemeAndLanguage()
+  const { theme, setTheme, languagePreference, setLanguagePreference, language, browserLanguages } =
+    useThemeAndLanguage()
 
   const t = useMemo(() => createTranslator(language), [language])
 
@@ -271,13 +263,11 @@ function App() {
               open={settingsOpen}
               keyHooks={pg.keyHooks}
               theme={theme}
-              colorTheme={colorTheme}
               language={languagePreference}
               generationConcurrency={pg.generationConcurrency}
               agentSkills={pg.agentSkills}
               focusSection={settingsTarget}
               onThemeChange={setTheme}
-              onColorThemeChange={setColorTheme}
               onLanguageChange={setLanguagePreference}
               onGenerationConcurrencyChange={pg.setGenerationConcurrency}
               onAgentPanelWidePreferenceChange={setAgentPanelWidePreference}

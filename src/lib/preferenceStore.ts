@@ -1,10 +1,9 @@
 import { getStorageItem, removeStorageItem, setStorageItem } from './storage'
 import type { AgentThinkingLevel } from '../config/agentModels'
 import type { LanguagePreference } from '../config/languages'
-import type { ColorThemeId, Theme } from '../config/theme'
+import type { Theme } from '../config/theme'
 
 const THEME_KEY = 'nano-banana-theme'
-const COLOR_THEME_KEY = 'nano-banana-color-theme'
 const LANGUAGE_KEY = 'nano-banana-language'
 const AGENT_PANEL_WIDE_KEY = 'nano-banana-agent-panel-wide'
 const AGENT_PANEL_WIDE_TIP_KEY = 'nano-banana-agent-panel-wide-tip'
@@ -29,14 +28,6 @@ export function readThemePreference(): string | null {
 
 export function writeThemePreference(theme: Theme): boolean {
   return write(THEME_KEY, theme)
-}
-
-export function readColorThemePreference(): string | null {
-  return read(COLOR_THEME_KEY)
-}
-
-export function writeColorThemePreference(colorTheme: ColorThemeId): boolean {
-  return write(COLOR_THEME_KEY, colorTheme)
 }
 
 export function readLanguagePreference(): string | null {

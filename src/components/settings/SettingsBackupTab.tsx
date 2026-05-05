@@ -5,7 +5,7 @@ import { setComposerSubmitMode, type ComposerSubmitMode } from '../../config/com
 import type { AgentThinkingLevel } from '../../config/agentModels'
 import type { LanguagePreference } from '../../config/languages'
 import type { Provider } from '../../config/models'
-import type { ColorThemeId, Theme } from '../../config/theme'
+import type { Theme } from '../../config/theme'
 import type { WebApiProvider, WebFetchProvider, WebSearchProvider } from '../../config/webProviders'
 import type { StoredUserSkill } from '../../agent/skills/types'
 import { setPreferredImageModelId } from '../../config/preferredImageModel'
@@ -38,7 +38,6 @@ import { SettingsSection } from './SettingsSection'
 type SettingsBackupTabProps = {
   keyHooks: Record<Provider, KeyHook>
   onThemeChange: (theme: Theme) => void
-  onColorThemeChange: (id: ColorThemeId) => void
   onLanguageChange: (id: LanguagePreference) => void
   onGenerationConcurrencyChange: (value: number) => void
   onAgentPanelWidePreferenceChange: (wide: boolean) => void
@@ -63,7 +62,6 @@ const GROUP_ORDER: SettingsImportGroup[] = [
 export function SettingsBackupTab({
   keyHooks,
   onThemeChange,
-  onColorThemeChange,
   onLanguageChange,
   onGenerationConcurrencyChange,
   onAgentPanelWidePreferenceChange,
@@ -165,7 +163,6 @@ export function SettingsBackupTab({
         applyImportItem(item, {
           keyHooks,
           onThemeChange,
-          onColorThemeChange,
           onLanguageChange,
           onGenerationConcurrencyChange,
           onAgentPanelWidePreferenceChange,
@@ -542,9 +539,6 @@ function applyPreference(
   switch (payload.key) {
     case 'theme':
       context.onThemeChange(payload.value as Theme)
-      return
-    case 'colorTheme':
-      context.onColorThemeChange(payload.value as ColorThemeId)
       return
     case 'language':
       context.onLanguageChange(payload.value as LanguagePreference)

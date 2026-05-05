@@ -8,7 +8,7 @@
 
 ## 色彩系统
 
-默认基础盘是 Linear 风格的冷中性灰（`--color-bg: #f7f8f8` / 暗色 `#08090a`）。强调色浅色用 Uchu 蓝（`var(--uchu-blue-9)`），暗色保留 Linear 紫（`#5e6ad2`），可通过 `.theme-green / orange / mono` 切换。优先复用 `--color-bg`、`--color-surface*`、`--color-border*`、`--color-text*`、`--color-accent*`，不要到处写裸十六进制。
+默认基础盘是 Linear 风格的冷中性灰（`--color-bg: #f7f8f8` / 暗色 `#08090a`）。强调色浅色用 Uchu 蓝（`var(--uchu-blue-9)`），暗色保留 Linear 紫（`#5e6ad2`）。优先复用 `--color-bg`、`--color-surface*`、`--color-border*`、`--color-text*`、`--color-accent*`，不要到处写裸十六进制。
 
 ## 排版
 
@@ -27,7 +27,7 @@
 - **轻浮起卡片**（引导卡 / starter 卡）：套 `.img-card` 配方：静态 `shadow-[0_0_0_1px_var(--ring-edge-soft),var(--shadow-lift)]`，hover 升到 `shadow-[0_0_0_1px_var(--ring-edge-strong),var(--shadow-float)]`，可叠 `hover:-translate-y-px`，过渡写 `transition-[box-shadow,background-color,transform]`。密集 chip / 列表项仍走扁平 inset ring。
 - **分隔线**：一律用 `shadow-[inset_0_1px_0_var(--ring-edge-soft)]`（顶）或 `inset_0_-1px_0_…`（底），不写 `border-t/b`。唯一例外是 markdown 表格 `<th>/<td>`（`border-collapse` 必须用 `border-b`）。
 - **选中态——主色填充版**：`bg-(--color-accent)` + `shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-accent)_55%,#000_10%)]`。适合单一强调动作（提交按钮、单点 CTA）。
-- **选中态——淡底内敛版**：`bg-(--color-accent-wash)` + `text-(--color-accent-text)` + `shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]`。适合多选并存、密集选项场景。`--color-accent-text` 浅色直通 `--color-accent`，暗色（含 `.theme-green / orange`）自动按 oklch 提亮以过 WCAG AA——不要写裸 `text-(--color-accent)` 配 wash 底，否则暗色对比只有 ~3.7:1。
+- **选中态——淡底内敛版**：`bg-(--color-accent-wash)` + `text-(--color-accent-text)` + `shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]`。适合多选并存、密集选项场景。`--color-accent-text` 浅色直通 `--color-accent`，暗色自动按 oklch 提亮以过 WCAG AA——不要写裸 `text-(--color-accent)` 配 wash 底，否则暗色对比只有 ~3.7:1。
 - **选中态——外环 + 光晕版**：`shadow-[0_0_0_1px_var(--color-accent),0_0_0_3px_var(--color-accent-wash)]`。只用于强聚焦单点选择或输入聚焦。
 - **禁止清单**：① `rgba(0,0,0,…)` 字面值出现在 `shadow-[...]` 里；② `border-*` 与 `shadow-*` 在同一元素混写；③ 用 `--color-accent-ring*` 当通用 surface 边；④ 密集多选里用 outer accent ring 表达"已选"。
 
@@ -47,7 +47,7 @@
 - **滚动条**：沿用 `src/index.css` 里的近乎不可见 Linear 风格滚动条。`[scrollbar-gutter:stable]` 只在右侧保留 gutter，会造成左右视觉不对称（macOS「始终显示滚动条」/ Windows 可见）。规则：① 容器有水平对称要求时改用 `[scrollbar-gutter:stable_both-edges]`；② 内容为 `h-full` 实际不会溢出时直接去掉，不需要 stable gutter。
 - **滚动边缘遮罩**：滚动容器的淡出边缘统一走 `src/index.css` 里的 `.scroll-fade-y` / `.scroll-fade-x` utility，band 尺寸用 `[--scroll-fade-start-size:…]` / `[--scroll-fade-end-size:…]` 按调用点覆盖。**禁止在组件里手写 `maskImage: 'linear-gradient(...)'`**。两条硬约束：① 渐变必须是单段 `transparent → #000`，不得塞任何中间 alpha stop——在高对比度图片上每个 stop 都会暴露成肉眼可见的斜率折点，「多段模拟 ease」是反模式，要更柔和就加长 band 而不是加 stop；② 只有**无 ring 的开放容器**（面板主内容区、侧栏、无边 rail）才加 fade，**带 `ring-edge` shadow / border 的卡片或浮层内部不加**——fade 会落在 ring 之内变成「卡片在吃自己的内容」。图片密集的 rail band 建议 ≥3rem，纯文本场景 1–2rem 即可；支持 `animation-timeline: scroll()` 的浏览器会随滚动位置动态收起 fade，无须另行处理。
 - **图标**：只用 Lucide，经 `Icon.tsx` 映射。
-- **暗色模式**：由 `<html>` 上的 `.dark` 控制；主色主题由 `.theme-*` 控制。
+- **暗色模式**：由 `<html>` 上的 `.dark` 控制。
 - **复用 utility class**：优先使用 `.chip`、`.segmented`、`.aspect-tile`、`.card`、`.cta`、`.dropzone`、`.img-card`、`.icon-btn`、`.label`、`.mono`；浮层入场用 `.popover-pop` / `.modal-pop` / `.modal-backdrop-pop`。
 - **动效**：过渡保持短促（约 120ms 到 260ms），优先 CSS `transition` / `@keyframes`，避免夸张弹簧、长位移动画。具体硬约束：
   - **easing token**：所有过渡的曲线一律引用 `var(--ease-out)`（默认，入场 / 出场 / hover）/ `var(--ease-in-out)`（屏内移动）/ `var(--ease-drawer)`（抽屉、grid-row 展开）。**禁止再写裸 `cubic-bezier(...)`**；`ease-in` 在 UI 里禁止使用——它把延迟摆在用户最专注的那一刻，体感反而更慢。
