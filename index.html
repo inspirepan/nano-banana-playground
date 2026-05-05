@@ -14,11 +14,6 @@
             theme === 'dark' ||
             ((theme === 'system' || !theme) && window.matchMedia('(prefers-color-scheme: dark)').matches)
           if (isDark) root.classList.add('dark')
-          var colorTheme = localStorage.getItem('nano-banana-color-theme')
-          var allowed = ['green', 'yellow', 'pink', 'orange', 'purple', 'mono']
-          if (colorTheme && allowed.indexOf(colorTheme) !== -1) {
-            root.classList.add('theme-' + colorTheme)
-          }
           root.style.colorScheme = isDark ? 'dark' : 'light'
         } catch (_) {}
       })()

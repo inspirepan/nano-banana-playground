@@ -1,12 +1,10 @@
 import { isLanguagePreference, type Language, type LanguagePreference } from '../config/languages'
-import { COLOR_THEME_IDS, type ColorThemeId, type Theme } from '../config/theme'
+import type { Theme } from '../config/theme'
 import {
   readAgentPanelWidePreference,
   readAgentWideTipDismissedPreference,
-  readColorThemePreference,
   readLanguagePreference,
   readThemePreference,
-  writeColorThemePreference,
   writeLanguagePreference,
   writeThemePreference,
 } from '../lib/preferenceStore'
@@ -33,13 +31,6 @@ export function getInitialTheme(): Theme {
   return theme
 }
 
-export function getInitialColorTheme(): ColorThemeId {
-  const stored = readColorThemePreference()
-  const id = stored && (COLOR_THEME_IDS as string[]).includes(stored) ? (stored as ColorThemeId) : 'default'
-  if (id !== 'default') document.documentElement.classList.add(`theme-${id}`)
-  return id
-}
-
 export function getInitialLanguagePreference(): LanguagePreference {
   const stored = readLanguagePreference()
   return isLanguagePreference(stored) ? stored : 'auto'
@@ -51,13 +42,6 @@ export function getInitialAgentPanelWide(): boolean {
 
 export function getInitialAgentWideTipDismissed(): boolean {
   return readAgentWideTipDismissedPreference()
-}
-
-export function applyColorThemePreference(colorTheme: ColorThemeId) {
-  const root = document.documentElement
-  COLOR_THEME_IDS.forEach((id) => root.classList.remove(`theme-${id}`))
-  if (colorTheme !== 'default') root.classList.add(`theme-${colorTheme}`)
-  writeColorThemePreference(colorTheme)
 }
 
 export function applyLanguagePreference(languagePreference: LanguagePreference, language: Language) {

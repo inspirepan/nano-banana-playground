@@ -13,7 +13,7 @@ import { SkillsSettingsTab } from './settings/SkillsSettingsTab'
 import { WebToolsSettingsTab, type WebProviderNotice } from './settings/WebToolsSettingsTab'
 import type { LanguagePreference } from '../config/languages'
 import type { Provider } from '../config/models'
-import type { ColorThemeId, Theme } from '../config/theme'
+import type { Theme } from '../config/theme'
 import {
   WEB_API_PROVIDER_CONFIGS,
   getWebApiProviderConfig,
@@ -75,13 +75,11 @@ type Props = {
   open: boolean
   keyHooks: Record<Provider, KeyHook>
   theme: Theme
-  colorTheme: ColorThemeId
   language: LanguagePreference
   generationConcurrency: number
   agentSkills: AgentSkillSummary[]
   focusSection?: SettingsFocusSection | null
   onThemeChange: (theme: Theme) => void
-  onColorThemeChange: (id: ColorThemeId) => void
   onLanguageChange: (id: LanguagePreference) => void
   onGenerationConcurrencyChange: (value: number) => void
   onAgentPanelWidePreferenceChange: (wide: boolean) => void
@@ -97,13 +95,11 @@ export function SettingsDialog({
   open,
   keyHooks,
   theme,
-  colorTheme,
   language,
   generationConcurrency,
   agentSkills,
   focusSection,
   onThemeChange,
-  onColorThemeChange,
   onLanguageChange,
   onGenerationConcurrencyChange,
   onAgentPanelWidePreferenceChange,
@@ -370,10 +366,8 @@ export function SettingsDialog({
           {selectedTab === 'appearance' && (
             <AppearanceSettingsTab
               theme={theme}
-              colorTheme={colorTheme}
               language={language}
               onThemeChange={onThemeChange}
-              onColorThemeChange={onColorThemeChange}
               onLanguageChange={onLanguageChange}
             />
           )}
@@ -418,7 +412,6 @@ export function SettingsDialog({
             <SettingsBackupTab
               keyHooks={keyHooks}
               onThemeChange={onThemeChange}
-              onColorThemeChange={onColorThemeChange}
               onLanguageChange={onLanguageChange}
               onGenerationConcurrencyChange={onGenerationConcurrencyChange}
               onAgentPanelWidePreferenceChange={onAgentPanelWidePreferenceChange}

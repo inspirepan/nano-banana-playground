@@ -79,11 +79,10 @@
   --color-accent-hover: oklch(34% 0.15 259.87);
   --color-accent-fg: #ffffff;
   /* Foreground for accent-as-text on translucent wash backgrounds (active
-     chips, aspect tiles, .tag.accent, .annotation-finish-btn). Light themes
-     reuse --color-accent because the dark uchu-9 ramp values pop on a pale
+     chips, aspect tiles, .tag.accent, .annotation-finish-btn). Light mode
+     reuses --color-accent because the dark uchu-9 ramp values pop on a pale
      wash already. Dark mode lifts toward white so the same pattern still
-     clears WCAG AA on the dim mid-tone wash — see overrides in `.dark` and
-     `.dark.theme-*` for the brightened values. */
+     clears WCAG AA on the dim mid-tone wash. */
   --color-accent-text: var(--color-accent);
 
   --color-accent-soft: var(--uchu-blue-1);
@@ -144,30 +143,8 @@
   --panel-pad-bottom: 18px;
   --panel-header-mb: 18px;
 
-  /* Uchu accent ramps — single source of truth for .theme-green / .theme-orange.
-     1 is the lightest tint (used as accent-soft in light mode), 9 is the darkest
-     (used as accent in light mode). Dark mode picks 7-8 so the brand color stays
-     visible without going neon on a near-black surface. */
-  --uchu-green-1: oklch(93.96% 0.05 148.74);
-  --uchu-green-2: oklch(88.77% 0.096 147.71);
-  --uchu-green-3: oklch(83.74% 0.139 146.57);
-  --uchu-green-4: oklch(79.33% 0.179 145.62);
-  --uchu-green-5: oklch(75.23% 0.209 144.64);
-  --uchu-green-6: oklch(70.03% 0.194 144.71);
-  --uchu-green-7: oklch(64.24% 0.175 144.92);
-  --uchu-green-8: oklch(58.83% 0.158 145.05);
-  --uchu-green-9: oklch(52.77% 0.138 145.41);
-
-  --uchu-orange-1: oklch(93.83% 0.037 56.93);
-  --uchu-orange-2: oklch(88.37% 0.072 55.8);
-  --uchu-orange-3: oklch(83.56% 0.107 56.49);
-  --uchu-orange-4: oklch(78.75% 0.141 54.32);
-  --uchu-orange-5: oklch(74.61% 0.171 51.56);
-  --uchu-orange-6: oklch(69.33% 0.157 52.18);
-  --uchu-orange-7: oklch(63.8% 0.142 52.1);
-  --uchu-orange-8: oklch(58.28% 0.128 52.2);
-  --uchu-orange-9: oklch(52.49% 0.113 51.98);
-
+  /* Uchu blue accent ramp. 1 is the lightest tint (used as accent-soft in light
+     mode), 9 is the darkest (used as accent in light mode). */
   --uchu-blue-1: oklch(89.66% 0.046 260.67);
   --uchu-blue-2: oklch(80.17% 0.091 258.88);
   --uchu-blue-3: oklch(70.94% 0.136 258.06);
@@ -227,68 +204,6 @@
   --bubble-user-edge: inset 0 2px 0 -1px rgba(255, 255, 255, 0.16), inset 0 0 0 1px var(--color-accent-ring);
 
   color-scheme: dark;
-}
-
-/* ============================================================
-   Accent themes — override ONLY the --color-accent family.
-   Mapped to existing theme-* class names used by the app.
-   ============================================================ */
-.theme-green {
-  --color-accent: var(--uchu-green-9);
-  --color-accent-hover: color-mix(in oklch, var(--uchu-green-9) 86%, #000);
-  --color-accent-soft: var(--uchu-green-1);
-  --color-accent-wash: color-mix(in srgb, var(--uchu-green-9) 10%, transparent);
-  --color-accent-wash-2: color-mix(in srgb, var(--uchu-green-9) 16%, transparent);
-}
-.dark.theme-green {
-  --color-accent: var(--uchu-green-8);
-  --color-accent-hover: var(--uchu-green-7);
-  /* Reference uchu-green-8 directly — chaining through var(--color-accent)
-     would put two levels of var() inside a color-mix, which some engines
-     mishandle (see comment on the @theme accent block). */
-  --color-accent-text: color-mix(in oklch, var(--uchu-green-8) 65%, white);
-  --color-accent-soft: color-mix(in oklch, var(--uchu-green-9) 22%, #000);
-  --color-accent-wash: color-mix(in srgb, var(--uchu-green-8) 22%, transparent);
-  --color-accent-wash-2: color-mix(in srgb, var(--uchu-green-8) 32%, transparent);
-}
-
-.theme-orange {
-  --color-accent: var(--uchu-orange-9);
-  --color-accent-hover: color-mix(in oklch, var(--uchu-orange-9) 86%, #000);
-  --color-accent-soft: var(--uchu-orange-1);
-  --color-accent-wash: color-mix(in srgb, var(--uchu-orange-9) 10%, transparent);
-  --color-accent-wash-2: color-mix(in srgb, var(--uchu-orange-9) 16%, transparent);
-  --bubble-user-bg: color-mix(in srgb, var(--color-accent) 10%, var(--color-surface));
-  --bubble-user-edge: inset 0 0 0 1px var(--ring-edge-soft);
-}
-.dark.theme-orange {
-  --color-accent: var(--uchu-orange-8);
-  --color-accent-hover: var(--uchu-orange-7);
-  --color-accent-text: color-mix(in oklch, var(--uchu-orange-8) 65%, white);
-  --color-accent-soft: color-mix(in oklch, var(--uchu-orange-9) 22%, #000);
-  --color-accent-wash: color-mix(in srgb, var(--uchu-orange-8) 22%, transparent);
-  --color-accent-wash-2: color-mix(in srgb, var(--uchu-orange-8) 32%, transparent);
-  --bubble-user-bg: color-mix(in srgb, var(--color-accent) 14%, var(--color-surface));
-  --bubble-user-edge: inset 0 0 0 1px var(--ring-edge-soft);
-}
-
-.theme-mono {
-  --color-accent: #111111;
-  --color-accent-hover: #000000;
-  --color-accent-fg: #ffffff;
-  --color-accent-soft: #ebebeb;
-  --color-accent-wash: color-mix(in srgb, #111111 5%, transparent);
-  --color-accent-wash-2: color-mix(in srgb, #111111 9%, transparent);
-  --color-accent-ring: color-mix(in srgb, #111111 9%, transparent);
-  --color-accent-ring-hover: color-mix(in srgb, #111111 14%, transparent);
-}
-.dark.theme-mono {
-  --color-accent: #f2f1ef;
-  --color-accent-hover: #ffffff;
-  --color-accent-fg: #0f0f10;
-  --color-accent-soft: #2e2e33;
-  --color-accent-wash: color-mix(in srgb, #f2f1ef 14%, transparent);
-  --color-accent-wash-2: color-mix(in srgb, #f2f1ef 22%, transparent);
 }
 
 @layer base {

@@ -3,7 +3,7 @@ import { getComposerSubmitMode, type ComposerSubmitMode } from '../config/compos
 import { isLanguagePreference, type LanguagePreference } from '../config/languages'
 import { MODEL_CONFIGS, type Provider } from '../config/models'
 import { PROVIDER_CONFIGS, getProviderConfig } from '../config/providers'
-import { COLOR_THEME_IDS, type ColorThemeId, type Theme } from '../config/theme'
+import type { Theme } from '../config/theme'
 import {
   WEB_API_PROVIDER_CONFIGS,
   isWebFetchProvider,
@@ -19,7 +19,6 @@ import type { TranslationParams } from '../i18n/types'
 import {
   readAgentPanelWidePreference,
   readAgentWideTipDismissedPreference,
-  readColorThemePreference,
   readDetailSidebarCollapsedPreference,
   readGenerationConcurrencyPreference,
   readLanguagePreference,
@@ -71,7 +70,6 @@ export type ExportedSecrets = {
 
 export type PreferenceImportKey =
   | 'theme'
-  | 'colorTheme'
   | 'language'
   | 'agentPanelWide'
   | 'agentWideTipDismissed'
@@ -169,14 +167,6 @@ const PREFERENCE_DESCRIPTORS: PreferenceDescriptor[] = [
     labelKey: 'settings.backup.item.theme',
     read: readThemePreference,
     normalize: (value) => (typeof value === 'string' && THEME_VALUES.has(value as Theme) ? value : null),
-  },
-  {
-    key: 'colorTheme',
-    group: 'appearance',
-    labelKey: 'settings.backup.item.colorTheme',
-    read: readColorThemePreference,
-    normalize: (value) =>
-      typeof value === 'string' && (COLOR_THEME_IDS as string[]).includes(value) ? (value as ColorThemeId) : null,
   },
   {
     key: 'language',
