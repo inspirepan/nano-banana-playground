@@ -3,6 +3,7 @@ import { useCallback, type RefObject } from 'react'
 import { compressedAttachmentToAgentAttachment, type AgentChatAttachment } from './agentChat'
 import { activateAgentResponseMetadata, getAgentError, queueAgentResponseMetadata } from './messageRecovery'
 import {
+  buildCurrentDateDirective,
   buildLanguageDirective,
   buildPreferredImageModelClearedDirective,
   buildPreferredImageModelDirective,
@@ -124,6 +125,7 @@ export function useAgentMessageSender({
     let systemPrefix = ''
     if (isFirstUserMessage) {
       systemPrefix += `${buildLanguageDirective(getActiveLanguage())}\n\n`
+      systemPrefix += `${buildCurrentDateDirective()}\n\n`
     }
     if (preferredChanged) {
       let directive: string | null = null

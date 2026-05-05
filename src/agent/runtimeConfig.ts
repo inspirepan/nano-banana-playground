@@ -43,3 +43,15 @@ export function buildPreferredImageModelDirective(id: string): string | null {
 export function buildPreferredImageModelClearedDirective(): string {
   return '<system>The user no longer has a preferred image generation model. Pick the most appropriate model for each GenImage call based on the request.</system>'
 }
+
+function getLocalISODate(): string {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+export function buildCurrentDateDirective(): string {
+  return `<system>Today's date is ${getLocalISODate()}.</system>`
+}
