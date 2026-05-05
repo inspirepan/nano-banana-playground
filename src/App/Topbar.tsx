@@ -32,7 +32,7 @@ export function Topbar({
         <div
           role="tablist"
           aria-label={t('app.mobilePanel')}
-          className="ml-3 flex min-w-0 w-[264px] max-w-[calc(100%-46px)] items-center gap-1 rounded-[var(--radius-md)] bg-(--color-surface-3) p-[2px]"
+          className="ml-3 flex min-w-0 w-[264px] max-w-[calc(100%-46px)] items-center gap-1 rounded-[var(--radius-md)] bg-(--color-surface-3) p-[2px] dark:bg-(--color-bg)"
         >
           {tabs.map((tab) => {
             const active = mobileTab === tab.key
@@ -45,7 +45,7 @@ export function Topbar({
                 onClick={() => onMobileTabChange(tab.key)}
                 className={`inline-flex h-[26px] min-w-0 flex-1 items-center justify-center gap-1.5 rounded-[var(--radius-sm)] px-2 text-base font-medium transition-[color,background-color,box-shadow] duration-150 ${
                   active
-                    ? 'bg-(--color-surface) text-(--color-text) shadow-[inset_0_0_0_1px_var(--ring-edge)]'
+                    ? 'bg-(--color-surface) text-(--color-text) shadow-[inset_0_0_0_1px_var(--ring-edge)] dark:bg-(--color-surface-3)'
                     : 'text-(--color-text-3) hover:text-(--color-text)'
                 }`}
               >

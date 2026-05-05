@@ -22,7 +22,7 @@ export function InputPanelHeader({
     <div
       role="tablist"
       aria-label={t('input.mode.aria')}
-      className={`flex shrink-0 items-center gap-1 rounded-[var(--radius-md)] bg-(--color-surface-3) p-[2px] ${stacked ? 'w-full' : 'w-[208px]'}`}
+      className={`flex shrink-0 items-center gap-1 rounded-[var(--radius-md)] bg-(--color-surface-3) p-[2px] dark:bg-(--color-bg) ${stacked ? 'w-full' : 'w-[208px]'}`}
     >
       {[
         { mode: 'generate' as InputMode, label: t('input.mode.generate'), icon: 'wand' as const },
@@ -38,7 +38,7 @@ export function InputPanelHeader({
             onClick={() => onInputModeChange?.(mode)}
             className={`inline-flex h-[26px] min-w-0 flex-1 items-center justify-center gap-1.5 rounded-[var(--radius-sm)] px-2 text-base font-medium transition-[color,background-color,box-shadow] duration-150 ${
               active
-                ? 'bg-(--color-surface) text-(--color-text) shadow-[inset_0_0_0_1px_var(--ring-edge)]'
+                ? 'bg-(--color-surface) text-(--color-text) shadow-[inset_0_0_0_1px_var(--ring-edge)] dark:bg-(--color-surface-3)'
                 : 'text-(--color-text-3) hover:text-(--color-text)'
             }`}
           >
