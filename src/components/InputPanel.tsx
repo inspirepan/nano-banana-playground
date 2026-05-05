@@ -182,8 +182,12 @@ export function InputPanel({
   useWindowEvent(
     'keydown',
     (e) => {
+      const panel = panelRef.current
+      if (!panel || panel.getClientRects().length === 0) return
+
       if (e.metaKey && e.key === 'Enter') {
         e.preventDefault()
+        e.stopImmediatePropagation()
         if (inputMode === 'generate' && canGenerate) onGenerate()
       }
     },
