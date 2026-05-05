@@ -343,11 +343,12 @@ export function AgentChatPanel({
     return true
   }
   const contentRightPaddingClass = 'px-[var(--panel-pad-x)]'
+  const headerPaddingClass = wideLayout ? 'pb-1.5' : 'pb-3'
 
   return (
     <div
       ref={controlsRef}
-      className={`flex h-full flex-col md:h-auto md:min-h-[560px] md:flex-1 ${wideLayout ? 'md:py-[22px]' : ''}`}
+      className={`flex h-full flex-col md:h-auto md:min-h-[560px] md:flex-1 ${wideLayout ? 'md:pt-4 md:pb-3' : ''}`}
       onDragOver={(event) => event.preventDefault()}
       onDrop={(event) => {
         event.preventDefault()
@@ -374,7 +375,7 @@ export function AgentChatPanel({
       }}
     >
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-        <div className={`${contentRightPaddingClass} pb-3`}>
+        <div className={`${contentRightPaddingClass} ${headerPaddingClass}`}>
           <AgentChatHeader
             sessions={sessions}
             sessionStatuses={visibleSessionStatuses}
