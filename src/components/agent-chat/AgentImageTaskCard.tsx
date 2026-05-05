@@ -132,7 +132,7 @@ function Tag({ children, mono = false, bold = false }: { children: ReactNode; mo
 function AgentImagePromptBox({ text }: { text: string }) {
   const { t } = useI18n()
   const [expanded, setExpanded] = useState(false)
-  const [measurement, setMeasurement] = useState<PromptBoxMeasurement>(DEFAULT_PROMPT_BOX_MEASUREMENT)
+  const [measurement, setMeasurement] = useState<PromptBoxMeasurement | null>(null)
   const ref = useRef<HTMLDivElement>(null)
 
   useLayoutEffect(() => {
@@ -157,13 +157,15 @@ function AgentImagePromptBox({ text }: { text: string }) {
           collapsedTextMaxHeight: Math.floor(lineHeight * PROMPT_BOX_COLLAPSED_LINE_COUNT),
         }
 
-        setMeasurement((prev) =>
-          prev.overflowing === nextMeasurement.overflowing &&
-          prev.hiddenLineCount === nextMeasurement.hiddenLineCount &&
-          prev.collapsedTextMaxHeight === nextMeasurement.collapsedTextMaxHeight
+        setMeasurement((prev) => {
+          if (!prev) return nextMeasurement
+
+          return prev.overflowing === nextMeasurement.overflowing &&
+            prev.hiddenLineCount === nextMeasurement.hiddenLineCount &&
+            prev.collapsedTextMaxHeight === nextMeasurement.collapsedTextMaxHeight
             ? prev
-            : nextMeasurement,
-        )
+            : nextMeasurement
+        })
       })
     }
 
@@ -178,7 +180,9 @@ function AgentImagePromptBox({ text }: { text: string }) {
     }
   }, [text])
 
-  const collapsed = measurement.overflowing && !expanded
+  const collapsed = !expanded && (measurement?.overflowing ?? true)
+  const collapsedTextMaxHeight =
+    measurement?.collapsedTextMaxHeight ?? DEFAULT_PROMPT_BOX_MEASUREMENT.collapsedTextMaxHeight
 
   return (
     <div className="mt-2 max-w-[432px]">
@@ -186,12 +190,12 @@ function AgentImagePromptBox({ text }: { text: string }) {
         <div
           ref={ref}
           className="whitespace-pre-wrap"
-          style={collapsed ? { maxHeight: measurement.collapsedTextMaxHeight, overflowY: 'hidden' } : undefined}
+          style={collapsed ? { maxHeight: collapsedTextMaxHeight, overflowY: 'hidden' } : undefined}
         >
           {text}
         </div>
       </div>
-      {measurement.overflowing && (
+      {measurement?.overflowing && (
         <button
           type="button"
           aria-expanded={expanded}
