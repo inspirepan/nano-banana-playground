@@ -162,7 +162,7 @@ type PreferenceDescriptor = {
   normalize: (value: unknown) => string | number | boolean | null
 }
 
-const THEME_VALUES = new Set<Theme>(['light', 'warm', 'dark', 'system'])
+const THEME_VALUES = new Set<Theme>(['light', 'dark', 'system'])
 const BOOLEAN_LABELS = { true: 'on', false: 'off' } as const
 
 const PREFERENCE_DESCRIPTORS: PreferenceDescriptor[] = [

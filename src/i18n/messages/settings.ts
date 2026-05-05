@@ -219,7 +219,6 @@ export const settingsMessages: MessageDictionary = {
   'settings.language.label': { 'zh-CN': '语言', en: 'Language' },
   'settings.theme.label': { 'zh-CN': '模式', en: 'Mode' },
   'settings.theme.light': { 'zh-CN': '浅色', en: 'Light' },
-  'settings.theme.warm': { 'zh-CN': '暖调', en: 'Warm' },
   'settings.theme.dark': { 'zh-CN': '深色', en: 'Dark' },
   'settings.theme.system': { 'zh-CN': '自动', en: 'Auto' },
   'settings.colorTheme.label': { 'zh-CN': '主色', en: 'Accent color' },

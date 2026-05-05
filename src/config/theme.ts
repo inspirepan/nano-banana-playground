@@ -1,4 +1,4 @@
-export type Theme = 'light' | 'warm' | 'dark' | 'system'
+export type Theme = 'light' | 'dark' | 'system'
 export type ColorThemeId = 'default' | 'green' | 'orange' | 'mono'
 
 export const COLOR_THEMES: { id: ColorThemeId; name: string; color: string }[] = [

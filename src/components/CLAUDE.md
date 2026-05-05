@@ -8,7 +8,7 @@
 
 ## 色彩系统
 
-默认基础盘是 Linear 风格的冷中性灰（`--color-bg: #f7f8f8` / 暗色 `#08090a`），`.warm` 是可选的暖石色主题（`#fbf8f3`），不是默认。强调色默认是 Linear 蓝（`#2558b8`，暗色 `#5e6ad2`），可通过 `.theme-green / orange / mono` 切换。优先复用 `--color-bg`、`--color-surface*`、`--color-border*`、`--color-text*`、`--color-accent*`，不要到处写裸十六进制。
+默认基础盘是 Linear 风格的冷中性灰（`--color-bg: #f7f8f8` / 暗色 `#08090a`）。强调色浅色用 Uchu 蓝（`var(--uchu-blue-9)`），暗色保留 Linear 紫（`#5e6ad2`），可通过 `.theme-green / orange / mono` 切换。优先复用 `--color-bg`、`--color-surface*`、`--color-border*`、`--color-text*`、`--color-accent*`，不要到处写裸十六进制。
 
 ## 排版
 

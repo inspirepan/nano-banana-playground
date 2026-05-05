@@ -62,16 +62,20 @@
   --color-text-3: #838b98;
   --color-text-4: #a9b0bb;
 
-  /* Accent */
-  --color-accent: #2558b8;
-  --color-accent-hover: #1d479b;
+  /* Accent — light mode uses the Uchu blue ramp (deep blue on white). The dark
+     variant in `.dark` swaps the family to Uchu purple. Don't reference `var()`
+     for hover here because `--color-accent` itself is later redefined via
+     `var()`, and color-mix on a chained var loses the resolved color in some
+     engines — keep hover as a static oklch derived from blue-9. */
+  --color-accent: var(--uchu-blue-9);
+  --color-accent-hover: oklch(34% 0.15 259.87);
   --color-accent-fg: #ffffff;
 
-  --color-accent-soft: #e8eefb;
-  --color-accent-soft-elevated: #dce7f8;
+  --color-accent-soft: var(--uchu-blue-1);
+  --color-accent-soft-elevated: var(--uchu-blue-2);
 
-  --color-accent-wash: color-mix(in srgb, #2558b8 10%, transparent);
-  --color-accent-wash-2: color-mix(in srgb, #2558b8 17%, transparent);
+  --color-accent-wash: color-mix(in srgb, var(--uchu-blue-9) 10%, transparent);
+  --color-accent-wash-2: color-mix(in srgb, var(--uchu-blue-9) 17%, transparent);
 
   --color-accent-ring: color-mix(in srgb, var(--color-accent) 14%, transparent);
   --color-accent-ring-hover: color-mix(in srgb, var(--color-accent) 20%, transparent);
@@ -124,6 +128,40 @@
   --panel-pad-top: 18px;
   --panel-pad-bottom: 18px;
   --panel-header-mb: 18px;
+
+  /* Uchu accent ramps — single source of truth for .theme-green / .theme-orange.
+     1 is the lightest tint (used as accent-soft in light mode), 9 is the darkest
+     (used as accent in light mode). Dark mode picks 7-8 so the brand color stays
+     visible without going neon on a near-black surface. */
+  --uchu-green-1: oklch(93.96% 0.05 148.74);
+  --uchu-green-2: oklch(88.77% 0.096 147.71);
+  --uchu-green-3: oklch(83.74% 0.139 146.57);
+  --uchu-green-4: oklch(79.33% 0.179 145.62);
+  --uchu-green-5: oklch(75.23% 0.209 144.64);
+  --uchu-green-6: oklch(70.03% 0.194 144.71);
+  --uchu-green-7: oklch(64.24% 0.175 144.92);
+  --uchu-green-8: oklch(58.83% 0.158 145.05);
+  --uchu-green-9: oklch(52.77% 0.138 145.41);
+
+  --uchu-orange-1: oklch(93.83% 0.037 56.93);
+  --uchu-orange-2: oklch(88.37% 0.072 55.8);
+  --uchu-orange-3: oklch(83.56% 0.107 56.49);
+  --uchu-orange-4: oklch(78.75% 0.141 54.32);
+  --uchu-orange-5: oklch(74.61% 0.171 51.56);
+  --uchu-orange-6: oklch(69.33% 0.157 52.18);
+  --uchu-orange-7: oklch(63.8% 0.142 52.1);
+  --uchu-orange-8: oklch(58.28% 0.128 52.2);
+  --uchu-orange-9: oklch(52.49% 0.113 51.98);
+
+  --uchu-blue-1: oklch(89.66% 0.046 260.67);
+  --uchu-blue-2: oklch(80.17% 0.091 258.88);
+  --uchu-blue-3: oklch(70.94% 0.136 258.06);
+  --uchu-blue-4: oklch(62.39% 0.181 258.33);
+  --uchu-blue-5: oklch(54.87% 0.222 260.33);
+  --uchu-blue-6: oklch(51.15% 0.204 260.17);
+  --uchu-blue-7: oklch(47.36% 0.185 259.89);
+  --uchu-blue-8: oklch(43.48% 0.17 260.2);
+  --uchu-blue-9: oklch(39.53% 0.15 259.87);
 }
 
 .font-sans-geist {
@@ -234,36 +272,36 @@
    Mapped to existing theme-* class names used by the app.
    ============================================================ */
 .theme-green {
-  --color-accent: #1a7048;
-  --color-accent-hover: #145c3a;
-  --color-accent-soft: #e8f0eb;
-  --color-accent-wash: color-mix(in srgb, #1a7048 10%, transparent);
-  --color-accent-wash-2: color-mix(in srgb, #1a7048 16%, transparent);
+  --color-accent: var(--uchu-green-9);
+  --color-accent-hover: color-mix(in oklch, var(--uchu-green-9) 86%, #000);
+  --color-accent-soft: var(--uchu-green-1);
+  --color-accent-wash: color-mix(in srgb, var(--uchu-green-9) 10%, transparent);
+  --color-accent-wash-2: color-mix(in srgb, var(--uchu-green-9) 16%, transparent);
 }
 .dark.theme-green {
-  --color-accent: #3dba82;
-  --color-accent-hover: #52c993;
-  --color-accent-soft: #102a1c;
-  --color-accent-wash: color-mix(in srgb, #3dba82 18%, transparent);
-  --color-accent-wash-2: color-mix(in srgb, #3dba82 28%, transparent);
+  --color-accent: var(--uchu-green-8);
+  --color-accent-hover: var(--uchu-green-7);
+  --color-accent-soft: color-mix(in oklch, var(--uchu-green-9) 22%, #000);
+  --color-accent-wash: color-mix(in srgb, var(--uchu-green-8) 22%, transparent);
+  --color-accent-wash-2: color-mix(in srgb, var(--uchu-green-8) 32%, transparent);
 }
 
 .theme-orange {
-  --color-accent: #c2643a;
-  --color-accent-hover: #a8552f;
-  --color-accent-soft: #f7e9df;
-  --color-accent-wash: color-mix(in srgb, #c2643a 10%, transparent);
-  --color-accent-wash-2: color-mix(in srgb, #c2643a 16%, transparent);
+  --color-accent: var(--uchu-orange-9);
+  --color-accent-hover: color-mix(in oklch, var(--uchu-orange-9) 86%, #000);
+  --color-accent-soft: var(--uchu-orange-1);
+  --color-accent-wash: color-mix(in srgb, var(--uchu-orange-9) 10%, transparent);
+  --color-accent-wash-2: color-mix(in srgb, var(--uchu-orange-9) 16%, transparent);
   --bubble-user-bg: color-mix(in srgb, var(--color-accent) 10%, var(--color-surface));
   --bubble-user-edge: inset 0 0 0 1px var(--ring-edge-soft);
 }
 .dark.theme-orange {
-  --color-accent: #e8904a;
-  --color-accent-hover: #eda162;
-  --color-accent-soft: #2a1a0d;
-  --color-accent-wash: color-mix(in srgb, #e8904a 18%, transparent);
-  --color-accent-wash-2: color-mix(in srgb, #e8904a 28%, transparent);
-  --bubble-user-bg: color-mix(in srgb, var(--color-accent) 12%, var(--color-surface));
+  --color-accent: var(--uchu-orange-8);
+  --color-accent-hover: var(--uchu-orange-7);
+  --color-accent-soft: color-mix(in oklch, var(--uchu-orange-9) 22%, #000);
+  --color-accent-wash: color-mix(in srgb, var(--uchu-orange-8) 22%, transparent);
+  --color-accent-wash-2: color-mix(in srgb, var(--uchu-orange-8) 32%, transparent);
+  --bubble-user-bg: color-mix(in srgb, var(--color-accent) 14%, var(--color-surface));
   --bubble-user-edge: inset 0 0 0 1px var(--ring-edge-soft);
 }
 
@@ -284,44 +322,6 @@
   --color-accent-soft: #2e2e33;
   --color-accent-wash: color-mix(in srgb, #f2f1ef 14%, transparent);
   --color-accent-wash-2: color-mix(in srgb, #f2f1ef 22%, transparent);
-}
-.warm {
-  --color-bg: #fbf8f3;
-  --color-bg-sunken: #f2ede5;
-
-  --color-surface: #fffdf9;
-  --color-surface-2: #f7f1e9;
-  --color-surface-3: #eee6da;
-
-  --color-border: #e3d9ca;
-  --color-border-strong: #cfc1ae;
-
-  --color-text: #25211d;
-  --color-text-2: #5a5148;
-  --color-text-3: #867a6c;
-  --color-text-4: #aa9d8d;
-
-  --color-warning: #a66a1f;
-  --color-warning-soft: #fff3df;
-
-  --color-danger: #b84d3f;
-  --color-danger-soft: #fae7e2;
-
-  --color-success: #5f8f55;
-  --color-on-success: #ffffff;
-
-  --color-error-dim: color-mix(in srgb, var(--color-danger) 10%, transparent);
-
-  --ring-edge: rgba(37, 33, 29, 0.075);
-  --ring-edge-elevated: rgba(37, 33, 29, 0.095);
-  --ring-edge-strong: rgba(37, 33, 29, 0.13);
-  --ring-edge-soft: rgba(37, 33, 29, 0.045);
-
-  --shadow-lift: 0 12px 28px -20px rgba(37, 33, 29, 0.2), 0 1px 2px rgba(37, 33, 29, 0.045);
-
-  --shadow-float: 0 18px 40px -26px rgba(37, 33, 29, 0.24), 0 2px 8px rgba(37, 33, 29, 0.06);
-
-  color-scheme: light;
 }
 
 @layer base {

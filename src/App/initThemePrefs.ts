@@ -39,8 +39,7 @@ export const DESKTOP_AGENT_SIDE_SPACE_MAX_PX = 128
 
 export function getInitialTheme(): Theme {
   const stored = readThemePreference()
-  const theme = stored === 'light' || stored === 'warm' || stored === 'dark' || stored === 'system' ? stored : 'system'
-  if (theme === 'warm') document.documentElement.classList.add('warm')
+  const theme = stored === 'light' || stored === 'dark' || stored === 'system' ? stored : 'system'
   if (theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
     document.documentElement.classList.add('dark')
   }
@@ -137,14 +136,8 @@ export function applyLanguagePreference(languagePreference: LanguagePreference, 
 export function syncThemePreference(theme: Theme): (() => void) | void {
   const root = document.documentElement
   const applyDark = (isDark: boolean) => {
-    root.classList.remove('warm')
     root.classList.toggle('dark', isDark)
     root.style.colorScheme = isDark ? 'dark' : 'light'
-  }
-  const applyWarm = () => {
-    root.classList.remove('dark')
-    root.classList.add('warm')
-    root.style.colorScheme = 'light'
   }
   if (theme === 'system') {
     const mq = window.matchMedia('(prefers-color-scheme: dark)')
@@ -153,11 +146,6 @@ export function syncThemePreference(theme: Theme): (() => void) | void {
     mq.addEventListener('change', apply)
     writeThemePreference('system')
     return () => mq.removeEventListener('change', apply)
-  }
-  if (theme === 'warm') {
-    applyWarm()
-    writeThemePreference(theme)
-    return
   }
   applyDark(theme === 'dark')
   writeThemePreference(theme)
