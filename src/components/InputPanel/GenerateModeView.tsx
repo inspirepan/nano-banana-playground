@@ -148,19 +148,28 @@ export function GenerateModeView({
         right={<span className="mono text-sm text-(--color-text-4)">{model.apiModel}</span>}
       >
         <div className="grid grid-cols-3 gap-1.5">
-          {MODEL_CONFIGS.map((m) => (
-            <button
-              key={m.id}
-              type="button"
-              data-active={model.id === m.id}
-              onClick={() => onSwitchModel(m.id)}
-              title={m.name}
-              className="chip min-w-0 justify-center px-2"
-            >
-              <BrandIcon name={getProviderConfig(m.provider).brandIcon} size={12} />
-              <span className="min-w-0 truncate">{getModelShortLabel(m)}</span>
-            </button>
-          ))}
+          {MODEL_CONFIGS.map((m) => {
+            const label = getModelShortLabel(m)
+            const compactLabel = label.length > 14
+            return (
+              <button
+                key={m.id}
+                type="button"
+                data-active={model.id === m.id}
+                onClick={() => onSwitchModel(m.id)}
+                title={m.name}
+                className="chip min-w-0 justify-center px-2"
+              >
+                <BrandIcon name={getProviderConfig(m.provider).brandIcon} size={12} />
+                <span
+                  className={`min-w-0 truncate ${compactLabel ? 'text-[12px] tracking-[-0.04em]' : ''}`}
+                  style={compactLabel ? { fontStretch: '85%' } : undefined}
+                >
+                  {label}
+                </span>
+              </button>
+            )
+          })}
         </div>
       </Section>
 
