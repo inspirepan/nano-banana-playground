@@ -154,6 +154,7 @@ export const StackItemThumb = memo(function StackItemThumb({
     <div
       role="button"
       data-stack-item-thumb
+      data-stack-item-id={item.id}
       tabIndex={0}
       draggable={Boolean(image)}
       onDragStart={(event) => {

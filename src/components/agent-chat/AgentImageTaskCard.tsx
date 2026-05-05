@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState, type MouseEvent, type ReactNode } from 'react'
+import { useLayoutEffect, useRef, useState, type MouseEvent, type PointerEvent, type ReactNode } from 'react'
 
 import { summarizeToolResult } from './utils'
 import type { AgentImageTask, AgentMessageToolCall, AgentMessageToolResult } from '../../agent'
@@ -217,6 +217,8 @@ export function AgentImageTaskCard({
   onFocus?: AgentImageTaskFocusHandler
 }) {
   const { t } = useI18n()
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null)
+  const ignoreNextShellClickRef = useRef(false)
 
   const isComposingPrompt = isStreaming && !task && !result
   const status: AgentImageTask['status'] = task?.status ?? (result?.isError ? 'failed' : 'pending_approval')
@@ -262,7 +264,7 @@ export function AgentImageTaskCard({
   const canFocus = Boolean(
     onFocus &&
     task &&
-    (task.request.stackId || task.generationJobId) &&
+    (task.request.stackId || task.generationJobId || task.resultImageIds.length > 0) &&
     (task.status === 'queued' ||
       task.status === 'running' ||
       task.status === 'approved' ||
@@ -272,10 +274,36 @@ export function AgentImageTaskCard({
   const handleLocateClick = canFocus && task ? () => onFocus?.(task, { behavior: 'locate' }) : undefined
   const handleShellClick = canFocus
     ? (event: MouseEvent<HTMLDivElement>) => {
+        if (ignoreNextShellClickRef.current) {
+          ignoreNextShellClickRef.current = false
+          return
+        }
         if (event.target instanceof Element && event.target.closest('[data-stack-item-thumb]')) return
         handleCardClick?.()
       }
     : undefined
+  const handleShellPointerDown = canFocus
+    ? (event: PointerEvent<HTMLDivElement>) => {
+        if (event.pointerType !== 'touch' || !event.isPrimary) return
+        touchStartRef.current = { x: event.clientX, y: event.clientY }
+      }
+    : undefined
+  const handleShellPointerUp =
+    canFocus && task
+      ? (event: PointerEvent<HTMLDivElement>) => {
+          if (event.pointerType !== 'touch' || !event.isPrimary) return
+          const start = touchStartRef.current
+          touchStartRef.current = null
+          if (!start || Math.hypot(event.clientX - start.x, event.clientY - start.y) > 10) return
+          if (event.target instanceof Element && event.target.closest('button')) return
+
+          const thumb =
+            event.target instanceof Element ? event.target.closest<HTMLElement>('[data-stack-item-thumb]') : null
+          const itemId = thumb?.dataset.stackItemId
+          ignoreNextShellClickRef.current = true
+          onFocus?.(task, itemId ? { behavior: 'open', itemId } : { behavior: 'open' })
+        }
+      : undefined
   const shellShadowClass = isPendingApproval
     ? 'shadow-[0_0_0_1px_var(--color-warning),0_0_0_3px_color-mix(in_srgb,var(--color-warning)_16%,transparent),var(--shadow-lift)]'
     : 'shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-lift)]'
@@ -412,7 +440,22 @@ export function AgentImageTaskCard({
   if (isCompleted) {
     return (
       <div
+        role={canFocus ? 'button' : undefined}
+        tabIndex={canFocus ? 0 : undefined}
         onClick={handleShellClick}
+        onPointerDown={handleShellPointerDown}
+        onPointerUp={handleShellPointerUp}
+        onKeyDown={
+          canFocus
+            ? (event) => {
+                if (event.target !== event.currentTarget) return
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault()
+                  handleCardClick?.()
+                }
+              }
+            : undefined
+        }
         className={`group relative w-full overflow-hidden rounded-[var(--radius-lg)] bg-(--color-surface) shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-lift)] md:m-1 md:max-w-[460px] ${canFocus ? 'cursor-pointer' : ''}`}
       >
         {renderCompletedGrid()}
@@ -440,6 +483,8 @@ export function AgentImageTaskCard({
       role={canFocus ? 'button' : undefined}
       tabIndex={canFocus ? 0 : undefined}
       onClick={handleShellClick}
+      onPointerDown={handleShellPointerDown}
+      onPointerUp={handleShellPointerUp}
       onKeyDown={
         canFocus
           ? (event) => {
