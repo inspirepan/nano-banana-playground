@@ -138,12 +138,12 @@ export function ComposerActions({
         <button
           type="button"
           onClick={onStop}
-          className="chip flex items-center justify-center rounded-full p-0"
+          className="chip danger flex items-center justify-center rounded-full p-0"
           style={{ width: 30, height: 30 }}
           title={t('agentChat.composer.stop')}
           aria-label={t('agentChat.composer.stop')}
         >
-          <Icon name="stop_circle" size={14} />
+          <Icon name="square" size={12} fill="currentColor" />
         </button>
       ) : (
         <button
