@@ -70,6 +70,13 @@
   --color-accent: var(--uchu-blue-9);
   --color-accent-hover: oklch(34% 0.15 259.87);
   --color-accent-fg: #ffffff;
+  /* Foreground for accent-as-text on translucent wash backgrounds (active
+     chips, aspect tiles, .tag.accent, .annotation-finish-btn). Light themes
+     reuse --color-accent because the dark uchu-9 ramp values pop on a pale
+     wash already. Dark mode lifts toward white so the same pattern still
+     clears WCAG AA on the dim mid-tone wash — see overrides in `.dark` and
+     `.dark.theme-*` for the brightened values. */
+  --color-accent-text: var(--color-accent);
 
   --color-accent-soft: var(--uchu-blue-1);
   --color-accent-soft-elevated: var(--uchu-blue-2);
@@ -240,6 +247,9 @@
   --color-accent: #5e6ad2;
   --color-accent-hover: #6e79e6;
   --color-accent-fg: #ffffff;
+  /* Linear purple sits at oklch L≈49% — on the wash background it reads at
+     ~3.7:1, below WCAG AA. Lift toward white in OKLCH so hue stays put. */
+  --color-accent-text: color-mix(in oklch, var(--color-accent) 65%, white);
   --color-accent-soft: #171a33;
   --color-accent-wash: color-mix(in srgb, #5e6ad2 16%, transparent);
   --color-accent-wash-2: color-mix(in srgb, #5e6ad2 26%, transparent);
@@ -281,6 +291,10 @@
 .dark.theme-green {
   --color-accent: var(--uchu-green-8);
   --color-accent-hover: var(--uchu-green-7);
+  /* Reference uchu-green-8 directly — chaining through var(--color-accent)
+     would put two levels of var() inside a color-mix, which some engines
+     mishandle (see comment on the @theme accent block). */
+  --color-accent-text: color-mix(in oklch, var(--uchu-green-8) 65%, white);
   --color-accent-soft: color-mix(in oklch, var(--uchu-green-9) 22%, #000);
   --color-accent-wash: color-mix(in srgb, var(--uchu-green-8) 22%, transparent);
   --color-accent-wash-2: color-mix(in srgb, var(--uchu-green-8) 32%, transparent);
@@ -298,6 +312,7 @@
 .dark.theme-orange {
   --color-accent: var(--uchu-orange-8);
   --color-accent-hover: var(--uchu-orange-7);
+  --color-accent-text: color-mix(in oklch, var(--uchu-orange-8) 65%, white);
   --color-accent-soft: color-mix(in oklch, var(--uchu-orange-9) 22%, #000);
   --color-accent-wash: color-mix(in srgb, var(--uchu-orange-8) 22%, transparent);
   --color-accent-wash-2: color-mix(in srgb, var(--uchu-orange-8) 32%, transparent);
@@ -460,12 +475,12 @@
   }
   .chip[data-active='true'] {
     background: var(--color-accent-wash);
-    color: var(--color-accent);
+    color: var(--color-accent-text);
     box-shadow: inset 0 0 0 1px var(--color-accent-ring);
   }
   .chip[data-active='true']:hover:not(:disabled) {
     background: var(--color-accent-wash-2);
-    color: var(--color-accent);
+    color: var(--color-accent-text);
     box-shadow: inset 0 0 0 1px var(--color-accent-ring-hover);
   }
 
@@ -572,13 +587,13 @@
   .annotation-finish-btn {
     padding: 0 10px;
     background: var(--color-accent-wash);
-    color: var(--color-accent);
+    color: var(--color-accent-text);
     font-weight: 500;
     box-shadow: inset 0 0 0 1px var(--color-accent-ring);
   }
   .annotation-finish-btn:hover:not(:disabled) {
     background: var(--color-accent-wash-2);
-    color: var(--color-accent);
+    color: var(--color-accent-text);
     box-shadow: inset 0 0 0 1px var(--color-accent-ring-hover);
   }
   .chip.ghost {
@@ -599,6 +614,19 @@
     background: var(--color-accent-hover);
     color: var(--color-accent-fg);
     box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-accent-hover) 55%, #000 10%);
+  }
+  /* Dark mode picks up the same double-line top edge as the user chat bubble:
+     1px ring on the very edge, 1px white highlight stacked just inside. The
+     -1px spread is what keeps the white line at exactly 1px tall. */
+  .dark .chip.accent-active {
+    box-shadow:
+      inset 0 2px 0 -1px rgba(255, 255, 255, 0.16),
+      inset 0 0 0 1px color-mix(in srgb, var(--color-accent) 55%, #000 10%);
+  }
+  .dark .chip.accent-active:hover:not(:disabled) {
+    box-shadow:
+      inset 0 2px 0 -1px rgba(255, 255, 255, 0.16),
+      inset 0 0 0 1px color-mix(in srgb, var(--color-accent-hover) 55%, #000 10%);
   }
 
   .chip.danger {
@@ -949,6 +977,23 @@
       inset 0 1px 0 rgba(255, 255, 255, 0.15),
       0 1px 2px rgba(0, 0, 0, 0.12);
   }
+  /* Dark mode swaps the flush top highlight for the bubble-style double line —
+     outer ring stays put, then a 1px white sliver inset by 1px below it. */
+  .dark .cta {
+    box-shadow:
+      0 0 0 1px color-mix(in srgb, var(--color-accent) 50%, #000 8%),
+      inset 0 2px 0 -1px rgba(255, 255, 255, 0.16),
+      0 1px 2px rgba(0, 0, 0, 0.1);
+  }
+  .dark .cta.danger {
+    box-shadow:
+      0 0 0 1px color-mix(in srgb, var(--color-danger) 50%, #000 10%),
+      inset 0 2px 0 -1px rgba(255, 255, 255, 0.16),
+      0 1px 2px rgba(0, 0, 0, 0.12);
+  }
+  .dark .cta:disabled {
+    box-shadow: inset 0 0 0 1px var(--ring-edge);
+  }
 
   /* Segmented control — sliding thumb driven by --seg-index / --seg-count.
      Outer container: tinted track defined by inset ring. Thumb: outer ring + shadow.
@@ -1059,12 +1104,12 @@
   }
   .aspect-tile[data-active='true'] {
     background: var(--color-accent-wash);
-    color: var(--color-accent);
+    color: var(--color-accent-text);
     box-shadow: inset 0 0 0 1px var(--color-accent-ring);
   }
   .aspect-tile[data-active='true']:hover {
     background: var(--color-accent-wash-2);
-    color: var(--color-accent);
+    color: var(--color-accent-text);
     box-shadow: inset 0 0 0 1px var(--color-accent-ring-hover);
   }
   .aspect-tile .glyph {
@@ -1178,7 +1223,7 @@
   }
   .tag.accent {
     background: var(--color-accent-wash);
-    color: var(--color-accent);
+    color: var(--color-accent-text);
   }
 
   /* Image card */
