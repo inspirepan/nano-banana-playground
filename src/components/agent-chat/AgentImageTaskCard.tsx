@@ -64,6 +64,22 @@ function fitWithinBox(aspectRatioCss: string, max: number): { width: number; hei
   return { width: Math.round(max * ratio), height: max }
 }
 
+function getCompletedGridColumnCount(count: number): number {
+  if (count <= 3) return Math.max(1, count)
+  if (count === 4) return 2
+  if (count <= 6) return 3
+
+  return [3, 4].reduce((best, columns) => {
+    const rows = Math.ceil(count / columns)
+    const emptySlots = rows * columns - count
+    const lastRowCount = count % columns || columns
+    const orphanPenalty = lastRowCount === 1 ? 4 : 0
+    const score = emptySlots * 3 + rows + orphanPenalty
+
+    return score < best.score ? { columns, score } : best
+  }, { columns: 3, score: Number.POSITIVE_INFINITY }).columns
+}
+
 function SkeletonSlot({
   flush = false,
   aspectRatio,
@@ -407,8 +423,8 @@ export function AgentImageTaskCard({
     }
     return (
       <div
-        className="grid gap-px overflow-hidden bg-(--ring-edge-soft)"
-        style={{ gridTemplateColumns: `repeat(${Math.min(visibleIds.length, 3)}, minmax(0, 1fr))` }}
+        className="grid gap-px overflow-hidden bg-(--agent-image-task-empty-bg)"
+        style={{ gridTemplateColumns: `repeat(${getCompletedGridColumnCount(visibleIds.length)}, minmax(0, 1fr))` }}
       >
         {visibleIds.map((id) => {
           const item = stackItemByImageId.get(id)!
@@ -456,7 +472,7 @@ export function AgentImageTaskCard({
               }
             : undefined
         }
-        className={`group relative w-full overflow-hidden rounded-[var(--radius-lg)] bg-(--color-surface) shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-lift)] md:m-1 md:max-w-[460px] ${canFocus ? 'cursor-pointer' : ''}`}
+        className={`group relative w-full overflow-hidden rounded-[var(--radius-lg)] bg-(--agent-image-task-empty-bg) shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-lift)] md:m-1 md:max-w-[460px] ${canFocus ? 'cursor-pointer' : ''}`}
       >
         {renderCompletedGrid()}
         {canFocus && (

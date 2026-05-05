@@ -53,6 +53,7 @@
   --color-surface: #ffffff;
   --color-surface-2: #f5f6f7;
   --color-surface-3: #eceef0;
+  --agent-image-task-empty-bg: color-mix(in srgb, var(--color-surface-2) 72%, var(--color-surface));
 
   --color-border: #e1e4e8;
   --color-border-strong: #cfd4dc;
@@ -236,6 +237,7 @@
   --color-surface: #0f1011;
   --color-surface-2: #17181a;
   --color-surface-3: #202124;
+  --agent-image-task-empty-bg: color-mix(in srgb, var(--color-surface-2) 70%, var(--color-surface));
 
   --color-border: #2a2b2f;
 
