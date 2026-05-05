@@ -22,6 +22,7 @@ type DetailCanvasProps = {
   currentSrc: string | null
   displayImage: { id: string; src: string; alt: string } | null
   initialView?: ZoomableImageViewState | null
+  initialViewRevision?: number
   refDetailId: string | null
   refDetailSrc: string | null
   hasPrev: boolean
@@ -65,6 +66,7 @@ export function DetailCanvas({
   currentSrc,
   displayImage,
   initialView,
+  initialViewRevision,
   refDetailId,
   refDetailSrc,
   hasPrev,
@@ -155,6 +157,7 @@ export function DetailCanvas({
             src={displayImage?.src ?? currentSrc ?? ''}
             alt={displayImage?.alt ?? currentMeta?.prompt ?? ''}
             initialView={initialView}
+            initialViewRevision={initialViewRevision}
             onSwipeLeft={hasNext ? onGoNext : undefined}
             onSwipeRight={hasPrev ? onGoPrev : undefined}
             onRequestFullscreen={onRequestFullscreen}

@@ -54,6 +54,7 @@ export function ZoomableImageView({
   alt,
   label,
   initialView,
+  initialViewRevision = 0,
   onSwipeLeft,
   onSwipeRight,
   onRequestFullscreen,
@@ -64,6 +65,7 @@ export function ZoomableImageView({
   alt: string
   label?: string
   initialView?: ZoomableImageViewState | null
+  initialViewRevision?: number
   onSwipeLeft?: () => void
   onSwipeRight?: () => void
   onRequestFullscreen?: (view: ZoomableImageViewState, reason: ZoomableImageViewHandoffReason) => void
@@ -92,7 +94,7 @@ export function ZoomableImageView({
   const wheelHandoffTimerRef = useRef<number | null>(null)
   const initialViewAppliedKeyRef = useRef<string | null>(null)
   const initialViewKey = initialView
-    ? `${src}:${initialView.scale}:${initialView.focalPoint.x}:${initialView.focalPoint.y}`
+    ? `${src}:${initialViewRevision}:${initialView.scale}:${initialView.focalPoint.x}:${initialView.focalPoint.y}`
     : src
 
   const [scale, setScale] = useState(FIT_SCALE)
@@ -114,15 +116,19 @@ export function ZoomableImageView({
   }, [])
 
   const requestInline = useCallback(
-    (reason: ZoomableImageViewHandoffReason) => {
+    (reason: ZoomableImageViewHandoffReason, view?: ZoomableImageViewState | null) => {
       if (!onRequestInline || fitExitActiveRef.current) return
       fitExitActiveRef.current = true
-      onRequestInline({ scale: FIT_SCALE, focalPoint: { x: 0.5, y: 0.5 } }, reason)
+      onRequestInline(
+        view ??
+          getViewStateFor(scaleRef.current, offsetRef.current) ?? { scale: FIT_SCALE, focalPoint: { x: 0.5, y: 0.5 } },
+        reason,
+      )
       window.setTimeout(() => {
         fitExitActiveRef.current = false
       }, 300)
     },
-    [onRequestInline],
+    [getViewStateFor, onRequestInline],
   )
 
   const applyView = useCallback(
@@ -151,12 +157,8 @@ export function ZoomableImageView({
 
       if (view) onViewChange?.(view)
 
-      if (
-        options.requestInlineAtFit &&
-        previousScale > FIT_SCALE &&
-        clampedScale <= FIT_EXIT_SCALE
-      ) {
-        requestInline(options.requestInlineReason ?? 'reset')
+      if (options.requestInlineAtFit && previousScale > FIT_SCALE && clampedScale <= FIT_EXIT_SCALE) {
+        requestInline(options.requestInlineReason ?? 'reset', view)
       }
 
       return view
@@ -222,12 +224,12 @@ export function ZoomableImageView({
 
   const commitPinchHandoff = useCallback(() => {
     if (onRequestInline && scaleRef.current <= FIT_EXIT_SCALE) {
-      requestInline('pinch')
+      requestInline('pinch', getViewState())
       return
     }
     if (!onRequestFullscreen || !pinchHandoffPendingRef.current) return
     commitFullscreenHandoff('pinch')
-  }, [commitFullscreenHandoff, onRequestFullscreen, onRequestInline, requestInline])
+  }, [commitFullscreenHandoff, getViewState, onRequestFullscreen, onRequestInline, requestInline])
 
   const scheduleWheelHandoff = useCallback(() => {
     if (!onRequestFullscreen) return
@@ -312,7 +314,16 @@ export function ZoomableImageView({
       if (scaleRef.current > FIT_SCALE) resetView()
       else zoomAtPoint(DOUBLE_TAP_SCALE, point)
     },
-    [applyView, clearInteractionState, getZoomedViewAtPoint, onRequestFullscreen, onRequestInline, requestInline, resetView, zoomAtPoint],
+    [
+      applyView,
+      clearInteractionState,
+      getZoomedViewAtPoint,
+      onRequestFullscreen,
+      onRequestInline,
+      requestInline,
+      resetView,
+      zoomAtPoint,
+    ],
   )
 
   useResizeObserver(containerRef, syncFitSize)

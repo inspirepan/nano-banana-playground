@@ -24,7 +24,7 @@ import type { ImageStack } from '../../lib/stacks'
 import type { PlaygroundImageMeta } from '../../lib/types'
 
 type StackNavigationTarget = { stackId: string; itemId: string }
-type ImageViewSnapshot = { imageId: string; view: ZoomableImageViewState }
+type ImageViewSnapshot = { imageId: string; view: ZoomableImageViewState; revision: number }
 
 type Props = {
   stack: ImageStack
@@ -157,9 +157,12 @@ export function ImageDetailModal({
   const [mobilePreviewInitialView, setMobilePreviewInitialView] = useState<ZoomableImageViewState | null>(null)
   const [canvasViewSnapshot, setCanvasViewSnapshot] = useState<ImageViewSnapshot | null>(null)
   const mobilePreviewViewRef = useRef<ZoomableImageViewState | null>(null)
+  const canvasViewSnapshotRevisionRef = useRef(0)
   const detailScrollRef = useRef<HTMLDivElement | null>(null)
   const canvasInitialView =
     currentImage && canvasViewSnapshot?.imageId === currentImage.id ? canvasViewSnapshot.view : null
+  const canvasInitialViewRevision =
+    currentImage && canvasViewSnapshot?.imageId === currentImage.id ? canvasViewSnapshot.revision : 0
 
   const handleRemoveCurrentAndRevealImage = useCallback(
     (id: string) => {
@@ -252,7 +255,12 @@ export function ImageDetailModal({
     (view?: ZoomableImageViewState | null) => {
       const viewToPersist = view ?? mobilePreviewViewRef.current
       if (currentImage && viewToPersist) {
-        setCanvasViewSnapshot({ imageId: currentImage.id, view: viewToPersist })
+        canvasViewSnapshotRevisionRef.current += 1
+        setCanvasViewSnapshot({
+          imageId: currentImage.id,
+          view: viewToPersist,
+          revision: canvasViewSnapshotRevisionRef.current,
+        })
       }
       mobilePreviewViewRef.current = null
       setMobilePreviewOpen(false)
@@ -458,6 +466,7 @@ export function ImageDetailModal({
             currentSrc={currentSrc}
             displayImage={displayImage}
             canvasInitialView={canvasInitialView}
+            canvasInitialViewRevision={canvasInitialViewRevision}
             refDetailId={refDetailId}
             refDetailSrc={refDetailSrc}
             setRefDetailId={setRefDetailId}
