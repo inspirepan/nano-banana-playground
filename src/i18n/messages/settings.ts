@@ -158,7 +158,7 @@ export const settingsMessages: MessageDictionary = {
     'zh-CN': '使用 Parallel Search API 返回适合 LLM 阅读的长片段，经站点代理转发。',
     en: 'Uses the Parallel Search API for LLM-ready long excerpts, forwarded via site proxy.',
   },
-  'settings.webTools.fetch.provider.default': { 'zh-CN': '默认 + 代理', en: 'Default + Proxy' },
+  'settings.webTools.fetch.provider.default': { 'zh-CN': '默认', en: 'Default' },
   'settings.webTools.fetch.provider.defaultDescription': {
     'zh-CN': '浏览器直接抓取；遇到 CORS 时自动通过站点代理兜底。',
     en: 'Fetches directly in the browser, then falls back to the site proxy on CORS failures.',

@@ -44,6 +44,7 @@ export const commonMessages: MessageDictionary = {
     'zh-CN': '无法重试：请检查 API Key 或任务状态',
     en: 'Could not retry. Check the API key or task status',
   },
+  'common.generator': { 'zh-CN': '生成器', en: 'Generator' },
   'common.agent': { 'zh-CN': 'Agent', en: 'Agent' },
   'common.apiKey': { 'zh-CN': 'API Key', en: 'API key' },
   'common.cancel': { 'zh-CN': '取消', en: 'Cancel' },

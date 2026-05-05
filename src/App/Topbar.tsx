@@ -20,10 +20,10 @@ export function Topbar({
 }) {
   const { t } = useI18n()
 
-  const tabs: { key: MobileTab; label: string }[] = [
-    { key: 'generate', label: t('common.generate') },
-    { key: 'agent', label: t('common.agent') },
-    { key: 'gallery', label: t('common.gallery') },
+  const tabs: { key: MobileTab; label: string; widthClass: string }[] = [
+    { key: 'generate', label: t('common.generator'), widthClass: 'flex-[1.25_1_0]' },
+    { key: 'agent', label: t('common.agent'), widthClass: 'flex-[0.9_1_0]' },
+    { key: 'gallery', label: t('common.gallery'), widthClass: 'flex-[1_1_0]' },
   ]
 
   return (
@@ -43,7 +43,7 @@ export function Topbar({
                 role="tab"
                 aria-selected={active}
                 onClick={() => onMobileTabChange(tab.key)}
-                className={`inline-flex h-[26px] min-w-0 flex-1 items-center justify-center gap-1.5 rounded-[var(--radius-sm)] px-2 text-base font-medium transition-[color,background-color,box-shadow] duration-150 ${
+                className={`inline-flex h-[26px] min-w-0 ${tab.widthClass} items-center justify-center gap-1.5 rounded-[var(--radius-sm)] px-2 text-base font-medium transition-[color,background-color,box-shadow] duration-150 ${
                   active
                     ? 'bg-(--color-surface) text-(--color-text) shadow-[inset_0_0_0_1px_var(--ring-edge)] dark:bg-(--color-surface-3)'
                     : 'text-(--color-text-3) hover:text-(--color-text)'
