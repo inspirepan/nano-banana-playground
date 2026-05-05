@@ -5,10 +5,12 @@ import type {
   AgentMessageToolResult,
   AskUserQuestionAnswer,
   AskUserQuestionItem,
+  AskUserQuestionOption,
   AskUserQuestionResultDetails,
 } from '../../agent'
 import { useI18n } from '../../i18n'
 import { Icon } from '../Icon'
+import { SkillIcon } from '../SkillIcon'
 
 type QuestionFormState = Record<number, { selected: string[]; note: string }>
 
@@ -30,11 +32,41 @@ function readStringArray(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : []
 }
 
+function readOptionalString(value: unknown): string | undefined {
+  return typeof value === 'string' && value.trim() ? value.trim() : undefined
+}
+
+function readOptionalStringArray(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) return undefined
+  const items = value.filter((item): item is string => typeof item === 'string' && Boolean(item.trim()))
+  return items.length > 0 ? items : undefined
+}
+
+function normalizeRenderedOption(option: unknown): AskUserQuestionOption[] {
+  if (!isRecord(option) || typeof option.label !== 'string') return []
+  const description = readOptionalString(option.description)
+  const icon = readOptionalString(option.icon)
+  const swatches = readOptionalStringArray(option.swatches)
+  return [
+    {
+      label: option.label,
+      ...(description ? { description } : {}),
+      ...(icon ? { icon } : {}),
+      ...(swatches ? { swatches } : {}),
+    },
+  ]
+}
+
+function getQuestionOptions(question: AskUserQuestionItem): AskUserQuestionOption[] {
+  const record = question as unknown as Record<string, unknown>
+  return Array.isArray(record.options) ? record.options.flatMap(normalizeRenderedOption) : []
+}
+
 function readQuestionResultDetails(details: unknown): AskUserQuestionResultDetails | null {
   if (!isRecord(details) || !isAskUserQuestionResultStatus(details.status)) return null
   if (!Array.isArray(details.questions) || !Array.isArray(details.answers)) return null
 
-  const questions = details.questions.flatMap((item) => {
+  const questions: AskUserQuestionItem[] = details.questions.flatMap((item): AskUserQuestionItem[] => {
     if (!isRecord(item) || typeof item.question !== 'string') return []
     const header = typeof item.header === 'string' ? item.header : item.question.slice(0, 12)
     const options = Array.isArray(item.options) ? item.options : []
@@ -42,14 +74,7 @@ function readQuestionResultDetails(details: unknown): AskUserQuestionResultDetai
       {
         question: item.question,
         header,
-        options: options.flatMap((option) => {
-          if (!isRecord(option) || typeof option.label !== 'string') return []
-          return [
-            typeof option.description === 'string'
-              ? { label: option.label, description: option.description }
-              : { label: option.label },
-          ]
-        }),
+        options: options.flatMap(normalizeRenderedOption),
         multi_select: item.multi_select === true,
       },
     ]
@@ -104,8 +129,8 @@ function renderAnsweredQuestions(items: RenderedQuestionAnswer[]) {
       {items.map((item, index) => (
         <div key={index} className="space-y-0.5">
           <div className="text-sm font-semibold text-(--color-text)">{item.question}</div>
-          <div className="whitespace-pre-wrap text-sm leading-[1.55] text-(--color-text-3)">{item.answer}</div>
-          {item.note ? <div className="text-sm leading-[1.55] text-(--color-text-3)">{item.note}</div> : null}
+          <div className="whitespace-pre-wrap text-sm leading-[1.55] text-(--color-text-2)">{item.answer}</div>
+          {item.note ? <div className="text-sm leading-[1.55] text-(--color-text-2)">{item.note}</div> : null}
         </div>
       ))}
     </div>
@@ -118,6 +143,32 @@ function buildInitialQuestionFormState(questions: AskUserQuestionItem[]): Questi
     state[index] = { selected: [], note: '' }
   }
   return state
+}
+
+function renderOptionPreview(option: AskUserQuestionOption) {
+  const swatches = option.swatches?.filter(Boolean) ?? []
+  if (!option.icon && swatches.length === 0) return null
+  return (
+    <span className="mt-px flex shrink-0 items-center gap-1.5 self-start">
+      {option.icon ? (
+        <span className="inline-flex size-4 items-center justify-center text-(--color-text-3) group-data-[active]:text-(--color-accent)">
+          <SkillIcon name={option.icon} size={14} strokeWidth={1.9} />
+        </span>
+      ) : null}
+      {swatches.length > 0 ? (
+        <span className="mt-0.5 inline-flex items-center">
+          {swatches.map((color, index) => (
+            <span
+              key={`${color}-${index}`}
+              aria-hidden
+              className="size-3 shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]"
+              style={{ backgroundColor: color }}
+            />
+          ))}
+        </span>
+      ) : null}
+    </span>
+  )
 }
 
 export function AskUserQuestionForm({
@@ -165,7 +216,11 @@ export function AskUserQuestionForm({
   const handleSubmit = () => {
     const answers: AskUserQuestionAnswer[] = questions.map((question, index) => {
       const entry = form[index] ?? { selected: [], note: '' }
-      return { question: question.question, selectedLabels: entry.selected, note: entry.note }
+      return {
+        question: question.question,
+        selectedLabels: entry.selected,
+        note: entry.note,
+      }
     })
     onSubmit(toolCallId, answers)
   }
@@ -204,7 +259,8 @@ export function AskUserQuestionForm({
       <div className="mt-3">
         {questions.map((question, index) => {
           const entry = form[index] ?? { selected: [], note: '' }
-          const hasAnyDescription = question.options.some((item) => Boolean(item.description?.trim()))
+          const options = getQuestionOptions(question)
+          const hasAnyDescription = options.some((item) => Boolean(item.description?.trim()))
           return (
             <div key={index} className={index > 0 ? 'mt-3 pt-3 shadow-[inset_0_1px_0_var(--ring-edge-soft)]' : ''}>
               <div className="flex min-w-0 items-baseline gap-2">
@@ -217,13 +273,13 @@ export function AskUserQuestionForm({
                 </span>
                 <span className="text-sm font-medium text-(--color-text)">{question.question}</span>
                 {question.multi_select && (
-                  <span className="ml-auto text-[11px] text-(--color-text-4)">
+                  <span className="shrink-0 text-[11px] text-(--color-text-4)">
                     {t('agentChat.question.multiSelect')}
                   </span>
                 )}
               </div>
               <div className="mt-2 flex flex-wrap gap-2">
-                {question.options.map((option) => {
+                {options.map((option) => {
                   const checked = entry.selected.includes(option.label)
                   const description = option.description?.trim()
                   const { label: cleanedLabel, recommendText } = splitRecommendation(option.label)
@@ -233,12 +289,12 @@ export function AskUserQuestionForm({
                       type="button"
                       onClick={() => toggleOption(index, option.label, question.multi_select)}
                       data-active={checked || undefined}
-                      className="group flex items-center gap-2 rounded-[var(--radius-sm)] bg-(--color-surface) px-2.5 py-1.5 text-left shadow-[0_0_0_1px_var(--ring-edge-soft),var(--shadow-lift)] transition-[background,box-shadow,color,transform] hover:bg-(--color-surface-2) hover:shadow-[0_0_0_1px_var(--ring-edge-strong),var(--shadow-float)] data-[active]:bg-(--color-accent-wash) data-[active]:shadow-[0_0_0_1px_var(--ring-edge-soft),var(--shadow-lift)] data-[active]:hover:bg-(--color-accent-wash-2) data-[active]:hover:shadow-[0_0_0_1px_var(--ring-edge-strong),var(--shadow-float)] dark:bg-(--color-surface-2) dark:hover:bg-(--color-surface-3) dark:data-[active]:bg-[color-mix(in_srgb,var(--color-accent)_22%,var(--color-surface))] dark:data-[active]:hover:bg-[color-mix(in_srgb,var(--color-accent)_30%,var(--color-surface))]"
+                      className="group flex items-start gap-2 rounded-[var(--radius-sm)] bg-(--color-surface) px-2.5 py-1.5 text-left shadow-[0_0_0_1px_var(--ring-edge-soft),var(--shadow-lift)] transition-[background,box-shadow,color,transform] hover:bg-(--color-surface-2) hover:shadow-[0_0_0_1px_var(--ring-edge-strong),var(--shadow-float)] data-[active]:bg-(--color-accent-wash) data-[active]:shadow-[0_0_0_1px_var(--ring-edge-soft),var(--shadow-lift)] data-[active]:hover:bg-(--color-accent-wash-2) data-[active]:hover:shadow-[0_0_0_1px_var(--ring-edge-strong),var(--shadow-float)] dark:bg-(--color-surface-2) dark:hover:bg-(--color-surface-3) dark:data-[active]:bg-[color-mix(in_srgb,var(--color-accent)_22%,var(--color-surface))] dark:data-[active]:hover:bg-[color-mix(in_srgb,var(--color-accent)_30%,var(--color-surface))]"
                     >
                       {question.multi_select && (
                         <span
                           aria-hidden
-                          className="mt-px inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center self-start rounded-[3px] bg-(--color-surface) shadow-[inset_0_0_0_1px_var(--ring-edge-strong)] transition-colors group-data-[active]:bg-(--color-accent) group-data-[active]:shadow-none"
+                          className="mt-0.5 inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-[3px] bg-(--color-surface) shadow-[inset_0_0_0_1px_var(--ring-edge-strong)] transition-colors group-data-[active]:bg-(--color-accent) group-data-[active]:shadow-none"
                         >
                           <Icon
                             name="check"
@@ -246,6 +302,7 @@ export function AskUserQuestionForm({
                           />
                         </span>
                       )}
+                      {renderOptionPreview(option)}
                       <span className="flex flex-col items-start justify-center">
                         <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-(--color-text-2) group-data-[active]:text-(--color-accent)">
                           {cleanedLabel}
@@ -313,16 +370,14 @@ export function AskUserQuestionResultCard({
     ? structuredResult.questions.map((question) => {
         const answer = structuredResult.answers.find((item) => item.question === question.question)
         const selected = answer?.selectedLabels ?? []
-        const answerText =
-          structuredResult.status === 'cancelled'
-            ? t('agentChat.question.dismissed')
-            : structuredResult.status === 'decide_for_me'
-              ? t('agentChat.question.decidedByAgent')
-              : selected.length > 0
-                ? question.multi_select || selected.length > 1
-                  ? selected.map((label) => `- ${splitRecommendation(label).label}`).join('\n')
-                  : splitRecommendation(selected[0]).label
-                : t('agentChat.question.emptyAnswer')
+        const answerText = (() => {
+          if (structuredResult.status === 'cancelled') return t('agentChat.question.dismissed')
+          if (structuredResult.status === 'decide_for_me') return t('agentChat.question.decidedByAgent')
+          if (selected.length === 0) return t('agentChat.question.emptyAnswer')
+          return question.multi_select || selected.length > 1
+            ? selected.map((label) => `- ${splitRecommendation(label).label}`).join('\n')
+            : splitRecommendation(selected[0]).label
+        })()
         return {
           question: question.question,
           answer: answerText,

@@ -20,15 +20,15 @@ This skill provides guidance for creating and improving effective skills inside 
 
 Design skills around the tools this app actually exposes:
 
-| Tool                      | Use it for                                                                                        | Boundary                                                                                              |
-| ------------------------- | ------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `AskUserQuestion`         | Ask a compact form before running a workflow; collect style / layout / source / output dimensions | 1-4 questions, each with at least 2 real options; use notes for optional details, not as the only input path |
-| `GenImage`                | Create approved, resumable image generation tasks                                                 | Use real existing `image_id` values only; do not invent paths or local files                          |
-| `ReadImage`               | Inspect current session, history, reference, or generated images                                  | Requires a known image ID                                                                             |
-| `WebSearch` / `WebFetch`  | Search and fetch web material when provider settings allow it                                     | Long fetched content may be saved as `agent://...` virtual files                                      |
-| `ReadAgentFile`           | Page through long virtual tool outputs                                                            | Reads current-session `agent://...` files, not local filesystem paths                                 |
-| `Skill` / `ReadSkillFile` | Load or inspect existing virtual skills                                                           | Read markdown skill files only                                                                        |
-| `CreateSkill`             | Create or update a user skill in the browser's virtual library                                    | Cannot overwrite built-in system skills; creates text-only virtual files                              |
+| Tool                      | Use it for                                                                                        | Boundary                                                                                  |
+| ------------------------- | ------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `AskUserQuestion`         | Ask a compact form before running a workflow; collect style / layout / source / output dimensions | 1-4 multiple-choice questions; use notes for optional details, not as the only input path |
+| `GenImage`                | Create approved, resumable image generation tasks                                                 | Use real existing `image_id` values only; do not invent paths or local files              |
+| `ReadImage`               | Inspect current session, history, reference, or generated images                                  | Requires a known image ID                                                                 |
+| `WebSearch` / `WebFetch`  | Search and fetch web material when provider settings allow it                                     | Long fetched content may be saved as `agent://...` virtual files                          |
+| `ReadAgentFile`           | Page through long virtual tool outputs                                                            | Reads current-session `agent://...` files, not local filesystem paths                     |
+| `Skill` / `ReadSkillFile` | Load or inspect existing virtual skills                                                           | Read markdown skill files only                                                            |
+| `CreateSkill`             | Create or update a user skill in the browser's virtual library                                    | Cannot overwrite built-in system skills; creates text-only virtual files                  |
 
 ## Preferred skill pattern
 
@@ -317,6 +317,7 @@ AskUserQuestion constraints:
 
 - Use 1-4 questions per call.
 - Use at least 2 options per question. Prefer 2-6 for quick decisions, but use more when the choices form a natural complete set.
+- Options may include `icon` (Lucide kebab-case) and `swatches` (short hex palette) when visual cues help scanning.
 - Keep `header` at 12 characters or fewer.
 - Use `multi_select: true` only when the selected options can genuinely combine.
 - Do not use a single "I will write details in notes" option; options must be real choices.

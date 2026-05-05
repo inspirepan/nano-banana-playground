@@ -7,6 +7,8 @@ import { translate } from '../../i18n'
 export type AskUserQuestionOption = {
   label: string
   description?: string
+  icon?: string
+  swatches?: string[]
 }
 
 export type AskUserQuestionItem = {
@@ -43,19 +45,46 @@ export type AskUserQuestionExecutor = (
   signal?: AbortSignal,
 ) => Promise<AgentToolResult>
 
+const HEX_COLOR_PATTERN = /^#(?:[0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i
+
+function normalizeString(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : ''
+}
+
+function normalizeColor(value: unknown): string | undefined {
+  const color = normalizeString(value)
+  return HEX_COLOR_PATTERN.test(color) ? color : undefined
+}
+
+function normalizeSwatches(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) return undefined
+  const colors = value
+    .map(normalizeColor)
+    .filter((color): color is string => Boolean(color))
+    .slice(0, 8)
+  return colors.length > 0 ? colors : undefined
+}
+
 function normalizeOption(value: unknown, path: string, errors: string[]): AskUserQuestionOption | null {
   if (typeof value !== 'object' || value === null) {
     errors.push(`${path} must be an object with a label.`)
     return null
   }
   const record = value as Record<string, unknown>
-  const label = typeof record.label === 'string' ? record.label.trim() : ''
-  const desc = typeof record.description === 'string' ? record.description.trim() : ''
+  const label = normalizeString(record.label)
+  const desc = normalizeString(record.description)
+  const icon = normalizeString(record.icon || record.icon_name || record.iconName)
+  const swatches = normalizeSwatches(record.swatches)
   if (!label) {
     errors.push(`${path}.label is required.`)
     return null
   }
-  return desc ? { label, description: desc } : { label }
+  return {
+    label,
+    ...(desc ? { description: desc } : {}),
+    ...(icon ? { icon } : {}),
+    ...(swatches ? { swatches } : {}),
+  }
 }
 
 function normalizeQuestion(value: unknown, index: number, errors: string[]): AskUserQuestionItem | null {
@@ -65,10 +94,12 @@ function normalizeQuestion(value: unknown, index: number, errors: string[]): Ask
     return null
   }
   const record = value as Record<string, unknown>
-  const question = typeof record.question === 'string' ? record.question.trim() : ''
-  const header = typeof record.header === 'string' ? record.header.trim() : ''
+  const question = normalizeString(record.question)
+  const header = normalizeString(record.header)
+  const kind = normalizeString(record.kind || record.type)
   if (!question) errors.push(`${path}.question is required.`)
   if (header.length > 12) errors.push(`${path}.header must be 12 characters or fewer.`)
+  if (kind && kind !== 'text-options') errors.push(`${path}.kind is no longer supported; use options instead.`)
 
   if (!Array.isArray(record.options)) {
     errors.push(`${path}.options must be an array with at least 2 options.`)
@@ -138,6 +169,14 @@ export function createAskUserQuestionTool({
               description: Type.Optional(
                 Type.String({ description: 'Optional short explanation. Omit it when the label is self-evident.' }),
               ),
+              icon: Type.Optional(
+                Type.String({ description: 'Optional Lucide icon name in kebab-case, for example "palette".' }),
+              ),
+              swatches: Type.Optional(
+                Type.Array(Type.String({ description: 'Hex color swatch, for example "#F97316".' }), {
+                  description: 'Optional palette swatches for this option. Keep it short, usually 2-5 colors.',
+                }),
+              ),
             }),
             {
               description:
@@ -145,7 +184,9 @@ export function createAskUserQuestionTool({
               minItems: 2,
             },
           ),
-          multi_select: Type.Boolean({ description: 'Allow multiple selections when true; otherwise false.' }),
+          multi_select: Type.Optional(
+            Type.Boolean({ description: 'Allow multiple selections when true; otherwise false.' }),
+          ),
         }),
         { description: 'Required 1-4 questions to ask in a single form.', minItems: 1, maxItems: 4 },
       ),

@@ -331,15 +331,32 @@ type AskUserQuestionToolArgs = {
   questions: {
     question: string
     header: string
-    options: { label: string; description?: string }[]
-    multi_select: boolean
+    options: {
+      label: string
+      description?: string
+      icon?: string // Lucide kebab-case name
+      swatches?: string[] // short hex palette
+    }[]
+    multi_select?: boolean
   }[]
+}
+```
+
+`AskUserQuestion` 支持多选 / 单选选择题。开放补充走每题自带的备注输入框。
+
+答卷：
+
+```ts
+type AskUserQuestionAnswer = {
+  question: string
+  selectedLabels: string[]
+  note: string
 }
 ```
 
 行为：
 
-1. 校验 `questions`，保留至少有 2 个 option 的题目。
+1. 校验 `questions`：最多 4 题；每题至少 2 个 option。
 2. 在 `useAgentPlayground` 里登记一个 `AgentPendingQuestion` sidecar 状态，并把 resolver 存进 `agentQuestionResolversRef`，UI 渲染表单。
 3. 用户提交后，Agent 收到一个 `toolResult`，文本格式按问题逐条展开，每题包含 `Question` / `Answer` / 可选 `Note` 三段，多个问题之间用 `\n---\n` 分隔。
 4. 用户点“全部你来定”时，问卷以 `decide_for_me` 状态 resolve，文本提示 Agent 代用户做合理创意选择并继续；会话切换/刷新等中断仍以 `cancelled` 状态 resolve，文本提示用户没有作答。
@@ -349,6 +366,7 @@ UI 规范：
 
 - 全部问题平铺渲染，不使用 tab 分页。
 - 每题展示 header chip、问题、多/单选标记、所有 option；description 可省略，适合比例、数量、是否这类 label 已经足够清楚的简单问卷。
+- option 可按需展示 Lucide icon 或 swatches 色卡；只在能提高可扫读性时使用，不要把每个选项都装饰成视觉噪音。
 - 每题底部固定一条自由备注 textarea；不要再让 LLM 自己加“其他”选项，备注就是用户表达自由回答的入口。
 - 至少在每题里勾了一个 option 或写了备注，提交按钮才可用；右上角“全部你来定”按钮调用 `cancelAgentQuestion`，语义是让 Agent 代用户决定，不是取消任务。
 
