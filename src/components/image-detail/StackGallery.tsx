@@ -10,8 +10,6 @@ type GalleryMode = 'view' | 'manage'
 
 function StackGalleryToolbar({
   mode,
-  imageCount,
-  activeSlotCount,
   selectedCount,
   allSelected,
   selectableImageCount,
@@ -24,8 +22,6 @@ function StackGalleryToolbar({
   onExitManageMode,
 }: {
   mode: GalleryMode
-  imageCount: number
-  activeSlotCount: number
   selectedCount: number
   allSelected: boolean
   selectableImageCount: number
@@ -38,31 +34,20 @@ function StackGalleryToolbar({
   onExitManageMode: () => void
 }) {
   const { t } = useI18n()
-  const title = mode === 'manage' ? t('imageDetail.action.manageBatch') : t('imageDetail.gallery.allImages')
-  const summary =
-    mode === 'manage' && selectedCount > 0
-      ? activeSlotCount > 0
-        ? t('imageDetail.gallery.summarySelected', {
-            images: imageCount,
-            active: activeSlotCount,
-            selected: selectedCount,
-          })
-        : t('imageDetail.gallery.summarySelectedSimple', {
-            images: imageCount,
-            selected: selectedCount,
-          })
-      : activeSlotCount > 0
-        ? t('imageDetail.gallery.summary', { images: imageCount, active: activeSlotCount })
-        : t('imageDetail.gallery.summarySimple', { images: imageCount })
 
   return (
-    <div className="mb-4 flex flex-wrap items-end gap-3">
-      <div className="min-w-0">
-        <div className="font-display text-base font-semibold tracking-[-0.01em]">{title}</div>
-        <div className="mt-0.5 text-sm text-(--color-text-3)">{summary}</div>
-      </div>
-      <div className="flex-1" />
-      <div className="flex flex-wrap items-center justify-end gap-1.5">
+    <div className="sticky top-0 z-10 -mx-4 mb-3 flex min-h-9 flex-nowrap items-center gap-2 overflow-hidden bg-(--color-bg) px-4 pb-2 pt-1 md:-mx-5 md:px-5">
+      {mode === 'manage' && (
+        <div className="flex shrink-0 items-center gap-1.5">
+          <span className="inline-flex h-7 items-center rounded-[var(--radius-sm)] bg-(--color-accent-wash) px-2 text-sm font-medium text-(--color-accent-text) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
+            {selectedCount > 0
+              ? t('imageDetail.gallery.selectedCount', { selected: selectedCount })
+              : t('imageDetail.action.manageBatch')}
+          </span>
+        </div>
+      )}
+      <div className="min-w-2 flex-1" />
+      <div className="flex shrink-0 items-center justify-end gap-1.5">
         {mode === 'manage' ? (
           <>
             <button
@@ -100,8 +85,9 @@ function StackGalleryToolbar({
             type="button"
             onClick={onEnterManageMode}
             disabled={selectableImageCount === 0}
-            className="chip shrink-0"
+            className="action-soft shrink-0"
           >
+            <Icon name="list_checks" size={12} strokeWidth={1.8} className="action-soft-icon" />
             {t('imageDetail.action.manageBatch')}
           </button>
         )}
@@ -186,11 +172,9 @@ export const StackGallery = memo(function StackGallery({
   }
 
   return (
-    <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 md:px-6 md:py-5">
+    <div className="flex-1 min-h-0 overflow-y-auto px-4 py-3 md:px-5 md:py-4">
       <StackGalleryToolbar
         mode={mode}
-        imageCount={stack.images.length}
-        activeSlotCount={stack.activeSlotCount}
         selectedCount={selectedCount}
         allSelected={allSelected}
         selectableImageCount={selectableImages.length}
@@ -202,7 +186,7 @@ export const StackGallery = memo(function StackGallery({
         onEnterManageMode={enterManageMode}
         onExitManageMode={exitManageMode}
       />
-      <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8">
+      <div className="grid grid-cols-3 gap-2 sm:grid-cols-[repeat(auto-fill,minmax(148px,1fr))] lg:grid-cols-[repeat(auto-fill,minmax(180px,1fr))] xl:grid-cols-[repeat(auto-fill,minmax(200px,1fr))]">
         {stack.items.map((item) => (
           <StackItemThumb
             key={item.id}

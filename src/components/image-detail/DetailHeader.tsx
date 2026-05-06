@@ -13,6 +13,7 @@ type DetailHeaderProps = {
   modelName: string | null
   pxDim: string
   viewMode: ModalViewMode
+  gallerySummary?: string | null
   galleryBacksToDetail: boolean
   sidebarCollapsed: boolean
   className?: string
@@ -33,6 +34,7 @@ export function DetailHeader({
   modelName,
   pxDim,
   viewMode,
+  gallerySummary,
   galleryBacksToDetail,
   sidebarCollapsed,
   className,
@@ -67,7 +69,16 @@ export function DetailHeader({
       </button>
       <div className="h-6 w-px shrink-0 bg-(--ring-edge-soft)" />
 
-      {currentMeta ? (
+      {viewMode === 'gallery' ? (
+        <div className="flex min-w-0 items-baseline gap-2">
+          <span className="truncate text-base font-semibold leading-[1.25] tracking-[-0.01em] text-(--color-text) md:text-base md:font-medium md:tracking-normal">
+            {t('imageDetail.gallery.allImages')}
+          </span>
+          {gallerySummary && (
+            <span className="shrink-0 text-sm leading-[1.25] text-(--color-text-3)">{gallerySummary}</span>
+          )}
+        </div>
+      ) : currentMeta ? (
         <div className="flex min-w-0 items-baseline gap-2">
           <span className="truncate text-base font-semibold leading-[1.25] tracking-[-0.01em] text-(--color-text) md:text-base md:font-medium md:tracking-normal">
             {modelName}

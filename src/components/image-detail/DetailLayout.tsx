@@ -195,6 +195,10 @@ export function DetailLayout({
   clearAnnotationsInPlace,
 }: DetailLayoutProps) {
   const { t } = useI18n()
+  const gallerySummary =
+    stack.activeSlotCount > 0
+      ? t('imageDetail.gallery.summary', { images: stack.images.length, active: stack.activeSlotCount })
+      : t('imageDetail.gallery.summarySimple', { images: stack.images.length })
 
   return (
     <>
@@ -205,6 +209,7 @@ export function DetailLayout({
         modelName={modelName}
         pxDim={pxDim}
         viewMode={viewMode}
+        gallerySummary={viewMode === 'gallery' ? gallerySummary : null}
         galleryBacksToDetail={galleryBacksToDetail}
         sidebarCollapsed={sidebarCollapsed}
         className={viewMode === 'detail' ? 'md:hidden' : undefined}
