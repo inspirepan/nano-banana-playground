@@ -426,7 +426,7 @@ export function AgentChatPanel({
         ) : null}
       </div>
 
-      <div className={`flex min-h-0 min-w-0 flex-1 flex-col ${isEmpty ? 'md:justify-center md:pb-[22vh]' : ''}`}>
+      <div className={`flex min-h-0 min-w-0 flex-1 flex-col ${isEmpty ? 'md:pt-[16vh]' : ''}`}>
         <div
           ref={scrollRef}
           className={`min-h-0 ${
@@ -509,6 +509,7 @@ export function AgentChatPanel({
             canSend={canSend}
             showStop={showStop}
             isStreaming={isAwaitingAgentResponse}
+            isNewSession={isEmpty}
             history={history}
             onDraftChange={onDraftChange}
             onAddAttachments={onAddAttachments}

@@ -34,6 +34,7 @@ import { Icon } from '../Icon'
 import { SkillIcon } from '../SkillIcon'
 
 const MAX_COMPOSER_HEIGHT = 150
+const MAX_COMPOSER_HEIGHT_NEW_SESSION = 420
 const MOBILE_COMPOSER_AUTOFOCUS_QUERY = '(max-width: 767px), (hover: none) and (pointer: coarse)'
 
 type SlashCompletionContext = {
@@ -49,14 +50,14 @@ type SlashSuggestion = {
   icon?: AgentSkillSummary['icon']
 }
 
-function autoResizeComposer(el: HTMLTextAreaElement) {
+function autoResizeComposer(el: HTMLTextAreaElement, maxHeight: number) {
   if (el.value === '') {
     el.style.height = ''
     return
   }
 
   el.style.height = 'auto'
-  el.style.height = `${Math.min(el.scrollHeight + 1, MAX_COMPOSER_HEIGHT)}px`
+  el.style.height = `${Math.min(el.scrollHeight + 1, maxHeight)}px`
 }
 
 function shouldSkipProgrammaticComposerFocus() {
@@ -114,6 +115,7 @@ type AgentChatComposerProps = {
   canSend: boolean
   showStop: boolean
   isStreaming: boolean
+  isNewSession: boolean
   history: PlaygroundImageMeta[]
   onDraftChange: (value: string) => void
   onAddAttachments: (files: File[]) => void
@@ -154,6 +156,7 @@ export const AgentChatComposer = forwardRef<AgentChatComposerHandle, AgentChatCo
     canSend,
     showStop,
     isStreaming,
+    isNewSession,
     history,
     onDraftChange,
     onAddAttachments,
@@ -178,6 +181,7 @@ export const AgentChatComposer = forwardRef<AgentChatComposerHandle, AgentChatCo
   const [composerFocused, setComposerFocused] = useState(false)
   const [slashActiveIndex, setSlashActiveIndex] = useState(0)
   const [cursorOffset, setCursorOffset] = useState(draft.length)
+  const maxComposerHeight = isNewSession ? MAX_COMPOSER_HEIGHT_NEW_SESSION : MAX_COMPOSER_HEIGHT
   const effectiveThinkingLevel = model.supportsThinking
     ? effectiveAgentThinkingLevelForModel(model, thinkingLevel)
     : 'off'
@@ -245,8 +249,8 @@ export const AgentChatComposer = forwardRef<AgentChatComposerHandle, AgentChatCo
   )
 
   useLayoutEffect(() => {
-    if (textareaRef.current) autoResizeComposer(textareaRef.current)
-  }, [draft])
+    if (textareaRef.current) autoResizeComposer(textareaRef.current, maxComposerHeight)
+  }, [draft, maxComposerHeight])
 
   useLayoutEffect(() => {
     const composer = composerRef.current
@@ -260,7 +264,7 @@ export const AgentChatComposer = forwardRef<AgentChatComposerHandle, AgentChatCo
       if (Math.abs(nextWidth - previousWidth) < 0.5) return
       previousWidth = nextWidth
       window.cancelAnimationFrame(frame)
-      frame = window.requestAnimationFrame(() => autoResizeComposer(textarea))
+      frame = window.requestAnimationFrame(() => autoResizeComposer(textarea, maxComposerHeight))
     })
 
     resizeObserver.observe(composer)
@@ -268,7 +272,7 @@ export const AgentChatComposer = forwardRef<AgentChatComposerHandle, AgentChatCo
       window.cancelAnimationFrame(frame)
       resizeObserver.disconnect()
     }
-  }, [])
+  }, [maxComposerHeight])
 
   const addFiles = (files: FileList | File[]) => {
     const imageFiles = Array.from(files).filter(isImageFile)
@@ -417,7 +421,7 @@ export const AgentChatComposer = forwardRef<AgentChatComposerHandle, AgentChatCo
                 setSlashActiveIndex(0)
                 setCursorOffset(event.target.selectionStart)
                 onDraftChange(event.target.value)
-                autoResizeComposer(event.target)
+                autoResizeComposer(event.target, maxComposerHeight)
               }}
               onKeyDown={handleKeyDown}
               onSelect={(event) => setCursorOffset(event.currentTarget.selectionStart)}
@@ -434,7 +438,8 @@ export const AgentChatComposer = forwardRef<AgentChatComposerHandle, AgentChatCo
                     : t('agentChat.composer.placeholder.default')
               }
               rows={1}
-              className="block max-h-[150px] min-h-[44px] w-full resize-none bg-transparent px-3 pt-2.5 pb-1 text-[16px] leading-[1.55] text-(--color-text) focus:outline-none md:text-base"
+              style={{ maxHeight: `${maxComposerHeight}px` }}
+              className="block min-h-[44px] w-full resize-none bg-transparent px-3 pt-2.5 pb-1 text-[16px] leading-[1.55] text-(--color-text) focus:outline-none md:text-base"
             />
             {showGhost && (
               <div
