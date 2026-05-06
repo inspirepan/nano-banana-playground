@@ -3,7 +3,7 @@ import type { RefObject } from 'react'
 import { DesktopAnnotationToolbar } from './annotationControls'
 import type { BrushPresetId } from './annotationPresets'
 import { DrawableLayer, type DrawableLayerHandle, type DrawMode, type DrawTool } from './DrawableLayer'
-import { SlotHero } from './StackViews'
+import { SlotHero } from './SlotHero'
 import {
   ZoomableImageView,
   type ZoomableImageViewHandoffReason,
