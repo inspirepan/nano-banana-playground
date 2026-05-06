@@ -44,13 +44,13 @@ export function AgentGalleryPicker({ open, history, attachedImageIds, onPick, on
 
   return createPortal(
     <div data-agent-menu className="fade-in fixed inset-0 z-[120] flex flex-col bg-(--color-bg)">
-      <div className="flex shrink-0 items-center justify-between px-4 py-3 shadow-[inset_0_-1px_0_var(--ring-edge-soft)]">
-        <h2 className="font-display text-base font-semibold tracking-[-0.01em]">
-          {t('agentChat.galleryPicker.title')}
-        </h2>
+      <div className="flex shrink-0 items-center gap-3 px-4 py-3 shadow-[inset_0_-1px_0_var(--ring-edge-soft)]">
         <button type="button" onClick={onClose} className="icon-btn" aria-label={t('common.close')}>
           <Icon name="close" size={14} />
         </button>
+        <h2 className="font-display text-base font-semibold tracking-[-0.01em]">
+          {t('agentChat.galleryPicker.title')}
+        </h2>
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3 sm:px-4 sm:py-4" onClick={handleCanvasClick}>
