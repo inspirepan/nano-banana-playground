@@ -66,6 +66,12 @@ export const apiKeysMessages: MessageDictionary = {
     en: 'Calls are forwarded via the site Pages Function, bypassing browser CORS restrictions',
   },
   'apiKeys.proxy.activeSuffix': { 'zh-CN': '已用代理', en: 'Proxied' },
+  'apiKeys.proxy.autoEnabledNotice': {
+    'zh-CN': '直连受 CORS 拦截，已自动切换到站点代理。可在高级设置中调整。',
+    en: 'Direct call was blocked by CORS, so the site proxy was enabled automatically. You can change this under advanced settings.',
+  },
+  'apiKeys.proxy.autoEnabledDismiss': { 'zh-CN': '关闭提示', en: 'Dismiss notice' },
+  'apiKeys.getKey': { 'zh-CN': '获取 API Key', en: 'Get API Key' },
   'apiKeys.advanced.toggle': { 'zh-CN': '高级设置', en: 'Advanced settings' },
   'apiKeys.status.validated': { 'zh-CN': '验证成功', en: 'Verified' },
   'apiKeys.status.validating': { 'zh-CN': '验证中…', en: 'Verifying…' },

@@ -93,7 +93,7 @@ export function WebToolsSettingsTab({
               key={provider.id}
               provider={provider.id}
               label={provider.label}
-              configured={webProviderSettings.apiKeys[provider.id].trim() !== ''}
+              apiKey={webProviderSettings.apiKeys[provider.id]}
               draft={webProviderDrafts[provider.id]}
               apiKeyUrl={provider.apiKeyUrl}
               last={index === WEB_API_PROVIDER_CONFIGS.length - 1}
@@ -234,7 +234,7 @@ function WebProviderSavedNotice({
 function WebApiKeyRow({
   provider,
   label,
-  configured,
+  apiKey,
   draft,
   apiKeyUrl,
   last,
@@ -244,7 +244,7 @@ function WebApiKeyRow({
 }: {
   provider: WebApiProvider
   label: string
-  configured: boolean
+  apiKey: string
   draft: string
   apiKeyUrl: string
   last: boolean
@@ -255,6 +255,9 @@ function WebApiKeyRow({
   const { t } = useI18n()
   const [expanded, setExpanded] = useState(false)
   const canSave = draft.trim() !== ''
+  const trimmedKey = apiKey.trim()
+  const configured = trimmedKey !== ''
+  const masked = configured ? `${trimmedKey.slice(0, 6)}******${trimmedKey.slice(-4)}` : ''
 
   const rowClass = `px-3 py-2.5 ${last ? '' : 'shadow-[inset_0_-1px_0_var(--ring-edge-soft)]'}`
 
@@ -264,16 +267,28 @@ function WebApiKeyRow({
         <div className="flex min-w-0 items-center gap-3 px-1">
           <div className="min-w-0 flex-1">
             <div className="text-base font-medium text-(--color-text)">{label}</div>
-            <div className="mt-0.5 flex min-w-0 items-center gap-1.5 text-sm text-(--color-text-3)">
-              <span
-                className={`inline-block size-1.5 shrink-0 rounded-full ${configured ? 'bg-(--color-success)' : 'bg-(--color-text-4)'}`}
-              />
-              <span>
-                {configured ? t('settings.webTools.key.configured') : t('settings.webTools.key.notConfigured')}
-              </span>
-              <span className="text-(--color-text-4)">·</span>
-              <a href={apiKeyUrl} target="_blank" rel="noreferrer" className="text-(--color-accent) hover:underline">
-                {t('settings.webTools.key.getKey')}
+            <div className="mt-0.5 flex min-w-0 items-center gap-1.5 text-sm">
+              {configured ? (
+                <>
+                  <Icon name="check_circle" size={12} className="shrink-0 text-(--color-success)" strokeWidth={1.9} />
+                  <span className="mono min-w-0 truncate text-(--color-text-2)">{masked}</span>
+                </>
+              ) : (
+                <>
+                  <span className="inline-block size-1.5 shrink-0 rounded-full bg-(--color-text-4)" />
+                  <span className="min-w-0 truncate text-(--color-text-3)">
+                    {t('settings.webTools.key.notConfigured')}
+                  </span>
+                </>
+              )}
+              <span className="shrink-0 text-(--color-text-4)">·</span>
+              <a
+                href={apiKeyUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="shrink-0 text-(--color-accent) hover:underline"
+              >
+                {t('apiKeys.getKey')}
               </a>
             </div>
           </div>
@@ -295,7 +310,7 @@ function WebApiKeyRow({
           rel="noreferrer"
           className="shrink-0 text-sm text-(--color-accent) hover:underline"
         >
-          {t('settings.webTools.key.getKey')}
+          {t('apiKeys.getKey')}
         </a>
       </div>
       <div className="mt-3 space-y-2.5 px-1">

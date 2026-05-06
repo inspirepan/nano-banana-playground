@@ -32,7 +32,7 @@ import {
   writePreferredAgentThinkingLevelPreference,
 } from '../../lib/preferenceStore'
 import { Icon } from '../Icon'
-import type { KeyHook } from '../ApiKeysDialog'
+import type { KeyHook } from './ApiKeySettingsTab'
 import { SettingsSection } from './SettingsSection'
 
 type SettingsBackupTabProps = {

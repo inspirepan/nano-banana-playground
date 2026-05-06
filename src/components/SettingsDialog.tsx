@@ -1,10 +1,9 @@
 import { useCallback, useState } from 'react'
 import { createPortal } from 'react-dom'
 
-import type { KeyHook } from './ApiKeysDialog'
 import { Icon, type IconName } from './Icon'
 import type { AgentSkill, AgentSkillCreateInput, AgentSkillSummary } from '../agent'
-import { ApiSettingsTab } from './settings/ApiSettingsTab'
+import { ApiKeySettingsTab, type KeyHook } from './settings/ApiKeySettingsTab'
 import { AppearanceSettingsTab } from './settings/AppearanceSettingsTab'
 import { DataSettingsTab } from './settings/DataSettingsTab'
 import { GenerationSettingsTab } from './settings/GenerationSettingsTab'
@@ -372,7 +371,7 @@ export function SettingsDialog({
             />
           )}
 
-          {selectedTab === 'api' && <ApiSettingsTab keyHooks={keyHooks} />}
+          {selectedTab === 'api' && <ApiKeySettingsTab keyHooks={keyHooks} />}
 
           {selectedTab === 'web' && (
             <WebToolsSettingsTab

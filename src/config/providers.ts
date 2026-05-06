@@ -8,6 +8,7 @@ export type ProviderConfig = {
   shortLabel: string
   brandIcon: ProviderBrandIconName
   defaultBaseUrl: string
+  apiKeyUrl: string
   apiKeyStorageKey: string
   baseUrlStorageKey: string
   keyLabelKey: string
@@ -22,6 +23,7 @@ const PROVIDER_CONFIG_BY_ID: Record<Provider, ProviderConfig> = {
     shortLabel: 'Gemini',
     brandIcon: 'gemini',
     defaultBaseUrl: 'https://generativelanguage.googleapis.com',
+    apiKeyUrl: 'https://aistudio.google.com/apikey',
     apiKeyStorageKey: 'nbp-api-key:google',
     baseUrlStorageKey: 'nbp-base-url:google',
     keyLabelKey: 'apiKeys.provider.google.label',
@@ -34,6 +36,7 @@ const PROVIDER_CONFIG_BY_ID: Record<Provider, ProviderConfig> = {
     shortLabel: 'OpenAI',
     brandIcon: 'openai',
     defaultBaseUrl: 'https://api.openai.com/v1',
+    apiKeyUrl: 'https://platform.openai.com/api-keys',
     apiKeyStorageKey: 'nbp-api-key:openai',
     baseUrlStorageKey: 'nbp-base-url:openai',
     keyLabelKey: 'apiKeys.provider.openai.label',
@@ -46,6 +49,7 @@ const PROVIDER_CONFIG_BY_ID: Record<Provider, ProviderConfig> = {
     shortLabel: 'Anthropic',
     brandIcon: 'claude',
     defaultBaseUrl: 'https://api.anthropic.com',
+    apiKeyUrl: 'https://console.anthropic.com/settings/keys',
     apiKeyStorageKey: 'nbp-api-key:anthropic',
     baseUrlStorageKey: 'nbp-base-url:anthropic',
     keyLabelKey: 'apiKeys.provider.anthropic.label',
@@ -58,6 +62,7 @@ const PROVIDER_CONFIG_BY_ID: Record<Provider, ProviderConfig> = {
     shortLabel: 'Moonshot CN',
     brandIcon: 'moonshot',
     defaultBaseUrl: 'https://api.moonshot.cn/v1',
+    apiKeyUrl: 'https://platform.moonshot.cn/console/api-keys',
     apiKeyStorageKey: 'nbp-api-key:moonshot-cn',
     baseUrlStorageKey: 'nbp-base-url:moonshot-cn',
     keyLabelKey: 'apiKeys.provider.moonshotCn.label',
@@ -70,6 +75,7 @@ const PROVIDER_CONFIG_BY_ID: Record<Provider, ProviderConfig> = {
     shortLabel: 'Moonshot AI',
     brandIcon: 'moonshot',
     defaultBaseUrl: 'https://api.moonshot.ai/v1',
+    apiKeyUrl: 'https://platform.moonshot.ai/console/api-keys',
     apiKeyStorageKey: 'nbp-api-key:moonshot-ai',
     baseUrlStorageKey: 'nbp-base-url:moonshot-ai',
     keyLabelKey: 'apiKeys.provider.moonshotAi.label',
@@ -82,6 +88,7 @@ const PROVIDER_CONFIG_BY_ID: Record<Provider, ProviderConfig> = {
     shortLabel: 'Doubao',
     brandIcon: 'doubao',
     defaultBaseUrl: 'https://ark.cn-beijing.volces.com/api/v3',
+    apiKeyUrl: 'https://console.volcengine.com/ark/region:ark+cn-beijing/apiKey',
     apiKeyStorageKey: 'nbp-api-key:doubao',
     baseUrlStorageKey: 'nbp-base-url:doubao',
     keyLabelKey: 'apiKeys.provider.doubao.label',

@@ -57,11 +57,9 @@ export function previewEndpoint(provider: Provider, baseUrl?: string): string {
   return `${base}/images/generations`
 }
 
-export async function validateApiKey(
-  provider: Provider,
-  apiKey: string,
-  baseUrl?: string,
-): Promise<{ valid: boolean; error?: string }> {
+export type ValidateKeyResult = { valid: true } | { valid: false; error: string; kind: 'http' | 'network' }
+
+export async function validateApiKey(provider: Provider, apiKey: string, baseUrl?: string): Promise<ValidateKeyResult> {
   const base = resolveBaseUrl(provider, baseUrl)
   try {
     if (provider === 'google') {
@@ -77,7 +75,7 @@ export async function validateApiKey(
         }),
       })
       const data = await res.json()
-      if (!res.ok) return { valid: false, error: data.error?.message || `HTTP ${res.status}` }
+      if (!res.ok) return { valid: false, error: data.error?.message || `HTTP ${res.status}`, kind: 'http' }
       return { valid: true }
     }
 
@@ -92,7 +90,7 @@ export async function validateApiKey(
       })
       if (!res.ok) {
         const data = await res.json().catch(() => null)
-        return { valid: false, error: data?.error?.message || `HTTP ${res.status}` }
+        return { valid: false, error: data?.error?.message || `HTTP ${res.status}`, kind: 'http' }
       }
       return { valid: true }
     }
@@ -104,7 +102,48 @@ export async function validateApiKey(
       })
       if (!res.ok) {
         const data = await res.json().catch(() => null)
-        return { valid: false, error: data?.error?.message || `HTTP ${res.status}` }
+        return { valid: false, error: data?.error?.message || `HTTP ${res.status}`, kind: 'http' }
+      }
+      return { valid: true }
+    }
+
+    // Moonshot's /models is open across origins, but /chat/completions can
+    // get blocked once the OpenAI-compatible SDK adds its x-stainless-*
+    // fingerprint headers and uses streaming. Mirror the SDK's full request
+    // shape so the validation triggers the same preflight + response checks
+    // the agent will hit. If anything is rejected, fetch throws and the
+    // proxy auto-fallback kicks in.
+    if (provider === 'moonshot-cn' || provider === 'moonshot-ai') {
+      const res = await fetch(`${base}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          accept: 'application/json',
+          'content-type': 'application/json',
+          authorization: `Bearer ${apiKey}`,
+          'x-stainless-lang': 'js',
+          'x-stainless-package-version': '6.26.0',
+          'x-stainless-os': 'Unknown',
+          'x-stainless-arch': 'unknown',
+          'x-stainless-runtime': 'browser:chrome',
+          'x-stainless-runtime-version': '147.0.0',
+          'x-stainless-retry-count': '0',
+        },
+        body: JSON.stringify({
+          model: 'kimi-k2.6',
+          messages: [{ role: 'user', content: 'Hi' }],
+          max_tokens: 10,
+          stream: true,
+        }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => null)
+        return { valid: false, error: data?.error?.message || `HTTP ${res.status}`, kind: 'http' }
+      }
+      // Drain the stream so the connection is closed cleanly.
+      try {
+        await res.body?.cancel()
+      } catch {
+        // ignore
       }
       return { valid: true }
     }
@@ -116,7 +155,7 @@ export async function validateApiKey(
     })
     if (!res.ok) {
       const data = await res.json().catch(() => null)
-      return { valid: false, error: data?.error?.message || `HTTP ${res.status}` }
+      return { valid: false, error: data?.error?.message || `HTTP ${res.status}`, kind: 'http' }
     }
     return { valid: true }
   } catch (e) {
@@ -125,7 +164,11 @@ export async function validateApiKey(
     // this origin, which is indistinguishable from a network error at the
     // browser layer.
     const msg = e instanceof Error ? e.message : String(e)
-    return { valid: false, error: translate('configLib.validateKey.networkCorsError', { message: msg }) }
+    return {
+      valid: false,
+      error: translate('configLib.validateKey.networkCorsError', { message: msg }),
+      kind: 'network',
+    }
   }
 }
 

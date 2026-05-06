@@ -26,6 +26,7 @@ export function useApiKey(provider: Provider) {
   const [useProxy, setUseProxyRaw] = useState(() => readProviderUseProxy(provider))
   const [status, setStatus] = useState<ApiKeyStatus>(initialStatus)
   const [error, setError] = useState<string | null>(null)
+  const [autoProxyEnabled, setAutoProxyEnabled] = useState(false)
 
   // Effective base URL used by API calls: proxy path when proxy is on, custom URL otherwise.
   const baseUrl = useProxy ? getProxyBaseUrl(provider, customBaseUrl) : customBaseUrl
@@ -34,21 +35,45 @@ export function useApiKey(provider: Provider) {
     async (key: string, nextCustomBaseUrl?: string, nextUseProxy?: boolean) => {
       setStatus('validating')
       setError(null)
+      setAutoProxyEnabled(false)
+      // Strip anything outside printable ASCII so a paste containing
+      // zero-width or non-Latin-1 chars doesn't poison Authorization headers
+      // (fetch throws "non ISO-8859-1 code point" before any network call).
+      const cleanKey = key.replace(/[^\x21-\x7E]/g, '')
       const effectiveCustomUrl = nextCustomBaseUrl !== undefined ? nextCustomBaseUrl.trim() : customBaseUrl
-      const effectiveUseProxy = nextUseProxy ?? useProxy
-      const effectiveBaseUrl = effectiveUseProxy ? getProxyBaseUrl(provider, effectiveCustomUrl) : effectiveCustomUrl
-      const result = await validateApiKey(provider, key, effectiveBaseUrl)
+      const initialUseProxy = nextUseProxy ?? useProxy
+      const directBaseUrl = initialUseProxy ? getProxyBaseUrl(provider, effectiveCustomUrl) : effectiveCustomUrl
+      let result = await validateApiKey(provider, cleanKey, directBaseUrl)
+
+      // Auto-fallback: when the call goes out direct (proxy is off) and fails
+      // with a network/CORS error, retry through the site proxy. Some
+      // providers (Moonshot, Doubao) don't return the right
+      // Access-Control-Allow-Origin headers for browser requests. If the user
+      // explicitly enabled proxy already, there's nothing to fall back to.
+      let didAutoEnableProxy = false
+      let finalUseProxy = initialUseProxy
+      if (!result.valid && result.kind === 'network' && !initialUseProxy) {
+        const proxyBaseUrl = getProxyBaseUrl(provider, effectiveCustomUrl)
+        const proxyResult = await validateApiKey(provider, cleanKey, proxyBaseUrl)
+        if (proxyResult.valid) {
+          result = proxyResult
+          finalUseProxy = true
+          didAutoEnableProxy = true
+        }
+      }
+
       if (result.valid) {
-        setApiKeyRaw(key)
-        writeProviderApiKey(provider, key)
+        setApiKeyRaw(cleanKey)
+        writeProviderApiKey(provider, cleanKey)
         if (nextCustomBaseUrl !== undefined) {
           setCustomBaseUrlRaw(effectiveCustomUrl)
           saveProviderBaseUrl(provider, effectiveCustomUrl)
         }
-        if (nextUseProxy !== undefined) {
-          setUseProxyRaw(effectiveUseProxy)
-          writeProviderUseProxy(provider, effectiveUseProxy)
+        if (nextUseProxy !== undefined || didAutoEnableProxy) {
+          setUseProxyRaw(finalUseProxy)
+          writeProviderUseProxy(provider, finalUseProxy)
         }
+        setAutoProxyEnabled(didAutoEnableProxy)
         setStatus('valid')
       } else {
         setError(result.error ?? translate('configLib.useApiKey.validationFailed'))
@@ -117,6 +142,8 @@ export function useApiKey(provider: Provider) {
     [provider],
   )
 
+  const dismissAutoProxyNotice = useCallback(() => setAutoProxyEnabled(false), [])
+
   return useMemo(
     () => ({
       apiKey,
@@ -125,18 +152,22 @@ export function useApiKey(provider: Provider) {
       useProxy,
       status,
       error,
+      autoProxyEnabled,
       submit,
       reset,
       keepCurrent,
       setBaseUrl,
       invalidate,
       importCredentials,
+      dismissAutoProxyNotice,
     }),
     [
       apiKey,
+      autoProxyEnabled,
       baseUrl,
       customBaseUrl,
       useProxy,
+      dismissAutoProxyNotice,
       error,
       importCredentials,
       invalidate,
