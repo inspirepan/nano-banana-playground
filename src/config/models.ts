@@ -108,6 +108,13 @@ const SEARCH_WEB_OPTION: ModelToggleOption = {
   },
 }
 
+const DOUBAO_SEARCH_WEB_OPTION: ModelToggleOption = {
+  ...SEARCH_WEB_OPTION,
+  get tooltip() {
+    return translate('configLib.models.doubaoWebSearch.tooltip')
+  },
+}
+
 const SEARCH_IMAGE_OPTION: ModelToggleOption = {
   id: 'imageSearch',
   type: 'toggle',
@@ -291,7 +298,7 @@ export const MODEL_CONFIGS: ModelConfig[] = [
     maxReferenceImages: 14,
     maxCharacterImages: 0,
     maxBatchCount: 4,
-    options: [SEARCH_WEB_OPTION],
+    options: [DOUBAO_SEARCH_WEB_OPTION],
   },
 ]
 

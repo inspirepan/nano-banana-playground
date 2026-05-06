@@ -7,6 +7,11 @@ export const configLibMessages: MessageDictionary = {
     'zh-CN': '启用 Google 搜索接地，让模型基于实时网页信息生成图片，如当前天气、股市、近期事件等。响应会附带来源链接。',
     en: 'Enable Google Search grounding so the model can generate images from live web information, such as current weather, stock markets, and recent events. Responses include source links.',
   },
+  'configLib.models.doubaoWebSearch.tooltip': {
+    'zh-CN':
+      '开启联网搜索后，模型会根据用户的提示词自主判断是否搜索互联网内容（如商品、天气等），提升生成图片的时效性，但也会增加一定的时延。',
+    en: 'After web search is enabled, the model will decide from the user prompt whether to search internet content such as products or weather, improving image timeliness while adding some latency.',
+  },
   'configLib.models.imageSearch.label': { 'zh-CN': '图片搜索', en: 'Image search' },
   'configLib.models.imageSearch.tooltip': {
     'zh-CN':

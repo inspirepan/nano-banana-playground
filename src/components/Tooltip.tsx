@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { useLayoutEffect, useRef, useState, type FocusEvent, type PointerEvent, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 
 import { useMountEffect, useWindowEvent } from '../hooks/effects'
@@ -13,9 +13,14 @@ type Props = {
   maxWidth?: number
 }
 
-const SHOW_DELAY_MS = 150
+const SHOW_DELAY_MS = 500
 const GAP = 6
 const VIEWPORT_PAD = 8
+const FOCUS_SUPPRESS_MS = 800
+
+function supportsHoverTooltip() {
+  return window.matchMedia('(hover: hover) and (pointer: fine)').matches
+}
 
 // Shared Notion-style dark tooltip. Uses a fixed-position portal so it can
 // escape clipping ancestors (for example the `overflow-y-auto` InputPanel
@@ -25,17 +30,39 @@ export function Tooltip({ text, children, className, placement = 'bottom', maxWi
   const wrapperRef = useRef<HTMLDivElement>(null)
   const tooltipRef = useRef<HTMLDivElement>(null)
   const showTimerRef = useRef<number>(0)
+  const lastPointerDownAtRef = useRef(0)
   const [visible, setVisible] = useState(false)
   const [pos, setPos] = useState<{ top: number; left: number }>({ top: -9999, left: -9999 })
 
-  const handleEnter = () => {
+  const scheduleShow = () => {
     window.clearTimeout(showTimerRef.current)
     showTimerRef.current = window.setTimeout(() => setVisible(true), SHOW_DELAY_MS)
   }
 
-  const handleLeave = () => {
+  const hideTooltip = () => {
     window.clearTimeout(showTimerRef.current)
     setVisible(false)
+  }
+
+  const handlePointerEnter = (event: PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType !== 'mouse' || !supportsHoverTooltip()) return
+    scheduleShow()
+  }
+
+  const handlePointerDown = () => {
+    lastPointerDownAtRef.current = window.performance.now()
+    hideTooltip()
+  }
+
+  const handleFocus = (event: FocusEvent<HTMLDivElement>) => {
+    if (event.currentTarget.contains(event.relatedTarget)) return
+    if (window.performance.now() - lastPointerDownAtRef.current < FOCUS_SUPPRESS_MS) return
+    scheduleShow()
+  }
+
+  const handleBlur = (event: FocusEvent<HTMLDivElement>) => {
+    if (event.currentTarget.contains(event.relatedTarget)) return
+    hideTooltip()
   }
 
   // Measure after mount and set final position. Runs synchronously before
@@ -72,8 +99,11 @@ export function Tooltip({ text, children, className, placement = 'bottom', maxWi
     <div
       ref={wrapperRef}
       className={`relative ${className ?? ''}`}
-      onMouseEnter={handleEnter}
-      onMouseLeave={handleLeave}
+      onPointerEnter={handlePointerEnter}
+      onPointerLeave={hideTooltip}
+      onPointerDown={handlePointerDown}
+      onFocus={handleFocus}
+      onBlur={handleBlur}
     >
       {children}
       {visible &&
