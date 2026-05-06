@@ -66,7 +66,7 @@ export function MessageBubble({
     ? copyText.length > 0
     : isAssistant && !hasToolCalls && !isStreaming && copyText.trim().length > 0
   const showAssistantMarkdown = visibleText.trim() !== ''
-  const hasAssistantTrailingContent = showAssistantMarkdown || Boolean(error)
+  const hasAssistantTrailingContent = showAssistantMarkdown || Boolean(error) || hasToolCalls
   const showAssistantTitle = isAssistant && Boolean(assistantTitle)
   const hasAssistantBody = thinking.trim() !== '' || images.length > 0 || hasAssistantTrailingContent
 
