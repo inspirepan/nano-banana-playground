@@ -295,7 +295,15 @@
 
   /* kbd */
   kbd {
-    font-family: inherit;
+    font-family:
+      system-ui,
+      -apple-system,
+      BlinkMacSystemFont,
+      'Segoe UI',
+      'Noto Sans',
+      Helvetica,
+      Arial,
+      sans-serif;
     font-size: var(--text-sm);
     font-weight: 500;
     color: var(--color-text-4);

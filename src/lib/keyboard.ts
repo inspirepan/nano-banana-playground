@@ -19,7 +19,15 @@ export function getPrimaryModifierKeyLabel(): string {
 }
 
 export function getPrimaryModifierShortcutLabel(key: string): string {
-  return `${getPrimaryModifierKeyLabel()}+${key}`
+  return formatShortcut([getPrimaryModifierKeyLabel(), key])
+}
+
+export function formatShortcut(keys: string[]): string {
+  return isApplePlatform() ? keys.join('') : keys.join('+')
+}
+
+export function getShiftKeyLabel(): string {
+  return isApplePlatform() ? '⇧' : 'Shift'
 }
 
 export function hasPrimaryModifier(event: Pick<KeyboardEvent, 'ctrlKey' | 'metaKey'>): boolean {
