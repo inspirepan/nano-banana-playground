@@ -47,7 +47,7 @@ function AspectGlyph({ ratio }: { ratio: string }) {
 export function AgentChatEmptyState({ drawingSkills, onPickSkill, onInsertText }: Props) {
   const { t } = useI18n()
   return (
-    <div className="flex min-h-[280px] flex-col justify-center gap-20">
+    <div className="flex min-h-[280px] flex-col justify-center gap-10 md:gap-20">
       {drawingSkills.length > 0 ? (
         <DrawingSkillStarters skills={drawingSkills} onPick={onPickSkill} />
       ) : (

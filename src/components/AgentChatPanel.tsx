@@ -426,10 +426,14 @@ export function AgentChatPanel({
         ) : null}
       </div>
 
-      <div className={`flex min-h-0 min-w-0 flex-1 flex-col ${isEmpty ? 'justify-center pb-[10vh] md:pb-[12vh]' : ''}`}>
+      <div className={`flex min-h-0 min-w-0 flex-1 flex-col ${isEmpty ? 'md:justify-center md:pb-[22vh]' : ''}`}>
         <div
           ref={scrollRef}
-          className={`min-h-0 ${isEmpty ? 'pt-2 pb-3' : 'scroll-fade-y flex-1 overflow-y-auto pt-5 pb-8 md:[scrollbar-gutter:stable_both-edges] [--scroll-fade-end-size:2.25rem] [--scroll-fade-start-size:1.5rem]'}`}
+          className={`min-h-0 ${
+            isEmpty
+              ? 'flex-1 overflow-y-auto pt-5 pb-8 md:flex-none md:overflow-visible md:pt-2 md:pb-3'
+              : 'scroll-fade-y flex-1 overflow-y-auto pt-5 pb-8 md:[scrollbar-gutter:stable_both-edges] [--scroll-fade-end-size:2.25rem] [--scroll-fade-start-size:1.5rem]'
+          }`}
         >
           <div className={`space-y-4 ${contentRightPaddingClass}`}>
             {isEmpty ? (
