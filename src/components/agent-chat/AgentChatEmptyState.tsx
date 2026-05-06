@@ -46,7 +46,7 @@ function AspectGlyph({ ratio }: { ratio: string }) {
   )
 }
 
-function QuickCompletePanel({ onInsertText }: { onInsertText: (text: string) => void }) {
+export function QuickCompletePanel({ onInsertText }: { onInsertText: (text: string) => void }) {
   const { t } = useI18n()
 
   return (
@@ -127,7 +127,7 @@ function QuickCompletePanel({ onInsertText }: { onInsertText: (text: string) => 
 export function AgentChatEmptyState({ drawingSkills, onPickSkill, onInsertText }: Props) {
   const { t } = useI18n()
   return (
-    <div className="flex w-full min-w-0 flex-col justify-center gap-8 md:gap-12">
+    <div className="flex w-full min-w-0 flex-col justify-center gap-8 md:gap-6">
       {drawingSkills.length > 0 ? (
         <DrawingSkillStarters skills={drawingSkills} onPick={onPickSkill} />
       ) : (
@@ -140,7 +140,12 @@ export function AgentChatEmptyState({ drawingSkills, onPickSkill, onInsertText }
           </div>
         </div>
       )}
-      <QuickCompletePanel onInsertText={onInsertText} />
+      {/* Mobile: quick panel sits above the bottom composer inside the scroll
+         area. Desktop centers composer with empty state, so quick panel is
+         rendered below the composer by AgentChatPanel instead. */}
+      <div className="md:hidden">
+        <QuickCompletePanel onInsertText={onInsertText} />
+      </div>
     </div>
   )
 }

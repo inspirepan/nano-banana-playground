@@ -30,7 +30,7 @@ import { hasPrimaryModifier } from '../lib/keyboard'
 import { buildImageStacks, type StackItem } from '../lib/stacks'
 import type { PlaygroundImage, PlaygroundImageMeta } from '../lib/types'
 import { AgentChatComposer, type AgentChatComposerHandle } from './agent-chat/AgentChatComposer'
-import { AgentChatEmptyState } from './agent-chat/AgentChatEmptyState'
+import { AgentChatEmptyState, QuickCompletePanel } from './agent-chat/AgentChatEmptyState'
 import { AgentChatHeader } from './agent-chat/AgentChatHeader'
 import { isDrawingSkill } from './agent-chat/drawingSkills'
 import { MessageBubble } from './agent-chat/MessageBubble'
@@ -472,12 +472,12 @@ export function AgentChatPanel({
         ) : null}
       </div>
 
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+      <div className={`flex min-h-0 min-w-0 flex-1 flex-col${isEmpty ? ' md:justify-center md:pb-[20vh]' : ''}`}>
         <div
           ref={scrollRef}
           className={`min-h-0 ${
             isEmpty
-              ? 'flex flex-1 flex-col overflow-y-auto pt-5 pb-8 md:pt-2 md:pb-3'
+              ? 'flex flex-1 flex-col overflow-y-auto pt-5 pb-4 md:flex-none md:overflow-visible md:pt-0 md:pb-0'
               : 'scroll-fade-y flex-1 overflow-y-auto pt-5 pb-8 md:[scrollbar-gutter:stable_both-edges] [--scroll-fade-end-size:2.25rem] [--scroll-fade-start-size:1.5rem]'
           }`}
         >
@@ -534,7 +534,13 @@ export function AgentChatPanel({
           </div>
         </div>
 
-        <div className={contentRightPaddingClass}>{composer}</div>
+        <div className={`${contentRightPaddingClass}${isEmpty ? ' md:mt-14' : ''}`}>{composer}</div>
+
+        {isEmpty ? (
+          <div className={`${contentRightPaddingClass} hidden md:mt-4 md:block`}>
+            <QuickCompletePanel onInsertText={handleInsertText} />
+          </div>
+        ) : null}
       </div>
     </div>
   )
