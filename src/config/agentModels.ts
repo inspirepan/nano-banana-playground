@@ -140,8 +140,8 @@ export const AGENT_MODEL_CONFIGS: AgentModelConfig[] = [
   },
   {
     id: 'moonshot-ai:kimi-k2.6',
-    label: 'Kimi K2.6 AI',
-    shortLabel: 'K2.6 AI',
+    label: 'Kimi K2.6',
+    shortLabel: 'K2.6',
     provider: 'moonshot-ai',
     providerLabel: providerLabel('moonshot-ai'),
     ...asAgentModel(kimiK26Model('moonshot-ai')),
