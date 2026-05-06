@@ -1,11 +1,11 @@
-import { Agent, ProviderTransport, type AppMessage as AgentMessage } from '@mariozechner/pi-agent'
+import { Agent, type AppMessage as AgentMessage } from '@mariozechner/pi-agent'
 import { useCallback, type RefObject } from 'react'
 
 import { agentMessageRole, type AgentChatAttachment } from './agentChat'
 import { type AgentImageRegistryEntry, type AgentImageTask, type AgentTurnCallbackState } from './imageTasks'
+import { createLatestProviderTransport } from './LatestProviderTransport'
 import { isSameQueuedUserMessage } from './messageIdentity'
 import { metadataForAgentMessage } from './messageRecovery'
-import { isAgentModelProvider } from './runtimeConfig'
 import {
   type AgentPendingQuestion,
   type AgentQueuedUserMessage,
@@ -78,14 +78,9 @@ export function useAgentRuntimeFactory({
     (params: CreateRuntimeParams): AgentSessionRuntime => {
       const config = resolveAgentModelConfig(params.modelId)
       const agent = new Agent({
-        transport: new ProviderTransport({
-          getApiKey: (provider) => {
-            if (isAgentModelProvider(provider)) {
-              return agentCredentialsRef.current[provider].apiKey || undefined
-            }
-            return undefined
-          },
-        }),
+        transport: createLatestProviderTransport(
+          (provider) => agentCredentialsRef.current[provider].apiKey || undefined,
+        ),
         initialState: {
           systemPrompt: AGENT_SYSTEM_PROMPT,
           model: agentModelWithBaseUrl(config, getAgentBaseUrl(config.provider)),

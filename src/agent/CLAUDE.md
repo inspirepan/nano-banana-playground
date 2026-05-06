@@ -8,6 +8,7 @@
 
 - `@mariozechner/pi-agent`
 - `@mariozechner/pi-ai`
+- `@mariozechner/pi-ai-agent-loop`（alias 到 `@mariozechner/pi-ai@0.9.4`，只用于复用旧版 `agentLoop`）
 
 不要按 `pi-coding-agent` 或 `pi-agent-core` 的 API 写实现。可以借鉴它们的分层思想，但这里实际可用的是 `@mariozechner/pi-agent` 暴露的 API：
 
@@ -22,6 +23,19 @@
 - `agent.replaceMessages(messages)` / `agent.appendMessage(message)`
 
 `agent.prompt(...)` 接收字符串和附件，不接收完整 user message object。当前 `@mariozechner/pi-agent` 内部按顺序执行同一轮 tool call；不要依赖并行 tool dispatch。长耗时、待审批、可恢复的业务流程不要用永不落盘的 Promise resolver 挂住 tool execution。
+
+### Agent transport 适配
+
+Agent runtime 不直接使用 `@mariozechner/pi-agent` 的 `ProviderTransport`，而是通过 `LatestProviderTransport` 调用 LLM。原因是当前 `pi-agent@0.9.0` 内部解析到旧版 `pi-ai@0.9.4`，会把 reasoning 模型的 system prompt 作为 `role: developer` 发送；这会让 Moonshot/Kimi 报不支持该 role。同时，OpenAI Responses API 应该使用顶层 `instructions` 字段承载系统提示，而不是把系统提示作为第一条 `input` 消息。
+
+`LatestProviderTransport` 的边界很窄：
+
+- 继续复用旧版 `agentLoop` 做 Agent/tool loop，因此需要 `@mariozechner/pi-ai-agent-loop` alias。
+- 实际 provider 请求走项目直接依赖的新版 `@mariozechner/pi-ai`。
+- 对 `openai-responses` payload 做规范化：把 system prompt 写入 `instructions`，并移除 `input` 中第一条 `developer` / `system` 指令消息。
+- Moonshot/Kimi 继续依赖 `src/config/agentModels.ts` 中的 `compat.supportsDeveloperRole: false`，由新版 `pi-ai` 发送 `role: system`。
+
+如果未来 `@mariozechner/pi-agent` 升级后直接依赖足够新的 `pi-ai`，或 `ProviderTransport` 暴露 payload hook，可优先删除 `LatestProviderTransport` 和 `@mariozechner/pi-ai-agent-loop` alias，切回官方 transport。
 
 ## 分层原则
 

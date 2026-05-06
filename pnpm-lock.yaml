@@ -17,6 +17,9 @@ importers:
       '@mariozechner/pi-ai':
         specifier: ^0.70.5
         version: 0.70.6(ws@8.20.0)(zod@4.3.6)
+      '@mariozechner/pi-ai-agent-loop':
+        specifier: npm:@mariozechner/pi-ai@0.9.4
+        version: '@mariozechner/pi-ai@0.9.4(ws@8.20.0)(zod@4.3.6)'
       agentation:
         specifier: ^2.3.2
         version: 2.3.3(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
