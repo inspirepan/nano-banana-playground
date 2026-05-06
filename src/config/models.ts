@@ -49,6 +49,7 @@ export type ModelOption = ModelToggleOption | ModelSelectOption
 type BaseModelConfig = {
   id: string
   name: string
+  shortName: string
   provider: Provider
   apiModel: string
   resolutions: string[]
@@ -83,12 +84,8 @@ export type DoubaoModelConfig = BaseModelConfig & {
 
 export type ModelConfig = GoogleModelConfig | OpenAIModelConfig | DoubaoModelConfig
 
-// Trim the "Nano " brand prefix off Google model names so the segmented
-// control reads tighter; OpenAI names stay verbatim.
 export function getModelShortLabel(model: ModelConfig): string {
-  if (model.provider === 'openai') return model.name
-  if (model.provider === 'doubao') return model.name.replace(/^Doubao\s+/, '')
-  return model.name.replace(/^Nano\s+/, '')
+  return model.shortName
 }
 
 // --- Option descriptor presets ---
@@ -214,6 +211,7 @@ export const MODEL_CONFIGS: ModelConfig[] = [
   {
     id: 'nano-banana-2',
     name: 'Nano Banana 2',
+    shortName: 'Banana 2',
     provider: 'google',
     apiModel: 'gemini-3.1-flash-image-preview',
     resolutions: ['512', '1K', '2K', '4K'],
@@ -232,6 +230,7 @@ export const MODEL_CONFIGS: ModelConfig[] = [
   {
     id: 'nano-banana-pro',
     name: 'Nano Banana Pro',
+    shortName: 'Banana Pro',
     provider: 'google',
     apiModel: 'gemini-3-pro-image-preview',
     resolutions: ['1K', '2K', '4K'],
@@ -250,7 +249,8 @@ export const MODEL_CONFIGS: ModelConfig[] = [
   },
   {
     id: 'gpt-image-2',
-    name: 'Image 2',
+    name: 'GPT Image 2',
+    shortName: 'Image 2',
     provider: 'openai',
     apiModel: 'gpt-image-2',
     // Resolution tiers map to explicit pixel sizes together with the aspect ratio
@@ -266,7 +266,8 @@ export const MODEL_CONFIGS: ModelConfig[] = [
   },
   {
     id: 'doubao-seedream-4-5',
-    name: 'Doubao Seedream 4.5',
+    name: 'Seedream 4.5',
+    shortName: 'Seedream 4.5',
     provider: 'doubao',
     apiModel: 'doubao-seedream-4-5-251128',
     resolutions: ['2K', '4K'],
@@ -279,7 +280,8 @@ export const MODEL_CONFIGS: ModelConfig[] = [
   },
   {
     id: 'doubao-seedream-5-0-260128',
-    name: 'Doubao Seedream 5.0 Lite',
+    name: 'Seedream 5.0 Lite',
+    shortName: 'Seedream 5.0 Lite',
     provider: 'doubao',
     apiModel: 'doubao-seedream-5-0-260128',
     resolutions: ['2K', '3K'],
