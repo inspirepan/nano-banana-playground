@@ -27,4 +27,4 @@ Notes:
 - Omit `description` when the label is self-evident, such as aspect ratios, counts, simple yes/no choices, or obvious style names.
 - Add a `description` only when the label needs clarification or the trade-off is not obvious.
 - Set `multi_select: true` only when the user can pick multiple options at the same time.
-- Keep questions tight; ask 1-4 at once at most.
+- Keep questions tight; ask only what is useful for the next decision.

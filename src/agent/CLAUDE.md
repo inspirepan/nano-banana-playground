@@ -370,7 +370,7 @@ type AskUserQuestionAnswer = {
 
 行为：
 
-1. 校验 `questions`：最多 4 题；每题至少 2 个 option。
+1. 校验 `questions`：至少 1 题；每题至少 2 个 option。
 2. 在 `useAgentPlayground` 里登记一个 `AgentPendingQuestion` sidecar 状态，并把 resolver 存进 `agentQuestionResolversRef`，UI 渲染表单。
 3. 用户提交后，Agent 收到一个 `toolResult`，文本格式按问题逐条展开，每题包含 `Question` / `Answer` / 可选 `Note` 三段，多个问题之间用 `\n---\n` 分隔。
 4. 用户点“全部你来定”时，问卷以 `decide_for_me` 状态 resolve，文本提示 Agent 代用户做合理创意选择并继续；会话切换/刷新等中断仍以 `cancelled` 状态 resolve，文本提示用户没有作答。

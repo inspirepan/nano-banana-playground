@@ -121,11 +121,11 @@ export function prepareAskUserQuestionArgs(args: unknown): PreparedAskUserQuesti
   const record = typeof args === 'object' && args !== null ? (args as Record<string, unknown>) : {}
   const validationErrors: string[] = []
   if (!Array.isArray(record.questions)) {
-    validationErrors.push('questions must be an array with 1-4 questions.')
+    validationErrors.push('questions must be a non-empty array.')
     return { questions: [], validationErrors }
   }
-  if (record.questions.length < 1 || record.questions.length > 4) {
-    validationErrors.push('questions must contain 1-4 questions.')
+  if (record.questions.length < 1) {
+    validationErrors.push('questions must contain at least 1 question.')
   }
   const questions = record.questions
     .map((question, index) => normalizeQuestion(question, index, validationErrors))
@@ -188,7 +188,7 @@ export function createAskUserQuestionTool({
             Type.Boolean({ description: 'Allow multiple selections when true; otherwise false.' }),
           ),
         }),
-        { description: 'Required 1-4 questions to ask in a single form.', minItems: 1, maxItems: 4 },
+        { description: 'Required questions to ask in a single form.', minItems: 1 },
       ),
     }),
     prepareArguments: prepareAskUserQuestionArgs,
