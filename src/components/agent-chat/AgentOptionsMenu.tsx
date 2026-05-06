@@ -9,12 +9,10 @@ import {
   type AgentModelConfig,
   type AgentThinkingLevel,
 } from '../../config/agentModels'
-import { MODEL_CONFIGS, getModelShortLabel, type Provider } from '../../config/models'
-import { getProviderConfig } from '../../config/providers'
+import type { Provider } from '../../config/models'
 import type { ApiKeyStatus } from '../../hooks/useApiKey'
-import { usePreferredImageModel } from '../../hooks/usePreferredImageModel'
 import { useI18n } from '../../i18n'
-import { BrandIcon, Icon } from '../Icon'
+import { Icon } from '../Icon'
 
 export function AgentOptionsMenu({
   openMenu,
@@ -42,7 +40,7 @@ export function AgentOptionsMenu({
   onOpenApiKeys: () => void
 }) {
   const { t } = useI18n()
-  const { preferredImageModelId, setPreferredImageModelId } = usePreferredImageModel()
+  const showThinkingSlider = model.supportsThinking && model.thinkingOptions.length > 1
 
   if (openMenu !== 'agentOptions') return null
 
@@ -61,54 +59,12 @@ export function AgentOptionsMenu({
         <span className="min-w-0 flex-1 truncate">{t('agentChat.options.autoApproveImageTasks')}</span>
         <ToggleSwitch checked={autoApproveImageTasks} />
       </button>
-      <div className="my-1 h-px bg-(--ring-edge-soft)" />
-      <div className="flex items-baseline gap-2 px-2 py-1">
-        <span className="text-xs font-medium text-(--color-text-3)">{t('agentChat.options.preferredImageModel')}</span>
-        <span className="text-xs text-(--color-text-3) opacity-65">
-          {t('agentChat.options.preferredImageModel.hint')}
-        </span>
-      </div>
-      <button
-        type="button"
-        onClick={() => setPreferredImageModelId(null)}
-        className="flex h-7 w-full items-center gap-2 rounded-[var(--radius-sm)] px-2 text-left text-sm font-medium text-(--color-text-2) transition-colors hover:bg-(--color-surface-2)"
-      >
-        <Icon name="circle_dashed" size={12} className="text-(--color-text-3)" />
-        <span className="min-w-0 flex-1 truncate">{t('agentChat.options.preferredImageModel.none')}</span>
-        {preferredImageModelId === null && <Icon name="check" size={13} />}
-      </button>
-      {MODEL_CONFIGS.map((item) => {
-        const needsKey = keyStatuses[item.provider] === 'empty'
-        return (
-          <button
-            key={item.id}
-            type="button"
-            onClick={() => {
-              setPreferredImageModelId(item.id)
-              if (needsKey) {
-                setOpenMenu(null)
-                onOpenApiKeys()
-              }
-            }}
-            className="flex h-7 w-full items-center gap-2 rounded-[var(--radius-sm)] px-2 text-left text-sm font-medium text-(--color-text-2) transition-colors hover:bg-(--color-surface-2)"
-          >
-            <BrandIcon name={getProviderConfig(item.provider).brandIcon} size={12} />
-            <span className="min-w-0 flex-1 truncate">{getModelShortLabel(item)}</span>
-            {needsKey ? (
-              <MissingKeyBadge label={t('agentChat.apiKeyMissing.action')} />
-            ) : (
-              preferredImageModelId === item.id && <Icon name="check" size={13} />
-            )}
-          </button>
-        )
-      })}
-      <div className="my-1 h-px bg-(--ring-edge-soft)" />
-      <ThinkingSlider
-        model={model}
-        value={effectiveThinkingLevel}
-        disabled={!model.supportsThinking}
-        onChange={onThinkingLevelChange}
-      />
+      {showThinkingSlider && (
+        <>
+          <div className="my-1 h-px bg-(--ring-edge-soft)" />
+          <ThinkingSlider model={model} value={effectiveThinkingLevel} onChange={onThinkingLevelChange} />
+        </>
+      )}
       <div className="my-1 h-px bg-(--ring-edge-soft)" />
       <div className="px-2 py-1 text-xs font-medium text-(--color-text-3)">{t('agentChat.options.agentModel')}</div>
       {models.map((item) => {
@@ -182,12 +138,10 @@ function ToggleSwitch({ checked }: { checked: boolean }) {
 function ThinkingSlider({
   model,
   value,
-  disabled,
   onChange,
 }: {
   model: AgentModelConfig
   value: AgentThinkingLevel
-  disabled: boolean
   onChange: (level: AgentThinkingLevel) => void
 }) {
   const { t } = useI18n()
@@ -197,7 +151,7 @@ function ThinkingSlider({
   const activeIndex = Math.max(0, levels.indexOf(displayValue))
 
   return (
-    <div className="px-2 py-1.5" style={{ opacity: disabled ? 0.5 : 1, pointerEvents: disabled ? 'none' : undefined }}>
+    <div className="px-2 py-1.5">
       <div className="mb-1.5 px-1 text-xs font-medium text-(--color-text-3)">{t('agentChat.options.thinking')}</div>
       <div
         key={levelsKey}

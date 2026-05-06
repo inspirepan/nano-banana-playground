@@ -1,4 +1,4 @@
-import { getStorageItem, removeStorageItem, setStorageItem } from './storage'
+import { getStorageItem, setStorageItem } from './storage'
 import type { AgentThinkingLevel } from '../config/agentModels'
 import type { LanguagePreference } from '../config/languages'
 import type { Theme } from '../config/theme'
@@ -9,7 +9,6 @@ const AGENT_PANEL_WIDE_KEY = 'nano-banana-agent-panel-wide'
 const AGENT_PANEL_WIDE_TIP_KEY = 'nano-banana-agent-panel-wide-tip'
 const GENERATION_CONCURRENCY_KEY = 'nano-banana-generation-concurrency'
 const DETAIL_SIDEBAR_COLLAPSED_KEY = 'nano-banana-detail-sidebar-collapsed'
-const PREFERRED_IMAGE_MODEL_KEY = 'nano-banana-preferred-image-model'
 const PREFERRED_AGENT_MODEL_KEY = 'nano-banana-agent-model'
 const PREFERRED_AGENT_THINKING_LEVEL_KEY = 'nano-banana-agent-thinking-level'
 const COMPOSER_SUBMIT_MODE_KEY = 'nano-banana-composer-submit-mode'
@@ -68,18 +67,6 @@ export function readDetailSidebarCollapsedPreference(): boolean {
 
 export function writeDetailSidebarCollapsedPreference(collapsed: boolean): boolean {
   return write(DETAIL_SIDEBAR_COLLAPSED_KEY, collapsed ? '1' : '0')
-}
-
-export function readPreferredImageModelPreference(): string | null {
-  return read(PREFERRED_IMAGE_MODEL_KEY)
-}
-
-export function writePreferredImageModelPreference(modelId: string): boolean {
-  return write(PREFERRED_IMAGE_MODEL_KEY, modelId)
-}
-
-export function clearPreferredImageModelPreference(): void {
-  removeStorageItem('localStorage', PREFERRED_IMAGE_MODEL_KEY)
 }
 
 export function readPreferredAgentModelPreference(): string | null {

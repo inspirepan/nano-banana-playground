@@ -29,9 +29,9 @@ import { useI18n } from '../i18n'
 import { buildImageStacks, type StackItem } from '../lib/stacks'
 import type { PlaygroundImage, PlaygroundImageMeta } from '../lib/types'
 import { AgentChatComposer, type AgentChatComposerHandle } from './agent-chat/AgentChatComposer'
+import { AgentChatEmptyState } from './agent-chat/AgentChatEmptyState'
 import { AgentChatHeader } from './agent-chat/AgentChatHeader'
 import { isDrawingSkill } from './agent-chat/drawingSkills'
-import { DrawingSkillStarters } from './agent-chat/DrawingSkillStarters'
 import { MessageBubble } from './agent-chat/MessageBubble'
 import { ToolActivityCard } from './agent-chat/ToolActivityCard'
 import type { AgentChatMenu, AgentImageTaskFocusHandler } from './agent-chat/types'
@@ -249,6 +249,19 @@ export function AgentChatPanel({
     return map
   }, [pendingQuestions])
   const drawingSkills = useMemo(() => skills.filter(isDrawingSkill), [skills])
+  const isEmpty = renderItems.length === 0 && queuedMessages.length === 0 && !showRunningIndicator
+
+  const handleInsertText = useCallback(
+    (text: string) => {
+      const trimmedAddition = text.trim()
+      if (!trimmedAddition) return
+      const needsLeadingSpace = draft.length > 0 && !/\s$/.test(draft)
+      const next = `${draft}${needsLeadingSpace ? ' ' : ''}${trimmedAddition} `
+      flushSync(() => onDraftChange(next))
+      composerRef.current?.activate()
+    },
+    [draft, onDraftChange],
+  )
 
   useExternalSync(() => {
     if (optimisticRunning && (isStreaming || error)) setOptimisticRunning(false)
@@ -374,76 +387,66 @@ export function AgentChatPanel({
         onAddAttachments(files)
       }}
     >
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-        <div className={`${contentRightPaddingClass} ${headerPaddingClass}`}>
-          <AgentChatHeader
-            sessions={sessions}
-            sessionStatuses={visibleSessionStatuses}
-            currentSessionId={currentSessionId}
-            sessionsLoading={sessionsLoading}
-            centeredTitle={wideLayout}
-            openMenu={openMenu}
-            setOpenMenu={setOpenMenu}
-            onNewSession={handleNewSession}
-            onSwitchSession={onSwitchSession}
-            onDeleteSession={onDeleteSession}
-          />
+      <div className={`${contentRightPaddingClass} ${headerPaddingClass}`}>
+        <AgentChatHeader
+          sessions={sessions}
+          sessionStatuses={visibleSessionStatuses}
+          currentSessionId={currentSessionId}
+          sessionsLoading={sessionsLoading}
+          centeredTitle={wideLayout}
+          openMenu={openMenu}
+          setOpenMenu={setOpenMenu}
+          onNewSession={handleNewSession}
+          onSwitchSession={onSwitchSession}
+          onDeleteSession={onDeleteSession}
+        />
 
-          {keyMissing ? (
-            <button
-              type="button"
-              onClick={onOpenApiKeys}
-              className="card mb-3 flex w-full items-start gap-2.5 px-3 py-2.5 text-left transition-colors"
-              style={{
-                color: 'var(--color-danger)',
-                background: 'var(--color-danger-soft)',
-                boxShadow: 'inset 0 0 0 1px color-mix(in srgb, var(--color-danger) 24%, transparent)',
-              }}
-            >
-              <Icon name="alert_circle" size={14} style={{ marginTop: 1, flexShrink: 0 }} />
-              <span className="flex-1">
-                <span className="block text-base font-medium">{t('agentChat.apiKeyMissing.title')}</span>
-                <span className="mt-0.5 block text-sm leading-[1.45] opacity-80">
-                  {t('agentChat.apiKeyMissing.description', { model: model.label, provider: model.providerLabel })}
-                </span>
+        {keyMissing ? (
+          <button
+            type="button"
+            onClick={onOpenApiKeys}
+            className="card mb-3 flex w-full items-start gap-2.5 px-3 py-2.5 text-left transition-colors"
+            style={{
+              color: 'var(--color-danger)',
+              background: 'var(--color-danger-soft)',
+              boxShadow: 'inset 0 0 0 1px color-mix(in srgb, var(--color-danger) 24%, transparent)',
+            }}
+          >
+            <Icon name="alert_circle" size={14} style={{ marginTop: 1, flexShrink: 0 }} />
+            <span className="flex-1">
+              <span className="block text-base font-medium">{t('agentChat.apiKeyMissing.title')}</span>
+              <span className="mt-0.5 block text-sm leading-[1.45] opacity-80">
+                {t('agentChat.apiKeyMissing.description', { model: model.label, provider: model.providerLabel })}
               </span>
-              <span className="chip danger shrink-0 text-sm" style={{ height: 22, padding: '0 7px' }}>
-                {t('agentChat.apiKeyMissing.action')}
-              </span>
-            </button>
-          ) : null}
-        </div>
+            </span>
+            <span className="chip danger shrink-0 text-sm" style={{ height: 22, padding: '0 7px' }}>
+              {t('agentChat.apiKeyMissing.action')}
+            </span>
+          </button>
+        ) : null}
+      </div>
 
+      <div
+        className={`flex min-h-0 min-w-0 flex-1 flex-col ${isEmpty ? 'justify-center pb-[10vh] md:pb-[12vh]' : ''}`}
+      >
         <div
           ref={scrollRef}
-          className="scroll-fade-y min-h-0 flex-1 overflow-y-auto pt-5 pb-8 md:[scrollbar-gutter:stable_both-edges] [--scroll-fade-end-size:2.25rem] [--scroll-fade-start-size:1.5rem]"
+          className={`min-h-0 ${isEmpty ? 'pt-2 pb-3' : 'scroll-fade-y flex-1 overflow-y-auto pt-5 pb-8 md:[scrollbar-gutter:stable_both-edges] [--scroll-fade-end-size:2.25rem] [--scroll-fade-start-size:1.5rem]'}`}
         >
           <div className={`space-y-4 ${contentRightPaddingClass}`}>
-            {renderItems.length === 0 && queuedMessages.length === 0 && !showRunningIndicator ? (
-              <div className="flex min-h-[300px] flex-col items-center justify-center text-center">
-                {drawingSkills.length > 0 ? (
-                  <DrawingSkillStarters
-                    skills={drawingSkills}
-                    onPick={(skill) => {
-                      flushSync(() => {
-                        onDraftChange(
-                          `/${skill.name} ${t('agentChat.empty.skillStarter.prompt', { skill: displayNameForLanguage(skill, language) })}`,
-                        )
-                      })
-                      composerRef.current?.activate()
-                    }}
-                  />
-                ) : (
-                  <>
-                    <div className="font-display text-lg font-semibold tracking-[-0.01em] text-(--color-text)">
-                      {t('agentChat.empty.title')}
-                    </div>
-                    <div className="mx-auto mt-1 max-w-[32ch] text-sm leading-[1.5] text-pretty text-(--color-text-3)">
-                      {t('agentChat.empty.description')}
-                    </div>
-                  </>
-                )}
-              </div>
+            {isEmpty ? (
+              <AgentChatEmptyState
+                drawingSkills={drawingSkills}
+                onPickSkill={(skill) => {
+                  flushSync(() => {
+                    onDraftChange(
+                      `/${skill.name} ${t('agentChat.empty.skillStarter.prompt', { skill: displayNameForLanguage(skill, language) })}`,
+                    )
+                  })
+                  composerRef.current?.activate()
+                }}
+                onInsertText={handleInsertText}
+              />
             ) : (
               <>
                 {renderItems.map((item) =>
@@ -504,6 +507,7 @@ export function AgentChatPanel({
             canSend={canSend}
             showStop={showStop}
             isStreaming={isAwaitingAgentResponse}
+            isNewSession={isEmpty}
             history={history}
             onDraftChange={onDraftChange}
             onAddAttachments={onAddAttachments}

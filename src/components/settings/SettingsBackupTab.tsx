@@ -8,7 +8,6 @@ import type { Provider } from '../../config/models'
 import type { Theme } from '../../config/theme'
 import type { WebApiProvider, WebFetchProvider, WebSearchProvider } from '../../config/webProviders'
 import type { StoredUserSkill } from '../../agent/skills/types'
-import { setPreferredImageModelId } from '../../config/preferredImageModel'
 import { useI18n } from '../../i18n'
 import {
   buildSettingsImportPlan,
@@ -548,9 +547,6 @@ function applyPreference(
       return
     case 'detailSidebarCollapsed':
       writeDetailSidebarCollapsedPreference(Boolean(payload.value))
-      return
-    case 'preferredImageModel':
-      setPreferredImageModelId(String(payload.value))
       return
     case 'agentPanelWide':
       context.onAgentPanelWidePreferenceChange(Boolean(payload.value))

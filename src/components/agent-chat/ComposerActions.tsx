@@ -3,11 +3,8 @@ import type { ChangeEvent, Dispatch, RefObject, SetStateAction } from 'react'
 import { AgentModelIcon } from './AgentModelIcon'
 import type { AgentChatMenu } from './types'
 import type { AgentModelConfig, AgentThinkingLevel } from '../../config/agentModels'
-import { MODEL_CONFIGS, getModelShortLabel } from '../../config/models'
-import { getProviderConfig } from '../../config/providers'
-import { usePreferredImageModel } from '../../hooks/usePreferredImageModel'
 import { useI18n } from '../../i18n'
-import { BrandIcon, Icon } from '../Icon'
+import { Icon } from '../Icon'
 
 export function ComposerActions({
   fileInputRef,
@@ -45,10 +42,6 @@ export function ComposerActions({
   onStop: () => void
 }) {
   const { t } = useI18n()
-  const { preferredImageModelId } = usePreferredImageModel()
-  const preferredImageModel = preferredImageModelId
-    ? (MODEL_CONFIGS.find((item) => item.id === preferredImageModelId) ?? null)
-    : null
   const attachImageTitle = model.supportsImages
     ? t('agentChat.composer.attachImage')
     : t('agentChat.composer.attachImageUnsupported', { model: model.label })
@@ -58,6 +51,7 @@ export function ComposerActions({
       ? t('agentChat.composer.attachFromGalleryEmpty')
       : t('agentChat.composer.attachFromGallery')
   const galleryDisabled = !model.supportsImages || !hasGalleryImages
+  const showThinkingLabel = model.thinkingOptions.length > 1 && effectiveThinkingLevel !== 'off'
 
   return (
     <div className="flex items-center gap-1.5 px-2 pt-0.5 pb-2">
@@ -112,25 +106,10 @@ export function ComposerActions({
             <span aria-hidden="true" className="h-4 w-px shrink-0 bg-(--ring-edge-soft)" />
           </>
         )}
-        {preferredImageModel && (
-          <>
-            <span className="flex min-w-0 items-center gap-1.5">
-              <BrandIcon
-                name={getProviderConfig(preferredImageModel.provider).brandIcon}
-                size={13}
-                className="shrink-0 text-(--color-text-3)"
-              />
-              <span className="min-w-0 truncate text-(--color-text-2)">{getModelShortLabel(preferredImageModel)}</span>
-            </span>
-            <span aria-hidden="true" className="h-4 w-px shrink-0 bg-(--ring-edge-soft)" />
-          </>
-        )}
         <span className="flex min-w-0 items-center gap-1.5">
           <AgentModelIcon model={model} />
           <span className="min-w-0 truncate text-(--color-text-2)">{model.shortLabel}</span>
-          {effectiveThinkingLevel !== 'off' && (
-            <span className="shrink-0 text-(--color-text-3)">{effectiveThinkingLabel}</span>
-          )}
+          {showThinkingLabel && <span className="shrink-0 text-(--color-text-3)">{effectiveThinkingLabel}</span>}
         </span>
         <Icon name="chevron_right" size={13} className={openMenu === 'agentOptions' ? '-rotate-90' : 'rotate-90'} />
       </button>

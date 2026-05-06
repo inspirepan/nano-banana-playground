@@ -2,12 +2,7 @@ import { useCallback, type RefObject } from 'react'
 
 import { compressedAttachmentToAgentAttachment, type AgentChatAttachment } from './agentChat'
 import { activateAgentResponseMetadata, getAgentError, queueAgentResponseMetadata } from './messageRecovery'
-import {
-  buildCurrentDateDirective,
-  buildLanguageDirective,
-  buildPreferredImageModelClearedDirective,
-  buildPreferredImageModelDirective,
-} from './runtimeConfig'
+import { buildCurrentDateDirective, buildLanguageDirective } from './runtimeConfig'
 import type {
   AgentPendingQuestion,
   AgentQueuedUserMessage,
@@ -15,7 +10,6 @@ import type {
   ProviderCredentials,
 } from './runtimeTypes'
 import { resolveAgentModelConfig, type AgentModelProvider } from '../config/agentModels'
-import { getPreferredImageModelId } from '../config/preferredImageModel'
 import { getActiveLanguage, translate } from '../i18n'
 import { buildAvailableSkillsSystemMessage } from './skills/listing'
 import { getAgentSkillSummaries } from './skills/registry'
@@ -120,8 +114,6 @@ export function useAgentMessageSender({
     const skillSummaries = getAgentSkillSummaries()
     const enabledSkillNames = new Set(skillSummaries.filter((skill) => skill.enabled).map((skill) => skill.name))
     const slashCommands = parseAgentSlashCommands(trimmed, enabledSkillNames, { includeNewCommand: false })
-    const currentPreferredId = getPreferredImageModelId()
-    const preferredChanged = runtime.lastInjectedPreferredImageModelId !== currentPreferredId
     let systemPrefix = ''
     if (isFirstUserMessage) {
       const activeLanguage = getActiveLanguage()
@@ -132,16 +124,6 @@ export function useAgentMessageSender({
           : 'When calling GenImage, write image_id values in 简体中文 so they read naturally to the user.'
       systemPrefix += `<system>${imageIdLanguageInstruction}</system>\n\n`
       systemPrefix += `${buildCurrentDateDirective()}\n\n`
-    }
-    if (preferredChanged) {
-      let directive: string | null = null
-      if (currentPreferredId) {
-        directive = buildPreferredImageModelDirective(currentPreferredId)
-      } else if (runtime.lastInjectedPreferredImageModelId !== undefined) {
-        directive = buildPreferredImageModelClearedDirective()
-      }
-      if (directive) systemPrefix += `${directive}\n\n`
-      runtime.lastInjectedPreferredImageModelId = currentPreferredId
     }
     if (isFirstUserMessage) {
       const skillListing = buildAvailableSkillsSystemMessage(skillSummaries)

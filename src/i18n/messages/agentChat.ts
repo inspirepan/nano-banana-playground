@@ -59,10 +59,6 @@ export const agentChatMessages: MessageDictionary = {
     en: 'Send (adds a message while Agent is working)',
   },
   'agentChat.composer.skipQuestionsAndSend': { 'zh-CN': '跳过问卷并发送', en: 'Skip questions and send' },
-  'agentChat.composer.preferredImageModelTitle': {
-    'zh-CN': '默认偏好生图模型：{model}（对话中可指定其他）',
-    en: 'Default image model: {model} (override in chat)',
-  },
   'agentChat.composer.autoApproveActive': {
     'zh-CN': '生图任务已开启自动通过',
     en: 'Auto-approve is on for image tasks',
@@ -73,9 +69,6 @@ export const agentChatMessages: MessageDictionary = {
   'agentChat.slash.imageOnlyPrompt': { 'zh-CN': '请分析这些图片。', en: 'Please analyze these images.' },
   'agentChat.options.autoApproveImageTasks': { 'zh-CN': '自动通过生图任务', en: 'Auto-approve image tasks' },
   'agentChat.options.thinking': { 'zh-CN': '智能', en: 'Intelligence' },
-  'agentChat.options.preferredImageModel': { 'zh-CN': '默认偏好生图模型', en: 'Default image model' },
-  'agentChat.options.preferredImageModel.hint': { 'zh-CN': '对话中可指定其他', en: 'Override in chat' },
-  'agentChat.options.preferredImageModel.none': { 'zh-CN': '无偏好', en: 'No preference' },
   'agentChat.options.agentModel': { 'zh-CN': '对话模型', en: 'Agent model' },
   'agentChat.thinking.label': { 'zh-CN': '思考中', en: 'Thinking' },
   'agentChat.thinking.thought': { 'zh-CN': '已思考', en: 'Thought' },

@@ -1,7 +1,7 @@
 import { AGENT_MODEL_CONFIGS, AGENT_THINKING_OPTIONS, type AgentThinkingLevel } from '../config/agentModels'
 import { getComposerSubmitMode, type ComposerSubmitMode } from '../config/composerSubmitMode'
 import { isLanguagePreference, type LanguagePreference } from '../config/languages'
-import { MODEL_CONFIGS, type Provider } from '../config/models'
+import type { Provider } from '../config/models'
 import { PROVIDER_CONFIGS, getProviderConfig } from '../config/providers'
 import type { Theme } from '../config/theme'
 import {
@@ -24,7 +24,6 @@ import {
   readLanguagePreference,
   readPreferredAgentModelPreference,
   readPreferredAgentThinkingLevelPreference,
-  readPreferredImageModelPreference,
   readThemePreference,
 } from './preferenceStore'
 import { readProviderApiKey, readProviderBaseUrl, readProviderUseProxy } from './credentialStore'
@@ -75,7 +74,6 @@ export type PreferenceImportKey =
   | 'agentWideTipDismissed'
   | 'generationConcurrency'
   | 'detailSidebarCollapsed'
-  | 'preferredImageModel'
   | 'preferredAgentModel'
   | 'preferredAgentThinkingLevel'
   | 'composerSubmitMode'
@@ -194,14 +192,6 @@ const PREFERENCE_DESCRIPTORS: PreferenceDescriptor[] = [
     labelKey: 'settings.backup.item.detailSidebarCollapsed',
     read: readDetailSidebarCollapsedPreference,
     normalize: normalizeBoolean,
-  },
-  {
-    key: 'preferredImageModel',
-    group: 'generation',
-    labelKey: 'settings.backup.item.preferredImageModel',
-    read: readPreferredImageModelPreference,
-    normalize: (value) =>
-      typeof value === 'string' && MODEL_CONFIGS.some((model) => model.id === value) ? value : null,
   },
   {
     key: 'agentPanelWide',

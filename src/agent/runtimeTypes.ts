@@ -71,7 +71,6 @@ export type AgentSessionRuntime = {
   lastCompaction: AgentCompactionState | undefined
   isCompacting: boolean
   compactionAbort: AbortController | null
-  lastInjectedPreferredImageModelId: string | null | undefined
 }
 
 export function getAgentSessionStatus(runtime: AgentSessionRuntime): AgentSessionStatus | null {

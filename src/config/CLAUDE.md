@@ -17,8 +17,6 @@ Image generation models are configuration driven, but adding a new provider stil
 Agent image generation uses the same `MODEL_CONFIGS` list:
 
 - `src/agent/tools/genImage.md` and `src/agent/tools/genImage.ts` expose available image model IDs to the LLM through the `GenImage` tool.
-- `src/components/agent-chat/AgentOptionsMenu.tsx` renders the preferred image model selector from `MODEL_CONFIGS`; it should surface missing provider keys and open the API key settings when needed.
-- `src/config/preferredImageModel.ts` validates saved preferred image model ids against `MODEL_CONFIGS`, so new models become selectable automatically.
 - `src/agent/useAgentImageTools.ts` resolves the requested model via `findModelConfig`, fetches credentials with `getProviderCredentials(modelConfig.provider)`, and enqueues the normal generation job. New image providers should therefore work here as long as the main generation adapter and provider credentials are wired correctly.
 
 For provider-specific Base URLs, test both direct and proxied forms:

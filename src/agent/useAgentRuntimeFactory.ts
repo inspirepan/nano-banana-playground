@@ -144,7 +144,6 @@ export function useAgentRuntimeFactory({
         lastCompaction: params.lastCompaction,
         isCompacting: false,
         compactionAbort: null,
-        lastInjectedPreferredImageModelId: undefined,
       }
       agent.subscribe((event) => {
         if (event.type === 'message_end') {

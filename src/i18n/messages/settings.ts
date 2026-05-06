@@ -87,7 +87,6 @@ export const settingsMessages: MessageDictionary = {
   'settings.backup.item.language': { 'zh-CN': '语言', en: 'Language' },
   'settings.backup.item.generationConcurrency': { 'zh-CN': '生成并发', en: 'Generation concurrency' },
   'settings.backup.item.detailSidebarCollapsed': { 'zh-CN': '详情侧栏折叠', en: 'Detail sidebar collapsed' },
-  'settings.backup.item.preferredImageModel': { 'zh-CN': '首选图片模型', en: 'Preferred image model' },
   'settings.backup.item.agentPanelWide': { 'zh-CN': '宽屏 Agent 面板', en: 'Wide Agent panel' },
   'settings.backup.item.agentWideTipDismissed': { 'zh-CN': '宽屏提示已关闭', en: 'Wide panel tip dismissed' },
   'settings.backup.item.preferredAgentModel': { 'zh-CN': '首选 Agent 模型', en: 'Preferred Agent model' },
