@@ -36,9 +36,9 @@
     ui-monospace, SFMono-Regular, 'SF Mono', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', monospace;
   --font-sans: 'Geist', var(--font-cjk-sans);
   /* tnum is opt-in via `tabular-nums` — only ratio / resolution / dimension UI needs it. */
-  --font-sans--font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1, 'case' 1;
+  --font-sans--font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1, 'case' 1, 'ss01' 1, 'ss07' 1;
   --font-mono: 'Geist Mono', var(--font-cjk-mono);
-  --font-mono--font-feature-settings: 'liga' 0, 'calt' 0, 'tnum' 1, 'zero' 1;
+  --font-mono--font-feature-settings: 'liga' 0, 'calt' 0, 'tnum' 1, 'zero' 1, 'ss01' 1, 'ss03' 1, 'ss07' 1;
   --font-display: var(--font-sans);
 
   /* Compact type scale */
