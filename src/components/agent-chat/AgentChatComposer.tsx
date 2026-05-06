@@ -62,6 +62,10 @@ function autoResizeComposer(el: HTMLTextAreaElement, maxHeight: number) {
 }
 
 function shouldSkipProgrammaticComposerFocus() {
+  return isMobileComposerContext()
+}
+
+function isMobileComposerContext() {
   return typeof window !== 'undefined' && window.matchMedia(MOBILE_COMPOSER_AUTOFOCUS_QUERY).matches
 }
 
@@ -214,16 +218,19 @@ export const AgentChatComposer = forwardRef<AgentChatComposerHandle, AgentChatCo
   const showSlashSuggestions =
     composerFocused && openMenu === null && slashContext !== null && slashSuggestions.length > 0
   const activeSlashIndex = Math.min(slashActiveIndex, Math.max(0, slashSuggestions.length - 1))
+  const composerCompletionEnabled = !isMobileComposerContext()
   const cursorAtEnd = cursorOffset === draft.length
   const activeSlashSuggestion = showSlashSuggestions ? slashSuggestions[activeSlashIndex] : null
   const slashGhostSuffix =
-    activeSlashSuggestion && slashContext && cursorAtEnd
+    composerCompletionEnabled && activeSlashSuggestion && slashContext && cursorAtEnd
       ? activeSlashSuggestion.name.toLowerCase().startsWith(slashContext.query)
         ? activeSlashSuggestion.name.slice(slashContext.query.length)
         : ''
       : ''
   const modelCompletion =
-    !slashContext && cursorAtEnd && composerFocused ? findModelCompletion(draft.slice(0, cursorOffset)) : null
+    composerCompletionEnabled && !slashContext && cursorAtEnd && composerFocused
+      ? findModelCompletion(draft.slice(0, cursorOffset))
+      : null
   const modelGhostSuffix = modelCompletion
     ? modelCompletion.name.slice(draft.slice(0, cursorOffset).length - modelCompletion.start)
     : ''
@@ -286,7 +293,7 @@ export const AgentChatComposer = forwardRef<AgentChatComposerHandle, AgentChatCo
   }
 
   const applyModelCompletion = () => {
-    if (!modelCompletion) return
+    if (!modelCompletion || isMobileComposerContext()) return
     const insertion = `${modelCompletion.name} `
     const nextDraft = `${draft.slice(0, modelCompletion.start)}${insertion}${draft.slice(cursorOffset)}`
     const cursor = modelCompletion.start + insertion.length
@@ -336,7 +343,14 @@ export const AgentChatComposer = forwardRef<AgentChatComposerHandle, AgentChatCo
         applySlashSuggestion(slashSuggestions[activeSlashIndex])
         return
       }
-      if (event.key === 'ArrowRight' && showGhost && !event.shiftKey && !event.metaKey && !event.ctrlKey) {
+      if (
+        event.key === 'ArrowRight' &&
+        showGhost &&
+        !isMobileComposerContext() &&
+        !event.shiftKey &&
+        !event.metaKey &&
+        !event.ctrlKey
+      ) {
         event.preventDefault()
         applySlashSuggestion(slashSuggestions[activeSlashIndex])
         return
@@ -352,7 +366,14 @@ export const AgentChatComposer = forwardRef<AgentChatComposerHandle, AgentChatCo
         return
       }
     }
-    if (modelGhostSuffix && !event.shiftKey && !event.metaKey && !event.ctrlKey && !event.altKey) {
+    if (
+      !isMobileComposerContext() &&
+      modelGhostSuffix &&
+      !event.shiftKey &&
+      !event.metaKey &&
+      !event.ctrlKey &&
+      !event.altKey
+    ) {
       if (event.key === 'Tab' || event.key === 'ArrowRight') {
         event.preventDefault()
         applyModelCompletion()
@@ -445,7 +466,7 @@ export const AgentChatComposer = forwardRef<AgentChatComposerHandle, AgentChatCo
             {showGhost && (
               <div
                 aria-hidden
-                className="pointer-events-none absolute inset-0 px-3 pt-2.5 pb-1 text-[16px] leading-[1.55] break-words whitespace-pre-wrap md:text-base"
+                className="pointer-events-none absolute inset-0 hidden px-3 pt-2.5 pb-1 text-[16px] leading-[1.55] break-words whitespace-pre-wrap md:block md:text-base"
               >
                 <span className="text-transparent">{draft}</span>
                 <span className="text-(--color-text-4)">{ghostSuffix}</span>
