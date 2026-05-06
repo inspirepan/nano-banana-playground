@@ -58,7 +58,7 @@ export function createGenImageTool({
     parameters: Type.Object({
       image_id: Type.String({
         description:
-          'Semantic output image ID. Required and non-empty. Use the user\'s language so the ID reads naturally to them.',
+          "Semantic output image ID. Required and non-empty. Use the user's language so the ID reads naturally to them.",
       }),
       prompt: Type.String({ description: 'Image generation prompt. Required and non-empty.' }),
       model: Type.String({ description: 'Image model ID from the playground model list.' }),

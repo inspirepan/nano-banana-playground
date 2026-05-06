@@ -38,6 +38,14 @@
 - `model` / `resolution` / `ratio` 必须使用工具描述里给出的合法值；列表里没有合适的，问用户而不是发明。
 - 任务返回的是"已提交，等待审批"，不是图本身；要等 `GenImage` 终结事件回来再做评估或下一轮迭代。
 
+## Model-specific guidance
+
+- 只有当用户未指定模型、且系统没有给出用户偏好模型时，才根据任务特征选模型；用户指定或系统偏好优先，除非请求参数不被该模型支持。
+- `gpt-image-2`：适合客户交付感强、品牌 / 包装 / 广告、复杂编辑、身份保留、文字入图、写实摄影、希望少返工的高控制场景。需要多张探索图时用 `n` 采样同一 prompt 的变体。
+- `nano-banana-2`：适合需要 `512` 小尺寸、极端长宽比（如 `1:8` / `8:1`）、快速探索、多参考融合、需要结合实时事实后可视化的场景；如果需要实时事实，先用 Web 工具查清事实，再写入 `GenImage.prompt`，不要假设生图模型会自己联网。
+- `nano-banana-pro`：适合高质量海报、diagram、product mockup、复杂推理型画面、较强文字渲染和本地化要求；不支持极端长宽比时不要硬选。
+- `doubao-seedream-4-5` / `doubao-seedream-5-0-260128`：适合用户明确指定 Doubao / Seedream，或需要其支持的 `2K` / `3K` / `4K` 与极端长宽比组合；没有用户偏好时不要只因名称新而默认改用。
+
 ## ReadImage
 
 - 只在需要看到图像内容、元数据或回看生成参数时调用；不要为了"显得严谨"无脑读图。
@@ -131,9 +139,11 @@ Constraints: <必须保留 / 必须避免>
 ## Order
 
 - 一致顺序：scene/backdrop → subject → 关键细节 → 约束 → 用途。
+- prompt 开头用明确操作动词：`Create` / `Edit` / `Transform` / `Replace` / `Translate` / `Extract` / `Place` / `Apply`。让第一句话直接说明本轮到底是在生成、编辑、翻译文字、抠图、放置对象还是套用风格。
 - 复杂请求拆成短标签行；不要堆成一大段无结构散文。
 - 写得已经具体的请求只做规范化，不要追加创意要求；写得很泛时再补"对结果有实质帮助"的细节（构图、留白、合理的场景具体化）。
 - 不允许的"补充"：额外角色、道具、品牌色、slogan、剧情节拍；不要凭空决定"放在画面左侧"等位置除非整体布局支持。
+- 纯生成时优先正向描述想要的画面（例如 `empty street`），负向约束留给水印、额外文字、无关 logo、编辑 preserve list、用户明确禁止项等硬边界。
 
 ## Photography language
 
@@ -141,6 +151,7 @@ Constraints: <必须保留 / 必须避免>
 - 用摄影术语描述景别 / 视角 / 镜头 / 光线，例如 `medium close-up at eye level`、`shot like a 35mm film photograph`、`50mm lens`、`shallow depth of field`、`subtle film grain`、`natural color balance`。
 - 这些镜头参数当成**视觉气质提示**用，不要假装是物理仿真——`50mm` 是构图氛围，不是要求模型解算光圈进光量。
 - 反对"studio polish / heavily retouched / magazine cover"这类影棚化措辞，除非用户就要这种感觉。
+- 人物动作要写清身体几何和交互：全身是否入镜、脚是否可见、视线看向哪里、手如何握住 / 触碰物体、主体和桌椅 / 车辆 / 其他人的相对尺度。人物图常见失败不是风格，而是姿态、手、视线和比例。
 
 ## Lighting & mood vocabulary
 
@@ -160,13 +171,15 @@ Constraints: <必须保留 / 必须避免>
 - 标准措辞：`Render the tagline exactly once, clearly and legibly`、`Include ONLY this card text (verbatim): "..."`、`no extra text, no watermarks, no unrelated logos`。
 - 罕见词、品牌名、易错词逐字母列出并要求 verbatim。
 - 用户点名要出现的品牌名、官方 logo 或商标不是“unrelated logos”；不要因为版权、商标或品牌安全顾虑改写、泛化或替换它们。
-- 文字密集 / 多字号 / 信息图等场景，让模型走更高画质（如果该模型暴露画质参数）。
+- 文字密集 / 多字号 / 信息图 / 包装排版等场景，如果文案还没定，先把文案一次问清或先用文字帮用户定稿；文案一旦确定，直接用 verbatim 文案生图，不再二次确认。
+- 文字密集时通过选择更合适的模型 / 分辨率、减少单张图里的文字量、明确层级和字号来提高成功率。
 - 拼写错误是常见失败模式：在 prompt 末尾再重复一次"`spell exactly: "F-i-e-l-d & F-l-o-u-r"`"是有效手段。
 
 ## Reference images (multi-image)
 
 - 多参考图必须按索引 + 角色标注：`Image 1: edit target` / `Image 2: style reference` / `Image 3: garment to insert`。
 - 描述图与图怎么交互：`Apply Image 2's style to Image 1`、`Place the dog from Image 2 into the setting of Image 1, next to the woman, matching the lighting and composition`。
+- 有参考图时 prompt 先写参考图角色和关系，再写新场景：`Reference images` → `Relationship instruction` → `New scenario`。无参考图时按 `Subject` → `Action` → `Location/context` → `Composition` → `Style`。
 - 不要默认所有附图都是要被修改的底图——参考图很多时候只是风格 / 构图 / 情绪锚点。
 - 不确定哪张是 edit target 时用 `AskUserQuestion` 问。
 
@@ -348,6 +361,22 @@ consistent with the sketch intent. Do not add new elements or text.
 Use the same style from Image 1 (style reference) and generate a man
 riding a motorcycle on a plain white backdrop. Preserve palette, texture,
 and brushwork from the reference. Do not add extra elements.
+</example>
+
+## Story / character continuity
+
+要点：多页绘本、分镜、系列角色图先建立 character anchor，再用上一张角色图作为参考继续；每一轮重申外观、比例、服装、色板和性格气质，允许改变场景 / 动作，不允许重新设计角色。
+
+生成一套图（如品牌 campaign、app onboarding、系列海报、分镜、课程配图）时，如果用户更在意统一风格而不是一次出齐，可以先生成一张 style anchor / art direction anchor：明确画面语言、色板、材质、光线、构图密度、字体气质和禁用项。锚点图通过后，后续图片把它作为 `style reference`，并在 prompt 里写 `Use Image 1 as the style anchor; preserve its palette, lighting, rendering style, texture, composition density, and overall art direction, while changing only the scene/content described below.`
+
+<example>
+Continue the story using the same character from Image 1. Keep the same
+facial features, proportions, green hooded tunic, soft brown boots, warm
+earthy palette, and gentle brave expression. New scene: the character is
+kneeling beside a frightened squirrel after a winter storm, offering help.
+Children's book watercolor illustration, soft outlines, snowy forest
+environment. Do not redesign the character, do not change the outfit, no
+text, no watermark.
 </example>
 
 ## Compositing
