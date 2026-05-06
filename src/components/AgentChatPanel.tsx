@@ -509,7 +509,6 @@ export function AgentChatPanel({
             canSend={canSend}
             showStop={showStop}
             isStreaming={isAwaitingAgentResponse}
-            isNewSession={isEmpty}
             history={history}
             onDraftChange={onDraftChange}
             onAddAttachments={onAddAttachments}

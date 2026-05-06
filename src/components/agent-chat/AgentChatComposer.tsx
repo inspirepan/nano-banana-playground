@@ -114,7 +114,6 @@ type AgentChatComposerProps = {
   canSend: boolean
   showStop: boolean
   isStreaming: boolean
-  isNewSession: boolean
   history: PlaygroundImageMeta[]
   onDraftChange: (value: string) => void
   onAddAttachments: (files: File[]) => void
@@ -155,7 +154,6 @@ export const AgentChatComposer = forwardRef<AgentChatComposerHandle, AgentChatCo
     canSend,
     showStop,
     isStreaming,
-    isNewSession,
     history,
     onDraftChange,
     onAddAttachments,
@@ -386,11 +384,7 @@ export const AgentChatComposer = forwardRef<AgentChatComposerHandle, AgentChatCo
         />
         <div
           ref={composerRef}
-          className={`prompt-wrap relative rounded-[12px] bg-(--color-surface) ${
-            isNewSession
-              ? 'shadow-[inset_0_0_0_1px_var(--ring-edge)] focus-within:shadow-[inset_0_0_0_1px_var(--ring-edge-strong)]'
-              : 'shadow-[inset_0_0_0_1px_var(--ring-edge),var(--shadow-float)] focus-within:shadow-[inset_0_0_0_1px_var(--ring-edge-strong),var(--shadow-float)]'
-          }`}
+          className="prompt-wrap relative rounded-[12px] bg-(--color-surface) shadow-[inset_0_0_0_1px_var(--ring-edge)] focus-within:shadow-[inset_0_0_0_1px_var(--ring-edge-strong)]"
         >
           <AgentOptionsMenu
             openMenu={openMenu}
