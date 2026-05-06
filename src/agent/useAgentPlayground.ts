@@ -227,6 +227,7 @@ export function useAgentPlayground({
     currentAgentSessionIdRef,
     autoApproveAgentImageTasks,
     setAgentSessions,
+    setAgentSessionStatuses,
     setAgentSessionsLoading,
     setCurrentAgentSessionId,
     setAgentError,

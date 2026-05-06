@@ -4,8 +4,14 @@ import { buildCompactionSummaryMessage } from './compaction'
 import { isTerminalAgentImageTaskStatus } from './imageTasks'
 import { injectAbandonedToolResults, restoreAgentImageTasks } from './messageRecovery'
 import type { AgentSessionRuntime } from './runtimeTypes'
-import { createAgentSessionRecord, deleteAgentSession, listAgentSessions, loadAgentSession } from './sessionStore'
-import type { AgentSessionMessageMetadata, AgentSessionSummary } from './sessionTypes'
+import {
+  createAgentSessionRecord,
+  deleteAgentSession,
+  listAgentSessions,
+  listPersistedAgentSessionStatuses,
+  loadAgentSession,
+} from './sessionStore'
+import type { AgentSessionMessageMetadata, AgentSessionStatusMap, AgentSessionSummary } from './sessionTypes'
 import type { CreateRuntimeParams } from './useAgentRuntimeFactory'
 import { getPreferredAgentModelId, getPreferredAgentThinkingLevel } from '../config/agentPreferences'
 import { useMountEffect } from '../hooks/effects'
@@ -17,6 +23,7 @@ export function useAgentSessionLifecycle({
   currentAgentSessionIdRef,
   autoApproveAgentImageTasks,
   setAgentSessions,
+  setAgentSessionStatuses,
   setAgentSessionsLoading,
   setCurrentAgentSessionId,
   setAgentError,
@@ -35,6 +42,7 @@ export function useAgentSessionLifecycle({
   currentAgentSessionIdRef: RefObject<string | null>
   autoApproveAgentImageTasks: boolean
   setAgentSessions: React.Dispatch<React.SetStateAction<AgentSessionSummary[]>>
+  setAgentSessionStatuses: React.Dispatch<React.SetStateAction<AgentSessionStatusMap>>
   setAgentSessionsLoading: (loading: boolean) => void
   setCurrentAgentSessionId: (sessionId: string | null) => void
   setAgentError: (error: string | null) => void
@@ -262,8 +270,12 @@ export function useAgentSessionLifecycle({
   useMountEffect(() => {
     void (async () => {
       setAgentSessionsLoading(true)
-      const sessions = await listAgentSessions()
+      const [sessions, persistedStatuses] = await Promise.all([
+        listAgentSessions(),
+        listPersistedAgentSessionStatuses(),
+      ])
       setAgentSessions(sessions)
+      setAgentSessionStatuses(persistedStatuses)
       if (initialSessionId === AGENT_MODE_SENTINEL) {
         await createNewAgentSession()
         setAgentSessionsLoading(false)

@@ -1,8 +1,7 @@
 import { useMemo, type Dispatch, type SetStateAction } from 'react'
 
-import { AgentSessionStatusBadge } from './AgentSessionSidebar'
+import { AgentSessionListItem } from './AgentSessionListItem'
 import type { AgentChatMenu } from './types'
-import { formatSessionTime } from './utils'
 import type { AgentSessionStatusMap, AgentSessionSummary } from '../../agent'
 import { useI18n } from '../../i18n'
 import { Icon } from '../Icon'
@@ -96,67 +95,23 @@ export function AgentChatHeader({
               sessions.map((session) => {
                 const active = session.id === currentSessionId
                 const status = sessionStatuses[session.id] ?? null
-                const imageCount = session.imageCount ?? 0
-                const imageCountLabel = t('agentChat.header.generatedImageCount', { count: imageCount })
                 const displayTitle = session.firstUserText.replace(/\s+/g, ' ').trim() || session.title
                 return (
-                  <div
+                  <AgentSessionListItem
                     key={session.id}
-                    className={`group relative flex h-[32px] items-center rounded-[var(--radius-md)] px-2 transition-[background-color,box-shadow] ${
-                      active
-                        ? 'bg-(--color-accent-wash) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]'
-                        : 'hover:bg-(--color-surface-2)'
-                    }`}
-                  >
-                    {active && (
-                      <span className="absolute top-1.5 bottom-1.5 left-1 w-0.5 rounded-[var(--radius-xs)] bg-(--color-accent)" />
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        onSwitchSession(session.id)
-                        setOpenMenu(null)
-                      }}
-                      className="min-w-0 flex-1 bg-transparent pl-2 text-left"
-                      aria-current={active ? 'true' : undefined}
-                      title={displayTitle}
-                    >
-                      <span
-                        className={`block truncate text-sm ${active ? 'font-semibold text-(--color-text)' : 'font-medium text-(--color-text-2)'}`}
-                      >
-                        {displayTitle}
-                      </span>
-                    </button>
-                    <span className="ml-2 flex shrink-0 items-center gap-1.5 text-sm text-(--color-text-3)">
-                      {status && <AgentSessionStatusBadge status={status} />}
-                      {imageCount > 0 && (
-                        <span
-                          className="inline-flex h-[18px] shrink-0 items-center gap-1 rounded-full bg-(--color-surface-2) px-1.5 text-[11px] font-medium leading-none tabular-nums text-(--color-text-3) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]"
-                          title={imageCountLabel}
-                          aria-label={imageCountLabel}
-                        >
-                          <Icon name="image" size={11} className="opacity-80" />
-                          <span>{imageCount}</span>
-                        </span>
-                      )}
-                      <span>{formatSessionTime(session.updatedAt)}</span>
-                    </span>
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation()
-                        onDeleteSession(session.id)
-                      }}
-                      className={`absolute right-1 flex h-6 w-6 items-center justify-center rounded-[var(--radius-sm)] opacity-0 transition-[opacity,background-color,color] hover:bg-(--color-surface-3) hover:text-(--color-danger) group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none ${
-                        active
-                          ? 'bg-(--color-surface) text-(--color-text-3) shadow-[-10px_0_12px_color-mix(in_srgb,var(--color-accent-wash)_72%,transparent)]'
-                          : 'bg-(--color-surface-2) text-(--color-text-4) shadow-[-10px_0_12px_var(--color-surface-2)]'
-                      }`}
-                      aria-label={t('agentChat.header.deleteConversation')}
-                    >
-                      <Icon name="trash" size={12} />
-                    </button>
-                  </div>
+                    session={session}
+                    active={active}
+                    status={status}
+                    title={displayTitle}
+                    variant="menu"
+                    onSwitchSession={() => {
+                      onSwitchSession(session.id)
+                      setOpenMenu(null)
+                    }}
+                    onDeleteSession={() => {
+                      onDeleteSession(session.id)
+                    }}
+                  />
                 )
               })
             )}

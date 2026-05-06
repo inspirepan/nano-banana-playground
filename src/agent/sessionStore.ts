@@ -5,6 +5,7 @@ import { countReadyGeneratedAgentImages, type AgentImageRegistryEntry } from './
 import type {
   AgentSessionMessageEntry,
   AgentSessionRecord,
+  AgentSessionStatusMap,
   AgentSessionSidecarRecord,
   CreateAgentSessionParams,
   AgentSessionMessageMetadata,
@@ -250,6 +251,22 @@ export async function listAgentSessions(): Promise<AgentSessionRecord[]> {
     .filter((record) => record.messageCount > 0)
     .map((record) => ({ ...record, imageCount: imageCounts.get(record.id) ?? record.imageCount ?? 0 }))
     .sort((a, b) => b.updatedAt - a.updatedAt)
+}
+
+export async function listPersistedAgentSessionStatuses(): Promise<AgentSessionStatusMap> {
+  const db = await openNanoBananaDB()
+  const tx = db.transaction([AGENT_SESSION_STORE, AGENT_SESSION_SIDECAR_STORE], 'readonly')
+  const [records, sidecars] = await Promise.all([
+    requestToPromise<AgentSessionRecord[]>(tx.objectStore(AGENT_SESSION_STORE).getAll()),
+    requestToPromise<AgentSessionSidecarRecord[]>(tx.objectStore(AGENT_SESSION_SIDECAR_STORE).getAll()),
+  ])
+  const persistedSessionIds = new Set(records.filter((record) => record.messageCount > 0).map((record) => record.id))
+  const statuses: AgentSessionStatusMap = {}
+  for (const sidecar of sidecars) {
+    if (!persistedSessionIds.has(sidecar.sessionId)) continue
+    if ((sidecar.pendingQuestions?.length ?? 0) > 0) statuses[sidecar.sessionId] = 'waiting_for_question'
+  }
+  return statuses
 }
 
 export async function appendAgentSessionMessage(params: {
