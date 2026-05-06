@@ -156,7 +156,14 @@ export function MessageBubble({
                   }}
                 >
                   <Icon name="alert_circle" size={13} style={{ marginTop: 2, flexShrink: 0 }} />
-                  <div className="min-w-0 flex-1 whitespace-pre-wrap">{error}</div>
+                  <div className="min-w-0 flex-1">
+                    <TruncatedText
+                      text={error}
+                      className="whitespace-pre-wrap"
+                      fadeColor="var(--color-danger-soft)"
+                      maxHeight={220}
+                    />
+                  </div>
                 </div>
               )}
             </>
