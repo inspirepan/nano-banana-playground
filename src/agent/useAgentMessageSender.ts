@@ -124,7 +124,13 @@ export function useAgentMessageSender({
     const preferredChanged = runtime.lastInjectedPreferredImageModelId !== currentPreferredId
     let systemPrefix = ''
     if (isFirstUserMessage) {
-      systemPrefix += `${buildLanguageDirective(getActiveLanguage())}\n\n`
+      const activeLanguage = getActiveLanguage()
+      systemPrefix += `${buildLanguageDirective(activeLanguage)}\n\n`
+      const imageIdLanguageInstruction =
+        activeLanguage === 'en'
+          ? 'When calling GenImage, write image_id values in English so they match the user language.'
+          : 'When calling GenImage, write image_id values in 简体中文 so they read naturally to the user.'
+      systemPrefix += `<system>${imageIdLanguageInstruction}</system>\n\n`
       systemPrefix += `${buildCurrentDateDirective()}\n\n`
     }
     if (preferredChanged) {

@@ -1,6 +1,6 @@
 Create an image generation task for user approval. The task returns immediately with reserved image IDs; actual generation continues asynchronously after approval or auto-approval, and the app will notify you when the task reaches a terminal state.
 
-Use short readable image_id values because they become future image references.
+Use short readable image_id values because they become future image references. Write image_id in the user's language (for example, Simplified Chinese characters for 中文 users, English words for English users) so the IDs read naturally to the user when shown in the UI.
 
 `n` means sampling multiple variants from the exact same prompt. It does not mean "put n images in one canvas", "make a collage", "generate a 2x2 grid", or generate several different photos.
 
