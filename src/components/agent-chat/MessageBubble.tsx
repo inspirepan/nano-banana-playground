@@ -2,6 +2,7 @@ import type { AppMessage as AgentMessage } from '@mariozechner/pi-agent'
 import { useRef, useState } from 'react'
 
 import { AgentThinking } from './AgentThinking'
+import { formatAgentError } from './errorText'
 import { MarkdownText } from './MarkdownText'
 import { summarizeSystemEvent } from './SystemEvent'
 import { TruncatedText } from './TruncatedText'
@@ -53,6 +54,7 @@ export function MessageBubble({
   const thinking = agentMessageThinking(message)
   const images = agentMessageImages(message)
   const error = agentMessageError(message)
+  const displayError = error ? formatAgentError(error, t) : null
   const isUser = role === 'user'
   const isAssistant = role === 'assistant'
   const hasToolCalls = agentMessageToolCalls(message).length > 0
@@ -60,14 +62,16 @@ export function MessageBubble({
   const visibleText = stripSystemDirectives(text)
   const copyText = isUser
     ? visibleText
-    : [visibleText, error].filter((part): part is string => Boolean(part)).join('\n\n')
+    : [visibleText, displayError].filter((part): part is string => Boolean(part)).join('\n\n')
   const isSystemEvent = isUser && visibleText === '' && trimmedText.startsWith('<system>')
   const canCopy = isUser
     ? copyText.length > 0
     : isAssistant && !hasToolCalls && !isStreaming && copyText.trim().length > 0
   const showAssistantMarkdown = visibleText.trim() !== ''
-  const hasAssistantTrailingContent = showAssistantMarkdown || Boolean(error) || hasToolCalls
-  const showAssistantTitle = isAssistant && Boolean(assistantTitle)
+  const hasAssistantNonErrorContent =
+    thinking.trim() !== '' || images.length > 0 || showAssistantMarkdown || hasToolCalls
+  const hasAssistantTrailingContent = showAssistantMarkdown || Boolean(displayError) || hasToolCalls
+  const showAssistantTitle = isAssistant && Boolean(assistantTitle) && hasAssistantNonErrorContent
   const hasAssistantBody = thinking.trim() !== '' || images.length > 0 || hasAssistantTrailingContent
 
   const handleCopy = () => {
@@ -146,7 +150,7 @@ export function MessageBubble({
           ) : (
             <>
               {showAssistantMarkdown && <MarkdownText text={visibleText} isStreaming={isStreaming} />}
-              {error && (
+              {displayError && (
                 <div
                   className={`${showAssistantMarkdown ? 'mt-2.5' : ''} flex w-fit max-w-full items-start gap-2 rounded-[var(--radius-md)] px-3 py-2 text-sm leading-[1.45]`}
                   style={{
@@ -158,7 +162,7 @@ export function MessageBubble({
                   <Icon name="alert_circle" size={13} style={{ marginTop: 2, flexShrink: 0 }} />
                   <div className="min-w-0 flex-1">
                     <TruncatedText
-                      text={error}
+                      text={displayError}
                       className="whitespace-pre-wrap"
                       fadeColor="var(--color-danger-soft)"
                       maxHeight={220}

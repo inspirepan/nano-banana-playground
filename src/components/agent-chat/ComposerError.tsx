@@ -1,5 +1,6 @@
 import { useI18n } from '../../i18n'
 import { Icon } from '../Icon'
+import { formatAgentError } from './errorText'
 
 export function ComposerError({
   error,
@@ -11,6 +12,7 @@ export function ComposerError({
   onClearAttachmentError: () => void
 }) {
   const { t } = useI18n()
+  const displayError = error ? formatAgentError(error, t) : null
 
   if (!error && !attachmentError) return null
 
@@ -21,7 +23,7 @@ export function ComposerError({
     >
       <div className="flex items-start gap-2">
         <Icon name="alert_circle" size={13} style={{ marginTop: 2, flexShrink: 0 }} />
-        <div className="min-w-0 flex-1 whitespace-pre-wrap">{attachmentError ?? error}</div>
+        <div className="min-w-0 flex-1 whitespace-pre-wrap">{attachmentError ?? displayError}</div>
         {attachmentError && (
           <button
             type="button"
