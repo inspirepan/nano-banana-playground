@@ -87,12 +87,15 @@ function SkeletonSlot({
   flush = false,
   aspectRatio,
   compact = false,
+  queued = false,
 }: {
   flush?: boolean
   aspectRatio?: string
   compact?: boolean
+  queued?: boolean
 }) {
   const { t } = useI18n()
+  const statusLabel = queued ? t('imageDetail.queue.status.queued') : t('imageDetail.queue.status.generating')
   return (
     <div
       className={`relative w-full overflow-hidden shadow-[inset_0_0_0_1px_var(--ring-edge-soft)] ${flush ? 'rounded-none' : 'rounded-[var(--radius-sm)]'}`}
@@ -100,15 +103,17 @@ function SkeletonSlot({
         aspectRatio: aspectRatio ?? '1 / 1',
         background: 'repeating-linear-gradient(-45deg, var(--color-surface-2) 0 6px, var(--color-surface-3) 6px 12px)',
       }}
-      title={
-        compact ? `${t('imageDetail.queue.status.generating')} · ${t('imageDetail.queue.keepPageOpen')}` : undefined
-      }
+      title={compact ? `${statusLabel} · ${t('imageDetail.queue.keepPageOpen')}` : undefined}
     >
       <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 px-2 text-(--color-text-3)">
-        <span className="spinner" style={{ width: 12, height: 12 }} />
+        {queued ? (
+          <div className="h-2 w-2 rounded-full" style={{ background: 'var(--color-text-4)' }} />
+        ) : (
+          <span className="spinner" style={{ width: 12, height: 12 }} />
+        )}
         {!compact && (
           <>
-            <span className="text-sm leading-[1.4]">{t('imageDetail.queue.status.generating')}</span>
+            <span className="text-sm leading-[1.4]">{statusLabel}</span>
             <span className="text-center text-xs leading-[1.35] text-(--color-text-4)">
               {t('imageDetail.queue.keepPageOpen')}
             </span>
@@ -386,7 +391,9 @@ export function AgentImageTaskCard({
           ),
         )
       } else if (isActiveGenerating) {
-        items.push(<SkeletonSlot key={`skeleton-${index}`} aspectRatio={aspectRatioCss} compact />)
+        items.push(
+          <SkeletonSlot key={`skeleton-${index}`} aspectRatio={aspectRatioCss} compact queued={status === 'queued'} />,
+        )
       }
     }
     if (items.length === 0) return null
