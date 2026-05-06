@@ -216,6 +216,23 @@ const QUALITY_OPTION: ModelSelectOption = {
 
 export const MODEL_CONFIGS: ModelConfig[] = [
   {
+    id: 'gpt-image-2',
+    name: 'GPT Image 2',
+    shortName: 'Image 2',
+    provider: 'openai',
+    apiModel: 'gpt-image-2',
+    // Resolution tiers map to explicit pixel sizes together with the aspect ratio
+    // (see src/lib/openai.ts for the lookup table).
+    resolutions: ['1K', '2K', '4K'],
+    defaultResolution: '1K',
+    aspectRatios: ['1:1', '2:3', '3:2', '3:4', '4:3', '4:5', '5:4', '9:16', '16:9', '21:9', '1:3', '3:1'],
+    defaultAspectRatio: '1:1',
+    maxReferenceImages: 16,
+    maxCharacterImages: 0,
+    maxBatchCount: 4,
+    options: [QUALITY_OPTION],
+  },
+  {
     id: 'nano-banana-2',
     name: 'Nano Banana 2',
     shortName: 'Banana 2',
@@ -253,23 +270,6 @@ export const MODEL_CONFIGS: ModelConfig[] = [
     imageOutputPricePerMillion: 120.0,
     textOutputPricePerMillion: 12.0,
     options: [SEARCH_WEB_OPTION],
-  },
-  {
-    id: 'gpt-image-2',
-    name: 'GPT Image 2',
-    shortName: 'Image 2',
-    provider: 'openai',
-    apiModel: 'gpt-image-2',
-    // Resolution tiers map to explicit pixel sizes together with the aspect ratio
-    // (see src/lib/openai.ts for the lookup table).
-    resolutions: ['1K', '2K', '4K'],
-    defaultResolution: '1K',
-    aspectRatios: ['1:1', '2:3', '3:2', '3:4', '4:3', '4:5', '5:4', '9:16', '16:9', '21:9', '1:3', '3:1'],
-    defaultAspectRatio: '1:1',
-    maxReferenceImages: 16,
-    maxCharacterImages: 0,
-    maxBatchCount: 4,
-    options: [QUALITY_OPTION],
   },
   {
     id: 'doubao-seedream-4-5',

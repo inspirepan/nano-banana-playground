@@ -1,6 +1,6 @@
 import { useCallback, type RefObject } from 'react'
 
-import { MODEL_CONFIGS, getModelShortLabel, type ModelConfig, type Provider } from '../../config/models'
+import { MODEL_CONFIGS, type ModelConfig, type Provider } from '../../config/models'
 import { getProviderConfig } from '../../config/providers'
 import type { ApiKeyStatus } from '../../hooks/useApiKey'
 import { useI18n } from '../../i18n'
@@ -148,22 +148,19 @@ export function GenerateModeView({
         right={<span className="mono text-sm text-(--color-text-4)">{model.apiModel}</span>}
       >
         <div className="grid grid-cols-2 gap-1.5">
-          {MODEL_CONFIGS.map((m) => {
-            const label = getModelShortLabel(m)
-            return (
-              <button
-                key={m.id}
-                type="button"
-                data-active={model.id === m.id}
-                onClick={() => onSwitchModel(m.id)}
-                title={m.name}
-                className="chip min-w-0 justify-center px-2"
-              >
-                <BrandIcon name={getProviderConfig(m.provider).brandIcon} size={12} />
-                <span className="min-w-0 truncate">{label}</span>
-              </button>
-            )
-          })}
+          {MODEL_CONFIGS.map((m) => (
+            <button
+              key={m.id}
+              type="button"
+              data-active={model.id === m.id}
+              onClick={() => onSwitchModel(m.id)}
+              title={m.name}
+              className="chip min-w-0 justify-center px-2"
+            >
+              <BrandIcon name={getProviderConfig(m.provider).brandIcon} size={12} />
+              <span className="min-w-0 truncate">{m.name}</span>
+            </button>
+          ))}
         </div>
       </Section>
 
