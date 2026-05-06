@@ -531,26 +531,31 @@ export function AgentImageTaskCard({
           return (
             <div
               key={id}
-              className="w-full"
+              className="relative w-full"
               style={{
                 aspectRatio: completedAspectRatio,
                 maxHeight: COMPLETED_CELL_MAX_HEIGHT,
               }}
             >
-              <StackItemThumb
-                item={item}
-                number={stackItemNumberByImageId.get(id)}
-                outerRing
-                hoverLift={false}
-                className="h-full w-full"
-                roundedClassName="rounded-none"
-                numberBadgeInset={6}
-                metaBadge={completedMetaBadge}
-                metaBadgeTitle={completedMetaBadge}
-                onSelect={(item) => {
-                  if (task && canFocus) onFocus?.(task, { behavior: 'open', itemId: item.id })
-                }}
-              />
+              {/* Inner absolute wrapper sidesteps the aspect-ratio + max-height
+                  + percentage-height combo that lets some browsers leave the
+                  thumb shorter than the cell, exposing the grid background. */}
+              <div className="absolute inset-0">
+                <StackItemThumb
+                  item={item}
+                  number={stackItemNumberByImageId.get(id)}
+                  outerRing
+                  hoverLift={false}
+                  className="h-full w-full"
+                  roundedClassName="rounded-none"
+                  numberBadgeInset={6}
+                  metaBadge={completedMetaBadge}
+                  metaBadgeTitle={completedMetaBadge}
+                  onSelect={(item) => {
+                    if (task && canFocus) onFocus?.(task, { behavior: 'open', itemId: item.id })
+                  }}
+                />
+              </div>
             </div>
           )
         })}
