@@ -1,6 +1,9 @@
+import { useCallback } from 'react'
 import { displayNameForLanguage, type AgentSkillSummary } from '../../agent'
 import { useI18n } from '../../i18n'
 import { SkillIcon } from '../SkillIcon'
+
+const MOBILE_SKILL_STARTER_MEDIA = '(max-width: 639px)'
 
 export function DrawingSkillStarters({
   skills,
@@ -10,12 +13,26 @@ export function DrawingSkillStarters({
   onPick: (skill: AgentSkillSummary) => void
 }) {
   const { t, language } = useI18n()
+  const centerMobileStarter = useCallback(
+    (node: HTMLDivElement | null) => {
+      if (!node || typeof window === 'undefined' || !window.matchMedia(MOBILE_SKILL_STARTER_MEDIA).matches) return
+      if (skills.length < 2 || node.scrollWidth <= node.clientWidth) return
+
+      const target = node.children.item(Math.floor(skills.length / 2))
+      if (!(target instanceof HTMLElement)) return
+
+      node.scrollLeft = Math.max(0, target.offsetLeft - (node.clientWidth - target.offsetWidth) / 2)
+    },
+    [skills.length],
+  )
+
   return (
     <div className="mx-auto w-full max-w-[980px]">
       <div className="mb-8 text-center">
         <span className="label text-(--color-text-3)">{t('agentChat.empty.skillStarter.title')}</span>
       </div>
       <div
+        ref={centerMobileStarter}
         className="scroll-fade-x grid auto-cols-[124px] grid-flow-col grid-rows-1 snap-x gap-2.5 overflow-x-auto px-7 py-2 scroll-pl-7 [--scroll-fade-end-size:3rem] [--scroll-fade-start-size:3rem] sm:auto-cols-[136px] [&::-webkit-scrollbar]:hidden"
         style={{ scrollbarWidth: 'none' }}
       >
