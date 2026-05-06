@@ -417,7 +417,7 @@ export function AskUserQuestionResultCard({
   return (
     <div
       className="m-1 w-fit max-w-full rounded-[var(--radius-md)] px-3.5 py-3 shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]"
-      style={{ background: 'var(--color-accent-soft)' }}
+      style={{ background: 'var(--bubble-user-bg)' }}
     >
       {structuredAnswers.length > 0 ? (
         renderAnsweredQuestions(structuredAnswers)
