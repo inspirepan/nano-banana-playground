@@ -11,14 +11,12 @@ export function DrawingSkillStarters({
 }) {
   const { t, language } = useI18n()
   return (
-    <div className="mx-auto w-full max-w-[960px]">
-      <div className="mb-10 text-center">
-        <span className="text-[11px] font-normal uppercase tracking-[0.5em] text-(--color-text-3)">
-          {t('agentChat.empty.skillStarter.title')}
-        </span>
+    <div className="mx-auto w-full max-w-[980px]">
+      <div className="mb-8 text-center">
+        <span className="label text-(--color-text-3)">{t('agentChat.empty.skillStarter.title')}</span>
       </div>
       <div
-        className="scroll-fade-x grid auto-cols-[112px] grid-flow-col grid-rows-1 snap-x gap-[2px] overflow-x-auto px-7 py-1.5 scroll-pl-7 [--scroll-fade-end-size:3rem] [--scroll-fade-start-size:3rem] sm:auto-cols-[120px] [&::-webkit-scrollbar]:hidden"
+        className="scroll-fade-x grid auto-cols-[124px] grid-flow-col grid-rows-1 snap-x gap-2.5 overflow-x-auto px-7 py-2 scroll-pl-7 [--scroll-fade-end-size:3rem] [--scroll-fade-start-size:3rem] sm:auto-cols-[136px] [&::-webkit-scrollbar]:hidden"
         style={{ scrollbarWidth: 'none' }}
       >
         {skills.map((skill) => (
@@ -26,20 +24,34 @@ export function DrawingSkillStarters({
             key={skill.name}
             type="button"
             onClick={() => onPick(skill)}
-            className={`group relative h-[152px] w-full snap-start overflow-hidden text-left transition-[filter] hover:brightness-110 ${skill.previewImage ? 'bg-(--color-accent-wash-2)' : 'bg-(--color-bg)'}`}
+            className="img-card group h-[166px] w-full snap-start text-left outline-none transition-[box-shadow,filter,transform] duration-[160ms] ease-[var(--ease-out)] active:scale-[0.98] focus-visible:shadow-[0_0_0_1px_var(--color-accent),0_0_0_3px_var(--color-accent-wash)] sm:h-[178px]"
           >
             {skill.previewImage ? (
-              <img src={skill.previewImage} alt="" className="h-full w-full object-cover" loading="lazy" />
+              <img
+                src={skill.previewImage}
+                alt=""
+                className="h-full w-full object-cover transition-[filter] duration-[160ms] ease-[var(--ease-out)] group-hover:brightness-[1.04]"
+                loading="lazy"
+              />
             ) : (
-              <span className="flex h-full w-full items-center justify-center text-(--color-text-3)">
-                <SkillIcon name={skill.icon} size={36} strokeWidth={1.25} />
+              <span className="flex h-full w-full items-center justify-center bg-(--color-bg-sunken) text-(--color-text-3)">
+                <span className="flex h-11 w-11 items-center justify-center rounded-[var(--radius-lg)] bg-(--color-surface) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
+                  <SkillIcon name={skill.icon} size={28} strokeWidth={1.35} />
+                </span>
               </span>
             )}
-            <span
-              className="absolute inset-x-0 bottom-0 px-2.5 pb-2 pt-6"
-              style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.62) 0%, transparent 100%)' }}
-            >
-              <span className="block truncate text-xs font-normal leading-tight text-white drop-shadow-sm">
+            {skill.previewImage ? (
+              <span className="absolute left-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-[var(--radius-sm)] bg-(--color-surface) text-(--color-text-3) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
+                <SkillIcon name={skill.icon} size={13} strokeWidth={1.9} />
+              </span>
+            ) : null}
+            {skill.previewImage ? (
+              <span className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-[linear-gradient(to_top,rgb(0_0_0_/_0.58),transparent)]" />
+            ) : null}
+            <span className="absolute inset-x-2 bottom-2 flex min-h-6 items-end">
+              <span
+                className={`block truncate text-xs font-medium leading-tight ${skill.previewImage ? 'text-white drop-shadow-[0_1px_2px_rgb(0_0_0_/_0.9)]' : 'text-(--color-text)'}`}
+              >
                 {displayNameForLanguage(skill, language)}
               </span>
             </span>
