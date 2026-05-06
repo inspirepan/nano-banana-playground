@@ -10,7 +10,25 @@ export function generationNetworkErrorMessage(error: Error): string {
   return translate('configLib.generationQueue.networkCorsError', { message: error.message || 'Unknown network error' })
 }
 
+export function generationAbortErrorMessage(): string {
+  return translate('configLib.generationQueue.requestAborted')
+}
+
+export function isAbortError(error: unknown): boolean {
+  if (error instanceof Error) {
+    const message = error.message.trim().toLowerCase()
+    return (
+      error.name === 'AbortError' ||
+      message === 'request was aborted' ||
+      message === 'the operation was aborted' ||
+      message === 'this operation was aborted'
+    )
+  }
+  return String(error).trim().toLowerCase() === 'request was aborted'
+}
+
 export function retryMessage(error: unknown): string {
+  if (isAbortError(error)) return generationAbortErrorMessage()
   if (error instanceof TypeError) return generationNetworkErrorMessage(error)
   if (error instanceof Error) return error.message
   return String(error)
