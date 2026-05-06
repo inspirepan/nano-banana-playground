@@ -358,6 +358,51 @@ export function AgentChatPanel({
   }
   const contentRightPaddingClass = 'px-[var(--panel-pad-x)]'
   const headerPaddingClass = wideLayout ? 'pb-1.5' : 'pb-3'
+  // `my-auto` inside a flex-column scroll container centers content when it
+  // fits and collapses to 0 when content overflows, avoiding the phantom
+  // scroll that `min-h-full` + scrollRef padding produces (min-height: 100%
+  // resolves against parent box height, so scrollHeight exceeds clientHeight
+  // by the padding amount even when there is nothing to scroll).
+  const contentLayoutClass = isEmpty
+    ? `flex min-w-0 flex-col my-auto ${contentRightPaddingClass}`
+    : `space-y-4 ${contentRightPaddingClass}`
+  const composer = (
+    <AgentChatComposer
+      ref={composerRef}
+      error={composerError}
+      attachmentError={attachmentError}
+      draft={draft}
+      attachments={attachments}
+      skills={skills}
+      pendingQuestionCount={pendingQuestions.length}
+      renderItemCount={renderItems.length + queuedMessages.length}
+      nearBottom={nearBottom}
+      openMenu={openMenu}
+      setOpenMenu={setOpenMenu}
+      autoApproveImageTasks={autoApproveImageTasks}
+      model={model}
+      models={models}
+      thinkingLevel={thinkingLevel}
+      keyStatuses={keyStatuses}
+      canSend={canSend}
+      showStop={showStop}
+      isStreaming={isAwaitingAgentResponse}
+      isNewSession={isEmpty}
+      history={history}
+      onDraftChange={onDraftChange}
+      onAddAttachments={onAddAttachments}
+      onAddImageAttachment={onAddImageAttachment}
+      onRemoveAttachment={onRemoveAttachment}
+      onClearAttachmentError={onClearAttachmentError}
+      onToggleAutoApproveImageTasks={onToggleAutoApproveImageTasks}
+      onModelChange={onModelChange}
+      onThinkingLevelChange={onThinkingLevelChange}
+      onOpenApiKeys={onOpenApiKeys}
+      onSend={handleSend}
+      onStop={onStop}
+      scrollToBottom={scrollToBottom}
+    />
+  )
 
   return (
     <div
@@ -427,16 +472,16 @@ export function AgentChatPanel({
         ) : null}
       </div>
 
-      <div className={`flex min-h-0 min-w-0 flex-1 flex-col ${isEmpty ? 'md:pt-[16vh]' : ''}`}>
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <div
           ref={scrollRef}
           className={`min-h-0 ${
             isEmpty
-              ? 'flex-1 overflow-y-auto pt-5 pb-8 md:flex-none md:overflow-visible md:pt-2 md:pb-3'
+              ? 'flex flex-1 flex-col overflow-y-auto pt-5 pb-8 md:pt-2 md:pb-3'
               : 'scroll-fade-y flex-1 overflow-y-auto pt-5 pb-8 md:[scrollbar-gutter:stable_both-edges] [--scroll-fade-end-size:2.25rem] [--scroll-fade-start-size:1.5rem]'
           }`}
         >
-          <div className={`space-y-4 ${contentRightPaddingClass}`}>
+          <div className={contentLayoutClass}>
             {isEmpty ? (
               <AgentChatEmptyState
                 drawingSkills={drawingSkills}
@@ -489,43 +534,7 @@ export function AgentChatPanel({
           </div>
         </div>
 
-        <div className={contentRightPaddingClass}>
-          <AgentChatComposer
-            ref={composerRef}
-            error={composerError}
-            attachmentError={attachmentError}
-            draft={draft}
-            attachments={attachments}
-            skills={skills}
-            pendingQuestionCount={pendingQuestions.length}
-            renderItemCount={renderItems.length + queuedMessages.length}
-            nearBottom={nearBottom}
-            openMenu={openMenu}
-            setOpenMenu={setOpenMenu}
-            autoApproveImageTasks={autoApproveImageTasks}
-            model={model}
-            models={models}
-            thinkingLevel={thinkingLevel}
-            keyStatuses={keyStatuses}
-            canSend={canSend}
-            showStop={showStop}
-            isStreaming={isAwaitingAgentResponse}
-            isNewSession={isEmpty}
-            history={history}
-            onDraftChange={onDraftChange}
-            onAddAttachments={onAddAttachments}
-            onAddImageAttachment={onAddImageAttachment}
-            onRemoveAttachment={onRemoveAttachment}
-            onClearAttachmentError={onClearAttachmentError}
-            onToggleAutoApproveImageTasks={onToggleAutoApproveImageTasks}
-            onModelChange={onModelChange}
-            onThinkingLevelChange={onThinkingLevelChange}
-            onOpenApiKeys={onOpenApiKeys}
-            onSend={handleSend}
-            onStop={onStop}
-            scrollToBottom={scrollToBottom}
-          />
-        </div>
+        <div className={contentRightPaddingClass}>{composer}</div>
       </div>
     </div>
   )

@@ -14,6 +14,8 @@ type Props = {
   onInsertText: (text: string) => void
 }
 
+// Aspect glyph mirrors `.aspect-tile .glyph` (2px radius, inset hairline ring)
+// from AspectRatioSelector so the two call sites read as the same control.
 function AspectGlyph({ ratio }: { ratio: string }) {
   const [w, h] = ratio.split(':').map(Number)
   const max = 10
@@ -33,21 +35,99 @@ function AspectGlyph({ ratio }: { ratio: string }) {
   return (
     <span className="flex h-[12px] w-[12px] shrink-0 items-center justify-center" aria-hidden>
       <span
-        className="rounded-[2px] bg-transparent"
+        className="bg-transparent shadow-[inset_0_0_0_1px_var(--ring-edge-strong)]"
         style={{
           width: gw,
           height: gh,
-          boxShadow: 'inset 0 0 0 1px var(--color-border-strong)',
+          borderRadius: 2,
         }}
       />
     </span>
   )
 }
 
+function QuickCompletePanel({ onInsertText }: { onInsertText: (text: string) => void }) {
+  const { t } = useI18n()
+
+  return (
+    <div className="mx-auto w-full max-w-[980px] overflow-hidden rounded-[var(--radius-lg)] bg-(--color-bg) shadow-[inset_0_0_0_1px_var(--ring-edge)]">
+      <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,0.72fr)]">
+        <section className="min-w-0 p-2">
+          <div className="mb-1.5 flex items-center gap-1.5 text-sm font-semibold text-(--color-text-2)">
+            <Icon name="bot" size={13} className="text-(--color-text-3)" />
+            <span>{t('agentChat.empty.quick.model')}</span>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {MODEL_CONFIGS.map((modelConfig) => (
+              <button
+                key={modelConfig.id}
+                type="button"
+                onClick={() => onInsertText(modelConfig.name)}
+                className="chip min-w-0 gap-1.5 bg-transparent px-2.5 text-sm"
+                style={{ height: 32 }}
+              >
+                <BrandIcon
+                  name={getProviderConfig(modelConfig.provider).brandIcon}
+                  size={13}
+                  className="shrink-0 text-(--color-text-3)"
+                />
+                <span className="truncate">{modelConfig.name}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* Dividers collapse to the top edge on mobile (stacked) and the left
+           edge on md+ (side-by-side) so adjacent sections always sit flush. */}
+        <section className="min-w-0 p-2 shadow-[inset_0_1px_0_var(--ring-edge-soft)] md:shadow-[inset_1px_0_0_var(--ring-edge-soft)]">
+          <div className="mb-1.5 flex items-center gap-1.5 text-sm font-semibold text-(--color-text-2)">
+            <Icon name="crop" size={13} className="text-(--color-text-3)" />
+            <span>{t('agentChat.empty.quick.aspect')}</span>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {ASPECT_RATIO_QUICK_PICKS.map((ratio) => (
+              <button
+                key={ratio}
+                type="button"
+                onClick={() => onInsertText(ratio)}
+                className="chip gap-1.5 bg-transparent px-2.5 text-sm tabular-nums"
+                style={{ height: 32 }}
+              >
+                <AspectGlyph ratio={ratio} />
+                <span>{ratio}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <section className="min-w-0 p-2 shadow-[inset_0_1px_0_var(--ring-edge-soft)] md:shadow-[inset_1px_0_0_var(--ring-edge-soft)]">
+          <div className="mb-1.5 flex items-center gap-1.5 text-sm font-semibold text-(--color-text-2)">
+            <Icon name="maximize" size={13} className="text-(--color-text-3)" />
+            <span>{t('agentChat.empty.quick.resolution')}</span>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {RESOLUTION_QUICK_PICKS.map((resolution) => (
+              <button
+                key={resolution}
+                type="button"
+                onClick={() => onInsertText(resolution)}
+                className="chip gap-1.5 bg-transparent px-2.5 text-sm tabular-nums"
+                style={{ height: 32 }}
+              >
+                <span>{resolution}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+      </div>
+    </div>
+  )
+}
+
 export function AgentChatEmptyState({ drawingSkills, onPickSkill, onInsertText }: Props) {
   const { t } = useI18n()
   return (
-    <div className="flex min-h-[280px] flex-col justify-center gap-10 md:gap-20">
+    <div className="flex w-full min-w-0 flex-col justify-center gap-8 md:gap-12">
       {drawingSkills.length > 0 ? (
         <DrawingSkillStarters skills={drawingSkills} onPick={onPickSkill} />
       ) : (
@@ -60,56 +140,7 @@ export function AgentChatEmptyState({ drawingSkills, onPickSkill, onInsertText }
           </div>
         </div>
       )}
-      <div className="flex w-full flex-col items-stretch gap-2">
-        <div className="flex flex-wrap items-center justify-start gap-1.5">
-          {ASPECT_RATIO_QUICK_PICKS.map((ratio) => (
-            <button
-              key={ratio}
-              type="button"
-              onClick={() => onInsertText(ratio)}
-              className="chip group gap-1.5 px-2 text-sm tabular-nums"
-              style={{ height: 26 }}
-            >
-              <Icon name="plus" size={11} className="shrink-0 text-(--color-text-4)" />
-              <AspectGlyph ratio={ratio} />
-              <span>{ratio}</span>
-            </button>
-          ))}
-        </div>
-        <div className="flex flex-wrap items-center justify-start gap-1.5">
-          {RESOLUTION_QUICK_PICKS.map((resolution) => (
-            <button
-              key={resolution}
-              type="button"
-              onClick={() => onInsertText(resolution)}
-              className="chip gap-1.5 px-2 text-sm tabular-nums"
-              style={{ height: 26 }}
-            >
-              <Icon name="plus" size={11} className="shrink-0 text-(--color-text-4)" />
-              <span>{resolution}</span>
-            </button>
-          ))}
-        </div>
-        <div className="flex flex-wrap items-center justify-start gap-1.5">
-          {MODEL_CONFIGS.map((modelConfig) => (
-            <button
-              key={modelConfig.id}
-              type="button"
-              onClick={() => onInsertText(modelConfig.name)}
-              className="chip gap-1.5 px-2 text-sm"
-              style={{ height: 26 }}
-            >
-              <Icon name="plus" size={11} className="shrink-0 text-(--color-text-4)" />
-              <BrandIcon
-                name={getProviderConfig(modelConfig.provider).brandIcon}
-                size={12}
-                className="shrink-0 text-(--color-text-3)"
-              />
-              <span>{modelConfig.name}</span>
-            </button>
-          ))}
-        </div>
-      </div>
+      <QuickCompletePanel onInsertText={onInsertText} />
     </div>
   )
 }
