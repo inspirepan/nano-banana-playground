@@ -1,6 +1,7 @@
 import { AgentSessionListItem } from './AgentSessionListItem'
 import type { AgentSessionStatusMap, AgentSessionSummary } from '../../agent'
 import { useI18n } from '../../i18n'
+import { getPrimaryModifierKeyLabel } from '../../lib/keyboard'
 import { Icon } from '../Icon'
 
 export function AgentSessionSidebar({
@@ -21,6 +22,7 @@ export function AgentSessionSidebar({
   onDeleteSession: (sessionId: string) => void
 }) {
   const { t } = useI18n()
+  const primaryModifierKey = getPrimaryModifierKeyLabel()
 
   return (
     <aside className="flex h-full min-h-0 flex-col bg-(--color-bg) pr-2 pb-6 pl-[18px]">
@@ -32,7 +34,7 @@ export function AgentSessionSidebar({
         <Icon name="plus" size={13} />
         <span className="min-w-0 flex-1 truncate">{t('agentChat.header.newConversation')}</span>
         <kbd className="shrink-0" aria-hidden="true">
-          ⌘⇧O
+          {primaryModifierKey}+Shift+O
         </kbd>
       </button>
 

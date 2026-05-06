@@ -23,6 +23,7 @@ import { type ModelConfig, type Provider } from '../config/models'
 import { useWindowEvent } from '../hooks/effects'
 import type { ApiKeyStatus } from '../hooks/useApiKey'
 import type { GenerationJob, InputMode } from '../hooks/usePlayground'
+import { hasPrimaryModifier } from '../lib/keyboard'
 import type { PlaygroundImage, PlaygroundImageMeta } from '../lib/types'
 
 type Props = {
@@ -178,14 +179,14 @@ export function InputPanel({
     // remounted textarea gets resized even though `prompt` is unchanged.
   }, [prompt, inputMode])
 
-  // Cmd+Enter shortcut
+  // Primary modifier + Enter shortcut
   useWindowEvent(
     'keydown',
     (e) => {
       const panel = panelRef.current
       if (!panel || panel.getClientRects().length === 0) return
 
-      if (e.metaKey && e.key === 'Enter') {
+      if (hasPrimaryModifier(e) && e.key === 'Enter') {
         e.preventDefault()
         e.stopImmediatePropagation()
         if (inputMode === 'generate' && canGenerate) onGenerate()

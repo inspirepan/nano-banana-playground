@@ -17,6 +17,7 @@ import type { GenerationJob } from '../../hooks/usePlayground'
 import { useI18n } from '../../i18n'
 import { type ItemCounts } from '../../lib/editStateCache'
 import { readFileAsImageData } from '../../lib/fileToImage'
+import { getPrimaryModifierShortcutLabel, hasPrimaryModifier } from '../../lib/keyboard'
 import { getPricePerImage } from '../../lib/pricing'
 import type { PlaygroundImage, PlaygroundImageMeta } from '../../lib/types'
 import { ReferenceImageUpload, type LockedReferenceImage } from '../ReferenceImageUpload'
@@ -210,13 +211,13 @@ export function EditSidebar({
     onSubmitSuccess,
   })
 
-  // Cmd+Enter to submit. Use capture + stopImmediatePropagation so the
+  // Primary modifier + Enter to submit. Use capture + stopImmediatePropagation so the
   // background InputPanels (mobile + desktop) don't also fire their own
-  // window-level Cmd+Enter handlers and trigger duplicate generations.
+  // window-level shortcut handlers and trigger duplicate generations.
   useWindowEvent(
     'keydown',
     (e) => {
-      if (e.metaKey && e.key === 'Enter') {
+      if (hasPrimaryModifier(e) && e.key === 'Enter') {
         e.preventDefault()
         e.stopImmediatePropagation()
         if (canSubmit) void handleGenerate()
@@ -281,7 +282,7 @@ export function EditSidebar({
         <ReferenceImageUpload
           images={extraRefs}
           lockedImages={lockedReferenceImages}
-          hint={t('imageDetail.reference.uploadHint')}
+          hint={t('imageDetail.reference.uploadHint', { shortcut: getPrimaryModifierShortcutLabel('V') })}
           maxTotal={maxExtraRefs}
           dragOver={false}
           error={effectiveRefsError}

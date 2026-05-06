@@ -29,6 +29,7 @@ import { MODEL_CONFIGS, type Provider } from '../../config/models'
 import type { ApiKeyStatus } from '../../hooks/useApiKey'
 import { useComposerSubmitMode } from '../../hooks/useComposerSubmitMode'
 import { useI18n } from '../../i18n'
+import { hasPrimaryModifier } from '../../lib/keyboard'
 import type { PlaygroundImage, PlaygroundImageMeta } from '../../lib/types'
 import { Icon } from '../Icon'
 import { SkillIcon } from '../SkillIcon'
@@ -358,7 +359,7 @@ export const AgentChatComposer = forwardRef<AgentChatComposerHandle, AgentChatCo
         return
       }
     }
-    if (event.key === 'Enter' && event.metaKey) {
+    if (event.key === 'Enter' && hasPrimaryModifier(event)) {
       event.preventDefault()
       if (canSend) onSend()
       return

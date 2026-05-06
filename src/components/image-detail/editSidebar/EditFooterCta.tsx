@@ -1,4 +1,5 @@
 import { useI18n } from '../../../i18n'
+import { getPrimaryModifierKeyLabel } from '../../../lib/keyboard'
 import { Icon } from '../../Icon'
 
 type Props = {
@@ -23,6 +24,7 @@ export function EditFooterCta({
   onSubmit,
 }: Props) {
   const { t } = useI18n()
+  const primaryModifierKey = getPrimaryModifierKeyLabel()
 
   return (
     <div className={className}>
@@ -40,7 +42,7 @@ export function EditFooterCta({
         <span className="flex-1" />
         {showSubmitShortcut && (
           <span className="flex gap-0.5">
-            <kbd>⌘</kbd>
+            <kbd>{primaryModifierKey}</kbd>
             <kbd>⏎</kbd>
           </span>
         )}

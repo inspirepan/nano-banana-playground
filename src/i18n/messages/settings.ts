@@ -225,10 +225,10 @@ export const settingsMessages: MessageDictionary = {
   'settings.generationConcurrency.unlimited': { 'zh-CN': '∞', en: '∞' },
   'settings.composerSubmitMode.title': { 'zh-CN': '对话输入提交方式', en: 'Chat composer submit shortcut' },
   'settings.composerSubmitMode.description': {
-    'zh-CN': '选择 Agent 对话输入框使用 Enter 还是 ⌘/Ctrl+Enter 发送消息。',
-    en: 'Choose whether the agent chat composer sends on Enter or on ⌘/Ctrl+Enter.',
+    'zh-CN': '选择 Agent 对话输入框使用 Enter 还是 {shortcut} 发送消息。',
+    en: 'Choose whether the agent chat composer sends on Enter or on {shortcut}.',
   },
-  'settings.composerSubmitMode.cmdEnter.label': { 'zh-CN': '⌘/Ctrl+Enter 发送', en: 'Send with ⌘/Ctrl+Enter' },
+  'settings.composerSubmitMode.cmdEnter.label': { 'zh-CN': '{shortcut} 发送', en: 'Send with {shortcut}' },
   'settings.composerSubmitMode.cmdEnter.description': {
     'zh-CN': 'Enter 换行',
     en: 'Enter inserts a newline',

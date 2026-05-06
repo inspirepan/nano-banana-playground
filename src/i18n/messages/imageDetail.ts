@@ -193,8 +193,8 @@ export const imageDetailMessages: MessageDictionary = {
   'imageDetail.queue.summary.retrying': { 'zh-CN': '重试 {count}', en: 'Retrying {count}' },
   'imageDetail.reference.count': { 'zh-CN': '{count} 张', en: '{count} images' },
   'imageDetail.reference.uploadHint': {
-    'zh-CN': '可拖入本地图片，或按 ⌘/Ctrl+V 粘贴',
-    en: 'Drop local images, or press ⌘/Ctrl+V to paste',
+    'zh-CN': '可拖入本地图片，或按 {shortcut} 粘贴',
+    en: 'Drop local images, or press {shortcut} to paste',
   },
   'imageDetail.section.details': { 'zh-CN': '详情', en: 'Details' },
   'imageDetail.section.edit': { 'zh-CN': '编辑', en: 'Edit' },

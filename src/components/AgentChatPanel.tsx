@@ -26,6 +26,7 @@ import { useExternalSync, useWindowEvent } from '../hooks/effects'
 import type { ApiKeyStatus } from '../hooks/useApiKey'
 import type { GenerationJob } from '../hooks/usePlayground'
 import { useI18n } from '../i18n'
+import { hasPrimaryModifier } from '../lib/keyboard'
 import { buildImageStacks, type StackItem } from '../lib/stacks'
 import type { PlaygroundImage, PlaygroundImageMeta } from '../lib/types'
 import { AgentChatComposer, type AgentChatComposerHandle } from './agent-chat/AgentChatComposer'
@@ -326,7 +327,7 @@ export function AgentChatPanel({
   }, [draft, handleNewSession, onDraftChange, onSend, scrollToBottomAfterSend])
 
   useWindowEvent('keydown', (event) => {
-    if (!event.metaKey || !event.shiftKey || event.altKey || event.ctrlKey || event.key.toLowerCase() !== 'o') return
+    if (!hasPrimaryModifier(event) || !event.shiftKey || event.altKey || event.key.toLowerCase() !== 'o') return
     if (event.repeat) return
     if (!controlsRef.current?.getClientRects().length) return
     event.preventDefault()

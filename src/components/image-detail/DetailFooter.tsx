@@ -1,4 +1,5 @@
 import { useI18n } from '../../i18n'
+import { getPrimaryModifierKeyLabel } from '../../lib/keyboard'
 import type { StackItem } from '../../lib/stacks'
 import type { PlaygroundImageMeta } from '../../lib/types'
 
@@ -11,6 +12,7 @@ type DetailFooterProps = {
 
 export function DetailFooter({ editing, currentImage, selectedItem, stackId }: DetailFooterProps) {
   const { t } = useI18n()
+  const primaryModifierKey = getPrimaryModifierKeyLabel()
 
   return (
     <div
@@ -35,7 +37,7 @@ export function DetailFooter({ editing, currentImage, selectedItem, stackId }: D
       )}
       {editing && (
         <span className="inline-flex items-center gap-1.5">
-          <kbd>⌘</kbd>
+          <kbd>{primaryModifierKey}</kbd>
           <kbd>Z</kbd> {t('imageDetail.footer.undo')}
         </span>
       )}

@@ -4,6 +4,7 @@ import { MODEL_CONFIGS, type ModelConfig, type Provider } from '../../config/mod
 import { getProviderConfig } from '../../config/providers'
 import type { ApiKeyStatus } from '../../hooks/useApiKey'
 import { useI18n } from '../../i18n'
+import { getPrimaryModifierKeyLabel } from '../../lib/keyboard'
 import { openAISize } from '../../lib/openai'
 import { getPricePerImage } from '../../lib/pricing'
 import type { PlaygroundImage } from '../../lib/types'
@@ -89,6 +90,7 @@ export function GenerateModeView({
   const estimatedCost = pricePerImage !== null ? pricePerImage * batchCount : null
   const optionSummaryLabels = getOptionSummaryLabels(model, options)
   const optionSummary = optionSummaryLabels.join(t('input.summary.optionSeparator'))
+  const primaryModifierKey = getPrimaryModifierKeyLabel()
 
   const currentKeyStatus = keyStatuses[model.provider]
   const isCurrentKeyMissing = currentKeyStatus === 'empty' || apiKey.trim() === ''
@@ -353,7 +355,7 @@ export function GenerateModeView({
           <span>{t('input.generateWithModel', { model: model.name, count: batchCount })}</span>
           <span className="flex-1" />
           <span className="flex gap-0.5">
-            <kbd>⌘</kbd>
+            <kbd>{primaryModifierKey}</kbd>
             <kbd>⏎</kbd>
           </span>
         </button>
