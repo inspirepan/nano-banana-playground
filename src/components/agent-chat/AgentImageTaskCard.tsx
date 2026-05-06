@@ -7,6 +7,7 @@ import { useExternalSync } from '../../hooks/effects'
 import { useImageSrc } from '../../hooks/useImageSrc'
 import { useI18n } from '../../i18n'
 import type { StackItem } from '../../lib/stacks'
+import { compactImageIdLabel } from '../../lib/imageIdLabel'
 import { Icon } from '../Icon'
 import { StackItemThumb } from '../StackItemThumb'
 import type { AgentImageTaskFocusHandler } from './types'
@@ -85,6 +86,23 @@ function parseAspectRatioCss(value: string | undefined): string {
   return `${match[1]} / ${match[2]}`
 }
 
+function hasCompleteGenImageArguments(call: AgentMessageToolCall): boolean {
+  const args = call.arguments
+  return (
+    typeof args.image_id === 'string' &&
+    args.image_id.trim() !== '' &&
+    typeof args.prompt === 'string' &&
+    args.prompt.trim() !== '' &&
+    typeof args.model === 'string' &&
+    args.model.trim() !== '' &&
+    typeof args.resolution === 'string' &&
+    args.resolution.trim() !== '' &&
+    typeof args.ratio === 'string' &&
+    args.ratio.trim() !== '' &&
+    typeof args.n === 'number'
+  )
+}
+
 // Largest WxH box that fits within `max` on both sides for the given ratio.
 function fitWithinBox(aspectRatioCss: string, max: number): { width: number; height: number } {
   const [w, h] = aspectRatioCss.split('/').map((part) => Number(part.trim()))
@@ -93,6 +111,15 @@ function fitWithinBox(aspectRatioCss: string, max: number): { width: number; hei
   if (ratio >= 1) return { width: max, height: Math.round(max / ratio) }
   return { width: Math.round(max * ratio), height: max }
 }
+
+// Width cap that keeps a cell's height under `maxHeight` for the given ratio.
+function maxCellWidthForHeight(aspectRatioCss: string, maxHeight: number): number {
+  const [w, h] = aspectRatioCss.split('/').map((part) => Number(part.trim()))
+  if (!w || !h) return maxHeight
+  return Math.round(maxHeight * (w / h))
+}
+
+const COMPLETED_CELL_MAX_HEIGHT = 480
 
 function getCompletedGridColumnCount(count: number): number {
   if (count <= 3) return Math.max(1, count)
@@ -220,7 +247,7 @@ function AgentImagePromptBox({ text }: { text: string }) {
     measurement?.collapsedTextMaxHeight ?? DEFAULT_PROMPT_BOX_MEASUREMENT.collapsedTextMaxHeight
 
   return (
-    <div className="mt-2 max-w-[432px]">
+    <div className="mt-2 max-w-[532px]">
       <div className="rounded-[var(--radius-sm)] bg-(--color-surface) px-2 pt-1.5 pb-2 text-base leading-[1.5] text-(--color-text-3) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
         <div
           ref={ref}
@@ -278,7 +305,7 @@ export function AgentImageTaskCard({
   const touchStartRef = useRef<{ x: number; y: number } | null>(null)
   const ignoreNextShellClickRef = useRef(false)
 
-  const isComposingPrompt = isStreaming && !task && !result
+  const isComposingPrompt = isStreaming && !task && !result && !hasCompleteGenImageArguments(call)
   const status: AgentImageTask['status'] = task?.status ?? (result?.isError ? 'failed' : 'pending_approval')
   const isCompleted = status === 'completed'
   const isFailed = status === 'failed'
@@ -292,7 +319,8 @@ export function AgentImageTaskCard({
   const requestedCountFromArgs = typeof call.arguments.n === 'number' ? call.arguments.n : 1
   const promptFromArgs = typeof call.arguments.prompt === 'string' ? call.arguments.prompt : ''
   const targetIds = reservedIds.length > 0 ? reservedIds : requestedFromArgs ? [requestedFromArgs] : []
-  const targetIdLabel = targetIds.length > 0 ? targetIds.join(', ') : null
+  const targetIdLabel = compactImageIdLabel(targetIds)
+  const targetIdTitle = targetIds.length > 1 ? Array.from(new Set(targetIds)).join(', ') : targetIdLabel
 
   const promptText = task?.request.prompt ?? promptFromArgs
   const referenceIds = task?.request.referenceImageIds ?? []
@@ -380,7 +408,10 @@ export function AgentImageTaskCard({
     ) : null
 
   const targetIdNode = targetIdLabel ? (
-    <span className="mono min-w-0 truncate text-sm font-medium text-(--color-text)" title={targetIdLabel}>
+    <span
+      className="mono min-w-0 truncate text-sm font-medium text-(--color-text)"
+      title={targetIdTitle ?? targetIdLabel}
+    >
       {targetIdLabel}
     </span>
   ) : null
@@ -424,18 +455,19 @@ export function AgentImageTaskCard({
         const item = stackItemByImageId.get(id)
         items.push(
           item ? (
-            <StackItemThumb
-              key={id}
-              item={item}
-              number={stackItemNumberByImageId.get(id)}
-              outerRing
-              hoverLift={false}
-              className="aspect-square w-full"
-              numberBadgeInset={6}
-              onSelect={() => {
-                if (canFocus) onFocus?.(task, { behavior: 'open' })
-              }}
-            />
+            <div key={id} className="w-full" style={{ aspectRatio: aspectRatioCss }}>
+              <StackItemThumb
+                item={item}
+                number={stackItemNumberByImageId.get(id)}
+                outerRing
+                hoverLift={false}
+                className="h-full w-full"
+                numberBadgeInset={6}
+                onSelect={() => {
+                  if (canFocus) onFocus?.(task, { behavior: 'open' })
+                }}
+              />
+            </div>
           ) : (
             <GenImageResultThumb key={id} id={id} />
           ),
@@ -485,29 +517,41 @@ export function AgentImageTaskCard({
         </div>
       )
     }
+    const completedAspectRatio = task ? parseAspectRatioCss(task.request.aspectRatio) : '1 / 1'
+    const completedCellMaxWidth = maxCellWidthForHeight(completedAspectRatio, COMPLETED_CELL_MAX_HEIGHT)
     return (
       <div
         className="grid gap-px overflow-hidden bg-(--agent-image-task-empty-bg)"
-        style={{ gridTemplateColumns: `repeat(${getCompletedGridColumnCount(visibleIds.length)}, minmax(0, 1fr))` }}
+        style={{
+          gridTemplateColumns: `repeat(${getCompletedGridColumnCount(visibleIds.length)}, minmax(0, ${completedCellMaxWidth}px))`,
+        }}
       >
         {visibleIds.map((id) => {
           const item = stackItemByImageId.get(id)!
           return (
-            <StackItemThumb
+            <div
               key={id}
-              item={item}
-              number={stackItemNumberByImageId.get(id)}
-              outerRing
-              hoverLift={false}
-              className="aspect-square w-full"
-              roundedClassName="rounded-none"
-              numberBadgeInset={6}
-              metaBadge={completedMetaBadge}
-              metaBadgeTitle={completedMetaBadge}
-              onSelect={(item) => {
-                if (task && canFocus) onFocus?.(task, { behavior: 'open', itemId: item.id })
+              className="w-full"
+              style={{
+                aspectRatio: completedAspectRatio,
+                maxHeight: COMPLETED_CELL_MAX_HEIGHT,
               }}
-            />
+            >
+              <StackItemThumb
+                item={item}
+                number={stackItemNumberByImageId.get(id)}
+                outerRing
+                hoverLift={false}
+                className="h-full w-full"
+                roundedClassName="rounded-none"
+                numberBadgeInset={6}
+                metaBadge={completedMetaBadge}
+                metaBadgeTitle={completedMetaBadge}
+                onSelect={(item) => {
+                  if (task && canFocus) onFocus?.(task, { behavior: 'open', itemId: item.id })
+                }}
+              />
+            </div>
           )
         })}
       </div>
@@ -536,7 +580,7 @@ export function AgentImageTaskCard({
               }
             : undefined
         }
-        className={`group relative w-full overflow-hidden rounded-[var(--radius-lg)] bg-(--agent-image-task-empty-bg) shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-lift)] md:m-1 md:max-w-[460px] ${canFocus ? 'cursor-pointer' : ''}`}
+        className={`group relative w-fit overflow-hidden rounded-[var(--radius-lg)] bg-(--agent-image-task-empty-bg) shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-lift)] md:m-1 md:max-w-[560px] ${canFocus ? 'cursor-pointer' : ''}`}
       >
         {renderCompletedGrid()}
         {canFocus && (
@@ -576,11 +620,11 @@ export function AgentImageTaskCard({
             }
           : undefined
       }
-      className={`w-full rounded-[var(--radius-lg)] bg-(--color-surface) px-3 py-2.5 ${shellShadowClass} md:m-1 md:max-w-[460px] ${isPendingApproval ? 'agent-image-task-card-pending' : ''} ${canFocus ? 'cursor-pointer transition-colors duration-150 hover:bg-[color-mix(in_srgb,var(--color-surface-2)_50%,var(--color-surface))]' : ''} ${isDimmed ? 'opacity-60' : ''}`}
+      className={`w-full rounded-[var(--radius-lg)] bg-(--color-surface) px-3 py-2.5 ${shellShadowClass} md:m-1 md:max-w-[560px] ${isPendingApproval ? 'agent-image-task-card-pending' : ''} ${canFocus ? 'cursor-pointer transition-colors duration-150 hover:bg-[color-mix(in_srgb,var(--color-surface-2)_50%,var(--color-surface))]' : ''} ${isDimmed ? 'opacity-60' : ''}`}
     >
       {/* Composing micro header (only state that gets a header) */}
       {isComposingPrompt && (
-        <div className="flex max-w-[432px] min-w-0 items-center justify-between gap-2 px-2">
+        <div className="flex max-w-[532px] min-w-0 items-center justify-between gap-2 px-2">
           {targetIdNode}
           <span className="ml-auto inline-flex shrink-0 items-center gap-2 text-sm text-(--color-text-3)">
             <span className="spinner" style={{ width: 10, height: 10 }} />
@@ -591,7 +635,7 @@ export function AgentImageTaskCard({
 
       {/* Target id on the left, generation parameter tags on the right. */}
       {!isComposingPrompt && (approvalStatusNode || activeStatusNode || paramTags || targetIdNode) && (
-        <div className="flex max-w-[432px] min-w-0 items-start justify-between gap-2 px-2">
+        <div className="flex max-w-[532px] min-w-0 items-start justify-between gap-2 px-2">
           {(targetIdNode || approvalStatusNode) && (
             <div className="flex min-w-0 items-center gap-1.5">
               {targetIdNode}

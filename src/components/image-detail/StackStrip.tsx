@@ -2,6 +2,7 @@ import { Fragment, memo, useMemo, useRef, type MutableRefObject, type ReactNode 
 
 import { useExternalSync } from '../../hooks/effects'
 import { useI18n, type Translate } from '../../i18n'
+import { compactImageIdLabel } from '../../lib/imageIdLabel'
 import type { ImageStack, StackItem } from '../../lib/stacks'
 import { StackItemThumb } from '../StackItemThumb'
 
@@ -22,35 +23,6 @@ function agentImageIdOf(item: StackItem): string | null {
 
   if (item.job.request.outputImageIdSource !== 'agent') return null
   return item.slot.outputImageId ?? item.job.request.outputImageIds?.[item.slot.index] ?? null
-}
-
-function numericSuffixCandidates(id: string): string[] {
-  const candidates = [id]
-  let current = id
-  while (true) {
-    const match = /^(.*)_\d+$/.exec(current)
-    if (!match?.[1]) return candidates
-    current = match[1]
-    candidates.push(current)
-  }
-}
-
-function matchesNumericSequence(id: string, base: string): boolean {
-  if (id === base) return true
-  if (!id.startsWith(`${base}_`)) return false
-  return /^\d+$/.test(id.slice(base.length + 1))
-}
-
-function batchImageIdLabel(ids: string[]): string | null {
-  const uniqueIds = Array.from(new Set(ids.filter(Boolean)))
-  if (uniqueIds.length === 0) return null
-  if (uniqueIds.length === 1) return uniqueIds[0]
-
-  return (
-    numericSuffixCandidates(uniqueIds[0]).find((candidate) =>
-      uniqueIds.every((id) => matchesNumericSequence(id, candidate)),
-    ) ?? uniqueIds[0]
-  )
 }
 
 function buildStackStripBatches(items: StackItem[]): StackStripBatch[] {
@@ -97,7 +69,7 @@ function buildStackStripBatches(items: StackItem[]): StackStripBatch[] {
   return order.map((id) => {
     const batch = map.get(id) as StackStripBatch
     const imageIds = imageIdsByBatch.get(id) ?? []
-    const label = batchImageIdLabel(imageIds)
+    const label = compactImageIdLabel(imageIds)
     return {
       ...batch,
       imageIdLabel: label,
