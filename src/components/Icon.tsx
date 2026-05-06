@@ -13,6 +13,7 @@ import {
   CirclePlay,
   CircleStop,
   Copy,
+  Crop,
   Download,
   Eraser,
   GripVertical,
@@ -69,6 +70,7 @@ export type IconName =
   | 'close'
   | 'contrast'
   | 'copy'
+  | 'crop'
   | 'dark_mode'
   | 'download'
   | 'drag'
@@ -131,6 +133,7 @@ const ICONS = {
   close: X,
   contrast: Monitor,
   copy: Copy,
+  crop: Crop,
   dark_mode: Moon,
   download: Download,
   drag: GripVertical,
