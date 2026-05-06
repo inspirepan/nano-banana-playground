@@ -409,7 +409,7 @@ export function AgentImageTaskCard({
 
   const targetIdNode = targetIdLabel ? (
     <span
-      className="mono min-w-0 truncate text-sm font-medium text-(--color-text)"
+      className="mono min-w-0 break-all text-sm leading-[1.35] font-medium text-(--color-text)"
       title={targetIdTitle ?? targetIdLabel}
     >
       {targetIdLabel}
@@ -640,22 +640,24 @@ export function AgentImageTaskCard({
 
       {/* Target id on the left, generation parameter tags on the right. */}
       {!isComposingPrompt && (approvalStatusNode || activeStatusNode || paramTags || targetIdNode) && (
-        <div className="flex max-w-[532px] min-w-0 items-start justify-between gap-2 px-2">
+        <div className="flex max-w-[532px] min-w-0 flex-col items-stretch gap-1.5 px-2 md:flex-row md:items-start md:justify-between md:gap-2">
           {(targetIdNode || approvalStatusNode) && (
-            <div className="flex min-w-0 items-center gap-1.5">
+            <div className="flex min-w-0 flex-wrap items-center gap-1.5">
               {targetIdNode}
               {approvalStatusNode}
             </div>
           )}
           {(activeStatusNode || paramTags || isFailed) && (
-            <div className="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-x-2 gap-y-1">
-              {activeStatusNode}
-              {paramTags}
-              {isFailed && (
-                <span className="inline-flex items-center" style={{ color: 'var(--color-danger)' }}>
-                  <Icon name="alert_circle" size={13} />
-                </span>
-              )}
+            <div className="flex min-w-0 items-start justify-between gap-2 md:ml-auto md:shrink-0">
+              <div className="flex min-w-0 items-center">{activeStatusNode}</div>
+              <div className="flex flex-wrap items-center justify-end gap-x-2 gap-y-1">
+                {paramTags}
+                {isFailed && (
+                  <span className="inline-flex items-center" style={{ color: 'var(--color-danger)' }}>
+                    <Icon name="alert_circle" size={13} />
+                  </span>
+                )}
+              </div>
             </div>
           )}
         </div>
