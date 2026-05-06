@@ -19,7 +19,13 @@ function resolveDoubaoBaseUrl(baseUrl?: string): string {
   const trimmed = baseUrl?.trim() || getProviderConfig('doubao').defaultBaseUrl
   if (trimmed.startsWith('/')) return trimmed.replace(/\/+$/, '')
   const raw = (/^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`).replace(/\/+$/, '')
-  const parsed = new URL(raw)
+  // Live preview calls this on every keystroke; a partial URL must not throw.
+  let parsed: URL
+  try {
+    parsed = new URL(raw)
+  } catch {
+    return raw
+  }
   if (parsed.pathname.startsWith('/api/llm/')) return raw
   if (parsed.hostname === 'ark.cn-beijing.volces.com' && (parsed.pathname === '' || parsed.pathname === '/')) {
     return `${raw}/api/v3`

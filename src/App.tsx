@@ -1,5 +1,4 @@
-import { Component, lazy, Suspense, useCallback, useMemo, useState } from 'react'
-import type { ReactNode } from 'react'
+import { lazy, Suspense, useCallback, useMemo, useState } from 'react'
 
 import { buildSharedInputPanelProps } from './App/buildInputPanelProps'
 import { DesktopLayout } from './App/DesktopLayout'
@@ -10,9 +9,9 @@ import { useDocumentTitle } from './App/useDocumentTitle'
 import { useMobileDetailModal } from './App/useMobileDetailModal'
 import { useRegenerationToast } from './App/useRegenerationToast'
 import { useThemeAndLanguage } from './App/useThemeAndLanguage'
+import { LazyChunkLoadErrorBoundary } from './components/LazyChunkLoadErrorBoundary'
 import { usePlayground } from './hooks/usePlayground'
 import { createTranslator, I18nProvider } from './i18n'
-import type { Translate } from './i18n/types'
 import { recoverFromLazyChunkLoadError } from './lib/lazyChunkRecovery'
 import type { PlaygroundImageMeta } from './lib/types'
 
@@ -23,52 +22,6 @@ const SettingsDialog = lazy(() =>
 )
 
 type SettingsTarget = 'apiKeys' | 'generationConcurrency'
-
-function SettingsDialogLoadError({ t, onClose }: { t: Translate; onClose: () => void }) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/20 backdrop-blur-[2px] dark:bg-black/60" />
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label={t('settings.loadError.title')}
-        className="relative flex w-full max-w-sm flex-col gap-4 rounded-[var(--radius-lg)] bg-(--color-surface) p-5 shadow-[0_0_0_1px_var(--ring-edge-elevated),var(--shadow-float)]"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="space-y-1.5">
-          <h2 className="font-display text-base font-semibold tracking-[-0.01em]">{t('settings.loadError.title')}</h2>
-          <p className="max-w-[60ch] text-pretty text-sm leading-5 text-(--color-text-2)">
-            {t('settings.loadError.description')}
-          </p>
-        </div>
-        <div className="flex justify-end gap-2">
-          <button type="button" onClick={onClose} className="chip ghost">
-            {t('common.close')}
-          </button>
-          <button type="button" onClick={() => window.location.reload()} className="chip">
-            {t('common.refresh')}
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-class SettingsDialogErrorBoundary extends Component<
-  { children: ReactNode; t: Translate; onClose: () => void },
-  { error: unknown | null }
-> {
-  state = { error: null }
-
-  static getDerivedStateFromError(error: unknown) {
-    return { error }
-  }
-
-  render() {
-    if (this.state.error) return <SettingsDialogLoadError t={this.props.t} onClose={this.props.onClose} />
-    return this.props.children
-  }
-}
 
 function App() {
   const pg = usePlayground()
@@ -257,7 +210,13 @@ function App() {
       </div>
 
       {settingsOpen && (
-        <SettingsDialogErrorBoundary t={t} onClose={() => setSettingsOpen(false)}>
+        <LazyChunkLoadErrorBoundary
+          title={t('settings.loadError.title')}
+          description={t('settings.loadError.description')}
+          closeLabel={t('common.close')}
+          refreshLabel={t('common.refresh')}
+          onClose={() => setSettingsOpen(false)}
+        >
           <Suspense fallback={null}>
             <SettingsDialog
               open={settingsOpen}
@@ -279,7 +238,7 @@ function App() {
               onClose={() => setSettingsOpen(false)}
             />
           </Suspense>
-        </SettingsDialogErrorBoundary>
+        </LazyChunkLoadErrorBoundary>
       )}
     </I18nProvider>
   )
