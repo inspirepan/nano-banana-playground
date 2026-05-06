@@ -25,7 +25,7 @@ import {
   type AgentModelConfig,
   type AgentThinkingLevel,
 } from '../../config/agentModels'
-import { MODEL_CONFIGS, type Provider } from '../../config/models'
+import type { Provider } from '../../config/models'
 import type { ApiKeyStatus } from '../../hooks/useApiKey'
 import { useComposerSubmitMode } from '../../hooks/useComposerSubmitMode'
 import { useI18n } from '../../i18n'
@@ -74,27 +74,6 @@ function getSlashCompletionContext(value: string, cursor: number): SlashCompleti
   const query = beforeCursor.slice(slashIndex + 1)
   if (!/^[A-Za-z0-9-]*$/.test(query)) return null
   return { start: slashIndex, end: cursor, query: query.toLowerCase() }
-}
-
-const MODEL_COMPLETION_NAMES = MODEL_CONFIGS.map((m) => m.name)
-
-function findModelCompletion(beforeCursor: string): { start: number; name: string } | null {
-  if (beforeCursor.length < 2) return null
-  let best: { start: number; name: string } | null = null
-  for (const name of MODEL_COMPLETION_NAMES) {
-    const lower = name.toLowerCase()
-    const max = Math.min(beforeCursor.length, lower.length - 1)
-    for (let len = max; len >= 2; len--) {
-      const candidate = beforeCursor.slice(-len)
-      if (!lower.startsWith(candidate.toLowerCase())) continue
-      const before = beforeCursor[beforeCursor.length - len - 1]
-      if (before !== undefined && /[A-Za-z0-9]/.test(before)) break
-      const start = beforeCursor.length - len
-      if (!best || len > beforeCursor.length - best.start) best = { start, name }
-      break
-    }
-  }
-  return best
 }
 
 type AgentChatComposerProps = {
@@ -214,21 +193,6 @@ export const AgentChatComposer = forwardRef<AgentChatComposerHandle, AgentChatCo
   const showSlashSuggestions =
     composerFocused && openMenu === null && slashContext !== null && slashSuggestions.length > 0
   const activeSlashIndex = Math.min(slashActiveIndex, Math.max(0, slashSuggestions.length - 1))
-  const cursorAtEnd = cursorOffset === draft.length
-  const activeSlashSuggestion = showSlashSuggestions ? slashSuggestions[activeSlashIndex] : null
-  const slashGhostSuffix =
-    activeSlashSuggestion && slashContext && cursorAtEnd
-      ? activeSlashSuggestion.name.toLowerCase().startsWith(slashContext.query)
-        ? activeSlashSuggestion.name.slice(slashContext.query.length)
-        : ''
-      : ''
-  const modelCompletion =
-    !slashContext && cursorAtEnd && composerFocused ? findModelCompletion(draft.slice(0, cursorOffset)) : null
-  const modelGhostSuffix = modelCompletion
-    ? modelCompletion.name.slice(draft.slice(0, cursorOffset).length - modelCompletion.start)
-    : ''
-  const ghostSuffix = slashGhostSuffix || modelGhostSuffix
-  const showGhost = ghostSuffix.length > 0
 
   useImperativeHandle(
     ref,
@@ -285,21 +249,6 @@ export const AgentChatComposer = forwardRef<AgentChatComposerHandle, AgentChatCo
     event.target.value = ''
   }
 
-  const applyModelCompletion = () => {
-    if (!modelCompletion) return
-    const insertion = `${modelCompletion.name} `
-    const nextDraft = `${draft.slice(0, modelCompletion.start)}${insertion}${draft.slice(cursorOffset)}`
-    const cursor = modelCompletion.start + insertion.length
-    onDraftChange(nextDraft)
-    setCursorOffset(cursor)
-    requestAnimationFrame(() => {
-      const textarea = textareaRef.current
-      if (!textarea) return
-      if (!shouldSkipProgrammaticComposerFocus()) textarea.focus({ preventScroll: true })
-      textarea.setSelectionRange(cursor, cursor)
-    })
-  }
-
   const applySlashSuggestion = (suggestion: SlashSuggestion) => {
     const textarea = textareaRef.current
     const context = getSlashCompletionContext(draft, textarea?.selectionStart ?? draft.length)
@@ -336,11 +285,6 @@ export const AgentChatComposer = forwardRef<AgentChatComposerHandle, AgentChatCo
         applySlashSuggestion(slashSuggestions[activeSlashIndex])
         return
       }
-      if (event.key === 'ArrowRight' && showGhost && !event.shiftKey && !event.metaKey && !event.ctrlKey) {
-        event.preventDefault()
-        applySlashSuggestion(slashSuggestions[activeSlashIndex])
-        return
-      }
       if (event.key === 'Enter' && !event.shiftKey && !event.metaKey && !event.ctrlKey && !event.altKey) {
         event.preventDefault()
         applySlashSuggestion(slashSuggestions[activeSlashIndex])
@@ -349,13 +293,6 @@ export const AgentChatComposer = forwardRef<AgentChatComposerHandle, AgentChatCo
       if (event.key === 'Escape') {
         event.preventDefault()
         setComposerFocused(false)
-        return
-      }
-    }
-    if (modelGhostSuffix && !event.shiftKey && !event.metaKey && !event.ctrlKey && !event.altKey) {
-      if (event.key === 'Tab' || event.key === 'ArrowRight') {
-        event.preventDefault()
-        applyModelCompletion()
         return
       }
     }
@@ -442,18 +379,6 @@ export const AgentChatComposer = forwardRef<AgentChatComposerHandle, AgentChatCo
               style={{ maxHeight: `${maxComposerHeight}px` }}
               className="block min-h-[44px] w-full resize-none bg-transparent px-3 pt-2.5 pb-1 text-[16px] leading-[1.55] text-(--color-text) focus:outline-none md:text-base"
             />
-            {showGhost && (
-              <div
-                aria-hidden
-                className="pointer-events-none absolute inset-0 px-3 pt-2.5 pb-1 text-[16px] leading-[1.55] break-words whitespace-pre-wrap md:text-base"
-              >
-                <span className="text-transparent">{draft}</span>
-                <span className="text-(--color-text-4)">{ghostSuffix}</span>
-                <kbd className="ml-1 inline-flex h-[18px] items-center rounded-[var(--radius-xs)] bg-(--color-surface-2) px-1 text-xs leading-none text-(--color-text-3) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
-                  →
-                </kbd>
-              </div>
-            )}
           </div>
 
           <ComposerActions
