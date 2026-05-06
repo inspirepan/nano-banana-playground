@@ -2,6 +2,7 @@ import { useMemo, useRef, useState, type ChangeEvent } from 'react'
 
 import type { AgentSkillCreateInput } from '../../agent'
 import { setComposerSubmitMode, type ComposerSubmitMode } from '../../config/composerSubmitMode'
+import { setStripDownloadMetadata } from '../../config/downloadMetadata'
 import type { AgentThinkingLevel } from '../../config/agentModels'
 import type { LanguagePreference } from '../../config/languages'
 import type { Provider } from '../../config/models'
@@ -51,6 +52,7 @@ type SettingsBackupTabProps = {
 const GROUP_ORDER: SettingsImportGroup[] = [
   'appearance',
   'generation',
+  'download',
   'agent',
   'serviceProviders',
   'webTools',
@@ -562,6 +564,9 @@ function applyPreference(
       return
     case 'composerSubmitMode':
       setComposerSubmitMode(payload.value as ComposerSubmitMode)
+      return
+    case 'stripDownloadMetadata':
+      setStripDownloadMetadata(Boolean(payload.value))
       return
   }
 }

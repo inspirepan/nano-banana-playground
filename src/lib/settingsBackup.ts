@@ -24,6 +24,7 @@ import {
   readLanguagePreference,
   readPreferredAgentModelPreference,
   readPreferredAgentThinkingLevelPreference,
+  readStripDownloadMetadataPreference,
   readThemePreference,
 } from './preferenceStore'
 import { readProviderApiKey, readProviderBaseUrl, readProviderUseProxy } from './credentialStore'
@@ -77,10 +78,12 @@ export type PreferenceImportKey =
   | 'preferredAgentModel'
   | 'preferredAgentThinkingLevel'
   | 'composerSubmitMode'
+  | 'stripDownloadMetadata'
 
 export type SettingsImportGroup =
   | 'appearance'
   | 'generation'
+  | 'download'
   | 'agent'
   | 'serviceProviders'
   | 'webTools'
@@ -231,6 +234,13 @@ const PREFERENCE_DESCRIPTORS: PreferenceDescriptor[] = [
     labelKey: 'settings.backup.item.composerSubmitMode',
     read: getComposerSubmitMode,
     normalize: (value) => (value === 'cmdEnter' || value === 'enter' ? (value as ComposerSubmitMode) : null),
+  },
+  {
+    key: 'stripDownloadMetadata',
+    group: 'download',
+    labelKey: 'settings.backup.item.stripDownloadMetadata',
+    read: readStripDownloadMetadataPreference,
+    normalize: normalizeBoolean,
   },
 ]
 

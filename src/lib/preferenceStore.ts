@@ -12,6 +12,7 @@ const DETAIL_SIDEBAR_COLLAPSED_KEY = 'nano-banana-detail-sidebar-collapsed'
 const PREFERRED_AGENT_MODEL_KEY = 'nano-banana-agent-model'
 const PREFERRED_AGENT_THINKING_LEVEL_KEY = 'nano-banana-agent-thinking-level'
 const COMPOSER_SUBMIT_MODE_KEY = 'nano-banana-composer-submit-mode'
+const STRIP_DOWNLOAD_METADATA_KEY = 'nano-banana-strip-download-metadata'
 
 function read(key: string): string | null {
   return getStorageItem('localStorage', key)
@@ -91,4 +92,12 @@ export function readComposerSubmitModePreference(): string | null {
 
 export function writeComposerSubmitModePreference(mode: string): boolean {
   return write(COMPOSER_SUBMIT_MODE_KEY, mode)
+}
+
+export function readStripDownloadMetadataPreference(): boolean {
+  return read(STRIP_DOWNLOAD_METADATA_KEY) === '1'
+}
+
+export function writeStripDownloadMetadataPreference(strip: boolean): boolean {
+  return write(STRIP_DOWNLOAD_METADATA_KEY, strip ? '1' : '0')
 }

@@ -6,6 +6,7 @@ import type { AgentSkill, AgentSkillCreateInput, AgentSkillSummary } from '../ag
 import { ApiKeySettingsTab, type KeyHook } from './settings/ApiKeySettingsTab'
 import { AppearanceSettingsTab } from './settings/AppearanceSettingsTab'
 import { DataSettingsTab } from './settings/DataSettingsTab'
+import { DownloadSettingsTab } from './settings/DownloadSettingsTab'
 import { GenerationSettingsTab } from './settings/GenerationSettingsTab'
 import { SettingsBackupTab } from './settings/SettingsBackupTab'
 import { SkillsSettingsTab } from './settings/SkillsSettingsTab'
@@ -39,13 +40,14 @@ import {
   type WebProviderApiKeys,
 } from '../lib/webProviderStore'
 
-type SettingsTab = 'appearance' | 'api' | 'web' | 'generation' | 'skills' | 'backup' | 'data'
+type SettingsTab = 'appearance' | 'api' | 'web' | 'generation' | 'download' | 'skills' | 'backup' | 'data'
 
 const SETTINGS_TABS: { id: SettingsTab; labelKey: string; icon: IconName }[] = [
   { id: 'api', labelKey: 'settings.tabs.api', icon: 'key' },
   { id: 'appearance', labelKey: 'settings.tabs.appearance', icon: 'palette' },
   { id: 'web', labelKey: 'settings.tabs.web', icon: 'search' },
   { id: 'generation', labelKey: 'settings.tabs.generation', icon: 'sparkles' },
+  { id: 'download', labelKey: 'settings.tabs.download', icon: 'eraser' },
   { id: 'skills', labelKey: 'settings.tabs.skills', icon: 'wand' },
   { id: 'backup', labelKey: 'settings.tabs.backup', icon: 'download' },
   { id: 'data', labelKey: 'settings.tabs.data', icon: 'settings' },
@@ -396,6 +398,8 @@ export function SettingsDialog({
               onGenerationConcurrencyChange={onGenerationConcurrencyChange}
             />
           )}
+
+          {selectedTab === 'download' && <DownloadSettingsTab />}
 
           {selectedTab === 'skills' && (
             <SkillsSettingsTab

@@ -15,6 +15,7 @@ export const settingsMessages: MessageDictionary = {
   'settings.tabs.api': { 'zh-CN': '服务', en: 'Connections' },
   'settings.tabs.web': { 'zh-CN': 'Web 工具', en: 'Web tools' },
   'settings.tabs.generation': { 'zh-CN': '生成', en: 'Generation' },
+  'settings.tabs.download': { 'zh-CN': '下载', en: 'Download' },
   'settings.tabs.skills': { 'zh-CN': 'Skills', en: 'Skills' },
   'settings.tabs.backup': { 'zh-CN': '导入/导出', en: 'Import/export' },
   'settings.tabs.data': { 'zh-CN': '数据', en: 'Data' },
@@ -78,6 +79,7 @@ export const settingsMessages: MessageDictionary = {
   },
   'settings.backup.group.appearance': { 'zh-CN': '外观', en: 'Appearance' },
   'settings.backup.group.generation': { 'zh-CN': '生成', en: 'Generation' },
+  'settings.backup.group.download': { 'zh-CN': '下载', en: 'Download' },
   'settings.backup.group.agent': { 'zh-CN': 'Agent', en: 'Agent' },
   'settings.backup.group.serviceProviders': { 'zh-CN': '服务连接', en: 'Service connections' },
   'settings.backup.group.webTools': { 'zh-CN': 'Web 工具', en: 'Web tools' },
@@ -92,6 +94,7 @@ export const settingsMessages: MessageDictionary = {
   'settings.backup.item.preferredAgentModel': { 'zh-CN': '首选 Agent 模型', en: 'Preferred Agent model' },
   'settings.backup.item.preferredAgentThinkingLevel': { 'zh-CN': 'Agent thinking level', en: 'Agent thinking level' },
   'settings.backup.item.composerSubmitMode': { 'zh-CN': '对话提交方式', en: 'Chat submit shortcut' },
+  'settings.backup.item.stripDownloadMetadata': { 'zh-CN': '下载时去除元数据', en: 'Strip download metadata' },
   'settings.backup.item.providerBaseUrl': { 'zh-CN': '{provider} Base URL', en: '{provider} Base URL' },
   'settings.backup.item.providerUseProxy': { 'zh-CN': '{provider} 代理', en: '{provider} proxy' },
   'settings.backup.item.webSearchProvider': { 'zh-CN': 'WebSearch 后端', en: 'WebSearch backend' },
@@ -237,6 +240,20 @@ export const settingsMessages: MessageDictionary = {
   'settings.composerSubmitMode.enter.description': {
     'zh-CN': 'Shift+Enter 换行',
     en: 'Shift+Enter inserts a newline',
+  },
+  'settings.download.title': { 'zh-CN': '下载', en: 'Download' },
+  'settings.download.description': {
+    'zh-CN': '控制单图下载、移动端分享和 ZIP 导出时的文件处理方式。',
+    en: 'Control how files are prepared for single downloads, mobile sharing, and ZIP exports.',
+  },
+  'settings.download.stripMetadata.label': {
+    'zh-CN': '下载时去除 C2PA / Content Credentials',
+    en: 'Strip C2PA / Content Credentials on download',
+  },
+  'settings.download.stripMetadata.hint': {
+    'zh-CN':
+      '开启后会在下载前重新编码图片，去除 C2PA / Content Credentials、EXIF、XMP 等容器元数据，有助于避免部分平台基于这些元数据显示“图片由 AI 生成”。历史里的原始图片不会改变；JPEG 导出会重新压缩。',
+    en: 'When enabled, images are re-encoded before download to remove container metadata such as C2PA / Content Credentials, EXIF, and XMP. This can help avoid some platforms showing an “AI-generated image” label based on that metadata. Original history images stay unchanged; JPEG exports are recompressed.',
   },
   'settings.agentSkills.title': { 'zh-CN': 'Agent Skills', en: 'Agent Skills' },
   'settings.agentSkills.description': {
