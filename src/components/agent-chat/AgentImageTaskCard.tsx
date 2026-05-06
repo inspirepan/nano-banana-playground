@@ -1,8 +1,9 @@
 import { useLayoutEffect, useRef, useState, type MouseEvent, type PointerEvent, type ReactNode } from 'react'
 
-import { summarizeToolResult } from './utils'
+import { summarizeToolResult, taskStatusLabel } from './utils'
 import type { AgentImageTask, AgentMessageToolCall, AgentMessageToolResult } from '../../agent'
 import { MODEL_CONFIGS } from '../../config/models'
+import { useExternalSync } from '../../hooks/effects'
 import { useImageSrc } from '../../hooks/useImageSrc'
 import { useI18n } from '../../i18n'
 import type { StackItem } from '../../lib/stacks'
@@ -22,6 +23,35 @@ const DEFAULT_PROMPT_BOX_MEASUREMENT: PromptBoxMeasurement = {
   overflowing: false,
   hiddenLineCount: 0,
   collapsedTextMaxHeight: 72,
+}
+
+function formatElapsedTime(elapsedMs: number): string {
+  const totalSeconds = Math.max(0, Math.floor(elapsedMs / 1000))
+  const seconds = totalSeconds % 60
+  const totalMinutes = Math.floor(totalSeconds / 60)
+  const minutes = totalMinutes % 60
+  const hours = Math.floor(totalMinutes / 60)
+
+  if (hours > 0) {
+    return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+  }
+
+  return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+}
+
+function useElapsedTime(startedAt: number | null, enabled: boolean): string | null {
+  const [now, setNow] = useState(() => Date.now())
+
+  useExternalSync(() => {
+    if (!enabled || startedAt === null) return
+
+    setNow(Date.now())
+    const timer = window.setInterval(() => setNow(Date.now()), 1000)
+    return () => window.clearInterval(timer)
+  }, [enabled, startedAt])
+
+  if (!enabled || startedAt === null) return null
+  return formatElapsedTime(now - startedAt)
 }
 
 function GenImageResultThumb({ id, flush = false }: { id: string; flush?: boolean }) {
@@ -255,6 +285,7 @@ export function AgentImageTaskCard({
   const isDimmed = status === 'rejected' || status === 'canceled'
   const isActiveGenerating = status === 'approved' || status === 'queued' || status === 'running'
   const isPendingApproval = task?.status === 'pending_approval'
+  const activeElapsedTime = useElapsedTime(task?.createdAt ?? null, Boolean(task && isActiveGenerating))
 
   const reservedIds = task?.request.reservedImageIds ?? []
   const requestedFromArgs = typeof call.arguments.image_id === 'string' ? call.arguments.image_id : undefined
@@ -358,6 +389,25 @@ export function AgentImageTaskCard({
       <span>{t('agentChat.taskStatus.pendingApproval')}</span>
     </span>
   ) : null
+  const activeStatusNode =
+    task && isActiveGenerating ? (
+      <span
+        className="inline-flex items-center gap-1.5 py-0.5 text-sm leading-none font-medium text-(--color-text-3)"
+        title={taskStatusLabel(status)}
+      >
+        {status === 'queued' ? (
+          <>
+            <span className="h-1.5 w-1.5 rounded-full bg-(--color-text-4)" />
+            <span>{taskStatusLabel(status)}</span>
+          </>
+        ) : (
+          <>
+            <span className="spinner" style={{ width: 9, height: 9 }} />
+            {activeElapsedTime && <span className="tabular-nums text-(--color-text-4)">{activeElapsedTime}</span>}
+          </>
+        )}
+      </span>
+    ) : null
 
   // Result / skeleton grid for non-completed, active states.
   const renderInProgressGrid = () => {
@@ -540,7 +590,7 @@ export function AgentImageTaskCard({
       )}
 
       {/* Target id on the left, generation parameter tags on the right. */}
-      {!isComposingPrompt && (approvalStatusNode || paramTags || targetIdNode) && (
+      {!isComposingPrompt && (approvalStatusNode || activeStatusNode || paramTags || targetIdNode) && (
         <div className="flex max-w-[432px] min-w-0 items-start justify-between gap-2 px-2">
           {(targetIdNode || approvalStatusNode) && (
             <div className="flex min-w-0 items-center gap-1.5">
@@ -548,8 +598,9 @@ export function AgentImageTaskCard({
               {approvalStatusNode}
             </div>
           )}
-          {(paramTags || isFailed) && (
+          {(activeStatusNode || paramTags || isFailed) && (
             <div className="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-x-2 gap-y-1">
+              {activeStatusNode}
               {paramTags}
               {isFailed && (
                 <span className="inline-flex items-center" style={{ color: 'var(--color-danger)' }}>
