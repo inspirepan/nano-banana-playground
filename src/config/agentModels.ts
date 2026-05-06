@@ -1,12 +1,35 @@
 import type { ThinkingLevel as AgentCoreThinkingLevel } from '@mariozechner/pi-agent'
-import { getModel, type Api, type Model } from '@mariozechner/pi-ai'
+import { getModel, type Api, type Model, type ThinkingLevel as ProviderThinkingLevel } from '@mariozechner/pi-ai'
 
 import { getProviderConfig, type Provider } from './providers'
-import { translate } from '../i18n'
 import { resolveBaseUrl } from '../lib/validateKey'
 
 export type AgentModelProvider = Exclude<Provider, 'doubao'>
-export type AgentThinkingLevel = Extract<AgentCoreThinkingLevel, 'off' | 'minimal' | 'low' | 'medium' | 'high'>
+export type AgentThinkingLevel = 'off' | ProviderThinkingLevel
+export type AgentThinkingRequestConfig = { level: AgentThinkingLevel; sendsThinkingEffort: boolean }
+export type AgentThinkingOptionConfig = { value: AgentThinkingLevel; labelKey: string }
+
+export const AGENT_THINKING_OPTIONS: AgentThinkingOptionConfig[] = [
+  { value: 'minimal', labelKey: 'agentChat.thinking.minimal' },
+  { value: 'low', labelKey: 'agentChat.thinking.low' },
+  { value: 'medium', labelKey: 'agentChat.thinking.medium' },
+  { value: 'high', labelKey: 'agentChat.thinking.high' },
+  { value: 'xhigh', labelKey: 'agentChat.thinking.xhigh' },
+]
+
+const AGENT_THINKING_TOGGLE_OPTIONS: AgentThinkingOptionConfig[] = [
+  { value: 'high', labelKey: 'agentChat.thinking.on' },
+]
+
+const AGENT_THINKING_EFFORT_CONFIG = {
+  thinkingOptions: AGENT_THINKING_OPTIONS,
+  sendsThinkingEffort: true,
+} satisfies AgentModelThinkingConfig
+
+const AGENT_THINKING_TOGGLE_CONFIG = {
+  thinkingOptions: AGENT_THINKING_TOGGLE_OPTIONS,
+  sendsThinkingEffort: false,
+} satisfies AgentModelThinkingConfig
 
 export type AgentModelConfig = {
   id: string
@@ -16,13 +39,25 @@ export type AgentModelConfig = {
   providerLabel: string
   model: Model<Api>
   supportsThinking: boolean
+  thinkingOptions: AgentThinkingOptionConfig[]
+  sendsThinkingEffort: boolean
   supportsImages: boolean
 }
 
-function asAgentModel(model: Model<Api>): Pick<AgentModelConfig, 'model' | 'supportsThinking' | 'supportsImages'> {
+type AgentModelThinkingConfig = {
+  thinkingOptions: AgentThinkingOptionConfig[]
+  sendsThinkingEffort: boolean
+}
+
+function asAgentModel(
+  model: Model<Api>,
+  thinkingConfig: AgentModelThinkingConfig = AGENT_THINKING_EFFORT_CONFIG,
+): Pick<AgentModelConfig, 'model' | 'supportsThinking' | 'thinkingOptions' | 'sendsThinkingEffort' | 'supportsImages'> {
   return {
     model,
     supportsThinking: model.reasoning,
+    thinkingOptions: thinkingConfig.thinkingOptions,
+    sendsThinkingEffort: thinkingConfig.sendsThinkingEffort,
     supportsImages: model.input.includes('image'),
   }
 }
@@ -105,6 +140,16 @@ function withClaudeEagerToolInputStreaming(model: Model<'anthropic-messages'>): 
   }
 }
 
+function withoutClaudeEagerToolInputStreaming(model: Model<'anthropic-messages'>): Model<'anthropic-messages'> {
+  return {
+    ...model,
+    compat: {
+      ...model.compat,
+      supportsEagerToolInputStreaming: false,
+    },
+  }
+}
+
 export const AGENT_MODEL_CONFIGS: AgentModelConfig[] = [
   {
     id: 'gemini-3-flash-preview',
@@ -136,7 +181,7 @@ export const AGENT_MODEL_CONFIGS: AgentModelConfig[] = [
     shortLabel: 'K2.6 CN',
     provider: 'moonshot-cn',
     providerLabel: providerLabel('moonshot-cn'),
-    ...asAgentModel(kimiK26Model('moonshot-cn')),
+    ...asAgentModel(kimiK26Model('moonshot-cn'), AGENT_THINKING_TOGGLE_CONFIG),
   },
   {
     id: 'moonshot-ai:kimi-k2.6',
@@ -144,7 +189,7 @@ export const AGENT_MODEL_CONFIGS: AgentModelConfig[] = [
     shortLabel: 'K2.6',
     provider: 'moonshot-ai',
     providerLabel: providerLabel('moonshot-ai'),
-    ...asAgentModel(kimiK26Model('moonshot-ai')),
+    ...asAgentModel(kimiK26Model('moonshot-ai'), AGENT_THINKING_TOGGLE_CONFIG),
   },
   {
     id: 'claude-haiku-4-5-20251001',
@@ -153,7 +198,7 @@ export const AGENT_MODEL_CONFIGS: AgentModelConfig[] = [
     provider: 'anthropic',
     providerLabel: providerLabel('anthropic'),
     ...asAgentModel(
-      withClaudeEagerToolInputStreaming(
+      withoutClaudeEagerToolInputStreaming(
         getModel('anthropic', 'claude-haiku-4-5-20251001') as Model<'anthropic-messages'>,
       ),
     ),
@@ -180,41 +225,35 @@ export const AGENT_MODEL_CONFIGS: AgentModelConfig[] = [
   },
 ]
 
+export function agentThinkingLevelsForModel(model: Pick<AgentModelConfig, 'thinkingOptions'>): AgentThinkingLevel[] {
+  return model.thinkingOptions.map((item) => item.value)
+}
+
+export function effectiveAgentThinkingLevelForModel(
+  model: Pick<AgentModelConfig, 'thinkingOptions'>,
+  level: AgentThinkingLevel,
+): AgentThinkingLevel {
+  if (model.thinkingOptions.some((item) => item.value === level)) return level
+  return model.thinkingOptions.find((item) => item.value !== 'off')?.value ?? 'off'
+}
+
+export function agentThinkingLabelKeyForLevel(
+  model: Pick<AgentModelConfig, 'thinkingOptions'>,
+  level: AgentThinkingLevel,
+): string {
+  return model.thinkingOptions.find((item) => item.value === level)?.labelKey ?? `agentChat.thinking.${level}`
+}
+
+export function agentCoreThinkingLevelForModel(
+  model: Pick<AgentModelConfig, 'thinkingOptions'>,
+  level: AgentThinkingLevel,
+): AgentCoreThinkingLevel {
+  const effective = effectiveAgentThinkingLevelForModel(model, level)
+  return effective === 'xhigh' ? 'high' : effective
+}
+
 export const DEFAULT_AGENT_MODEL =
   AGENT_MODEL_CONFIGS.find((item) => item.id === 'gpt-5.4-mini') ?? AGENT_MODEL_CONFIGS[0]
-
-export const AGENT_THINKING_OPTIONS: Array<{ value: AgentThinkingLevel; label: string }> = [
-  {
-    value: 'off',
-    get label() {
-      return translate('configLib.agentModels.thinking.off')
-    },
-  },
-  {
-    value: 'minimal',
-    get label() {
-      return translate('configLib.agentModels.thinking.minimal')
-    },
-  },
-  {
-    value: 'low',
-    get label() {
-      return translate('configLib.agentModels.thinking.low')
-    },
-  },
-  {
-    value: 'medium',
-    get label() {
-      return translate('configLib.agentModels.thinking.medium')
-    },
-  },
-  {
-    value: 'high',
-    get label() {
-      return translate('configLib.agentModels.thinking.high')
-    },
-  },
-]
 
 export function resolveAgentModelConfig(id: string): AgentModelConfig {
   return AGENT_MODEL_CONFIGS.find((item) => item.id === id) ?? DEFAULT_AGENT_MODEL

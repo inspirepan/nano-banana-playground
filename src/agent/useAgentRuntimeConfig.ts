@@ -20,7 +20,9 @@ import {
 } from './tools'
 import { offloadAgentToolResult } from './tools/toolResultOffload'
 import {
+  agentCoreThinkingLevelForModel,
   agentModelWithBaseUrl,
+  effectiveAgentThinkingLevelForModel,
   resolveAgentModelConfig,
   type AgentModelProvider,
   type AgentThinkingLevel,
@@ -156,8 +158,15 @@ export function useAgentRuntimeConfig({
       setAgentModelId(modelId)
       setPreferredAgentModelId(modelId)
       const config = resolveAgentModelConfig(modelId)
+      const effectiveThinkingLevel = config.supportsThinking
+        ? effectiveAgentThinkingLevelForModel(config, runtime.thinkingLevel)
+        : 'off'
       runtime.agent.state.model = agentModelWithBaseUrl(config, getAgentBaseUrl(config.provider))
-      runtime.agent.state.thinkingLevel = config.supportsThinking ? runtime.thinkingLevel : 'off'
+      runtime.agent.state.thinkingLevel = agentCoreThinkingLevelForModel(config, effectiveThinkingLevel)
+      runtime.transportThinkingConfigRef.current = {
+        level: effectiveThinkingLevel,
+        sendsThinkingEffort: config.sendsThinkingEffort,
+      }
       if (!runtime.persisted) return
       void updateAgentSessionConfig(runtime.sessionId, { modelId }).then((record) => {
         if (record) upsertAgentSessionSummary(record)
@@ -174,7 +183,14 @@ export function useAgentRuntimeConfig({
       setAgentThinkingLevelState(level)
       setPreferredAgentThinkingLevel(level)
       const config = resolveAgentModelConfig(runtime.modelId)
-      runtime.agent.state.thinkingLevel = config.supportsThinking ? level : 'off'
+      const effectiveThinkingLevel = config.supportsThinking
+        ? effectiveAgentThinkingLevelForModel(config, level)
+        : 'off'
+      runtime.agent.state.thinkingLevel = agentCoreThinkingLevelForModel(config, effectiveThinkingLevel)
+      runtime.transportThinkingConfigRef.current = {
+        level: effectiveThinkingLevel,
+        sendsThinkingEffort: config.sendsThinkingEffort,
+      }
       if (!runtime.persisted) return
       void updateAgentSessionConfig(runtime.sessionId, { thinkingLevel: level }).then((record) => {
         if (record) upsertAgentSessionSummary(record)
@@ -187,10 +203,17 @@ export function useAgentRuntimeConfig({
     (runtime: AgentSessionRuntime) => {
       const config = resolveAgentModelConfig(runtime.modelId)
       const baseUrl = getAgentBaseUrl(config.provider)
+      const effectiveThinkingLevel = config.supportsThinking
+        ? effectiveAgentThinkingLevelForModel(config, runtime.thinkingLevel)
+        : 'off'
       syncGeminiAgentBaseUrl(config.provider, baseUrl)
       runtime.agent.state.systemPrompt = AGENT_SYSTEM_PROMPT
       runtime.agent.state.model = agentModelWithBaseUrl(config, baseUrl)
-      runtime.agent.state.thinkingLevel = config.supportsThinking ? runtime.thinkingLevel : 'off'
+      runtime.agent.state.thinkingLevel = agentCoreThinkingLevelForModel(config, effectiveThinkingLevel)
+      runtime.transportThinkingConfigRef.current = {
+        level: effectiveThinkingLevel,
+        sendsThinkingEffort: config.sendsThinkingEffort,
+      }
       const runWithOffload = async (toolCallId: string, toolName: string, run: () => Promise<AgentToolResult>) => {
         const result = await run()
         if (toolName === 'ReadAgentFile' || toolName === 'ReadImage' || toolName === 'ReadSkillFile') return result

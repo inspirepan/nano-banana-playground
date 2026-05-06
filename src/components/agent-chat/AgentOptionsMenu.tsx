@@ -2,7 +2,13 @@ import type { Dispatch, SetStateAction } from 'react'
 
 import { AgentModelIcon } from './AgentModelIcon'
 import type { AgentChatMenu } from './types'
-import { AGENT_THINKING_OPTIONS, type AgentModelConfig, type AgentThinkingLevel } from '../../config/agentModels'
+import {
+  agentThinkingLabelKeyForLevel,
+  agentThinkingLevelsForModel,
+  effectiveAgentThinkingLevelForModel,
+  type AgentModelConfig,
+  type AgentThinkingLevel,
+} from '../../config/agentModels'
 import { MODEL_CONFIGS, getModelShortLabel, type Provider } from '../../config/models'
 import { getProviderConfig } from '../../config/providers'
 import type { ApiKeyStatus } from '../../hooks/useApiKey'
@@ -98,6 +104,7 @@ export function AgentOptionsMenu({
       })}
       <div className="my-1 h-px bg-(--ring-edge-soft)" />
       <ThinkingSlider
+        model={model}
         value={effectiveThinkingLevel}
         disabled={!model.supportsThinking}
         onChange={onThinkingLevelChange}
@@ -173,22 +180,27 @@ function ToggleSwitch({ checked }: { checked: boolean }) {
 }
 
 function ThinkingSlider({
+  model,
   value,
   disabled,
   onChange,
 }: {
+  model: AgentModelConfig
   value: AgentThinkingLevel
   disabled: boolean
   onChange: (level: AgentThinkingLevel) => void
 }) {
   const { t } = useI18n()
-  const levels = AGENT_THINKING_OPTIONS.map((item) => item.value)
-  const activeIndex = Math.max(0, levels.indexOf(value))
+  const levels = agentThinkingLevelsForModel(model)
+  const levelsKey = levels.join('|')
+  const displayValue = effectiveAgentThinkingLevelForModel(model, value)
+  const activeIndex = Math.max(0, levels.indexOf(displayValue))
 
   return (
     <div className="px-2 py-1.5" style={{ opacity: disabled ? 0.5 : 1, pointerEvents: disabled ? 'none' : undefined }}>
       <div className="mb-1.5 px-1 text-xs font-medium text-(--color-text-3)">{t('agentChat.options.thinking')}</div>
       <div
+        key={levelsKey}
         className="segmented"
         style={{
           ['--seg-count' as string]: levels.length,
@@ -200,13 +212,21 @@ function ThinkingSlider({
             key={level}
             type="button"
             onClick={() => onChange(level)}
-            data-active={value === level}
-            title={t(`agentChat.thinking.${level}`)}
+            data-active={displayValue === level}
+            title={thinkingLevelLabel(t, model, level)}
           >
-            <span className="text-xs">{t(`agentChat.thinking.${level}`)}</span>
+            <span className="text-xs">{thinkingLevelLabel(t, model, level)}</span>
           </button>
         ))}
       </div>
     </div>
   )
+}
+
+function thinkingLevelLabel(
+  t: ReturnType<typeof useI18n>['t'],
+  model: AgentModelConfig,
+  level: AgentThinkingLevel,
+): string {
+  return t(agentThinkingLabelKeyForLevel(model, level))
 }

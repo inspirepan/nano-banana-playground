@@ -16,7 +16,9 @@ import { appendAgentSessionMessage } from './sessionStore'
 import type { AgentCompactionState, AgentSessionMessageMetadata, AgentSessionSummary } from './sessionTypes'
 import { AGENT_SYSTEM_PROMPT } from './systemPrompt'
 import {
+  agentCoreThinkingLevelForModel,
   agentModelWithBaseUrl,
+  effectiveAgentThinkingLevelForModel,
   resolveAgentModelConfig,
   type AgentModelProvider,
   type AgentThinkingLevel,
@@ -77,14 +79,21 @@ export function useAgentRuntimeFactory({
   const createRuntime = useCallback(
     (params: CreateRuntimeParams): AgentSessionRuntime => {
       const config = resolveAgentModelConfig(params.modelId)
+      const thinkingLevel = config.supportsThinking
+        ? effectiveAgentThinkingLevelForModel(config, params.thinkingLevel)
+        : 'off'
+      const transportThinkingConfigRef = {
+        current: { level: thinkingLevel, sendsThinkingEffort: config.sendsThinkingEffort },
+      }
       const agent = new Agent({
         transport: createLatestProviderTransport(
           (provider) => agentCredentialsRef.current[provider].apiKey || undefined,
+          () => transportThinkingConfigRef.current,
         ),
         initialState: {
           systemPrompt: AGENT_SYSTEM_PROMPT,
           model: agentModelWithBaseUrl(config, getAgentBaseUrl(config.provider)),
-          thinkingLevel: config.supportsThinking ? params.thinkingLevel : 'off',
+          thinkingLevel: agentCoreThinkingLevelForModel(config, params.thinkingLevel),
           tools: [],
           messages: params.messages,
         },
@@ -107,6 +116,7 @@ export function useAgentRuntimeFactory({
         ready: false,
         modelId: params.modelId,
         thinkingLevel: params.thinkingLevel,
+        transportThinkingConfigRef,
         autoApproveImageTasks: params.autoApproveImageTasks,
         messages: params.messages,
         streamingMessage: null,

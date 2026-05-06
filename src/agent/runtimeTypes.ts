@@ -4,7 +4,7 @@ import type { AgentChatAttachment } from './agentChat'
 import type { AgentImageRegistryEntry, AgentImageTask, AgentTurnCallbackState } from './imageTasks'
 import type { AgentCompactionState, AgentSessionMessageMetadata, AgentSessionStatus } from './sessionTypes'
 import type { AgentToolResult, AskUserQuestionItem } from './tools'
-import type { AgentThinkingLevel } from '../config/agentModels'
+import type { AgentThinkingLevel, AgentThinkingRequestConfig } from '../config/agentModels'
 
 export const AGENT_MAX_ATTACHMENTS = 8
 
@@ -43,6 +43,7 @@ export type AgentSessionRuntime = {
   ready: boolean
   modelId: string
   thinkingLevel: AgentThinkingLevel
+  transportThinkingConfigRef: { current: AgentThinkingRequestConfig }
   autoApproveImageTasks: boolean
   messages: AgentMessage[]
   streamingMessage: AgentMessage | null

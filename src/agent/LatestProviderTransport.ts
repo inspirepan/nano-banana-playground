@@ -1,11 +1,19 @@
 import { agentLoop } from '@mariozechner/pi-ai-agent-loop'
-import { streamSimple, type Api, type Context, type Model, type SimpleStreamOptions } from '@mariozechner/pi-ai'
+import {
+  streamSimple,
+  type Api,
+  type Context,
+  type Model,
+  type SimpleStreamOptions,
+  type ThinkingLevel as ProviderThinkingLevel,
+} from '@mariozechner/pi-ai'
 import type { AgentRunConfig, AgentTransport } from '@mariozechner/pi-agent'
 
 import { isAgentModelProvider } from './runtimeConfig'
-import type { AgentModelProvider } from '../config/agentModels'
+import type { AgentModelProvider, AgentThinkingLevel, AgentThinkingRequestConfig } from '../config/agentModels'
 
 type ProviderApiKeyGetter = (provider: string) => Promise<string | undefined> | string | undefined
+type AgentThinkingConfigGetter = () => AgentThinkingRequestConfig
 
 type OpenAIResponsesPayload = {
   input?: unknown
@@ -15,9 +23,11 @@ type OpenAIResponsesPayload = {
 
 export class LatestProviderTransport {
   private readonly getApiKey: ProviderApiKeyGetter
+  private readonly getThinkingConfig?: AgentThinkingConfigGetter
 
-  constructor(getApiKey: ProviderApiKeyGetter) {
+  constructor(getApiKey: ProviderApiKeyGetter, getThinkingConfig?: AgentThinkingConfigGetter) {
     this.getApiKey = getApiKey
+    this.getThinkingConfig = getThinkingConfig
   }
 
   async *run(
@@ -36,11 +46,18 @@ export class LatestProviderTransport {
     }
     const latestStream = (model: unknown, streamContext: unknown, options?: unknown) => {
       const streamOptions = options as SimpleStreamOptions | undefined
+      const thinkingConfig = this.getThinkingConfig?.()
+      const reasoning = thinkingConfig
+        ? providerReasoningForAgentThinkingLevel(thinkingConfig.level)
+        : streamOptions?.reasoning
       return streamSimple(model as Model<Api>, streamContext as Context, {
         ...streamOptions,
+        reasoning,
         apiKey,
         onPayload: async (payload, payloadModel) => {
-          const normalized = normalizePayload(payload, payloadModel, streamContext)
+          const normalized = normalizeAgentProviderPayload(payload, payloadModel, streamContext, {
+            sendsThinkingEffort: thinkingConfig?.sendsThinkingEffort ?? true,
+          })
           const nextPayload = await streamOptions?.onPayload?.(normalized ?? payload, payloadModel)
           return nextPayload ?? normalized
         },
@@ -66,15 +83,40 @@ export class LatestProviderTransport {
 
 export function createLatestProviderTransport(
   getCredentials: (provider: AgentModelProvider) => string | undefined,
+  getThinkingConfig?: AgentThinkingConfigGetter,
 ): AgentTransport {
   return new LatestProviderTransport((provider) => {
     if (!isAgentModelProvider(provider)) return undefined
     return getCredentials(provider)
-  }) as unknown as AgentTransport
+  }, getThinkingConfig) as unknown as AgentTransport
 }
 
-function normalizePayload(payload: unknown, model: Model<Api>, context: unknown): unknown {
-  if (model.api !== 'openai-responses' || !isContextWithSystemPrompt(context) || !isRecord(payload)) return undefined
+export function providerReasoningForAgentThinkingLevel(level: AgentThinkingLevel): ProviderThinkingLevel | undefined {
+  switch (level) {
+    case 'off':
+      return undefined
+    case 'minimal':
+      return 'minimal'
+    case 'low':
+      return 'low'
+    case 'medium':
+      return 'medium'
+    case 'high':
+      return 'high'
+    case 'xhigh':
+      return 'xhigh'
+  }
+}
+
+export function normalizeAgentProviderPayload(
+  payload: unknown,
+  model: Model<Api>,
+  context: unknown,
+  options: { sendsThinkingEffort?: boolean } = {},
+): unknown {
+  if (!isRecord(payload)) return undefined
+  if (options.sendsThinkingEffort === false) return normalizePayloadWithoutReasoningEffort(payload)
+  if (model.api !== 'openai-responses' || !isContextWithSystemPrompt(context)) return undefined
   const normalized: OpenAIResponsesPayload = { ...payload }
   normalized.instructions = context.systemPrompt
 
@@ -82,6 +124,13 @@ function normalizePayload(payload: unknown, model: Model<Api>, context: unknown)
     normalized.input = normalized.input.slice(1)
   }
 
+  return normalized
+}
+
+function normalizePayloadWithoutReasoningEffort(payload: Record<string, unknown>): unknown {
+  if (!isRecord(payload.thinking)) return undefined
+  const normalized = { ...payload }
+  delete normalized.reasoning_effort
   return normalized
 }
 

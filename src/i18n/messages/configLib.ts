@@ -53,10 +53,11 @@ export const configLibMessages: MessageDictionary = {
   },
 
   'configLib.agentModels.thinking.off': { 'zh-CN': '关闭', en: 'Off' },
-  'configLib.agentModels.thinking.minimal': { 'zh-CN': '低', en: 'Minimal' },
-  'configLib.agentModels.thinking.low': { 'zh-CN': '中', en: 'Low' },
-  'configLib.agentModels.thinking.medium': { 'zh-CN': '高', en: 'Medium' },
-  'configLib.agentModels.thinking.high': { 'zh-CN': '超高', en: 'High' },
+  'configLib.agentModels.thinking.minimal': { 'zh-CN': '超快', en: 'Minimal' },
+  'configLib.agentModels.thinking.low': { 'zh-CN': '快速', en: 'Low' },
+  'configLib.agentModels.thinking.medium': { 'zh-CN': '平衡', en: 'Med' },
+  'configLib.agentModels.thinking.high': { 'zh-CN': '深度', en: 'High' },
+  'configLib.agentModels.thinking.xhigh': { 'zh-CN': '极深', en: 'XHigh' },
 
   'configLib.useApiKey.validationFailed': { 'zh-CN': '校验失败', en: 'Validation failed' },
   'configLib.generationQueue.timeout': {

@@ -19,7 +19,12 @@ import { ComposerScrollButton } from './ComposerScrollButton'
 import type { AgentChatMenu } from './types'
 import { isImageFile } from './utils'
 import { displayNameForLanguage, type AgentChatAttachment, type AgentSkillSummary } from '../../agent'
-import type { AgentModelConfig, AgentThinkingLevel } from '../../config/agentModels'
+import {
+  agentThinkingLabelKeyForLevel,
+  effectiveAgentThinkingLevelForModel,
+  type AgentModelConfig,
+  type AgentThinkingLevel,
+} from '../../config/agentModels'
 import type { Provider } from '../../config/models'
 import type { ApiKeyStatus } from '../../hooks/useApiKey'
 import { useComposerSubmitMode } from '../../hooks/useComposerSubmitMode'
@@ -152,8 +157,10 @@ export const AgentChatComposer = forwardRef<AgentChatComposerHandle, AgentChatCo
   const [composerFocused, setComposerFocused] = useState(false)
   const [slashActiveIndex, setSlashActiveIndex] = useState(0)
   const [cursorOffset, setCursorOffset] = useState(draft.length)
-  const effectiveThinkingLevel = model.supportsThinking ? thinkingLevel : 'off'
-  const effectiveThinkingLabel = t(`agentChat.thinking.${effectiveThinkingLevel}`)
+  const effectiveThinkingLevel = model.supportsThinking
+    ? effectiveAgentThinkingLevelForModel(model, thinkingLevel)
+    : 'off'
+  const effectiveThinkingLabel = t(agentThinkingLabelKeyForLevel(model, effectiveThinkingLevel))
   const slashContext = getSlashCompletionContext(draft, Math.min(cursorOffset, draft.length))
   const slashSuggestions = slashContext
     ? [
