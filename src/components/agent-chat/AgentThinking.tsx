@@ -58,10 +58,12 @@ export function AgentThinking({
   thinking,
   isStreaming,
   hasTrailingContent,
+  hasInlineTrailingContent = hasTrailingContent,
 }: {
   thinking: string
   isStreaming: boolean
   hasTrailingContent: boolean
+  hasInlineTrailingContent?: boolean
 }) {
   const { t } = useI18n()
   const initialOpen = isStreaming && !hasTrailingContent
@@ -136,7 +138,7 @@ export function AgentThinking({
   const label = isStreaming ? t('agentChat.thinking.label') : thoughtLabel(t, durationMs)
 
   return (
-    <div className={hasTrailingContent ? 'mb-3' : ''}>
+    <div className={hasInlineTrailingContent ? 'mb-3' : ''}>
       <button
         type="button"
         onClick={handleToggle}

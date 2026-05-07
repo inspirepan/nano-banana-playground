@@ -70,7 +70,8 @@ export function MessageBubble({
   const showAssistantMarkdown = visibleText.trim() !== ''
   const hasAssistantNonErrorContent =
     thinking.trim() !== '' || images.length > 0 || showAssistantMarkdown || hasToolCalls
-  const hasAssistantTrailingContent = showAssistantMarkdown || Boolean(displayError) || hasToolCalls
+  const hasAssistantInlineTrailingContent = showAssistantMarkdown || Boolean(displayError)
+  const hasAssistantTrailingContent = hasAssistantInlineTrailingContent || hasToolCalls
   const showAssistantTitle = isAssistant && Boolean(assistantTitle) && hasAssistantNonErrorContent
   const hasAssistantBody = thinking.trim() !== '' || images.length > 0 || hasAssistantTrailingContent
 
@@ -129,6 +130,7 @@ export function MessageBubble({
               thinking={thinking}
               isStreaming={isStreaming}
               hasTrailingContent={hasAssistantTrailingContent}
+              hasInlineTrailingContent={hasAssistantInlineTrailingContent}
             />
           ) : null}
           {isUser ? (
