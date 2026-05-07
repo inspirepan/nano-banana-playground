@@ -167,7 +167,12 @@ export const OutputPanel = memo(function OutputPanel({
           <div className="flex-1" />
           {exportableHistory.length > 0 && (
             <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
-              <div className="flex items-center gap-1">
+              <Tooltip
+                text={t('output.stripMetadataTooltip')}
+                placement="top"
+                maxWidth={300}
+                className="inline-flex shrink-0"
+              >
                 <button
                   type="button"
                   role="switch"
@@ -183,16 +188,7 @@ export const OutputPanel = memo(function OutputPanel({
                   />
                   {t('output.stripMetadataShort')}
                 </button>
-                <Tooltip text={t('output.stripMetadataTooltip')} placement="top" maxWidth={300} className="inline-flex">
-                  <span
-                    className="icon-btn size-7 text-(--color-text-4)"
-                    tabIndex={0}
-                    aria-label={t('output.stripMetadataInfo')}
-                  >
-                    <Icon name="help_circle" size={13} />
-                  </span>
-                </Tooltip>
-              </div>
+              </Tooltip>
               <button type="button" onClick={handleExportAll} disabled={exporting} className="chip shrink-0">
                 <Icon name="download" size={12} /> {exporting ? t('output.exporting') : t('output.exportZip')}
               </button>
