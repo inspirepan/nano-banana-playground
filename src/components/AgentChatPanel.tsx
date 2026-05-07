@@ -1,5 +1,5 @@
 import type { AppMessage as AgentMessage } from '@mariozechner/pi-agent'
-import { useCallback, useLayoutEffect, useMemo, useRef, useState, type DragEvent } from 'react'
+import { memo, useCallback, useLayoutEffect, useMemo, useRef, useState, type DragEvent } from 'react'
 import { flushSync } from 'react-dom'
 
 import {
@@ -98,6 +98,10 @@ function AgentRunningIndicator({ label }: { label: string }) {
     </div>
   )
 }
+
+const QueuedMessageBubble = memo(function QueuedMessageBubble({ queued }: { queued: AgentQueuedUserMessage }) {
+  return <MessageBubble message={queued.message} isStreaming={false} isQueued />
+})
 
 export function AgentChatPanel({
   messages,
@@ -526,7 +530,7 @@ export function AgentChatPanel({
                   ),
                 )}
                 {queuedMessages.map((queued) => (
-                  <MessageBubble key={queued.id} message={queued.message} isStreaming={false} isQueued />
+                  <QueuedMessageBubble key={queued.id} queued={queued} />
                 ))}
                 {showRunningIndicator ? <AgentRunningIndicator label={t('agentChat.status.running')} /> : null}
               </>
