@@ -206,7 +206,7 @@ export function DesktopLayout({
           className="shrink-0 flex flex-col bg-(--color-bg) shadow-[inset_-1px_0_0_var(--ring-edge-soft)]"
           style={panelLayoutVars}
         >
-          <div className="shrink-0 pt-[18px]">
+          <div className="shrink-0 pt-[21px]">
             <InputPanelHeader
               inputMode={inputMode}
               showInputModeSwitcher
@@ -217,7 +217,11 @@ export function DesktopLayout({
           </div>
           <div
             ref={inputBodyRef}
-            className="scroll-fade-y flex-1 min-h-0 overflow-y-auto [scrollbar-gutter:stable] [--scroll-fade-start-size:1.25rem] [--scroll-fade-end-size:1.25rem]"
+            className={`flex-1 min-h-0 overflow-y-auto [scrollbar-gutter:stable] ${
+              inputMode === 'agent' && !showWideAgentStructure
+                ? ''
+                : 'scroll-fade-y [--scroll-fade-start-size:1.25rem] [--scroll-fade-end-size:1.25rem]'
+            }`}
           >
             {showWideAgentStructure ? (
               <AgentSessionSidebar
@@ -336,7 +340,7 @@ export function DesktopLayout({
               aria-label={agentPanelWide ? t('app.action.collapseAgentPanel') : t('app.action.expandAgentPanel')}
               aria-pressed={agentPanelWide}
               className="agent-panel-width-toggle"
-              style={{ left: 0, top: 24 }}
+              style={{ left: 0 }}
             >
               <Icon name={agentPanelWide ? 'chevron_left' : 'chevron_right'} size={14} strokeWidth={1.8} />
             </button>

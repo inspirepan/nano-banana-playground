@@ -4,6 +4,7 @@ import { flushSync } from 'react-dom'
 
 import {
   agentMessageError,
+  agentMessageImages,
   agentMessageRole,
   agentMessageText,
   displayNameForLanguage,
@@ -36,7 +37,7 @@ import { isDrawingSkill } from './agent-chat/drawingSkills'
 import { MessageBubble } from './agent-chat/MessageBubble'
 import { ToolActivityCard } from './agent-chat/ToolActivityCard'
 import type { AgentChatMenu, AgentImageTaskFocusHandler } from './agent-chat/types'
-import { buildChatRenderItems, isImageFile, parseDraggedPlaygroundImage } from './agent-chat/utils'
+import { buildChatRenderItems, isImageFile, parseDraggedPlaygroundImage, type ChatRenderItem } from './agent-chat/utils'
 import { Icon } from './Icon'
 
 type Props = {
@@ -103,6 +104,32 @@ const QueuedMessageBubble = memo(function QueuedMessageBubble({ queued }: { queu
   return <MessageBubble message={queued.message} isStreaming={false} isQueued />
 })
 
+function isStickyUserMessage(message: AgentMessage): boolean {
+  if (agentMessageRole(message) !== 'user') return false
+  return stripSystemDirectives(agentMessageText(message)).trim() !== '' || agentMessageImages(message).length > 0
+}
+
+type MessageRenderItem = Extract<ChatRenderItem, { type: 'message' }>
+type ChatRenderSection = { key: string; stickyUserItem: MessageRenderItem | null; items: ChatRenderItem[] }
+
+function buildStickyUserSections(items: ChatRenderItem[]): ChatRenderSection[] {
+  const sections: ChatRenderSection[] = []
+  let current: ChatRenderSection = { key: 'intro', stickyUserItem: null, items: [] }
+
+  for (const item of items) {
+    const startsStickySection = item.type === 'message' && isStickyUserMessage(item.message)
+    if (startsStickySection) {
+      if (current.stickyUserItem || current.items.length > 0) sections.push(current)
+      current = { key: item.key, stickyUserItem: item, items: [] }
+      continue
+    }
+    current.items.push(item)
+  }
+
+  if (current.stickyUserItem || current.items.length > 0) sections.push(current)
+  return sections
+}
+
 export function AgentChatPanel({
   messages,
   messageMetadata,
@@ -152,9 +179,11 @@ export function AgentChatPanel({
   const scrollRef = useRef<HTMLDivElement>(null)
   const controlsRef = useRef<HTMLDivElement>(null)
   const composerRef = useRef<AgentChatComposerHandle>(null)
+  const userMessageRefs = useRef(new Map<string, HTMLDivElement>())
   const [openMenu, setOpenMenu] = useState<AgentChatMenu>(null)
   const [nearBottom, setNearBottom] = useState(true)
   const [optimisticRunning, setOptimisticRunning] = useState(false)
+  const [stuckStickyUserMessageKey, setStuckStickyUserMessageKey] = useState<string | null>(null)
 
   const currentKeyStatus = keyStatuses[model.provider]
   const keyMissing = currentKeyStatus === 'empty'
@@ -183,6 +212,7 @@ export function AgentChatPanel({
   }, [currentSessionId, currentSessionSidebarStatus, sessionStatuses])
   const showStop = isAgentActivelyRunning && !hasComposerContent
   const showRunningIndicator = isAgentActivelyRunning
+  const stickyUserTopOffset = wideLayout ? 12 : -4
   const visibleMessages = useMemo(
     () => (streamingMessage ? [...messages, streamingMessage] : messages),
     [messages, streamingMessage],
@@ -191,6 +221,7 @@ export function AgentChatPanel({
     () => buildChatRenderItems(visibleMessages, streamingMessage),
     [visibleMessages, streamingMessage],
   )
+  const renderSections = useMemo(() => buildStickyUserSections(renderItems), [renderItems])
   const titledAssistantMessages = useMemo(() => {
     const titled = new WeakSet<AgentMessage>()
     let nextVisibleAssistantStartsTurn = false
@@ -268,6 +299,25 @@ export function AgentChatPanel({
     [draft, onDraftChange],
   )
 
+  const scrollToUserMessage = useCallback((key: string) => {
+    const el = scrollRef.current
+    const node = userMessageRefs.current.get(key)
+    if (!el || !node) return
+    const target = el.scrollTop + node.getBoundingClientRect().top - el.getBoundingClientRect().top - 16
+    el.scrollTo({ top: target, behavior: 'smooth' })
+  }, [])
+
+  const updateStuckStickyUserMessage = useCallback(() => {
+    const el = scrollRef.current
+    if (!el) return
+    const threshold = el.getBoundingClientRect().top + stickyUserTopOffset + 1
+    let nextKey: string | null = null
+    for (const [key, node] of userMessageRefs.current) {
+      if (node.getBoundingClientRect().top <= threshold) nextKey = key
+    }
+    setStuckStickyUserMessageKey((prev) => (prev === nextKey ? prev : nextKey))
+  }, [stickyUserTopOffset])
+
   useExternalSync(() => {
     if (optimisticRunning && (isStreaming || error)) setOptimisticRunning(false)
   }, [error, isStreaming, optimisticRunning])
@@ -278,21 +328,32 @@ export function AgentChatPanel({
     const handle = () => {
       const dist = el.scrollHeight - el.scrollTop - el.clientHeight
       setNearBottom(dist <= 120)
+      updateStuckStickyUserMessage()
     }
     handle()
     el.addEventListener('scroll', handle, { passive: true })
     return () => el.removeEventListener('scroll', handle)
-  }, [])
+  }, [updateStuckStickyUserMessage])
 
   // biome-ignore lint/correctness/useExhaustiveDependencies(nearBottom): intentionally excluded during smooth scroll
   useLayoutEffect(() => {
+    updateStuckStickyUserMessage()
     if (!nearBottom) return
     const el = scrollRef.current
     if (!el) return
     el.scrollTop = el.scrollHeight
+    updateStuckStickyUserMessage()
     // Note: nearBottom is intentionally excluded from deps — flipping it true
     // mid-smooth-scroll would otherwise snap the animation to its end.
-  }, [visibleMessages.length, queuedMessages.length, streamingMessage, showRunningIndicator])
+  }, [
+    currentSessionId,
+    visibleMessages.length,
+    queuedMessages.length,
+    streamingMessage,
+    showRunningIndicator,
+    renderSections,
+    updateStuckStickyUserMessage,
+  ])
 
   const scrollToBottom = useCallback(() => {
     const el = scrollRef.current
@@ -361,7 +422,13 @@ export function AgentChatPanel({
     return true
   }
   const contentRightPaddingClass = 'px-[var(--panel-pad-x)]'
-  const headerPaddingClass = wideLayout ? 'pb-1.5' : 'pb-3'
+  const headerPaddingClass = wideLayout ? 'pb-0' : 'pb-3'
+  const scrollBodyClass = wideLayout
+    ? 'flex-1 overflow-y-auto pt-1 pb-8 md:[scrollbar-gutter:stable_both-edges]'
+    : 'flex-1 overflow-y-auto pt-3 pb-8 md:[scrollbar-gutter:stable_both-edges]'
+  const stickyUserClass = wideLayout
+    ? 'sticky top-3'
+    : 'sticky -top-1'
   // `my-auto` inside a flex-column scroll container centers content when it
   // fits and collapses to 0 when content overflows, avoiding the phantom
   // scroll that `min-h-full` + scrollRef padding produces (min-height: 100%
@@ -411,7 +478,7 @@ export function AgentChatPanel({
   return (
     <div
       ref={controlsRef}
-      className={`flex h-full flex-col md:h-auto md:min-h-[560px] md:flex-1 ${wideLayout ? 'md:pt-4 md:pb-3' : ''}`}
+      className={`flex h-full flex-col md:h-auto md:min-h-[560px] md:flex-1 ${wideLayout ? 'md:pb-3' : ''}`}
       onDragOver={(event) => event.preventDefault()}
       onDrop={(event) => {
         event.preventDefault()
@@ -438,18 +505,19 @@ export function AgentChatPanel({
       }}
     >
       <div className={`${contentRightPaddingClass} ${headerPaddingClass}`}>
-        <AgentChatHeader
-          sessions={sessions}
-          sessionStatuses={visibleSessionStatuses}
-          currentSessionId={currentSessionId}
-          sessionsLoading={sessionsLoading}
-          centeredTitle={wideLayout}
-          openMenu={openMenu}
-          setOpenMenu={setOpenMenu}
-          onNewSession={handleNewSession}
-          onSwitchSession={onSwitchSession}
-          onDeleteSession={onDeleteSession}
-        />
+        {!wideLayout ? (
+          <AgentChatHeader
+            sessions={sessions}
+            sessionStatuses={visibleSessionStatuses}
+            currentSessionId={currentSessionId}
+            sessionsLoading={sessionsLoading}
+            openMenu={openMenu}
+            setOpenMenu={setOpenMenu}
+            onNewSession={handleNewSession}
+            onSwitchSession={onSwitchSession}
+            onDeleteSession={onDeleteSession}
+          />
+        ) : null}
 
         {keyMissing ? (
           <button
@@ -476,13 +544,19 @@ export function AgentChatPanel({
         ) : null}
       </div>
 
-      <div className={`flex min-h-0 min-w-0 flex-1 flex-col${isEmpty ? ' md:justify-center md:pb-[20vh]' : ''}`}>
+      <div className={`relative flex min-h-0 min-w-0 flex-1 flex-col${isEmpty ? ' md:justify-center md:pb-[20vh]' : ''}`}>
+        {!isEmpty ? (
+          <div
+            aria-hidden
+            className={`${contentRightPaddingClass} pointer-events-none absolute inset-x-0 top-0 z-[35] h-20 bg-[linear-gradient(to_bottom,var(--color-bg)_0%,color-mix(in_srgb,var(--color-bg)_84%,transparent)_54%,transparent_100%)]`}
+          />
+        ) : null}
         <div
           ref={scrollRef}
           className={`min-h-0 ${
             isEmpty
               ? 'flex flex-1 flex-col overflow-y-auto pt-5 pb-4 md:flex-none md:overflow-visible md:pt-0 md:pb-0'
-              : 'scroll-fade-y flex-1 overflow-y-auto pt-5 pb-8 md:[scrollbar-gutter:stable_both-edges] [--scroll-fade-end-size:2.25rem] [--scroll-fade-start-size:1.5rem]'
+              : scrollBodyClass
           }`}
         >
           <div className={contentLayoutClass}>
@@ -501,34 +575,80 @@ export function AgentChatPanel({
               />
             ) : (
               <>
-                {renderItems.map((item) =>
-                  item.type === 'message' ? (
-                    <MessageBubble
-                      key={item.key}
-                      message={item.message}
-                      isStreaming={item.isStreaming}
-                      assistantTitle={assistantTitleFor(item.message, item.isStreaming)}
-                    />
-                  ) : (
-                    <ToolActivityCard
-                      key={item.key}
-                      calls={item.calls}
-                      results={item.results}
-                      imageTaskByToolCallId={imageTaskByToolCallId}
-                      stackItemByImageId={stackItemByImageId}
-                      stackItemNumberByImageId={stackItemNumberByImageId}
-                      pendingQuestionByToolCallId={pendingQuestionByToolCallId}
-                      isStreaming={item.isStreaming}
-                      autoApproveImageTasks={autoApproveImageTasks}
-                      onApproveImageTask={onApproveImageTask}
-                      onCancelImageTask={onCancelImageTask}
-                      onToggleAutoApproveImageTasks={onToggleAutoApproveImageTasks}
-                      onSubmitQuestionAnswers={onSubmitQuestionAnswers}
-                      onCancelQuestion={onCancelQuestion}
-                      onFocusImageTask={onFocusImageTask}
-                    />
-                  ),
-                )}
+                {renderSections.map((section) => {
+                  const stickyUserItem = section.stickyUserItem
+                  const stickyUserIsStuck = Boolean(stickyUserItem && stuckStickyUserMessageKey === stickyUserItem.key)
+                  return (
+                    <div
+                      key={section.key}
+                      ref={(node) => {
+                        if (!stickyUserItem) return
+                        if (node) userMessageRefs.current.set(stickyUserItem.key, node)
+                        else userMessageRefs.current.delete(stickyUserItem.key)
+                      }}
+                      className="space-y-4 scroll-mt-4"
+                    >
+                      {stickyUserItem ? (
+                        <div
+                          className={`${stickyUserClass} z-40`}
+                          role={stickyUserIsStuck ? 'button' : undefined}
+                          tabIndex={stickyUserIsStuck ? 0 : undefined}
+                          title={t('agentChat.message.scrollToUserMessage')}
+                          aria-label={t('agentChat.message.scrollToUserMessage')}
+                          onClick={(event) => {
+                            if (!stickyUserIsStuck) return
+                            if (event.target instanceof Element && event.target.closest('button')) return
+                            scrollToUserMessage(stickyUserItem.key)
+                          }}
+                          onKeyDown={(event) => {
+                            if (!stickyUserIsStuck) return
+                            if (event.key !== 'Enter' && event.key !== ' ') return
+                            if (event.target instanceof Element && event.target.closest('button')) return
+                            event.preventDefault()
+                            scrollToUserMessage(stickyUserItem.key)
+                          }}
+                        >
+                          <div className="relative z-10">
+                            <MessageBubble
+                              message={stickyUserItem.message}
+                              isStreaming={stickyUserItem.isStreaming}
+                              assistantTitle={assistantTitleFor(stickyUserItem.message, stickyUserItem.isStreaming)}
+                              hideCopyAction={stickyUserIsStuck}
+                            />
+                          </div>
+                        </div>
+                      ) : null}
+                      {section.items.map((item) =>
+                        item.type === 'message' ? (
+                          <MessageBubble
+                            key={item.key}
+                            message={item.message}
+                            isStreaming={item.isStreaming}
+                            assistantTitle={assistantTitleFor(item.message, item.isStreaming)}
+                          />
+                        ) : (
+                          <ToolActivityCard
+                            key={item.key}
+                            calls={item.calls}
+                            results={item.results}
+                            imageTaskByToolCallId={imageTaskByToolCallId}
+                            stackItemByImageId={stackItemByImageId}
+                            stackItemNumberByImageId={stackItemNumberByImageId}
+                            pendingQuestionByToolCallId={pendingQuestionByToolCallId}
+                            isStreaming={item.isStreaming}
+                            autoApproveImageTasks={autoApproveImageTasks}
+                            onApproveImageTask={onApproveImageTask}
+                            onCancelImageTask={onCancelImageTask}
+                            onToggleAutoApproveImageTasks={onToggleAutoApproveImageTasks}
+                            onSubmitQuestionAnswers={onSubmitQuestionAnswers}
+                            onCancelQuestion={onCancelQuestion}
+                            onFocusImageTask={onFocusImageTask}
+                          />
+                        ),
+                      )}
+                    </div>
+                  )
+                })}
                 {queuedMessages.map((queued) => (
                   <QueuedMessageBubble key={queued.id} queued={queued} />
                 ))}
@@ -538,7 +658,15 @@ export function AgentChatPanel({
           </div>
         </div>
 
-        <div className={`${contentRightPaddingClass}${isEmpty ? ' md:mt-14' : ''}`}>{composer}</div>
+        <div className={`${contentRightPaddingClass}${isEmpty ? ' md:mt-14' : ''} relative z-50`}>
+          {!isEmpty ? (
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-x-0 bottom-full z-0 h-8 bg-[linear-gradient(to_top,color-mix(in_srgb,var(--color-bg)_72%,transparent)_0%,color-mix(in_srgb,var(--color-bg)_42%,transparent)_42%,transparent_100%)]"
+            />
+          ) : null}
+          <div className="relative z-10">{composer}</div>
+        </div>
 
         {isEmpty ? (
           <div className={`${contentRightPaddingClass} hidden md:mt-4 md:block`}>

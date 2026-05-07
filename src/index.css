@@ -688,8 +688,8 @@
 
     .agent-panel-width-toggle {
       position: absolute;
-      top: 14px;
-      z-index: 20;
+      top: 24px;
+      z-index: 60;
       display: inline-flex;
       width: 24px;
       height: 24px;
@@ -724,7 +724,7 @@
 
     .agent-panel-width-tip {
       position: absolute;
-      top: 8px;
+      top: 18px;
       z-index: 21;
       display: inline-flex;
       align-items: flex-start;

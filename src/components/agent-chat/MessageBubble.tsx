@@ -40,11 +40,13 @@ export function MessageBubble({
   isStreaming,
   isQueued = false,
   assistantTitle,
+  hideCopyAction = false,
 }: {
   message: AgentMessage
   isStreaming: boolean
   isQueued?: boolean
   assistantTitle?: string
+  hideCopyAction?: boolean
 }) {
   const { t } = useI18n()
   const [copied, setCopied] = useState(false)
@@ -64,9 +66,7 @@ export function MessageBubble({
     ? visibleText
     : [visibleText, displayError].filter((part): part is string => Boolean(part)).join('\n\n')
   const isSystemEvent = isUser && visibleText === '' && trimmedText.startsWith('<system>')
-  const canCopy = isUser
-    ? copyText.length > 0
-    : isAssistant && !hasToolCalls && !isStreaming && copyText.trim().length > 0
+  const canCopy = isUser ? copyText.length > 0 : isAssistant && !hasToolCalls && !isStreaming && copyText.trim().length > 0
   const showAssistantMarkdown = visibleText.trim() !== ''
   const hasAssistantNonErrorContent =
     thinking.trim() !== '' || images.length > 0 || showAssistantMarkdown || hasToolCalls
@@ -76,7 +76,7 @@ export function MessageBubble({
   const hasAssistantBody = thinking.trim() !== '' || images.length > 0 || hasAssistantTrailingContent
 
   const handleCopy = () => {
-    if (!canCopy) return
+    if (!canCopy || hideCopyAction) return
     void writeClipboardText(copyText)
       .then(() => {
         setCopied(true)
@@ -179,8 +179,10 @@ export function MessageBubble({
           <div className="mt-1 flex justify-end pr-1">
             <button
               type="button"
-              className="inline-flex h-[26px] appearance-none items-center justify-center rounded-[var(--radius-sm)] border-0 bg-transparent px-2 text-xs font-medium text-(--color-text-4) opacity-100 transition-[opacity,background-color,color] duration-150 hover:bg-(--color-surface-2) hover:text-(--color-text-3) md:pointer-events-none md:opacity-0 md:group-hover/message:pointer-events-auto md:group-hover/message:opacity-100 md:group-focus-within/message:pointer-events-auto md:group-focus-within/message:opacity-100"
+              className={`inline-flex h-[26px] appearance-none items-center justify-center rounded-[var(--radius-sm)] border-0 bg-transparent px-2 text-xs font-medium text-(--color-text-4) opacity-100 transition-[opacity,background-color,color] duration-150 hover:bg-(--color-surface-2) hover:text-(--color-text-3) md:pointer-events-none md:opacity-0 md:group-hover/message:pointer-events-auto md:group-hover/message:opacity-100 md:group-focus-within/message:pointer-events-auto md:group-focus-within/message:opacity-100 ${hideCopyAction ? 'pointer-events-none invisible' : ''}`}
               onClick={handleCopy}
+              tabIndex={hideCopyAction ? -1 : undefined}
+              aria-hidden={hideCopyAction || undefined}
               title={copied ? t('agentChat.message.copied') : t('agentChat.message.copy')}
               aria-label={copied ? t('agentChat.message.copied') : t('agentChat.message.copy')}
             >
