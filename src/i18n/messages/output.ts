@@ -23,7 +23,7 @@ export const outputMessages: MessageDictionary = {
   'output.packaging': { 'zh-CN': '打包中…', en: 'Packaging…' },
   'output.retryFailed': { 'zh-CN': '重试失败项', en: 'Retry failed' },
   'output.stripMetadataInfo': { 'zh-CN': '下载元数据说明', en: 'Download metadata info' },
-  'output.stripMetadataShort': { 'zh-CN': '去元数据', en: 'Strip metadata' },
+  'output.stripMetadataShort': { 'zh-CN': '去 AI 标记', en: 'Strip metadata' },
   'output.stripMetadataToggle': { 'zh-CN': '下载时去除元数据', en: 'Strip metadata on download' },
   'output.stripMetadataTooltip': {
     'zh-CN':
