@@ -47,9 +47,10 @@ export function stackIdForImage(image: PlaygroundImageMeta): string | null {
   return image.source.stackId ?? image.source.batchId
 }
 
+const MODEL_BY_ID = new Map(MODEL_CONFIGS.map((model) => [model.id, model]))
+
 function modelForFailure(source: GenerationFailureSource) {
-  const found = MODEL_CONFIGS.find((model) => model.id === source.modelId)
-  return found ?? { ...DEFAULT_MODEL, id: source.modelId, name: source.modelId }
+  return MODEL_BY_ID.get(source.modelId) ?? { ...DEFAULT_MODEL, id: source.modelId, name: source.modelId }
 }
 
 function slotItemForFailureImage(image: PlaygroundImageMeta & { source: GenerationFailureSource }): StackSlotItem {

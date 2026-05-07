@@ -12,10 +12,11 @@ type Props = {
   onChange: (value: string) => void
 }
 
+const FLEX_WRAP_STYLE = { display: 'flex', gap: 6, flexWrap: 'wrap' } as const
+const COLUMN_FLEX_STYLE = { flex: 1 } as const
+
 export function ChipGroup({ label, options, value, mono = false, columns, renderOption, tooltipFor, onChange }: Props) {
-  const grid = columns
-    ? { display: 'grid', gridTemplateColumns: `repeat(${columns}, 1fr)`, gap: 6 }
-    : { display: 'flex', gap: 6, flexWrap: 'wrap' as const }
+  const grid = columns ? { display: 'grid', gridTemplateColumns: `repeat(${columns}, 1fr)`, gap: 6 } : FLEX_WRAP_STYLE
 
   const buttons = (
     <div style={grid}>
@@ -29,7 +30,7 @@ export function ChipGroup({ label, options, value, mono = false, columns, render
               data-active={value === option}
               onClick={() => onChange(option)}
               className="chip justify-center"
-              style={columns ? { flex: 1 } : undefined}
+              style={columns ? COLUMN_FLEX_STYLE : undefined}
             >
               {renderOption ? renderOption(option) : <span className={mono ? 'mono' : ''}>{option}</span>}
             </button>

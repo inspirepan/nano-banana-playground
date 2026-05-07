@@ -24,6 +24,11 @@ const CONTEXT_MENU_WIDTH = 160
 const CONTEXT_MENU_ITEM_HEIGHT = 32
 const CONTEXT_MENU_PADDING = 8
 
+const META_ROW_STYLE = { color: '#fff', textShadow: '0 1px 2px rgba(0,0,0,0.4)' } as const
+const INDEX_BADGE_STYLE = { background: 'rgba(0,0,0,0.42)', backdropFilter: 'blur(6px)' } as const
+const META_TEXT_STYLE = { opacity: 0.85 } as const
+const TOAST_INNER_STYLE = { background: 'rgba(0,0,0,0.7)', color: '#fff', backdropFilter: 'blur(8px)' } as const
+
 export const ImageCard = memo(function ImageCard({
   image,
   inlineData,
@@ -159,20 +164,17 @@ export const ImageCard = memo(function ImageCard({
       {/* Top meta chip */}
       <div
         className="pointer-events-none absolute top-2 left-2 right-2 flex justify-between items-center"
-        style={{ color: '#fff', textShadow: '0 1px 2px rgba(0,0,0,0.4)' }}
+        style={META_ROW_STYLE}
       >
         {index !== undefined ? (
-          <span
-            className="rounded-[var(--radius-xs)] px-1.5 py-0.5 text-base font-medium"
-            style={{ background: 'rgba(0,0,0,0.42)', backdropFilter: 'blur(6px)' }}
-          >
+          <span className="rounded-[var(--radius-xs)] px-1.5 py-0.5 text-base font-medium" style={INDEX_BADGE_STYLE}>
             #{index + 1}
           </span>
         ) : (
           <span />
         )}
         {meta && (
-          <span className="tabular-nums" style={{ opacity: 0.85 }}>
+          <span className="tabular-nums" style={META_TEXT_STYLE}>
             {meta.resolution} · {meta.aspectRatio}
           </span>
         )}
@@ -182,10 +184,7 @@ export const ImageCard = memo(function ImageCard({
       <div
         className={`pointer-events-none absolute inset-x-0 top-1/2 z-10 flex -translate-y-1/2 justify-center transition-[opacity,transform] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-none ${toast ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}
       >
-        <div
-          className="rounded-[var(--radius-sm)] px-3 py-1.5 text-base font-medium"
-          style={{ background: 'rgba(0,0,0,0.7)', color: '#fff', backdropFilter: 'blur(8px)' }}
-        >
+        <div className="rounded-[var(--radius-sm)] px-3 py-1.5 text-base font-medium" style={TOAST_INNER_STYLE}>
           {t('input.imageCard.copied')}
         </div>
       </div>

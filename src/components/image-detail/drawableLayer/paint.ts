@@ -3,6 +3,9 @@ import type { DrawItem } from '../../../lib/editStateCache'
 
 export const MASK_OVERLAY_COLOR = 'rgba(239, 68, 68, 0.5)'
 export const DEFAULT_ANNOTATE_COLOR = '#ef4444'
+const STEP_PIN_LABEL_COLOR = '#ffffff'
+const STEP_PIN_LABEL_FONT_FAMILY =
+  'system-ui, -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif'
 export { STEP_TAIL_RATIO }
 
 export function paintItem(ctx: CanvasRenderingContext2D, item: DrawItem, paintColor: string) {
@@ -51,8 +54,8 @@ export function paintItem(ctx: CanvasRenderingContext2D, item: DrawItem, paintCo
     ctx.closePath()
     ctx.fill()
 
-    ctx.fillStyle = '#ffffff'
-    ctx.font = `700 ${r * 1.1}px system-ui, -apple-system, sans-serif`
+    ctx.fillStyle = STEP_PIN_LABEL_COLOR
+    ctx.font = `700 ${r * 1.1}px ${STEP_PIN_LABEL_FONT_FAMILY}`
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
     ctx.fillText(String(item.n), center.x, center.y + r * 0.04)

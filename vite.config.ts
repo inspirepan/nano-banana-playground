@@ -333,10 +333,28 @@ export default defineConfig({
     chunkSizeWarningLimit: 1500,
     rolldownOptions: {
       output: {
-        manualChunks(id) {
+        manualChunks(id, { getModuleInfo }) {
           if (!id.includes('node_modules')) return undefined
+          // lucide-react special handling:
+          // - DynamicIcon imports 1500+ per-icon files via () => import(...).
+          // - Naming all of them 'vendor-lucide' collapses every lazy split
+          //   into a single ~680KB sync bundle.
+          // - Splitting modules by whether they're statically vs dynamically
+          //   imported keeps the static fast path small while the dynamic
+          //   icon set stays a single lazy-loaded chunk.
+          if (id.includes('/lucide-react/')) {
+            // Split lucide-react by import kind: modules reachable only via
+            // `() => import(...)` (the 1500+ per-icon files used by
+            // DynamicIcon) go to vendor-lucide-dynamic, which loads lazily.
+            // Statically-imported pieces (Icon.tsx subpaths, DynamicIcon,
+            // dynamicIconImports map, shared utils) stay in vendor-lucide.
+            const info = getModuleInfo(id)
+            if (info && info.importers.length === 0 && info.dynamicImporters.length > 0) {
+              return 'vendor-lucide-dynamic'
+            }
+            return 'vendor-lucide'
+          }
           if (id.includes('/react/') || id.includes('/react-dom/')) return 'vendor-react'
-          if (id.includes('/lucide-react/')) return 'vendor-lucide'
           if (id.includes('/agentation/')) return 'vendor-agentation'
           if (id.includes('/@mariozechner+pi-agent') || id.includes('/@mariozechner/pi-agent/')) {
             return 'vendor-pi-agent'

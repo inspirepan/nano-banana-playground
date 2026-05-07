@@ -207,15 +207,7 @@ export function DetailSidebar({
               </button>
             </Tooltip>
           </div>
-          <div
-            className="rounded-[var(--radius-md)] p-3 text-sm leading-[1.6] text-(--color-text-2)"
-            style={{
-              background: 'var(--color-surface)',
-              boxShadow: 'inset 0 0 0 1px var(--ring-edge)',
-              maxHeight: 220,
-              overflowY: 'auto',
-            }}
-          >
+          <div className="max-h-[220px] overflow-y-auto rounded-[var(--radius-md)] bg-(--color-surface) p-3 text-sm leading-[1.6] text-(--color-text-2) shadow-[inset_0_0_0_1px_var(--ring-edge)]">
             {renderPromptLines(prompt)}
           </div>
         </div>

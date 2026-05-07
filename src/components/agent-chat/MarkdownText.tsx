@@ -1,5 +1,6 @@
 import type { JSX } from 'react'
 import { Streamdown } from 'streamdown'
+import 'streamdown/styles.css'
 
 const MARKDOWN_COMPONENTS = {
   p: (props: JSX.IntrinsicElements['p']) => <p {...props} />,

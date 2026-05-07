@@ -1,8 +1,9 @@
 const LAZY_RELOAD_STORAGE_KEY = 'nano-banana-playground:lazy-reload-attempted'
+const LAZY_CHUNK_ERROR_REGEX = /dynamically imported module|failed to fetch|loading chunk|module script|mime type/i
 
 export function isLazyChunkLoadError(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error)
-  return /dynamically imported module|failed to fetch|loading chunk|module script|mime type/i.test(message)
+  return LAZY_CHUNK_ERROR_REGEX.test(message)
 }
 
 export function recoverFromLazyChunkLoadError(error: unknown, scope: string): never {
