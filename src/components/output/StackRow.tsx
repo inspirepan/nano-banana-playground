@@ -103,9 +103,13 @@ export const StackRow = memo(function StackRow({
     <div className="min-w-0">
       <div className="min-w-0 px-3 py-2">
         <div className="mb-2 flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1 text-base">
-          <span className="shrink-0 font-normal text-(--color-text-3)">{formatTime(stack.updatedAt, t)}</span>
+          <span className="shrink-0 font-normal tabular-nums text-(--color-text-3)">
+            {formatTime(stack.updatedAt, t)}
+          </span>
           <span className="meta-dot text-(--color-text-4)" aria-hidden />
-          <span className="font-normal text-(--color-text-3)">{t('output.imageCount', { count: totalItems })}</span>
+          <span className="font-normal tabular-nums text-(--color-text-3)">
+            {t('output.imageCount', { count: totalItems })}
+          </span>
           <span className="meta-dot text-(--color-text-4)" aria-hidden />
           <button
             type="button"
@@ -131,7 +135,7 @@ export const StackRow = memo(function StackRow({
             <>
               <span className="meta-dot text-(--color-text-4)" aria-hidden />
               <span className="inline-flex items-center gap-1.5">
-                <span className="inline-flex items-center gap-1.5 font-normal text-(--color-text-3)">
+                <span className="inline-flex items-center gap-1.5 font-normal tabular-nums text-(--color-text-3)">
                   {activeStatusParts.map((part, index) => (
                     <span key={part.kind} className="contents">
                       {index > 0 && <span className="meta-dot text-(--color-text-4)" aria-hidden />}
@@ -165,7 +169,7 @@ export const StackRow = memo(function StackRow({
           {stack.failedSlotCount > 0 && (
             <>
               <span className="meta-dot text-(--color-text-4)" aria-hidden />
-              <span className="text-base" style={{ color: 'var(--color-danger)' }}>
+              <span className="text-base tabular-nums" style={{ color: 'var(--color-danger)' }}>
                 {t('output.failedCount', { count: stack.failedSlotCount })}
               </span>
               <span className="meta-dot text-(--color-text-4)" aria-hidden />

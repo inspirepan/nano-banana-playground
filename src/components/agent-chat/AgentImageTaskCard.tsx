@@ -181,10 +181,20 @@ function SkeletonSlot({
   )
 }
 
-function Tag({ children, mono = false, bold = false }: { children: ReactNode; mono?: boolean; bold?: boolean }) {
+function Tag({
+  children,
+  mono = false,
+  bold = false,
+  tabular = false,
+}: {
+  children: ReactNode
+  mono?: boolean
+  bold?: boolean
+  tabular?: boolean
+}) {
   return (
     <span
-      className={`inline-flex items-center rounded-[var(--radius-xs)] bg-(--color-surface-2) px-1.5 py-0.5 text-sm leading-none text-(--color-text-2) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)] ${mono ? 'mono' : ''} ${bold ? 'font-semibold text-(--color-text)' : ''}`}
+      className={`inline-flex items-center rounded-[var(--radius-xs)] bg-(--color-surface-2) px-1.5 py-0.5 text-sm leading-none text-(--color-text-2) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)] ${mono ? 'mono' : ''} ${tabular ? 'tabular-nums' : ''} ${bold ? 'font-semibold text-(--color-text)' : ''}`}
     >
       {children}
     </span>
@@ -401,9 +411,9 @@ export function AgentImageTaskCard({
     task && modelName ? (
       <>
         <Tag bold={isActiveGenerating}>{modelName}</Tag>
-        <Tag>{task.request.resolution}</Tag>
-        <Tag>{task.request.aspectRatio}</Tag>
-        {batchCount > 1 && <Tag>{`×${batchCount}`}</Tag>}
+        <Tag tabular>{task.request.resolution}</Tag>
+        <Tag tabular>{task.request.aspectRatio}</Tag>
+        {batchCount > 1 && <Tag tabular>{`×${batchCount}`}</Tag>}
       </>
     ) : null
 

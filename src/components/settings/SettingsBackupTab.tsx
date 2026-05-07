@@ -321,7 +321,7 @@ function SummaryCell({ tone, label }: { tone: SettingsImportItemStatus | 'select
           <Icon name={tone === 'invalid' ? 'alert_circle' : 'check'} size={11} />
         )}
       </span>
-      <span className="font-medium">{label}</span>
+      <span className="font-medium tabular-nums">{label}</span>
     </div>
   )
 }

@@ -102,7 +102,7 @@ export function AgentSkillSettings({ skills, onEnabledChange, onDelete, onGetPac
                       <span className="rounded-[var(--radius-xs)] bg-(--color-surface-2) px-1.5 py-0.5 text-[11px] font-medium text-(--color-text-3) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
                         {t(`settings.agentSkills.source.${skill.source}`)}
                       </span>
-                      <span className="text-xs text-(--color-text-4)">
+                      <span className="text-xs tabular-nums text-(--color-text-4)">
                         {t('settings.agentSkills.fileCount', { count: skill.fileCount })}
                       </span>
                     </div>

@@ -43,7 +43,7 @@ export function DataSettingsTab({
       <div className="flex items-baseline justify-between gap-3">
         <div>
           <div className="label mb-1">{t('settings.data.currentUsage')}</div>
-          <div className="text-lg font-semibold tracking-[-0.01em] text-(--color-text)">
+          <div className="text-lg font-semibold tracking-[-0.01em] tabular-nums text-(--color-text)">
             {siteDataUsage
               ? formatBytes(siteDataUsage.totalBytes)
               : siteDataUsageLoading
@@ -51,7 +51,7 @@ export function DataSettingsTab({
                 : t('common.unknown')}
           </div>
           {siteDataUsage?.browserEstimateBytes != null && (
-            <div className="mt-0.5 text-sm text-(--color-text-3)">
+            <div className="mt-0.5 text-sm tabular-nums text-(--color-text-3)">
               {t('settings.data.browserEstimate', {
                 size: formatBytes(siteDataUsage.browserEstimateBytes),
               })}

@@ -204,7 +204,7 @@ export function GenerateModeView({
             className="block w-full bg-transparent px-3 py-2.5 text-[16px] md:text-base leading-[1.55] resize-none focus:outline-none"
           />
           <div className="flex items-center gap-2 px-2.5 py-1.5 text-sm text-(--color-text-3) shadow-[inset_0_1px_0_var(--ring-edge-soft)]">
-            <span className="text-sm text-(--color-text-3)">
+            <span className="text-sm tabular-nums text-(--color-text-3)">
               {t('input.prompt.charCount', { count: prompt.length })}
             </span>
             <div className="flex-1" />

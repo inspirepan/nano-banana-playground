@@ -323,7 +323,7 @@ export function DesktopLayout({
               aria-label={agentPanelWide ? t('app.action.collapseAgentPanel') : t('app.action.expandAgentPanel')}
               aria-pressed={agentPanelWide}
               className="agent-panel-width-toggle"
-              style={{ left: 0 }}
+              style={{ left: 0, top: 24 }}
             >
               <Icon name={agentPanelWide ? 'chevron_left' : 'chevron_right'} size={14} strokeWidth={1.8} />
             </button>

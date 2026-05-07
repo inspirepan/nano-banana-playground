@@ -161,14 +161,9 @@ export const OutputPanel = memo(function OutputPanel({
       ref={scrollRef}
       className="flex-1 md:flex-[2_1_0%] overflow-visible md:overflow-y-auto md:[scrollbar-gutter:stable] md:px-[26px] md:py-[22px] md:pb-[80px]"
     >
-      <div className="mb-5 space-y-3 px-3 md:px-0">
-        <div className="flex items-start gap-3">
-          <div className="min-w-0">
-            <div className="font-display text-xl font-semibold tracking-[-0.01em]">{t('common.gallery')}</div>
-            <div className="text-sm text-(--color-text-3) mt-0.5">
-              {t('output.gallerySummary', { groups: stacks.length, count: generatedImageCount })}
-            </div>
-          </div>
+      <div className="mb-5 space-y-1.5 px-3 md:px-0">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          <div className="font-display text-xl font-semibold tracking-[-0.01em] shrink-0">{t('common.gallery')}</div>
           <div className="flex-1" />
           {exportableHistory.length > 0 && (
             <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
@@ -203,6 +198,9 @@ export const OutputPanel = memo(function OutputPanel({
               </button>
             </div>
           )}
+        </div>
+        <div className="text-pretty text-sm tabular-nums text-(--color-text-3)">
+          {t('output.gallerySummary', { groups: stacks.length, count: generatedImageCount })}
         </div>
       </div>
 

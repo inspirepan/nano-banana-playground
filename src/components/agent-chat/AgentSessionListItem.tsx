@@ -93,7 +93,7 @@ export function AgentSessionListItem({
             <span>{imageCount}</span>
           </span>
         )}
-        <span>{formatSessionTime(session.updatedAt)}</span>
+        <span className="tabular-nums">{formatSessionTime(session.updatedAt)}</span>
       </span>
       <button
         type="button"

@@ -961,6 +961,9 @@
     font-size: var(--text-base);
     font-weight: 500;
     font-variant-numeric: tabular-nums;
+    font-feature-settings:
+      var(--font-sans--font-feature-settings),
+      'tnum' 1;
     box-shadow: inset 0 0 0 1px var(--ring-edge);
     transition:
       background 120ms,
@@ -1232,6 +1235,13 @@
 }
 
 @layer utilities {
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings:
+      var(--font-sans--font-feature-settings),
+      'tnum' 1;
+  }
+
   /* Header frosted fade — kept for legacy references */
   .header-fade {
     position: relative;

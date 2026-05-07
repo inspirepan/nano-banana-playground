@@ -162,7 +162,9 @@ export function QueueJobSection({
     <div>
       <div className="mb-2 grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2">
         <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-          <span className="whitespace-nowrap text-sm text-(--color-text-3)">{formatTime(job.createdAt, t)}</span>
+          <span className="whitespace-nowrap text-sm tabular-nums text-(--color-text-3)">
+            {formatTime(job.createdAt, t)}
+          </span>
           <span className="text-(--color-text-4)">·</span>
           <span className="whitespace-nowrap text-base font-medium text-(--color-text-2)">
             {job.request.model.name}
@@ -172,7 +174,7 @@ export function QueueJobSection({
             {job.request.resolution} · {job.request.aspectRatio} · {job.slots.length}
           </span>
           <span className="text-(--color-text-4)">·</span>
-          <span className="whitespace-nowrap text-base" style={{ color: statusColor }}>
+          <span className="whitespace-nowrap text-base tabular-nums" style={{ color: statusColor }}>
             {jobStatusLabel(counts, t)}
           </span>
         </div>
