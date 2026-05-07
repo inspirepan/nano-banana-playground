@@ -1,3 +1,5 @@
+import { useRef, type PointerEvent } from 'react'
+
 import type { AgentSkillSummary } from '../../agent'
 import { MODEL_CONFIGS } from '../../config/models'
 import { getProviderConfig } from '../../config/providers'
@@ -48,6 +50,24 @@ function AspectGlyph({ ratio }: { ratio: string }) {
 
 export function QuickCompletePanel({ onInsertText }: { onInsertText: (text: string) => void }) {
   const { t } = useI18n()
+  const pointerHandledInsertRef = useRef(false)
+
+  const handlePointerInsert = (event: PointerEvent<HTMLButtonElement>, text: string) => {
+    if (event.pointerType !== 'touch' && event.pointerType !== 'pen') return
+    if (!(document.activeElement instanceof HTMLTextAreaElement)) return
+
+    event.preventDefault()
+    pointerHandledInsertRef.current = true
+    onInsertText(text)
+  }
+
+  const handleClickInsert = (text: string) => {
+    if (pointerHandledInsertRef.current) {
+      pointerHandledInsertRef.current = false
+      return
+    }
+    onInsertText(text)
+  }
 
   return (
     <div className="mx-auto w-full max-w-[980px] overflow-hidden rounded-[var(--radius-lg)] bg-(--color-bg) shadow-[inset_0_0_0_1px_var(--ring-edge)]">
@@ -62,7 +82,8 @@ export function QuickCompletePanel({ onInsertText }: { onInsertText: (text: stri
               <button
                 key={modelConfig.id}
                 type="button"
-                onClick={() => onInsertText(modelConfig.name)}
+                onPointerDown={(event) => handlePointerInsert(event, modelConfig.name)}
+                onClick={() => handleClickInsert(modelConfig.name)}
                 className="chip min-w-0 gap-1.5 bg-transparent px-2.5 text-sm"
                 style={{ height: 32 }}
               >
@@ -89,7 +110,8 @@ export function QuickCompletePanel({ onInsertText }: { onInsertText: (text: stri
               <button
                 key={ratio}
                 type="button"
-                onClick={() => onInsertText(ratio)}
+                onPointerDown={(event) => handlePointerInsert(event, ratio)}
+                onClick={() => handleClickInsert(ratio)}
                 className="chip gap-1.5 bg-transparent px-2.5 text-sm tabular-nums"
                 style={{ height: 32 }}
               >
@@ -110,7 +132,8 @@ export function QuickCompletePanel({ onInsertText }: { onInsertText: (text: stri
               <button
                 key={resolution}
                 type="button"
-                onClick={() => onInsertText(resolution)}
+                onPointerDown={(event) => handlePointerInsert(event, resolution)}
+                onClick={() => handleClickInsert(resolution)}
                 className="chip gap-1.5 bg-transparent px-2.5 text-sm tabular-nums"
                 style={{ height: 32 }}
               >
