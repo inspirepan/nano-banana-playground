@@ -1,7 +1,7 @@
 import type { ComposerSubmitMode } from '../../config/composerSubmitMode'
 import { useComposerSubmitMode } from '../../hooks/useComposerSubmitMode'
 import { useI18n } from '../../i18n'
-import { getPrimaryModifierShortcutLabel } from '../../lib/keyboard'
+import { isApplePlatform } from '../../lib/keyboard'
 import { CardChoice, type CardChoiceOption } from './CardChoice'
 import { Segmented, type SegmentedOption } from './Segmented'
 import { SettingsField } from './SettingsField'
@@ -38,7 +38,7 @@ export function GenerationSettingsTab({
 }: GenerationSettingsTabProps) {
   const { t } = useI18n()
   const { composerSubmitMode, setComposerSubmitMode } = useComposerSubmitMode()
-  const submitShortcut = getPrimaryModifierShortcutLabel('Enter')
+  const submitShortcut = `${isApplePlatform() ? 'Command' : 'Ctrl'}+Enter`
 
   const concurrencyOptions: SegmentedOption<number>[] = GENERATION_CONCURRENCY_CHOICES.map((choice) => {
     const head = choice.labelKey ? t(choice.labelKey) : choice.label
