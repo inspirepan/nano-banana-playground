@@ -2,7 +2,7 @@ import type { JSX } from 'react'
 import { Streamdown } from 'streamdown'
 import 'streamdown/styles.css'
 
-const MARKDOWN_COMPONENTS = {
+export const MARKDOWN_COMPONENTS = {
   p: (props: JSX.IntrinsicElements['p']) => <p {...props} />,
   strong: (props: JSX.IntrinsicElements['strong']) => <strong className="font-semibold" {...props} />,
   em: (props: JSX.IntrinsicElements['em']) => <em className="italic" {...props} />,

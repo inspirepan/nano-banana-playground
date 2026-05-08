@@ -1,8 +1,10 @@
-import { useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
+import { Streamdown } from 'streamdown'
 
 import { useExternalSync } from '../../hooks/effects'
 import { useI18n } from '../../i18n'
 import { Icon } from '../Icon'
+import { MARKDOWN_COMPONENTS } from './MarkdownText'
 
 function findScrollParent(el: HTMLElement | null): HTMLElement | null {
   let parent = el?.parentElement ?? null
@@ -12,39 +14,6 @@ function findScrollParent(el: HTMLElement | null): HTMLElement | null {
     parent = parent.parentElement
   }
   return null
-}
-
-function renderInline(text: string): ReactNode[] {
-  const nodes: ReactNode[] = []
-  const pattern = /(`[^`]+`|\*\*[^*]+\*\*)/g
-  let lastIndex = 0
-  let match = pattern.exec(text)
-
-  while (match) {
-    if (match.index > lastIndex) nodes.push(text.slice(lastIndex, match.index))
-    const token = match[0]
-    if (token.startsWith('`')) {
-      nodes.push(
-        <code
-          key={`${match.index}-code`}
-          className="rounded-[var(--radius-xs)] bg-(--color-surface-2) px-1 py-0.5 mono text-[0.92em]"
-        >
-          {token.slice(1, -1)}
-        </code>,
-      )
-    } else {
-      nodes.push(
-        <strong key={`${match.index}-strong`} className="font-semibold">
-          {token.slice(2, -2)}
-        </strong>,
-      )
-    }
-    lastIndex = match.index + token.length
-    match = pattern.exec(text)
-  }
-
-  if (lastIndex < text.length) nodes.push(text.slice(lastIndex))
-  return nodes
 }
 
 function thoughtLabel(t: ReturnType<typeof useI18n>['t'], durationMs: number | null): string {
@@ -151,7 +120,7 @@ export function AgentThinking({
           size={13}
           style={{
             transform: thinkingOpen ? 'rotate(90deg)' : 'rotate(0deg)',
-            transition: 'transform 200ms cubic-bezier(0.23, 1, 0.32, 1)',
+            transition: 'transform 200ms var(--ease-out)',
           }}
           className="motion-reduce:!transition-none"
         />
@@ -160,16 +129,23 @@ export function AgentThinking({
         className="grid motion-reduce:!transition-none"
         style={{
           gridTemplateRows: thinkingOpen ? '1fr' : '0fr',
-          transition: instantCollapse ? 'none' : 'grid-template-rows 220ms cubic-bezier(0.23, 1, 0.32, 1)',
+          transition: instantCollapse ? 'none' : 'grid-template-rows 220ms var(--ease-drawer)',
         }}
       >
         <div className="min-h-0 overflow-hidden">
           <div
             ref={contentRef}
-            className="pt-3 whitespace-pre-wrap italic leading-[1.55] text-(--color-text-3)"
+            className="space-y-2 pt-3 italic leading-[1.55] text-(--color-text-3) [&_>_*]:my-0"
             style={{ fontSynthesis: 'style' }}
           >
-            {renderInline(thinking.replace(/\n{3,}/g, '\n\n'))}
+            <Streamdown
+              parseIncompleteMarkdown={isStreaming}
+              isAnimating={isStreaming}
+              animated={{ animation: 'fadeIn', sep: 'word', duration: 220, stagger: 12 }}
+              components={MARKDOWN_COMPONENTS}
+            >
+              {thinking.replace(/\n{3,}/g, '\n\n')}
+            </Streamdown>
           </div>
         </div>
       </div>
