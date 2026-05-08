@@ -212,7 +212,7 @@ export function AgentChatPanel({
   }, [currentSessionId, currentSessionSidebarStatus, sessionStatuses])
   const showStop = isAgentActivelyRunning && !hasComposerContent
   const showRunningIndicator = isAgentActivelyRunning
-  const stickyUserTopOffset = wideLayout ? 12 : -4
+  const stickyUserTopOffset = 12
   const visibleMessages = useMemo(
     () => (streamingMessage ? [...messages, streamingMessage] : messages),
     [messages, streamingMessage],
@@ -423,12 +423,8 @@ export function AgentChatPanel({
   }
   const contentRightPaddingClass = 'px-[var(--panel-pad-x)]'
   const headerPaddingClass = wideLayout ? 'pb-0' : 'pb-3'
-  const scrollBodyClass = wideLayout
-    ? 'flex-1 overflow-y-auto pt-1 pb-8 md:[scrollbar-gutter:stable_both-edges]'
-    : 'flex-1 overflow-y-auto pt-3 pb-8 md:[scrollbar-gutter:stable_both-edges]'
-  const stickyUserClass = wideLayout
-    ? 'sticky top-3'
-    : 'sticky -top-1'
+  const scrollBodyClass = 'flex-1 overflow-y-auto pt-3 pb-8 md:[scrollbar-gutter:stable_both-edges]'
+  const stickyUserClass = 'sticky top-3'
   // `my-auto` inside a flex-column scroll container centers content when it
   // fits and collapses to 0 when content overflows, avoiding the phantom
   // scroll that `min-h-full` + scrollRef padding produces (min-height: 100%
