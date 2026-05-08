@@ -277,9 +277,15 @@ function AgentImagePromptBox({ text }: { text: string }) {
           }}
           className="mt-1 bg-transparent py-0 pr-0 pl-2 text-sm text-(--color-text-3) transition-colors hover:text-(--color-text)"
         >
-          {expanded
-            ? t('agentChat.truncated.collapse')
-            : t('agentChat.truncated.expandMoreLines', { count: measurement.hiddenLineCount })}
+          {expanded ? (
+            t('agentChat.truncated.collapse')
+          ) : (
+            <>
+              {t('agentChat.truncated.expandMoreLinesPrefix')}{' '}
+              <span className="tabular-nums">{measurement.hiddenLineCount}</span>{' '}
+              {t('agentChat.truncated.expandMoreLinesSuffix')}
+            </>
+          )}
         </button>
       )}
     </div>

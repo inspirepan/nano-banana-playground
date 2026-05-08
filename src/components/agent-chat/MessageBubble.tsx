@@ -66,7 +66,9 @@ export function MessageBubble({
     ? visibleText
     : [visibleText, displayError].filter((part): part is string => Boolean(part)).join('\n\n')
   const isSystemEvent = isUser && visibleText === '' && trimmedText.startsWith('<system>')
-  const canCopy = isUser ? copyText.length > 0 : isAssistant && !hasToolCalls && !isStreaming && copyText.trim().length > 0
+  const canCopy = isUser
+    ? copyText.length > 0
+    : isAssistant && !hasToolCalls && !isStreaming && copyText.trim().length > 0
   const showAssistantMarkdown = visibleText.trim() !== ''
   const hasAssistantNonErrorContent =
     thinking.trim() !== '' || images.length > 0 || showAssistantMarkdown || hasToolCalls

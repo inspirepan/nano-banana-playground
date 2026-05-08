@@ -310,6 +310,10 @@ export function AgentChatPanel({
   const updateStuckStickyUserMessage = useCallback(() => {
     const el = scrollRef.current
     if (!el) return
+    if (el.scrollTop <= 1) {
+      setStuckStickyUserMessageKey((prev) => (prev === null ? prev : null))
+      return
+    }
     const threshold = el.getBoundingClientRect().top + stickyUserTopOffset + 1
     let nextKey: string | null = null
     for (const [key, node] of userMessageRefs.current) {
@@ -540,7 +544,9 @@ export function AgentChatPanel({
         ) : null}
       </div>
 
-      <div className={`relative flex min-h-0 min-w-0 flex-1 flex-col${isEmpty ? ' md:justify-center md:pb-[20vh]' : ''}`}>
+      <div
+        className={`relative flex min-h-0 min-w-0 flex-1 flex-col${isEmpty ? ' md:justify-center md:pb-[20vh]' : ''}`}
+      >
         {!isEmpty ? (
           <div
             aria-hidden
