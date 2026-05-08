@@ -22,7 +22,7 @@ export function InputPanelHeader({
     <div
       role="tablist"
       aria-label={t('input.mode.aria')}
-      className={`flex shrink-0 items-center gap-1 rounded-[var(--radius-md)] bg-(--color-surface-3) p-[2px] dark:bg-(--color-bg) ${stacked ? 'w-full' : 'w-[224px]'}`}
+      className="flex w-[224px] shrink-0 items-center gap-1 rounded-[var(--radius-md)] bg-(--color-surface-3) p-[2px] dark:bg-(--color-bg)"
     >
       {[
         { mode: 'generate' as InputMode, label: t('input.mode.generate'), icon: 'wand' as const },
@@ -52,27 +52,25 @@ export function InputPanelHeader({
 
   if (stacked) {
     return (
-      <div className="mb-[var(--panel-header-mb)] flex flex-col gap-3 px-[var(--panel-pad-x)]">
-        <div className="flex min-h-[30px] items-center justify-end gap-2.5">
-          <button
-            type="button"
-            onClick={onOpenApiKeys}
-            className="icon-btn shrink-0"
-            title={t('common.settings')}
-            aria-label={t('common.settings')}
-          >
-            <Icon name="settings" size={14} />
-          </button>
-        </div>
+      <div className="mb-[var(--panel-header-mb)] flex min-h-[30px] items-center gap-2.5 px-[var(--panel-pad-x)]">
         {switcher}
+        <button
+          type="button"
+          onClick={onOpenApiKeys}
+          className="icon-btn shrink-0"
+          title={t('common.settings')}
+          aria-label={t('common.settings')}
+        >
+          <Icon name="settings" size={14} />
+        </button>
       </div>
     )
   }
 
   return (
     <div className="mb-[var(--panel-header-mb)] flex min-h-[30px] items-center gap-2.5 px-[var(--panel-pad-x)]">
-      <div className="flex-1" />
       {switcher}
+      <div className="flex-1" />
       <button
         type="button"
         onClick={onOpenApiKeys}
