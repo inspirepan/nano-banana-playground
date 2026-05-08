@@ -142,7 +142,7 @@ export function MessageBubble({
                   text={visibleText}
                   className="whitespace-pre-wrap text-base leading-[1.58]"
                   fadeColor={isQueued ? 'var(--color-surface-2)' : 'var(--bubble-user-bg)'}
-                  maxHeight={220}
+                  maxHeight={120}
                 />
               </div>
               {isQueued && (
