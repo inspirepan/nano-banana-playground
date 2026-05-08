@@ -101,7 +101,7 @@ export function MobileLayout({
       >
         {mobileTab !== 'gallery' ? (
           <div
-            className="h-full px-3 pt-[var(--panel-pad-top)]"
+            className="h-full pt-[var(--panel-pad-top)]"
             style={{
               // Mobile panel layout tokens. See `--panel-*` in src/index.css.
               ['--panel-pad-x' as string]: '12px',
@@ -112,7 +112,14 @@ export function MobileLayout({
             <InputPanel {...inputPanelProps} inputMode={mobileTab === 'agent' ? 'agent' : 'generate'} />
           </div>
         ) : (
-          <div className="px-3 py-[18px]">
+          <div
+            style={{
+              // Mobile gallery reads the same panel rhythm as the editor.
+              ['--panel-pad-x' as string]: '12px',
+              ['--panel-pad-top' as string]: '18px',
+              ['--panel-pad-bottom' as string]: '18px',
+            }}
+          >
             <OutputPanel
               history={history}
               historyHasMore={historyHasMore}

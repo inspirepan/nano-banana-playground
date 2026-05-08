@@ -159,45 +159,45 @@ export const OutputPanel = memo(function OutputPanel({
   return (
     <div
       ref={scrollRef}
-      className="flex-1 md:flex-[2_1_0%] overflow-visible md:overflow-y-auto md:[scrollbar-gutter:stable] md:px-[26px] md:py-[22px] md:pb-[80px]"
+      className="flex-1 overflow-visible px-[var(--panel-pad-x)] py-[var(--panel-pad-top)] pb-[var(--panel-pad-bottom)] md:flex-[2_1_0%] md:overflow-y-auto md:[scrollbar-gutter:stable_both-edges] md:px-[26px] md:py-[22px] md:pb-[80px]"
     >
-      <div className="mb-5 space-y-1.5 px-3 md:px-0">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-          <div className="font-display text-xl font-semibold tracking-[-0.01em] shrink-0">{t('common.gallery')}</div>
-          <div className="flex-1" />
-          {exportableHistory.length > 0 && (
-            <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
-              <Tooltip
-                text={t('output.stripMetadataTooltip')}
-                placement="top"
-                maxWidth={300}
-                className="inline-flex shrink-0"
+      <div className="mb-5 flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
+        <div className="min-w-0">
+          <div className="font-display text-xl font-semibold tracking-[-0.01em]">{t('common.gallery')}</div>
+          <div className="mt-1.5 text-pretty text-sm tabular-nums text-(--color-text-3)">
+            {t('output.gallerySummary', { groups: stacks.length, count: generatedImageCount })}
+          </div>
+        </div>
+        <div className="flex-1" />
+        {exportableHistory.length > 0 && (
+          <div className="flex w-full shrink-0 flex-wrap items-center justify-start gap-1.5 sm:w-auto sm:justify-end">
+            <Tooltip
+              text={t('output.stripMetadataTooltip')}
+              placement="top"
+              maxWidth={300}
+              className="inline-flex shrink-0"
+            >
+              <button
+                type="button"
+                role="switch"
+                aria-checked={stripDownloadMetadata}
+                aria-label={t('output.stripMetadataToggle')}
+                onClick={() => setStripDownloadMetadata(!stripDownloadMetadata)}
+                data-active={stripDownloadMetadata}
+                className="chip shrink-0"
               >
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={stripDownloadMetadata}
-                  aria-label={t('output.stripMetadataToggle')}
-                  onClick={() => setStripDownloadMetadata(!stripDownloadMetadata)}
-                  data-active={stripDownloadMetadata}
-                  className="chip shrink-0"
-                >
-                  <span
-                    className={`size-1.5 rounded-full ${stripDownloadMetadata ? 'bg-(--color-accent)' : 'bg-(--color-text-4)'}`}
-                    aria-hidden="true"
-                  />
-                  {t('output.stripMetadataShort')}
-                </button>
-              </Tooltip>
-              <button type="button" onClick={handleExportAll} disabled={exporting} className="chip shrink-0">
-                <Icon name="download" size={12} /> {exporting ? t('output.exporting') : t('output.exportZip')}
+                <span
+                  className={`size-1.5 rounded-full ${stripDownloadMetadata ? 'bg-(--color-accent)' : 'bg-(--color-text-4)'}`}
+                  aria-hidden="true"
+                />
+                {t('output.stripMetadataShort')}
               </button>
-            </div>
-          )}
-        </div>
-        <div className="text-pretty text-sm tabular-nums text-(--color-text-3)">
-          {t('output.gallerySummary', { groups: stacks.length, count: generatedImageCount })}
-        </div>
+            </Tooltip>
+            <button type="button" onClick={handleExportAll} disabled={exporting} className="chip shrink-0">
+              <Icon name="download" size={12} /> {exporting ? t('output.exporting') : t('output.exportZip')}
+            </button>
+          </div>
+        )}
       </div>
 
       {stacks.length > 0 ? (
