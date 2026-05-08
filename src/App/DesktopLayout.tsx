@@ -88,7 +88,7 @@ export function DesktopLayout({
   onOpenGenerationSettings,
   t,
 }: Props) {
-  // The shared header (Imagine Playground + mode switcher + settings) lives at
+  // The shared header (mode switcher + settings) lives at
   // the layout level so it stays put across mode switches. On inputMode flips,
   // the panel width snaps to its final size before the body fades in.
   const panelRef = useRef<HTMLDivElement>(null)

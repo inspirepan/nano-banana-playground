@@ -1,7 +1,7 @@
 import type { MessageDictionary } from '../types'
 
 export const commonMessages: MessageDictionary = {
-  'app.name': { 'zh-CN': 'Imagine Playground', en: 'Imagine Playground' },
+  'app.name': { 'zh-CN': 'Playground', en: 'Playground' },
   'app.mobilePanel': { 'zh-CN': '移动端面板', en: 'Mobile panel' },
   'app.title.generatingProgress': {
     'zh-CN': '〔{done}/{total}〕生成中 · {app}',

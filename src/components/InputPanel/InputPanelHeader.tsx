@@ -53,10 +53,7 @@ export function InputPanelHeader({
   if (stacked) {
     return (
       <div className="mb-[var(--panel-header-mb)] flex flex-col gap-3 px-[var(--panel-pad-x)]">
-        <div className="flex min-h-[30px] items-center gap-2.5">
-          <div className="min-w-0 flex-1 font-display text-lg font-semibold leading-tight tracking-[-0.01em] text-(--color-text)">
-            {t('app.name')}
-          </div>
+        <div className="flex min-h-[30px] items-center justify-end gap-2.5">
           <button
             type="button"
             onClick={onOpenApiKeys}
@@ -74,9 +71,6 @@ export function InputPanelHeader({
 
   return (
     <div className="mb-[var(--panel-header-mb)] flex min-h-[30px] items-center gap-2.5 px-[var(--panel-pad-x)]">
-      <div className="min-w-0 font-display text-lg font-semibold tracking-[-0.01em] text-(--color-text)">
-        {t('app.name')}
-      </div>
       <div className="flex-1" />
       {switcher}
       <button

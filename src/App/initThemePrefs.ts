@@ -11,7 +11,7 @@ import {
 
 export type { LanguagePreference } from '../config/languages'
 
-export const BASE_TITLE = 'Imagine Playground'
+export const BASE_TITLE = 'Playground'
 export const TITLE_RESET_DELAY_MS = 8000
 export const DESKTOP_INPUT_PANEL_WIDTH_PX = 480
 export const DESKTOP_INPUT_PANEL_WIDTH = `${DESKTOP_INPUT_PANEL_WIDTH_PX}px`
