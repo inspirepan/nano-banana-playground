@@ -341,8 +341,10 @@ function KeyRow({ provider, hook, last = false }: { provider: Provider; hook: Ke
       {expanded && (
         <div className="mt-3 space-y-2.5 px-1">
           {status === 'invalid' && (
-            <div className="text-sm leading-relaxed text-(--color-danger) break-words">
-              {error ?? t('apiKeys.error.invalidOrExpired')}
+            <div className="rounded-[var(--radius-sm)] bg-(--color-danger-soft) px-3 py-2.5 text-sm leading-relaxed text-(--color-danger) shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-danger)_18%,transparent)]">
+              <div className="font-medium">{t('apiKeys.error.invalidTitle')}</div>
+              <div className="mt-0.5 text-(--color-text-2)">{t('apiKeys.error.invalidRecovery')}</div>
+              {error && <div className="mt-1.5 break-words text-(--color-danger)">{error}</div>}
             </div>
           )}
 

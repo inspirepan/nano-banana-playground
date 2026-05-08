@@ -102,4 +102,12 @@ export const apiKeysMessages: MessageDictionary = {
     'zh-CN': '密钥无效或已过期，请重新输入。',
     en: 'The key is invalid or expired. Please enter it again.',
   },
+  'apiKeys.error.invalidTitle': {
+    'zh-CN': '验证没有通过',
+    en: 'Verification did not pass',
+  },
+  'apiKeys.error.invalidRecovery': {
+    'zh-CN': '请确认密钥仍有效、Base URL 指向正确服务；如果浏览器直连失败，可在高级设置中打开站点代理后重试。',
+    en: 'Check that the key is still valid and the Base URL points to the right service. If direct browser calls fail, enable the site proxy in advanced settings and try again.',
+  },
 }

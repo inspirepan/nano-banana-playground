@@ -349,17 +349,17 @@ export function SettingsDialog({
   const effectiveSiteDataUsageLoading = siteDataUsageLoading || (open && !siteDataUsage && !siteDataUsageError)
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={handleClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4" onClick={handleClose}>
       <div className="modal-backdrop-pop absolute inset-0 bg-(--modal-backdrop-bg) backdrop-blur-[2px]" />
       <div
         role="dialog"
         aria-modal="true"
         aria-label={t('settings.title')}
-        className="modal-pop relative flex h-[min(720px,calc(100dvh-32px))] w-full max-w-3xl flex-col overflow-hidden rounded-[var(--radius-lg)] bg-(--color-surface) shadow-[0_0_0_1px_var(--ring-edge-elevated),var(--shadow-float)]"
+        className="modal-pop relative flex h-[min(720px,calc(100dvh-24px))] w-full max-w-4xl flex-col overflow-hidden rounded-[var(--radius-lg)] bg-(--color-surface) shadow-[0_0_0_1px_var(--ring-edge-elevated),var(--shadow-float)] sm:h-[min(720px,calc(100dvh-32px))]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex shrink-0 items-center justify-between px-5 py-3.5 shadow-[inset_0_-1px_0_var(--ring-edge-soft)]">
+        <div className="flex shrink-0 items-center justify-between px-4 py-3.5 shadow-[inset_0_-1px_0_var(--ring-edge-soft)] sm:px-5">
           <h2 className="font-display text-base font-semibold tracking-[-0.01em]">{t('settings.title')}</h2>
           <button type="button" onClick={handleClose} className="icon-btn" aria-label={t('common.close')}>
             <Icon name="close" size={13} />
@@ -371,7 +371,7 @@ export function SettingsDialog({
           role="tablist"
           aria-label={t('settings.title')}
           onKeyDown={handleTabKeyDown}
-          className="flex shrink-0 gap-0 overflow-x-auto px-4 shadow-[inset_0_-1px_0_var(--ring-edge-soft)]"
+          className="scroll-fade-x flex shrink-0 gap-0 overflow-x-auto px-3 shadow-[inset_0_-1px_0_var(--ring-edge-soft)] [--scroll-fade-end-size:1.5rem] [--scroll-fade-start-size:1rem] sm:px-4"
           style={{ scrollbarWidth: 'none' }}
         >
           {SETTINGS_TABS.map((tab) => (
@@ -384,7 +384,7 @@ export function SettingsDialog({
               aria-controls={`settings-panel-${tab.id}`}
               tabIndex={selectedTab === tab.id ? 0 : -1}
               onClick={() => setSelectedTab(tab.id)}
-              className="flex shrink-0 items-center gap-1.5 px-3 py-2.5 text-sm font-medium transition-colors"
+              className="flex shrink-0 items-center gap-1.5 px-2.5 py-2.5 text-sm font-medium transition-colors sm:px-3"
               style={{
                 color: selectedTab === tab.id ? 'var(--color-text)' : 'var(--color-text-3)',
                 boxShadow: selectedTab === tab.id ? 'inset 0 -2px 0 var(--color-accent)' : undefined,
@@ -401,7 +401,7 @@ export function SettingsDialog({
           id={`settings-panel-${selectedTab}`}
           role="tabpanel"
           aria-labelledby={`settings-tab-${selectedTab}`}
-          className="min-h-0 flex-1 overflow-y-auto"
+          className="min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable_both-edges]"
         >
           {selectedTab === 'appearance' && (
             <AppearanceSettingsTab
