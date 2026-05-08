@@ -216,6 +216,93 @@ Color values are guidance for the model — do NOT render hex codes, color names
 
 未指定 aspect 默认 `16:9`；明显电影 / 海报感 → `2.35:1`；社交头像 → `1:1`；公众号常规可选 `4:3`。
 
+## 6.5 可选：设计学派 DNA 叠加
+
+当用户**主动引用具体学派**（"像 Pentagram", "Build studio 那种克制", "Sagmeister 的快乐感", "Kenya Hara 的留白", "Neo Shen 水墨光晕"），或当 §6 自动推荐表里看不出强 fit 时，可在 prompt 中追加一段 `# Design School DNA` 锚点，盖在 type / palette / rendering / mood 之上做风格调味。
+
+每次只挑 1 个学派；多学派会互相冲突。学派提示在 prompt 末尾插入即可，不替换 §5 主体。
+
+### 适合做封面的 7 个学派
+
+```
+Pentagram / Michael Bierut editorial:
+- Helvetica or Univers grotesque, extreme typographic hierarchy
+- Black / white + ONE accent (e.g. #DC143C)
+- Headline dominates 40-50%, 60%+ whitespace
+- Information architecture as visual structure
+```
+适合内容：商业 / 编辑深度 / 政策 / 财经 / 权威观点（type=hero / typography，palette=mono / cool）。
+
+```
+Build studio luxury minimalism:
+- Generous whitespace (70%+), subtle weight shifts (200 to 600)
+- Single accent color used sparingly
+- Soft shadow / very subtle gradient hints, golden ratio rhythm
+- High-end editorial / brand confidence
+```
+适合内容：高端品牌、设计公司、奢侈生活方式（type=minimal / hero，palette=elegant / mono）。
+
+```
+Takram Japanese speculative design:
+- Soft tech aesthetic: rounded corners, gentle shadows
+- Diagrams and small charts as art pieces
+- Neutral natural palette (beige #E8E1D5, soft gray #C8C5BE, muted green #6F8A7E)
+- Modest sophistication, careful typography
+```
+适合内容：科技人文、产品 / 研究、设计思辨（type=conceptual / metaphor，palette=earth / elegant）。
+
+```
+Sagmeister & Walsh joyful philosophy:
+- Unexpected color bursts on minimal cream + black base
+- Hand-made elements (paper, ribbon, stitched type) blended into digital
+- Optimistic warm imperfection, experimental but legible
+```
+适合内容：文化机构、年度回顾、暖色金句、创意品牌（type=typography / metaphor，palette=warm / vivid）。
+
+```
+Kenya Hara "emptiness" design:
+- Extreme whitespace (80%+), single tiny focal mark
+- Layered whites (warm white / cool white / off-white)
+- Paper texture and tactility translated to digital
+- Zen simplicity, design by subtraction
+```
+适合内容：文化哲思、极简观点、东方美学（type=minimal，palette=mono / warm）。
+
+```
+Neo Shen poetic Chinese aesthetic:
+- Digital interpretation of ink wash painting
+- Soft glow and light diffusion effects
+- Poetic negative space, atmospheric depth
+- Emotional palette (deep blues, warm grays, soft gold)
+- Calligraphic influences in typography
+```
+适合内容：东方美学、禅意 / 心境 / 文化散文（type=metaphor / scene，palette=dark / earth / mono）。
+
+```
+Experimental Jetset conceptual minimalism:
+- Single visual metaphor for the entire cover
+- Primary colors only (red / blue / yellow) + black / white
+- Typography as main graphic element, deliberate grid breaks
+- Anti-commercial, honest, type-driven
+```
+适合内容：博物馆 / 文化机构 / 反商业 / 概念稿（type=typography，palette=vivid / mono）。
+
+### 学派叠加段落模板
+
+把以下文本拼到 §5 主 prompt **末尾**：
+
+```
+# Design School DNA — overlay
+[paste the chosen school's DNA block from §6.5 verbatim]
+
+How this overlays the dimensions:
+- It refines the typography family, palette accents and decoration vocabulary chosen above.
+- If it conflicts with a dimension (e.g. Kenya Hara overlay vs. dense rendering vocabulary), let the school dominate.
+- Do NOT render the school name or any of these descriptive words as visible text in the image.
+```
+
+学派与已有维度冲突时，**学派优先**（学派是文化锚点，type / palette 是结构骨架）。
+
 ## 7. GenImage 调用示例
 
 把 prompt 文本组装好后，提交一次 `GenImage`。**默认 model 用 `nano-banana-pro`**（画质高、长 prompt 稳定）；**只要 text 选了 title-subtitle / text-rich 或语言是中文**，优先 `gpt-image-2`（文字渲染最稳）；轻量场景 / 不需要文字 / 想要快可以用 `nano-banana-2`。
