@@ -45,6 +45,7 @@ export const inputMessages: MessageDictionary = {
   'input.imageCard.copy': { 'zh-CN': '复制', en: 'Copy' },
   'input.imageCard.restoreParams': { 'zh-CN': '还原参数', en: 'Restore settings' },
   'input.imageCard.copied': { 'zh-CN': '已复制', en: 'Copied' },
+  'input.imageCard.copyFailed': { 'zh-CN': '复制失败', en: 'Copy failed' },
   'input.imageCard.moreActions': { 'zh-CN': '更多操作', en: 'More actions' },
   'input.stack.status.queued': { 'zh-CN': '排队中', en: 'Queued' },
   'input.stack.status.canceled': { 'zh-CN': '已中断', en: 'Interrupted' },

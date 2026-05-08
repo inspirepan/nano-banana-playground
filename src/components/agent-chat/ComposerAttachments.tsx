@@ -24,7 +24,7 @@ export function ComposerAttachments({
           <button
             type="button"
             onClick={() => onRemoveAttachment(attachment.id)}
-            className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/55 text-white transition-colors hover:bg-black/75"
+            className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-(--media-overlay-bg) text-(--media-overlay-fg) transition-colors hover:bg-(--media-overlay-bg-hover)"
             aria-label={t('agentChat.composer.removeImage')}
           >
             <Icon name="close" size={11} />

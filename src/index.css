@@ -116,6 +116,11 @@
 
   --shadow-float: 0 18px 40px -26px rgba(29, 31, 35, 0.22), 0 2px 8px rgba(29, 31, 35, 0.055);
 
+  --media-overlay-bg: color-mix(in srgb, #15181d 56%, transparent);
+  --media-overlay-bg-hover: color-mix(in srgb, #15181d 72%, transparent);
+  --media-overlay-fg: #fbfcfd;
+  --modal-backdrop-bg: color-mix(in srgb, var(--color-bg-sunken) 38%, transparent);
+
   /* Easing curves — built-in CSS easings are too weak. These give animations
      the punch that makes them feel intentional. Use --ease-out for any
      enter/exit motion (most UI), --ease-in-out for on-screen movement, and
@@ -200,6 +205,10 @@
 
   --shadow-float:
     inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 10px 28px -22px rgba(0, 0, 0, 0.85), 0 3px 8px -5px rgba(0, 0, 0, 0.55);
+  --media-overlay-bg: color-mix(in srgb, #11131a 68%, transparent);
+  --media-overlay-bg-hover: color-mix(in srgb, #11131a 82%, transparent);
+  --media-overlay-fg: #f7f8f8;
+  --modal-backdrop-bg: color-mix(in srgb, #050607 70%, transparent);
   /* Chat user bubble edge — dark mode: accent ring on the outer 1px, white
      highlight on the next 1px inside, giving a crisp double-line top edge. */
   --bubble-user-edge: inset 0 2px 0 -1px rgba(255, 255, 255, 0.16), inset 0 0 0 1px var(--color-accent-ring);
@@ -670,7 +679,6 @@
         0 0 0 1px var(--ring-edge),
         var(--shadow-float);
       transition:
-        right 280ms cubic-bezier(0.22, 0.8, 0.4, 1),
         background 120ms,
         color 120ms,
         box-shadow 120ms;
@@ -704,8 +712,7 @@
         0 0 0 1px var(--ring-edge),
         var(--shadow-float);
       transition:
-        left 280ms cubic-bezier(0.22, 0.8, 0.4, 1),
-        transform 120ms cubic-bezier(0.23, 1, 0.32, 1),
+        transform 120ms var(--ease-out),
         background 120ms,
         color 120ms,
         box-shadow 120ms;
@@ -738,8 +745,7 @@
       box-shadow:
         0 0 0 1px var(--ring-edge),
         var(--shadow-float);
-      animation: agent-panel-width-tip-in 240ms cubic-bezier(0.22, 0.8, 0.4, 1) both;
-      transition: left 280ms cubic-bezier(0.22, 0.8, 0.4, 1);
+      animation: agent-panel-width-tip-in 240ms var(--ease-out) both;
     }
     .agent-panel-width-tip__caret {
       position: absolute;
@@ -797,6 +803,11 @@
       to {
         opacity: 1;
         transform: translate(0, 0);
+      }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .agent-panel-width-tip {
+        animation: none;
       }
     }
   }

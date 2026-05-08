@@ -243,7 +243,7 @@ export function EditSidebar({
     lockedReferenceImages.push({
       id: `${sourceImage.id}:mask`,
       image: sourceImage,
-      label: 'Mask',
+      label: t('imageDetail.lockedReference.mask'),
       preview: visibleDrawablePreview.mask,
     })
 

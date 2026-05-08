@@ -24,10 +24,17 @@ const CONTEXT_MENU_WIDTH = 160
 const CONTEXT_MENU_ITEM_HEIGHT = 32
 const CONTEXT_MENU_PADDING = 8
 
-const META_ROW_STYLE = { color: '#fff', textShadow: '0 1px 2px rgba(0,0,0,0.4)' } as const
-const INDEX_BADGE_STYLE = { background: 'rgba(0,0,0,0.42)', backdropFilter: 'blur(6px)' } as const
+const META_ROW_STYLE = {
+  color: 'var(--media-overlay-fg)',
+  textShadow: '0 1px 2px var(--media-overlay-bg-hover)',
+} as const
+const INDEX_BADGE_STYLE = { background: 'var(--media-overlay-bg)', backdropFilter: 'blur(6px)' } as const
 const META_TEXT_STYLE = { opacity: 0.85 } as const
-const TOAST_INNER_STYLE = { background: 'rgba(0,0,0,0.7)', color: '#fff', backdropFilter: 'blur(8px)' } as const
+const TOAST_INNER_STYLE = {
+  background: 'var(--media-overlay-bg-hover)',
+  color: 'var(--media-overlay-fg)',
+  backdropFilter: 'blur(8px)',
+} as const
 
 export const ImageCard = memo(function ImageCard({
   image,
@@ -43,14 +50,14 @@ export const ImageCard = memo(function ImageCard({
   const { t } = useI18n()
   const { ref, src } = useImageSrc(image.id, image.mimeType, inlineData, { variant: 'preview' })
   const meta = image.source.type === 'generated' ? image.source : null
-  const [toast, setToast] = useState(false)
+  const [toast, setToast] = useState<'copied' | 'copyFailed' | null>(null)
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null)
   const downloadOnly = actionMode === 'downloadOnly'
   const queueMode = actionMode === 'queue'
 
-  const showCopiedToast = () => {
-    setToast(true)
-    setTimeout(() => setToast(false), 1500)
+  const showToast = (nextToast: 'copied' | 'copyFailed') => {
+    setToast(nextToast)
+    window.setTimeout(() => setToast(null), 1500)
   }
 
   const resolveFullSrc = async () => {
@@ -63,30 +70,37 @@ export const ImageCard = memo(function ImageCard({
   }
 
   const handleCopyImage = async () => {
-    const fullSrc = await resolveFullSrc()
-    if (!fullSrc) return
-    const response = await fetch(fullSrc)
-    const sourceBlob = await response.blob()
-    let clipboardBlob = sourceBlob
+    try {
+      const fullSrc = await resolveFullSrc()
+      if (!fullSrc) throw new Error('Image source is unavailable')
+      const response = await fetch(fullSrc)
+      const sourceBlob = await response.blob()
+      let clipboardBlob = sourceBlob
 
-    if (sourceBlob.type !== 'image/png') {
-      const bitmap = await createImageBitmap(sourceBlob)
-      const canvas = document.createElement('canvas')
-      canvas.width = bitmap.width
-      canvas.height = bitmap.height
-      const context = canvas.getContext('2d')
-      if (!context) return
-      context.drawImage(bitmap, 0, 0)
-      bitmap.close()
-      const pngBlob = await new Promise<Blob | null>((resolve) => {
-        canvas.toBlob(resolve, 'image/png')
-      })
-      if (!pngBlob) return
-      clipboardBlob = pngBlob
+      if (sourceBlob.type !== 'image/png') {
+        const bitmap = await createImageBitmap(sourceBlob)
+        try {
+          const canvas = document.createElement('canvas')
+          canvas.width = bitmap.width
+          canvas.height = bitmap.height
+          const context = canvas.getContext('2d')
+          if (!context) throw new Error('Canvas context is unavailable')
+          context.drawImage(bitmap, 0, 0)
+          const pngBlob = await new Promise<Blob | null>((resolve) => {
+            canvas.toBlob(resolve, 'image/png')
+          })
+          if (!pngBlob) throw new Error('PNG conversion failed')
+          clipboardBlob = pngBlob
+        } finally {
+          bitmap.close()
+        }
+      }
+
+      await navigator.clipboard.write([new ClipboardItem({ [clipboardBlob.type]: clipboardBlob })])
+      showToast('copied')
+    } catch {
+      showToast('copyFailed')
     }
-
-    await navigator.clipboard.write([new ClipboardItem({ [clipboardBlob.type]: clipboardBlob })])
-    showCopiedToast()
   }
 
   const handleRegenerate = () => onRegenerate(image)
@@ -182,10 +196,10 @@ export const ImageCard = memo(function ImageCard({
 
       {/* Copied toast */}
       <div
-        className={`pointer-events-none absolute inset-x-0 top-1/2 z-10 flex -translate-y-1/2 justify-center transition-[opacity,transform] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-none ${toast ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}
+        className={`pointer-events-none absolute inset-x-0 top-1/2 z-10 flex -translate-y-1/2 justify-center transition-[opacity,transform] duration-200 ease-[var(--ease-out)] motion-reduce:transition-none ${toast ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}
       >
         <div className="rounded-[var(--radius-sm)] px-3 py-1.5 text-base font-medium" style={TOAST_INNER_STYLE}>
-          {t('input.imageCard.copied')}
+          {toast === 'copyFailed' ? t('input.imageCard.copyFailed') : t('input.imageCard.copied')}
         </div>
       </div>
 

@@ -160,7 +160,7 @@ function LockedReferenceThumb({ item }: { item: LockedReferenceImage }) {
         <div className="absolute inset-0 skeleton-animated" />
       )}
       {item.label && (
-        <span className="absolute bottom-1 left-1 max-w-[calc(100%-8px)] truncate rounded-[var(--radius-xs)] bg-black/55 px-1 py-0.5 text-xs font-medium leading-none text-white backdrop-blur-[4px]">
+        <span className="absolute bottom-1 left-1 max-w-[calc(100%-8px)] truncate rounded-[var(--radius-xs)] bg-(--media-overlay-bg) px-1 py-0.5 text-xs font-medium leading-none text-(--media-overlay-fg) backdrop-blur-[4px]">
           {item.label}
         </span>
       )}

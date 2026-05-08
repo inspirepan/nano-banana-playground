@@ -125,6 +125,7 @@ export const imageDetailMessages: MessageDictionary = {
   'imageDetail.header.imageGroup': { 'zh-CN': '图片组', en: 'Image group' },
   'imageDetail.header.generationTask': { 'zh-CN': '生成任务', en: 'Generation task' },
   'imageDetail.lockedReference.annotation': { 'zh-CN': '标注', en: 'Annotation' },
+  'imageDetail.lockedReference.mask': { 'zh-CN': 'Mask', en: 'Mask' },
   'imageDetail.lockedReference.source': { 'zh-CN': '原图', en: 'Original' },
   'imageDetail.meta.aspectRatio': { 'zh-CN': '宽高比', en: 'Aspect ratio' },
   'imageDetail.meta.attemptErrors': { 'zh-CN': '尝试记录', en: 'Attempt errors' },

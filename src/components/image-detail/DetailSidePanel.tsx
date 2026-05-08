@@ -118,11 +118,13 @@ export function DetailSidePanel({
               flexShrink: 0,
               width: sidebarCollapsed ? 0 : 340,
               minWidth: 0,
-              transition: 'width 280ms cubic-bezier(0.22, 0.8, 0.4, 1)',
             }),
       }}
     >
-      <div className="px-[18px] pt-4 md:pt-4 pb-24 md:pb-10" style={{ width: isMobileLayout ? undefined : 340 }}>
+      <div
+        className={`px-[18px] pt-4 md:pt-4 pb-24 md:pb-10 transition-[opacity,transform] duration-200 ease-[var(--ease-out)] motion-reduce:transition-none ${sidebarCollapsed && !isMobileLayout ? 'opacity-0 translate-x-2' : 'opacity-100 translate-x-0'}`}
+        style={{ width: isMobileLayout ? undefined : 340 }}
+      >
         {currentImage && !isMobileLayout && (
           <div className="mb-[18px]">
             <div

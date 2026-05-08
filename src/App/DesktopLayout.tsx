@@ -123,6 +123,9 @@ export function DesktopLayout({
         panelEl.style.transitionProperty = ''
       })
     }
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (prefersReducedMotion) return
+
     inputBodyRef.current?.animate(
       [
         { opacity: 0, filter: 'blur(8px)' },
@@ -130,7 +133,7 @@ export function DesktopLayout({
       ],
       {
         duration: 240,
-        easing: 'cubic-bezier(0.23, 1, 0.32, 1)',
+        easing: getComputedStyle(document.documentElement).getPropertyValue('--ease-out').trim(),
         fill: 'backwards',
       },
     )

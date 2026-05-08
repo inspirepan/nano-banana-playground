@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useState, type KeyboardEvent } from 'react'
 import { createPortal } from 'react-dom'
 
 import { Icon, type IconName } from './Icon'
@@ -159,6 +159,35 @@ export function SettingsDialog({
     if (!open) return
     setSelectedTab(getInitialSettingsTab(focusSection))
   }, [open, focusSection])
+
+  const focusSettingsTab = (tab: SettingsTab) => {
+    window.requestAnimationFrame(() => document.getElementById(`settings-tab-${tab}`)?.focus())
+  }
+
+  const handleTabKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    const currentIndex = SETTINGS_TABS.findIndex((tab) => tab.id === selectedTab)
+    if (currentIndex < 0) return
+
+    const selectTabAt = (index: number) => {
+      const nextTab = SETTINGS_TABS[(index + SETTINGS_TABS.length) % SETTINGS_TABS.length].id
+      setSelectedTab(nextTab)
+      focusSettingsTab(nextTab)
+    }
+
+    if (event.key === 'ArrowRight') {
+      event.preventDefault()
+      selectTabAt(currentIndex + 1)
+    } else if (event.key === 'ArrowLeft') {
+      event.preventDefault()
+      selectTabAt(currentIndex - 1)
+    } else if (event.key === 'Home') {
+      event.preventDefault()
+      selectTabAt(0)
+    } else if (event.key === 'End') {
+      event.preventDefault()
+      selectTabAt(SETTINGS_TABS.length - 1)
+    }
+  }
 
   // Load site data usage + breakdown when dialog opens
   useExternalSync(() => {
@@ -321,7 +350,7 @@ export function SettingsDialog({
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={handleClose}>
-      <div className="modal-backdrop-pop absolute inset-0 bg-black/20 backdrop-blur-[2px] dark:bg-black/60" />
+      <div className="modal-backdrop-pop absolute inset-0 bg-(--modal-backdrop-bg) backdrop-blur-[2px]" />
       <div
         role="dialog"
         aria-modal="true"
@@ -340,15 +369,20 @@ export function SettingsDialog({
         {/* Tab bar */}
         <div
           role="tablist"
+          aria-label={t('settings.title')}
+          onKeyDown={handleTabKeyDown}
           className="flex shrink-0 gap-0 overflow-x-auto px-4 shadow-[inset_0_-1px_0_var(--ring-edge-soft)]"
           style={{ scrollbarWidth: 'none' }}
         >
           {SETTINGS_TABS.map((tab) => (
             <button
               key={tab.id}
+              id={`settings-tab-${tab.id}`}
               role="tab"
               type="button"
               aria-selected={selectedTab === tab.id}
+              aria-controls={`settings-panel-${tab.id}`}
+              tabIndex={selectedTab === tab.id ? 0 : -1}
               onClick={() => setSelectedTab(tab.id)}
               className="flex shrink-0 items-center gap-1.5 px-3 py-2.5 text-sm font-medium transition-colors"
               style={{
@@ -363,7 +397,12 @@ export function SettingsDialog({
         </div>
 
         {/* Tab content */}
-        <div className="min-h-0 flex-1 overflow-y-auto">
+        <div
+          id={`settings-panel-${selectedTab}`}
+          role="tabpanel"
+          aria-labelledby={`settings-tab-${selectedTab}`}
+          className="min-h-0 flex-1 overflow-y-auto"
+        >
           {selectedTab === 'appearance' && (
             <AppearanceSettingsTab
               theme={theme}

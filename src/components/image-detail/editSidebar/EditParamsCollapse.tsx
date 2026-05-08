@@ -55,10 +55,10 @@ export function EditParamsCollapse({
         <Icon name={paramsCollapsed ? 'chevron_right' : 'chevron_down'} size={12} className="text-(--color-text-4)" />
       </button>
       <div
-        className="grid"
+        className="grid motion-reduce:transition-none"
         style={{
           gridTemplateRows: paramsCollapsed ? '0fr' : '1fr',
-          transition: 'grid-template-rows 260ms cubic-bezier(0.22, 0.8, 0.4, 1)',
+          transition: 'grid-template-rows 260ms var(--ease-drawer)',
         }}
       >
         <div className="overflow-hidden min-h-0">
