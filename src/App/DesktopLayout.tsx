@@ -197,6 +197,7 @@ export function DesktopLayout({
       highlightStackId={highlightStackId}
       externalDetailTarget={externalDetailTarget}
       onExternalDetailTargetConsumed={onExternalDetailTargetConsumed}
+      compactStackHeader={showWideAgentStructure}
     />
   )
 

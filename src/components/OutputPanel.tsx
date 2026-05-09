@@ -1,4 +1,4 @@
-import { lazy, memo, Suspense, useCallback, useMemo } from 'react'
+import { lazy, memo, Suspense, useCallback, useMemo, useState } from 'react'
 
 import { Icon } from './Icon'
 import { LazyChunkLoadErrorBoundary } from './LazyChunkLoadErrorBoundary'
@@ -6,16 +6,16 @@ import { Tooltip } from './Tooltip'
 import { canDismissFailedGenerationJob, hasActiveGenerationSlots, type DetailTarget } from './output/outputPanelHelpers'
 import { StackRow } from './output/StackRow'
 import { useInfiniteScrollSentinel } from './output/useInfiniteScrollSentinel'
-import { useStackDeletion } from './output/useStackDeletion'
 import { useStackDetailNavigation } from './output/useStackDetailNavigation'
 import { useStackExporting } from './output/useStackExporting'
 import { useStackScrollSync } from './output/useStackScrollSync'
 import type { ModelConfig } from '../config/models'
-import { useExternalSync } from '../hooks/effects'
+import { useExternalSync, useWindowEvent } from '../hooks/effects'
 import type { GenerationJob } from '../hooks/usePlayground'
 import { useStripDownloadMetadata } from '../hooks/useStripDownloadMetadata'
 import { useI18n } from '../i18n'
 import { buildImageStacks, type ImageStack } from '../lib/stacks'
+import { downloadImagesZip } from '../lib/exportImages'
 import { recoverFromLazyChunkLoadError } from '../lib/lazyChunkRecovery'
 import type { PlaygroundImage, PlaygroundImageMeta } from '../lib/types'
 
@@ -24,6 +24,12 @@ const ImageDetailModal = lazy(() =>
     .then((module) => ({ default: module.ImageDetailModal }))
     .catch((error: unknown) => recoverFromLazyChunkLoadError(error, 'ImageDetailModal')),
 )
+
+function isEditableKeyboardTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false
+  const tagName = target.tagName
+  return tagName === 'INPUT' || tagName === 'TEXTAREA' || tagName === 'SELECT' || target.isContentEditable
+}
 
 type Props = {
   history: PlaygroundImageMeta[]
@@ -55,6 +61,7 @@ type Props = {
   highlightStackId?: string | null
   externalDetailTarget?: DetailTarget | null
   onExternalDetailTargetConsumed?: () => void
+  compactStackHeader?: boolean
 }
 
 export const OutputPanel = memo(function OutputPanel({
@@ -76,6 +83,7 @@ export const OutputPanel = memo(function OutputPanel({
   highlightStackId,
   externalDetailTarget,
   onExternalDetailTargetConsumed,
+  compactStackHeader = false,
 }: Props) {
   const { t } = useI18n()
   const stacks = useMemo(() => buildImageStacks(history, generationJobs), [history, generationJobs])
@@ -88,6 +96,16 @@ export const OutputPanel = memo(function OutputPanel({
     for (const stack of stacks) total += stack.images.length
     return total
   }, [stacks])
+  const [batchManageMode, setBatchManageMode] = useState(false)
+  const [selectedImageIds, setSelectedImageIds] = useState<Set<string>>(() => new Set())
+  const [batchExporting, setBatchExporting] = useState(false)
+  const [batchDeleteConfirming, setBatchDeleteConfirming] = useState(false)
+  const selectedImages = useMemo(
+    () => exportableHistory.filter((image) => selectedImageIds.has(image.id)),
+    [exportableHistory, selectedImageIds],
+  )
+  const selectedImageCount = selectedImages.length
+  const allBatchSelected = exportableHistory.length > 0 && selectedImageCount === exportableHistory.length
   const stackIndexById = useMemo(() => new Map(stacks.map((stack, index) => [stack.id, index])), [stacks])
   const { stripDownloadMetadata, setStripDownloadMetadata } = useStripDownloadMetadata()
 
@@ -99,7 +117,6 @@ export const OutputPanel = memo(function OutputPanel({
     nextStackTarget,
     openStackItem,
     editStackItem,
-    openStackGallery,
     navigateDetailToTarget,
   } = useStackDetailNavigation({ stacks, stackIndexById })
 
@@ -109,7 +126,7 @@ export const OutputPanel = memo(function OutputPanel({
     onExternalDetailTargetConsumed?.()
   }, [externalDetailTarget, onExternalDetailTargetConsumed, setDetailTarget])
 
-  const { exporting, exportingStackId, handleExportAll, handleExportStack } = useStackExporting({
+  const { exporting, handleExportAll } = useStackExporting({
     history: exportableHistory,
   })
 
@@ -145,16 +162,120 @@ export const OutputPanel = memo(function OutputPanel({
     [onRetryFailedGenerationImage, onRetryGenerationSlot],
   )
 
-  const {
-    confirmDeleteStackId,
-    deletingStackId,
-    handleRequestDeleteStack,
-    handleCancelDeleteStack,
-    handleDeleteStackClick,
-  } = useStackDeletion({ onRemove })
+  const handleEnterBatchManage = useCallback(() => {
+    setBatchDeleteConfirming(false)
+    setBatchManageMode(true)
+  }, [])
+
+  const handleExitBatchManage = useCallback(() => {
+    setBatchDeleteConfirming(false)
+    setSelectedImageIds(new Set())
+    setBatchManageMode(false)
+  }, [])
+
+  const handleToggleBatchImage = useCallback((image: PlaygroundImageMeta) => {
+    setBatchDeleteConfirming(false)
+    setSelectedImageIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(image.id)) next.delete(image.id)
+      else next.add(image.id)
+      return next
+    })
+  }, [])
+
+  const handleLongPressBatchImage = useCallback((image: PlaygroundImageMeta) => {
+    setBatchDeleteConfirming(false)
+    setBatchManageMode(true)
+    setSelectedImageIds((prev) => {
+      const next = new Set(prev)
+      next.add(image.id)
+      return next
+    })
+  }, [])
+
+  const handleToggleBatchSelectAll = useCallback(() => {
+    setBatchDeleteConfirming(false)
+    setSelectedImageIds(allBatchSelected ? new Set() : new Set(exportableHistory.map((image) => image.id)))
+  }, [allBatchSelected, exportableHistory])
+
+  const handleExportSelected = useCallback(async () => {
+    if (batchExporting || selectedImages.length === 0) return
+    setBatchExporting(true)
+    try {
+      await downloadImagesZip(selectedImages, `nano-banana-selected-${new Date().toISOString().slice(0, 10)}.zip`)
+    } finally {
+      setBatchExporting(false)
+    }
+  }, [batchExporting, selectedImages])
+
+  const handleDeleteSelected = useCallback(async () => {
+    if (selectedImages.length === 0) return
+    if (!batchDeleteConfirming) {
+      setBatchDeleteConfirming(true)
+      return
+    }
+    await Promise.all(selectedImages.map((image) => Promise.resolve(onRemove(image.id))))
+    setSelectedImageIds(new Set())
+    setBatchDeleteConfirming(false)
+  }, [batchDeleteConfirming, onRemove, selectedImages])
+
+  useWindowEvent(
+    'keydown',
+    (event) => {
+      if (event.isComposing) return
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        handleExitBatchManage()
+        return
+      }
+      if (event.key.toLowerCase() !== 'a' || (!event.metaKey && !event.ctrlKey) || event.altKey) return
+      if (isEditableKeyboardTarget(event.target)) return
+      event.preventDefault()
+      setBatchDeleteConfirming(false)
+      setSelectedImageIds(new Set(exportableHistory.map((image) => image.id)))
+    },
+    undefined,
+    batchManageMode,
+  )
 
   const { scrollRef, stackRowRefs } = useStackScrollSync({ stacks, highlightStackId })
   const { sentinelRef } = useInfiniteScrollSentinel({ historyHasMore, onLoadMore })
+  const batchToolbar = (
+    <>
+      <span className="inline-flex h-7 shrink-0 items-center rounded-[var(--radius-sm)] bg-(--color-accent-wash) px-2.5 text-base font-medium text-(--color-accent-text) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
+        {t('output.batchManage')}
+      </span>
+      {selectedImageCount > 0 && (
+        <span className="inline-flex h-7 shrink-0 items-center rounded-[var(--radius-sm)] bg-(--color-accent-wash) px-2.5 text-base font-medium text-(--color-accent-text) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
+          {t('output.selectedCount', { selected: selectedImageCount })}
+        </span>
+      )}
+      <button type="button" onClick={handleToggleBatchSelectAll} className="chip ghost shrink-0">
+        {allBatchSelected ? t('output.deselectAll') : t('output.selectAll')}
+      </button>
+      <button
+        type="button"
+        onClick={handleExportSelected}
+        disabled={batchExporting || selectedImageCount === 0}
+        className="chip ghost shrink-0"
+      >
+        <Icon name="download" size={12} strokeWidth={1.8} />
+        {batchExporting ? t('output.exporting') : t('common.download')}
+      </button>
+      <button
+        type="button"
+        onClick={handleDeleteSelected}
+        disabled={selectedImageCount === 0}
+        className="chip ghost danger shrink-0"
+      >
+        <Icon name="trash" size={12} strokeWidth={1.8} />
+        {batchDeleteConfirming ? t('output.confirmDeleteSelected', { count: selectedImageCount }) : t('common.delete')}
+      </button>
+      <button type="button" onClick={handleExitBatchManage} className="chip ghost shrink-0">
+        {t('output.done')}
+      </button>
+    </>
+  )
 
   return (
     <div
@@ -171,31 +292,38 @@ export const OutputPanel = memo(function OutputPanel({
         <div className="flex-1" />
         {exportableHistory.length > 0 && (
           <div className="flex w-full shrink-0 flex-wrap items-center justify-start gap-1.5 sm:w-auto sm:justify-end">
-            <Tooltip
-              text={t('output.stripMetadataTooltip')}
-              placement="top"
-              maxWidth={300}
-              className="inline-flex shrink-0"
-            >
-              <button
-                type="button"
-                role="switch"
-                aria-checked={stripDownloadMetadata}
-                aria-label={t('output.stripMetadataToggle')}
-                onClick={() => setStripDownloadMetadata(!stripDownloadMetadata)}
-                data-active={stripDownloadMetadata}
-                className="chip shrink-0"
-              >
-                <span
-                  className={`size-1.5 rounded-full ${stripDownloadMetadata ? 'bg-(--color-accent)' : 'bg-(--color-text-4)'}`}
-                  aria-hidden="true"
-                />
-                {t('output.stripMetadataShort')}
-              </button>
-            </Tooltip>
-            <button type="button" onClick={handleExportAll} disabled={exporting} className="chip shrink-0">
-              <Icon name="download" size={12} /> {exporting ? t('output.exporting') : t('output.exportZip')}
-            </button>
+            {!batchManageMode && (
+              <>
+                <Tooltip
+                  text={t('output.stripMetadataTooltip')}
+                  placement="top"
+                  maxWidth={300}
+                  className="inline-flex shrink-0"
+                >
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={stripDownloadMetadata}
+                    aria-label={t('output.stripMetadataToggle')}
+                    onClick={() => setStripDownloadMetadata(!stripDownloadMetadata)}
+                    data-active={stripDownloadMetadata}
+                    className="chip shrink-0"
+                  >
+                    <span
+                      className={`size-1.5 rounded-full ${stripDownloadMetadata ? 'bg-(--color-accent)' : 'bg-(--color-text-4)'}`}
+                      aria-hidden="true"
+                    />
+                    {t('output.stripMetadataShort')}
+                  </button>
+                </Tooltip>
+                <button type="button" onClick={handleExportAll} disabled={exporting} className="chip shrink-0">
+                  <Icon name="download" size={12} /> {exporting ? t('output.exporting') : t('output.exportZip')}
+                </button>
+                <button type="button" onClick={handleEnterBatchManage} className="chip shrink-0">
+                  <Icon name="list_checks" size={12} /> {t('output.batchManage')}
+                </button>
+              </>
+            )}
           </div>
         )}
       </div>
@@ -225,18 +353,15 @@ export const OutputPanel = memo(function OutputPanel({
                     stack={stack}
                     onOpenItem={openStackItem}
                     onEditItem={editStackItem}
-                    onOpenGallery={openStackGallery}
-                    onDownloadStack={handleExportStack}
                     onCancelStackGeneration={handleCancelStackGeneration}
                     onRetryStackFailedSlots={handleRetryStackFailedSlots}
                     onDismissStackFailedJobs={handleDismissStackFailedJobs}
                     onOpenGenerationSettings={onOpenGenerationSettings}
-                    onDeleteStack={handleDeleteStackClick}
-                    downloading={exportingStackId === stack.id}
-                    deleteConfirming={confirmDeleteStackId === stack.id}
-                    deleting={deletingStackId === stack.id}
-                    onRequestDeleteConfirm={handleRequestDeleteStack}
-                    onCancelDeleteConfirm={handleCancelDeleteStack}
+                    batchManageMode={batchManageMode}
+                    selectedImageIds={selectedImageIds}
+                    onToggleBatchImage={handleToggleBatchImage}
+                    onLongPressBatchImage={handleLongPressBatchImage}
+                    compactHeader={compactStackHeader}
                     t={t}
                   />
                 </div>
@@ -261,6 +386,14 @@ export const OutputPanel = memo(function OutputPanel({
         </div>
       )}
 
+      {batchManageMode && (
+        <div className="pointer-events-none fixed right-4 top-4 z-40 flex max-w-[calc(100vw-24px)] justify-end pl-2 pt-[env(safe-area-inset-top)] md:right-6 md:top-6">
+          <div className="pointer-events-auto flex max-w-full flex-wrap items-center justify-center gap-1.5 rounded-[var(--radius-lg)] bg-(--color-surface) p-1.5 shadow-[0_0_0_1px_var(--ring-edge-elevated),var(--shadow-float)]">
+            {batchToolbar}
+          </div>
+        </div>
+      )}
+
       {detailStack && (
         <LazyChunkLoadErrorBoundary
           title={t('imageDetail.loadError.title')}
@@ -274,7 +407,6 @@ export const OutputPanel = memo(function OutputPanel({
               stack={detailStack}
               initialItemId={detailTarget?.itemId}
               initialViewMode={detailTarget?.viewMode}
-              initialGalleryMode={detailTarget?.initialGalleryMode}
               initialEditing={detailTarget?.initialEditing}
               previousStackTarget={previousStackTarget}
               nextStackTarget={nextStackTarget}

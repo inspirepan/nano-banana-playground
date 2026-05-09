@@ -3,7 +3,6 @@ import { useCallback, useState } from 'react'
 import {
   firstStackItemTarget,
   lastStackItemTarget,
-  latestImages,
   type DetailNavigationTarget,
   type DetailTarget,
 } from './outputPanelHelpers'
@@ -23,7 +22,6 @@ type Result = {
   nextStackTarget: DetailNavigationTarget | null
   openStackItem: (stackId: string, item: StackItem) => void
   editStackItem: (stackId: string, item: StackItem) => void
-  openStackGallery: (stack: ImageStack) => void
   navigateDetailToTarget: (target: DetailNavigationTarget) => void
 }
 
@@ -47,17 +45,6 @@ export function useStackDetailNavigation({ stacks, stackIndexById }: Params): Re
     setDetailTarget({ stackId, itemId: item.id, viewMode: 'detail', initialEditing: true })
   }, [])
 
-  const openStackGallery = useCallback((stack: ImageStack) => {
-    const newestImage = latestImages(stack)[0]
-    const fallbackItem = stack.items[stack.items.length - 1]
-    setDetailTarget({
-      stackId: stack.id,
-      itemId: newestImage?.id ?? fallbackItem?.id,
-      viewMode: 'gallery',
-      initialGalleryMode: 'manage',
-    })
-  }, [])
-
   const navigateDetailToTarget = useCallback((target: DetailNavigationTarget) => {
     setDetailTarget({ stackId: target.stackId, itemId: target.itemId, viewMode: 'detail' })
   }, [])
@@ -71,7 +58,6 @@ export function useStackDetailNavigation({ stacks, stackIndexById }: Params): Re
     nextStackTarget,
     openStackItem,
     editStackItem,
-    openStackGallery,
     navigateDetailToTarget,
   }
 }

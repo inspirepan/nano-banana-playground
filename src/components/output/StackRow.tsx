@@ -18,18 +18,15 @@ export type StackRowProps = {
   stack: ImageStack
   onOpenItem: (stackId: string, item: StackItem) => void
   onEditItem: (stackId: string, item: StackItem) => void
-  onOpenGallery: (stack: ImageStack) => void
-  onDownloadStack: (stack: ImageStack) => void
   onCancelStackGeneration: (stack: ImageStack) => void
   onRetryStackFailedSlots: (stack: ImageStack) => void
   onDismissStackFailedJobs: (stack: ImageStack) => void
   onOpenGenerationSettings: () => void
-  onDeleteStack: (stack: ImageStack) => void
-  downloading: boolean
-  deleteConfirming: boolean
-  deleting: boolean
-  onRequestDeleteConfirm: (stackId: string) => void
-  onCancelDeleteConfirm: () => void
+  batchManageMode?: boolean
+  selectedImageIds?: Set<string>
+  onToggleBatchImage?: (image: StackImageItem['image']) => void
+  onLongPressBatchImage?: (image: StackImageItem['image']) => void
+  compactHeader?: boolean
   t: Translate
 }
 
@@ -40,7 +37,12 @@ type StackThumbActionsProps = {
   t: Translate
 }
 
-const StackThumbActions = memo(function StackThumbActions({ item, stackId, onEditItem, t }: StackThumbActionsProps) {
+const StackThumbActions = memo(function StackThumbActions({
+  item,
+  stackId,
+  onEditItem,
+  t,
+}: StackThumbActionsProps) {
   return (
     <div className="pointer-events-none hidden items-center gap-1 opacity-[0.001] transition-opacity md:flex md:group-hover:pointer-events-auto md:group-hover:opacity-100 md:group-focus-within:pointer-events-auto md:group-focus-within:opacity-100">
       <button
@@ -49,7 +51,7 @@ const StackThumbActions = memo(function StackThumbActions({ item, stackId, onEdi
           event.stopPropagation()
           onEditItem(stackId, item)
         }}
-        className="media-action flex-1"
+        className="media-action min-w-0 flex-1 px-2"
       >
         <Icon name="wand" size={11} strokeWidth={1.8} />
         {t('common.edit')}
@@ -60,7 +62,7 @@ const StackThumbActions = memo(function StackThumbActions({ item, stackId, onEdi
           event.stopPropagation()
           void downloadImagePng(item.image)
         }}
-        className="media-action flex-1"
+        className="media-action min-w-0 flex-1 px-2"
       >
         <Icon name="download" size={11} strokeWidth={1.8} />
         PNG
@@ -73,18 +75,15 @@ export const StackRow = memo(function StackRow({
   stack,
   onOpenItem,
   onEditItem,
-  onOpenGallery,
-  onDownloadStack,
   onCancelStackGeneration,
   onRetryStackFailedSlots,
   onDismissStackFailedJobs,
   onOpenGenerationSettings,
-  onDeleteStack,
-  downloading,
-  deleteConfirming,
-  deleting,
-  onRequestDeleteConfirm,
-  onCancelDeleteConfirm,
+  batchManageMode = false,
+  selectedImageIds,
+  onToggleBatchImage,
+  onLongPressBatchImage,
+  compactHeader = false,
   t,
 }: StackRowProps) {
   const totalItems = stack.images.length + stack.activeSlotCount + stack.failedSlotCount
@@ -95,148 +94,104 @@ export const StackRow = memo(function StackRow({
     [stack.items],
   )
   const previewItems = stack.items
-  const canDelete = stack.images.length > 0 && activeStatusParts.length === 0
   const stackId = stack.id
-  const handleSelectItem = useCallback((item: StackItem) => onOpenItem(stackId, item), [onOpenItem, stackId])
+  const handleSelectItem = useCallback(
+    (item: StackItem) => {
+      if (batchManageMode) {
+        if (item.type === 'image') onToggleBatchImage?.(item.image)
+        return
+      }
+      onOpenItem(stackId, item)
+    },
+    [batchManageMode, onOpenItem, onToggleBatchImage, stackId],
+  )
 
   return (
     <div className="min-w-0">
       <div className="min-w-0 px-3 py-2">
-        {stack.title && (
-          <div className="mb-1.5 max-w-[72ch] truncate text-base font-medium text-(--color-text-2)" title={stack.title}>
-            {stack.title}
-          </div>
-        )}
-        <div className="mb-2 flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1 text-base">
-          <span className="shrink-0 font-normal tabular-nums text-(--color-text-3)">
-            {formatTime(stack.updatedAt, t)}
-          </span>
-          <span className="meta-dot text-(--color-text-4)" aria-hidden />
-          <span className="font-normal tabular-nums text-(--color-text-3)">
-            {t('output.imageCount', { count: totalItems })}
-          </span>
-          <span className="meta-dot text-(--color-text-4)" aria-hidden />
-          <button
-            type="button"
-            onClick={() => onOpenGallery(stack)}
-            className="bg-transparent p-0 text-base font-medium text-(--color-text-3) transition-colors hover:text-(--color-text-2)"
-          >
-            {t('output.viewAll')}
-          </button>
-          {stack.images.length > 1 && (
-            <>
-              <span className="meta-dot text-(--color-text-4)" aria-hidden />
-              <button
-                type="button"
-                onClick={() => onDownloadStack(stack)}
-                disabled={downloading}
-                className="bg-transparent p-0 text-base font-medium text-(--color-text-3) transition-colors hover:text-(--color-text-2) disabled:cursor-not-allowed disabled:opacity-45"
-              >
-                {downloading ? t('output.packaging') : t('output.downloadZip')}
-              </button>
-            </>
+        <div
+          className={`mb-2 flex min-w-0 gap-x-2 gap-y-1 text-base ${compactHeader ? 'flex-col items-start' : 'flex-wrap items-baseline'}`}
+        >
+          {stack.title && (
+            <span className="min-w-0 max-w-[48ch] truncate font-medium text-(--color-text-2)" title={stack.title}>
+              {stack.title}
+            </span>
           )}
-          {activeStatusParts.length > 0 && (
-            <>
-              <span className="meta-dot text-(--color-text-4)" aria-hidden />
-              <span className="inline-flex items-center gap-1.5">
-                <span className="inline-flex items-center gap-1.5 font-normal tabular-nums text-(--color-text-3)">
-                  {activeStatusParts.map((part, index) => (
-                    <span key={part.kind} className="contents">
-                      {index > 0 && <span className="meta-dot text-(--color-text-4)" aria-hidden />}
-                      <span>
-                        {part.label}
-                        {part.kind === 'queued' && (
-                          <button
-                            type="button"
-                            onClick={onOpenGenerationSettings}
-                            className="bg-transparent p-0 font-normal text-(--color-text-4) transition-colors hover:text-(--color-text-2)"
-                          >
-                            {t('output.adjustParenthetical')}
-                          </button>
-                        )}
+          <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1">
+            {stack.title && !compactHeader && <span className="meta-dot text-(--color-text-4)" aria-hidden />}
+            <span className="shrink-0 font-normal tabular-nums text-(--color-text-3)">
+              {formatTime(stack.updatedAt, t)}
+            </span>
+            <span className="meta-dot text-(--color-text-4)" aria-hidden />
+            <span className="font-normal tabular-nums text-(--color-text-3)">
+              {t('output.imageCount', { count: totalItems })}
+            </span>
+            {activeStatusParts.length > 0 && (
+              <>
+                <span className="meta-dot text-(--color-text-4)" aria-hidden />
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="inline-flex items-center gap-1.5 font-normal tabular-nums text-(--color-text-3)">
+                    {activeStatusParts.map((part, index) => (
+                      <span key={part.kind} className="contents">
+                        {index > 0 && <span className="meta-dot text-(--color-text-4)" aria-hidden />}
+                        <span>
+                          {part.label}
+                          {part.kind === 'queued' && (
+                            <button
+                              type="button"
+                              onClick={onOpenGenerationSettings}
+                              className="bg-transparent p-0 font-normal text-(--color-text-4) transition-colors hover:text-(--color-text-2)"
+                            >
+                              {t('output.adjustParenthetical')}
+                            </button>
+                          )}
+                        </span>
                       </span>
-                    </span>
-                  ))}
+                    ))}
+                  </span>
+                  <span className="meta-dot text-(--color-text-4)" aria-hidden />
+                  <button
+                    type="button"
+                    onClick={() => onCancelStackGeneration(stack)}
+                    className="bg-transparent p-0 text-base font-semibold transition-colors hover:brightness-110"
+                    style={{ color: 'var(--color-danger)' }}
+                  >
+                    {t('output.cancelGeneration')}
+                  </button>
+                </span>
+              </>
+            )}
+            {stack.failedSlotCount > 0 && (
+              <>
+                <span className="meta-dot text-(--color-text-4)" aria-hidden />
+                <span className="text-base tabular-nums" style={{ color: 'var(--color-danger)' }}>
+                  {t('output.failedCount', { count: stack.failedSlotCount })}
                 </span>
                 <span className="meta-dot text-(--color-text-4)" aria-hidden />
                 <button
                   type="button"
-                  onClick={() => onCancelStackGeneration(stack)}
-                  className="bg-transparent p-0 text-base font-semibold transition-colors hover:brightness-110"
-                  style={{ color: 'var(--color-danger)' }}
+                  onClick={() => onRetryStackFailedSlots(stack)}
+                  className="bg-transparent p-0 text-base font-semibold transition-colors hover:text-(--color-text-2)"
+                  style={{ color: 'var(--color-text-3)' }}
                 >
-                  {t('output.cancelGeneration')}
+                  {t('output.retryFailed')}
                 </button>
-              </span>
-            </>
-          )}
-          {stack.failedSlotCount > 0 && (
-            <>
-              <span className="meta-dot text-(--color-text-4)" aria-hidden />
-              <span className="text-base tabular-nums" style={{ color: 'var(--color-danger)' }}>
-                {t('output.failedCount', { count: stack.failedSlotCount })}
-              </span>
-              <span className="meta-dot text-(--color-text-4)" aria-hidden />
-              <button
-                type="button"
-                onClick={() => onRetryStackFailedSlots(stack)}
-                className="bg-transparent p-0 text-base font-semibold transition-colors hover:text-(--color-text-2)"
-                style={{ color: 'var(--color-text-3)' }}
-              >
-                {t('output.retryFailed')}
-              </button>
-              {hasDismissibleFailures && (
-                <>
-                  <span className="meta-dot text-(--color-text-4)" aria-hidden />
-                  <button
-                    type="button"
-                    onClick={() => onDismissStackFailedJobs(stack)}
-                    className="bg-transparent p-0 text-base font-semibold transition-colors hover:brightness-110"
-                    style={{ color: 'var(--color-danger)' }}
-                  >
-                    {t('output.clearFailed')}
-                  </button>
-                </>
-              )}
-            </>
-          )}
-          {canDelete && (
-            <>
-              <span className="meta-dot text-(--color-text-4)" aria-hidden />
-              {deleteConfirming ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => onDeleteStack(stack)}
-                    disabled={deleting}
-                    className="bg-transparent p-0 text-base font-semibold transition-colors hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
-                    style={{ color: 'var(--color-danger)' }}
-                  >
-                    {deleting ? t('common.deleting') : t('common.confirmDelete')}
-                  </button>
-                  <span className="meta-dot text-(--color-text-4)" aria-hidden />
-                  <button
-                    type="button"
-                    onClick={onCancelDeleteConfirm}
-                    disabled={deleting}
-                    className="bg-transparent p-0 text-base font-medium text-(--color-text-3) transition-colors hover:text-(--color-text-2) disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {t('common.cancel')}
-                  </button>
-                </>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => onRequestDeleteConfirm(stack.id)}
-                  className="bg-transparent p-0 text-base font-medium transition-colors hover:brightness-110"
-                  style={{ color: 'var(--color-danger)' }}
-                >
-                  {t('common.delete')}
-                </button>
-              )}
-            </>
-          )}
+                {hasDismissibleFailures && (
+                  <>
+                    <span className="meta-dot text-(--color-text-4)" aria-hidden />
+                    <button
+                      type="button"
+                      onClick={() => onDismissStackFailedJobs(stack)}
+                      className="bg-transparent p-0 text-base font-semibold transition-colors hover:brightness-110"
+                      style={{ color: 'var(--color-danger)' }}
+                    >
+                      {t('output.clearFailed')}
+                    </button>
+                  </>
+                )}
+              </>
+            )}
+          </div>
         </div>
         <div className="min-w-0">
           <ImageGrid>
@@ -252,14 +207,23 @@ export const StackRow = memo(function StackRow({
                       item={item}
                       number={stackItemNumberById.get(item.id)}
                       outerRing
+                      selectable={batchManageMode && item.type === 'image'}
+                      selected={batchManageMode && item.type === 'image' && selectedImageIds?.has(item.image.id)}
+                      selectionIndicatorPosition="bottom-right"
                       showSlotReason
                       className="h-full w-full"
                       numberBadgeInset={8}
                       metaBadge={metaBadge}
                       metaBadgeTitle={metaBadge}
                       onSelect={handleSelectItem}
+                      onLongPress={
+                        !batchManageMode && item.type === 'image' ? () => onLongPressBatchImage?.(item.image) : undefined
+                      }
+                      onQuickSelect={
+                        !batchManageMode && item.type === 'image' ? () => onLongPressBatchImage?.(item.image) : undefined
+                      }
                       actions={
-                        item.type === 'image' ? (
+                        !batchManageMode && item.type === 'image' ? (
                           <StackThumbActions item={item} stackId={stackId} onEditItem={onEditItem} t={t} />
                         ) : undefined
                       }
@@ -269,14 +233,12 @@ export const StackRow = memo(function StackRow({
               })
             ) : (
               <GridCell aspectRatio="4:3">
-                <button
-                  type="button"
-                  onClick={() => onOpenGallery(stack)}
-                  className="h-full w-full rounded-[var(--radius-md)] text-sm text-(--color-text-4)"
+                <div
+                  className="flex h-full w-full items-center justify-center rounded-[var(--radius-md)] text-sm text-(--color-text-4)"
                   style={{ background: 'var(--color-surface-2)', boxShadow: 'inset 0 0 0 1px var(--ring-edge)' }}
                 >
                   {t('output.noImages')}
-                </button>
+                </div>
               </GridCell>
             )}
           </ImageGrid>

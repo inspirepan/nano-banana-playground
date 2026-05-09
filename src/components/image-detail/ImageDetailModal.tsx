@@ -9,7 +9,7 @@ import { MobileEditScreen } from './MobileEditScreen'
 import { MobileUnifiedPreviewLayer } from './MobileUnifiedPreviewLayer'
 import { useImageDetailBlobs } from './useImageDetailBlobs'
 import { useImageDetailKeyboard } from './useImageDetailKeyboard'
-import { useImageDetailModalState, type GalleryMode, type ModalViewMode } from './useImageDetailModalState'
+import { useImageDetailModalState, type ModalViewMode } from './useImageDetailModalState'
 import { useImageDetailNavigation, useImageDetailSelection } from './useImageDetailNavigation'
 import type { ZoomableImageViewState } from './ZoomableImageView'
 import { MODEL_CONFIGS } from '../../config/models'
@@ -29,7 +29,6 @@ type Props = {
   stack: ImageStack
   initialItemId?: string
   initialViewMode?: ModalViewMode
-  initialGalleryMode?: GalleryMode
   initialEditing?: boolean
   previousStackTarget?: StackNavigationTarget | null
   nextStackTarget?: StackNavigationTarget | null
@@ -53,7 +52,6 @@ export function ImageDetailModal({
   stack,
   initialItemId,
   initialViewMode = 'detail',
-  initialGalleryMode,
   initialEditing = false,
   previousStackTarget,
   nextStackTarget,
@@ -88,11 +86,6 @@ export function ImageDetailModal({
     mobilePreviewOpen,
     setMobilePreviewOpen,
     viewMode,
-    setViewMode,
-    galleryInitialMode,
-    setGalleryInitialMode,
-    galleryReturnTarget,
-    setGalleryReturnTarget,
     editMode,
     setEditMode,
     drawTool,
@@ -111,7 +104,6 @@ export function ImageDetailModal({
     exitEdit,
   } = useImageDetailModalState({
     initialViewMode,
-    initialGalleryMode,
     initialEditing,
     currentImageId: currentImage?.id ?? '',
     isMobileLayout,
@@ -170,16 +162,12 @@ export function ImageDetailModal({
   useImageDetailKeyboard({
     editing,
     editMode,
-    viewMode,
-    galleryReturnTarget,
     mobilePreviewOpen,
     mobileDrawOpen,
     canNavigate,
     drawableRef,
     setEditMode,
     setDrawRevision,
-    setViewMode,
-    setGalleryReturnTarget,
     setMobilePreviewOpen,
     setMobileDrawOpen,
     exitEdit,
@@ -335,8 +323,6 @@ export function ImageDetailModal({
     const posInStack = stack.images.findIndex((img) => img.id === currentImage.id)
     return { pos: posInStack + 1, total: stack.images.length }
   }, [currentImage, stack.images])
-  const galleryBacksToDetail = viewMode === 'gallery' && galleryReturnTarget === 'detail'
-
   // Keep the backdrop covering the full layout viewport. iOS Safari shrinks
   // visualViewport when the keyboard opens, so only the content layer follows
   // it; otherwise the modal background gets clipped and the page underneath
@@ -406,11 +392,6 @@ export function ImageDetailModal({
             hasPrev={hasPrev}
             hasNext={hasNext}
             viewMode={viewMode}
-            galleryInitialMode={galleryInitialMode}
-            galleryBacksToDetail={galleryBacksToDetail}
-            setViewMode={setViewMode}
-            setGalleryInitialMode={setGalleryInitialMode}
-            setGalleryReturnTarget={setGalleryReturnTarget}
             detailScrollRef={detailScrollRef}
             sidebarCollapsed={sidebarCollapsed}
             toggleSidebar={toggleSidebar}
@@ -458,7 +439,6 @@ export function ImageDetailModal({
             onReroll={handleRerollAction}
             onDownload={handleDownload}
             onCopyPrompt={handleCopyPrompt}
-            onRemove={onRemove}
             onRemoveCurrent={handleRemoveCurrentAndRevealImage}
             onEditImage={onEditImage}
             onCancelGenerationJob={onCancelGenerationJob}
@@ -504,7 +484,7 @@ export function ImageDetailModal({
           currentImage &&
           !mobileDrawOpen &&
           !refDetailId &&
-          (mobilePreviewOpen || (!editing && viewMode === 'detail')),
+          (mobilePreviewOpen || !editing),
         )}
         src={displayImage?.src ?? currentSrc ?? ''}
         alt={displayImage?.alt ?? currentMeta?.prompt ?? ''}

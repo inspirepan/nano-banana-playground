@@ -1,4 +1,4 @@
-import { memo, type CSSProperties, type ReactNode } from 'react'
+import { memo, useRef, type CSSProperties, type ReactNode } from 'react'
 
 import { Icon } from './Icon'
 import { getBlobFromCache, useImageSrc } from '../hooks/useImageSrc'
@@ -12,6 +12,7 @@ type Props = {
   outerRing?: boolean
   selectable?: boolean
   selected?: boolean
+  selectionIndicatorPosition?: 'top-right' | 'bottom-right'
   hoverLift?: boolean
   showSlotReason?: boolean
   compactSlotStatus?: boolean
@@ -23,6 +24,8 @@ type Props = {
   metaBadgeTitle?: string
   showImageIdLabel?: boolean
   onSelect: (item: StackItem) => void
+  onLongPress?: (item: StackItem) => void
+  onQuickSelect?: (item: StackItem) => void
 }
 
 type Slot = Extract<StackItem, { type: 'slot' }>['slot']
@@ -61,6 +64,7 @@ export const StackItemThumb = memo(function StackItemThumb({
   outerRing = false,
   selectable = false,
   selected = false,
+  selectionIndicatorPosition = 'top-right',
   hoverLift = true,
   showSlotReason = false,
   compactSlotStatus = false,
@@ -72,8 +76,12 @@ export const StackItemThumb = memo(function StackItemThumb({
   metaBadgeTitle,
   showImageIdLabel = true,
   onSelect,
+  onLongPress,
+  onQuickSelect,
 }: Props) {
   const { t } = useI18n()
+  const longPressTimerRef = useRef<number | null>(null)
+  const longPressFiredRef = useRef(false)
   const image = item.type === 'image' ? item.image : null
   const slot = item.type === 'slot' ? item.slot : null
   const imageIdLabel =
@@ -102,13 +110,17 @@ export const StackItemThumb = memo(function StackItemThumb({
     : t('input.stack.selectSlot', { number: itemNumber })
   const outerRingShadow = slot ? '' : ', var(--shadow-lift)'
   const boxShadow = outerRing
-    ? highlighted
-      ? `0 0 0 1px var(--ring-edge-elevated), 0 0 0 3px color-mix(in srgb, var(--color-accent) 70%, transparent)${outerRingShadow}`
+    ? selected
+      ? `0 0 0 2px var(--color-warning), 0 0 0 5px color-mix(in srgb, var(--color-warning) 24%, transparent)${outerRingShadow}`
+      : active
+        ? `0 0 0 1px var(--ring-edge-elevated), 0 0 0 3px color-mix(in srgb, var(--color-accent) 70%, transparent)${outerRingShadow}`
       : slot
         ? undefined
         : 'var(--shadow-lift)'
-    : highlighted
-      ? '0 0 0 2px var(--color-surface), 0 0 0 3px var(--color-accent)'
+    : selected
+      ? '0 0 0 2px var(--color-surface), 0 0 0 4px var(--color-warning)'
+      : active
+        ? '0 0 0 2px var(--color-surface), 0 0 0 3px var(--color-accent)'
       : 'inset 0 0 0 1px var(--ring-edge)'
   const actionStyle: StackThumbStyle | undefined = src ? { '--stack-thumb-action-bg': `url("${src}")` } : undefined
   // Slot placeholders get a subtle diagonal stripe texture so they read as
@@ -150,6 +162,12 @@ export const StackItemThumb = memo(function StackItemThumb({
       <span className="spinner" style={{ width: 12, height: 12 }} />
     )
 
+  const clearLongPressTimer = () => {
+    if (longPressTimerRef.current === null) return
+    window.clearTimeout(longPressTimerRef.current)
+    longPressTimerRef.current = null
+  }
+
   return (
     <div
       role="button"
@@ -157,14 +175,34 @@ export const StackItemThumb = memo(function StackItemThumb({
       data-stack-item-id={item.id}
       tabIndex={0}
       draggable={Boolean(image)}
+      onPointerDown={(event) => {
+        if (!onLongPress || event.button !== 0) return
+        clearLongPressTimer()
+        longPressFiredRef.current = false
+        longPressTimerRef.current = window.setTimeout(() => {
+          longPressTimerRef.current = null
+          longPressFiredRef.current = true
+          onLongPress(item)
+        }, 520)
+      }}
+      onPointerUp={clearLongPressTimer}
+      onPointerCancel={clearLongPressTimer}
+      onPointerLeave={clearLongPressTimer}
       onDragStart={(event) => {
         if (!image) return
+        clearLongPressTimer()
         const data = getBlobFromCache(image.id)
         const payload = data ? { ...image, data } : image
         event.dataTransfer.setData('application/x-playground-image', JSON.stringify(payload))
         event.dataTransfer.effectAllowed = 'copy'
       }}
-      onClick={() => onSelect(item)}
+      onClick={() => {
+        if (longPressFiredRef.current) {
+          longPressFiredRef.current = false
+          return
+        }
+        onSelect(item)
+      }}
       onKeyDown={(event) => {
         if (event.target !== event.currentTarget) return
         if (event.key !== 'Enter' && event.key !== ' ') return
@@ -257,18 +295,27 @@ export const StackItemThumb = memo(function StackItemThumb({
           )}
         </span>
       )}
-      {selectable && (
-        <span
-          className="pointer-events-none absolute right-1.5 top-1.5 flex h-[18px] w-[18px] items-center justify-center rounded-[var(--radius-xs)] transition-colors"
+      {(selectable || onQuickSelect) && (
+        <button
+          type="button"
+          onClick={(event) => {
+            if (!onQuickSelect) return
+            event.stopPropagation()
+            onQuickSelect(item)
+          }}
+          tabIndex={onQuickSelect ? 0 : -1}
+          aria-hidden={!onQuickSelect}
+          aria-label={onQuickSelect ? t('output.batchManage') : undefined}
+          className={`absolute right-1.5 z-20 flex h-[18px] w-[18px] items-center justify-center rounded-[var(--radius-xs)] transition-[color,opacity] ${selectionIndicatorPosition === 'bottom-right' ? 'bottom-1.5' : 'top-1.5'} ${onQuickSelect ? 'pointer-events-auto opacity-0 group-hover:opacity-100 group-focus-within:opacity-100' : 'pointer-events-none'}`}
           style={{
-            background: selected ? 'var(--color-accent)' : 'color-mix(in srgb, var(--color-surface) 86%, transparent)',
-            color: selected ? 'var(--color-accent-fg)' : 'var(--color-text-4)',
-            boxShadow: selected ? 'inset 0 0 0 1px var(--color-accent)' : 'inset 0 0 0 1px var(--ring-edge-strong)',
+            background: selected ? 'var(--color-warning)' : 'color-mix(in srgb, var(--color-surface) 86%, transparent)',
+            color: selected ? '#fff' : 'var(--color-text-4)',
+            boxShadow: selected ? 'inset 0 0 0 2px var(--color-warning)' : 'inset 0 0 0 1px var(--ring-edge-strong)',
             backdropFilter: 'blur(8px)',
           }}
         >
           {selected && <Icon name="check" size={11} strokeWidth={2.4} />}
-        </span>
+        </button>
       )}
       {outerRing && !highlighted && (
         <span
@@ -277,7 +324,7 @@ export const StackItemThumb = memo(function StackItemThumb({
         />
       )}
       {actions && (
-        <div className="stack-thumb-actions absolute inset-x-1.5 bottom-1.5 z-10" style={actionStyle}>
+        <div className={`stack-thumb-actions absolute inset-x-1.5 bottom-1.5 z-10 ${onQuickSelect ? 'pr-6' : ''}`} style={actionStyle}>
           {actions}
         </div>
       )}

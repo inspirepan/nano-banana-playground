@@ -1,22 +1,18 @@
 import type { Dispatch, RefObject, SetStateAction } from 'react'
 
 import type { DrawableLayerHandle } from './DrawableLayer'
-import type { EditMode, GalleryReturnTarget, ModalViewMode } from './useImageDetailModalState'
+import type { EditMode } from './useImageDetailModalState'
 import { useWindowEvent } from '../../hooks/effects'
 
 export function useImageDetailKeyboard({
   editing,
   editMode,
-  viewMode,
-  galleryReturnTarget,
   mobilePreviewOpen,
   mobileDrawOpen,
   canNavigate,
   drawableRef,
   setEditMode,
   setDrawRevision,
-  setViewMode,
-  setGalleryReturnTarget,
   setMobilePreviewOpen,
   setMobileDrawOpen,
   exitEdit,
@@ -26,16 +22,12 @@ export function useImageDetailKeyboard({
 }: {
   editing: boolean
   editMode: EditMode
-  viewMode: ModalViewMode
-  galleryReturnTarget: GalleryReturnTarget
   mobilePreviewOpen: boolean
   mobileDrawOpen: boolean
   canNavigate: boolean
   drawableRef: RefObject<DrawableLayerHandle | null>
   setEditMode: Dispatch<SetStateAction<EditMode>>
   setDrawRevision: Dispatch<SetStateAction<number>>
-  setViewMode: Dispatch<SetStateAction<ModalViewMode>>
-  setGalleryReturnTarget: Dispatch<SetStateAction<GalleryReturnTarget>>
   setMobilePreviewOpen: Dispatch<SetStateAction<boolean>>
   setMobileDrawOpen: Dispatch<SetStateAction<boolean>>
   exitEdit: () => void
@@ -69,13 +61,6 @@ export function useImageDetailKeyboard({
       if (editMode !== 'view') {
         setEditMode('view')
         setDrawRevision((prev) => prev + 1)
-        return
-      }
-      if (viewMode === 'gallery') {
-        if (galleryReturnTarget === 'detail') {
-          setGalleryReturnTarget('detail')
-          setViewMode('detail')
-        } else onClose()
         return
       }
       if (editing) {

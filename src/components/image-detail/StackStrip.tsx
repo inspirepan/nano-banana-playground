@@ -9,13 +9,11 @@ export const StackStrip = memo(function StackStrip({
   selectedId,
   onSelect,
   leadingNode,
-  trailingNode,
 }: {
   stack: ImageStack
   selectedId: string | null
   onSelect: (item: StackItem) => void
   leadingNode?: ReactNode
-  trailingNode?: ReactNode
 }) {
   const stripScrollRef = useRef<HTMLDivElement | null>(null)
   const selectedItemRef = useRef<HTMLDivElement | null>(null)
@@ -68,9 +66,6 @@ export const StackStrip = memo(function StackStrip({
           })}
           <div className="w-1 shrink-0" aria-hidden />
         </div>
-        {trailingNode && (
-          <div className="hidden shrink-0 flex-wrap items-center justify-end gap-1.5 md:flex">{trailingNode}</div>
-        )}
       </div>
     </div>
   )

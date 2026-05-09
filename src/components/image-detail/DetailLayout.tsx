@@ -1,7 +1,6 @@
 import type { Dispatch, RefObject, SetStateAction } from 'react'
 
 import { Icon } from '../Icon'
-import { Tooltip } from '../Tooltip'
 import type { BrushPresetId } from './annotationPresets'
 import { DetailCanvas } from './DetailCanvas'
 import { DetailFooter } from './DetailFooter'
@@ -9,9 +8,8 @@ import { DetailHeader } from './DetailHeader'
 import { DetailSidePanel } from './DetailSidePanel'
 import type { DrawableLayerHandle, DrawMode, DrawTool } from './DrawableLayer'
 import type { EditImageHandler } from './EditSidebar'
-import { StackGallery } from './StackGallery'
 import { StackStrip } from './StackStrip'
-import type { EditMode, GalleryMode, GalleryReturnTarget, ModalViewMode } from './useImageDetailModalState'
+import type { EditMode, ModalViewMode } from './useImageDetailModalState'
 import type { ZoomableImageViewHandoffReason, ZoomableImageViewState } from './ZoomableImageView'
 import type { ModelConfig } from '../../config/models'
 import type { GenerationJob, GenerationSlot } from '../../hooks/usePlayground'
@@ -35,11 +33,6 @@ type DetailLayoutProps = {
   hasNext: boolean
   // View mode
   viewMode: ModalViewMode
-  galleryInitialMode: GalleryMode
-  galleryBacksToDetail: boolean
-  setViewMode: (mode: ModalViewMode) => void
-  setGalleryInitialMode: (mode: GalleryMode) => void
-  setGalleryReturnTarget: (target: GalleryReturnTarget) => void
   detailScrollRef: RefObject<HTMLDivElement | null>
   // Sidebar collapsed
   sidebarCollapsed: boolean
@@ -97,7 +90,6 @@ type DetailLayoutProps = {
   onReroll: () => void
   onDownload: () => void
   onCopyPrompt: () => void
-  onRemove: (id: string) => void | Promise<void>
   onRemoveCurrent: (id: string) => void
   onEditImage: EditImageHandler
   onCancelGenerationJob: (jobId: string) => void
@@ -126,11 +118,6 @@ export function DetailLayout({
   hasPrev,
   hasNext,
   viewMode,
-  galleryInitialMode,
-  galleryBacksToDetail,
-  setViewMode,
-  setGalleryInitialMode,
-  setGalleryReturnTarget,
   detailScrollRef,
   sidebarCollapsed,
   toggleSidebar,
@@ -178,7 +165,6 @@ export function DetailLayout({
   onReroll,
   onDownload,
   onCopyPrompt,
-  onRemove,
   onRemoveCurrent,
   onEditImage,
   onCancelGenerationJob,
@@ -195,10 +181,6 @@ export function DetailLayout({
   clearAnnotationsInPlace,
 }: DetailLayoutProps) {
   const { t } = useI18n()
-  const gallerySummary =
-    stack.activeSlotCount > 0
-      ? t('imageDetail.gallery.summary', { images: stack.images.length, active: stack.activeSlotCount })
-      : t('imageDetail.gallery.summarySimple', { images: stack.images.length })
 
   return (
     <>
@@ -208,21 +190,9 @@ export function DetailLayout({
         currentSlot={currentSlot}
         modelName={modelName}
         pxDim={pxDim}
-        viewMode={viewMode}
-        gallerySummary={viewMode === 'gallery' ? gallerySummary : null}
-        galleryBacksToDetail={galleryBacksToDetail}
         sidebarCollapsed={sidebarCollapsed}
         className={viewMode === 'detail' ? 'md:hidden' : undefined}
         onClose={onClose}
-        onBackToDetail={() => {
-          setGalleryReturnTarget('detail')
-          setViewMode('detail')
-        }}
-        onOpenManageGallery={() => {
-          setGalleryInitialMode('manage')
-          setGalleryReturnTarget('detail')
-          setViewMode('gallery')
-        }}
         onAddRef={onAddRef}
         onRegenerate={onRegenerate}
         onReroll={onReroll}
@@ -230,21 +200,7 @@ export function DetailLayout({
         onToggleSidebar={toggleSidebar}
       />
 
-      {viewMode === 'gallery' ? (
-        <StackGallery
-          stack={stack}
-          initialMode={galleryInitialMode}
-          selectedId={selectedItem?.id ?? null}
-          onSelect={(item) => {
-            selectStackItem(item)
-            setGalleryReturnTarget('detail')
-            setViewMode('detail')
-          }}
-          onRemove={onRemove}
-        />
-      ) : (
-        <>
-          <div
+      <div
             ref={detailScrollRef}
             className="relative flex-1 min-h-0 overflow-y-auto overflow-x-hidden md:flex md:flex-col md:overflow-hidden"
             style={{ WebkitOverflowScrolling: 'touch' }}
@@ -262,22 +218,6 @@ export function DetailLayout({
                 >
                   <Icon name="close" size={14} strokeWidth={1.8} />
                 </button>
-              }
-              trailingNode={
-                <Tooltip text={t('imageDetail.action.openBatchManage')}>
-                  <button
-                    type="button"
-                    className="icon-btn h-8 w-8 shrink-0"
-                    onClick={() => {
-                      setGalleryInitialMode('manage')
-                      setGalleryReturnTarget('detail')
-                      setViewMode('gallery')
-                    }}
-                    aria-label={t('imageDetail.action.manageBatch')}
-                  >
-                    <Icon name="list_checks" size={14} strokeWidth={1.8} />
-                  </button>
-                </Tooltip>
               }
             />
 
@@ -391,11 +331,9 @@ export function DetailLayout({
                 onRemove={onRemoveCurrent}
               />
             </div>
-          </div>
+      </div>
 
-          <DetailFooter editing={editing} currentImage={currentImage} selectedItem={selectedItem} stackId={stack.id} />
-        </>
-      )}
+      <DetailFooter editing={editing} currentImage={currentImage} selectedItem={selectedItem} stackId={stack.id} />
     </>
   )
 }

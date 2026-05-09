@@ -3,24 +3,18 @@ import type { GenerationJob } from '../../hooks/usePlayground'
 import type { Translate } from '../../i18n'
 import { countSlots } from '../../lib/queueJobDisplay'
 import type { ImageStack, StackItem } from '../../lib/stacks'
-import type { PlaygroundImageMeta } from '../../lib/types'
 
 export const MODEL_CONFIG_BY_ID = new Map(MODEL_CONFIGS.map((m) => [m.id, m]))
 
 export type DetailTarget = {
   stackId: string
   itemId?: string
-  viewMode?: 'detail' | 'gallery'
-  initialGalleryMode?: 'view' | 'manage'
+  viewMode?: 'detail'
   initialEditing?: boolean
 }
 export type DetailNavigationTarget = { stackId: string; itemId: string }
 export type ActiveStackStatusPart = { kind: 'running' | 'retrying' | 'queued'; label: string }
 export type ItemGenerationSummary = { modelName: string; aspectRatio: string; resolution: string }
-
-export function latestImages(stack: ImageStack): PlaygroundImageMeta[] {
-  return stack.images.toSorted((a, b) => b.timestamp - a.timestamp)
-}
 
 export function firstStackItemTarget(stack: ImageStack | undefined): DetailNavigationTarget | null {
   const item = stack?.items[0]

@@ -137,6 +137,7 @@ export function MobileLayout({
               onLoadMore={onLoadMore}
               highlightStackId={highlightStackId}
               onOpenGenerationSettings={onOpenGenerationSettings}
+              compactStackHeader
             />
           </div>
         )}
