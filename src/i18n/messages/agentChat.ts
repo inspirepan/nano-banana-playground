@@ -46,7 +46,7 @@ export const agentChatMessages: MessageDictionary = {
     en: 'Skip the questions and send…',
   },
   'agentChat.composer.placeholder.streaming': { 'zh-CN': '追加消息…', en: 'Add a message…' },
-  'agentChat.composer.placeholder.default': { 'zh-CN': '给 Agent 发送消息…', en: 'Message Agent…' },
+  'agentChat.composer.placeholder.default': { 'zh-CN': '发送消息…', en: 'Message Agent…' },
   'agentChat.composer.attachImage': { 'zh-CN': '附加图片', en: 'Attach image' },
   'agentChat.composer.attachImageUnsupported': {
     'zh-CN': '{model} 不支持图片附件',
