@@ -49,6 +49,12 @@ export function MobileUnifiedPreviewLayer({
 }: MobileUnifiedPreviewLayerProps) {
   const { t } = useI18n()
   const [inlineRect, setInlineRect] = useState<{ frame: LayerRect; clip: LayerRect } | null>(null)
+  const [inlineResetRevision, setInlineResetRevision] = useState(0)
+
+  const closeFullscreen = useCallback(() => {
+    setInlineResetRevision((revision) => revision + 1)
+    onCloseFullscreen()
+  }, [onCloseFullscreen])
 
   const updateAnchorRect = useCallback(() => {
     const anchor = anchorRef.current
@@ -119,20 +125,40 @@ export function MobileUnifiedPreviewLayer({
     <div className="fixed overflow-hidden" style={layerStyle}>
       <div className="absolute" style={viewFrameStyle}>
         <ZoomableImageView
+          key={`${src}:${inlineResetRevision}`}
           src={src}
           alt={alt}
           onSwipeLeft={hasNext ? onGoNext : undefined}
           onSwipeRight={hasPrev ? onGoPrev : undefined}
           onRequestFullscreen={fullscreen ? undefined : () => onOpenFullscreen()}
-          onRequestInline={fullscreen ? onCloseFullscreen : undefined}
+          onRequestInline={fullscreen ? closeFullscreen : undefined}
           disableViewTransition
         />
       </div>
 
+      {!fullscreen && (
+        <button
+          type="button"
+          onClick={() => onOpenFullscreen()}
+          title={t('imageDetail.action.fullscreenPreview')}
+          aria-label={t('imageDetail.action.fullscreenPreview')}
+          className="absolute right-3 top-3 z-[2] flex h-8 w-8 items-center justify-center rounded-full transition-colors"
+          style={{
+            background: 'color-mix(in srgb, var(--color-surface) 92%, transparent)',
+            color: 'var(--color-text-2)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+            boxShadow: '0 0 0 1px var(--ring-edge), var(--shadow-lift)',
+          }}
+        >
+          <Icon name="maximize" size={14} strokeWidth={1.8} />
+        </button>
+      )}
+
       {fullscreen && (
         <button
           type="button"
-          onClick={onCloseFullscreen}
+          onClick={closeFullscreen}
           title={t('imageDetail.action.closeFullscreenPreview')}
           aria-label={t('imageDetail.action.closeFullscreenPreview')}
           className="absolute left-3 top-3 z-[2] flex h-9 w-9 items-center justify-center rounded-full transition-colors"

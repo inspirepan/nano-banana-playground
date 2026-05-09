@@ -323,7 +323,6 @@ export function DetailLayout({
                 drawableRef={drawableRef}
                 onGoPrev={goToPrev}
                 onGoNext={goToNext}
-                onOpenMobilePreview={() => openMobilePreview()}
                 onCloseRefDetail={() => setRefDetailId(null)}
                 onChangeDrawTool={setDrawTool}
                 onChangeDesktopMoveActive={setDesktopMoveActive}

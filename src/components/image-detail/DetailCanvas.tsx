@@ -42,7 +42,6 @@ type DetailCanvasProps = {
   drawableRef: RefObject<DrawableLayerHandle | null>
   onGoPrev: () => void
   onGoNext: () => void
-  onOpenMobilePreview: () => void
   onCloseRefDetail: () => void
   onChangeDrawTool: (tool: DrawTool) => void
   onChangeDesktopMoveActive: (active: boolean) => void
@@ -85,7 +84,6 @@ export function DetailCanvas({
   drawableRef,
   onGoPrev,
   onGoNext,
-  onOpenMobilePreview,
   onCloseRefDetail,
   onChangeDrawTool,
   onChangeDesktopMoveActive,
@@ -160,23 +158,6 @@ export function DetailCanvas({
               onSwipeRight={hasPrev ? onGoPrev : undefined}
               onRequestFullscreen={onRequestFullscreen}
             />
-          )}
-          {!refDetailId && isMobileLayout && (
-            <button
-              type="button"
-              onClick={onOpenMobilePreview}
-              aria-label={t('imageDetail.action.fullscreenPreview')}
-              title={t('imageDetail.action.fullscreenPreview')}
-              className="absolute right-3 top-3 z-20 flex h-8 w-8 items-center justify-center rounded-full transition-colors md:hidden"
-              style={{
-                background: 'color-mix(in srgb, var(--color-surface) 92%, transparent)',
-                color: 'var(--color-text-2)',
-                backdropFilter: 'blur(10px)',
-                boxShadow: '0 0 0 1px var(--ring-edge), var(--shadow-lift)',
-              }}
-            >
-              <Icon name="maximize" size={14} strokeWidth={1.8} />
-            </button>
           )}
           {drawableLayerVisible && (
             <DrawableLayer
