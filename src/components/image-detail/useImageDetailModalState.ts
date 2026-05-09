@@ -12,11 +12,13 @@ export type GalleryReturnTarget = 'output' | 'detail'
 
 export function useImageDetailModalState({
   initialViewMode,
+  initialGalleryMode = 'view',
   initialEditing,
   currentImageId,
   isMobileLayout,
 }: {
   initialViewMode: ModalViewMode
+  initialGalleryMode?: GalleryMode
   initialEditing: boolean
   currentImageId: string
   isMobileLayout: boolean
@@ -25,7 +27,7 @@ export function useImageDetailModalState({
   const [mobileDrawOpen, setMobileDrawOpen] = useState(false)
   const [mobilePreviewOpen, setMobilePreviewOpen] = useState(false)
   const [viewMode, setViewMode] = useState<ModalViewMode>(initialViewMode)
-  const [galleryInitialMode, setGalleryInitialMode] = useState<GalleryMode>('view')
+  const [galleryInitialMode, setGalleryInitialMode] = useState<GalleryMode>(initialGalleryMode)
   const [galleryReturnTarget, setGalleryReturnTarget] = useState<GalleryReturnTarget>(() =>
     initialViewMode === 'gallery' ? 'output' : 'detail',
   )

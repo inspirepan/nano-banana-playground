@@ -32,5 +32,5 @@ export const outputMessages: MessageDictionary = {
   'output.status.generatingCount': { 'zh-CN': '{count} 项生成中', en: '{count} generating' },
   'output.status.queuedCount': { 'zh-CN': '{count} 项排队中', en: '{count} queued' },
   'output.status.retryingCount': { 'zh-CN': '{count} 项重试中', en: '{count} retrying' },
-  'output.viewAll': { 'zh-CN': '查看全部', en: 'View all' },
+  'output.viewAll': { 'zh-CN': '批量管理', en: 'Batch manage' },
 }

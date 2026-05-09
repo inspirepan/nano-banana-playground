@@ -9,7 +9,7 @@ import { MobileEditScreen } from './MobileEditScreen'
 import { MobileUnifiedPreviewLayer } from './MobileUnifiedPreviewLayer'
 import { useImageDetailBlobs } from './useImageDetailBlobs'
 import { useImageDetailKeyboard } from './useImageDetailKeyboard'
-import { useImageDetailModalState, type ModalViewMode } from './useImageDetailModalState'
+import { useImageDetailModalState, type GalleryMode, type ModalViewMode } from './useImageDetailModalState'
 import { useImageDetailNavigation, useImageDetailSelection } from './useImageDetailNavigation'
 import type { ZoomableImageViewState } from './ZoomableImageView'
 import { MODEL_CONFIGS } from '../../config/models'
@@ -29,6 +29,7 @@ type Props = {
   stack: ImageStack
   initialItemId?: string
   initialViewMode?: ModalViewMode
+  initialGalleryMode?: GalleryMode
   initialEditing?: boolean
   previousStackTarget?: StackNavigationTarget | null
   nextStackTarget?: StackNavigationTarget | null
@@ -52,6 +53,7 @@ export function ImageDetailModal({
   stack,
   initialItemId,
   initialViewMode = 'detail',
+  initialGalleryMode,
   initialEditing = false,
   previousStackTarget,
   nextStackTarget,
@@ -109,6 +111,7 @@ export function ImageDetailModal({
     exitEdit,
   } = useImageDetailModalState({
     initialViewMode,
+    initialGalleryMode,
     initialEditing,
     currentImageId: currentImage?.id ?? '',
     isMobileLayout,

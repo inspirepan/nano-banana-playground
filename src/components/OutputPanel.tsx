@@ -274,6 +274,7 @@ export const OutputPanel = memo(function OutputPanel({
               stack={detailStack}
               initialItemId={detailTarget?.itemId}
               initialViewMode={detailTarget?.viewMode}
+              initialGalleryMode={detailTarget?.initialGalleryMode}
               initialEditing={detailTarget?.initialEditing}
               previousStackTarget={previousStackTarget}
               nextStackTarget={nextStackTarget}

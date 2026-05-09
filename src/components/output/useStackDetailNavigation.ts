@@ -50,7 +50,12 @@ export function useStackDetailNavigation({ stacks, stackIndexById }: Params): Re
   const openStackGallery = useCallback((stack: ImageStack) => {
     const newestImage = latestImages(stack)[0]
     const fallbackItem = stack.items[stack.items.length - 1]
-    setDetailTarget({ stackId: stack.id, itemId: newestImage?.id ?? fallbackItem?.id, viewMode: 'gallery' })
+    setDetailTarget({
+      stackId: stack.id,
+      itemId: newestImage?.id ?? fallbackItem?.id,
+      viewMode: 'gallery',
+      initialGalleryMode: 'manage',
+    })
   }, [])
 
   const navigateDetailToTarget = useCallback((target: DetailNavigationTarget) => {

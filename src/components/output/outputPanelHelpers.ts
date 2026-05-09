@@ -11,6 +11,7 @@ export type DetailTarget = {
   stackId: string
   itemId?: string
   viewMode?: 'detail' | 'gallery'
+  initialGalleryMode?: 'view' | 'manage'
   initialEditing?: boolean
 }
 export type DetailNavigationTarget = { stackId: string; itemId: string }
