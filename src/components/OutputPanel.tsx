@@ -243,13 +243,8 @@ export const OutputPanel = memo(function OutputPanel({
   const batchToolbar = (
     <>
       <span className="inline-flex h-7 shrink-0 items-center rounded-[var(--radius-sm)] bg-(--color-accent-wash) px-2.5 text-base font-medium text-(--color-accent-text) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
-        {t('output.batchManage')}
+        {selectedImageCount > 0 ? t('output.selectedCount', { selected: selectedImageCount }) : t('output.batchManage')}
       </span>
-      {selectedImageCount > 0 && (
-        <span className="inline-flex h-7 shrink-0 items-center rounded-[var(--radius-sm)] bg-(--color-accent-wash) px-2.5 text-base font-medium text-(--color-accent-text) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
-          {t('output.selectedCount', { selected: selectedImageCount })}
-        </span>
-      )}
       <button type="button" onClick={handleToggleBatchSelectAll} className="chip ghost shrink-0">
         {allBatchSelected ? t('output.deselectAll') : t('output.selectAll')}
       </button>
@@ -387,7 +382,7 @@ export const OutputPanel = memo(function OutputPanel({
       )}
 
       {batchManageMode && (
-        <div className="pointer-events-none fixed right-4 top-4 z-40 flex max-w-[calc(100vw-24px)] justify-end pl-2 pt-[env(safe-area-inset-top)] md:right-6 md:top-6">
+        <div className="pointer-events-none fixed right-4 top-[calc(env(safe-area-inset-top)+64px)] z-40 flex max-w-[calc(100vw-24px)] justify-end pl-2 md:right-6 md:top-6">
           <div className="pointer-events-auto flex max-w-full flex-wrap items-center justify-center gap-1.5 rounded-[var(--radius-lg)] bg-(--color-surface) p-1.5 shadow-[0_0_0_1px_var(--ring-edge-elevated),var(--shadow-float)]">
             {batchToolbar}
           </div>
