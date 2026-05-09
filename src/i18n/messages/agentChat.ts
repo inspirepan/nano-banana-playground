@@ -19,6 +19,7 @@ export const agentChatMessages: MessageDictionary = {
   'agentChat.empty.quick.aspect': { 'zh-CN': '比例', en: 'Aspect' },
   'agentChat.empty.quick.resolution': { 'zh-CN': '分辨率', en: 'Resolution' },
   'agentChat.empty.skillStarter.title': { 'zh-CN': '从这里开始', en: 'Imagine Everything' },
+  'agentChat.empty.skillStarter.toggle': { 'zh-CN': 'Skills', en: 'Skills' },
   'agentChat.empty.skillStarter.prompt': {
     'zh-CN': '使用 {skill} Skill，帮我生成图片。',
     en: 'Use the {skill} skill to help me generate images.',

@@ -435,7 +435,7 @@ export function AgentChatPanel({
   // resolves against parent box height, so scrollHeight exceeds clientHeight
   // by the padding amount even when there is nothing to scroll).
   const contentLayoutClass = isEmpty
-    ? `flex min-w-0 flex-col my-auto ${contentRightPaddingClass}`
+    ? `flex min-w-0 flex-col my-auto md:my-0 ${contentRightPaddingClass}`
     : `space-y-4 ${contentRightPaddingClass}`
   const composer = (
     <AgentChatComposer
@@ -545,7 +545,7 @@ export function AgentChatPanel({
       </div>
 
       <div
-        className={`relative flex min-h-0 min-w-0 flex-1 flex-col${isEmpty ? ' md:justify-center md:pb-[20vh]' : ''}`}
+        className={`relative flex min-h-0 min-w-0 flex-1 flex-col${isEmpty ? ' md:grid md:grid-rows-[minmax(0,1fr)_auto_minmax(0,1fr)]' : ''}`}
       >
         {!isEmpty ? (
           <div
@@ -557,7 +557,7 @@ export function AgentChatPanel({
           ref={scrollRef}
           className={`min-h-0 ${
             isEmpty
-              ? 'flex flex-1 flex-col overflow-y-auto pt-5 pb-4 md:flex-none md:overflow-visible md:pt-0 md:pb-0'
+              ? 'flex flex-1 flex-col overflow-y-auto pt-5 pb-4 md:mb-6 md:w-full md:self-end md:overflow-visible md:pt-0 md:pb-0'
               : scrollBodyClass
           }`}
         >
@@ -660,7 +660,7 @@ export function AgentChatPanel({
           </div>
         </div>
 
-        <div className={`${contentRightPaddingClass}${isEmpty ? ' md:mt-14' : ''} relative z-50`}>
+        <div className={`${contentRightPaddingClass} relative z-50`}>
           {!isEmpty ? (
             <div
               aria-hidden
@@ -671,7 +671,7 @@ export function AgentChatPanel({
         </div>
 
         {isEmpty ? (
-          <div className={`${contentRightPaddingClass} hidden md:mt-4 md:block`}>
+          <div className={`${contentRightPaddingClass} hidden md:mt-4 md:block md:w-full md:self-start`}>
             <QuickCompletePanel onInsertText={handleInsertText} />
           </div>
         ) : null}
