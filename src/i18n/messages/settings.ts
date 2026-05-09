@@ -3,19 +3,16 @@ import type { MessageDictionary } from '../types'
 export const settingsMessages: MessageDictionary = {
   'settings.title': { 'zh-CN': '设置', en: 'Settings' },
   'settings.description': {
-    'zh-CN': '管理服务连接、外观和生成队列行为',
-    en: 'Manage service connections, appearance, and generation queue behavior',
+    'zh-CN': '管理服务连接、通用偏好和本地数据',
+    en: 'Manage service connections, general preferences, and local data',
   },
   'settings.loadError.title': { 'zh-CN': '设置面板需要刷新', en: 'Settings need a refresh' },
   'settings.loadError.description': {
     'zh-CN': '页面还在使用旧版本资源，设置面板的新版文件没有加载成功。刷新页面即可恢复。',
     en: 'This page is still using an older app bundle, and the settings panel file did not load. Refresh the page to recover.',
   },
-  'settings.tabs.appearance': { 'zh-CN': '外观', en: 'Appearance' },
+  'settings.tabs.general': { 'zh-CN': '通用', en: 'General' },
   'settings.tabs.api': { 'zh-CN': '服务', en: 'Connections' },
-  'settings.tabs.web': { 'zh-CN': 'Web 工具', en: 'Web tools' },
-  'settings.tabs.generation': { 'zh-CN': '生成', en: 'Generation' },
-  'settings.tabs.download': { 'zh-CN': '下载', en: 'Download' },
   'settings.tabs.skills': { 'zh-CN': 'Skills', en: 'Skills' },
   'settings.tabs.backup': { 'zh-CN': '导入/导出', en: 'Import/export' },
   'settings.tabs.data': { 'zh-CN': '数据', en: 'Data' },
@@ -113,10 +110,10 @@ export const settingsMessages: MessageDictionary = {
     'zh-CN': '设置导出文件结构不完整。',
     en: 'The settings export file is incomplete.',
   },
-  'settings.apiKeys.title': { 'zh-CN': '服务连接', en: 'Service connections' },
+  'settings.apiKeys.title': { 'zh-CN': '大模型 API Key', en: 'LLM API keys' },
   'settings.apiKeys.description': {
-    'zh-CN': '配置固定支持服务的访问密钥。',
-    en: 'Configure access keys for supported services.',
+    'zh-CN': '配置图像生成和 Agent 大模型服务的访问密钥。',
+    en: 'Configure access keys for image generation and agent LLM services.',
   },
   'settings.webTools.title': { 'zh-CN': 'Web 工具', en: 'Web tools' },
   'settings.webTools.description': {
@@ -175,7 +172,7 @@ export const settingsMessages: MessageDictionary = {
     'zh-CN': '使用 Parallel Extract API 抽取 LLM 优化 markdown 内容，经站点代理转发。',
     en: 'Uses the Parallel Extract API to extract LLM-optimized markdown content, forwarded via site proxy.',
   },
-  'settings.webTools.apiKeys.label': { 'zh-CN': 'Web API Keys', en: 'Web API keys' },
+  'settings.webTools.apiKeys.label': { 'zh-CN': 'Web 工具 API Key', en: 'Web tool API keys' },
   'settings.webTools.key.notConfigured': { 'zh-CN': '未配置', en: 'Not configured' },
   'settings.webTools.key.clear': { 'zh-CN': '清除', en: 'Clear' },
   'settings.webTools.key.save': { 'zh-CN': '保存', en: 'Save' },
@@ -219,6 +216,11 @@ export const settingsMessages: MessageDictionary = {
   'settings.theme.light': { 'zh-CN': '浅色', en: 'Light' },
   'settings.theme.dark': { 'zh-CN': '深色', en: 'Dark' },
   'settings.theme.system': { 'zh-CN': '自动', en: 'Auto' },
+  'settings.generation.title': { 'zh-CN': '生成', en: 'Generation' },
+  'settings.generation.description': {
+    'zh-CN': '调整生成队列和 Agent 对话输入偏好。',
+    en: 'Adjust generation queue and agent chat input preferences.',
+  },
   'settings.generationConcurrency.title': { 'zh-CN': '同时生成的最大并发数', en: 'Maximum concurrent generations' },
   'settings.generationConcurrency.description': {
     'zh-CN': '控制一次最多同时生成几张图。数字越大，排队更少，但更容易遇到接口限流。',

@@ -8,6 +8,7 @@ import { useExternalSync } from '../../hooks/effects'
 import type { ApiKeyStatus } from '../../hooks/useApiKey'
 import { useI18n } from '../../i18n'
 import { DEFAULT_BASE_URL, previewEndpoint } from '../../lib/validateKey'
+import { SettingsSection } from './SettingsSection'
 
 function extractHost(url: string): string | null {
   const trimmed = url.trim().replace(/#$/, '')
@@ -42,13 +43,14 @@ export type KeyHook = {
 
 type ApiKeySettingsTabProps = {
   keyHooks: Record<Provider, KeyHook>
+  embedded?: boolean
 }
 
-export function ApiKeySettingsTab({ keyHooks }: ApiKeySettingsTabProps) {
+export function ApiKeySettingsTab({ keyHooks, embedded = false }: ApiKeySettingsTabProps) {
   const { t } = useI18n()
 
-  return (
-    <div className="space-y-4 px-5 py-4">
+  const content = (
+    <SettingsSection label={t('settings.apiKeys.title')} hint={t('settings.apiKeys.description')}>
       <div className="overflow-hidden rounded-[var(--radius-md)] bg-(--color-surface) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
         {PROVIDER_CONFIGS.map((provider, index) => (
           <KeyRow
@@ -60,8 +62,11 @@ export function ApiKeySettingsTab({ keyHooks }: ApiKeySettingsTabProps) {
         ))}
       </div>
       <p className="text-sm leading-relaxed text-(--color-text-3)">{t('apiKeys.storageNote')}</p>
-    </div>
+    </SettingsSection>
   )
+
+  if (embedded) return content
+  return <div className="px-5 py-4">{content}</div>
 }
 
 function KeyRow({ provider, hook, last = false }: { provider: Provider; hook: KeyHook; last?: boolean }) {

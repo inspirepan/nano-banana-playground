@@ -4,10 +4,8 @@ import { createPortal } from 'react-dom'
 import { Icon, type IconName } from './Icon'
 import type { AgentSkill, AgentSkillCreateInput, AgentSkillSummary } from '../agent'
 import { ApiKeySettingsTab, type KeyHook } from './settings/ApiKeySettingsTab'
-import { AppearanceSettingsTab } from './settings/AppearanceSettingsTab'
 import { DataSettingsTab } from './settings/DataSettingsTab'
-import { DownloadSettingsTab } from './settings/DownloadSettingsTab'
-import { GenerationSettingsTab } from './settings/GenerationSettingsTab'
+import { GeneralSettingsTab } from './settings/GeneralSettingsTab'
 import { SettingsBackupTab } from './settings/SettingsBackupTab'
 import { SkillsSettingsTab } from './settings/SkillsSettingsTab'
 import { WebToolsSettingsTab, type WebProviderNotice } from './settings/WebToolsSettingsTab'
@@ -40,14 +38,11 @@ import {
   type WebProviderApiKeys,
 } from '../lib/webProviderStore'
 
-type SettingsTab = 'appearance' | 'api' | 'web' | 'generation' | 'download' | 'skills' | 'backup' | 'data'
+type SettingsTab = 'general' | 'api' | 'skills' | 'backup' | 'data'
 
 const SETTINGS_TABS: { id: SettingsTab; labelKey: string; icon: IconName }[] = [
+  { id: 'general', labelKey: 'settings.tabs.general', icon: 'settings' },
   { id: 'api', labelKey: 'settings.tabs.api', icon: 'key' },
-  { id: 'appearance', labelKey: 'settings.tabs.appearance', icon: 'palette' },
-  { id: 'web', labelKey: 'settings.tabs.web', icon: 'search' },
-  { id: 'generation', labelKey: 'settings.tabs.generation', icon: 'sparkles' },
-  { id: 'download', labelKey: 'settings.tabs.download', icon: 'eraser' },
   { id: 'skills', labelKey: 'settings.tabs.skills', icon: 'wand' },
   { id: 'backup', labelKey: 'settings.tabs.backup', icon: 'download' },
   { id: 'data', labelKey: 'settings.tabs.data', icon: 'settings' },
@@ -57,8 +52,8 @@ type SettingsFocusSection = 'apiKeys' | 'generationConcurrency'
 
 function getInitialSettingsTab(focusSection: SettingsFocusSection | null | undefined): SettingsTab {
   if (focusSection === 'apiKeys') return 'api'
-  if (focusSection === 'generationConcurrency') return 'generation'
-  return 'appearance'
+  if (focusSection === 'generationConcurrency') return 'general'
+  return 'general'
 }
 
 function emptyWebProviderDrafts(): WebProviderApiKeys {
@@ -403,42 +398,38 @@ export function SettingsDialog({
           aria-labelledby={`settings-tab-${selectedTab}`}
           className="min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable_both-edges]"
         >
-          {selectedTab === 'appearance' && (
-            <AppearanceSettingsTab
+          {selectedTab === 'general' && (
+            <GeneralSettingsTab
               theme={theme}
               language={language}
+              generationConcurrency={generationConcurrency}
               onThemeChange={onThemeChange}
               onLanguageChange={onLanguageChange}
-            />
-          )}
-
-          {selectedTab === 'api' && <ApiKeySettingsTab keyHooks={keyHooks} />}
-
-          {selectedTab === 'web' && (
-            <WebToolsSettingsTab
-              webProviderSettings={webProviderSettings}
-              webProviderDrafts={webProviderDrafts}
-              webProviderNotice={webProviderNotice}
-              onWebSearchProviderChange={handleWebSearchProviderChange}
-              onWebFetchProviderChange={handleWebFetchProviderChange}
-              onWebProviderDraftChange={handleWebProviderDraftChange}
-              onSaveWebProviderApiKey={handleSaveWebProviderApiKey}
-              onClearWebProviderApiKey={handleClearWebProviderApiKey}
-              onUseWebProviderForSearch={handleUseWebProviderForSearch}
-              onUseWebProviderForFetch={handleUseWebProviderForFetch}
-              onUndoWebProviderSwitch={handleUndoWebProviderSwitch}
-              onDismissWebProviderNotice={() => setWebProviderNotice(null)}
-            />
-          )}
-
-          {selectedTab === 'generation' && (
-            <GenerationSettingsTab
-              generationConcurrency={generationConcurrency}
               onGenerationConcurrencyChange={onGenerationConcurrencyChange}
             />
           )}
 
-          {selectedTab === 'download' && <DownloadSettingsTab />}
+          {selectedTab === 'api' && (
+            <div className="space-y-5 px-5 py-4">
+              <ApiKeySettingsTab keyHooks={keyHooks} embedded />
+              <WebToolsSettingsTab
+                webProviderSettings={webProviderSettings}
+                webProviderDrafts={webProviderDrafts}
+                webProviderNotice={webProviderNotice}
+                embedded
+                divider
+                onWebSearchProviderChange={handleWebSearchProviderChange}
+                onWebFetchProviderChange={handleWebFetchProviderChange}
+                onWebProviderDraftChange={handleWebProviderDraftChange}
+                onSaveWebProviderApiKey={handleSaveWebProviderApiKey}
+                onClearWebProviderApiKey={handleClearWebProviderApiKey}
+                onUseWebProviderForSearch={handleUseWebProviderForSearch}
+                onUseWebProviderForFetch={handleUseWebProviderForFetch}
+                onUndoWebProviderSwitch={handleUndoWebProviderSwitch}
+                onDismissWebProviderNotice={() => setWebProviderNotice(null)}
+              />
+            </div>
+          )}
 
           {selectedTab === 'skills' && (
             <SkillsSettingsTab

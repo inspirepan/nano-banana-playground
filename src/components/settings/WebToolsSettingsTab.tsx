@@ -14,6 +14,7 @@ import type { WebProviderApiKeys, WebProviderSettings } from '../../lib/webProvi
 import { Icon } from '../Icon'
 import { Segmented, type SegmentedOption } from './Segmented'
 import { SettingsField } from './SettingsField'
+import { SettingsSection } from './SettingsSection'
 
 export type WebProviderNotice = {
   provider: WebApiProvider
@@ -30,6 +31,8 @@ type WebToolsSettingsTabProps = {
   webProviderSettings: WebProviderSettings
   webProviderDrafts: WebProviderApiKeys
   webProviderNotice: WebProviderNotice | null
+  embedded?: boolean
+  divider?: boolean
   onWebSearchProviderChange: (provider: WebSearchProvider) => void
   onWebFetchProviderChange: (provider: WebFetchProvider) => void
   onWebProviderDraftChange: (provider: WebApiProvider, value: string) => void
@@ -45,6 +48,8 @@ export function WebToolsSettingsTab({
   webProviderSettings,
   webProviderDrafts,
   webProviderNotice,
+  embedded = false,
+  divider = false,
   onWebSearchProviderChange,
   onWebFetchProviderChange,
   onWebProviderDraftChange,
@@ -57,57 +62,62 @@ export function WebToolsSettingsTab({
 }: WebToolsSettingsTabProps) {
   const { t } = useI18n()
 
-  return (
-    <div className="space-y-4 px-5 py-4">
-      <div className="space-y-3">
-        <WebProviderSegmentedField
-          label={t('settings.webTools.search.label')}
-          options={WEB_SEARCH_PROVIDER_OPTIONS}
-          value={webProviderSettings.searchProvider}
-          apiKeys={webProviderSettings.apiKeys}
-          onChange={onWebSearchProviderChange}
-        />
-        <WebProviderSegmentedField
-          label={t('settings.webTools.fetch.label')}
-          options={WEB_FETCH_PROVIDER_OPTIONS}
-          value={webProviderSettings.fetchProvider}
-          apiKeys={webProviderSettings.apiKeys}
-          onChange={onWebFetchProviderChange}
-        />
-      </div>
-
-      {webProviderNotice && (
-        <WebProviderSavedNotice
-          notice={webProviderNotice}
-          onUseSearch={onUseWebProviderForSearch}
-          onUseFetch={onUseWebProviderForFetch}
-          onUndo={onUndoWebProviderSwitch}
-          onDismiss={onDismissWebProviderNotice}
-        />
-      )}
-
-      <SettingsField label={t('settings.webTools.apiKeys.label')}>
-        <div className="overflow-hidden rounded-[var(--radius-md)] bg-(--color-surface) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
-          {WEB_API_PROVIDER_CONFIGS.map((provider, index) => (
-            <WebApiKeyRow
-              key={provider.id}
-              provider={provider.id}
-              label={provider.label}
-              apiKey={webProviderSettings.apiKeys[provider.id]}
-              draft={webProviderDrafts[provider.id]}
-              apiKeyUrl={provider.apiKeyUrl}
-              last={index === WEB_API_PROVIDER_CONFIGS.length - 1}
-              onDraftChange={onWebProviderDraftChange}
-              onSave={onSaveWebProviderApiKey}
-              onClear={onClearWebProviderApiKey}
-            />
-          ))}
+  const content = (
+    <SettingsSection label={t('settings.webTools.title')} hint={t('settings.webTools.description')} divider={divider}>
+      <div className="space-y-4">
+        <div className="space-y-3">
+          <WebProviderSegmentedField
+            label={t('settings.webTools.search.label')}
+            options={WEB_SEARCH_PROVIDER_OPTIONS}
+            value={webProviderSettings.searchProvider}
+            apiKeys={webProviderSettings.apiKeys}
+            onChange={onWebSearchProviderChange}
+          />
+          <WebProviderSegmentedField
+            label={t('settings.webTools.fetch.label')}
+            options={WEB_FETCH_PROVIDER_OPTIONS}
+            value={webProviderSettings.fetchProvider}
+            apiKeys={webProviderSettings.apiKeys}
+            onChange={onWebFetchProviderChange}
+          />
         </div>
-      </SettingsField>
 
-      <p className="text-sm leading-relaxed text-(--color-text-3)">{t('settings.webTools.note')}</p>
-    </div>
+        {webProviderNotice && (
+          <WebProviderSavedNotice
+            notice={webProviderNotice}
+            onUseSearch={onUseWebProviderForSearch}
+            onUseFetch={onUseWebProviderForFetch}
+            onUndo={onUndoWebProviderSwitch}
+            onDismiss={onDismissWebProviderNotice}
+          />
+        )}
+
+        <SettingsField label={t('settings.webTools.apiKeys.label')}>
+          <div className="overflow-hidden rounded-[var(--radius-md)] bg-(--color-surface) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
+            {WEB_API_PROVIDER_CONFIGS.map((provider, index) => (
+              <WebApiKeyRow
+                key={provider.id}
+                provider={provider.id}
+                label={provider.label}
+                apiKey={webProviderSettings.apiKeys[provider.id]}
+                draft={webProviderDrafts[provider.id]}
+                apiKeyUrl={provider.apiKeyUrl}
+                last={index === WEB_API_PROVIDER_CONFIGS.length - 1}
+                onDraftChange={onWebProviderDraftChange}
+                onSave={onSaveWebProviderApiKey}
+                onClear={onClearWebProviderApiKey}
+              />
+            ))}
+          </div>
+        </SettingsField>
+
+        <p className="text-sm leading-relaxed text-(--color-text-3)">{t('settings.webTools.note')}</p>
+      </div>
+    </SettingsSection>
   )
+
+  if (embedded) return content
+  return <div className="px-5 py-4">{content}</div>
 }
 
 function WebProviderSegmentedField<T extends WebSearchProvider | WebFetchProvider>({

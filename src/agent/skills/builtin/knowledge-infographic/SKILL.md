@@ -294,6 +294,78 @@ Hard rules:
 - mindmap 不要让分支文字重叠、不要让连线穿过节点。
 - quadrant 必须有清晰横纵轴标签，不能只画十字不写轴。
 
+## 可选：设计学派 DNA 叠加
+
+当用户主动引用具体学派（"做成 Fathom 报告那种"、"Müller-Brockmann 网格"、"Stamen 数据地图味"、"Takram 研究感"、"Information Architects 纯文字"），或当默认 4 风格不足以传达用户想要的"档次"时，可在 prompt 末尾追加 `# Design School DNA — overlay` 段。
+
+每次只叠 1 个学派；学派与已有 4 风格的关系：
+
+- `Fathom`、`Information Architects` 配 **consulting-report**：进一步加深学术 / 期刊 / 报告深度。
+- `Müller-Brockmann` 配 **notion-line** + dense / list / quadrant：把克制感推到瑞士网格。
+- `Stamen` 配 **consulting-report** 的地理 / 城市 / 气候话题：用地图学语汇替换通用图表。
+- `Takram` 配 **notion-line** 或 **sketch-notes**：增加东方人文柔度。
+
+### 5 个适合知识信息图的学派
+
+```
+Fathom Information Design:
+- Scientific journal aesthetic with editorial polish
+- Precise small data viz (small multiples, scatter, contour, timelines)
+- Neutral graphite / navy palette + one highlight color
+- Footnote / citation design integrated into layout
+- Information density without clutter
+```
+
+```
+Josef Müller-Brockmann Swiss modernism:
+- Mathematical 8pt grid, columns visible
+- Strict alignment (flush left or centered)
+- Two-color maximum (black + one accent like #E63946)
+- Akzidenz-Grotesk / Inter geometry
+- Type IS the system; no decoration
+```
+
+```
+Stamen Design cartographic:
+- Cartographic data visualization (maps, contour, layered topography)
+- Algorithm-generated organic patterns
+- Warm palette (terracotta, sage green, deep blue)
+- Hand-crafted feel despite digital precision
+- Soft layered shadows, hinted depth
+```
+
+```
+Takram Japanese speculative:
+- Soft tech aesthetic, rounded corners, gentle shadows
+- Charts and diagrams as art pieces
+- Neutral natural palette (beige, soft gray, muted green)
+- Modest sophistication, careful typography
+- Subtle sketch-like annotations possible
+```
+
+```
+Information Architects content-first:
+- Content-first hierarchy, zero decorative elements
+- System fonts only (SF Pro / Roboto / Inter)
+- Classic blue hyperlink accent
+- Reading-optimized line length
+- Type IS the design, no images
+```
+
+### 学派叠加段落模板
+
+把以下文本拼到 §3 步骤 3 的 `STYLE_BLOCK` 末尾或在最末追加一段：
+
+```
+# Design School DNA — overlay
+[paste the chosen school's DNA block from above verbatim]
+
+How this overlays the four base styles:
+- The school refines typography, palette accents, chart shapes and decoration vocabulary on top of the chosen base style.
+- If conflict (e.g. Kenya Hara emptiness vs. dense layout), keep the user's chosen layout density and let the school inform tone only.
+- Do NOT render the school name as visible text in the image.
+```
+
 ## 跟进选项
 
 完成第一张后，主动给用户提供这些 follow-up：
