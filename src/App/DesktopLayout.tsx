@@ -336,7 +336,7 @@ export function DesktopLayout({
 
         {/* Right output panel */}
         {showWideAgentStructure ? (
-          <div className="relative flex min-w-0 flex-[2_1_0%] shadow-[inset_1px_0_0_var(--ring-edge-soft)]">
+          <div className="relative flex min-w-0 flex-[2.4_1_0%] shadow-[inset_1px_0_0_var(--ring-edge-soft)]">
             <button
               type="button"
               onClick={handleAgentPanelWideToggle}
