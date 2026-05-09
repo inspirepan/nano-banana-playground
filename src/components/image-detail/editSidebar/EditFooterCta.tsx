@@ -41,7 +41,7 @@ export function EditFooterCta({
         </span>
         <span className="flex-1" />
         {showSubmitShortcut && (
-          <span className="flex gap-0.5">
+          <span className="hidden gap-0.5 md:flex">
             <kbd>{primaryModifierKey}</kbd>
             <kbd>⏎</kbd>
           </span>

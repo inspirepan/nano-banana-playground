@@ -3,7 +3,6 @@ import { useCallback, useRef } from 'react'
 import { Icon } from './Icon'
 import { useImageSrc } from '../hooks/useImageSrc'
 import { useI18n } from '../i18n'
-import { getPrimaryModifierShortcutLabel } from '../lib/keyboard'
 import type { PlaygroundImage, PlaygroundImageMeta } from '../lib/types'
 
 export type LockedReferenceImage = {
@@ -42,7 +41,7 @@ export function ReferenceImageUpload({
 }: Props) {
   const { t } = useI18n()
   const inputRef = useRef<HTMLInputElement>(null)
-  const displayHint = hint ?? t('input.reference.hint', { shortcut: getPrimaryModifierShortcutLabel('V') })
+  const displayHint = hint ?? t('input.reference.hint')
 
   const handleFileSelect = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {

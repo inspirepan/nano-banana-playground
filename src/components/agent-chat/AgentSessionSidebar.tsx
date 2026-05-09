@@ -33,7 +33,7 @@ export function AgentSessionSidebar({
       >
         <Icon name="plus" size={13} />
         <span className="min-w-0 flex-1 truncate">{t('agentChat.header.newConversation')}</span>
-        <kbd className="shrink-0" aria-hidden="true">
+        <kbd className="hidden shrink-0 md:inline-flex" aria-hidden="true">
           {newSessionShortcut}
         </kbd>
       </button>

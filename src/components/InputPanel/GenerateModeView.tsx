@@ -354,7 +354,7 @@ export function GenerateModeView({
           <Icon name="wand" size={13} strokeWidth={1.8} />
           <span>{t('input.generateWithModel', { model: model.name, count: batchCount })}</span>
           <span className="flex-1" />
-          <span className="flex gap-0.5">
+          <span className="hidden gap-0.5 md:flex">
             <kbd>{primaryModifierKey}</kbd>
             <kbd>⏎</kbd>
           </span>

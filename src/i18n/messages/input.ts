@@ -24,8 +24,8 @@ export const inputMessages: MessageDictionary = {
   'input.aspectRatio.optionAria': { 'zh-CN': '{ratio}，{pixels}', en: '{ratio}, {pixels}' },
   'input.reference.label': { 'zh-CN': '参考图', en: 'Reference images' },
   'input.reference.hint': {
-    'zh-CN': '可拖入本地图片，或按 {shortcut} 粘贴；也可拖入右侧历史图',
-    en: 'Drag in local images, press {shortcut} to paste, or drag images from history',
+    'zh-CN': '可拖入本地图片，也可拖入右侧历史图',
+    en: 'Drag in local images, or drag images from history',
   },
   'input.reference.upload': { 'zh-CN': '上传', en: 'Upload' },
   'input.reference.remove': { 'zh-CN': '移除参考图', en: 'Remove reference image' },

@@ -17,7 +17,7 @@ import type { GenerationJob } from '../../hooks/usePlayground'
 import { useI18n } from '../../i18n'
 import { type ItemCounts } from '../../lib/editStateCache'
 import { readFileAsImageData } from '../../lib/fileToImage'
-import { getPrimaryModifierShortcutLabel, hasPrimaryModifier } from '../../lib/keyboard'
+import { hasPrimaryModifier } from '../../lib/keyboard'
 import { getPricePerImage } from '../../lib/pricing'
 import type { PlaygroundImage, PlaygroundImageMeta } from '../../lib/types'
 import { ReferenceImageUpload, type LockedReferenceImage } from '../ReferenceImageUpload'
@@ -282,7 +282,7 @@ export function EditSidebar({
         <ReferenceImageUpload
           images={extraRefs}
           lockedImages={lockedReferenceImages}
-          hint={t('imageDetail.reference.uploadHint', { shortcut: getPrimaryModifierShortcutLabel('V') })}
+          hint={t('imageDetail.reference.uploadHint')}
           maxTotal={maxExtraRefs}
           dragOver={false}
           error={effectiveRefsError}
