@@ -222,6 +222,11 @@ export function AgentChatPanel({
     [visibleMessages, streamingMessage],
   )
   const renderSections = useMemo(() => buildStickyUserSections(renderItems), [renderItems])
+  const lastRenderSection = renderSections.at(-1)
+  const runningIndicatorSectionKey =
+    showRunningIndicator && queuedMessages.length === 0 && lastRenderSection?.stickyUserItem && lastRenderSection.items.length === 0
+      ? lastRenderSection.key
+      : null
   const titledAssistantMessages = useMemo(() => {
     const titled = new WeakSet<AgentMessage>()
     let nextVisibleAssistantStartsTurn = false
@@ -648,13 +653,18 @@ export function AgentChatPanel({
                           />
                         ),
                       )}
+                      {runningIndicatorSectionKey === section.key ? (
+                        <AgentRunningIndicator label={t('agentChat.status.running')} />
+                      ) : null}
                     </div>
                   )
                 })}
                 {queuedMessages.map((queued) => (
                   <QueuedMessageBubble key={queued.id} queued={queued} />
                 ))}
-                {showRunningIndicator ? <AgentRunningIndicator label={t('agentChat.status.running')} /> : null}
+                {showRunningIndicator && runningIndicatorSectionKey === null ? (
+                  <AgentRunningIndicator label={t('agentChat.status.running')} />
+                ) : null}
               </>
             )}
           </div>
