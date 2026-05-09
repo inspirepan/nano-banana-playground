@@ -38,12 +38,11 @@ import {
   type WebProviderApiKeys,
 } from '../lib/webProviderStore'
 
-type SettingsTab = 'general' | 'api' | 'web' | 'skills' | 'backup' | 'data'
+type SettingsTab = 'general' | 'api' | 'skills' | 'backup' | 'data'
 
 const SETTINGS_TABS: { id: SettingsTab; labelKey: string; icon: IconName }[] = [
   { id: 'general', labelKey: 'settings.tabs.general', icon: 'settings' },
   { id: 'api', labelKey: 'settings.tabs.api', icon: 'key' },
-  { id: 'web', labelKey: 'settings.tabs.web', icon: 'search' },
   { id: 'skills', labelKey: 'settings.tabs.skills', icon: 'wand' },
   { id: 'backup', labelKey: 'settings.tabs.backup', icon: 'download' },
   { id: 'data', labelKey: 'settings.tabs.data', icon: 'settings' },
@@ -410,23 +409,26 @@ export function SettingsDialog({
             />
           )}
 
-          {selectedTab === 'api' && <ApiKeySettingsTab keyHooks={keyHooks} />}
-
-          {selectedTab === 'web' && (
-            <WebToolsSettingsTab
-              webProviderSettings={webProviderSettings}
-              webProviderDrafts={webProviderDrafts}
-              webProviderNotice={webProviderNotice}
-              onWebSearchProviderChange={handleWebSearchProviderChange}
-              onWebFetchProviderChange={handleWebFetchProviderChange}
-              onWebProviderDraftChange={handleWebProviderDraftChange}
-              onSaveWebProviderApiKey={handleSaveWebProviderApiKey}
-              onClearWebProviderApiKey={handleClearWebProviderApiKey}
-              onUseWebProviderForSearch={handleUseWebProviderForSearch}
-              onUseWebProviderForFetch={handleUseWebProviderForFetch}
-              onUndoWebProviderSwitch={handleUndoWebProviderSwitch}
-              onDismissWebProviderNotice={() => setWebProviderNotice(null)}
-            />
+          {selectedTab === 'api' && (
+            <div className="space-y-5 px-5 py-4">
+              <ApiKeySettingsTab keyHooks={keyHooks} embedded />
+              <WebToolsSettingsTab
+                webProviderSettings={webProviderSettings}
+                webProviderDrafts={webProviderDrafts}
+                webProviderNotice={webProviderNotice}
+                embedded
+                divider
+                onWebSearchProviderChange={handleWebSearchProviderChange}
+                onWebFetchProviderChange={handleWebFetchProviderChange}
+                onWebProviderDraftChange={handleWebProviderDraftChange}
+                onSaveWebProviderApiKey={handleSaveWebProviderApiKey}
+                onClearWebProviderApiKey={handleClearWebProviderApiKey}
+                onUseWebProviderForSearch={handleUseWebProviderForSearch}
+                onUseWebProviderForFetch={handleUseWebProviderForFetch}
+                onUndoWebProviderSwitch={handleUndoWebProviderSwitch}
+                onDismissWebProviderNotice={() => setWebProviderNotice(null)}
+              />
+            </div>
           )}
 
           {selectedTab === 'skills' && (
