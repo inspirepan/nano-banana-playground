@@ -246,7 +246,10 @@ export const OutputPanel = memo(function OutputPanel({
 
           {historyHasMore && (
             <div ref={sentinelRef} className="flex justify-center py-4">
-              <div className="text-sm text-(--color-text-3)">{t('common.loadingMore')}</div>
+              <button type="button" onClick={onLoadMore} className="chip justify-center text-sm">
+                <Icon name="expand_more" size={13} />
+                {t('common.loadMore')}
+              </button>
             </div>
           )}
         </div>

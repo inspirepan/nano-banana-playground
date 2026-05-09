@@ -57,6 +57,7 @@ export const commonMessages: MessageDictionary = {
   'common.edit': { 'zh-CN': '编辑', en: 'Edit' },
   'common.gallery': { 'zh-CN': '图库', en: 'Gallery' },
   'common.generate': { 'zh-CN': '生成', en: 'Generate' },
+  'common.loadMore': { 'zh-CN': '加载更多', en: 'Load more' },
   'common.loadingMore': { 'zh-CN': '加载更多…', en: 'Loading more…' },
   'common.model': { 'zh-CN': '模型', en: 'Model' },
   'common.refresh': { 'zh-CN': '刷新', en: 'Refresh' },
