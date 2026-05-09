@@ -29,6 +29,7 @@ export type AgentImageTask = {
     referenceImageIds: string[]
     options: Record<string, unknown>
     stackId?: string
+    stackTitle?: string
     parentImageId?: string
   }
   generationJobId?: string

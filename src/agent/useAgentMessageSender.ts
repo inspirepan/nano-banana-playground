@@ -16,6 +16,15 @@ import { getAgentSkillSummaries } from './skills/registry'
 import { parseAgentSlashCommands } from './slashCommands'
 import { formatLoadedSkillText } from './tools/skill'
 import { isKeyError } from '../lib/validateKey'
+import { stackIdForAgentTurn } from '../lib/stackId'
+
+const AGENT_STACK_TITLE_MAX_LENGTH = 56
+
+function stackTitleForUserMessage(text: string): string {
+  const collapsed = text.replace(/\s+/g, ' ').trim()
+  if (collapsed.length <= AGENT_STACK_TITLE_MAX_LENGTH) return collapsed
+  return `${collapsed.slice(0, AGENT_STACK_TITLE_MAX_LENGTH - 3).trimEnd()}...`
+}
 
 function textFromLoadedSkill(skillName: string): string | null {
   const result = formatLoadedSkillText(skillName)
@@ -151,13 +160,18 @@ export function useAgentMessageSender({
       runtime.questionResolvers.has(question.toolCallId),
     )
     const inFlight = runtime.isStreaming || hasInFlightResolver
+    const userTurnId = crypto.randomUUID()
+    const userTurnStackId = stackIdForAgentTurn(runtime.sessionId, userTurnId)
+    const userTurnStackTitle = stackTitleForUserMessage(promptBody)
 
     runtime.draft = ''
     runtime.attachments = []
     runtime.attachmentError = null
     runtime.promptPreparing = true
     if (!inFlight) {
-      runtime.currentAgentTurnId = crypto.randomUUID()
+      runtime.currentAgentTurnId = userTurnId
+      runtime.currentAgentTurnStackId = userTurnStackId
+      runtime.currentAgentTurnStackTitle = userTurnStackTitle
       activateAgentResponseMetadata(runtime, config.id)
       runtime.isStreaming = true
     }
@@ -175,6 +189,9 @@ export function useAgentMessageSender({
       inFlight && queuedMessageId
         ? {
             id: queuedMessageId,
+            agentTurnId: userTurnId,
+            stackId: userTurnStackId,
+            stackTitle: userTurnStackTitle,
             message: {
               role: 'user' as const,
               content: [

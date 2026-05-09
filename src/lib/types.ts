@@ -36,6 +36,7 @@ export type GeneratedSource = {
   batchId: string
   batchCreatedAt?: number
   stackId?: string
+  stackTitle?: string
   parentImageId?: string
   slotIndex?: number
   imageIdSource?: 'agent'

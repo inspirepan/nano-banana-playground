@@ -34,6 +34,9 @@ export type AgentQuestionResolver = {
 export type AgentQueuedUserMessage = {
   id: string
   message: AgentMessage
+  agentTurnId: string
+  stackId: string
+  stackTitle: string
 }
 
 export type AgentSessionRuntime = {
@@ -57,6 +60,8 @@ export type AgentSessionRuntime = {
   imageRegistry: Map<string, AgentImageRegistryEntry>
   turnCallbacks: Map<string, AgentTurnCallbackState>
   currentAgentTurnId: string | null
+  currentAgentTurnStackId: string | null
+  currentAgentTurnStackTitle: string | null
   leafEntryId: string | null
   pendingQuestions: AgentPendingQuestion[]
   questionResolvers: Map<string, AgentQuestionResolver>

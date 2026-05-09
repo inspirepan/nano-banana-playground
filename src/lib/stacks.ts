@@ -29,6 +29,7 @@ export type StackItem = StackImageItem | StackSlotItem
 
 export type ImageStack = {
   id: string
+  title?: string
   createdAt: number
   updatedAt: number
   images: PlaygroundImageMeta[]
@@ -36,6 +37,11 @@ export type ImageStack = {
   jobs: GenerationJob[]
   activeSlotCount: number
   failedSlotCount: number
+}
+
+function applyStackTitle(stack: ImageStack, title: string | undefined): void {
+  const trimmed = title?.trim()
+  if (trimmed && !stack.title) stack.title = trimmed
 }
 
 function isActiveSlot(slot: GenerationSlot): boolean {
@@ -158,6 +164,7 @@ export function buildImageStacks(history: PlaygroundImageMeta[], generationJobs:
     if (!stackId) continue
     const batchTimestamp = batchTimestamps.get(batchId) ?? batchTimestampForImage(image)
     const stack = ensureStack(stacks, stackId, batchTimestamp)
+    applyStackTitle(stack, image.source.stackTitle)
     let seen = seenIdsByStack.get(stackId)
     if (!seen) {
       seen = new Set<string>()
@@ -187,6 +194,7 @@ export function buildImageStacks(history: PlaygroundImageMeta[], generationJobs:
   // Pass 3: fold active jobs (and their slots) into the stacks.
   for (const job of generationJobs) {
     const stack = ensureStack(stacks, job.stackId, job.createdAt)
+    applyStackTitle(stack, job.stackTitle)
     stack.jobs.push(job)
     if (job.createdAt > stack.updatedAt) stack.updatedAt = job.createdAt
     let seen = seenIdsByStack.get(job.stackId)

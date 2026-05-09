@@ -52,6 +52,7 @@ export type UseAgentPlaygroundParams = {
     batchCount: number,
     stackId: string,
     parentImageId?: string,
+    stackTitle?: string,
   ) => string
   cancelGenerationJob: (jobId: string) => void
   dismissGenerationJob: (jobId: string) => void

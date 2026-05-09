@@ -31,6 +31,7 @@ export type GenerationSlot = {
 export type GenerationJob = {
   id: string
   stackId: string
+  stackTitle?: string
   parentImageId?: string
   createdAt: number
   startedAt?: number
@@ -314,6 +315,7 @@ export function useGenerationQueue({
               batchId: job.id,
               batchCreatedAt: job.createdAt,
               stackId: job.stackId,
+              stackTitle: job.stackTitle,
               parentImageId: job.parentImageId,
               slotIndex: slot.index,
               outputImageId: slot.outputImageId,
@@ -434,11 +436,18 @@ export function useGenerationQueue({
   }, [])
 
   const enqueueGenerationJob = useCallback(
-    (request: GenerationJob['request'], batchCount: number, stackId: string, parentImageId?: string): string => {
+    (
+      request: GenerationJob['request'],
+      batchCount: number,
+      stackId: string,
+      parentImageId?: string,
+      stackTitle?: string,
+    ): string => {
       const batchId = crypto.randomUUID()
       const job: GenerationJob = {
         id: batchId,
         stackId,
+        stackTitle,
         parentImageId,
         createdAt: Date.now(),
         status: 'queued',

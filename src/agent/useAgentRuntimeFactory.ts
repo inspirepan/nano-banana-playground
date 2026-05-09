@@ -130,6 +130,8 @@ export function useAgentRuntimeFactory({
         imageRegistry: new Map(params.imageRegistry.map((entry) => [entry.id, entry])),
         turnCallbacks: new Map(params.turnCallbacks.map((callback) => [callback.agentTurnId, callback])),
         currentAgentTurnId: params.currentAgentTurnId,
+        currentAgentTurnStackId: null,
+        currentAgentTurnStackTitle: null,
         leafEntryId: params.leafEntryId,
         pendingQuestions: params.pendingQuestions,
         questionResolvers: new Map(),
@@ -149,9 +151,15 @@ export function useAgentRuntimeFactory({
         if (event.type === 'message_end') {
           metadataForAgentMessage(runtime, event.message)
           if (runtime.queuedUserMessages.length > 0 && agentMessageRole(event.message) === 'user') {
-            setRuntimeQueuedUserMessages(runtime, (prev) =>
-              prev.filter((queued) => !isSameQueuedUserMessage(event.message, queued.message)),
+            const queuedMessage = runtime.queuedUserMessages.find((queued) =>
+              isSameQueuedUserMessage(event.message, queued.message),
             )
+            if (queuedMessage) {
+              runtime.currentAgentTurnId = queuedMessage.agentTurnId
+              runtime.currentAgentTurnStackId = queuedMessage.stackId
+              runtime.currentAgentTurnStackTitle = queuedMessage.stackTitle
+              setRuntimeQueuedUserMessages(runtime, (prev) => prev.filter((queued) => queued.id !== queuedMessage.id))
+            }
           }
         }
         syncRuntimeSnapshot(runtime)

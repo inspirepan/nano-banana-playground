@@ -114,6 +114,7 @@ function generationFailureMetaFromSlot(job: GenerationJob, slot: GenerationJob['
       batchId: job.id,
       batchCreatedAt: job.createdAt,
       stackId: job.stackId,
+      stackTitle: job.stackTitle,
       parentImageId: job.parentImageId,
       slotIndex: slot.index,
       imageIdSource: job.request.outputImageIdSource,

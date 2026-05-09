@@ -27,13 +27,8 @@ import { getProviderConfig } from '../config/providers'
 import { useExternalSync } from '../hooks/effects'
 import type { GenerationJob } from '../hooks/useGenerationQueue'
 import { translate } from '../i18n'
-import { stackIdForAgentSession } from '../lib/stackId'
+import { stackIdForAgentTurn } from '../lib/stackId'
 import type { PlaygroundImage } from '../lib/types'
-
-function generatedImageStackId(image: PlaygroundImage): string | undefined {
-  if (image.source.type !== 'generated') return undefined
-  return image.source.stackId ?? image.source.batchId
-}
 
 export function useAgentImageTools({
   agentRuntimesRef,
@@ -73,6 +68,7 @@ export function useAgentImageTools({
     batchCount: number,
     stackId: string,
     parentImageId?: string,
+    stackTitle?: string,
   ) => string
   cancelGenerationJob: (jobId: string) => void
   dismissGenerationJob: (jobId: string) => void
@@ -111,6 +107,8 @@ export function useAgentImageTools({
 
       applyAgentRuntimeConfig(runtime)
       runtime.currentAgentTurnId = crypto.randomUUID()
+      runtime.currentAgentTurnStackId = null
+      runtime.currentAgentTurnStackTitle = null
       if (runtime.agent.state.isStreaming || runtime.isCompacting) {
         queueAgentResponseMetadata(runtime, config.id)
         await runtime.agent.queueMessage({ role: 'user', content: [{ type: 'text', text }], timestamp: Date.now() })
@@ -166,6 +164,8 @@ export function useAgentImageTools({
       scheduleRuntimeSidecarPersist(runtime)
 
       runtime.currentAgentTurnId = crypto.randomUUID()
+      runtime.currentAgentTurnStackId = null
+      runtime.currentAgentTurnStackTitle = null
       activateAgentResponseMetadata(runtime, config.id)
       const promptPromise = runtime.agent.prompt(text)
       syncRuntimeSnapshot(runtime)
@@ -264,7 +264,7 @@ export function useAgentImageTools({
         return { ok: false, message: translate('configLib.agent.sessionDeleted') }
       }
 
-      const stackId = task.request.stackId ?? stackIdForAgentSession(runtime.sessionId)
+      const stackId = task.request.stackId ?? stackIdForAgentTurn(runtime.sessionId, task.agentTurnId)
       const batchId = enqueueGenerationJob(
         {
           apiKey: credentials.apiKey,
@@ -281,6 +281,7 @@ export function useAgentImageTools({
         task.request.batchCount,
         stackId,
         task.request.parentImageId,
+        task.request.stackTitle,
       )
       setRuntimeImageTasks(runtime, (prev) =>
         prev.map((item) =>
@@ -392,14 +393,15 @@ export function useAgentImageTools({
         reserveAgentImageIdsForRuntime(runtime, args.image_id, batchCount),
       ])
       if (signal?.aborted) throw new Error('GenImage was aborted.')
-      const editSource = referenceImages.find((image) => generatedImageStackId(image))
-      const editStackId = editSource ? generatedImageStackId(editSource) : undefined
+      const editSource = referenceImages.find((image) => image.source.type === 'generated')
+      const agentTurnId = runtime.currentAgentTurnId ?? crypto.randomUUID()
+      const stackId = runtime.currentAgentTurnStackId ?? stackIdForAgentTurn(runtime.sessionId, agentTurnId)
       try {
         const activeOptions = activeOptionsForModel(modelConfig, defaultOptionsFor(modelConfig))
         const task: AgentImageTask = {
           id: crypto.randomUUID(),
           toolCallId,
-          agentTurnId: runtime.currentAgentTurnId ?? crypto.randomUUID(),
+          agentTurnId,
           createdAt: Date.now(),
           status: 'pending_approval',
           request: {
@@ -412,7 +414,8 @@ export function useAgentImageTools({
             batchCount,
             referenceImageIds,
             options: activeOptions,
-            stackId: editStackId ?? stackIdForAgentSession(runtime.sessionId),
+            stackId,
+            stackTitle: runtime.currentAgentTurnStackTitle ?? undefined,
             parentImageId: editSource?.source.type === 'generated' ? editSource.id : undefined,
           },
           resultImageIds: [],

@@ -102,6 +102,11 @@ export const StackRow = memo(function StackRow({
   return (
     <div className="min-w-0">
       <div className="min-w-0 px-3 py-2">
+        {stack.title && (
+          <div className="mb-1.5 max-w-[72ch] truncate text-base font-medium text-(--color-text-2)" title={stack.title}>
+            {stack.title}
+          </div>
+        )}
         <div className="mb-2 flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1 text-base">
           <span className="shrink-0 font-normal tabular-nums text-(--color-text-3)">
             {formatTime(stack.updatedAt, t)}

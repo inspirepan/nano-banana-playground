@@ -14,6 +14,7 @@ export type GenerateParams = {
   batchId: string
   batchCreatedAt: number
   stackId: string
+  stackTitle?: string
   parentImageId?: string
   slotIndex?: number
   outputImageId?: string

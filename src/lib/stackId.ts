@@ -69,3 +69,14 @@ export function stackIdForAgentSession(sessionId: string): string {
 
   return `stack-${hashString(stableStringify(payload))}`
 }
+
+export function stackIdForAgentTurn(sessionId: string, agentTurnId: string): string {
+  const payload = {
+    version: 1,
+    source: 'agent_turn',
+    sessionId,
+    agentTurnId,
+  }
+
+  return `stack-${hashString(stableStringify(payload))}`
+}
