@@ -4,21 +4,20 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* Self-host Geist (Vercel official npm package). Google Fonts ships only
-   the roman style; the npm package bundles the italic variable file too. */
+/* Self-host Cal Sans UI for the product voice; keep Geist Mono for code-like UI. */
 @font-face {
-  font-family: 'Geist';
+  font-family: 'Cal Sans UI';
   font-style: normal;
-  font-weight: 100 900;
+  font-weight: 300 700;
   font-display: swap;
-  src: url('../node_modules/geist/dist/fonts/geist-sans/Geist-Variable.woff2') format('woff2-variations');
+  src: url('../node_modules/@calcom/cal-sans-ui/dist/fonts/CalSansUI[wght,GEOM].woff2') format('woff2-variations');
 }
 @font-face {
-  font-family: 'Geist';
-  font-style: italic;
-  font-weight: 100 900;
+  font-family: 'Cal Sans Text';
+  font-style: normal;
+  font-weight: 300 700;
   font-display: swap;
-  src: url('../node_modules/geist/dist/fonts/geist-sans/Geist-Italic[wght].woff2') format('woff2-variations');
+  src: url('../node_modules/@calcom/cal-sans-ui/dist/fonts/CalSansUI[wght,GEOM].woff2') format('woff2-variations');
 }
 @font-face {
   font-family: 'Geist Mono';
@@ -35,12 +34,14 @@
     'Apple Color Emoji', 'Segoe UI Emoji';
   --font-cjk-mono:
     ui-monospace, SFMono-Regular, 'SF Mono', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', monospace;
-  --font-sans: 'Geist', var(--font-cjk-sans);
+  --font-sans: 'Cal Sans UI', var(--font-cjk-sans);
   /* tnum is opt-in via `tabular-nums` — only ratio / resolution / dimension UI needs it. */
-  --font-sans--font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1, 'case' 1, 'ss01' 1, 'ss07' 1;
+  --font-sans--font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1, 'case' 1;
+  --font-sans--font-variation-settings: 'GEOM' 0;
   --font-mono: 'Geist Mono', var(--font-cjk-mono);
   --font-mono--font-feature-settings: 'liga' 0, 'calt' 0, 'tnum' 1, 'zero' 1, 'ss01' 1, 'ss03' 1, 'ss07' 1;
-  --font-display: var(--font-sans);
+  --font-display: 'Cal Sans Text', var(--font-cjk-sans);
+  --font-display--font-variation-settings: 'GEOM' 18;
 
   /* Compact type scale */
   --text-xs: 0.6875rem; /* 11px */
@@ -232,8 +233,9 @@
     font-family: var(--font-sans);
     /* tnum is opt-in: add `tabular-nums` only on ratio / resolution / dimension UI. */
     font-feature-settings: var(--font-sans--font-feature-settings);
-    /* Disable synthetic bold/italic so the browser uses real faces when available. */
-    font-synthesis: none;
+    font-variation-settings: var(--font-sans--font-variation-settings);
+    /* Cal Sans UI has no italic face; keep emphasis visible without faking weight. */
+    font-synthesis: style;
     font-size: var(--text-base);
     line-height: 1.45;
     letter-spacing: -0.005em;
@@ -298,6 +300,7 @@
   /* Display — used for brand mark and section headings; currently maps to --font-sans */
   .font-display {
     font-family: var(--font-display);
+    font-variation-settings: var(--font-display--font-variation-settings);
     letter-spacing: -0.015em;
     text-wrap: balance;
   }

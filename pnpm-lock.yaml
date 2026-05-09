@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@calcom/cal-sans-ui':
+        specifier: ^1.3.0
+        version: 1.3.0(next@16.2.4(react-dom@19.2.5(react@19.2.5))(react@19.2.5))
       '@google/genai':
         specifier: ^1.51.0
         version: 1.51.0
@@ -301,6 +304,14 @@ packages:
 
   '@braintree/sanitize-url@7.1.2':
     resolution: {integrity: sha512-jigsZK+sMF/cuiB7sERuo9V7N9jx+dhmHHnQyDSVdpZwVutaBu7WvNYqMDLSgFgfB30n452TP3vjDAvFC973mA==}
+
+  '@calcom/cal-sans-ui@1.3.0':
+    resolution: {integrity: sha512-IFrNGB/sMEkUraMc7PnzReRrehR/K+AZREa/3ZIzxJ94FnDxVmE8tINhyK09Pg2hJ+777dgHOPLUWRnAHvuVag==}
+    peerDependencies:
+      next: '>=13.2.0'
+    peerDependenciesMeta:
+      next:
+        optional: true
 
   '@chevrotain/cst-dts-gen@12.0.0':
     resolution: {integrity: sha512-fSL4KXjTl7cDgf0B5Rip9Q05BOrYvkJV/RrBTE/bKDN096E4hN/ySpcBK5B24T76dlQ2i32Zc3PAE27jFnFrKg==}
@@ -3031,6 +3042,10 @@ snapshots:
     optional: true
 
   '@braintree/sanitize-url@7.1.2': {}
+
+  '@calcom/cal-sans-ui@1.3.0(next@16.2.4(react-dom@19.2.5(react@19.2.5))(react@19.2.5))':
+    optionalDependencies:
+      next: 16.2.4(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
 
   '@chevrotain/cst-dts-gen@12.0.0':
     dependencies:
