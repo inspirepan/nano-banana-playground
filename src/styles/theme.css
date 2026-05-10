@@ -68,20 +68,20 @@
   --color-text-3: #858c96;
   --color-text-4: #a3abb6;
 
-  /* Accent: Linear purple across light and dark themes. */
-  --color-accent: var(--linear-purple-9);
-  --color-accent-hover: #545fc6;
-  --color-accent-fg: #ffffff;
+  /* Accent: restrained burnt oxide, chosen to feel more like a precise tool than an AI SaaS surface. */
+  --color-accent: oklch(0.47 0.12 48);
+  --color-accent-hover: oklch(0.42 0.13 48);
+  --color-accent-fg: oklch(0.985 0.004 60);
   /* Foreground for accent-as-text on translucent wash backgrounds (active
      chips, aspect tiles, .tag.accent, .annotation-finish-btn). Light mode
-     uses a slightly deeper purple because the Linear anchor sits just under AA on a pale
-     wash already. Dark mode lifts toward white so the same pattern still
-     clears WCAG AA on the dim mid-tone wash. */
-  --color-accent-text: #545fc6;
+     uses a deeper oxide value because the filled accent is tuned for controls.
+     Dark mode lifts toward a brighter oxide so the same pattern still clears
+     WCAG AA on the dim mid-tone wash. */
+  --color-accent-text: oklch(0.42 0.13 48);
 
-  --color-accent-soft: var(--linear-purple-1);
-  --color-accent-wash: color-mix(in srgb, var(--linear-purple-9) 10%, transparent);
-  --color-accent-wash-2: color-mix(in srgb, var(--linear-purple-9) 17%, transparent);
+  --color-accent-soft: oklch(0.94 0.026 55);
+  --color-accent-wash: color-mix(in oklch, var(--color-accent) 10%, transparent);
+  --color-accent-wash-2: color-mix(in oklch, var(--color-accent) 17%, transparent);
 
   --color-accent-ring: color-mix(in srgb, var(--color-accent) 14%, transparent);
   --color-accent-ring-hover: color-mix(in srgb, var(--color-accent) 20%, transparent);
@@ -141,9 +141,6 @@
   --panel-pad-top: 18px;
   --panel-pad-bottom: 18px;
   --panel-header-mb: 18px;
-
-  --linear-purple-1: #f0f0ff;
-  --linear-purple-9: #5e6ad2;
 }
 
 /* Dark theme — neutral near-black tool surface with clearer Raycast-style elevation steps. */
@@ -164,15 +161,14 @@
   --color-text-3: #9097a3;
   --color-text-4: #666d78;
 
-  --color-accent: #5e6ad2;
-  --color-accent-hover: #6e79e6;
-  --color-accent-fg: #ffffff;
-  /* Linear purple sits at oklch L≈49% — on the wash background it reads at
-     ~3.7:1, below WCAG AA. Lift toward white in OKLCH so hue stays put. */
-  --color-accent-text: color-mix(in oklch, var(--color-accent) 65%, white);
-  --color-accent-soft: #191b34;
-  --color-accent-wash: color-mix(in srgb, #5e6ad2 18%, transparent);
-  --color-accent-wash-2: color-mix(in srgb, #5e6ad2 28%, transparent);
+  --color-accent: oklch(0.54 0.13 52);
+  --color-accent-hover: oklch(0.56 0.14 52);
+  --color-accent-fg: oklch(0.985 0.004 60);
+  /* Lift oxide toward lightness for text-only accent usage on dark washes. */
+  --color-accent-text: color-mix(in oklch, var(--color-accent) 68%, oklch(0.985 0.004 60));
+  --color-accent-soft: oklch(0.2 0.035 50);
+  --color-accent-wash: color-mix(in oklch, var(--color-accent) 18%, transparent);
+  --color-accent-wash-2: color-mix(in oklch, var(--color-accent) 28%, transparent);
   --color-accent-ring: color-mix(in srgb, var(--color-accent) 24%, transparent);
   --color-accent-ring-hover: color-mix(in srgb, var(--color-accent) 34%, transparent);
 

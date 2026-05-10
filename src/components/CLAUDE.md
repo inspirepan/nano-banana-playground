@@ -8,7 +8,7 @@
 
 ## 色彩系统
 
-默认基础盘是 Linear / Notion 风格的克制中性灰（浅色轻微偏暖，暗色近黑并保留清晰 surface 阶梯）。强调色浅深模式统一使用 Linear 紫（`#5e6ad2`）这一色相，只通过 hover / wash / ring 调整明度和透明度。优先复用 `--color-bg`、`--color-surface*`、`--color-border*`、`--color-text*`、`--color-accent*`，不要到处写裸十六进制。
+默认基础盘是 Linear / Notion 风格的克制中性灰（浅色轻微偏暖，暗色近黑并保留清晰 surface 阶梯）。强调色使用低饱和 burnt oxide 的 OKLCH 色相，只服务主操作、选中态、链接和焦点，不做装饰性铺色；hover / wash / ring 只调整明度和透明度。优先复用 `--color-bg`、`--color-surface*`、`--color-border*`、`--color-text*`、`--color-accent*`，不要到处写裸十六进制。
 
 ## 排版
 
@@ -26,8 +26,8 @@
 - **真正浮起的层级**（弹窗、context menu、tooltip、`.img-card`、悬浮按钮）：外环 + token 阴影一次性写完。**搭配按 drop shadow 强度区分 ring 浓度**：① 走 `var(--shadow-float)` 的弹窗 / dialog / popover / context menu 配 `var(--ring-edge-elevated)`（≈9.5%），因为 18px 大软投会把 7.5% 的边线"halo 模糊掉"，需要稍重边线把轮廓拉回；② 走 `var(--shadow-lift)` 的轻浮起（`.img-card` 静态、悬浮 toolbar、缩略图角标）配 `var(--ring-edge)`（≈7.5%）即可，1-2px 小投影本身不会吃掉边缘。
 - **轻浮起卡片**（引导卡 / starter 卡）：套 `.img-card` 配方：静态 `shadow-[0_0_0_1px_var(--ring-edge-soft),var(--shadow-lift)]`，hover 升到 `shadow-[0_0_0_1px_var(--ring-edge-strong),var(--shadow-float)]`，可叠 `hover:-translate-y-px`，过渡写 `transition-[box-shadow,background-color,transform]`。密集 chip / 列表项仍走扁平 inset ring。
 - **分隔线**：一律用 `shadow-[inset_0_1px_0_var(--ring-edge-soft)]`（顶）或 `inset_0_-1px_0_…`（底），不写 `border-t/b`。唯一例外是 markdown 表格 `<th>/<td>`（`border-collapse` 必须用 `border-b`）。
-- **选中态——主色填充版**：`bg-(--color-accent)` + `shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-accent)_55%,#000_10%)]`。适合单一强调动作（提交按钮、单点 CTA）。
-- **选中态——淡底内敛版**：`bg-(--color-accent-wash)` + `text-(--color-accent-text)` + `shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]`。适合多选并存、密集选项场景。`--color-accent-text` 浅色直通 `--color-accent`，暗色自动按 oklch 提亮以过 WCAG AA——不要写裸 `text-(--color-accent)` 配 wash 底，否则暗色对比只有 ~3.7:1。
+- **选中态——主色填充版**：`bg-(--color-accent)` + `shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-accent)_55%,var(--color-bg-sunken)_10%)]`。适合单一强调动作（提交按钮、单点 CTA）。
+- **选中态——淡底内敛版**：`bg-(--color-accent-wash)` + `text-(--color-accent-text)` + `shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]`。适合多选并存、密集选项场景。`--color-accent-text` 浅色使用更深的 oxide，暗色按 OKLCH 提亮以过 WCAG AA——不要写裸 `text-(--color-accent)` 配 wash 底。
 - **选中态——外环 + 光晕版**：`shadow-[0_0_0_1px_var(--color-accent),0_0_0_3px_var(--color-accent-wash)]`。只用于强聚焦单点选择或输入聚焦。
 - **禁止清单**：① `rgba(0,0,0,…)` 字面值出现在 `shadow-[...]` 里；② `border-*` 与 `shadow-*` 在同一元素混写；③ 用 `--color-accent-ring*` 当通用 surface 边；④ 密集多选里用 outer accent ring 表达"已选"。
 
