@@ -1,0 +1,200 @@
+/* Self-host Inter variable from rsms.me; keep Geist Mono for code-like UI. */
+@font-face {
+  font-family: 'Inter Display Variable';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/InterVariable.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Inter Display Variable';
+  font-style: italic;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/InterVariable-Italic.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Geist Mono';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('../../node_modules/geist/dist/fonts/geist-mono/GeistMono-Variable.woff2') format('woff2-variations');
+}
+
+@theme {
+  --font-cjk-sans:
+    'PingFang SC', 'Source Han Sans SC', 'Source Han Sans CN', 'Noto Sans CJK SC', 'Noto Sans SC', system-ui,
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', 'Noto Sans', Helvetica, Arial, sans-serif,
+    'Apple Color Emoji', 'Segoe UI Emoji';
+  --font-cjk-mono:
+    ui-monospace, SFMono-Regular, 'SF Mono', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', monospace;
+  --font-sans: 'Inter Display Variable', var(--font-cjk-sans);
+  /* tnum is opt-in via `tabular-nums` — only ratio / resolution / dimension UI needs it. */
+  --font-sans--font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1, 'case' 1, 'ss02' 0;
+  --font-sans--font-variation-settings: 'opsz' 16;
+  --font-mono: 'Geist Mono', var(--font-cjk-mono);
+  --font-mono--font-feature-settings: 'liga' 0, 'calt' 0, 'tnum' 1, 'zero' 1, 'ss01' 1, 'ss03' 1, 'ss07' 1;
+  --font-display: 'Inter Display Variable', var(--font-cjk-sans);
+  --font-display--font-variation-settings: 'opsz' 22;
+
+  --font-weight-semibold: 550;
+
+  /* Compact type scale */
+  --text-xs: 0.6875rem; /* 11px */
+  --text-xs--line-height: 1.35;
+  --text-sm: 0.75rem; /* 12px */
+  --text-sm--line-height: 1.4;
+  --text-base: 0.8125rem; /* 13px */
+  --text-base--line-height: 1.45;
+  --text-lg: 0.875rem; /* 14px */
+  --text-lg--line-height: 1.35;
+  --text-xl: 0.9375rem; /* 15px */
+  --text-xl--line-height: 1.35;
+
+  /* Linear-style light neutrals */
+  --color-bg: #f7f8f8;
+  --color-bg-sunken: #f0f1f2;
+
+  --color-surface: #ffffff;
+  --color-surface-2: #f5f6f7;
+  --color-surface-3: #eceef0;
+  --agent-image-task-empty-bg: color-mix(in srgb, var(--color-surface-2) 72%, var(--color-surface));
+
+  --color-border: #e1e4e8;
+  --color-border-strong: #cfd4dc;
+
+  --color-text: #1d1f23;
+  --color-text-2: #525866;
+  --color-text-3: #838b98;
+  --color-text-4: #a9b0bb;
+
+  /* Accent — light mode uses the Uchu blue ramp (deep blue on white). The dark
+     variant in `.dark` swaps the family to Uchu purple. Don't reference `var()`
+     for hover here because `--color-accent` itself is later redefined via
+     `var()`, and color-mix on a chained var loses the resolved color in some
+     engines — keep hover as a static oklch derived from blue-9. */
+  --color-accent: var(--uchu-blue-9);
+  --color-accent-hover: oklch(34% 0.15 259.87);
+  --color-accent-fg: #ffffff;
+  /* Foreground for accent-as-text on translucent wash backgrounds (active
+     chips, aspect tiles, .tag.accent, .annotation-finish-btn). Light mode
+     reuses --color-accent because the dark uchu-9 ramp values pop on a pale
+     wash already. Dark mode lifts toward white so the same pattern still
+     clears WCAG AA on the dim mid-tone wash. */
+  --color-accent-text: var(--color-accent);
+
+  --color-accent-soft: var(--uchu-blue-1);
+  --color-accent-wash: color-mix(in srgb, var(--uchu-blue-9) 10%, transparent);
+  --color-accent-wash-2: color-mix(in srgb, var(--uchu-blue-9) 17%, transparent);
+
+  --color-accent-ring: color-mix(in srgb, var(--color-accent) 14%, transparent);
+  --color-accent-ring-hover: color-mix(in srgb, var(--color-accent) 20%, transparent);
+
+  --color-warning: #b7791f;
+  --color-danger: #c84848;
+  --color-danger-soft: #fff0ef;
+
+  --color-success: #2f9d62;
+
+  /* Edge rings */
+  --ring-edge: rgba(29, 31, 35, 0.075);
+  --ring-edge-elevated: rgba(29, 31, 35, 0.095);
+  --ring-edge-strong: rgba(29, 31, 35, 0.13);
+  --ring-edge-soft: rgba(29, 31, 35, 0.045);
+
+  --shadow-lift: 0 12px 28px -20px rgba(29, 31, 35, 0.18), 0 1px 2px rgba(29, 31, 35, 0.04);
+
+  --shadow-float: 0 18px 40px -26px rgba(29, 31, 35, 0.22), 0 2px 8px rgba(29, 31, 35, 0.055);
+
+  --media-overlay-bg: color-mix(in srgb, #15181d 56%, transparent);
+  --media-overlay-bg-hover: color-mix(in srgb, #15181d 72%, transparent);
+  --media-overlay-fg: #fbfcfd;
+  --modal-backdrop-bg: color-mix(in srgb, var(--color-bg-sunken) 38%, transparent);
+
+  /* Easing curves — built-in CSS easings are too weak. These give animations
+     the punch that makes them feel intentional. Use --ease-out for any
+     enter/exit motion (most UI), --ease-in-out for on-screen movement, and
+     --ease-drawer for sheet-like, momentum-feeling motion. Never ease-in. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+
+  /* Chat user bubble */
+  --bubble-user-bg: color-mix(in srgb, var(--color-accent-soft) 54%, var(--color-surface));
+  --bubble-user-edge:
+    inset 0 0 0 1px var(--color-accent-ring), 0 1px 0 var(--color-accent-ring), 0 2px 4px -2px rgba(29, 31, 35, 0.08);
+
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+
+  /* Panel layout tokens — set on the layout root (MobileLayout / DesktopLayout)
+     for each of the six panel layouts (mobile generate / agent / gallery,
+     desktop generate / narrow-agent / wide-agent). Inner panel components
+     read these instead of branching on inputMode. The fallbacks below assume
+     a desktop generate panel; layout roots override per layout. */
+  --panel-pad-x: 18px;
+  --panel-pad-top: 18px;
+  --panel-pad-bottom: 18px;
+  --panel-header-mb: 18px;
+
+  /* Uchu blue accent stops used by the light theme. */
+  --uchu-blue-1: oklch(89.66% 0.046 260.67);
+  --uchu-blue-2: oklch(80.17% 0.091 258.88);
+  --uchu-blue-9: oklch(39.53% 0.15 259.87);
+}
+
+/* Dark theme — near-neutral dark, minimal purple-gray tint (Linear-style). */
+.dark {
+  --color-bg: #08090a;
+  --color-bg-sunken: #050607;
+
+  --color-surface: #0f1011;
+  --color-surface-2: #17181a;
+  --color-surface-3: #202124;
+  --agent-image-task-empty-bg: color-mix(in srgb, var(--color-surface-2) 70%, var(--color-surface));
+
+  --color-border: #2a2b2f;
+
+  --color-text: #f7f8f8;
+  --color-text-2: #c9ccd1;
+  --color-text-3: #8f949b;
+  --color-text-4: #666b73;
+
+  --color-accent: #5e6ad2;
+  --color-accent-hover: #6e79e6;
+  --color-accent-fg: #ffffff;
+  /* Linear purple sits at oklch L≈49% — on the wash background it reads at
+     ~3.7:1, below WCAG AA. Lift toward white in OKLCH so hue stays put. */
+  --color-accent-text: color-mix(in oklch, var(--color-accent) 65%, white);
+  --color-accent-soft: #171a33;
+  --color-accent-wash: color-mix(in srgb, #5e6ad2 16%, transparent);
+  --color-accent-wash-2: color-mix(in srgb, #5e6ad2 26%, transparent);
+  --color-accent-ring: color-mix(in srgb, var(--color-accent) 22%, transparent);
+  --color-accent-ring-hover: color-mix(in srgb, var(--color-accent) 30%, transparent);
+
+  --color-danger: #d96c5f;
+  --color-danger-soft: #2a1b19;
+
+  --color-success: #6fa37d;
+
+  --ring-edge: rgba(255, 255, 255, 0.045);
+  --ring-edge-elevated: rgba(255, 255, 255, 0.065);
+  --ring-edge-strong: rgba(255, 255, 255, 0.1);
+  --ring-edge-soft: rgba(255, 255, 255, 0.032);
+
+  --shadow-lift: inset 0 1px 0 rgba(255, 255, 255, 0.045), 0 1px 0 rgba(0, 0, 0, 0.28);
+
+  --shadow-float:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 10px 28px -22px rgba(0, 0, 0, 0.85), 0 3px 8px -5px rgba(0, 0, 0, 0.55);
+  --media-overlay-bg: color-mix(in srgb, #11131a 68%, transparent);
+  --media-overlay-bg-hover: color-mix(in srgb, #11131a 82%, transparent);
+  --media-overlay-fg: #f7f8f8;
+  --modal-backdrop-bg: color-mix(in srgb, #050607 70%, transparent);
+  /* Chat user bubble edge — dark mode: accent ring on the outer 1px, white
+     highlight on the next 1px inside, giving a crisp double-line top edge. */
+  --bubble-user-edge: inset 0 2px 0 -1px rgba(255, 255, 255, 0.16), inset 0 0 0 1px var(--color-accent-ring);
+
+  color-scheme: dark;
+}

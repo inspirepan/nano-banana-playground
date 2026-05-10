@@ -1,0 +1,362 @@
+@layer utilities {
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings:
+      var(--font-sans--font-feature-settings),
+      'tnum' 1;
+  }
+
+  /* Animations */
+  @keyframes shimmer {
+    0% {
+      background-position: -400px 0;
+    }
+    100% {
+      background-position: 400px 0;
+    }
+  }
+  .skeleton-animated {
+    background: linear-gradient(
+      90deg,
+      var(--color-surface-2) 0%,
+      var(--color-surface-3) 50%,
+      var(--color-surface-2) 100%
+    );
+    background-size: 800px 100%;
+    animation: shimmer 1.8s linear infinite;
+  }
+
+  @keyframes fadeSlide {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .fade-in {
+    animation: fadeSlide 200ms var(--ease-out);
+  }
+
+  @keyframes agent-image-task-approval-ring {
+    0%,
+    100% {
+      opacity: 0.3;
+    }
+    50% {
+      opacity: 0.78;
+    }
+  }
+
+  @keyframes agent-image-task-approval-cta {
+    0%,
+    100% {
+      opacity: 0.18;
+    }
+    50% {
+      opacity: 0.46;
+    }
+  }
+
+  .agent-image-task-card-pending {
+    position: relative;
+    isolation: isolate;
+  }
+
+  .agent-image-task-card-pending::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    box-shadow:
+      0 0 0 1px var(--color-warning),
+      0 0 0 4px color-mix(in srgb, var(--color-warning) 16%, transparent);
+    opacity: 0.3;
+    animation: agent-image-task-approval-ring 1800ms var(--ease-in-out) infinite;
+  }
+
+  .agent-image-task-approve {
+    position: relative;
+    isolation: isolate;
+  }
+
+  .agent-image-task-approve::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-warning) 14%, transparent);
+    opacity: 0.18;
+    animation: agent-image-task-approval-cta 1600ms var(--ease-in-out) infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .agent-image-task-card-pending::before,
+    .agent-image-task-approve::after {
+      animation: none;
+    }
+
+    .agent-image-task-card-pending::before {
+      opacity: 0.72;
+    }
+
+    .agent-image-task-approve::after {
+      opacity: 0.28;
+    }
+  }
+
+  /* Popover / dropdown menu enter animation. Uses `@starting-style` so the
+     element transitions from a barely-deflated state when first inserted into
+     the DOM. Components should add this class together with `transform-origin:
+     <anchor>` (e.g. `[transform-origin:top_right]`) so the menu visibly grows
+     out of its trigger rather than from an arbitrary center point. Exit is
+     instant because dropdowns are dismissed by clicks/keys and a slow exit
+     would feel laggy. */
+  .popover-pop {
+    opacity: 1;
+    transform: scale(1);
+    transition:
+      opacity 160ms var(--ease-out),
+      transform 160ms var(--ease-out);
+  }
+  @starting-style {
+    .popover-pop {
+      opacity: 0;
+      transform: scale(0.96);
+    }
+  }
+
+  /* Modal content enter — slightly slower + slightly more deflation than a
+     popover, since modals are more deliberate. transform-origin stays default
+     (`center`): the dialog is centered in the viewport, not anchored to a
+     trigger. */
+  .modal-pop {
+    opacity: 1;
+    transform: scale(1);
+    transition:
+      opacity 200ms var(--ease-out),
+      transform 200ms var(--ease-out);
+  }
+  @starting-style {
+    .modal-pop {
+      opacity: 0;
+      transform: scale(0.96);
+    }
+  }
+
+  /* Modal backdrop fade-in — paired with `.modal-pop`. */
+  .modal-backdrop-pop {
+    opacity: 1;
+    transition: opacity 200ms var(--ease-out);
+  }
+  @starting-style {
+    .modal-backdrop-pop {
+      opacity: 0;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .popover-pop,
+    .modal-pop,
+    .modal-backdrop-pop {
+      transition: none;
+    }
+  }
+
+  @keyframes agent-running-dot {
+    0%,
+    72%,
+    100% {
+      opacity: 0.34;
+      background-color: var(--color-text-4);
+    }
+    28% {
+      opacity: 1;
+      background-color: var(--color-text-2);
+    }
+  }
+  .agent-running-token {
+    display: inline-flex;
+    align-items: center;
+    height: 18px;
+    gap: 3px;
+    color: var(--color-text-2);
+  }
+  .agent-running-token > span {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background-color: var(--color-text-4);
+    animation: agent-running-dot 1050ms ease-in-out infinite;
+  }
+  .agent-running-token > span:nth-child(2) {
+    animation-delay: 140ms;
+  }
+  .agent-running-token > span:nth-child(3) {
+    animation-delay: 280ms;
+  }
+  @keyframes agent-session-running-pulse {
+    0%,
+    100% {
+      opacity: 0.42;
+      transform: scale(0.82);
+    }
+    45% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  .agent-session-running-dot {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--color-accent);
+    transform-origin: center;
+    animation: agent-session-running-pulse 1050ms var(--ease-in-out) infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .agent-running-token > span,
+    .agent-session-running-dot {
+      animation: none;
+      opacity: 0.72;
+      transform: none;
+    }
+  }
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  .spinner {
+    width: 12px;
+    height: 12px;
+    border: 1.5px solid color-mix(in srgb, var(--color-accent) 22%, transparent);
+    border-top-color: var(--color-accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: inline-block;
+  }
+  @keyframes tool-dot-breathe {
+    0%,
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.28;
+      transform: scale(0.65);
+    }
+  }
+  .tool-dot-running {
+    animation: tool-dot-breathe 1.8s ease-in-out infinite;
+  }
+
+  /*
+   * Edge-fade masks for scroll containers — Linear/Notion quality cues:
+   *   1. Fades begin at real `transparent` (not translucent black), so clipped
+   *      content reads as trailing off instead of fogged over.
+   *   2. A single linear stop (no intermediate alpha keypoints) — any extra
+   *      stop shows up as a visible slope change when the fade crosses a
+   *      high-contrast image. Long band + two stops is the Linear/Apple
+   *      recipe.
+   *   3. In browsers with scroll-driven animations each side collapses to 0
+   *      when the scroller is parked against that edge — a list with no
+   *      overflow simply has no fade, matching Linear's behaviour.
+   * Tune per call site with --scroll-fade-start-size / --scroll-fade-end-size.
+   * Use wider bands (>=3rem) on image-heavy rails; narrow (~1-2rem) on text.
+   */
+  @keyframes scroll-fade-start-in {
+    to {
+      --scroll-fade-start: var(--scroll-fade-start-size);
+    }
+  }
+  @keyframes scroll-fade-end-out {
+    from {
+      --scroll-fade-end: var(--scroll-fade-end-size);
+    }
+  }
+  .scroll-fade-y,
+  .scroll-fade-x {
+    --scroll-fade-start-size: 1.75rem;
+    --scroll-fade-end-size: 1.75rem;
+    --scroll-fade-start: var(--scroll-fade-start-size);
+    --scroll-fade-end: var(--scroll-fade-end-size);
+  }
+  .scroll-fade-y {
+    -webkit-mask-image: linear-gradient(
+      to bottom,
+      transparent 0,
+      #000 var(--scroll-fade-start),
+      #000 calc(100% - var(--scroll-fade-end)),
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      to bottom,
+      transparent 0,
+      #000 var(--scroll-fade-start),
+      #000 calc(100% - var(--scroll-fade-end)),
+      transparent 100%
+    );
+  }
+  .scroll-fade-x {
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent 0,
+      #000 var(--scroll-fade-start),
+      #000 calc(100% - var(--scroll-fade-end)),
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      to right,
+      transparent 0,
+      #000 var(--scroll-fade-start),
+      #000 calc(100% - var(--scroll-fade-end)),
+      transparent 100%
+    );
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    @supports (animation-timeline: scroll()) {
+      .scroll-fade-y {
+        --scroll-fade-start: 0px;
+        --scroll-fade-end: 0px;
+        animation:
+          scroll-fade-start-in linear both,
+          scroll-fade-end-out linear both;
+        animation-timeline: scroll(self block), scroll(self block);
+        animation-range:
+          0 var(--scroll-fade-start-size),
+          calc(100% - var(--scroll-fade-end-size)) 100%;
+      }
+      .scroll-fade-x {
+        --scroll-fade-start: 0px;
+        --scroll-fade-end: 0px;
+        animation:
+          scroll-fade-start-in linear both,
+          scroll-fade-end-out linear both;
+        animation-timeline: scroll(self inline), scroll(self inline);
+        animation-range:
+          0 var(--scroll-fade-start-size),
+          calc(100% - var(--scroll-fade-end-size)) 100%;
+      }
+    }
+  }
+}
+
+/* @property must live outside @layer so the length interpolation is registered
+   for the scroll-driven keyframes above. */
+@property --scroll-fade-start {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+@property --scroll-fade-end {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
