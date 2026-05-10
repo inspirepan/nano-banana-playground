@@ -224,96 +224,8 @@ export function GenerateModeView({
         </div>
       </Section>
 
-      {/* Resolution chips */}
-      <Section label={t('input.resolution.label')}>
-        <div className="tabular-nums">
-          <ChipGroup
-            options={model.resolutions}
-            value={resolution}
-            onChange={onResolutionChange}
-            mono={false}
-            columns={model.resolutions.length}
-          />
-        </div>
-      </Section>
-
-      {/* Aspect ratio grid */}
-      <AspectRatioSelector
-        options={model.aspectRatios}
-        value={aspectRatio}
-        resolution={resolution}
-        onChange={onAspectRatioChange}
-        labelClassName={INPUT_LABEL_CLASS}
-        pixelLabel={model.provider === 'openai' ? (ratio, res) => openAISize(res, ratio).replace('x', '×') : undefined}
-      />
-
-      <div className="h-[18px] " />
-
-      {/* Model-declared options (quality, search tools, thinking level, ...) */}
-      {optionBlocks.map((block, idx) => {
-        if (block.kind === 'single') {
-          return (
-            <OptionSection
-              key={block.option.id}
-              option={block.option}
-              value={options[block.option.id]}
-              onChange={(v) => onOptionChange(block.option.id, v)}
-            />
-          )
-        }
-        return (
-          <ToggleGroupSection
-            key={`group-${idx}`}
-            label={block.label}
-            hint={block.hint}
-            options={block.options}
-            values={options}
-            onChange={onOptionChange}
-          />
-        )
-      })}
-
-      {/* Reference images */}
-      <div className="mb-[18px]">
-        <ReferenceImageUpload
-          images={referenceImages}
-          maxTotal={maxRef}
-          dragOver={dragOver}
-          error={referenceImageError}
-          labelClassName={INPUT_LABEL_CLASS}
-          onAdd={onAddReferenceImages}
-          onRemove={onRemoveReferenceImage}
-          onClearAll={onClearAllReferences}
-          onClearError={onClearReferenceImageError}
-        />
-      </div>
-
-      {/* Batch count */}
-      <Section label={t('input.count.label')}>
-        <div
-          className="grid gap-1.5 tabular-nums"
-          style={{ gridTemplateColumns: `repeat(${model.maxBatchCount}, 1fr)` }}
-        >
-          {Array.from({ length: model.maxBatchCount }, (_, i) => i + 1).map((n) => (
-            <button
-              key={n}
-              type="button"
-              className="chip justify-center"
-              data-active={batchCount === n}
-              onClick={() => onBatchCountChange(n)}
-            >
-              <span>×{n}</span>
-            </button>
-          ))}
-        </div>
-      </Section>
-
       {/* CTA */}
-      <div className="relative">
-        {/* Secondary summary block — smaller type, muted colors, light divider.
-            Sits under the controls above and 20px above the CTA so it reads
-            as supporting metadata rather than a second card competing with
-            the primary action. */}
+      <div className="mb-[22px]">
         <div className="mb-5 pt-3 shadow-[inset_0_1px_0_var(--ring-edge-soft)]">
           <div className="flex items-baseline justify-between mb-1.5">
             <span className="text-sm text-(--color-text-4)">{t('input.summary.title')}</span>
@@ -362,6 +274,98 @@ export function GenerateModeView({
         {!apiKey.trim() && (
           <div className="mt-1.5 text-sm text-(--color-text-3) text-center">{t('input.apiKey.required')}</div>
         )}
+      </div>
+
+      <div className="pt-4 shadow-[inset_0_1px_0_var(--ring-edge-soft)]">
+        <div className="mb-3 flex min-h-[20px] items-center">
+          <span className={INPUT_LABEL_CLASS}>{t('input.advanced.title')}</span>
+        </div>
+
+        {/* Resolution chips */}
+        <Section label={t('input.resolution.label')}>
+          <div className="tabular-nums">
+            <ChipGroup
+              options={model.resolutions}
+              value={resolution}
+              onChange={onResolutionChange}
+              mono={false}
+              columns={model.resolutions.length}
+            />
+          </div>
+        </Section>
+
+        {/* Aspect ratio grid */}
+        <AspectRatioSelector
+          options={model.aspectRatios}
+          value={aspectRatio}
+          resolution={resolution}
+          onChange={onAspectRatioChange}
+          labelClassName={INPUT_LABEL_CLASS}
+          pixelLabel={
+            model.provider === 'openai' ? (ratio, res) => openAISize(res, ratio).replace('x', '×') : undefined
+          }
+        />
+
+        <div className="h-[18px] " />
+
+        {/* Model-declared options (quality, search tools, thinking level, ...) */}
+        {optionBlocks.map((block, idx) => {
+          if (block.kind === 'single') {
+            return (
+              <OptionSection
+                key={block.option.id}
+                option={block.option}
+                value={options[block.option.id]}
+                onChange={(v) => onOptionChange(block.option.id, v)}
+              />
+            )
+          }
+          return (
+            <ToggleGroupSection
+              key={`group-${idx}`}
+              label={block.label}
+              hint={block.hint}
+              options={block.options}
+              values={options}
+              onChange={onOptionChange}
+            />
+          )
+        })}
+
+        {/* Reference images */}
+        <div className="mb-[18px]">
+          <ReferenceImageUpload
+            images={referenceImages}
+            maxTotal={maxRef}
+            dragOver={dragOver}
+            error={referenceImageError}
+            labelClassName={INPUT_LABEL_CLASS}
+            onAdd={onAddReferenceImages}
+            onRemove={onRemoveReferenceImage}
+            onClearAll={onClearAllReferences}
+            onClearError={onClearReferenceImageError}
+          />
+        </div>
+
+        {/* Batch count */}
+        <Section label={t('input.count.label')}>
+          <div
+            className="grid gap-1.5 tabular-nums"
+            style={{ gridTemplateColumns: `repeat(${model.maxBatchCount}, 1fr)` }}
+          >
+            {Array.from({ length: model.maxBatchCount }, (_, i) => i + 1).map((n) => (
+              <button
+                key={n}
+                type="button"
+                className="chip justify-center"
+                data-active={batchCount === n}
+                onClick={() => onBatchCountChange(n)}
+              >
+                <span>×{n}</span>
+              </button>
+            ))}
+          </div>
+        </Section>
       </div>
     </>
   )

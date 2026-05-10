@@ -31,6 +31,7 @@ export const inputMessages: MessageDictionary = {
   'input.reference.remove': { 'zh-CN': '移除参考图', en: 'Remove reference image' },
   'input.reference.lockedAlt': { 'zh-CN': '锁定参考图', en: 'Locked reference image' },
   'input.reference.lockedAria': { 'zh-CN': '系统锁定参考图', en: 'System-locked reference image' },
+  'input.advanced.title': { 'zh-CN': '高级参数', en: 'Advanced parameters' },
   'input.count.label': { 'zh-CN': '数量', en: 'Count' },
   'input.summary.title': { 'zh-CN': '参数概览', en: 'Settings summary' },
   'input.summary.size': { 'zh-CN': '尺寸', en: 'Size' },
