@@ -109,6 +109,7 @@ type AgentChatComposerProps = {
   skills: AgentSkillSummary[]
   pendingQuestionCount: number
   renderItemCount: number
+  scrollButtonBusy: boolean
   nearBottom: boolean
   openMenu: AgentChatMenu
   setOpenMenu: Dispatch<SetStateAction<AgentChatMenu>>
@@ -150,6 +151,7 @@ export const AgentChatComposer = forwardRef<AgentChatComposerHandle, AgentChatCo
     skills,
     pendingQuestionCount,
     renderItemCount,
+    scrollButtonBusy,
     nearBottom,
     openMenu,
     setOpenMenu,
@@ -404,6 +406,7 @@ export const AgentChatComposer = forwardRef<AgentChatComposerHandle, AgentChatCo
 
       <div className="relative">
         <ComposerScrollButton
+          busy={scrollButtonBusy}
           nearBottom={nearBottom}
           renderItemCount={renderItemCount}
           onScrollToBottom={scrollToBottom}

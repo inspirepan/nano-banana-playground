@@ -212,6 +212,7 @@ export function AgentChatPanel({
   }, [currentSessionId, currentSessionSidebarStatus, sessionStatuses])
   const showStop = isAgentActivelyRunning && !hasComposerContent
   const showRunningIndicator = isAgentActivelyRunning
+  const scrollButtonBusy = isAgentActivelyRunning || hasGeneratingImageTask
   const stickyUserTopOffset = 12
   const visibleMessages = useMemo(
     () => (streamingMessage ? [...messages, streamingMessage] : messages),
@@ -455,6 +456,7 @@ export function AgentChatPanel({
       skills={skills}
       pendingQuestionCount={pendingQuestions.length}
       renderItemCount={renderItems.length + queuedMessages.length}
+      scrollButtonBusy={scrollButtonBusy}
       nearBottom={nearBottom}
       openMenu={openMenu}
       setOpenMenu={setOpenMenu}
