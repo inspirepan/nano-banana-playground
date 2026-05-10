@@ -12,6 +12,7 @@ type AgentChatHeaderProps = {
   currentSessionId: string | null
   sessionsLoading: boolean
   centeredTitle?: boolean
+  showNewSessionButton?: boolean
   openMenu: AgentChatMenu
   setOpenMenu: Dispatch<SetStateAction<AgentChatMenu>>
   onNewSession: () => void
@@ -25,6 +26,7 @@ export function AgentChatHeader({
   currentSessionId,
   sessionsLoading,
   centeredTitle = false,
+  showNewSessionButton = true,
   openMenu,
   setOpenMenu,
   onNewSession,
@@ -56,7 +58,7 @@ export function AgentChatHeader({
         data-agent-menu-trigger
         onClick={() => setOpenMenu((prev) => (prev === 'sessions' ? null : 'sessions'))}
         aria-expanded={openMenu === 'sessions'}
-        className="group flex h-[28px] min-w-0 max-w-[calc(100%-86px)] shrink items-center gap-1.5 rounded-[var(--radius-sm)] bg-transparent text-left transition-colors duration-150"
+        className={`group flex h-[28px] min-w-0 shrink items-center gap-1.5 rounded-[var(--radius-sm)] bg-transparent text-left transition-colors duration-150 ${showNewSessionButton ? 'max-w-[calc(100%-86px)]' : 'max-w-full'}`}
         title={t('agentChat.header.switchTitle')}
       >
         <span className="min-w-0 flex-1 truncate text-base font-medium text-(--color-text-2) transition-colors group-hover:text-(--color-text)">
@@ -72,14 +74,16 @@ export function AgentChatHeader({
         </span>
       </button>
       <div className="flex-1" />
-      <button
-        type="button"
-        onClick={onNewSession}
-        className="chip shrink-0 px-3 text-sm font-medium"
-        style={{ height: 30, boxShadow: 'inset 0 0 0 1px var(--ring-edge)' }}
-      >
-        {t('agentChat.header.newConversation')}
-      </button>
+      {showNewSessionButton ? (
+        <button
+          type="button"
+          onClick={onNewSession}
+          className="chip shrink-0 px-3 text-sm font-medium"
+          style={{ height: 30, boxShadow: 'inset 0 0 0 1px var(--ring-edge)' }}
+        >
+          {t('agentChat.header.newConversation')}
+        </button>
+      ) : null}
       {openMenu === 'sessions' && (
         <div
           data-agent-menu

@@ -519,6 +519,7 @@ export function AgentChatPanel({
             sessionStatuses={visibleSessionStatuses}
             currentSessionId={currentSessionId}
             sessionsLoading={sessionsLoading}
+            showNewSessionButton={!isEmpty}
             openMenu={openMenu}
             setOpenMenu={setOpenMenu}
             onNewSession={handleNewSession}
