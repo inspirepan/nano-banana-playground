@@ -14,6 +14,8 @@ type GridSpan = {
   rows: number
 }
 
+type ImageGridLayout = 'mosaic' | 'justified'
+
 function getGridCols(width: number, minCols: number): number {
   const cols = Math.floor((width + GRID_GAP) / (TARGET_CELL_WIDTH + GRID_GAP))
   return Math.max(minCols, Math.min(MAX_GRID_COLS, cols))
@@ -61,26 +63,38 @@ function normalizeGridSpan(span: GridSpan, gridCols: number): GridSpan {
   }
 }
 
-type GridContext = { cols: number }
+type GridContext = { cols: number; layout: ImageGridLayout; justifiedRowHeight: number }
 
-const GridColsContext = createContext<GridContext>({ cols: DEFAULT_GRID_COLS })
+const GridColsContext = createContext<GridContext>({
+  cols: DEFAULT_GRID_COLS,
+  layout: 'mosaic',
+  justifiedRowHeight: TARGET_CELL_WIDTH,
+})
 
 type ImageGridProps = {
   children: ReactNode
+  layout?: ImageGridLayout
   // Cap the base row height. Useful when the grid is embedded in a narrow
   // panel and the default square-to-column sizing makes tiles feel oversized.
   maxRowHeight?: number
+  justifiedRowHeight?: number
 }
 
-export function ImageGrid({ children, maxRowHeight }: ImageGridProps) {
+export function ImageGrid({ children, layout = 'mosaic', maxRowHeight, justifiedRowHeight }: ImageGridProps) {
   const ref = useRef<HTMLDivElement>(null)
   const [gridCols, setGridCols] = useState(DEFAULT_GRID_COLS)
   const [rowHeight, setRowHeight] = useState(TARGET_CELL_WIDTH)
   const isMobile = useMediaQuery('(max-width: 767px)')
   const minCols = isMobile ? MIN_GRID_COLS_MOBILE : MIN_GRID_COLS_DESKTOP
-  const contextValue = useMemo(() => ({ cols: gridCols }), [gridCols])
+  const targetJustifiedRowHeight = justifiedRowHeight ?? (isMobile ? 154 : 320)
+  const contextValue = useMemo(
+    () => ({ cols: gridCols, layout, justifiedRowHeight: targetJustifiedRowHeight }),
+    [gridCols, layout, targetJustifiedRowHeight],
+  )
 
   useLayoutEffect(() => {
+    if (layout === 'justified') return
+
     const element = ref.current
     if (!element) return
 
@@ -101,20 +115,25 @@ export function ImageGrid({ children, maxRowHeight }: ImageGridProps) {
     observer.observe(element)
 
     return () => observer.disconnect()
-  }, [maxRowHeight, minCols])
+  }, [layout, maxRowHeight, minCols])
 
   return (
     <GridColsContext.Provider value={contextValue}>
       <div
         ref={ref}
-        className="grid gap-2"
-        style={{
-          gridTemplateColumns: `repeat(${gridCols}, minmax(0, 1fr))`,
-          gridAutoRows: `${rowHeight}px`,
-          gridAutoFlow: 'dense',
-        }}
+        className={layout === 'justified' ? 'flex flex-wrap gap-2' : 'grid gap-2'}
+        style={
+          layout === 'justified'
+            ? undefined
+            : {
+                gridTemplateColumns: `repeat(${gridCols}, minmax(0, 1fr))`,
+                gridAutoRows: `${rowHeight}px`,
+                gridAutoFlow: 'dense',
+              }
+        }
       >
         {children}
+        {layout === 'justified' && <div aria-hidden="true" className="h-0 flex-grow-[999999]" />}
       </div>
     </GridColsContext.Provider>
   )
@@ -128,7 +147,23 @@ type GridCellProps = {
 }
 
 export function GridCell({ children, aspectRatio, cols, rows }: GridCellProps) {
-  const { cols: gridCols } = useContext(GridColsContext)
+  const { cols: gridCols, layout, justifiedRowHeight } = useContext(GridColsContext)
+  const ratio = aspectRatio ? parseAspectRatio(aspectRatio) : cols && rows ? cols / rows : 1
+
+  if (layout === 'justified') {
+    return (
+      <div
+        style={{
+          aspectRatio: String(ratio),
+          flexBasis: `${Math.round(ratio * justifiedRowHeight)}px`,
+          flexGrow: ratio,
+        }}
+      >
+        {children}
+      </div>
+    )
+  }
+
   const baseSpan = aspectRatio ? getGridSpan(aspectRatio) : { cols: cols ?? 1, rows: rows ?? 1 }
   const span = normalizeGridSpan(baseSpan, gridCols)
 

@@ -239,7 +239,7 @@ export const StackRow = memo(function StackRow({
           </div>
         </div>
         <div className="min-w-0">
-          <ImageGrid>
+          <ImageGrid layout="justified">
             {previewItems.length > 0 ? (
               previewItems.map((item) => {
                 const summary = stackItemGenerationSummary(item)
