@@ -151,6 +151,20 @@ export const OutputPanel = memo(function OutputPanel({
     [onDismissGenerationJob, onRemove],
   )
 
+  const handleRemoveStackImages = useCallback(
+    (stack: ImageStack) => {
+      setBatchDeleteConfirming(false)
+      setSelectedImageIds((prev) => {
+        if (prev.size === 0) return prev
+        const next = new Set(prev)
+        for (const image of stack.images) next.delete(image.id)
+        return next
+      })
+      for (const image of stack.images) void onRemove(image.id)
+    },
+    [onRemove],
+  )
+
   const handleRetryStackFailedSlots = useCallback(
     (stack: ImageStack) => {
       for (const item of stack.items) {
@@ -277,7 +291,7 @@ export const OutputPanel = memo(function OutputPanel({
   return (
     <div
       ref={scrollRef}
-      className="flex-1 overflow-visible px-[var(--panel-pad-x)] py-[var(--panel-pad-top)] pb-[var(--panel-pad-bottom)] md:flex-[2_1_0%] md:overflow-y-auto md:[scrollbar-gutter:stable_both-edges] md:px-[26px] md:py-[22px] md:pb-[80px]"
+      className="flex-1 overflow-visible px-[var(--panel-pad-x)] py-[var(--panel-pad-top)] pb-[var(--panel-pad-bottom)] md:flex-[2_1_0%] md:overflow-y-auto md:overscroll-y-none md:[scrollbar-gutter:stable_both-edges] md:px-[26px] md:py-[22px] md:pb-[80px]"
     >
       <div className="mb-5 flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
         <div className="min-w-0">
@@ -353,6 +367,7 @@ export const OutputPanel = memo(function OutputPanel({
                     onCancelStackGeneration={handleCancelStackGeneration}
                     onRetryStackFailedSlots={handleRetryStackFailedSlots}
                     onDismissStackFailedJobs={handleDismissStackFailedJobs}
+                    onRemoveStackImages={handleRemoveStackImages}
                     onOpenGenerationSettings={onOpenGenerationSettings}
                     batchManageMode={batchManageMode}
                     selectedImageIds={selectedImageIds}

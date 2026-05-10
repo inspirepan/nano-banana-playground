@@ -66,7 +66,7 @@ export function AgentOptionsMenu({
         </>
       )}
       <div className="my-1 h-px bg-(--ring-edge-soft)" />
-      <div className="px-2 py-1 text-xs font-medium text-(--color-text-3)">{t('agentChat.options.agentModel')}</div>
+      <div className="label px-2 py-1">{t('agentChat.options.agentModel')}</div>
       {models.map((item) => {
         const needsKey = keyStatuses[item.provider] === 'empty'
         return (
@@ -152,7 +152,7 @@ function ThinkingSlider({
 
   return (
     <div className="px-2 py-1.5">
-      <div className="mb-1.5 px-1 text-xs font-medium text-(--color-text-3)">{t('agentChat.options.thinking')}</div>
+      <div className="label mb-1.5 px-1">{t('agentChat.options.thinking')}</div>
       <div
         key={levelsKey}
         className="segmented"

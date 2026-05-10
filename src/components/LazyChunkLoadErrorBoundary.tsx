@@ -41,7 +41,7 @@ class LazyChunkLoadErrorBoundaryInner extends Component<Props, { error: unknown 
         >
           <div className="space-y-1.5">
             <h2 className="font-display text-base font-semibold">{this.props.title}</h2>
-            <p className="max-w-[60ch] text-pretty text-sm leading-5 text-(--color-text-2)">{this.props.description}</p>
+            <p className="copy-soft max-w-[60ch] text-(--color-text-2)">{this.props.description}</p>
           </div>
           <div className="flex justify-end gap-2">
             <button type="button" onClick={this.props.onClose} className="chip ghost">

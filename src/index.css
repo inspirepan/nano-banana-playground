@@ -4,20 +4,20 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* Self-host Cal Sans UI for the product voice; keep Geist Mono for code-like UI. */
+/* Self-host Inter variable from rsms.me; keep Geist Mono for code-like UI. */
 @font-face {
-  font-family: 'Cal Sans UI';
+  font-family: 'Inter Display Variable';
   font-style: normal;
-  font-weight: 300 700;
+  font-weight: 100 900;
   font-display: swap;
-  src: url('../node_modules/@calcom/cal-sans-ui/dist/fonts/CalSansUI[wght,GEOM].woff2') format('woff2-variations');
+  src: url('/fonts/InterVariable.woff2') format('woff2');
 }
 @font-face {
-  font-family: 'Cal Sans Text';
-  font-style: normal;
-  font-weight: 300 700;
+  font-family: 'Inter Display Variable';
+  font-style: italic;
+  font-weight: 100 900;
   font-display: swap;
-  src: url('../node_modules/@calcom/cal-sans-ui/dist/fonts/CalSansUI[wght,GEOM].woff2') format('woff2-variations');
+  src: url('/fonts/InterVariable-Italic.woff2') format('woff2');
 }
 @font-face {
   font-family: 'Geist Mono';
@@ -34,14 +34,16 @@
     'Apple Color Emoji', 'Segoe UI Emoji';
   --font-cjk-mono:
     ui-monospace, SFMono-Regular, 'SF Mono', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', monospace;
-  --font-sans: 'Cal Sans UI', var(--font-cjk-sans);
+  --font-sans: 'Inter Display Variable', var(--font-cjk-sans);
   /* tnum is opt-in via `tabular-nums` — only ratio / resolution / dimension UI needs it. */
-  --font-sans--font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1, 'case' 1;
-  --font-sans--font-variation-settings: 'GEOM' 0;
+  --font-sans--font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1, 'case' 1, 'ss02' 0;
+  --font-sans--font-variation-settings: 'opsz' 16;
   --font-mono: 'Geist Mono', var(--font-cjk-mono);
   --font-mono--font-feature-settings: 'liga' 0, 'calt' 0, 'tnum' 1, 'zero' 1, 'ss01' 1, 'ss03' 1, 'ss07' 1;
-  --font-display: 'Cal Sans Text', var(--font-cjk-sans);
-  --font-display--font-variation-settings: 'GEOM' 18;
+  --font-display: 'Inter Display Variable', var(--font-cjk-sans);
+  --font-display--font-variation-settings: 'opsz' 22;
+
+  --font-weight-semibold: 550;
 
   /* Compact type scale */
   --text-xs: 0.6875rem; /* 11px */
@@ -223,6 +225,7 @@
   #root {
     margin: 0;
     height: 100%;
+    overscroll-behavior: none;
   }
 
   body {
@@ -234,11 +237,12 @@
     /* tnum is opt-in: add `tabular-nums` only on ratio / resolution / dimension UI. */
     font-feature-settings: var(--font-sans--font-feature-settings);
     font-variation-settings: var(--font-sans--font-variation-settings);
-    /* Cal Sans UI has no italic face; keep emphasis visible without faking weight. */
+    /* Keep emphasis visible without synthesizing fake weight. */
     font-synthesis: style;
     font-size: var(--text-base);
     line-height: 1.45;
     letter-spacing: -0.005em;
+    overflow: hidden;
   }
 
   *:focus {
@@ -297,12 +301,25 @@
     font-feature-settings: var(--font-mono--font-feature-settings);
   }
 
-  /* Display — used for brand mark and section headings; currently maps to --font-sans */
+  /* Display — used for brand mark and section headings. */
   .font-display {
     font-family: var(--font-display);
     font-variation-settings: var(--font-display--font-variation-settings);
     letter-spacing: -0.015em;
     text-wrap: balance;
+  }
+
+  .font-display-large {
+    font-family: var(--font-display);
+    font-variation-settings: var(--font-display--font-variation-settings);
+    letter-spacing: -0.035em;
+    text-wrap: balance;
+  }
+
+  .copy-soft {
+    font-size: var(--text-lg);
+    line-height: 2;
+    text-wrap: pretty;
   }
 
   /* kbd */
@@ -542,10 +559,12 @@
 
   /* Section label */
   .label {
-    font-size: var(--text-sm);
-    font-weight: 600;
-    letter-spacing: 0.07em;
-    line-height: 1.35;
+    font-family: var(--font-mono);
+    font-feature-settings: var(--font-mono--font-feature-settings);
+    font-size: var(--text-xs);
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    line-height: 1.4;
     color: var(--color-text-3);
     text-transform: uppercase;
   }

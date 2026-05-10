@@ -221,7 +221,7 @@ export function DesktopLayout({
           </div>
           <div
             ref={inputBodyRef}
-            className={`flex-1 min-h-0 overflow-y-auto [scrollbar-gutter:stable_both-edges] ${
+            className={`min-h-0 flex-1 overflow-y-auto overscroll-y-none [scrollbar-gutter:stable_both-edges] ${
               inputMode === 'agent' && !showWideAgentStructure
                 ? ''
                 : 'scroll-fade-y [--scroll-fade-start-size:1.25rem] [--scroll-fade-end-size:1.25rem]'

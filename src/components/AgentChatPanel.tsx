@@ -224,7 +224,10 @@ export function AgentChatPanel({
   const renderSections = useMemo(() => buildStickyUserSections(renderItems), [renderItems])
   const lastRenderSection = renderSections.at(-1)
   const runningIndicatorSectionKey =
-    showRunningIndicator && queuedMessages.length === 0 && lastRenderSection?.stickyUserItem && lastRenderSection.items.length === 0
+    showRunningIndicator &&
+    queuedMessages.length === 0 &&
+    lastRenderSection?.stickyUserItem &&
+    lastRenderSection.items.length === 0
       ? lastRenderSection.key
       : null
   const titledAssistantMessages = useMemo(() => {
@@ -432,7 +435,7 @@ export function AgentChatPanel({
   }
   const contentRightPaddingClass = 'px-[var(--panel-pad-x)]'
   const headerPaddingClass = wideLayout ? 'pb-0' : 'pb-3'
-  const scrollBodyClass = 'flex-1 overflow-y-auto pt-3 pb-8 md:[scrollbar-gutter:stable_both-edges]'
+  const scrollBodyClass = 'flex-1 overflow-y-auto overscroll-y-none pt-3 pb-8 md:[scrollbar-gutter:stable_both-edges]'
   const stickyUserClass = 'sticky top-3'
   // `my-auto` inside a flex-column scroll container centers content when it
   // fits and collapses to 0 when content overflows, avoiding the phantom

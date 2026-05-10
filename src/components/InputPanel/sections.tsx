@@ -33,7 +33,7 @@ function ToggleChip({
   )
 }
 
-export const INPUT_LABEL_CLASS = 'text-base font-semibold tracking-normal text-(--color-text-3)'
+export const INPUT_LABEL_CLASS = 'label'
 
 export function Section({
   label,

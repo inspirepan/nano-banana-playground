@@ -12,11 +12,11 @@
 
 ## 排版
 
-正文 `Geist Variable`（`--font-sans`），标题（品牌名 / 弹窗标题 / 面板 header）挂 `.font-display`——它内部已经包含 `letter-spacing: -0.015em` + `text-wrap: balance`，已经覆盖了"标题轻微负 tracking + 短句 balance"两件事，调用方不需要重复。数字、分辨率、费用、时间、计数等常规信息使用 sans；`.mono` 固定为 `Geist Mono`，只用于模型 API ID、stack / image 短 ID、API Key 等机器字符串。`.label` eyebrow 用 sans（`text-sm` + 600 + `letter-spacing: 0.07em` + uppercase）。全局基线是 **13px**。
+正文 `Inter Display Variable`（`--font-sans`），`font-semibold` 映射到 Inter variable 的 **550**，避免 600 在紧凑 UI 里过硬。标题（品牌名 / 弹窗标题 / 面板 header）挂 `.font-display`——它内部已经包含 `letter-spacing: -0.015em` + `text-wrap: balance`，已经覆盖了"标题轻微负 tracking + 短句 balance"两件事，调用方不需要重复。24px 以上的大标题改用 `.font-display-large`（`letter-spacing: -0.035em`）。数字、分辨率、费用、时间、计数等常规信息使用 sans；`.mono` 固定为 `Geist Mono`，只用于模型 API ID、stack / image 短 ID、API Key 等机器字符串。`.label` eyebrow 用 mono（`text-xs` + 500 + `letter-spacing: 0.08em` + uppercase）。全局基线是 **13px**。
 
-中文字体回退顺序：`PingFang SC -> Hiragino Sans GB -> Microsoft YaHei -> Source Han Sans / Noto Sans CJK`。Geist Sans 开启 `ss01` / `ss07`；Geist Mono 开启 `ss01` / `ss03` / `ss07`。其他 Geist 相关 `font-feature-settings` 只使用 `kern`、`liga`、`calt`、`tnum`、`zero`，不要加回会切换 CJK 字形的额外 `ss*` / `cv*` 变体 tag。
+中文字体回退顺序：`PingFang SC -> Hiragino Sans GB -> Microsoft YaHei -> Source Han Sans / Noto Sans CJK`。Inter optical size 使用温和的固定值：正文 / UI `opsz 16`，display 标题 `opsz 22`；开启 `kern` / `liga` / `calt` / `case`，并显式关闭 `ss02` 的小写 l 尾巴变体；Geist Mono 开启 `ss01` / `ss03` / `ss07`。其他 `font-feature-settings` 只使用 `kern`、`liga`、`calt`、`case`、`tnum`、`zero`，不要加回会切换 CJK 字形的额外 `ss*` / `cv*` 变体 tag。
 
-文本换行和宽度：非 `.font-display` 的多行说明（dialog body、agent 消息正文、markdown 段落）挂 `text-pretty` 防孤词。对话气泡、说明文段、settings 描述等 prose 容器用字符宽度 `max-w-[60ch]` / `max-w-[72ch]` 控制行长，而非 `max-w-3xl` 这类断点尺寸。
+文本换行和宽度：标题 / 短句用 `.font-display` 或 `text-balance`；多行说明（dialog body、agent 消息正文、markdown 段落）挂 `text-pretty` 防孤词。需要更舒展的说明文用 `.copy-soft`（14px / 28px + `text-wrap: pretty`），不要改全局 `text-sm` 行高。对话气泡、说明文段、settings 描述等 prose 容器用字符宽度 `max-w-[60ch]` / `max-w-[72ch]` 控制行长，而非 `max-w-3xl` 这类断点尺寸。
 
 ## 边缘定义（Schoger ring，强约束）
 

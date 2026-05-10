@@ -45,11 +45,7 @@ export function SlotHero({
       {showKeepPageOpenNote && (
         <div className="text-sm text-(--color-text-3)">{t('imageDetail.queue.keepPageOpen')}</div>
       )}
-      {detail && (
-        <div className="max-w-[56ch] whitespace-pre-wrap text-sm leading-[1.5] text-pretty text-(--color-text-2)">
-          {detail}
-        </div>
-      )}
+      {detail && <div className="copy-soft max-w-[56ch] whitespace-pre-wrap text-(--color-text-2)">{detail}</div>}
       {slot &&
         job &&
         (slot.status === 'queued' || slot.status === 'running' || slot.status === 'retrying') &&

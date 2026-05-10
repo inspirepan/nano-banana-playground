@@ -114,14 +114,14 @@ export const StackItemThumb = memo(function StackItemThumb({
       ? `0 0 0 2px var(--color-warning), 0 0 0 5px color-mix(in srgb, var(--color-warning) 24%, transparent)${outerRingShadow}`
       : active
         ? `0 0 0 1px var(--ring-edge-elevated), 0 0 0 3px color-mix(in srgb, var(--color-accent) 70%, transparent)${outerRingShadow}`
-      : slot
-        ? undefined
-        : 'var(--shadow-lift)'
+        : slot
+          ? undefined
+          : 'var(--shadow-lift)'
     : selected
       ? '0 0 0 2px var(--color-surface), 0 0 0 4px var(--color-warning)'
       : active
         ? '0 0 0 2px var(--color-surface), 0 0 0 3px var(--color-accent)'
-      : 'inset 0 0 0 1px var(--ring-edge)'
+        : 'inset 0 0 0 1px var(--ring-edge)'
   const actionStyle: StackThumbStyle | undefined = src ? { '--stack-thumb-action-bg': `url("${src}")` } : undefined
   // Slot placeholders get a subtle diagonal stripe texture so they read as
   // "work pending" rather than an empty tile.
@@ -251,7 +251,7 @@ export const StackItemThumb = memo(function StackItemThumb({
         )}
       </div>
       <span
-        className="pointer-events-none absolute z-10 inline-flex h-[18px] min-w-[24px] items-center justify-center rounded-[var(--radius-xs)] px-1.5 text-base font-normal leading-none"
+        className="font-display pointer-events-none absolute z-10 inline-flex h-[18px] min-w-[24px] items-center justify-center rounded-[var(--radius-xs)] px-1.5 text-base font-normal leading-none"
         style={{
           left: numberBadgeInset,
           top: numberBadgeInset,
@@ -283,7 +283,9 @@ export const StackItemThumb = memo(function StackItemThumb({
         >
           {splitMetaBadge ? (
             <>
-              <span className="max-w-full truncate text-[11px] font-medium leading-[12px]">{splitMetaBadge.title}</span>
+              <span className="font-display max-w-full truncate text-[11px] font-medium leading-[12px]">
+                {splitMetaBadge.title}
+              </span>
               <span
                 className={`mt-0.5 max-w-full truncate text-[10px] font-normal leading-[11px] tabular-nums ${slot ? 'text-(--color-text-3)' : 'text-white/85'}`}
               >
@@ -291,7 +293,9 @@ export const StackItemThumb = memo(function StackItemThumb({
               </span>
             </>
           ) : (
-            <span className="max-w-full truncate text-[11px] font-medium leading-none tabular-nums">{metaBadge}</span>
+            <span className="font-display max-w-full truncate text-[11px] font-medium leading-none tabular-nums">
+              {metaBadge}
+            </span>
           )}
         </span>
       )}
@@ -326,7 +330,10 @@ export const StackItemThumb = memo(function StackItemThumb({
         />
       )}
       {actions && (
-        <div className={`stack-thumb-actions absolute inset-x-1.5 bottom-1.5 z-10 ${onQuickSelect ? 'pr-6' : ''}`} style={actionStyle}>
+        <div
+          className={`stack-thumb-actions absolute inset-x-1.5 bottom-1.5 z-10 ${onQuickSelect ? 'pr-6' : ''}`}
+          style={actionStyle}
+        >
           {actions}
         </div>
       )}

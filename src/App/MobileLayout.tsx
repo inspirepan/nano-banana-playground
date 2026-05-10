@@ -91,7 +91,7 @@ export function MobileLayout({
         ref={mobilePanelScrollRef}
         // Gallery is image-dense so it needs a wider fade band; InputPanel
         // (generate / agent) is text-dense, 1.25rem is enough.
-        className={`min-h-0 flex-1 overflow-y-auto ${
+        className={`min-h-0 flex-1 overflow-y-auto overscroll-y-none ${
           mobileTab === 'gallery'
             ? 'scroll-fade-y [--scroll-fade-start-size:3rem] [--scroll-fade-end-size:3rem]'
             : mobileTab === 'agent'
