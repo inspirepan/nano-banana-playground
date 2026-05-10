@@ -42,7 +42,7 @@ function AgentSessionStatusIcon({ status }: { status: AgentSessionStatus | null 
     )
   }
 
-  return <span className="h-5 w-4 shrink-0" aria-hidden="true" />
+  return null
 }
 
 export function AgentSessionListItem({
@@ -88,7 +88,7 @@ export function AgentSessionListItem({
       >
         <span className={`block truncate ${titleClass}`}>{title}</span>
       </button>
-      <span className="ml-2 flex shrink-0 items-center gap-1.5 text-sm text-(--color-text-3) transition-opacity group-hover:opacity-0">
+      <span className="ml-1 flex shrink-0 items-center gap-1 text-sm text-(--color-text-3) transition-opacity group-hover:opacity-0">
         {imageCount > 0 && (
           <span
             className="inline-flex h-[18px] shrink-0 items-center gap-1 rounded-full bg-(--color-surface-2) px-1.5 text-[11px] font-medium leading-none tabular-nums text-(--color-text-3) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]"
@@ -99,7 +99,7 @@ export function AgentSessionListItem({
             <span>{imageCount}</span>
           </span>
         )}
-        <span className="tabular-nums">{formatSessionTime(session.updatedAt)}</span>
+        <span className="min-w-[2.5rem] text-right tabular-nums">{formatSessionTime(session.updatedAt)}</span>
       </span>
       <button
         type="button"
