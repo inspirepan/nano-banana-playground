@@ -55,13 +55,13 @@ function useElapsedTime(startedAt: number | null, enabled: boolean): string | nu
   return formatElapsedTime(now - startedAt)
 }
 
-function GenImageResultThumb({ id, flush = false }: { id: string; flush?: boolean }) {
+function GenImageResultThumb({ id, flush = false, className }: { id: string; flush?: boolean; className?: string }) {
   const { t } = useI18n()
   const { ref, src, failed } = useImageSrc(id, 'image/png', undefined, { variant: 'preview' })
   return (
     <div
       ref={ref}
-      className={`relative aspect-square w-full overflow-hidden bg-(--color-surface-2) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)] ${flush ? 'rounded-none' : 'rounded-[var(--radius-md)]'}`}
+      className={`relative overflow-hidden bg-(--color-surface-2) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)] ${className ?? 'aspect-square w-full'} ${flush ? 'rounded-none' : 'rounded-[var(--radius-md)]'}`}
     >
       {src ? (
         <img src={src} alt={id} className="h-full w-full object-cover" />
@@ -520,30 +520,17 @@ export function AgentImageTaskCard({
     task && modelName ? `${modelName} · ${task.request.resolution} · ${task.request.aspectRatio}` : undefined
   const renderCompletedGrid = () => {
     if (!isCompleted || resultIds.length === 0) return null
-    const visibleIds = resultIds.filter((id) => stackItemByImageId.has(id))
-    const allDeleted = visibleIds.length === 0
-    if (allDeleted) {
-      return (
-        <div
-          className="flex items-center justify-center gap-1.5 px-3.5 py-6 text-base"
-          style={{ color: 'var(--color-danger)' }}
-        >
-          <Icon name="image_off" size={12} />
-          <span>{t('agentChat.imageTask.deleted')}</span>
-        </div>
-      )
-    }
     const completedAspectRatio = task ? parseAspectRatioCss(task.request.aspectRatio) : '1 / 1'
     const completedCellMaxWidth = maxCellWidthForHeight(completedAspectRatio, COMPLETED_CELL_MAX_HEIGHT)
     return (
       <div
         className="grid gap-px overflow-hidden bg-(--agent-image-task-empty-bg)"
         style={{
-          gridTemplateColumns: `repeat(${getCompletedGridColumnCount(visibleIds.length)}, minmax(0, ${completedCellMaxWidth}px))`,
+          gridTemplateColumns: `repeat(${getCompletedGridColumnCount(resultIds.length)}, minmax(0, ${completedCellMaxWidth}px))`,
         }}
       >
-        {visibleIds.map((id) => {
-          const item = stackItemByImageId.get(id)!
+        {resultIds.map((id) => {
+          const item = stackItemByImageId.get(id)
           return (
             <div
               key={id}
@@ -557,20 +544,24 @@ export function AgentImageTaskCard({
                   + percentage-height combo that lets some browsers leave the
                   thumb shorter than the cell, exposing the grid background. */}
               <div className="absolute inset-0">
-                <StackItemThumb
-                  item={item}
-                  number={stackItemNumberByImageId.get(id)}
-                  outerRing
-                  hoverLift={false}
-                  className="h-full w-full"
-                  roundedClassName="rounded-none"
-                  numberBadgeInset={6}
-                  metaBadge={completedMetaBadge}
-                  metaBadgeTitle={completedMetaBadge}
-                  onSelect={(item) => {
-                    if (task && canFocus) onFocus?.(task, { behavior: 'open', itemId: item.id })
-                  }}
-                />
+                {item ? (
+                  <StackItemThumb
+                    item={item}
+                    number={stackItemNumberByImageId.get(id)}
+                    outerRing
+                    hoverLift={false}
+                    className="h-full w-full"
+                    roundedClassName="rounded-none"
+                    numberBadgeInset={6}
+                    metaBadge={completedMetaBadge}
+                    metaBadgeTitle={completedMetaBadge}
+                    onSelect={(item) => {
+                      if (task && canFocus) onFocus?.(task, { behavior: 'open', itemId: item.id })
+                    }}
+                  />
+                ) : (
+                  <GenImageResultThumb id={id} flush className="h-full w-full" />
+                )}
               </div>
             </div>
           )
