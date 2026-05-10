@@ -234,7 +234,7 @@ export function SettingsBackupTab({
           value={pasteText}
           onChange={(event) => setPasteText(event.currentTarget.value)}
           placeholder={t('settings.backup.import.pastePlaceholder')}
-          className="min-h-24 w-full resize-y rounded-[var(--radius-md)] bg-(--color-surface) px-3 py-2 text-sm text-(--color-text) outline-none shadow-[inset_0_0_0_1px_var(--ring-edge-soft)] transition-shadow focus:shadow-[0_0_0_1px_var(--color-accent),0_0_0_3px_var(--color-accent-wash)]"
+          className="min-h-24 w-full resize-y rounded-[var(--radius-md)] bg-(--color-surface) px-3 py-2 text-sm text-(--color-text) outline-none shadow-[inset_0_0_0_1px_var(--ring-edge-soft)] transition-shadow focus:shadow-[inset_0_0_0_1px_var(--ring-edge-strong)]"
         />
         {importError && <p className="text-sm text-(--color-danger)">{importError}</p>}
         {applyNotice && (

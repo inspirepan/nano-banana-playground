@@ -339,7 +339,7 @@ function WebApiKeyRow({
           }
           aria-label={t('settings.webTools.key.ariaLabel', { label })}
           autoFocus
-          className="w-full min-w-0 rounded-[var(--radius-sm)] bg-(--color-surface) px-2.5 py-1.5 text-base shadow-[inset_0_0_0_1px_var(--ring-edge)] transition-[box-shadow,background] placeholder:text-(--color-text-4) focus:shadow-[inset_0_0_0_1px_var(--color-accent),0_0_0_3px_var(--color-accent-wash)]"
+          className="w-full min-w-0 rounded-[var(--radius-sm)] bg-(--color-surface) px-2.5 py-1.5 text-base shadow-[inset_0_0_0_1px_var(--ring-edge)] transition-[box-shadow,background] placeholder:text-(--color-text-4) focus:shadow-[inset_0_0_0_1px_var(--ring-edge-strong)]"
         />
         <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
           <div>

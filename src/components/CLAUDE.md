@@ -8,7 +8,7 @@
 
 ## 色彩系统
 
-默认基础盘是 Linear / Notion 风格的克制中性灰（浅色轻微偏暖，暗色近黑并保留清晰 surface 阶梯）。强调色使用低饱和 burnt oxide 的 OKLCH 色相，只服务主操作、选中态、链接和焦点，不做装饰性铺色；hover / wash / ring 只调整明度和透明度。优先复用 `--color-bg`、`--color-surface*`、`--color-border*`、`--color-text*`、`--color-accent*`，不要到处写裸十六进制。
+默认基础盘是 Linear / Notion 风格的克制中性灰（浅色轻微偏暖，暗色近黑并保留清晰 surface 阶梯）。强调色使用低饱和 burnt oxide 的 OKLCH 色相，只服务主操作、选中态、链接和明确焦点指示，不做装饰性铺色；表单输入聚焦只用中性 ring，不用 accent 边框或光晕；hover / wash / ring 只调整明度和透明度。优先复用 `--color-bg`、`--color-surface*`、`--color-border*`、`--color-text*`、`--color-accent*`，不要到处写裸十六进制。
 
 ## 排版
 
@@ -28,7 +28,7 @@
 - **分隔线**：一律用 `shadow-[inset_0_1px_0_var(--ring-edge-soft)]`（顶）或 `inset_0_-1px_0_…`（底），不写 `border-t/b`。唯一例外是 markdown 表格 `<th>/<td>`（`border-collapse` 必须用 `border-b`）。
 - **选中态——主色填充版**：`bg-(--color-accent)` + `shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-accent)_55%,var(--color-bg-sunken)_10%)]`。适合单一强调动作（提交按钮、单点 CTA）。
 - **选中态——淡底内敛版**：`bg-(--color-accent-wash)` + `text-(--color-accent-text)` + `shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]`。适合多选并存、密集选项场景。`--color-accent-text` 浅色使用更深的 oxide，暗色按 OKLCH 提亮以过 WCAG AA——不要写裸 `text-(--color-accent)` 配 wash 底。
-- **选中态——外环 + 光晕版**：`shadow-[0_0_0_1px_var(--color-accent),0_0_0_3px_var(--color-accent-wash)]`。只用于强聚焦单点选择或输入聚焦。
+- **选中态——外环 + 光晕版**：`shadow-[0_0_0_1px_var(--color-accent),0_0_0_3px_var(--color-accent-wash)]`。只用于强聚焦单点选择。表单输入聚焦用 `shadow-[inset_0_0_0_1px_var(--ring-edge-strong)]`。
 - **禁止清单**：① `rgba(0,0,0,…)` 字面值出现在 `shadow-[...]` 里；② `border-*` 与 `shadow-*` 在同一元素混写；③ 用 `--color-accent-ring*` 当通用 surface 边；④ 密集多选里用 outer accent ring 表达"已选"。
 
 ## 圆角 token（强约束）

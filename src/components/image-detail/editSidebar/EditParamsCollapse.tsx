@@ -64,7 +64,7 @@ export function EditParamsCollapse({
         <div className="overflow-hidden min-h-0">
           <div className="pt-2.5">
             <div className="mb-[14px]">
-              <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${MODEL_CONFIGS.length}, 1fr)` }}>
+              <div className="grid grid-cols-2 gap-1.5">
                 {MODEL_CONFIGS.map((model) => (
                   <button
                     key={model.id}
@@ -72,10 +72,10 @@ export function EditParamsCollapse({
                     data-active={sourceModel.id === model.id}
                     onClick={() => onModelChange(model.id)}
                     title={model.name}
-                    className="chip justify-center"
+                    className="chip min-w-0 justify-center px-2"
                   >
                     <BrandIcon name={getProviderConfig(model.provider).brandIcon} size={12} />
-                    <span>{getModelShortLabel(model)}</span>
+                    <span className="min-w-0 truncate">{model.name}</span>
                   </button>
                 ))}
               </div>

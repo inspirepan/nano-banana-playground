@@ -173,7 +173,7 @@ export function DesktopLayout({
   }
 
   const agentChatPanelVars: CSSProperties = {
-    ['--panel-pad-x' as string]: '26px',
+    ['--panel-pad-x' as string]: '18px',
     flexGrow: useWideAgentPanel ? 4 : 0,
   }
 
@@ -210,7 +210,7 @@ export function DesktopLayout({
           className="shrink-0 flex flex-col bg-(--color-bg) shadow-[inset_-1px_0_0_var(--ring-edge-soft)]"
           style={panelLayoutVars}
         >
-          <div className="shrink-0 pt-[21px]">
+          <div className="shrink-0 overflow-y-auto pt-[21px] [scrollbar-gutter:stable_both-edges]">
             <InputPanelHeader
               inputMode={inputMode}
               showInputModeSwitcher

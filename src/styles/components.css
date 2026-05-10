@@ -85,12 +85,12 @@
   .chip[data-active='true'] {
     background: var(--color-accent-wash);
     color: var(--color-accent-text);
-    box-shadow: inset 0 0 0 1px var(--color-accent-ring);
+    box-shadow: inset 0 0 0 1px var(--ring-edge-soft);
   }
   .chip[data-active='true']:hover:not(:disabled):not([aria-disabled='true']) {
     background: var(--color-accent-wash-2);
     color: var(--color-accent-text);
-    box-shadow: inset 0 0 0 1px var(--color-accent-ring-hover);
+    box-shadow: inset 0 0 0 1px var(--ring-edge);
   }
 
   .annotation-tool-btn,
@@ -197,12 +197,12 @@
     background: var(--color-accent-wash);
     color: var(--color-accent-text);
     font-weight: 500;
-    box-shadow: inset 0 0 0 1px var(--color-accent-ring);
+    box-shadow: inset 0 0 0 1px var(--ring-edge-soft);
   }
   .annotation-finish-btn:hover:not(:disabled) {
     background: var(--color-accent-wash-2);
     color: var(--color-accent-text);
-    box-shadow: inset 0 0 0 1px var(--color-accent-ring-hover);
+    box-shadow: inset 0 0 0 1px var(--ring-edge);
   }
   .chip.ghost {
     background: transparent;
@@ -540,7 +540,7 @@
     }
   }
 
-  /* Primary CTA — outer ring instead of solid border keeps the drop shadow clean */
+  /* Primary CTA — neutral outer ring keeps the drop shadow edge clean. */
   .cta {
     height: 36px;
     padding: 0 16px;
@@ -559,9 +559,8 @@
       transform 140ms var(--ease-out),
       background 120ms;
     box-shadow:
-      0 0 0 1px color-mix(in srgb, var(--color-accent) 50%, var(--color-bg-sunken) 8%),
-      inset 0 1px 0 color-mix(in srgb, var(--color-accent-fg) 14%, transparent),
-      0 1px 2px color-mix(in srgb, var(--color-bg-sunken) 10%, transparent);
+      0 0 0 1px var(--ring-edge-elevated),
+      0 1px 2px color-mix(in srgb, var(--color-text) 8%, transparent);
   }
   .cta:hover:not(:disabled) {
     filter: brightness(1.06);
@@ -588,23 +587,19 @@
     background: var(--color-danger);
     color: var(--color-danger-fg);
     box-shadow:
-      0 0 0 1px color-mix(in srgb, var(--color-danger) 50%, var(--color-bg-sunken) 10%),
-      inset 0 1px 0 color-mix(in srgb, var(--color-danger-fg) 15%, transparent),
-      0 1px 2px color-mix(in srgb, var(--color-bg-sunken) 12%, transparent);
+      0 0 0 1px var(--ring-edge-elevated),
+      0 1px 2px color-mix(in srgb, var(--color-text) 8%, transparent);
   }
-  /* Dark mode swaps the flush top highlight for the bubble-style double line —
-     outer ring stays put, then a 1px white sliver inset by 1px below it. */
+  /* Dark mode keeps the same neutral outer ring recipe with a softer drop. */
   .dark .cta {
     box-shadow:
-      0 0 0 1px color-mix(in srgb, var(--color-accent) 50%, var(--color-bg-sunken) 8%),
-      inset 0 2px 0 -1px color-mix(in srgb, var(--color-accent-fg) 16%, transparent),
-      0 1px 2px color-mix(in srgb, var(--color-bg-sunken) 10%, transparent);
+      0 0 0 1px var(--ring-edge-elevated),
+      0 1px 2px color-mix(in srgb, var(--color-bg-sunken) 38%, transparent);
   }
   .dark .cta.danger {
     box-shadow:
-      0 0 0 1px color-mix(in srgb, var(--color-danger) 50%, var(--color-bg-sunken) 10%),
-      inset 0 2px 0 -1px color-mix(in srgb, var(--color-danger-fg) 16%, transparent),
-      0 1px 2px color-mix(in srgb, var(--color-bg-sunken) 12%, transparent);
+      0 0 0 1px var(--ring-edge-elevated),
+      0 1px 2px color-mix(in srgb, var(--color-bg-sunken) 38%, transparent);
   }
   .dark .cta:disabled {
     box-shadow: inset 0 0 0 1px var(--ring-edge);
@@ -724,12 +719,12 @@
   .aspect-tile[data-active='true'] {
     background: var(--color-accent-wash);
     color: var(--color-accent-text);
-    box-shadow: inset 0 0 0 1px var(--color-accent-ring);
+    box-shadow: inset 0 0 0 1px var(--ring-edge-soft);
   }
   .aspect-tile[data-active='true']:hover:not(:disabled):not([aria-disabled='true']) {
     background: var(--color-accent-wash-2);
     color: var(--color-accent-text);
-    box-shadow: inset 0 0 0 1px var(--color-accent-ring-hover);
+    box-shadow: inset 0 0 0 1px var(--ring-edge);
   }
   .aspect-tile:disabled,
   .aspect-tile[aria-disabled='true'] {
@@ -765,9 +760,7 @@
     position: relative;
   }
   .prompt-wrap:focus-within {
-    box-shadow:
-      inset 0 0 0 1px var(--color-accent),
-      0 0 0 3px var(--color-accent-wash);
+    box-shadow: inset 0 0 0 1px var(--ring-edge-strong);
   }
 
   .dropzone {
@@ -787,9 +780,7 @@
   .dropzone[data-drag-active='true'] {
     background: var(--color-accent-wash);
     color: var(--color-accent-text);
-    box-shadow:
-      inset 0 0 0 1px color-mix(in srgb, var(--color-accent) 38%, transparent),
-      0 0 0 3px var(--color-accent-wash);
+    box-shadow: inset 0 0 0 1px var(--ring-edge-strong);
   }
 
   /* Reference image thumbnail — replace `relative` so we can scope close btn */

@@ -355,7 +355,7 @@ export const OutputPanel = memo(function OutputPanel({
                   style={
                     isHighlighted
                       ? {
-                          boxShadow: 'inset 0 0 0 2px var(--color-accent), 0 0 0 4px var(--color-accent-soft)',
+                          boxShadow: '0 0 0 2px color-mix(in srgb, var(--color-accent) 72%, var(--color-bg) 8%)',
                         }
                       : undefined
                   }

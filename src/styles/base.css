@@ -32,6 +32,11 @@
     outline-offset: 1px;
     border-radius: var(--radius-xs);
   }
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    outline: none;
+  }
 
   input,
   textarea,

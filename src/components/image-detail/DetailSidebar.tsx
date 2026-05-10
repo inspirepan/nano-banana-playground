@@ -606,7 +606,9 @@ function RefThumbnail({
       onClick={onClick}
       className="aspect-square rounded-[var(--radius-sm)] overflow-hidden cursor-pointer transition-colors"
       style={{
-        boxShadow: isActive ? 'inset 0 0 0 1px var(--color-accent)' : 'inset 0 0 0 1px var(--ring-edge)',
+        boxShadow: isActive
+          ? '0 0 0 2px color-mix(in srgb, var(--color-accent) 72%, var(--color-bg) 8%)'
+          : 'inset 0 0 0 1px var(--ring-edge)',
         background: 'var(--color-surface-2)',
       }}
       onMouseEnter={(e) => {

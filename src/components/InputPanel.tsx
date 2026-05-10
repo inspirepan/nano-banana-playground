@@ -298,7 +298,7 @@ export function InputPanel({
       {dragOver && (
         <div
           className="absolute inset-0 z-40 rounded-[var(--radius-md)] pointer-events-none"
-          style={{ background: 'var(--color-accent-wash)', boxShadow: 'inset 0 0 0 2px var(--color-accent)' }}
+          style={{ background: 'var(--color-accent-wash)', boxShadow: 'inset 0 0 0 1px var(--ring-edge-strong)' }}
         />
       )}
     </div>

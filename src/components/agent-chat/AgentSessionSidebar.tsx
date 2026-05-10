@@ -25,7 +25,7 @@ export function AgentSessionSidebar({
   const newSessionShortcut = formatShortcut([getPrimaryModifierKeyLabel(), getShiftKeyLabel(), 'O'])
 
   return (
-    <aside className="flex h-full min-h-0 flex-col bg-(--color-bg) pr-2 pb-6 pl-[18px]">
+    <aside className="flex h-full min-h-0 flex-col bg-(--color-bg) px-[var(--panel-pad-x)] pb-6">
       <button
         type="button"
         onClick={onNewSession}
@@ -43,7 +43,7 @@ export function AgentSessionSidebar({
         <span className="text-xs text-(--color-text-4) tabular-nums">{sessions.length}</span>
       </div>
 
-      <div className="scroll-fade-y min-h-0 flex-1 overflow-y-auto pr-1 [--scroll-fade-end-size:1.5rem] [--scroll-fade-start-size:1.25rem]">
+      <div className="scroll-fade-y min-h-0 flex-1 overflow-y-auto [--scroll-fade-end-size:1.5rem] [--scroll-fade-start-size:1.25rem]">
         {sessionsLoading ? (
           <div className="px-2 py-3 text-sm text-(--color-text-3)">{t('agentChat.header.loadingSessions')}</div>
         ) : sessions.length === 0 ? (

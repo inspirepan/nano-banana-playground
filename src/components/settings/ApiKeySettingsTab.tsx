@@ -371,7 +371,7 @@ function KeyRow({ provider, hook, last = false }: { provider: Provider; hook: Ke
               autoFocus
               className="w-full rounded-[var(--radius-sm)] bg-(--color-surface) px-2.5 py-1.5 text-base
                        shadow-[inset_0_0_0_1px_var(--ring-edge)]
-                       focus:shadow-[inset_0_0_0_1px_var(--color-accent),0_0_0_3px_var(--color-accent-wash)]
+                       focus:shadow-[inset_0_0_0_1px_var(--ring-edge-strong)]
                        transition-[box-shadow,background]
                        placeholder:text-(--color-text-4)
                        disabled:opacity-60 disabled:cursor-not-allowed"
@@ -442,7 +442,7 @@ function KeyRow({ provider, hook, last = false }: { provider: Provider; hook: Ke
                     disabled={isValidating}
                     className="mono w-full rounded-[var(--radius-sm)] bg-(--color-surface) px-2.5 py-1.5 text-base
                            shadow-[inset_0_0_0_1px_var(--ring-edge)]
-                           focus:shadow-[inset_0_0_0_1px_var(--color-accent),0_0_0_3px_var(--color-accent-wash)]
+                           focus:shadow-[inset_0_0_0_1px_var(--ring-edge-strong)]
                            transition-[box-shadow,background]
                            placeholder:text-(--color-text-4)
                            disabled:opacity-60 disabled:cursor-not-allowed"

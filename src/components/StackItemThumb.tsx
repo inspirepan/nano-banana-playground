@@ -109,18 +109,19 @@ export const StackItemThumb = memo(function StackItemThumb({
     ? t('input.stack.selectImage', { number: itemNumber })
     : t('input.stack.selectSlot', { number: itemNumber })
   const outerRingShadow = slot ? '' : ', var(--shadow-lift)'
+  const accentRing = '0 0 0 2px color-mix(in srgb, var(--color-accent) 72%, var(--media-overlay-fg) 8%)'
   const boxShadow = outerRing
     ? selected
-      ? `0 0 0 2px var(--color-warning), 0 0 0 5px color-mix(in srgb, var(--color-warning) 24%, transparent)${outerRingShadow}`
+      ? `${accentRing}${outerRingShadow}`
       : active
-        ? `0 0 0 1px var(--ring-edge-elevated), 0 0 0 3px color-mix(in srgb, var(--color-accent) 70%, transparent)${outerRingShadow}`
+        ? `${accentRing}${outerRingShadow}`
         : slot
           ? undefined
           : 'var(--shadow-lift)'
     : selected
-      ? '0 0 0 2px var(--color-surface), 0 0 0 4px var(--color-warning)'
+      ? accentRing
       : active
-        ? '0 0 0 2px var(--color-surface), 0 0 0 3px var(--color-accent)'
+        ? accentRing
         : 'inset 0 0 0 1px var(--ring-edge)'
   const actionStyle: StackThumbStyle | undefined = src ? { '--stack-thumb-action-bg': `url("${src}")` } : undefined
   // Slot placeholders get a subtle diagonal stripe texture so they read as
@@ -312,14 +313,18 @@ export const StackItemThumb = memo(function StackItemThumb({
           tabIndex={onQuickSelect ? 0 : -1}
           aria-hidden={!onQuickSelect}
           aria-label={onQuickSelect ? t('output.batchManage') : undefined}
-          className={`absolute right-1.5 z-20 flex h-[18px] w-[18px] items-center justify-center rounded-[var(--radius-xs)] transition-[background-color,box-shadow,color,opacity,transform] active:scale-95 ${selectionIndicatorPosition === 'bottom-right' ? 'bottom-2.5' : 'top-1.5'} ${onQuickSelect ? 'pointer-events-auto opacity-0 group-hover:opacity-100 group-focus-within:opacity-100' : 'pointer-events-none'}`}
+          className={`absolute right-2 z-20 flex size-5 items-center justify-center rounded-[var(--radius-sm)] transition-[background-color,box-shadow,color,opacity,transform] active:scale-95 ${selectionIndicatorPosition === 'bottom-right' ? 'bottom-[9px]' : 'top-2'} ${onQuickSelect ? 'pointer-events-auto opacity-0 group-hover:opacity-100 group-focus-within:opacity-100' : 'pointer-events-none'}`}
           style={{
-            background: selected ? 'var(--color-warning)' : 'color-mix(in srgb, var(--color-surface) 58%, transparent)',
-            color: selected ? 'var(--media-overlay-fg)' : 'color-mix(in srgb, var(--color-text) 42%, transparent)',
+            background: selected
+              ? 'var(--color-accent)'
+              : 'color-mix(in srgb, var(--media-overlay-bg) 78%, transparent)',
+            color: selected
+              ? 'var(--media-overlay-fg)'
+              : 'color-mix(in srgb, var(--media-overlay-fg) 64%, transparent)',
             boxShadow: selected
-              ? 'inset 0 0 0 1px color-mix(in srgb, var(--color-warning) 72%, var(--color-bg-sunken) 12%)'
-              : 'inset 0 0 0 1px color-mix(in srgb, var(--media-overlay-fg) 45%, var(--ring-edge-strong))',
-            backdropFilter: 'blur(10px) saturate(1.08)',
+              ? 'inset 0 0 0 1px color-mix(in srgb, var(--color-accent-fg) 16%, transparent)'
+              : 'inset 0 0 0 1px color-mix(in srgb, var(--media-overlay-fg) 22%, transparent)',
+            backdropFilter: 'blur(12px) saturate(1.06)',
           }}
         >
           {selected && <Icon name="check" size={11} strokeWidth={2.4} />}
@@ -333,7 +338,7 @@ export const StackItemThumb = memo(function StackItemThumb({
       )}
       {actions && (
         <div
-          className={`stack-thumb-actions absolute inset-x-1.5 bottom-1.5 z-10 ${onQuickSelect ? 'pr-6' : ''}`}
+          className={`stack-thumb-actions absolute inset-x-1.5 bottom-1.5 z-10 ${onQuickSelect ? 'pr-7' : ''}`}
           style={actionStyle}
         >
           {actions}

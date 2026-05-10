@@ -19,7 +19,7 @@ type CardChoiceProps<T extends string | number> = {
 }
 
 // Card-grid single-select for choices that need per-option descriptions or
-// previews. Selected state uses the design spec's "外环 + 光晕" treatment.
+// previews. Selected state uses a tinted fill with a neutral inset ring.
 export function CardChoice<T extends string | number>({
   options,
   value,
@@ -41,16 +41,22 @@ export function CardChoice<T extends string | number>({
             onClick={() => onChange(option.value)}
             disabled={option.disabled}
             data-active={active || undefined}
-            className="flex flex-col items-start gap-1 rounded-[var(--radius-sm)] bg-(--color-surface) px-3 py-2 text-left transition-[box-shadow,background-color] hover:bg-(--color-surface-2) disabled:cursor-not-allowed disabled:opacity-50"
+            className={`flex flex-col items-start gap-1 rounded-[var(--radius-sm)] px-3 py-2 text-left transition-[box-shadow,background-color] disabled:cursor-not-allowed disabled:opacity-50 ${
+              active ? 'bg-(--color-accent-wash)' : 'bg-(--color-surface) hover:bg-(--color-surface-2)'
+            }`}
             style={{
-              boxShadow: active
-                ? '0 0 0 1px var(--color-accent), 0 0 0 3px var(--color-accent-wash)'
-                : 'inset 0 0 0 1px var(--ring-edge-soft)',
+              boxShadow: 'inset 0 0 0 1px var(--ring-edge-soft)',
               ...option.style,
             }}
           >
-            <span className="text-sm font-medium text-(--color-text)">{option.title}</span>
-            {option.description && <span className="text-sm text-(--color-text-3)">{option.description}</span>}
+            <span className={`text-sm font-medium ${active ? 'text-(--color-accent-text)' : 'text-(--color-text)'}`}>
+              {option.title}
+            </span>
+            {option.description && (
+              <span className={`text-sm ${active ? 'text-(--color-text-2)' : 'text-(--color-text-3)'}`}>
+                {option.description}
+              </span>
+            )}
           </button>
         )
       })}
