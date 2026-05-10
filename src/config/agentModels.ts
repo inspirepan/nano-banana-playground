@@ -17,12 +17,21 @@ export const AGENT_THINKING_OPTIONS: AgentThinkingOptionConfig[] = [
   { value: 'xhigh', labelKey: 'agentChat.thinking.xhigh' },
 ]
 
+const AGENT_THINKING_WITHOUT_MINIMAL_OPTIONS: AgentThinkingOptionConfig[] = AGENT_THINKING_OPTIONS.filter(
+  (option) => option.value !== 'minimal',
+)
+
 const AGENT_THINKING_TOGGLE_OPTIONS: AgentThinkingOptionConfig[] = [
   { value: 'high', labelKey: 'agentChat.thinking.on' },
 ]
 
 const AGENT_THINKING_EFFORT_CONFIG = {
   thinkingOptions: AGENT_THINKING_OPTIONS,
+  sendsThinkingEffort: true,
+} satisfies AgentModelThinkingConfig
+
+const AGENT_THINKING_WITHOUT_MINIMAL_CONFIG = {
+  thinkingOptions: AGENT_THINKING_WITHOUT_MINIMAL_OPTIONS,
   sendsThinkingEffort: true,
 } satisfies AgentModelThinkingConfig
 
@@ -165,7 +174,7 @@ export const AGENT_MODEL_CONFIGS: AgentModelConfig[] = [
     shortLabel: '5.5',
     provider: 'openai',
     providerLabel: providerLabel('openai'),
-    ...asAgentModel(GPT_5_5_MODEL),
+    ...asAgentModel(GPT_5_5_MODEL, AGENT_THINKING_WITHOUT_MINIMAL_CONFIG),
   },
   {
     id: 'gpt-5.4-mini',

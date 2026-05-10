@@ -93,6 +93,7 @@ export const agentChatMessages: MessageDictionary = {
   'agentChat.truncated.expandMoreLinesPrefix': { 'zh-CN': '展开更多', en: 'Expand' },
   'agentChat.truncated.expandMoreLinesSuffix': { 'zh-CN': '行', en: 'more lines' },
   'agentChat.truncated.collapse': { 'zh-CN': '收起', en: 'Collapse' },
+  'agentChat.errorPrefix': { 'zh-CN': '出错了：', en: 'Error: ' },
   'agentChat.imageTask.title': { 'zh-CN': '生成图片', en: 'Generate image' },
   'agentChat.imageTask.model': { 'zh-CN': '模型 ', en: 'Model ' },
   'agentChat.imageTask.size': { 'zh-CN': '尺寸 ', en: 'Size ' },

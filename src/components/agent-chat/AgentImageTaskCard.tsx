@@ -13,6 +13,7 @@ import { StackItemThumb } from '../StackItemThumb'
 import type { AgentImageTaskFocusHandler } from './types'
 
 const PROMPT_BOX_COLLAPSED_LINE_COUNT = 3
+const ERROR_SUMMARY_MAX_LENGTH = 180
 
 type PromptBoxMeasurement = {
   overflowing: boolean
@@ -24,6 +25,32 @@ const DEFAULT_PROMPT_BOX_MEASUREMENT: PromptBoxMeasurement = {
   overflowing: false,
   hiddenLineCount: 0,
   collapsedTextMaxHeight: 72,
+}
+
+function normalizeErrorText(text: string): string {
+  return text.trim()
+}
+
+function summarizeImageTaskError(text: string): string {
+  const normalized = normalizeErrorText(text).replace(/\s+/g, ' ')
+  if (!normalized) return normalized
+
+  const detailMarkers = [
+    'For more information on this error',
+    'To monitor your current usage',
+    'Quota exceeded for metric',
+    'Please retry in',
+  ]
+  const markerIndex = detailMarkers.reduce<number | null>((best, marker) => {
+    const index = normalized.toLowerCase().indexOf(marker.toLowerCase())
+    if (index <= 0) return best
+    return best === null || index < best ? index : best
+  }, null)
+  const summary = (markerIndex === null ? normalized : normalized.slice(0, markerIndex)).replace(/[\s*]+$/, '')
+  const clippedSummary = summary || normalized
+
+  if (clippedSummary.length <= ERROR_SUMMARY_MAX_LENGTH) return clippedSummary
+  return `${clippedSummary.slice(0, ERROR_SUMMARY_MAX_LENGTH).trimEnd()}...`
 }
 
 function formatElapsedTime(elapsedMs: number): string {
@@ -292,6 +319,41 @@ function AgentImagePromptBox({ text }: { text: string }) {
   )
 }
 
+function AgentImageErrorDetail({ text }: { text: string }) {
+  const { t } = useI18n()
+  const [expanded, setExpanded] = useState(false)
+  const detailText = normalizeErrorText(text)
+  const summaryText = summarizeImageTaskError(detailText) || t('agentChat.tool.result.failed')
+  const canExpand = detailText !== '' && detailText !== summaryText
+
+  return (
+    <div className="mt-2.5 px-2 text-base leading-[1.45] text-(--color-danger)">
+      <p className="m-0 min-w-0 break-words [overflow-wrap:anywhere]">
+        <span className="font-medium">{t('agentChat.errorPrefix')}</span>
+        <span>{summaryText}</span>
+      </p>
+      {canExpand && (
+        <button
+          type="button"
+          aria-expanded={expanded}
+          onClick={(event) => {
+            event.stopPropagation()
+            setExpanded((prev) => !prev)
+          }}
+          className="mt-1 bg-transparent p-0 text-sm text-(--color-text-3) transition-colors hover:text-(--color-text)"
+        >
+          {expanded ? t('agentChat.question.collapseDetails') : t('agentChat.question.expandDetails')}
+        </button>
+      )}
+      {expanded && (
+        <div className="mt-1.5 max-h-48 overflow-y-auto rounded-[var(--radius-sm)] bg-(--color-surface-2) px-2 py-1.5 text-sm leading-[1.45] whitespace-pre-wrap text-(--color-text-3) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)] [overflow-wrap:anywhere]">
+          {detailText}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function AgentImageTaskCard({
   call,
   task,
@@ -347,8 +409,9 @@ export function AgentImageTaskCard({
     ? (MODEL_CONFIGS.find((item) => item.id === task.request.modelId)?.name ?? task.request.modelId)
     : null
 
-  const taskDetail = task?.error
-    ? task.error
+  const taskErrorText = task?.error
+  const taskDetail = taskErrorText
+    ? undefined
     : task?.status === 'rejected'
       ? t('agentChat.imageTask.rejectedDetail')
       : task?.status === 'canceled'
@@ -683,6 +746,7 @@ export function AgentImageTaskCard({
 
       {renderInProgressGrid()}
 
+      {taskErrorText && <AgentImageErrorDetail text={taskErrorText} />}
       {taskDetail && (
         <div
           className="mt-2.5 px-2 text-base leading-[1.45]"
@@ -691,11 +755,7 @@ export function AgentImageTaskCard({
           {taskDetail}
         </div>
       )}
-      {noTaskErrorText && (
-        <div className="mt-2.5 px-2 text-base leading-[1.45]" style={{ color: 'var(--color-danger)' }}>
-          {noTaskErrorText}
-        </div>
-      )}
+      {noTaskErrorText && <AgentImageErrorDetail text={noTaskErrorText} />}
 
       {(showApprove || showCancel) && task && (
         <div className="mt-2.5 flex flex-wrap gap-1.5 px-2">

@@ -12,7 +12,7 @@ export function ComposerError({
   onClearAttachmentError: () => void
 }) {
   const { t } = useI18n()
-  const displayError = error ? formatAgentError(error, t) : null
+  const displayError = error ? `${t('agentChat.errorPrefix')}${formatAgentError(error, t)}` : null
 
   if (!error && !attachmentError) return null
 

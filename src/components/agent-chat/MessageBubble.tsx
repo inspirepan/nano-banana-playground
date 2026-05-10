@@ -56,7 +56,7 @@ export function MessageBubble({
   const thinking = agentMessageThinking(message)
   const images = agentMessageImages(message)
   const error = agentMessageError(message)
-  const displayError = error ? formatAgentError(error, t) : null
+  const displayError = error ? `${t('agentChat.errorPrefix')}${formatAgentError(error, t)}` : null
   const isUser = role === 'user'
   const isAssistant = role === 'assistant'
   const hasToolCalls = agentMessageToolCalls(message).length > 0

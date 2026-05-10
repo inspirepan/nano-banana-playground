@@ -60,6 +60,10 @@ function buildAttachmentSystemNote(attachments: AgentChatAttachment[]): string {
   return `\n\n<system>Available attachment images:\n${lines.join('\n')}</system>`
 }
 
+function composerHasContent(draft: string, attachments: AgentChatAttachment[]): boolean {
+  return draft.trim() !== '' || attachments.length > 0
+}
+
 export function useAgentMessageSender({
   agentCredentialsRef,
   getCurrentRuntime,
@@ -143,6 +147,8 @@ export function useAgentMessageSender({
       if (skillText) systemPrefix += `${buildInvokedSkillSystemMessage(skillName, skillText)}\n\n`
     }
     const promptBody = trimmed || translate('agentChat.slash.imageOnlyPrompt')
+    const retryDraft = trimmed
+    const retryAttachments = attachmentsToSend.slice()
     const promptText = `${systemPrefix}${promptBody}${attachmentNote}`
     for (const attachment of attachmentsToSend) {
       if (runtime.imageRegistry.get(attachment.id)?.status === 'ready') continue
@@ -216,6 +222,21 @@ export function useAgentMessageSender({
         : null
     if (queuedMessage) setRuntimeQueuedUserMessages(runtime, (prev) => [...prev, queuedMessage])
 
+    const restoreComposerForRetry = () => {
+      if (!composerHasContent(retryDraft, retryAttachments)) return
+      if (composerHasContent(runtime.draft, runtime.attachments)) return
+
+      runtime.draft = retryDraft
+      runtime.attachments = retryAttachments
+      runtime.attachmentError = null
+      if (isCurrentRuntime(runtime)) {
+        setAgentDraft(retryDraft)
+        setAgentAttachments(retryAttachments)
+        setAgentAttachmentError(null)
+      }
+      scheduleRuntimeSidecarPersist(runtime)
+    }
+
     void (async () => {
       try {
         const images = await Promise.all(attachmentsToSend.map(compressedAttachmentToAgentAttachment))
@@ -244,9 +265,12 @@ export function useAgentMessageSender({
         promptPromise
           .then(() => {
             const errorMessage = getAgentError(runtime.agent)
-            if (errorMessage && isKeyError(errorMessage)) invalidateGenerationKey(config.provider)
+            if (!errorMessage) return
+            restoreComposerForRetry()
+            if (isKeyError(errorMessage)) invalidateGenerationKey(config.provider)
           })
           .catch((error: unknown) => {
+            restoreComposerForRetry()
             setRuntimeError(runtime, error instanceof Error ? error.message : String(error))
           })
           .finally(() => {
@@ -257,6 +281,7 @@ export function useAgentMessageSender({
         if (queuedMessageId) {
           setRuntimeQueuedUserMessages(runtime, (prev) => prev.filter((queued) => queued.id !== queuedMessageId))
         }
+        restoreComposerForRetry()
         setRuntimeError(runtime, error instanceof Error ? error.message : String(error))
       } finally {
         runtime.promptPreparing = false
