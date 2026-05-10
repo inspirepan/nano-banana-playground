@@ -12,9 +12,9 @@ import { SettingsField } from './SettingsField'
 import { SettingsSection } from './SettingsSection'
 
 const BRIGHTNESS: { value: Theme; icon: IconName; labelKey: string }[] = [
+  { value: 'system', icon: 'contrast', labelKey: 'settings.theme.system' },
   { value: 'light', icon: 'light_mode', labelKey: 'settings.theme.light' },
   { value: 'dark', icon: 'dark_mode', labelKey: 'settings.theme.dark' },
-  { value: 'system', icon: 'contrast', labelKey: 'settings.theme.system' },
 ]
 
 const GENERATION_CONCURRENCY_CHOICES = [

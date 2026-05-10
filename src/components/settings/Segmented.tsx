@@ -62,8 +62,14 @@ export function Segmented<T extends string | number>({
             }}
             data-active={active || undefined}
           >
-            {option.icon && <Icon name={option.icon} size={12} />}
-            <span>{option.label}</span>
+            <span className="relative min-w-0">
+              {option.icon && (
+                <span className="pointer-events-none absolute top-1/2 right-full mr-1 -translate-y-1/2">
+                  <Icon name={option.icon} size={12} />
+                </span>
+              )}
+              <span className="block truncate">{option.label}</span>
+            </span>
           </button>
         )
         // Wrap in flex slot so the segmented thumb math (which assumes
