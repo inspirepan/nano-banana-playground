@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo } from 'react'
+import { memo, useCallback, useMemo, useState } from 'react'
 
 import {
   activeStackStatusParts,
@@ -7,7 +7,7 @@ import {
   stackItemGenerationSummary,
 } from './outputPanelHelpers'
 import type { Translate } from '../../i18n'
-import { downloadImagePng } from '../../lib/exportImages'
+import { downloadImagePng, downloadImagesZip } from '../../lib/exportImages'
 import { formatTime } from '../../lib/queueJobDisplay'
 import type { ImageStack, StackItem, StackImageItem } from '../../lib/stacks'
 import { Icon } from '../Icon'
@@ -65,7 +65,7 @@ const StackThumbActions = memo(function StackThumbActions({
         className="media-action min-w-0 flex-1 px-2"
       >
         <Icon name="download" size={11} strokeWidth={1.8} />
-        PNG
+        {t('common.download')}
       </button>
     </div>
   )
@@ -86,6 +86,7 @@ export const StackRow = memo(function StackRow({
   compactHeader = false,
   t,
 }: StackRowProps) {
+  const [exporting, setExporting] = useState(false)
   const totalItems = stack.images.length + stack.activeSlotCount + stack.failedSlotCount
   const activeStatusParts = useMemo(() => activeStackStatusParts(stack, t), [stack, t])
   const hasDismissibleFailures = useMemo(() => stack.jobs.some(canDismissFailedGenerationJob), [stack.jobs])
@@ -105,6 +106,17 @@ export const StackRow = memo(function StackRow({
     },
     [batchManageMode, onOpenItem, onToggleBatchImage, stackId],
   )
+
+  const handleDownloadStack = useCallback(async () => {
+    if (exporting || stack.images.length === 0) return
+    setExporting(true)
+    try {
+      if (stack.images.length === 1) await downloadImagePng(stack.images[0])
+      else await downloadImagesZip(stack.images, `nano-banana-stack-${stack.id.slice(0, 8)}.zip`)
+    } finally {
+      setExporting(false)
+    }
+  }, [exporting, stack.id, stack.images])
 
   return (
     <div className="min-w-0">
@@ -189,6 +201,22 @@ export const StackRow = memo(function StackRow({
                     </button>
                   </>
                 )}
+              </>
+            )}
+            {stack.images.length > 0 && (
+              <>
+                <span className="meta-dot text-(--color-text-4)" aria-hidden />
+                <button
+                  type="button"
+                  onClick={handleDownloadStack}
+                  disabled={exporting}
+                  className="bg-transparent p-0 text-base font-normal text-(--color-text-3) transition-colors hover:text-(--color-text-2) disabled:cursor-default disabled:text-(--color-text-4)"
+                  aria-label={t('common.download')}
+                  title={t('common.download')}
+                >
+                  <Icon name="download" size={13} strokeWidth={1.8} className="mr-1 inline-block align-[-0.16em]" />
+                  {exporting ? t('output.exporting') : t('common.download')}
+                </button>
               </>
             )}
           </div>

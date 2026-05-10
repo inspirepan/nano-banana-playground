@@ -306,12 +306,14 @@ export const StackItemThumb = memo(function StackItemThumb({
           tabIndex={onQuickSelect ? 0 : -1}
           aria-hidden={!onQuickSelect}
           aria-label={onQuickSelect ? t('output.batchManage') : undefined}
-          className={`absolute right-1.5 z-20 flex h-[18px] w-[18px] items-center justify-center rounded-[var(--radius-xs)] transition-[color,opacity] ${selectionIndicatorPosition === 'bottom-right' ? 'bottom-1.5' : 'top-1.5'} ${onQuickSelect ? 'pointer-events-auto opacity-0 group-hover:opacity-100 group-focus-within:opacity-100' : 'pointer-events-none'}`}
+          className={`absolute right-1.5 z-20 flex h-[18px] w-[18px] items-center justify-center rounded-[var(--radius-xs)] transition-[background-color,box-shadow,color,opacity,transform] active:scale-95 ${selectionIndicatorPosition === 'bottom-right' ? 'bottom-2.5' : 'top-1.5'} ${onQuickSelect ? 'pointer-events-auto opacity-0 group-hover:opacity-100 group-focus-within:opacity-100' : 'pointer-events-none'}`}
           style={{
-            background: selected ? 'var(--color-warning)' : 'color-mix(in srgb, var(--color-surface) 86%, transparent)',
-            color: selected ? '#fff' : 'var(--color-text-4)',
-            boxShadow: selected ? 'inset 0 0 0 2px var(--color-warning)' : 'inset 0 0 0 1px var(--ring-edge-strong)',
-            backdropFilter: 'blur(8px)',
+            background: selected ? 'var(--color-warning)' : 'color-mix(in srgb, var(--color-surface) 58%, transparent)',
+            color: selected ? '#fff' : 'color-mix(in srgb, var(--color-text) 42%, transparent)',
+            boxShadow: selected
+              ? 'inset 0 0 0 1px color-mix(in srgb, var(--color-warning) 72%, #000 12%)'
+              : 'inset 0 0 0 1px color-mix(in srgb, #fff 45%, var(--ring-edge-strong))',
+            backdropFilter: 'blur(10px) saturate(1.08)',
           }}
         >
           {selected && <Icon name="check" size={11} strokeWidth={2.4} />}

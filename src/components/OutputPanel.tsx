@@ -177,8 +177,10 @@ export const OutputPanel = memo(function OutputPanel({
     setBatchDeleteConfirming(false)
     setSelectedImageIds((prev) => {
       const next = new Set(prev)
-      if (next.has(image.id)) next.delete(image.id)
+      const wasSelected = next.has(image.id)
+      if (wasSelected) next.delete(image.id)
       else next.add(image.id)
+      if (wasSelected && next.size === 0) setBatchManageMode(false)
       return next
     })
   }, [])
