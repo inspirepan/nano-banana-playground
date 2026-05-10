@@ -566,7 +566,7 @@ export function AgentChatPanel({
           ref={scrollRef}
           className={`min-h-0 ${
             isEmpty
-              ? 'flex flex-1 flex-col overflow-y-auto pt-5 pb-4 md:mb-6 md:w-full md:self-end md:overflow-visible md:pt-0 md:pb-0'
+              ? 'flex flex-1 flex-col overflow-y-auto pt-5 pb-4 md:mb-20 md:w-full md:self-end md:overflow-visible md:pt-0 md:pb-0 xl:mb-24'
               : scrollBodyClass
           }`}
         >
