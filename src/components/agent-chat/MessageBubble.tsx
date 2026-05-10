@@ -4,7 +4,7 @@ import { useRef, useState } from 'react'
 import { AgentThinking } from './AgentThinking'
 import { formatAgentError } from './errorText'
 import { MarkdownText } from './MarkdownText'
-import { summarizeSystemEvent } from './SystemEvent'
+import { summarizeSystemEventParts } from './SystemEvent'
 import { TruncatedText } from './TruncatedText'
 import {
   agentMessageError,
@@ -91,7 +91,17 @@ export function MessageBubble({
   if (isSystemEvent) {
     return (
       <div className="flex justify-start">
-        <div className="mr-3 max-w-[94%] pl-3 text-(--color-text-3)">{summarizeSystemEvent(trimmedText)}</div>
+        <div className="mr-3 max-w-[94%] pl-3 text-(--color-text-3)">
+          {summarizeSystemEventParts(trimmedText).map((part, index) =>
+            part.mono ? (
+              <span key={index} className="mono">
+                {part.text}
+              </span>
+            ) : (
+              part.text
+            ),
+          )}
+        </div>
       </div>
     )
   }

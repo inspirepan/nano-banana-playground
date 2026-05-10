@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { setActiveLanguage } from '../../../i18n/core'
-import { summarizeSystemEvent } from '../SystemEvent'
+import { summarizeSystemEvent, summarizeSystemEventParts } from '../SystemEvent'
 
 setActiveLanguage('zh-CN')
 
@@ -16,6 +16,18 @@ reserved_image_ids: poster, poster_2
 image_ids: poster, poster_2
 </system>`),
     ).toBe('生成任务完成，生成了 2 张：poster, poster_2')
+  })
+
+  it('marks completed GenImage ids as mono text', () => {
+    expect(
+      summarizeSystemEventParts(`<system>
+tool GenImage call call_1 has been finished.
+status: completed
+requested_image_id: poster
+reserved_image_ids: poster, poster_2
+image_ids: poster, poster_2
+</system>`),
+    ).toEqual([{ text: '生成任务完成，生成了 2 张：' }, { text: 'poster, poster_2', mono: true }])
   })
 
   it('reports failed GenImage counts from reserved ids and result ids', () => {

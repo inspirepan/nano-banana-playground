@@ -1,5 +1,28 @@
 import { translate } from '../../i18n'
 
+export type SystemEventSummaryPart = {
+  text: string
+  mono?: boolean
+}
+
+const IMAGE_IDS_MARKER = '\uE000imageIds\uE000'
+
+function textPart(text: string): SystemEventSummaryPart[] {
+  return text ? [{ text }] : []
+}
+
+function monoParamParts(text: string, marker: string, value: string): SystemEventSummaryPart[] {
+  if (!value) return textPart(text.replace(marker, ''))
+  const markerIndex = text.indexOf(marker)
+  if (markerIndex === -1) return textPart(text)
+
+  return [
+    ...textPart(text.slice(0, markerIndex)),
+    { text: value, mono: true },
+    ...textPart(text.slice(markerIndex + marker.length)),
+  ]
+}
+
 function systemStatusLabel(status: string): string {
   if (status === 'pending_approval') return translate('agentChat.taskStatus.pendingApproval')
   if (status === 'queued') return translate('agentChat.taskStatus.queued')
@@ -62,7 +85,7 @@ function summarizeFailedGenImages(completedCount: number, failedCount: number): 
     : translate('agentChat.system.imageFailed')
 }
 
-export function summarizeSystemEvent(text: string): string {
+export function summarizeSystemEventParts(text: string): SystemEventSummaryPart[] {
   const callbacks = parseToolCallbacks(text)
   const tool = callbacks[0]?.tool
   const status = callbacks[0]?.fields.status
@@ -70,9 +93,11 @@ export function summarizeSystemEvent(text: string): string {
 
   if (tool !== 'GenImage') {
     const toolName = tool ?? translate('agentChat.tool.unknown')
-    return statusText
-      ? translate('agentChat.system.toolCallbackWithStatus', { tool: toolName, status: statusText })
-      : translate('agentChat.system.toolCallback', { tool: toolName })
+    return textPart(
+      statusText
+        ? translate('agentChat.system.toolCallbackWithStatus', { tool: toolName, status: statusText })
+        : translate('agentChat.system.toolCallback', { tool: toolName }),
+    )
   }
 
   const genImageCallbacks = callbacks.filter((callback) => callback.tool === 'GenImage')
@@ -86,17 +111,32 @@ export function summarizeSystemEvent(text: string): string {
   const failedCount = Math.max(0, reservedCount - completedCount)
 
   if (statuses.length > 0 && statuses.every((item) => item === 'completed')) {
-    return translate('agentChat.system.imageCompleted', { count: completedCount, ids: completedImageIds.join(', ') })
+    const ids = completedImageIds.join(', ')
+    return monoParamParts(
+      translate('agentChat.system.imageCompleted', { count: completedCount, ids: IMAGE_IDS_MARKER }),
+      IMAGE_IDS_MARKER,
+      ids,
+    )
   }
-  if (statuses.includes('failed')) return summarizeFailedGenImages(completedCount, failedCount)
+  if (statuses.includes('failed')) return textPart(summarizeFailedGenImages(completedCount, failedCount))
   if (statuses.length > 0 && statuses.every((item) => item === 'rejected'))
-    return translate('agentChat.system.imageRejected')
+    return textPart(translate('agentChat.system.imageRejected'))
   if (statuses.includes('canceled')) {
-    return completedCount > 0
-      ? translate('agentChat.system.imageCanceledWithCompleted', { count: completedCount })
-      : translate('agentChat.system.imageCanceled')
+    return textPart(
+      completedCount > 0
+        ? translate('agentChat.system.imageCanceledWithCompleted', { count: completedCount })
+        : translate('agentChat.system.imageCanceled'),
+    )
   }
-  return statusText
-    ? translate('agentChat.system.imageTaskStatus', { status: statusText })
-    : translate('agentChat.system.imageTask')
+  return textPart(
+    statusText
+      ? translate('agentChat.system.imageTaskStatus', { status: statusText })
+      : translate('agentChat.system.imageTask'),
+  )
+}
+
+export function summarizeSystemEvent(text: string): string {
+  return summarizeSystemEventParts(text)
+    .map((part) => part.text)
+    .join('')
 }

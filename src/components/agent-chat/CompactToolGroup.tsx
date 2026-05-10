@@ -92,7 +92,7 @@ export function CompactToolGroup({ rows }: { rows: ReactNode[] }) {
   )
 }
 
-export function InlineToolNotice({ label }: { label: string }) {
+export function InlineToolNotice({ label }: { label: ReactNode }) {
   return (
     <div className="flex justify-start">
       <div className="mr-3 flex max-w-[94%] items-center gap-2 pl-3 text-(--color-text-4)">
@@ -103,7 +103,7 @@ export function InlineToolNotice({ label }: { label: string }) {
   )
 }
 
-export function InlineToolDone({ label, children }: { label: string; children?: ReactNode }) {
+export function InlineToolDone({ label, children }: { label: ReactNode; children?: ReactNode }) {
   return (
     <div className="flex justify-start">
       <div className="mr-3 max-w-[94%] pl-3 text-(--color-text-3)">

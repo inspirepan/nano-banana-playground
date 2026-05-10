@@ -109,9 +109,31 @@ function toolPreparingLabel(call: AgentMessageToolCall, t: Translate): string {
   return t('agentChat.tool.preparing.generic')
 }
 
-function toolRunningLabel(call: AgentMessageToolCall, t: Translate): string {
+const MONO_PARAM_MARKER = '\uE000mono\uE000'
+
+function monoParamLabel(
+  t: Translate,
+  key: string,
+  param: string,
+  value: string,
+  params?: Record<string, string>,
+): ReactNode {
+  const label = t(key, { ...params, [param]: MONO_PARAM_MARKER })
+  const markerIndex = label.indexOf(MONO_PARAM_MARKER)
+  if (markerIndex === -1) return label
+
+  return (
+    <>
+      {label.slice(0, markerIndex)}
+      <span className="mono">{value}</span>
+      {label.slice(markerIndex + MONO_PARAM_MARKER.length)}
+    </>
+  )
+}
+
+function toolRunningLabel(call: AgentMessageToolCall, t: Translate): ReactNode {
   const args = summarizeToolArgs(call)
-  if (call.name === 'ReadImage') return t('agentChat.tool.readImage.running', { id: args })
+  if (call.name === 'ReadImage') return monoParamLabel(t, 'agentChat.tool.readImage.running', 'id', args)
   if (call.name === 'ReadAgentFile') return t('agentChat.tool.readAgentFile.running', { path: args })
   if (call.name === 'Skill') return t('agentChat.tool.skill.running', { name: args })
   if (call.name === 'ReadSkillFile') return t('agentChat.tool.readSkillFile.running', { path: args })
@@ -121,11 +143,11 @@ function toolRunningLabel(call: AgentMessageToolCall, t: Translate): string {
   return `${toolLabel(call.name)}: ${args}`
 }
 
-function toolDoneLabel(call: AgentMessageToolCall, result: AgentMessageToolResult, t: Translate): string {
+function toolDoneLabel(call: AgentMessageToolCall, result: AgentMessageToolResult, t: Translate): ReactNode {
   const args = summarizeToolArgs(call)
   if (result.isError) {
     const error = toolErrorText(result, t)
-    if (call.name === 'ReadImage') return t('agentChat.tool.readImage.failed', { id: args, error })
+    if (call.name === 'ReadImage') return monoParamLabel(t, 'agentChat.tool.readImage.failed', 'id', args, { error })
     if (call.name === 'ReadAgentFile') return t('agentChat.tool.readAgentFile.failed', { path: args, error })
     if (call.name === 'Skill') return t('agentChat.tool.skill.failed', { name: args, error })
     if (call.name === 'ReadSkillFile') return t('agentChat.tool.readSkillFile.failed', { path: args, error })
@@ -134,7 +156,7 @@ function toolDoneLabel(call: AgentMessageToolCall, result: AgentMessageToolResul
     if (call.name === 'WebSearch') return t('agentChat.tool.webSearch.failed', { query: args, error })
     return `${toolLabel(call.name)} ${t('agentChat.tool.result.failed')}: ${error}`
   }
-  if (call.name === 'ReadImage') return t('agentChat.tool.readImage.done', { id: args })
+  if (call.name === 'ReadImage') return monoParamLabel(t, 'agentChat.tool.readImage.done', 'id', args)
   if (call.name === 'ReadAgentFile') return t('agentChat.tool.readAgentFile.done', { path: args })
   if (call.name === 'Skill') return t('agentChat.tool.skill.done', { name: args })
   if (call.name === 'ReadSkillFile') return t('agentChat.tool.readSkillFile.done', { path: args })
