@@ -3,14 +3,15 @@ import type { AgentSessionStatus, AgentSessionSummary } from '../../agent'
 import { useI18n } from '../../i18n'
 import { Icon } from '../Icon'
 
-export function AgentSessionStatusBadge({ status }: { status: AgentSessionStatus }) {
+function AgentSessionStatusIcon({ status }: { status: AgentSessionStatus | null }) {
   const { t } = useI18n()
+
   if (status === 'waiting_for_question') {
     return (
       <span
-        className="inline-flex size-[18px] shrink-0 items-center justify-center rounded-full bg-(--color-surface-2) text-(--color-accent) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]"
-        title={t('agentChat.question.title')}
-        aria-label={t('agentChat.question.title')}
+        className="inline-flex h-5 w-4 shrink-0 items-center justify-center text-(--color-accent)"
+        title={t('agentChat.status.waitingForQuestion')}
+        aria-label={t('agentChat.status.waitingForQuestion')}
       >
         <Icon name="help_circle" size={12} strokeWidth={2.2} />
       </span>
@@ -20,20 +21,28 @@ export function AgentSessionStatusBadge({ status }: { status: AgentSessionStatus
   if (status === 'generating_images') {
     return (
       <span
-        className="agent-session-running-dot"
+        className="inline-flex h-5 w-4 shrink-0 items-center justify-center"
         title={t('agentChat.status.generatingImages')}
         aria-label={t('agentChat.status.generatingImages')}
-      />
+      >
+        <span className="agent-session-running-dot" />
+      </span>
     )
   }
 
-  return (
-    <span
-      className="agent-session-running-dot"
-      title={t('agentChat.status.running')}
-      aria-label={t('agentChat.status.running')}
-    />
-  )
+  if (status === 'running') {
+    return (
+      <span
+        className="inline-flex h-5 w-4 shrink-0 items-center justify-center"
+        title={t('agentChat.status.running')}
+        aria-label={t('agentChat.status.running')}
+      >
+        <span className="agent-session-running-dot" />
+      </span>
+    )
+  }
+
+  return <span className="h-5 w-4 shrink-0" aria-hidden="true" />
 }
 
 export function AgentSessionListItem({
@@ -63,26 +72,23 @@ export function AgentSessionListItem({
 
   return (
     <div
-      className={`group relative flex h-[32px] items-center rounded-[var(--radius-md)] px-2 transition-[background-color,box-shadow] ${
+      className={`group relative flex h-[32px] items-center gap-1.5 rounded-[var(--radius-md)] px-2 transition-[background-color,box-shadow] ${
         active
           ? 'bg-(--color-accent-wash) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]'
           : 'hover:bg-(--color-surface-2)'
       }`}
     >
-      {active && (
-        <span className="absolute top-1.5 bottom-1.5 left-1 w-0.5 rounded-[var(--radius-xs)] bg-(--color-accent)" />
-      )}
+      <AgentSessionStatusIcon status={status} />
       <button
         type="button"
         onClick={() => onSwitchSession(session.id)}
-        className="min-w-0 flex-1 bg-transparent pl-2 text-left"
+        className="min-w-0 flex-1 bg-transparent text-left"
         aria-current={active ? 'true' : undefined}
         title={title}
       >
         <span className={`block truncate ${titleClass}`}>{title}</span>
       </button>
       <span className="ml-2 flex shrink-0 items-center gap-1.5 text-sm text-(--color-text-3)">
-        {status && <AgentSessionStatusBadge status={status} />}
         {imageCount > 0 && (
           <span
             className="inline-flex h-[18px] shrink-0 items-center gap-1 rounded-full bg-(--color-surface-2) px-1.5 text-[11px] font-medium leading-none tabular-nums text-(--color-text-3) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]"

@@ -26,6 +26,7 @@ export const agentChatMessages: MessageDictionary = {
   },
   'agentChat.status.running': { 'zh-CN': 'Agent 正在运行', en: 'Agent is running' },
   'agentChat.status.generatingImages': { 'zh-CN': '图片生成中', en: 'Generating images' },
+  'agentChat.status.waitingForQuestion': { 'zh-CN': '等待你回答问题', en: 'Waiting for your answer' },
   'agentChat.header.switchTitle': { 'zh-CN': '切换 Agent 对话', en: 'Switch Agent conversation' },
   'agentChat.header.switchAction': { 'zh-CN': '切换', en: 'Switch' },
   'agentChat.header.loadingSessions': { 'zh-CN': '加载对话…', en: 'Loading conversations…' },

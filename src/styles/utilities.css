@@ -200,31 +200,53 @@
     animation-delay: 280ms;
   }
   @keyframes agent-session-running-pulse {
-    0%,
-    100% {
-      opacity: 0.42;
-      transform: scale(0.82);
+    from {
+      opacity: 0.34;
+      transform: scale(0.62);
     }
-    45% {
-      opacity: 1;
+    to {
+      opacity: 0.74;
       transform: scale(1);
     }
   }
   .agent-session-running-dot {
     display: inline-block;
+    position: relative;
+    width: 13px;
+    height: 13px;
+    transform: translateZ(0);
+  }
+  .agent-session-running-dot::before,
+  .agent-session-running-dot::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+  }
+  .agent-session-running-dot::before {
+    top: 3px;
+    left: 3px;
     width: 7px;
     height: 7px;
-    border-radius: 50%;
     background: var(--color-accent);
+  }
+  .agent-session-running-dot::after {
+    inset: 0;
+    background: color-mix(in srgb, var(--color-accent) 9%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-accent) 42%, transparent);
     transform-origin: center;
-    animation: agent-session-running-pulse 1050ms var(--ease-in-out) infinite;
+    animation: agent-session-running-pulse 800ms linear infinite alternate;
+    will-change: transform, opacity;
   }
   @media (prefers-reduced-motion: reduce) {
-    .agent-running-token > span,
-    .agent-session-running-dot {
+    .agent-running-token > span {
       animation: none;
       opacity: 0.72;
       transform: none;
+    }
+    .agent-session-running-dot::after {
+      animation: none;
+      opacity: 0;
+      transform: scale(0.62);
     }
   }
 
