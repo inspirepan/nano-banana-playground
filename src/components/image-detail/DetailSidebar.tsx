@@ -397,7 +397,7 @@ export function DetailSidebar({
           className="inline-flex w-full items-center justify-center gap-1.5 text-sm font-medium transition-colors"
           style={{
             height: 30,
-            borderRadius: 6,
+            borderRadius: 'var(--radius-sm)',
             boxShadow: 'inset 0 0 0 1px var(--ring-edge)',
             background: 'var(--color-surface)',
             color: 'var(--color-danger)',

@@ -51,22 +51,22 @@
   --text-xl: 0.9375rem; /* 15px */
   --text-xl--line-height: 1.35;
 
-  /* Warm neutral product surface, tuned from Linear / Notion / Radix Sand references. */
-  --color-bg: #f7f6f2;
-  --color-bg-sunken: #efede8;
+  /* Neutral product surface, tuned from Linear / Notion style gray references. */
+  --color-bg: #f7f8fa;
+  --color-bg-sunken: #eef0f3;
 
-  --color-surface: #fffefa;
-  --color-surface-2: #f3f1ec;
-  --color-surface-3: #e9e7e1;
+  --color-surface: #fbfcfd;
+  --color-surface-2: #f1f3f5;
+  --color-surface-3: #e7eaf0;
   --agent-image-task-empty-bg: color-mix(in srgb, var(--color-surface-2) 72%, var(--color-surface));
 
-  --color-border: #dedbd3;
-  --color-border-strong: #cbc6bb;
+  --color-border: #d9dde3;
+  --color-border-strong: #c4c9d2;
 
-  --color-text: #211f1c;
-  --color-text-2: #5f5c55;
-  --color-text-3: #89857d;
-  --color-text-4: #aaa59b;
+  --color-text: #202328;
+  --color-text-2: #5b616b;
+  --color-text-3: #858c96;
+  --color-text-4: #a3abb6;
 
   /* Accent: Linear purple across light and dark themes. */
   --color-accent: var(--linear-purple-9);
@@ -88,24 +88,31 @@
 
   --color-warning: #9b5a13;
   --color-danger: #bf3d3d;
+  --color-danger-fg: #fbfcfd;
   --color-danger-soft: #fff0ef;
 
   --color-success: #287f4f;
 
   /* Edge rings */
-  --ring-edge: rgba(33, 31, 28, 0.078);
-  --ring-edge-elevated: rgba(33, 31, 28, 0.1);
-  --ring-edge-strong: rgba(33, 31, 28, 0.14);
-  --ring-edge-soft: rgba(33, 31, 28, 0.048);
+  --ring-edge: rgba(32, 35, 40, 0.078);
+  --ring-edge-elevated: rgba(32, 35, 40, 0.1);
+  --ring-edge-strong: rgba(32, 35, 40, 0.14);
+  --ring-edge-soft: rgba(32, 35, 40, 0.048);
 
-  --shadow-lift: 0 12px 28px -20px rgba(33, 31, 28, 0.2), 0 1px 2px rgba(33, 31, 28, 0.045);
+  --shadow-lift: 0 12px 28px -20px rgba(32, 35, 40, 0.2), 0 1px 2px rgba(32, 35, 40, 0.045);
 
-  --shadow-float: 0 18px 40px -26px rgba(33, 31, 28, 0.24), 0 2px 8px rgba(33, 31, 28, 0.06);
+  --shadow-float: 0 18px 40px -26px rgba(32, 35, 40, 0.24), 0 2px 8px rgba(32, 35, 40, 0.06);
 
-  --media-overlay-bg: color-mix(in srgb, #171613 58%, transparent);
-  --media-overlay-bg-hover: color-mix(in srgb, #171613 74%, transparent);
+  --media-overlay-bg: color-mix(in srgb, #171a1f 58%, transparent);
+  --media-overlay-bg-hover: color-mix(in srgb, #171a1f 74%, transparent);
   --media-overlay-fg: #fbfcfd;
+  --media-overlay-edge: color-mix(in srgb, var(--media-overlay-fg) 16%, transparent);
+  --media-overlay-light-bg: color-mix(in srgb, var(--color-surface) 92%, transparent);
+  --media-overlay-light-bg-hover: color-mix(in srgb, var(--color-surface) 96%, transparent);
+  --media-overlay-light-fg: var(--color-text);
+  --media-overlay-light-edge: var(--ring-edge);
   --modal-backdrop-bg: color-mix(in srgb, var(--color-bg-sunken) 38%, transparent);
+  --switch-thumb-bg: var(--color-surface);
 
   /* Easing curves — built-in CSS easings are too weak. These give animations
      the punch that makes them feel intentional. Use --ease-out for any
@@ -118,7 +125,7 @@
   /* Chat user bubble */
   --bubble-user-bg: color-mix(in srgb, var(--color-accent-soft) 54%, var(--color-surface));
   --bubble-user-edge:
-    inset 0 0 0 1px var(--color-accent-ring), 0 1px 0 var(--color-accent-ring), 0 2px 4px -2px rgba(33, 31, 28, 0.08);
+    inset 0 0 0 1px var(--color-accent-ring), 0 1px 0 var(--color-accent-ring), 0 2px 4px -2px rgba(32, 35, 40, 0.08);
 
   --radius-xs: 4px;
   --radius-sm: 6px;
@@ -139,23 +146,23 @@
   --linear-purple-9: #5e6ad2;
 }
 
-/* Dark theme — near-black tool surface with clearer Raycast-style elevation steps. */
+/* Dark theme — neutral near-black tool surface with clearer Raycast-style elevation steps. */
 .dark {
-  --color-bg: #0d0d0c;
-  --color-bg-sunken: #080807;
+  --color-bg: #0d0e10;
+  --color-bg-sunken: #08090b;
 
-  --color-surface: #141412;
-  --color-surface-2: #1c1b19;
-  --color-surface-3: #25231f;
+  --color-surface: #14161a;
+  --color-surface-2: #1b1e23;
+  --color-surface-3: #242831;
   --agent-image-task-empty-bg: color-mix(in srgb, var(--color-surface-2) 70%, var(--color-surface));
 
-  --color-border: #302f2b;
-  --color-border-strong: #48453f;
+  --color-border: #30343d;
+  --color-border-strong: #464c57;
 
-  --color-text: #f1f0ec;
-  --color-text-2: #c5c2ba;
-  --color-text-3: #928f86;
-  --color-text-4: #68645b;
+  --color-text: #f1f3f5;
+  --color-text-2: #c3c8d0;
+  --color-text-3: #9097a3;
+  --color-text-4: #666d78;
 
   --color-accent: #5e6ad2;
   --color-accent-hover: #6e79e6;
@@ -171,6 +178,7 @@
 
   --color-warning: #d6a449;
   --color-danger: #e07062;
+  --color-danger-fg: #fbfcfd;
   --color-danger-soft: #2b1b18;
 
   --color-success: #76b68a;
@@ -184,10 +192,16 @@
 
   --shadow-float:
     inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 10px 28px -22px rgba(0, 0, 0, 0.85), 0 3px 8px -5px rgba(0, 0, 0, 0.55);
-  --media-overlay-bg: color-mix(in srgb, #10100f 70%, transparent);
-  --media-overlay-bg-hover: color-mix(in srgb, #10100f 84%, transparent);
-  --media-overlay-fg: #f1f0ec;
-  --modal-backdrop-bg: color-mix(in srgb, #080807 72%, transparent);
+  --media-overlay-bg: color-mix(in srgb, #101217 70%, transparent);
+  --media-overlay-bg-hover: color-mix(in srgb, #101217 84%, transparent);
+  --media-overlay-fg: #f1f3f5;
+  --media-overlay-edge: color-mix(in srgb, var(--media-overlay-fg) 16%, transparent);
+  --media-overlay-light-bg: color-mix(in srgb, #f1f3f5 88%, transparent);
+  --media-overlay-light-bg-hover: color-mix(in srgb, #fbfcfd 94%, transparent);
+  --media-overlay-light-fg: #202328;
+  --media-overlay-light-edge: color-mix(in srgb, #fbfcfd 28%, transparent);
+  --modal-backdrop-bg: color-mix(in srgb, #08090b 72%, transparent);
+  --switch-thumb-bg: #f1f3f5;
   /* Chat user bubble edge — dark mode: accent ring on the outer 1px, white
      highlight on the next 1px inside, giving a crisp double-line top edge. */
   --bubble-user-edge: inset 0 2px 0 -1px rgba(255, 255, 255, 0.16), inset 0 0 0 1px var(--color-accent-ring);

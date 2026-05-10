@@ -120,15 +120,16 @@ function ToggleSwitch({ checked }: { checked: boolean }) {
       style={{
         background: checked ? 'var(--color-accent)' : 'var(--color-surface-3)',
         boxShadow: checked
-          ? 'inset 0 0 0 1px color-mix(in srgb, var(--color-accent) 55%, #000 10%)'
+          ? 'inset 0 0 0 1px color-mix(in srgb, var(--color-accent) 55%, var(--color-bg-sunken) 10%)'
           : 'inset 0 0 0 1px var(--ring-edge)',
       }}
     >
       <span
-        className="absolute top-[1px] left-[1px] h-[12px] w-[12px] rounded-full bg-(--color-surface) transition-transform"
+        className="absolute top-[1px] left-[1px] h-[12px] w-[12px] rounded-full bg-(--switch-thumb-bg) transition-transform"
         style={{
           transform: checked ? 'translateX(10px)' : 'translateX(0)',
-          boxShadow: '0 1px 2px rgba(0,0,0,0.18), inset 0 0 0 0.5px var(--ring-edge-soft)',
+          boxShadow:
+            '0 1px 2px color-mix(in srgb, var(--color-bg-sunken) 18%, transparent), inset 0 0 0 0.5px var(--ring-edge-soft)',
         }}
       />
     </span>

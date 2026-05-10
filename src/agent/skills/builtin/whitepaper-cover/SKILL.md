@@ -34,14 +34,14 @@ display_description:
 
 ## 1. Document Type（骨架）
 
-| Document Type    | 用途                          | 构图重心                                                |
-| ---------------- | ----------------------------- | ------------------------------------------------------- |
-| `industry`       | 行业 / 产业白皮书             | 主题词组 + 副标题 + 发布机构 + 期次 / 年份              |
-| `annual-report`  | 公司年度报告                  | 公司 logo / 名 + 年份大字 + 主题副标题                  |
-| `research`       | 研究报告 / 学术论文           | 标题（多行）+ 作者 + 机构 + 期刊 / 序号                 |
-| `policy`         | 政策 / 智库 / 战略研究        | 主题词 + 副标 + 出版方徽记                              |
-| `technical`      | 技术白皮书 / 协议 / RFC 风    | 简短代号 + 长标题 + 版本号 + 团队 / 公司                |
-| `manifesto`      | 设计 / 文化 / 思辨宣言        | 单一主张句 + 极少元数据，强排版                         |
+| Document Type   | 用途                       | 构图重心                                   |
+| --------------- | -------------------------- | ------------------------------------------ |
+| `industry`      | 行业 / 产业白皮书          | 主题词组 + 副标题 + 发布机构 + 期次 / 年份 |
+| `annual-report` | 公司年度报告               | 公司 logo / 名 + 年份大字 + 主题副标题     |
+| `research`      | 研究报告 / 学术论文        | 标题（多行）+ 作者 + 机构 + 期刊 / 序号    |
+| `policy`        | 政策 / 智库 / 战略研究     | 主题词 + 副标 + 出版方徽记                 |
+| `technical`     | 技术白皮书 / 协议 / RFC 风 | 简短代号 + 长标题 + 版本号 + 团队 / 公司   |
+| `manifesto`     | 设计 / 文化 / 思辨宣言     | 单一主张句 + 极少元数据，强排版            |
 
 ## 2. Design School DNA（核心维度）
 
@@ -50,7 +50,9 @@ display_description:
 颜色 / 字体名只是给模型的视觉指令，**禁止把色号、学派名、role 标签渲染进图里**。
 
 ### 10. Müller-Brockmann - 瑞士网格纯粹
+
 适合：`technical` / `research` / `policy`。技术 / 学术 / 政策最稳。
+
 ```
 Josef Müller-Brockmann Swiss modernism cover:
 - Mathematical 8pt grid clearly perceptible
@@ -62,7 +64,9 @@ Josef Müller-Brockmann Swiss modernism cover:
 ```
 
 ### 04. Fathom - 科学叙事
+
 适合：`research` / `industry` / `policy`. 数据严谨、定量分析。
+
 ```
 Fathom Information Design cover:
 - Scientific journal aesthetic meets modern editorial design
@@ -74,7 +78,9 @@ Fathom Information Design cover:
 ```
 
 ### 03. Information Architects - 内容优先
+
 适合：`technical` / `manifesto`. 极致 type-driven，几乎纯文字封面。
+
 ```
 Information Architects philosophy cover:
 - Content-first hierarchy, zero decorative elements
@@ -86,7 +92,9 @@ Information Architects philosophy cover:
 ```
 
 ### 17. Takram - 日式思辨
+
 适合：`research` / `industry`. 科技人文、产品概念、设计研究。
+
 ```
 Takram Japanese speculative design cover:
 - Soft tech aesthetic: rounded corners, gentle shadows
@@ -98,7 +106,9 @@ Takram Japanese speculative design cover:
 ```
 
 ### 19. Irma Boom - 书籍建筑
+
 适合：`industry` / `manifesto` / `annual-report`. 厚重的书籍质感、不寻常配色。
+
 ```
 Irma Boom book architecture cover:
 - Non-linear information layout, plays with edges and margins
@@ -110,7 +120,9 @@ Irma Boom book architecture cover:
 ```
 
 ### 18. Kenya Hara - 空的设计
+
 适合：`manifesto` / `industry`. 文化 / 哲思 / 极致克制。
+
 ```
 Kenya Hara "emptiness" cover:
 - Extreme whitespace (80%+) on cream / paper-textured ground
@@ -122,7 +134,9 @@ Kenya Hara "emptiness" cover:
 ```
 
 ### 01. Pentagram - 编辑权威
+
 适合：`annual-report` / `industry` / `policy`. 商业权威感最强。
+
 ```
 Pentagram / Michael Bierut cover:
 - Extreme typographic hierarchy (Helvetica / Univers grotesque)
@@ -134,7 +148,9 @@ Pentagram / Michael Bierut cover:
 ```
 
 ### 11. Build - 当代奢侈极简
+
 适合：`annual-report` / `manifesto`. 高端品牌、设计公司年报。
+
 ```
 Build studio luxury minimalism cover:
 - Generous whitespace (70%+), single focal element
@@ -218,18 +234,18 @@ Build studio luxury minimalism cover:
 
 ## 5. 自动推荐表（用户跳过维度时）
 
-| 内容关键词                               | doc-type        | school                  | theme | element            |
-| ---------------------------------------- | --------------- | ----------------------- | ----- | ------------------ |
-| 公司 / 企业 / annual report / 年报       | annual-report   | Pentagram               | light | typography-only    |
-| 行业 / 产业 / 市场 / 趋势                | industry        | Fathom                  | light | data-glyph         |
-| 政策 / 智库 / 战略 / 政府                | policy          | Müller-Brockmann        | light | typography-only    |
-| 技术 / 协议 / 规范 / RFC                 | technical       | Information Architects  | light | typography-only    |
-| 研究 / 学术 / 论文 / 实验                | research        | Müller-Brockmann        | light | data-glyph         |
-| 设计 / 文化 / 思辨 / 宣言                | manifesto       | Kenya Hara              | cream | single-mark        |
-| 创意 / 艺术 / 文化机构                   | industry        | Irma Boom               | cream | book-edge          |
-| 科技人文 / 产品研究 / 创新报告           | research        | Takram                  | light | editorial-image    |
-| 投资 / 咨询深度报告                      | industry        | Pentagram               | light | editorial-image    |
-| 高端品牌 / 设计公司年报                  | annual-report   | Build                   | cream | single-mark        |
+| 内容关键词                         | doc-type      | school                 | theme | element         |
+| ---------------------------------- | ------------- | ---------------------- | ----- | --------------- |
+| 公司 / 企业 / annual report / 年报 | annual-report | Pentagram              | light | typography-only |
+| 行业 / 产业 / 市场 / 趋势          | industry      | Fathom                 | light | data-glyph      |
+| 政策 / 智库 / 战略 / 政府          | policy        | Müller-Brockmann       | light | typography-only |
+| 技术 / 协议 / 规范 / RFC           | technical     | Information Architects | light | typography-only |
+| 研究 / 学术 / 论文 / 实验          | research      | Müller-Brockmann       | light | data-glyph      |
+| 设计 / 文化 / 思辨 / 宣言          | manifesto     | Kenya Hara             | cream | single-mark     |
+| 创意 / 艺术 / 文化机构             | industry      | Irma Boom              | cream | book-edge       |
+| 科技人文 / 产品研究 / 创新报告     | research      | Takram                 | light | editorial-image |
+| 投资 / 咨询深度报告                | industry      | Pentagram              | light | editorial-image |
+| 高端品牌 / 设计公司年报            | annual-report | Build                  | cream | single-mark     |
 
 ## 6. Prompt 拼装模板
 
@@ -286,13 +302,13 @@ Goal: Produce a SINGLE A4 portrait whitepaper / report cover (rendered at 3:4 as
 
 ## 7. GenImage 调用
 
-| 参数                | 默认            | 备注                                                            |
-| ------------------- | --------------- | --------------------------------------------------------------- |
-| model               | `gpt-image-2`   | 文字稳定；纯几何 / `single-mark` 极简可换 `nano-banana-pro`     |
-| resolution          | `2K`            | 阅读 / 数字分发够用；要印刷再上 `4K`                            |
-| ratio               | `3:4`           | 最接近 A4 竖版；不要传白名单外的 ratio                          |
-| n                   | `1`             | 一封面一张                                                      |
-| reference_image_ids | `[]`            | 仅当对话已有真实图片 id 才填                                    |
+| 参数                | 默认          | 备注                                                        |
+| ------------------- | ------------- | ----------------------------------------------------------- |
+| model               | `gpt-image-2` | 文字稳定；纯几何 / `single-mark` 极简可换 `nano-banana-pro` |
+| resolution          | `2K`          | 阅读 / 数字分发够用；要印刷再上 `4K`                        |
+| ratio               | `3:4`         | 最接近 A4 竖版；不要传白名单外的 ratio                      |
+| n                   | `1`           | 一封面一张                                                  |
+| reference_image_ids | `[]`          | 仅当对话已有真实图片 id 才填                                |
 
 调用示例：
 

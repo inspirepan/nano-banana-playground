@@ -140,17 +140,19 @@ export const StackItemThumb = memo(function StackItemThumb({
         boxShadow: 'inset 0 0 0 1px var(--ring-edge-strong), var(--shadow-lift)',
       }
     : {
-        background: 'rgba(0,0,0,0.56)',
-        color: '#fff',
-        boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.18)',
+        background: 'var(--media-overlay-bg)',
+        color: 'var(--media-overlay-fg)',
+        boxShadow: 'inset 0 0 0 1px color-mix(in srgb, var(--media-overlay-fg) 18%, transparent)',
       }
   const metaBadgeStyle: CSSProperties = {
     top: numberBadgeInset,
     right: numberBadgeInset,
     maxWidth: `calc(100% - ${numberBadgeInset * 2 + 36}px)`,
-    background: slot ? badgeSurface.background : 'rgba(0,0,0,0.5)',
+    background: slot ? badgeSurface.background : 'var(--media-overlay-bg)',
     color: badgeSurface.color,
-    boxShadow: slot ? badgeSurface.boxShadow : 'inset 0 0 0 1px rgba(255,255,255,0.16)',
+    boxShadow: slot
+      ? badgeSurface.boxShadow
+      : 'inset 0 0 0 1px color-mix(in srgb, var(--media-overlay-fg) 16%, transparent)',
     backdropFilter: 'blur(8px)',
   }
   const slotStatusIcon =
@@ -277,7 +279,7 @@ export const StackItemThumb = memo(function StackItemThumb({
       )}
       {metaBadge && (
         <span
-          className="pointer-events-none absolute z-10 flex flex-col items-start rounded-[var(--radius-xs)] px-1.5 py-1 text-white"
+          className="pointer-events-none absolute z-10 flex flex-col items-start rounded-[var(--radius-xs)] px-1.5 py-1"
           style={metaBadgeStyle}
           title={metaBadgeTitle ?? metaBadge}
         >
@@ -287,7 +289,7 @@ export const StackItemThumb = memo(function StackItemThumb({
                 {splitMetaBadge.title}
               </span>
               <span
-                className={`mt-0.5 max-w-full truncate text-[10px] font-normal leading-[11px] tabular-nums ${slot ? 'text-(--color-text-3)' : 'text-white/85'}`}
+                className={`mt-0.5 max-w-full truncate text-[10px] font-normal leading-[11px] tabular-nums ${slot ? 'text-(--color-text-3)' : 'text-(--media-overlay-fg) opacity-85'}`}
               >
                 {splitMetaBadge.detail}
               </span>
@@ -313,10 +315,10 @@ export const StackItemThumb = memo(function StackItemThumb({
           className={`absolute right-1.5 z-20 flex h-[18px] w-[18px] items-center justify-center rounded-[var(--radius-xs)] transition-[background-color,box-shadow,color,opacity,transform] active:scale-95 ${selectionIndicatorPosition === 'bottom-right' ? 'bottom-2.5' : 'top-1.5'} ${onQuickSelect ? 'pointer-events-auto opacity-0 group-hover:opacity-100 group-focus-within:opacity-100' : 'pointer-events-none'}`}
           style={{
             background: selected ? 'var(--color-warning)' : 'color-mix(in srgb, var(--color-surface) 58%, transparent)',
-            color: selected ? '#fff' : 'color-mix(in srgb, var(--color-text) 42%, transparent)',
+            color: selected ? 'var(--media-overlay-fg)' : 'color-mix(in srgb, var(--color-text) 42%, transparent)',
             boxShadow: selected
-              ? 'inset 0 0 0 1px color-mix(in srgb, var(--color-warning) 72%, #000 12%)'
-              : 'inset 0 0 0 1px color-mix(in srgb, #fff 45%, var(--ring-edge-strong))',
+              ? 'inset 0 0 0 1px color-mix(in srgb, var(--color-warning) 72%, var(--color-bg-sunken) 12%)'
+              : 'inset 0 0 0 1px color-mix(in srgb, var(--media-overlay-fg) 45%, var(--ring-edge-strong))',
             backdropFilter: 'blur(10px) saturate(1.08)',
           }}
         >

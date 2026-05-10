@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react'
+import { useCallback, useId, useRef } from 'react'
 
 import { Icon } from './Icon'
 import { useImageSrc } from '../hooks/useImageSrc'
@@ -41,6 +41,8 @@ export function ReferenceImageUpload({
 }: Props) {
   const { t } = useI18n()
   const inputRef = useRef<HTMLInputElement>(null)
+  const hintId = useId()
+  const errorId = useId()
   const displayHint = hint ?? t('input.reference.hint')
 
   const handleFileSelect = useCallback(
@@ -105,6 +107,7 @@ export function ReferenceImageUpload({
             className="dropzone aspect-square flex flex-col items-center justify-center gap-1 text-base font-medium text-(--color-text-3)"
             data-drag-active={dragOver}
             aria-label={t('input.reference.upload')}
+            aria-describedby={error ? `${hintId} ${errorId}` : hintId}
           >
             <Icon name="plus" size={14} />
             {t('input.reference.upload')}
@@ -113,6 +116,7 @@ export function ReferenceImageUpload({
       </div>
       {error && (
         <div
+          id={errorId}
           className="mt-1.5 flex items-start gap-1.5 text-sm leading-[1.45] rounded-[var(--radius-sm)] px-2 py-1.5"
           style={{ color: 'var(--color-danger)', background: 'var(--color-danger-soft)' }}
         >
@@ -129,7 +133,9 @@ export function ReferenceImageUpload({
           </button>
         </div>
       )}
-      <div className="text-sm text-(--color-text-3) mt-1.5">{displayHint}</div>
+      <div id={hintId} className="text-sm text-(--color-text-3) mt-1.5">
+        {displayHint}
+      </div>
       <input
         ref={inputRef}
         type="file"
@@ -146,6 +152,7 @@ function LockedReferenceThumb({ item }: { item: LockedReferenceImage }) {
   const { t } = useI18n()
   const { ref, src } = useImageSrc(item.image.id, item.image.mimeType, undefined, { variant: 'preview' })
   const previewSrc = item.preview ? `data:${item.preview.mimeType};base64,${item.preview.data}` : null
+  const lockedLabel = t('input.reference.lockedAria')
   return (
     <div ref={ref} className="ref-thumb group aspect-square">
       {previewSrc || src ? (
@@ -166,7 +173,9 @@ function LockedReferenceThumb({ item }: { item: LockedReferenceImage }) {
       <span
         className="ref-thumb-close"
         style={{ opacity: 1, cursor: 'default' }}
-        aria-label={t('input.reference.lockedAria')}
+        role="img"
+        aria-label={lockedLabel}
+        title={lockedLabel}
       >
         <Icon name="lock" size={9} strokeWidth={2.4} />
       </span>

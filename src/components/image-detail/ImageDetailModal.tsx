@@ -480,11 +480,7 @@ export function ImageDetailModal({
         clipRef={detailScrollRef}
         fullscreen={mobilePreviewOpen}
         visible={Boolean(
-          isMobileLayout &&
-          currentImage &&
-          !mobileDrawOpen &&
-          !refDetailId &&
-          (mobilePreviewOpen || !editing),
+          isMobileLayout && currentImage && !mobileDrawOpen && !refDetailId && (mobilePreviewOpen || !editing),
         )}
         src={displayImage?.src ?? currentSrc ?? ''}
         alt={displayImage?.alt ?? currentMeta?.prompt ?? ''}

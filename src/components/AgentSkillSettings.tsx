@@ -129,7 +129,7 @@ export function AgentSkillSettings({ skills, onEnabledChange, onDelete, onGetPac
                         style={{ boxShadow: 'inset 0 0 0 1px var(--ring-edge-soft)' }}
                       >
                         <span
-                          className={`absolute top-0.5 left-0.5 h-3 w-3 rounded-full bg-(--color-surface) transition-transform ${
+                          className={`absolute top-0.5 left-0.5 h-3 w-3 rounded-full bg-(--switch-thumb-bg) transition-transform ${
                             skill.enabled ? 'translate-x-3' : 'translate-x-0'
                           }`}
                           style={{ boxShadow: '0 0 0 1px var(--ring-edge-soft)' }}

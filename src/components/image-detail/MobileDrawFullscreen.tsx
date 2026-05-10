@@ -202,7 +202,13 @@ export function MobileDrawFullscreen({
   return (
     <div className="fixed inset-0 z-[140] flex flex-col bg-(--color-bg)">
       <div className="flex h-12 shrink-0 items-center gap-2 px-3 shadow-[inset_0_-1px_0_var(--ring-edge-soft)]">
-        <button type="button" className="icon-btn" onClick={onClose} title={t('imageDetail.action.done')}>
+        <button
+          type="button"
+          className="icon-btn"
+          onClick={onClose}
+          title={t('imageDetail.action.done')}
+          aria-label={t('imageDetail.action.done')}
+        >
           <Icon name="chevron_left" size={15} strokeWidth={1.8} />
         </button>
         <div className="min-w-0 flex-1">
@@ -276,6 +282,7 @@ export function MobileDrawFullscreen({
             className="icon-btn pointer-events-auto"
             onClick={() => zoomCenter(0.8)}
             title={t('imageDetail.zoom.out')}
+            aria-label={t('imageDetail.zoom.out')}
             style={{ width: 28, height: 26 }}
           >
             <Icon name="zoom_out_map" size={12} strokeWidth={1.8} />
@@ -285,6 +292,7 @@ export function MobileDrawFullscreen({
             className="pointer-events-auto px-2 text-sm font-medium text-(--color-text-2)"
             onClick={resetView}
             title={t('imageDetail.zoom.reset')}
+            aria-label={t('imageDetail.zoom.reset')}
           >
             {Math.round(scale * 100)}%
           </button>
@@ -293,6 +301,7 @@ export function MobileDrawFullscreen({
             className="icon-btn pointer-events-auto"
             onClick={() => zoomCenter(1.25)}
             title={t('imageDetail.zoom.in')}
+            aria-label={t('imageDetail.zoom.in')}
             style={{ width: 28, height: 26 }}
           >
             <Icon name="zoom_in" size={12} strokeWidth={1.8} />

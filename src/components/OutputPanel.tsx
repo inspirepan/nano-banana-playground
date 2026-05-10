@@ -351,7 +351,7 @@ export const OutputPanel = memo(function OutputPanel({
                     if (el) stackRowRefs.current.set(stack.id, el)
                     else stackRowRefs.current.delete(stack.id)
                   }}
-                  className="rounded-[var(--radius-lg)] transition-shadow duration-300 ease-out motion-reduce:!transition-none"
+                  className="rounded-[var(--radius-lg)] transition-shadow duration-300 ease-[var(--ease-out)] motion-reduce:!transition-none"
                   style={
                     isHighlighted
                       ? {
@@ -391,10 +391,19 @@ export const OutputPanel = memo(function OutputPanel({
           )}
         </div>
       ) : (
-        <div className="card px-4 py-5 text-(--color-text-3)">
-          <div className="label mb-2">{t('output.emptyHistory')}</div>
-          <div className="text-base font-medium text-(--color-text-2)">{t('output.emptyTitle')}</div>
-          <div className="mt-1 text-sm leading-[1.7] text-(--color-text-3)">{t('output.emptyDescription')}</div>
+        <div className="gallery-empty px-5 py-6 text-(--color-text-3)">
+          <div className="relative flex max-w-[58ch] items-start gap-3">
+            <span className="gallery-empty__icon" aria-hidden="true">
+              <Icon name="image" size={16} strokeWidth={1.7} />
+            </span>
+            <div className="min-w-0 pt-0.5">
+              <div className="label mb-2">{t('output.emptyHistory')}</div>
+              <div className="text-base font-medium text-(--color-text-2)">{t('output.emptyTitle')}</div>
+              <div className="mt-1 text-pretty text-sm leading-[1.7] text-(--color-text-3)">
+                {t('output.emptyDescription')}
+              </div>
+            </div>
+          </div>
         </div>
       )}
 

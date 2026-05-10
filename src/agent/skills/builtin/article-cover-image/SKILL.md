@@ -231,6 +231,7 @@ Pentagram / Michael Bierut editorial:
 - Headline dominates 40-50%, 60%+ whitespace
 - Information architecture as visual structure
 ```
+
 适合内容：商业 / 编辑深度 / 政策 / 财经 / 权威观点（type=hero / typography，palette=mono / cool）。
 
 ```
@@ -240,6 +241,7 @@ Build studio luxury minimalism:
 - Soft shadow / very subtle gradient hints, golden ratio rhythm
 - High-end editorial / brand confidence
 ```
+
 适合内容：高端品牌、设计公司、奢侈生活方式（type=minimal / hero，palette=elegant / mono）。
 
 ```
@@ -249,6 +251,7 @@ Takram Japanese speculative design:
 - Neutral natural palette (beige #E8E1D5, soft gray #C8C5BE, muted green #6F8A7E)
 - Modest sophistication, careful typography
 ```
+
 适合内容：科技人文、产品 / 研究、设计思辨（type=conceptual / metaphor，palette=earth / elegant）。
 
 ```
@@ -257,6 +260,7 @@ Sagmeister & Walsh joyful philosophy:
 - Hand-made elements (paper, ribbon, stitched type) blended into digital
 - Optimistic warm imperfection, experimental but legible
 ```
+
 适合内容：文化机构、年度回顾、暖色金句、创意品牌（type=typography / metaphor，palette=warm / vivid）。
 
 ```
@@ -266,6 +270,7 @@ Kenya Hara "emptiness" design:
 - Paper texture and tactility translated to digital
 - Zen simplicity, design by subtraction
 ```
+
 适合内容：文化哲思、极简观点、东方美学（type=minimal，palette=mono / warm）。
 
 ```
@@ -276,6 +281,7 @@ Neo Shen poetic Chinese aesthetic:
 - Emotional palette (deep blues, warm grays, soft gold)
 - Calligraphic influences in typography
 ```
+
 适合内容：东方美学、禅意 / 心境 / 文化散文（type=metaphor / scene，palette=dark / earth / mono）。
 
 ```
@@ -285,6 +291,7 @@ Experimental Jetset conceptual minimalism:
 - Typography as main graphic element, deliberate grid breaks
 - Anti-commercial, honest, type-driven
 ```
+
 适合内容：博物馆 / 文化机构 / 反商业 / 概念稿（type=typography，palette=vivid / mono）。
 
 ### 学派叠加段落模板

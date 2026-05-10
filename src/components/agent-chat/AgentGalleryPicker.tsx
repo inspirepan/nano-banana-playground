@@ -1,4 +1,4 @@
-import { type MouseEvent, useMemo } from 'react'
+import { type MouseEvent, useId, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 
 import { useWindowEvent } from '../../hooks/effects'
@@ -17,6 +17,7 @@ type Props = {
 
 export function AgentGalleryPicker({ open, history, attachedImageIds, onPick, onClose }: Props) {
   const { t } = useI18n()
+  const titleId = useId()
 
   useWindowEvent(
     'keydown',
@@ -43,12 +44,18 @@ export function AgentGalleryPicker({ open, history, attachedImageIds, onPick, on
   }
 
   return createPortal(
-    <div data-agent-menu className="fade-in fixed inset-0 z-[120] flex flex-col bg-(--color-bg)">
+    <div
+      data-agent-menu
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={titleId}
+      className="fade-in fixed inset-0 z-[120] flex flex-col bg-(--color-bg)"
+    >
       <div className="flex shrink-0 items-center gap-3 px-4 py-3 shadow-[inset_0_-1px_0_var(--ring-edge-soft)]">
         <button type="button" onClick={onClose} className="icon-btn" aria-label={t('common.close')}>
           <Icon name="close" size={14} />
         </button>
-        <h2 className="font-display text-base font-semibold tracking-[-0.01em]">
+        <h2 id={titleId} className="font-display text-base font-semibold tracking-[-0.01em]">
           {t('agentChat.galleryPicker.title')}
         </h2>
       </div>
@@ -129,8 +136,9 @@ function GalleryPickerItem({
         <span
           className="pointer-events-none absolute bottom-1 left-1 mono max-w-[calc(100%-8px)] truncate rounded-[var(--radius-xs)] px-1.5 py-0.5 text-[10px] leading-none"
           style={{
-            background: 'rgba(0,0,0,0.5)',
-            color: '#fff',
+            background: 'var(--media-overlay-bg)',
+            color: 'var(--media-overlay-fg)',
+            boxShadow: 'inset 0 0 0 1px color-mix(in srgb, var(--media-overlay-fg) 16%, transparent)',
             backdropFilter: 'blur(8px)',
           }}
         >

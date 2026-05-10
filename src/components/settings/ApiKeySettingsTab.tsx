@@ -409,12 +409,12 @@ function KeyRow({ provider, hook, last = false }: { provider: Provider; hook: Ke
                     disabled={isValidating}
                     className={`relative mt-0.5 inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed ${
                       useProxyDraft
-                        ? 'bg-(--color-accent) shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-accent)_55%,#000_10%)]'
+                        ? 'bg-(--color-accent) shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-accent)_55%,var(--color-bg-sunken)_10%)]'
                         : 'bg-(--color-surface-2) shadow-[inset_0_0_0_1px_var(--ring-edge)]'
                     }`}
                   >
                     <span
-                      className={`pointer-events-none my-0.5 size-4 rounded-full bg-white shadow-sm transition-transform duration-150 ${
+                      className={`pointer-events-none my-0.5 size-4 rounded-full bg-(--switch-thumb-bg) shadow-sm transition-transform duration-150 ${
                         useProxyDraft ? 'translate-x-[18px]' : 'translate-x-0.5'
                       }`}
                     />

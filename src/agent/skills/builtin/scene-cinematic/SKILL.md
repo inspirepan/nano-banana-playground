@@ -230,6 +230,7 @@ Ash Thorp cinematic concept art:
 - Volumetric lighting and god rays
 - Blade Runner warmth over Tron coldness
 ```
+
 配 cinematic-noir / sci-fi-tech；推荐 ratio 2.35:1 + Cinematic Duotone / Noir Neon。
 
 ```
@@ -240,6 +241,7 @@ Territory Studio FUI (Fantasy User Interface):
 - Believable future technology
 - Technical readouts and data streams floating in space
 ```
+
 配 sci-fi-tech；推荐 Cool Tech 或 Noir Neon，整图加入 HUD 数据层但不喧宾夺主。
 
 ```
@@ -250,6 +252,7 @@ Locomotive scroll narrative:
 - Strategic glowing accents on near-black background
 - 100vh hero feel, hero subject anchored low
 ```
+
 配 cinematic-noir / golden-hour 的"博客 hero"用途；强化前景 / 中景 / 远景的视差层级。
 
 ```
@@ -259,6 +262,7 @@ Resn interactive storytelling:
 - Character-driven, editorial illustration meets product design
 - Slight gamified mood (progress hint, glow trail)
 ```
+
 配 dreamlike-pastel / golden-hour；适合"故事"型 hero（主角剪影 + 远景 narrative）。
 
 ```
@@ -269,6 +273,7 @@ Field.io generative aesthetic:
 - Mathematical precision in spacing
 - Clean code aesthetic, computational rather than painterly
 ```
+
 配 sci-fi-tech；painterly 倾向不适合，digital 更对味；常配 ratio 1:1 或 16:9。
 
 ```
@@ -279,6 +284,7 @@ Zach Lieberman code-as-art:
 - Visible process / grid / construction lines
 - Poetic interpretation of algorithms
 ```
+
 配 dreamlike-pastel 的极简变体或 sci-fi-tech 黑白方向；hand-drawn 渲染倾向最贴。
 
 ```
@@ -289,6 +295,7 @@ Raven Kwok parametric:
 - Chinese garden principles in algorithm form
 - Intricate detail that rewards zooming
 ```
+
 配 sci-fi-tech 黑白冷峻路线；ratio 1:1 或 4:3 适合分形对称构图。
 
 ### 学派叠加段落模板

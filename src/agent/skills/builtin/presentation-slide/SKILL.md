@@ -34,15 +34,15 @@ display_description:
 
 ## 1. Slide Type（骨架）
 
-| Slide Type        | 用途                              | 构图                                                                 |
-| ----------------- | --------------------------------- | -------------------------------------------------------------------- |
-| `title-cover`     | 整份 deck 的封面 / 主题页         | 大标题占主导，副标题 + 1 行 metadata（日期 / 演讲人）                |
-| `section-divider` | 章节切换页                        | 大数字 / 章节编号 + 章节短语，留 70% 空白                            |
-| `data-slide`      | 数据可视化页（柱图 / 折线 / KPI） | 1 个核心数字 / 图表占 60%，标题 + 1 句洞察                           |
-| `quote-slide`     | 名言 / 金句 / 用户证言            | 大引号 + 短句（≤ 30 字符）+ 引用人，强排版                           |
-| `list-slide`      | 列点页（3-5 条）                  | 标题 + 编号或图标 + 短描述，垂直或两列                               |
-| `image-hero`      | 大图主视觉页                      | 占满或 60% 主视觉 + 简短 caption；常用于产品发布、metaphor 概念呈现  |
-| `process-flow`    | 流程 / 步骤 / 时间线              | 横向 3-5 步骤箭头链或时间线，每步极简短文字                          |
+| Slide Type        | 用途                              | 构图                                                                |
+| ----------------- | --------------------------------- | ------------------------------------------------------------------- |
+| `title-cover`     | 整份 deck 的封面 / 主题页         | 大标题占主导，副标题 + 1 行 metadata（日期 / 演讲人）               |
+| `section-divider` | 章节切换页                        | 大数字 / 章节编号 + 章节短语，留 70% 空白                           |
+| `data-slide`      | 数据可视化页（柱图 / 折线 / KPI） | 1 个核心数字 / 图表占 60%，标题 + 1 句洞察                          |
+| `quote-slide`     | 名言 / 金句 / 用户证言            | 大引号 + 短句（≤ 30 字符）+ 引用人，强排版                          |
+| `list-slide`      | 列点页（3-5 条）                  | 标题 + 编号或图标 + 短描述，垂直或两列                              |
+| `image-hero`      | 大图主视觉页                      | 占满或 60% 主视觉 + 简短 caption；常用于产品发布、metaphor 概念呈现 |
+| `process-flow`    | 流程 / 步骤 / 时间线              | 横向 3-5 步骤箭头链或时间线，每步极简短文字                         |
 
 ## 2. Design School DNA（核心维度）
 
@@ -51,7 +51,9 @@ display_description:
 颜色 / 字体名只是对模型的视觉指令，**禁止把色号、学派名、role 标签渲染到图里**。
 
 ### 01. Pentagram - 信息建筑派
+
 适合：title-cover / section-divider / data-slide / quote-slide。商业 / 企业 / 编辑深度报告。
+
 ```
 Pentagram / Michael Bierut style:
 - Extreme typographic hierarchy, Helvetica or Univers grotesque
@@ -63,7 +65,9 @@ Pentagram / Michael Bierut style:
 ```
 
 ### 10. Müller-Brockmann - 瑞士网格
+
 适合：data-slide / list-slide / process-flow。数据严谨、技术报告。
+
 ```
 Josef Müller-Brockmann Swiss modernism:
 - Mathematical 8pt baseline grid, columns clearly visible
@@ -75,7 +79,9 @@ Josef Müller-Brockmann Swiss modernism:
 ```
 
 ### 11. Build - 当代奢侈极简
+
 适合：title-cover / quote-slide / image-hero。品牌发布、设计公司 deck。
+
 ```
 Build studio luxury minimalism:
 - Generous whitespace (70%+), single focal element
@@ -87,7 +93,9 @@ Build studio luxury minimalism:
 ```
 
 ### 18. Kenya Hara - 空的设计
+
 适合：title-cover / quote-slide / section-divider。文化 / 哲思 / 极致克制。
+
 ```
 Kenya Hara "emptiness" design:
 - Extreme whitespace (80%+), single tiny focal element
@@ -99,7 +107,9 @@ Kenya Hara "emptiness" design:
 ```
 
 ### 12. Sagmeister & Walsh - 快乐极简
+
 适合：title-cover / section-divider / quote-slide。文化机构、创意品牌、年度回顾。
+
 ```
 Sagmeister & Walsh joyful philosophy:
 - Unexpected color bursts on minimal base (one saturated color + cream + black)
@@ -110,7 +120,9 @@ Sagmeister & Walsh joyful philosophy:
 ```
 
 ### 17. Takram - 日式思辨
+
 适合：data-slide / list-slide / process-flow / title-cover。科技人文、产品概念、研究报告。
+
 ```
 Takram Japanese speculative design:
 - Soft tech aesthetic: rounded corners, gentle shadows
@@ -121,7 +133,9 @@ Takram Japanese speculative design:
 ```
 
 ### 04. Fathom - 科学叙事
+
 适合：data-slide / list-slide。年度报告、政策研究、技术深度。
+
 ```
 Fathom Information Design style:
 - Scientific journal aesthetic meets modern editorial design
@@ -133,7 +147,9 @@ Fathom Information Design style:
 ```
 
 ### 02. Stamen - 数据诗学
+
 适合：data-slide / image-hero。地理 / 公共数据 / 城市 / 气候话题。
+
 ```
 Stamen Design aesthetic:
 - Cartographic approach to data viz (maps, contour, layered topography)
@@ -150,16 +166,16 @@ Stamen Design aesthetic:
 
 学派对 theme 的偏好：
 
-| 学派              | 推荐 theme         |
-| ----------------- | ------------------ |
-| Pentagram         | light / cream      |
-| Müller-Brockmann  | light（白底为主）  |
-| Build             | light / cream      |
-| Kenya Hara        | cream（必选）      |
-| Sagmeister        | cream / light      |
-| Takram            | light / cream      |
-| Fathom            | light              |
-| Stamen            | cream / light      |
+| 学派             | 推荐 theme        |
+| ---------------- | ----------------- |
+| Pentagram        | light / cream     |
+| Müller-Brockmann | light（白底为主） |
+| Build            | light / cream     |
+| Kenya Hara       | cream（必选）     |
+| Sagmeister       | cream / light     |
+| Takram           | light / cream     |
+| Fathom           | light             |
+| Stamen           | cream / light     |
 
 dark theme 适合：发布会 keynote 风（任意学派 + dark 都能成立，但要把 accent 色和主标题对比拉满）。
 
@@ -225,18 +241,18 @@ dark theme 适合：发布会 keynote 风（任意学派 + dark 都能成立，�
 
 ## 5. 自动推荐表（用户跳过维度时）
 
-| 内容关键词                       | slide-type      | school          | theme  | density  |
-| -------------------------------- | --------------- | --------------- | ------ | -------- |
-| 投资人 / 融资 / pitch deck       | title-cover     | Pentagram       | light  | minimal  |
-| 季度 / 年度 / OKR / 数据回顾     | data-slide      | Fathom          | light  | balanced |
-| 哲学 / 思辨 / 设计观             | quote-slide     | Kenya Hara      | cream  | minimal  |
-| 章节切换 / 大纲                  | section-divider | Build           | cream  | minimal  |
-| 流程 / 路线图 / roadmap          | process-flow    | Müller-Brockmann| light  | balanced |
-| 团队 / All-Hands / 文化          | quote-slide     | Sagmeister      | cream  | balanced |
-| 产品发布 / launch                | image-hero      | Build           | dark   | minimal  |
-| 政策 / 城市 / 气候 / 地理        | data-slide      | Stamen          | cream  | balanced |
-| 研究 / 技术报告 / 科普           | list-slide      | Takram          | light  | balanced |
-| 教程 / how-to                    | process-flow    | Takram          | light  | dense    |
+| 内容关键词                   | slide-type      | school           | theme | density  |
+| ---------------------------- | --------------- | ---------------- | ----- | -------- |
+| 投资人 / 融资 / pitch deck   | title-cover     | Pentagram        | light | minimal  |
+| 季度 / 年度 / OKR / 数据回顾 | data-slide      | Fathom           | light | balanced |
+| 哲学 / 思辨 / 设计观         | quote-slide     | Kenya Hara       | cream | minimal  |
+| 章节切换 / 大纲              | section-divider | Build            | cream | minimal  |
+| 流程 / 路线图 / roadmap      | process-flow    | Müller-Brockmann | light | balanced |
+| 团队 / All-Hands / 文化      | quote-slide     | Sagmeister       | cream | balanced |
+| 产品发布 / launch            | image-hero      | Build            | dark  | minimal  |
+| 政策 / 城市 / 气候 / 地理    | data-slide      | Stamen           | cream | balanced |
+| 研究 / 技术报告 / 科普       | list-slide      | Takram           | light | balanced |
+| 教程 / how-to                | process-flow    | Takram           | light | dense    |
 
 ## 6. Prompt 拼装模板
 
@@ -292,13 +308,13 @@ Goal: Produce a SINGLE 16:9 presentation slide for the deck described below. One
 
 默认 `model: gpt-image-2`（slide 上文字密度高、字渲染稳定性优先）；纯视觉无文字 / 极简 / 中文标题 ≤ 4 字时也可 `nano-banana-pro`。
 
-| 参数                | 默认            | 备注                                              |
-| ------------------- | --------------- | ------------------------------------------------- |
-| model               | `gpt-image-2`   | 文字稳定；纯图 / 概念 hero 可换 `nano-banana-pro` |
-| resolution          | `2K`            | 投影 / 预览够用；要打印再上 `4K`                  |
-| ratio               | `16:9`          | 标准 PPT；个别情况 `16:10`（不在白名单时按 16:9） |
-| n                   | `1`             | 一次一页；多版本对比再升 2~3                      |
-| reference_image_ids | `[]`            | 仅当对话中已有真实图片 id 才填                    |
+| 参数                | 默认          | 备注                                              |
+| ------------------- | ------------- | ------------------------------------------------- |
+| model               | `gpt-image-2` | 文字稳定；纯图 / 概念 hero 可换 `nano-banana-pro` |
+| resolution          | `2K`          | 投影 / 预览够用；要打印再上 `4K`                  |
+| ratio               | `16:9`        | 标准 PPT；个别情况 `16:10`（不在白名单时按 16:9） |
+| n                   | `1`           | 一次一页；多版本对比再升 2~3                      |
+| reference_image_ids | `[]`          | 仅当对话中已有真实图片 id 才填                    |
 
 调用示例：
 

@@ -123,7 +123,9 @@ export function DetailHeader({
       <button
         className="chip hidden shrink-0 font-normal md:inline-flex"
         onClick={onToggleSidebar}
-        title={sidebarCollapsed ? t('imageDetail.action.expandDetailsPanel') : t('imageDetail.action.collapseDetailsPanel')}
+        title={
+          sidebarCollapsed ? t('imageDetail.action.expandDetailsPanel') : t('imageDetail.action.collapseDetailsPanel')
+        }
         aria-pressed={!sidebarCollapsed}
       >
         <Icon name={sidebarCollapsed ? 'chevron_left' : 'chevron_right'} size={12} strokeWidth={1.8} />

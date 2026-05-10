@@ -550,7 +550,7 @@ export function ZoomableImageView({
                 disableViewTransition || isDragging || isInteracting
                   ? 'none'
                   : fitSize.width
-                    ? 'transform 160ms ease-out, opacity 120ms ease-out'
+                    ? 'transform 160ms var(--ease-out), opacity 120ms var(--ease-out)'
                     : 'none',
             }}
           />
@@ -569,7 +569,7 @@ export function ZoomableImageView({
         className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-0.5"
         style={{
           background: 'color-mix(in srgb, var(--color-surface) 92%, transparent)',
-          borderRadius: 8,
+          borderRadius: 'var(--radius-md)',
           padding: 3,
           boxShadow: '0 0 0 1px var(--ring-edge), var(--shadow-lift)',
           backdropFilter: 'blur(10px)',
@@ -580,6 +580,7 @@ export function ZoomableImageView({
           onClick={zoomOutFromControl}
           style={{ width: 24, height: 22 }}
           title={t('imageDetail.zoom.out')}
+          aria-label={t('imageDetail.zoom.out')}
         >
           <Icon name="zoom_out_map" size={11} strokeWidth={1.8} />
         </button>
@@ -587,6 +588,7 @@ export function ZoomableImageView({
           onClick={resetView}
           className="text-sm font-medium"
           title={t('imageDetail.zoom.resetHint')}
+          aria-label={t('imageDetail.zoom.resetHint')}
           style={{
             background: 'none',
             border: 0,
@@ -604,6 +606,7 @@ export function ZoomableImageView({
           onClick={() => zoomAtPoint(scaleRef.current * 1.25, { x: 0, y: 0 })}
           style={{ width: 24, height: 22 }}
           title={t('imageDetail.zoom.in')}
+          aria-label={t('imageDetail.zoom.in')}
         >
           <Icon name="zoom_in" size={11} strokeWidth={1.8} />
         </button>
