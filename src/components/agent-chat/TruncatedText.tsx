@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import { useLayoutEffect, useRef, useState } from 'react'
 
 import { useI18n } from '../../i18n'
@@ -7,11 +8,13 @@ export function TruncatedText({
   className,
   fadeColor,
   maxHeight = 200,
+  expandedMaxHeight,
 }: {
   text: string
   className?: string
   fadeColor: string
   maxHeight?: number
+  expandedMaxHeight?: CSSProperties['maxHeight']
 }) {
   const { t } = useI18n()
   const [expanded, setExpanded] = useState(false)
@@ -44,11 +47,20 @@ export function TruncatedText({
   }, [text, maxHeight])
 
   const collapsed = overflowing && !expanded
+  const contentStyle: CSSProperties | undefined = collapsed
+    ? { maxHeight, overflow: 'hidden' }
+    : expanded && expandedMaxHeight !== undefined
+      ? { maxHeight: expandedMaxHeight, overflowY: 'auto', overscrollBehavior: 'contain' }
+      : undefined
+  const contentClassName =
+    expanded && expandedMaxHeight !== undefined
+      ? `${className ?? ''} scroll-fade-y [--scroll-fade-end-size:1.25rem] [--scroll-fade-start-size:1.25rem]`
+      : className
 
   return (
     <div>
       <div className="relative">
-        <div ref={ref} className={className} style={collapsed ? { maxHeight, overflow: 'hidden' } : undefined}>
+        <div ref={ref} className={contentClassName} style={contentStyle}>
           {text}
         </div>
         {collapsed && (
