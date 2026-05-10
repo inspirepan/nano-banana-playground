@@ -680,7 +680,7 @@ export function AgentChatPanel({
               className="pointer-events-none absolute inset-x-0 bottom-full z-0 h-8 bg-[linear-gradient(to_top,color-mix(in_srgb,var(--color-bg)_72%,transparent)_0%,color-mix(in_srgb,var(--color-bg)_42%,transparent)_42%,transparent_100%)]"
             />
           ) : null}
-          <div className="relative z-10">{composer}</div>
+          <div className={`relative z-10${isEmpty ? ' mx-auto w-full max-w-[980px]' : ''}`}>{composer}</div>
         </div>
 
         {isEmpty ? (
