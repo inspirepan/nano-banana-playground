@@ -88,7 +88,7 @@ export function AgentSessionListItem({
       >
         <span className={`block truncate ${titleClass}`}>{title}</span>
       </button>
-      <span className="ml-2 flex shrink-0 items-center gap-1.5 text-sm text-(--color-text-3)">
+      <span className="ml-2 flex shrink-0 items-center gap-1.5 text-sm text-(--color-text-3) transition-opacity group-hover:opacity-0">
         {imageCount > 0 && (
           <span
             className="inline-flex h-[18px] shrink-0 items-center gap-1 rounded-full bg-(--color-surface-2) px-1.5 text-[11px] font-medium leading-none tabular-nums text-(--color-text-3) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]"
@@ -104,10 +104,10 @@ export function AgentSessionListItem({
       <button
         type="button"
         onClick={() => onDeleteSession(session.id)}
-        className={`absolute right-1 flex h-6 w-6 items-center justify-center rounded-[var(--radius-sm)] opacity-0 transition-[opacity,background-color,color] hover:bg-(--color-surface-3) hover:text-(--color-danger) group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none ${
+        className={`absolute right-1 flex h-6 w-6 items-center justify-center rounded-[var(--radius-sm)] opacity-0 transition-[opacity,background-color,color,box-shadow] hover:text-(--color-danger) group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none ${
           active
-            ? 'bg-(--color-surface) text-(--color-text-3) shadow-[-10px_0_12px_color-mix(in_srgb,var(--color-accent-wash)_72%,transparent)]'
-            : 'bg-(--color-surface-2) text-(--color-text-4) shadow-[-10px_0_12px_var(--color-surface-2)]'
+            ? 'bg-[color-mix(in_srgb,var(--color-accent-wash)_76%,var(--color-surface)_24%)] text-(--color-text-3) shadow-[-7px_0_10px_color-mix(in_srgb,var(--color-accent-wash)_78%,transparent)] hover:bg-[color-mix(in_srgb,var(--color-accent-wash)_58%,var(--color-surface)_42%)]'
+            : 'bg-(--color-surface-2) text-(--color-text-4) shadow-[-8px_0_10px_var(--color-surface-2)] hover:bg-(--color-surface-3)'
         }`}
         aria-label={t('agentChat.header.deleteConversation')}
       >
