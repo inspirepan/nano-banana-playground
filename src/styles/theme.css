@@ -68,18 +68,18 @@
   --color-text-3: #858c96;
   --color-text-4: #a3abb6;
 
-  /* Accent: restrained burnt oxide, chosen to feel more like a precise tool than an AI SaaS surface. */
-  --color-accent: oklch(0.47 0.12 48);
-  --color-accent-hover: oklch(0.42 0.13 48);
-  --color-accent-fg: oklch(0.985 0.004 60);
+  /* Accent: restrained deep blue, tuned for a precise tool surface. */
+  --color-accent: oklch(0.42 0.115 258);
+  --color-accent-hover: oklch(0.36 0.125 258);
+  --color-accent-fg: oklch(0.985 0.004 260);
   /* Foreground for accent-as-text on translucent wash backgrounds (active
      chips, aspect tiles, .tag.accent, .annotation-finish-btn). Light mode
-     uses a deeper oxide value because the filled accent is tuned for controls.
-     Dark mode lifts toward a brighter oxide so the same pattern still clears
+     uses a deeper blue value because the filled accent is tuned for controls.
+     Dark mode lifts toward a brighter blue so the same pattern still clears
      WCAG AA on the dim mid-tone wash. */
-  --color-accent-text: oklch(0.42 0.13 48);
+  --color-accent-text: oklch(0.36 0.125 258);
 
-  --color-accent-soft: oklch(0.94 0.026 55);
+  --color-accent-soft: oklch(0.93 0.025 258);
   --color-accent-wash: color-mix(in oklch, var(--color-accent) 10%, transparent);
   --color-accent-wash-2: color-mix(in oklch, var(--color-accent) 17%, transparent);
 
@@ -161,12 +161,12 @@
   --color-text-3: #9097a3;
   --color-text-4: #666d78;
 
-  --color-accent: oklch(0.54 0.13 52);
-  --color-accent-hover: oklch(0.56 0.14 52);
-  --color-accent-fg: oklch(0.985 0.004 60);
-  /* Lift oxide toward lightness for text-only accent usage on dark washes. */
-  --color-accent-text: color-mix(in oklch, var(--color-accent) 68%, oklch(0.985 0.004 60));
-  --color-accent-soft: oklch(0.2 0.035 50);
+  --color-accent: oklch(0.56 0.13 258);
+  --color-accent-hover: oklch(0.6 0.14 258);
+  --color-accent-fg: oklch(0.985 0.004 260);
+  /* Lift blue toward lightness for text-only accent usage on dark washes. */
+  --color-accent-text: color-mix(in oklch, var(--color-accent) 68%, oklch(0.985 0.004 260));
+  --color-accent-soft: oklch(0.22 0.04 258);
   --color-accent-wash: color-mix(in oklch, var(--color-accent) 18%, transparent);
   --color-accent-wash-2: color-mix(in oklch, var(--color-accent) 28%, transparent);
   --color-accent-ring: color-mix(in srgb, var(--color-accent) 24%, transparent);
