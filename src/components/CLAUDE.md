@@ -8,7 +8,7 @@
 
 ## 色彩系统
 
-默认基础盘是 Linear 风格的冷中性灰（`--color-bg: #f7f8f8` / 暗色 `#08090a`）。强调色浅色用 Uchu 蓝（`var(--uchu-blue-9)`），暗色保留 Linear 紫（`#5e6ad2`）。优先复用 `--color-bg`、`--color-surface*`、`--color-border*`、`--color-text*`、`--color-accent*`，不要到处写裸十六进制。
+默认基础盘是 Linear / Notion 风格的克制中性灰（浅色轻微偏暖，暗色近黑并保留清晰 surface 阶梯）。强调色浅深模式统一使用 Linear 紫（`#5e6ad2`）这一色相，只通过 hover / wash / ring 调整明度和透明度。优先复用 `--color-bg`、`--color-surface*`、`--color-border*`、`--color-text*`、`--color-accent*`，不要到处写裸十六进制。
 
 ## 排版
 
