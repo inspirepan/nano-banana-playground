@@ -1,6 +1,6 @@
 ---
 name: retro-halftone-hero
-description: Create premium retro halftone hero images, landscape campaign visuals, travel-poster style website headers, and high-end promotional posters from either a fresh scene prompt or an existing photo/image reference. Use whenever the user asks for retro halftone, vintage print texture, premium travel poster, CMYK dots, ink bleed, analog print, paper texture over a normal photo, or 高级复古半调、网点纹理、风景宣传图、海报质感、旅行海报、照片加半调质感. Strong visual core is clean cinematic base image plus selective halftone dots, subtle ink bleed, paper grain, premium negative space, and restrained color. Do NOT use for comic panels, dense infographics, UI mockups, product cutouts, screen-print duotone editorial posters with heavy typography, or cheap global filter effects.
+description: Create premium retro halftone hero images, landscape campaign visuals, travel-poster style website headers, and high-end promotional posters from either a fresh scene prompt or an existing photo/image reference. Use whenever the user asks for retro halftone, vintage print texture, premium travel poster, CMYK dots, ink bleed, analog print, paper texture over a normal photo, or 高级复古半调、网点纹理、风景宣传图、海报质感、旅行海报、照片加半调质感. Strong visual core is a cinematic base image plus CMYK / riso halftone dots driven by tonal values, subtle ink bleed, paper grain, and restrained color. Do NOT use for comic panels, dense infographics, UI mockups, product cutouts, screen-print duotone editorial posters with heavy typography, or cheap global filter effects.
 icon: scan-line
 preview_image: /skill-previews/retro-halftone-hero.jpg
 display_name:
@@ -11,11 +11,11 @@ display_description:
   en: Premium retro halftone, paper grain, and ink texture for landscape hero visuals.
 starter_examples:
   zh-CN:
-    - 阿尔卑斯湖畔旅行海报，复古半调，清晨大留白
+    - 阿尔卑斯湖畔旅行海报，复古半调，清晨冷色调
     - 海岸公路品牌 Hero，高级 CMYK 网点，纸纹质感
     - 荒漠户外宣传图，低饱和橙蓝，局部油墨错位
   en:
-    - alpine lakeside travel poster, retro halftone, morning negative space
+    - alpine lakeside travel poster, retro halftone, cool morning palette
     - coastal road brand hero, refined CMYK dots, paper grain
     - desert outdoor campaign image, muted orange blue, ink misregistration
 ---
@@ -27,8 +27,7 @@ starter_examples:
 核心判断：
 
 - 先要有一个构图漂亮、光线高级的 base image。
-- halftone 只强化山体、树木、岩石、水面、地形、建筑肌理、阴影和中间调。
-- 天空、留白、文字覆盖区保持干净渐变，最多有极轻纸纹，不要铺满粗网点。
+- halftone 作用在整张图的明暗层次上，dot density 跟随 tonal values，不是套一层均匀滤镜。
 - 质感来自分层：轻微纸纹、局部 CMYK / riso 网点、少量 ink bleed、柔和色彩错位，而不是噪点堆满。
 
 ## 何时触发
@@ -38,7 +37,7 @@ starter_examples:
 - 风景 / 旅行 / 户外品牌 / 酒店度假 / premium lifestyle hero 图。
 - 用户说“照片加一层 halftone texture / retro print / vintage travel poster feel”。
 - 已有图片需要二次风格化，但主体、构图、摄影感要保留。
-- 需要宽幅宣传图、海报背景、网站首屏，有明显留白可放标题。
+- 需要宽幅宣传图、海报背景、网站首屏等高质感风景 / 品牌视觉。
 
 不适用：
 
@@ -53,7 +52,7 @@ starter_examples:
 
 1. **已有图二次质感化**：用户提供 reference image / image_id / 历史图时，先用 `ReadImage` 理解画面；再用 `GenImage` 以该图为 `reference_image_ids`，执行 halftone texture pass。
 2. **从零生成两步法（推荐）**：用户只给主题时，先生成 clean premium base image；等待生成完成后，再把第一张输出作为 reference，执行 halftone texture pass。两步法更像真实设计流程，能分别控制构图和质感。
-3. **快速一张法**：用户明确只要一次出图或快速草稿时，把 base scene 与 halftone rules 写进同一个 prompt，但仍要求 selective halftone、clean sky、premium negative space。
+3. **快速一张法**：用户明确只要一次出图或快速草稿时，把 base scene 与 halftone rules 写进同一个 prompt。
 
 不要在 `GenImage` 前额外做确认；`GenImage` 任务卡本身就是审批入口。
 
@@ -69,7 +68,7 @@ starter_examples:
       "header": "用途",
       "multi_select": false,
       "options": [
-        { "label": "网站 Hero", "description": "宽幅首屏背景，天空 / 留白区适合放标题" },
+        { "label": "网站 Hero", "description": "宽幅首屏背景，复古印刷感的品牌首图" },
         { "label": "旅行海报", "description": "复古目的地宣传图，构图更像 premium poster" },
         { "label": "活动视觉", "description": "品牌 campaign / launch / 户外活动 KV" },
         { "label": "照片改造", "description": "给已有照片加半调印刷质感，保留主体构图" }
@@ -90,9 +89,9 @@ starter_examples:
       "header": "构图",
       "multi_select": false,
       "options": [
-        { "label": "Clean sky hero", "description": "大面积干净天空 / 留白，适合叠文字（推荐）" },
-        { "label": "Panoramic vista", "description": "宽幅远景，山谷 / 海岸 / 沙漠 / 森林层次" },
+        { "label": "Panoramic vista", "description": "宽幅远景，山谷 / 海岸 / 沙漠 / 森林层次（推荐）" },
         { "label": "Poster frame", "description": "更像旅行海报，主体居中，边缘有纸张感" },
+        { "label": "Hero layout", "description": "均衡宽幅构图，适合做网站首图或 campaign 背景" },
         { "label": "Photo preserve", "description": "尽量保留参考图构图，只改质感和色彩" }
       ]
     },
@@ -122,13 +121,13 @@ starter_examples:
 ```txt
 Create a premium cinematic landscape hero image for {{usage}}: {{scene_topic}}.
 
-Composition: {{composition_choice}}. Wide balanced composition, strong foreground / midground / background separation, clear leading line toward the main landscape feature, elegant negative space for text overlay. If this is a website hero, reserve a huge clean upper sky area with smooth gradient and minimal clouds.
+Composition: {{composition_choice}}. Wide balanced composition, strong foreground / midground / background separation, clear leading line toward the main landscape feature.
 
 Scene details: {{specific_location_or_subject}}, natural scale, calm and refined mood, no people unless explicitly requested, no buildings unless explicitly requested.
 
-Light and color: {{palette_choice}}. Soft atmospheric perspective, golden light touching important forms, muted natural greens and cool blues, warm cream near the horizon if sky is visible. Premium modern travel campaign look, visually minimal but detailed where it matters.
+Light and color: {{palette_choice}}. Soft atmospheric perspective, golden light touching important forms, muted natural greens and cool blues, warm cream tones near the horizon. Premium modern travel campaign look, visually minimal but detailed where it matters.
 
-Rendering: polished photo-illustration / slightly painterly digital illustration look, sharp foreground details, smooth sky gradients, no text, no logo, no watermark.
+Rendering: polished photo-illustration / slightly painterly digital illustration look, sharp foreground details, no text, no logo, no watermark.
 
 Negative: no cheap filter look, no overprocessed HDR, no fog overload, no heavy darkness, no random typography, no sun disk unless requested, no people, no buildings.
 ```
@@ -153,18 +152,16 @@ Negative: no cheap filter look, no overprocessed HDR, no fog overload, no heavy 
 Transform the reference image into a premium retro halftone print hero visual while preserving the original composition, subject placement, camera angle, and main light direction.
 
 Apply a refined vintage print treatment:
-- Selective halftone dots only on textured forms: mountains, trees, rocks, terrain, water ripples, foliage, shadows, and midtone surfaces.
-- Keep the upper sky / negative space mostly clean: smooth gradient, minimal clouds, very subtle paper grain only, no heavy dot pattern across the entire sky.
-- Add subtle CMYK / riso-style dot structure with varied dot density following tonal values; dots should feel printed, not like digital noise.
+- Add CMYK / riso-style halftone dots across the whole image with dot density driven by tonal values: denser and larger dots in midtones and shadows, finer and sparser dots in highlights. Dots should feel printed, not like a flat uniform filter.
+- Let the halftone structure shape every area the same way — terrain, foliage, water, clouds, and atmosphere — so the result reads as one cohesive print, not a selective overlay.
 - Add gentle ink bleed at high-contrast edges, tiny paper fibers, faint speckles, and mild color misregistration limited to 1-3 px.
 - Preserve premium color harmony: {{palette_choice}}, muted natural greens, cool blues, warm cream highlights, golden light on important forms.
 
-Art direction: nostalgic travel-poster aesthetic, rich premium feel, elegant editorial campaign background, calm refined mood, clean composition, lots of usable negative space for text overlay.
+Art direction: nostalgic travel-poster aesthetic, rich premium feel, elegant editorial campaign background, calm refined mood.
 
 Constraints:
 - Do not change the subject or composition.
-- Do not cover the entire image with uniform dots.
-- Do not make the sky gritty or dirty; sky stays airy and smooth.
+- Keep dot density tied to the underlying tonal values; avoid one flat uniform dot layer across everything.
 - Do not add text, logos, stamps, watermarks, borders, labels, or fake poster titles unless explicitly requested.
 - Avoid grunge overload, cheap photocopy filter, heavy darkness, harsh contrast, plastic digital noise, and muddy colors.
 ```
@@ -188,11 +185,11 @@ Constraints:
 当用户要快速生成，不走两步法时，用下面这种完整 prompt：
 
 ```txt
-Wide cinematic mountain landscape illustration in a premium retro halftone print style, peaceful alpine valley with tall pine forests, rocky foreground, winding dirt path, majestic snow-capped mountain range in the center, balanced composition designed for a website hero section, huge clean upper sky area with soft gradient from pale warm cream near horizon to light blue above, minimal clouds, lots of negative space in the sky for text overlay.
+Wide cinematic mountain landscape illustration in a premium retro halftone print style, peaceful alpine valley with tall pine forests, rocky foreground, winding dirt path, majestic snow-capped mountain range in the center, balanced panoramic composition.
 
-Subtle vintage paper texture and refined print feel. Detailed halftone dots only on mountains, trees, rocks, terrain, foliage, and shadowed midtones — not across the entire sky. Smooth airy sky gradients with only faint paper grain. Soft atmospheric perspective, muted natural greens and cool blues, golden light touching mountain peaks, ultra clean composition, slightly painterly digital illustration look, nostalgic travel-poster aesthetic, sharp foreground details, calm elegant mood, panoramic wide-angle scene, highly detailed but visually minimal, rich premium feel.
+Vintage paper texture and refined CMYK / riso print feel across the whole image, dot size and density driven by tonal values: denser larger dots in midtones and shadows, finer sparser dots in highlights and atmospheric areas. Gentle ink bleed at high-contrast edges, faint paper fibers, mild 1-3 px color misregistration. Soft atmospheric perspective, muted natural greens and cool blues, warm cream horizon tones, golden light touching mountain peaks, slightly painterly digital illustration look, nostalgic travel-poster aesthetic, sharp foreground details, calm elegant mood, panoramic wide-angle scene, highly detailed but visually minimal, rich premium feel.
 
-Negative: no sun, no people, no buildings, no fog overload, no heavy darkness, no global halftone filter, no dirty sky, no text, no logo, no watermark.
+Negative: no sun, no people, no buildings, no fog overload, no heavy darkness, no flat uniform filter layer, no text, no logo, no watermark.
 ```
 
 ## 参考图处理
@@ -206,21 +203,19 @@ Negative: no sun, no people, no buildings, no fog overload, no heavy darkness, n
 
 ## 常见修改映射
 
-| 用户反馈         | 修改方式                                                                              |
-| ---------------- | ------------------------------------------------------------------------------------- |
-| “太像滤镜了”     | 降低 uniform dots，强调 dots follow form and tonal values，增加干净区域               |
-| “天空太脏”       | 明确 sky has smooth gradient only, paper grain under 5%, no visible halftone dots     |
-| “不够复古”       | 增加 paper fibers、slight ink bleed、mild color misregistration、warm cream base      |
-| “不够高级”       | 降低饱和度和对比度，减少破损，保留更多留白，使用 muted editorial palette              |
-| “网点不明显”     | 从 Subtle premium 升到 Visible print，要求 dot density visible in terrain and shadows |
-| “想更像旅行海报” | 居中远山 / 地标、清晰前中后景、warm cream sky、nostalgic poster composition           |
+| 用户反馈         | 修改方式                                                                                   |
+| ---------------- | ------------------------------------------------------------------------------------------ |
+| “太像滤镜了”     | 强调 dot size and density driven by tonal values，让网点跟随形体和明暗，不是一层均匀滤镜   |
+| “不够复古”       | 增加 paper fibers、slight ink bleed、mild color misregistration、warm cream base           |
+| “不够高级”       | 降低饱和度和对比度，减少破损，使用 muted editorial palette，保持构图克制                   |
+| “网点不明显”     | 从 Subtle premium 升到 Visible print，要求 dot structure visible across midtones & shadows |
+| “想更像旅行海报” | 居中远山 / 地标、清晰前中后景、warm cream horizon、nostalgic poster composition            |
 
 ## 质量检查
 
 生成或改图后检查：
 
 - 构图是否仍然像 premium hero / campaign visual，而不是随机纹理实验。
-- 天空和文字覆盖区是否足够干净。
-- 网点是否跟随物体明暗和材质，而不是整张图等距铺满。
+- 网点大小 / 密度是否跟随物体明暗和材质（亮部稀疏、中间调和阴影更密），而不是整张图等距铺一层。
 - 是否保留了参考图主体、光线方向和主要构图。
 - 有没有多余文字、logo、水印、边框、脏污块或过重 grunge。
