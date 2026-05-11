@@ -3,24 +3,16 @@ import { translate } from '../../i18n'
 export type SystemEventSummaryPart = {
   text: string
   mono?: boolean
+  // When set, this part is an image id that should link back to the
+  // GenImage task card identified by toolCallId.
+  imageId?: string
+  toolCallId?: string
 }
 
 const IMAGE_IDS_MARKER = '\uE000imageIds\uE000'
 
 function textPart(text: string): SystemEventSummaryPart[] {
   return text ? [{ text }] : []
-}
-
-function monoParamParts(text: string, marker: string, value: string): SystemEventSummaryPart[] {
-  if (!value) return textPart(text.replace(marker, ''))
-  const markerIndex = text.indexOf(marker)
-  if (markerIndex === -1) return textPart(text)
-
-  return [
-    ...textPart(text.slice(0, markerIndex)),
-    { text: value, mono: true },
-    ...textPart(text.slice(markerIndex + marker.length)),
-  ]
 }
 
 function systemStatusLabel(status: string): string {
@@ -49,6 +41,7 @@ function countCommaList(value: string | undefined): number {
 
 type ParsedToolCallback = {
   tool: string
+  toolCallId: string
   fields: Record<string, string>
 }
 
@@ -58,10 +51,10 @@ function parseToolCallbacks(text: string): ParsedToolCallback[] {
 
   for (const rawLine of text.split('\n')) {
     const line = rawLine.trim()
-    const tool = /^tool\s+(\w+)\s+call\b/.exec(line)?.[1]
-    if (tool) {
+    const header = /^tool\s+(\w+)\s+call(?:\s+(\S+))?/.exec(line)
+    if (header) {
       if (current) callbacks.push(current)
-      current = { tool, fields: {} }
+      current = { tool: header[1], toolCallId: header[2] ?? '', fields: {} }
       continue
     }
 
@@ -107,16 +100,34 @@ export function summarizeSystemEventParts(text: string): SystemEventSummaryPart[
     0,
   )
   const completedCount = genImageCallbacks.reduce((sum, callback) => sum + countCommaList(callback.fields.image_ids), 0)
-  const completedImageIds = genImageCallbacks.flatMap((callback) => parseCommaList(callback.fields.image_ids))
   const failedCount = Math.max(0, reservedCount - completedCount)
 
   if (statuses.length > 0 && statuses.every((item) => item === 'completed')) {
-    const ids = completedImageIds.join(', ')
-    return monoParamParts(
-      translate('agentChat.system.imageCompleted', { count: completedCount, ids: IMAGE_IDS_MARKER }),
-      IMAGE_IDS_MARKER,
-      ids,
-    )
+    const label = translate('agentChat.system.imageCompleted', { count: completedCount, ids: IMAGE_IDS_MARKER })
+    const markerIndex = label.indexOf(IMAGE_IDS_MARKER)
+    if (completedCount === 0) return textPart(label.replace(IMAGE_IDS_MARKER, ''))
+    if (markerIndex === -1) return textPart(label)
+
+    const idParts: SystemEventSummaryPart[] = []
+    let first = true
+    for (const callback of genImageCallbacks) {
+      for (const id of parseCommaList(callback.fields.image_ids)) {
+        if (!first) idParts.push({ text: ', ' })
+        first = false
+        idParts.push({
+          text: id,
+          mono: true,
+          imageId: id,
+          toolCallId: callback.toolCallId || undefined,
+        })
+      }
+    }
+
+    return [
+      ...textPart(label.slice(0, markerIndex)),
+      ...idParts,
+      ...textPart(label.slice(markerIndex + IMAGE_IDS_MARKER.length)),
+    ]
   }
   if (statuses.includes('failed')) return textPart(summarizeFailedGenImages(completedCount, failedCount))
   if (statuses.length > 0 && statuses.every((item) => item === 'rejected'))

@@ -18,7 +18,7 @@ image_ids: poster, poster_2
     ).toBe('生成任务完成，生成了 2 张：poster, poster_2')
   })
 
-  it('marks completed GenImage ids as mono text', () => {
+  it('marks completed GenImage ids as clickable mono parts tied to the originating tool call', () => {
     expect(
       summarizeSystemEventParts(`<system>
 tool GenImage call call_1 has been finished.
@@ -27,7 +27,12 @@ requested_image_id: poster
 reserved_image_ids: poster, poster_2
 image_ids: poster, poster_2
 </system>`),
-    ).toEqual([{ text: '生成任务完成，生成了 2 张：' }, { text: 'poster, poster_2', mono: true }])
+    ).toEqual([
+      { text: '生成任务完成，生成了 2 张：' },
+      { text: 'poster', mono: true, imageId: 'poster', toolCallId: 'call_1' },
+      { text: ', ' },
+      { text: 'poster_2', mono: true, imageId: 'poster_2', toolCallId: 'call_1' },
+    ])
   })
 
   it('reports failed GenImage counts from reserved ids and result ids', () => {

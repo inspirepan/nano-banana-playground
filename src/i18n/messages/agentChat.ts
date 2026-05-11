@@ -246,4 +246,5 @@ export const agentChatMessages: MessageDictionary = {
   },
   'agentChat.system.imageTask': { 'zh-CN': '生成任务', en: 'Image task' },
   'agentChat.system.imageTaskStatus': { 'zh-CN': '生成任务 · {status}', en: 'Image task · {status}' },
+  'agentChat.system.openImageTaskImage': { 'zh-CN': '查看图片 {id}', en: 'Open image {id}' },
 }

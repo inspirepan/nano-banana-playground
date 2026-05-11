@@ -41,12 +41,14 @@ export function MessageBubble({
   isQueued = false,
   assistantTitle,
   hideCopyAction = false,
+  onOpenImageTaskImage,
 }: {
   message: AgentMessage
   isStreaming: boolean
   isQueued?: boolean
   assistantTitle?: string
   hideCopyAction?: boolean
+  onOpenImageTaskImage?: (toolCallId: string, imageId: string) => void
 }) {
   const { t } = useI18n()
   const [copied, setCopied] = useState(false)
@@ -92,15 +94,32 @@ export function MessageBubble({
     return (
       <div className="flex justify-start">
         <div className="mr-3 max-w-[94%] pl-3 text-(--color-text-3)">
-          {summarizeSystemEventParts(trimmedText).map((part, index) =>
-            part.mono ? (
-              <span key={index} className="mono">
-                {part.text}
-              </span>
-            ) : (
-              part.text
-            ),
-          )}
+          {summarizeSystemEventParts(trimmedText).map((part, index) => {
+            const canOpen = Boolean(part.toolCallId && part.imageId && onOpenImageTaskImage)
+            if (canOpen) {
+              const label = t('agentChat.system.openImageTaskImage', { id: part.imageId ?? part.text })
+              return (
+                <button
+                  key={index}
+                  type="button"
+                  onClick={() => onOpenImageTaskImage?.(part.toolCallId!, part.imageId!)}
+                  title={label}
+                  aria-label={label}
+                  className="mono inline cursor-pointer appearance-none border-0 bg-transparent p-0 text-inherit underline decoration-dotted decoration-(--color-text-4) underline-offset-[3px] transition-colors duration-150 hover:text-(--color-text-2) hover:decoration-(--color-text-3) focus-visible:text-(--color-text-2) focus-visible:decoration-(--color-text-3) focus-visible:outline-none"
+                >
+                  {part.text}
+                </button>
+              )
+            }
+            if (part.mono) {
+              return (
+                <span key={index} className="mono">
+                  {part.text}
+                </span>
+              )
+            }
+            return <span key={index}>{part.text}</span>
+          })}
         </div>
       </div>
     )

@@ -296,6 +296,15 @@ export function AgentChatPanel({
   const drawingSkills = useMemo(() => skills.filter(isDrawingSkill), [skills])
   const isEmpty = renderItems.length === 0 && queuedMessages.length === 0 && !showRunningIndicator
 
+  const handleOpenImageTaskImage = useCallback(
+    (toolCallId: string, imageId: string) => {
+      const task = imageTaskByToolCallId.get(toolCallId)
+      if (!task) return
+      onFocusImageTask?.(task, { behavior: 'open', itemId: imageId })
+    },
+    [imageTaskByToolCallId, onFocusImageTask],
+  )
+
   const handleInsertText = useCallback(
     (text: string) => {
       const trimmedAddition = text.trim()
@@ -627,6 +636,7 @@ export function AgentChatPanel({
                               isStreaming={stickyUserItem.isStreaming}
                               assistantTitle={assistantTitleFor(stickyUserItem.message, stickyUserItem.isStreaming)}
                               hideCopyAction={stickyUserIsStuck}
+                              onOpenImageTaskImage={handleOpenImageTaskImage}
                             />
                           </div>
                         </div>
@@ -638,6 +648,7 @@ export function AgentChatPanel({
                             message={item.message}
                             isStreaming={item.isStreaming}
                             assistantTitle={assistantTitleFor(item.message, item.isStreaming)}
+                            onOpenImageTaskImage={handleOpenImageTaskImage}
                           />
                         ) : (
                           <ToolActivityCard
