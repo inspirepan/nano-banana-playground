@@ -152,6 +152,15 @@ export function summarizeSystemEvent(text: string): string {
     .join('')
 }
 
+export function isHiddenSystemEvent(text: string): boolean {
+  const callbacks = parseToolCallbacks(text)
+  return (
+    callbacks.length > 0 &&
+    callbacks.every((callback) => callback.tool === 'AskUserQuestion') &&
+    /\btool\s+AskUserQuestion\s+call(?:\s+\S+)?\s+has been answered\./.test(text)
+  )
+}
+
 export type SystemEventVariant = 'completed' | 'failed' | 'rejected' | 'canceled' | 'other'
 
 // Classify a <system> event for UI treatment (e.g. decorating completed GenImage

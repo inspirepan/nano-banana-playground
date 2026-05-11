@@ -8,12 +8,14 @@ import {
   agentMessageThinking,
   agentMessageToolCalls,
   agentMessageToolResult,
+  stripSystemDirectives,
   type AgentImageTask,
   type AgentMessageToolCall,
   type AgentMessageToolResult,
 } from '../../agent'
 import { translate } from '../../i18n'
 import type { PlaygroundImage, PlaygroundImageMeta } from '../../lib/types'
+import { isHiddenSystemEvent } from './SystemEvent'
 
 export type ChatRenderItem =
   | { type: 'message'; key: string; message: AgentMessage; isStreaming: boolean }
@@ -55,6 +57,13 @@ export function hasRenderableMessageContent(message: AgentMessage): boolean {
     agentMessageImages(message).length > 0 ||
     Boolean(agentMessageError(message))
   )
+}
+
+function isHiddenSystemOnlyUserMessage(message: AgentMessage): boolean {
+  if (agentMessageRole(message) !== 'user') return false
+  if (agentMessageImages(message).length > 0) return false
+  const text = agentMessageText(message)
+  return stripSystemDirectives(text).trim() === '' && isHiddenSystemEvent(text)
 }
 
 export function buildChatRenderItems(
@@ -105,6 +114,7 @@ export function buildChatRenderItems(
       }
       continue
     }
+    if (isHiddenSystemOnlyUserMessage(message)) continue
     items.push({ type: 'message', key: `message-${index}`, message, isStreaming: isStreamingMessage })
   }
   return items
