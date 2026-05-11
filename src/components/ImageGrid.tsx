@@ -30,8 +30,16 @@ function parseAspectRatio(ratio: string): number {
 function getGridSpan(aspectRatio: string): GridSpan {
   const ratio = parseAspectRatio(aspectRatio)
   if (ratio >= 0.95 && ratio <= 1.05) return { cols: 3, rows: 3 }
-  // Give 2:3 portraits the same column weight as other primary thumbnails.
-  if (ratio >= 0.62 && ratio <= 0.7) return { cols: 3, rows: 5 }
+
+  // Keep common photo ratios in a compact, predictable band so the gallery
+  // reads as a tool grid instead of a set of unrelated poster sizes.
+  if (ratio >= 0.72 && ratio <= 0.85) return { cols: 3, rows: 4 }
+  if (ratio >= 0.62 && ratio < 0.72) return { cols: 3, rows: 4 }
+  if (ratio >= 0.54 && ratio < 0.62) return { cols: 3, rows: 5 }
+  if (ratio >= 1.15 && ratio <= 1.55) return { cols: 4, rows: 3 }
+  if (ratio > 1.55 && ratio <= 1.9) return { cols: 5, rows: 3 }
+  if (ratio > 1.9 && ratio < 2.85) return { cols: 5, rows: 2 }
+
   if (ratio <= 0.35) return { cols: 2, rows: 4 }
   if (ratio >= 2.85) return { cols: 4, rows: 2 }
 
