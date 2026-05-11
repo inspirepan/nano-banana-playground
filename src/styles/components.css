@@ -641,7 +641,7 @@
     z-index: 0;
   }
   .dark .segmented {
-    background: var(--color-bg);
+    background: var(--color-surface);
   }
   .dark .segmented::before {
     background: var(--color-surface-3);
