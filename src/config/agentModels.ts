@@ -161,46 +161,6 @@ function withoutClaudeEagerToolInputStreaming(model: Model<'anthropic-messages'>
 
 export const AGENT_MODEL_CONFIGS: AgentModelConfig[] = [
   {
-    id: 'gemini-3-flash-preview',
-    label: 'Gemini 3 Flash',
-    shortLabel: '3 Flash',
-    provider: 'google',
-    providerLabel: providerLabel('google'),
-    ...asAgentModel(getModel('google', 'gemini-3-flash-preview') as Model<Api>),
-  },
-  {
-    id: 'gpt-5.5',
-    label: 'GPT 5.5',
-    shortLabel: '5.5',
-    provider: 'openai',
-    providerLabel: providerLabel('openai'),
-    ...asAgentModel(GPT_5_5_MODEL, AGENT_THINKING_WITHOUT_MINIMAL_CONFIG),
-  },
-  {
-    id: 'gpt-5.4-mini',
-    label: 'GPT 5.4 mini',
-    shortLabel: '5.4 mini',
-    provider: 'openai',
-    providerLabel: providerLabel('openai'),
-    ...asAgentModel(GPT_5_4_MINI_MODEL),
-  },
-  {
-    id: 'moonshot-cn:kimi-k2.6',
-    label: 'Kimi K2.6 CN',
-    shortLabel: 'K2.6 CN',
-    provider: 'moonshot-cn',
-    providerLabel: providerLabel('moonshot-cn'),
-    ...asAgentModel(kimiK26Model('moonshot-cn'), AGENT_THINKING_TOGGLE_CONFIG),
-  },
-  {
-    id: 'moonshot-ai:kimi-k2.6',
-    label: 'Kimi K2.6',
-    shortLabel: 'K2.6',
-    provider: 'moonshot-ai',
-    providerLabel: providerLabel('moonshot-ai'),
-    ...asAgentModel(kimiK26Model('moonshot-ai'), AGENT_THINKING_TOGGLE_CONFIG),
-  },
-  {
     id: 'claude-haiku-4-5-20251001',
     label: 'Claude Haiku 4.5',
     shortLabel: 'Haiku 4.5',
@@ -231,6 +191,46 @@ export const AGENT_MODEL_CONFIGS: AgentModelConfig[] = [
     ...asAgentModel(
       withClaudeEagerToolInputStreaming(getModel('anthropic', 'claude-opus-4-7') as Model<'anthropic-messages'>),
     ),
+  },
+  {
+    id: 'gpt-5.5',
+    label: 'GPT 5.5',
+    shortLabel: '5.5',
+    provider: 'openai',
+    providerLabel: providerLabel('openai'),
+    ...asAgentModel(GPT_5_5_MODEL, AGENT_THINKING_WITHOUT_MINIMAL_CONFIG),
+  },
+  {
+    id: 'gpt-5.4-mini',
+    label: 'GPT 5.4 mini',
+    shortLabel: '5.4 mini',
+    provider: 'openai',
+    providerLabel: providerLabel('openai'),
+    ...asAgentModel(GPT_5_4_MINI_MODEL),
+  },
+  {
+    id: 'gemini-3-flash-preview',
+    label: 'Gemini 3 Flash',
+    shortLabel: '3 Flash',
+    provider: 'google',
+    providerLabel: providerLabel('google'),
+    ...asAgentModel(getModel('google', 'gemini-3-flash-preview') as Model<Api>),
+  },
+  {
+    id: 'moonshot-cn:kimi-k2.6',
+    label: 'Kimi K2.6 CN',
+    shortLabel: 'K2.6 CN',
+    provider: 'moonshot-cn',
+    providerLabel: providerLabel('moonshot-cn'),
+    ...asAgentModel(kimiK26Model('moonshot-cn'), AGENT_THINKING_TOGGLE_CONFIG),
+  },
+  {
+    id: 'moonshot-ai:kimi-k2.6',
+    label: 'Kimi K2.6',
+    shortLabel: 'K2.6',
+    provider: 'moonshot-ai',
+    providerLabel: providerLabel('moonshot-ai'),
+    ...asAgentModel(kimiK26Model('moonshot-ai'), AGENT_THINKING_TOGGLE_CONFIG),
   },
 ]
 
