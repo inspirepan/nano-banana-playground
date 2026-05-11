@@ -226,7 +226,7 @@ export const OutputPanel = memo(function OutputPanel({
     if (batchExporting || selectedImages.length === 0) return
     setBatchExporting(true)
     try {
-      await downloadImagesZip(selectedImages, `nano-banana-selected-${new Date().toISOString().slice(0, 10)}.zip`)
+      await downloadImagesZip(selectedImages, `images-selected-${new Date().toISOString().slice(0, 10)}.zip`)
     } finally {
       setBatchExporting(false)
     }
@@ -358,7 +358,7 @@ export const OutputPanel = memo(function OutputPanel({
 
       {stacks.length > 0 ? (
         <div className="space-y-[26px]">
-          <div className="space-y-2">
+          <div className="space-y-4">
             {stacks.map((stack) => {
               const isHighlighted = highlightStackId === stack.id
               return (

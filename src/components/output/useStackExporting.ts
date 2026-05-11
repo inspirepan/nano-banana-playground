@@ -19,7 +19,7 @@ export function useStackExporting({ history }: Params): Result {
     if (exporting || history.length === 0) return
     setExporting(true)
     try {
-      await downloadImagesZip(history, `nano-banana-export-${new Date().toISOString().slice(0, 10)}.zip`)
+      await downloadImagesZip(history, `images-export-${new Date().toISOString().slice(0, 10)}.zip`)
     } finally {
       setExporting(false)
     }

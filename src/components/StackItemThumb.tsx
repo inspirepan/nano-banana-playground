@@ -103,25 +103,30 @@ export const StackItemThumb = memo(function StackItemThumb({
   const keepPageOpenNote = showKeepPageOpenNote ? t('imageDetail.queue.keepPageOpen') : null
   const compactSlotIndicator = compactSlotStatus && slot && !slotStatusLabel && !keepPageOpenNote
   const showFailedReasonBox = Boolean(slot && slot.status === 'failed' && slotReason)
-  const title =
-    image?.source.type === 'generated' ? image.source.prompt : (slotStatusLabel ?? keepPageOpenNote ?? undefined)
+  // Compose the root title so narrow thumbs (where the visible meta badge is
+  // hidden via container query) still surface model/resolution via native
+  // browser tooltip on hover.
+  const titleParts: string[] = []
+  if (image?.source.type === 'generated' && image.source.prompt) titleParts.push(image.source.prompt)
+  if (metaBadge) titleParts.push(metaBadge)
+  const title = titleParts.length > 0 ? titleParts.join('\n\n') : (slotStatusLabel ?? keepPageOpenNote ?? undefined)
   const ariaLabel = image
     ? t('input.stack.selectImage', { number: itemNumber })
     : t('input.stack.selectSlot', { number: itemNumber })
   const outerRingShadow = slot ? '' : ', var(--shadow-lift)'
-  const accentRing = '0 0 0 2px color-mix(in srgb, var(--color-accent) 72%, var(--media-overlay-fg) 8%)'
+  const selectionRing = 'var(--media-selection-ring-shadow)'
   const boxShadow = outerRing
     ? selected
-      ? `${accentRing}${outerRingShadow}`
+      ? `${selectionRing}${outerRingShadow}`
       : active
-        ? `${accentRing}${outerRingShadow}`
+        ? `${selectionRing}${outerRingShadow}`
         : slot
           ? undefined
           : 'var(--shadow-lift)'
     : selected
-      ? accentRing
+      ? selectionRing
       : active
-        ? accentRing
+        ? selectionRing
         : 'inset 0 0 0 1px var(--ring-edge)'
   const actionStyle: StackThumbStyle | undefined = src ? { '--stack-thumb-action-bg': `url("${src}")` } : undefined
   // Slot placeholders get a subtle diagonal stripe texture so they read as
@@ -226,7 +231,7 @@ export const StackItemThumb = memo(function StackItemThumb({
       }}
       aria-pressed={selectable ? selected : undefined}
       aria-label={ariaLabel}
-      className={`group relative shrink-0 overflow-hidden ${roundedClassName} transition-transform ${hoverLift && !selectable ? 'hover:-translate-y-0.5' : ''} ${className}`}
+      className={`group @container/thumb relative shrink-0 overflow-hidden ${roundedClassName} transition-transform ${hoverLift && !selectable ? 'hover:-translate-y-0.5' : ''} ${className}`}
       style={{ background, boxShadow }}
       title={title}
     >
@@ -299,7 +304,7 @@ export const StackItemThumb = memo(function StackItemThumb({
       </span>
       {showImageIdLabel && imageIdLabel && imageIdDisplay && (
         <span
-          className="pointer-events-none absolute z-10 mono max-w-[calc(100%-16px)] truncate rounded-[var(--radius-xs)] px-1.5 py-0.5 text-[10px] leading-none"
+          className="pointer-events-none absolute z-10 mono max-w-[calc(100%-16px)] truncate rounded-[var(--radius-xs)] px-1.5 py-0.5 text-[10px] leading-none @max-[110px]/thumb:hidden"
           style={{
             left: numberBadgeInset,
             bottom: imageIdLabelBottom,
@@ -313,7 +318,7 @@ export const StackItemThumb = memo(function StackItemThumb({
       )}
       {metaBadge && (
         <span
-          className="pointer-events-none absolute z-10 flex flex-col items-start rounded-[var(--radius-xs)] px-1.5 py-1"
+          className="pointer-events-none absolute z-10 flex flex-col items-start rounded-[var(--radius-xs)] px-1.5 py-1 @max-[140px]/thumb:hidden"
           style={metaBadgeStyle}
           title={metaBadgeTitle ?? metaBadge}
         >

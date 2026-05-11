@@ -1,10 +1,7 @@
-import { memo, useCallback, useMemo, useState } from 'react'
+import { memo, useCallback, useMemo, useRef, useState } from 'react'
 
-import {
-  activeStackStatusParts,
-  stackItemAspectRatio,
-  stackItemGenerationSummary,
-} from './outputPanelHelpers'
+import { activeStackStatusParts, stackItemAspectRatio, stackItemGenerationSummary } from './outputPanelHelpers'
+import { useWindowEvent } from '../../hooks/effects'
 import type { Translate } from '../../i18n'
 import { downloadImagePng, downloadImagesZip } from '../../lib/exportImages'
 import { formatTime } from '../../lib/queueJobDisplay'
@@ -47,17 +44,19 @@ type StackThumbActionsProps = {
 
 const StackThumbActions = memo(function StackThumbActions({ item, stackId, onEditItem, t }: StackThumbActionsProps) {
   return (
-    <div className="pointer-events-none hidden items-center gap-1 opacity-[0.001] transition-opacity md:flex md:group-hover:pointer-events-auto md:group-hover:opacity-100 md:group-focus-within:pointer-events-auto md:group-focus-within:opacity-100">
+    <div className="pointer-events-none hidden items-center gap-1 opacity-[0.001] transition-opacity md:flex md:group-hover:pointer-events-auto md:group-hover:opacity-100 md:group-focus-within:pointer-events-auto md:group-focus-within:opacity-100 @max-[140px]/thumb:justify-end">
       <button
         type="button"
         onClick={(event) => {
           event.stopPropagation()
           onEditItem(stackId, item)
         }}
-        className="media-action min-w-0 flex-1 px-2"
+        aria-label={t('common.edit')}
+        title={t('common.edit')}
+        className="media-action min-w-0 flex-1 px-2 @max-[140px]/thumb:size-7 @max-[140px]/thumb:flex-none @max-[140px]/thumb:justify-center @max-[140px]/thumb:px-0"
       >
         <Icon name="wand" size={11} strokeWidth={1.8} />
-        {t('common.edit')}
+        <span className="@max-[140px]/thumb:hidden">{t('common.edit')}</span>
       </button>
       <button
         type="button"
@@ -65,10 +64,12 @@ const StackThumbActions = memo(function StackThumbActions({ item, stackId, onEdi
           event.stopPropagation()
           void downloadImagePng(item.image)
         }}
-        className="media-action min-w-0 flex-1 px-2"
+        aria-label={t('common.download')}
+        title={t('common.download')}
+        className="media-action min-w-0 flex-1 px-2 @max-[140px]/thumb:size-7 @max-[140px]/thumb:flex-none @max-[140px]/thumb:justify-center @max-[140px]/thumb:px-0"
       >
         <Icon name="download" size={11} strokeWidth={1.8} />
-        {t('common.download')}
+        <span className="@max-[140px]/thumb:hidden">{t('common.download')}</span>
       </button>
     </div>
   )
@@ -145,7 +146,29 @@ export const StackRow = memo(function StackRow({
 }: StackRowProps) {
   const [exporting, setExporting] = useState(false)
   const [deleteConfirming, setDeleteConfirming] = useState(false)
+  const deleteButtonRef = useRef<HTMLButtonElement>(null)
   const activeStatusParts = useMemo(() => activeStackStatusParts(stack, t), [stack, t])
+
+  // Dismiss the delete-confirm pending state on outside pointerdown or Esc,
+  // so users can opt out without an explicit cancel control.
+  useWindowEvent(
+    'pointerdown',
+    (event) => {
+      if (deleteButtonRef.current?.contains(event.target as Node)) return
+      setDeleteConfirming(false)
+    },
+    { capture: true },
+    deleteConfirming,
+  )
+  useWindowEvent(
+    'keydown',
+    (event) => {
+      if (event.key === 'Escape') setDeleteConfirming(false)
+    },
+    undefined,
+    deleteConfirming,
+  )
+
   const stackItemNumberById = useMemo(
     () => new Map(stack.items.map((item, index) => [item.id, index + 1])),
     [stack.items],
@@ -168,11 +191,17 @@ export const StackRow = memo(function StackRow({
     setExporting(true)
     try {
       if (stack.images.length === 1) await downloadImagePng(stack.images[0])
-      else await downloadImagesZip(stack.images, `nano-banana-stack-${stack.id.slice(0, 8)}.zip`)
+      else {
+        // stack.id is "stack-{hash}"; slice(6, 12) drops the literal prefix
+        // so the zip name doesn't duplicate "stack-" twice.
+        const stackDate = new Date(stack.updatedAt).toISOString().slice(0, 10)
+        const stackHash = stack.id.slice(6, 12)
+        await downloadImagesZip(stack.images, `image-stack-${stackDate}-${stackHash}.zip`)
+      }
     } finally {
       setExporting(false)
     }
-  }, [exporting, stack.id, stack.images])
+  }, [exporting, stack.id, stack.images, stack.updatedAt])
 
   const handleDeleteStackImages = useCallback(() => {
     if (stack.images.length === 0) return
@@ -184,26 +213,29 @@ export const StackRow = memo(function StackRow({
     setDeleteConfirming(false)
   }, [deleteConfirming, onRemoveStackImages, stack])
 
+  const actionsPinned = deleteConfirming || exporting
+
   return (
-    <div className="w-full max-w-full min-w-0 overflow-hidden">
+    <div className="group/stack w-full max-w-full min-w-0 overflow-hidden">
       <div className="w-full max-w-full min-w-0 px-3 py-2">
-        <div
-          className={`mb-2 flex w-full max-w-full min-w-0 gap-x-2 gap-y-1 overflow-hidden text-base ${compactHeader ? 'flex-col items-start' : 'flex-wrap items-center'}`}
-        >
+        <div className="mb-1 flex w-full min-w-0 flex-col gap-y-1 overflow-hidden">
           {stack.title && (
-            <span className="block w-full min-w-0 truncate font-medium text-(--color-text-2)" title={stack.title}>
+            <span
+              className="block w-full min-w-0 truncate text-base font-medium leading-tight text-(--color-text-1) tracking-[-0.005em]"
+              title={stack.title}
+            >
               {stack.title}
             </span>
           )}
-          <div className="flex max-w-full min-w-0 flex-wrap items-center gap-x-2 gap-y-1 font-[450] leading-none">
-            <span className="shrink-0 tabular-nums text-(--color-text-3)">{formatTime(stack.updatedAt, t)}</span>
-            <span className="meta-dot text-(--color-text-4)" aria-hidden />
-            <span className="tabular-nums text-(--color-text-3)">{t('output.imageCount', { count: stack.images.length })}</span>
-            {activeStatusParts.length > 0 && (
-              <>
-                <span className="meta-dot text-(--color-text-4)" aria-hidden />
-                <span className="inline-flex items-center gap-1.5">
-                  <span className="inline-flex items-center gap-1.5 tabular-nums text-(--color-text-3)">
+          <div className="flex w-full min-w-0 flex-wrap items-center gap-x-2 gap-y-1 leading-none">
+            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-(--color-text-3)">
+              <span className="shrink-0 tabular-nums">{formatTime(stack.updatedAt, t)}</span>
+              <span className="meta-dot text-(--color-text-4)" aria-hidden />
+              <span className="tabular-nums">{t('output.imageCount', { count: stack.images.length })}</span>
+              {activeStatusParts.length > 0 && (
+                <>
+                  <span className="meta-dot text-(--color-text-4)" aria-hidden />
+                  <span className="inline-flex items-center gap-1.5 tabular-nums">
                     {activeStatusParts.map((part, index) => (
                       <span key={part.kind} className="contents">
                         {index > 0 && <span className="meta-dot text-(--color-text-4)" aria-hidden />}
@@ -213,7 +245,7 @@ export const StackRow = memo(function StackRow({
                             <button
                               type="button"
                               onClick={onOpenGenerationSettings}
-                              className="bg-transparent p-0 text-(--color-text-4) transition-colors hover:text-(--color-text-2)"
+                              className="ml-0.5 bg-transparent p-0 text-(--color-text-4) transition-colors hover:text-(--color-text-2)"
                             >
                               {t('output.adjustParenthetical')}
                             </button>
@@ -222,50 +254,59 @@ export const StackRow = memo(function StackRow({
                       </span>
                     ))}
                   </span>
-                </span>
-              </>
-            )}
-            {stack.failedSlotCount > 0 && (
-              <>
-                <span className="meta-dot text-(--color-text-4)" aria-hidden />
-                <span className="text-base tabular-nums" style={{ color: 'var(--color-danger)' }}>
-                  {t('output.failedCount', { count: stack.failedSlotCount })}
-                </span>
-              </>
-            )}
+                </>
+              )}
+              {stack.failedSlotCount > 0 && (
+                <>
+                  <span className="meta-dot text-(--color-text-4)" aria-hidden />
+                  <span className="tabular-nums text-(--color-danger)">
+                    {t('output.failedCount', { count: stack.failedSlotCount })}
+                  </span>
+                </>
+              )}
+            </div>
             {stack.images.length > 0 && (
-              <>
-                <span className="meta-dot text-(--color-text-4)" aria-hidden />
+              <div
+                className={`ml-auto flex shrink-0 items-center gap-1 transition-opacity duration-150 ${
+                  actionsPinned || compactHeader
+                    ? 'opacity-100'
+                    : 'opacity-100 md:pointer-events-none md:opacity-0 md:group-hover/stack:pointer-events-auto md:group-hover/stack:opacity-100 md:group-focus-within/stack:pointer-events-auto md:group-focus-within/stack:opacity-100'
+                }`}
+              >
                 <button
                   type="button"
                   onClick={handleDownloadStack}
                   disabled={exporting}
-                  className="inline-flex items-center gap-1 bg-transparent p-0 text-base text-(--color-text-3) transition-colors hover:text-(--color-text-2) disabled:cursor-default disabled:text-(--color-text-4)"
+                  className={`chip ghost h-7 shrink-0 text-xs text-(--color-text-3) hover:text-(--color-text-1) ${compactHeader ? 'w-7 justify-center px-0' : 'px-2'}`}
                   aria-label={t('common.download')}
                   title={t('common.download')}
                 >
-                  <Icon name="download" size={13} strokeWidth={1.8} />
-                  {exporting ? t('output.exporting') : t('common.download')}
+                  <Icon name="download" size={11} strokeWidth={1.8} />
+                  {!compactHeader && (exporting ? t('output.exporting') : t('common.download'))}
                 </button>
-                <span className="meta-dot text-(--color-text-4)" aria-hidden />
                 <button
+                  ref={deleteButtonRef}
                   type="button"
                   onClick={handleDeleteStackImages}
-                  className="bg-transparent p-0 text-base font-semibold transition-colors hover:brightness-110"
-                  style={{ color: 'var(--color-danger)' }}
+                  className={`chip h-7 shrink-0 text-xs ${
+                    deleteConfirming
+                      ? 'danger px-2'
+                      : `ghost text-(--color-text-3) hover:text-(--color-danger) ${compactHeader ? 'w-7 justify-center px-0' : 'px-2'}`
+                  }`}
                   aria-label={t('output.deleteStack')}
                   title={t('output.deleteStack')}
                 >
+                  <Icon name="trash" size={11} strokeWidth={1.8} />
                   {deleteConfirming
                     ? t('output.confirmDeleteStack', { count: stack.images.length })
-                    : t('common.delete')}
+                    : !compactHeader && t('common.delete')}
                 </button>
-              </>
+              </div>
             )}
           </div>
         </div>
         <div className="min-w-0">
-          <ImageGrid layout="justified">
+          <ImageGrid>
             {previewItems.length > 0 ? (
               previewItems.map((item) => {
                 const summary = stackItemGenerationSummary(item)

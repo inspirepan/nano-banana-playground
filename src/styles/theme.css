@@ -111,6 +111,10 @@
   --media-overlay-light-bg-hover: color-mix(in srgb, var(--color-surface) 96%, transparent);
   --media-overlay-light-fg: var(--color-text);
   --media-overlay-light-edge: var(--ring-edge);
+  --media-selection-ring: oklch(0.5 0.17 258);
+  --media-selection-ring-shadow:
+    0 0 0 1px color-mix(in srgb, var(--color-surface) 92%, transparent), 0 0 0 3px var(--media-selection-ring),
+    0 0 0 4px color-mix(in srgb, var(--media-selection-ring) 16%, transparent);
   --modal-backdrop-bg: color-mix(in srgb, var(--color-bg-sunken) 38%, transparent);
   --switch-thumb-bg: var(--color-surface);
 
@@ -201,6 +205,11 @@
   --media-overlay-light-bg-hover: color-mix(in srgb, #fbfcfd 94%, transparent);
   --media-overlay-light-fg: #202328;
   --media-overlay-light-edge: color-mix(in srgb, #fbfcfd 28%, transparent);
+  --media-selection-ring: var(--color-accent);
+  --media-selection-ring-shadow:
+    0 0 0 1px color-mix(in srgb, var(--color-bg-sunken) 88%, transparent),
+    0 0 0 3px color-mix(in srgb, var(--media-selection-ring) 90%, var(--media-overlay-fg) 4%),
+    0 0 0 4px color-mix(in srgb, var(--media-selection-ring) 18%, transparent);
   --modal-backdrop-bg: color-mix(in srgb, #08090b 72%, transparent);
   --switch-thumb-bg: #f1f3f5;
   /* Chat user bubble — dark mode uses surface-3 straight as the bubble base.
