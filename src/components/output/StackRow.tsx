@@ -254,7 +254,6 @@ export const StackRow = memo(function StackRow({
                       outerRing
                       selectable={batchManageMode && item.type === 'image'}
                       selected={batchManageMode && item.type === 'image' && selectedImageIds?.has(item.image.id)}
-                      selectionIndicatorPosition="bottom-right"
                       showSlotReason
                       className="h-full w-full"
                       numberBadgeInset={8}

@@ -12,7 +12,7 @@ type Props = {
   outerRing?: boolean
   selectable?: boolean
   selected?: boolean
-  selectionIndicatorPosition?: 'top-right' | 'bottom-right'
+  selectionIndicatorPosition?: 'top-left' | 'top-right' | 'bottom-right'
   hoverLift?: boolean
   showSlotReason?: boolean
   compactSlotStatus?: boolean
@@ -64,7 +64,7 @@ export const StackItemThumb = memo(function StackItemThumb({
   outerRing = false,
   selectable = false,
   selected = false,
-  selectionIndicatorPosition = 'top-right',
+  selectionIndicatorPosition = 'top-left',
   hoverLift = true,
   showSlotReason = false,
   compactSlotStatus = false,
@@ -156,6 +156,16 @@ export const StackItemThumb = memo(function StackItemThumb({
       : 'inset 0 0 0 1px color-mix(in srgb, var(--media-overlay-fg) 16%, transparent)',
     backdropFilter: 'blur(8px)',
   }
+  // In selectable + top-left mode, the checkbox occupies the #N badge slot.
+  // Fade the badge to 0 instead of removing it so selection mode toggles
+  // animate cleanly and the DOM stays stable for screen readers.
+  const numberBadgeHidden = selectable && selectionIndicatorPosition === 'top-left'
+  const selectionPositionStyle: CSSProperties =
+    selectionIndicatorPosition === 'top-left'
+      ? { left: numberBadgeInset, top: numberBadgeInset }
+      : selectionIndicatorPosition === 'bottom-right'
+        ? { right: 8, bottom: 9 }
+        : { right: 8, top: 8 }
   const slotStatusIcon =
     slot?.status === 'failed' || slot?.status === 'canceled' ? (
       <Icon name="close" size={13} strokeWidth={1.8} />
@@ -254,13 +264,18 @@ export const StackItemThumb = memo(function StackItemThumb({
         )}
       </div>
       <span
-        className="font-display pointer-events-none absolute z-10 inline-flex h-[18px] min-w-[24px] items-center justify-center rounded-[var(--radius-xs)] px-1.5 text-base font-normal leading-none"
+        className="font-display pointer-events-none absolute z-10 inline-flex h-[18px] min-w-[24px] items-center justify-center rounded-[var(--radius-xs)] px-1.5 text-base font-normal leading-none transition-opacity duration-150 group-hover:opacity-0 group-focus-within:opacity-0"
         style={{
           left: numberBadgeInset,
           top: numberBadgeInset,
           ...badgeSurface,
           backdropFilter: 'blur(8px)',
+          // Inline `opacity: 0` wins over the hover class, so selectable
+          // mode stays hidden persistently. Leave undefined otherwise so
+          // hover / focus-within transitions drive opacity.
+          opacity: numberBadgeHidden ? 0 : undefined,
         }}
+        aria-hidden={numberBadgeHidden || undefined}
       >
         #{itemNumber}
       </span>
@@ -313,8 +328,16 @@ export const StackItemThumb = memo(function StackItemThumb({
           tabIndex={onQuickSelect ? 0 : -1}
           aria-hidden={!onQuickSelect}
           aria-label={onQuickSelect ? t('output.batchManage') : undefined}
-          className={`absolute right-2 z-20 flex size-5 items-center justify-center rounded-[var(--radius-sm)] transition-[background-color,box-shadow,color,opacity,transform] active:scale-95 ${selectionIndicatorPosition === 'bottom-right' ? 'bottom-[9px]' : 'top-2'} ${onQuickSelect ? 'pointer-events-auto opacity-0 group-hover:opacity-100 group-focus-within:opacity-100' : 'pointer-events-none'}`}
+          // `before:-inset-2 before:content-['']` extends the hit area to
+          // ~36x36 around the visible 20x20 chip. Makes entering batch mode
+          // (quick-select) and toggling selection forgiving at the corner
+          // without changing the chip's visual position. The ::before is a
+          // child of the button, so clicks in the extended buffer bubble up
+          // as button clicks; opacity / pointer-events on the button flow
+          // through to the pseudo so behavior stays in sync.
+          className={`absolute z-20 flex size-5 items-center justify-center rounded-[var(--radius-sm)] transition-[background-color,box-shadow,color,opacity,transform] active:scale-95 before:absolute before:-inset-2 before:content-[''] ${onQuickSelect ? 'pointer-events-auto opacity-0 group-hover:opacity-100 group-focus-within:opacity-100' : 'pointer-events-none'}`}
           style={{
+            ...selectionPositionStyle,
             background: selected
               ? 'var(--color-accent)'
               : 'color-mix(in srgb, var(--media-overlay-bg) 78%, transparent)',
@@ -322,9 +345,7 @@ export const StackItemThumb = memo(function StackItemThumb({
             // (the token paired with accent fills), not --media-overlay-fg
             // (white). With a light accent like lime the white check drops
             // below AA and reads as a blank tile.
-            color: selected
-              ? 'var(--color-accent-fg)'
-              : 'color-mix(in srgb, var(--media-overlay-fg) 64%, transparent)',
+            color: selected ? 'var(--color-accent-fg)' : 'color-mix(in srgb, var(--media-overlay-fg) 64%, transparent)',
             boxShadow: selected
               ? 'inset 0 0 0 1px color-mix(in srgb, var(--color-accent-fg) 22%, transparent)'
               : 'inset 0 0 0 1px color-mix(in srgb, var(--media-overlay-fg) 22%, transparent)',
@@ -342,7 +363,7 @@ export const StackItemThumb = memo(function StackItemThumb({
       )}
       {actions && (
         <div
-          className={`stack-thumb-actions absolute inset-x-1.5 bottom-1.5 z-10 ${onQuickSelect ? 'pr-7' : ''}`}
+          className={`stack-thumb-actions absolute inset-x-1.5 bottom-1.5 z-10 ${onQuickSelect && selectionIndicatorPosition === 'bottom-right' ? 'pr-7' : ''}`}
           style={actionStyle}
         >
           {actions}
