@@ -22,6 +22,14 @@ export const agentChatMessages: MessageDictionary = {
     'zh-CN': '使用 {skill} Skill，帮我生成图片：',
     en: 'Use the {skill} skill to help me generate images: ',
   },
+  'agentChat.empty.skillStarter.overwriteTitle': {
+    'zh-CN': '会覆盖当前输入',
+    en: 'Current text will be replaced',
+  },
+  'agentChat.empty.skillStarter.overwriteConfirm': {
+    'zh-CN': '再次点击确认',
+    en: 'Click again to confirm',
+  },
   'agentChat.status.running': { 'zh-CN': 'Agent 正在运行', en: 'Agent is running' },
   'agentChat.status.generatingImages': { 'zh-CN': '图片生成中', en: 'Generating images' },
   'agentChat.status.waitingForQuestion': { 'zh-CN': '等待你回答问题', en: 'Waiting for your answer' },

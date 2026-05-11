@@ -12,6 +12,7 @@ const RESOLUTION_QUICK_PICKS = ['1K', '2K', '4K'] as const
 
 type Props = {
   drawingSkills: AgentSkillSummary[]
+  confirmSkillOverwrite: boolean
   onPickSkill: (skill: AgentSkillSummary) => void
   onInsertText: (text: string) => void
 }
@@ -147,12 +148,12 @@ export function QuickCompletePanel({ onInsertText }: { onInsertText: (text: stri
   )
 }
 
-export function AgentChatEmptyState({ drawingSkills, onPickSkill, onInsertText }: Props) {
+export function AgentChatEmptyState({ drawingSkills, confirmSkillOverwrite, onPickSkill, onInsertText }: Props) {
   const { t } = useI18n()
   return (
     <div className="flex w-full min-w-0 flex-col justify-center gap-8 md:gap-6">
       {drawingSkills.length > 0 ? (
-        <DrawingSkillStarters skills={drawingSkills} onPick={onPickSkill} />
+        <DrawingSkillStarters skills={drawingSkills} confirmBeforePick={confirmSkillOverwrite} onPick={onPickSkill} />
       ) : (
         <div className="text-center">
           <div className="font-display text-lg font-semibold tracking-[-0.01em] text-(--color-text)">

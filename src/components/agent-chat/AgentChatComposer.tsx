@@ -45,14 +45,27 @@ let starterExampleTick = 0
 let starterExampleTimer: number | null = null
 const starterExampleTickListeners = new Set<() => void>()
 
+function startStarterExampleTimer() {
+  if (typeof window === 'undefined') return
+  starterExampleTimer = window.setInterval(() => {
+    starterExampleTick++
+    starterExampleTickListeners.forEach((notify) => notify())
+  }, STARTER_EXAMPLE_ROTATION_MS)
+}
+
+function resetStarterExampleRotation() {
+  starterExampleTick = 0
+  starterExampleTickListeners.forEach((notify) => notify())
+  if (starterExampleTimer === null || typeof window === 'undefined') return
+  window.clearInterval(starterExampleTimer)
+  startStarterExampleTimer()
+}
+
 function subscribeStarterExampleTick(listener: () => void): () => void {
   if (typeof window === 'undefined') return () => {}
   starterExampleTickListeners.add(listener)
   if (starterExampleTimer === null) {
-    starterExampleTimer = window.setInterval(() => {
-      starterExampleTick++
-      starterExampleTickListeners.forEach((notify) => notify())
-    }, STARTER_EXAMPLE_ROTATION_MS)
+    startStarterExampleTimer()
   }
   return () => {
     starterExampleTickListeners.delete(listener)
@@ -174,7 +187,7 @@ type AgentChatComposerProps = {
 
 export type AgentChatComposerHandle = {
   focus: () => void
-  activate: () => void
+  activate: (options?: { resetStarterExampleRotation?: boolean }) => void
 }
 
 export const AgentChatComposer = forwardRef<AgentChatComposerHandle, AgentChatComposerProps>(function AgentChatComposer(
@@ -302,7 +315,8 @@ export const AgentChatComposer = forwardRef<AgentChatComposerHandle, AgentChatCo
         if (shouldSkipProgrammaticComposerFocus()) return
         textareaRef.current?.focus({ preventScroll: true })
       },
-      activate: () => {
+      activate: (options) => {
+        if (options?.resetStarterExampleRotation) resetStarterExampleRotation()
         const textarea = textareaRef.current
         if (!textarea || shouldSkipProgrammaticComposerFocus()) return
         const cursor = textarea.value.length

@@ -585,13 +585,14 @@ export function AgentChatPanel({
             {isEmpty ? (
               <AgentChatEmptyState
                 drawingSkills={drawingSkills}
+                confirmSkillOverwrite={draft.trim().length > 0}
                 onPickSkill={(skill) => {
                   flushSync(() => {
                     onDraftChange(
                       `/${skill.name} ${t('agentChat.empty.skillStarter.prompt', { skill: displayNameForLanguage(skill, language) })}`,
                     )
                   })
-                  composerRef.current?.activate()
+                  composerRef.current?.activate({ resetStarterExampleRotation: true })
                 }}
                 onInsertText={handleInsertText}
               />
