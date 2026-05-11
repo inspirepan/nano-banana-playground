@@ -148,9 +148,9 @@
   --color-bg: #0d0e10;
   --color-bg-sunken: #08090b;
 
-  --color-surface: #14161a;
-  --color-surface-2: #1b1e23;
-  --color-surface-3: #242831;
+  --color-surface: #17191d;
+  --color-surface-2: #1e2127;
+  --color-surface-3: #282c34;
   --agent-image-task-empty-bg: color-mix(in srgb, var(--color-surface-2) 70%, var(--color-surface));
 
   --color-border: #30343d;
@@ -161,12 +161,17 @@
   --color-text-3: #9097a3;
   --color-text-4: #666d78;
 
-  --color-accent: oklch(0.56 0.13 258);
-  --color-accent-hover: oklch(0.6 0.14 258);
-  --color-accent-fg: oklch(0.985 0.004 260);
-  /* Lift blue toward lightness for text-only accent usage on dark washes. */
-  --color-accent-text: color-mix(in oklch, var(--color-accent) 68%, oklch(0.985 0.004 260));
-  --color-accent-soft: oklch(0.22 0.04 258);
+  /* Accent (dark): fluorescent lime (#D1FE17). Because the base sits at
+     L≈0.94, standard "lift toward white on hover" (blue pattern) collapses;
+     use a small L drop for hover, and flip --color-accent-fg to a near-black
+     so text on filled CTAs stays legible (white on lime ≈ 1.3:1, fails AA). */
+  --color-accent: oklch(0.945 0.231 122);
+  --color-accent-hover: oklch(0.89 0.23 122);
+  --color-accent-fg: oklch(0.18 0.03 122);
+  /* Text-only accent on dark wash: slightly toned down from the pure lime so
+     long runs of text don't vibrate. Still clears AA on wash-over-bg. */
+  --color-accent-text: oklch(0.9 0.2 122);
+  --color-accent-soft: oklch(0.27 0.07 122);
   --color-accent-wash: color-mix(in oklch, var(--color-accent) 18%, transparent);
   --color-accent-wash-2: color-mix(in oklch, var(--color-accent) 28%, transparent);
   --color-accent-ring: color-mix(in srgb, var(--color-accent) 24%, transparent);
@@ -179,12 +184,12 @@
 
   --color-success: #76b68a;
 
-  --ring-edge: rgba(255, 255, 255, 0.052);
-  --ring-edge-elevated: rgba(255, 255, 255, 0.074);
-  --ring-edge-strong: rgba(255, 255, 255, 0.118);
-  --ring-edge-soft: rgba(255, 255, 255, 0.038);
+  --ring-edge: rgba(255, 255, 255, 0.07);
+  --ring-edge-elevated: rgba(255, 255, 255, 0.094);
+  --ring-edge-strong: rgba(255, 255, 255, 0.142);
+  --ring-edge-soft: rgba(255, 255, 255, 0.05);
 
-  --shadow-lift: inset 0 1px 0 rgba(255, 255, 255, 0.045), 0 1px 0 rgba(0, 0, 0, 0.28);
+  --shadow-lift: inset 0 1px 0 rgba(255, 255, 255, 0.055), 0 1px 0 rgba(0, 0, 0, 0.32);
 
   --shadow-float:
     inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 10px 28px -22px rgba(0, 0, 0, 0.85), 0 3px 8px -5px rgba(0, 0, 0, 0.55);
@@ -198,9 +203,19 @@
   --media-overlay-light-edge: color-mix(in srgb, #fbfcfd 28%, transparent);
   --modal-backdrop-bg: color-mix(in srgb, #08090b 72%, transparent);
   --switch-thumb-bg: #f1f3f5;
-  /* Chat user bubble edge — dark mode: accent ring on the outer 1px, white
-     highlight on the next 1px inside, giving a crisp double-line top edge. */
-  --bubble-user-edge: inset 0 2px 0 -1px rgba(255, 255, 255, 0.16), inset 0 0 0 1px var(--color-accent-ring);
+  /* Chat user bubble — dark mode uses surface-3 straight as the bubble base.
+     An accent tint mix (even 10-12%) is a trap when accent is yellow-green
+     (lime) sitting on a cool neutral: sRGB mixing lands in the olive / mud
+     middle band and the bubble reads as dirty. Keep the fill a clean cool
+     neutral and let `--bubble-user-edge` (accent ring + top white highlight)
+     carry the "this is the user" signal instead. */
+  --bubble-user-bg: var(--color-surface-3);
+  /* Chat user bubble edge — dark mode: neutral ring on the outer 1px (accent
+     ring here reads as a neon outline with the lime accent, especially on a
+     persistent large container like the user bubble), white highlight on the
+     next 1px inside for the crisp double-line top edge. Accent identity is
+     reserved for CTAs / focus rings / selection state, not ambient chrome. */
+  --bubble-user-edge: inset 0 2px 0 -1px rgba(255, 255, 255, 0.16), inset 0 0 0 1px var(--ring-edge);
 
   color-scheme: dark;
 }
