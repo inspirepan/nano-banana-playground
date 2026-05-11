@@ -565,7 +565,7 @@ export function AgentChatPanel({
       </div>
 
       <div
-        className={`relative flex min-h-0 min-w-0 flex-1 flex-col${isEmpty ? ' md:grid md:grid-rows-[minmax(0,1fr)_auto_minmax(0,1fr)]' : ''}`}
+        className={`relative flex min-h-0 min-w-0 flex-1 flex-col${isEmpty ? ' md:grid md:grid-cols-[minmax(0,1fr)] md:grid-rows-[minmax(0,1fr)_auto_minmax(0,1fr)]' : ''}`}
       >
         {!isEmpty ? (
           <div
