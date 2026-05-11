@@ -1,4 +1,12 @@
-import { GENERATE_MAX_RETRIES, GENERATE_RETRY_DELAYS, isRetryable, REQUEST_TIMEOUT_MS, retryMessage } from './retry'
+import {
+  createGenerationAbortSignal,
+  GENERATE_MAX_RETRIES,
+  GENERATE_RETRY_DELAYS,
+  isRetryable,
+  normalizeGenerationAbortError,
+  REQUEST_TIMEOUT_MS,
+  retryMessage,
+} from './retry'
 import type { GenerateCallbacks, GenerateParams } from './types'
 import type { GroundingMetadata, PlaygroundImage, TokenUsage } from '../types'
 import { resolveBaseUrl } from '../validateKey'
@@ -102,12 +110,10 @@ export async function generateImageGoogle(
   }
 
   const url = `${resolveBaseUrl('google', baseUrl)}/v1beta/models/${model.apiModel}:generateContent`
-  const timeoutSignal = AbortSignal.timeout(REQUEST_TIMEOUT_MS)
   const requestInit: RequestInit = {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
     body: JSON.stringify(body),
-    signal: signal ? AbortSignal.any([signal, timeoutSignal]) : timeoutSignal,
   }
 
   let lastError: unknown
@@ -120,35 +126,40 @@ export async function generateImageGoogle(
       if (signal?.aborted) throw signal.reason
     }
 
-    let res: Response
+    const generationSignal = createGenerationAbortSignal(signal, REQUEST_TIMEOUT_MS)
+    let data: ApiResponse
     try {
-      res = await fetch(url, requestInit)
-    } catch (e) {
-      lastError = e
-      if (isRetryable(e) && attempt < GENERATE_MAX_RETRIES) {
+      const res = await fetch(url, { ...requestInit, signal: generationSignal.signal })
+
+      if (isRetryable(null, res.status) && attempt < GENERATE_MAX_RETRIES) {
+        lastError = new Error(`Server error ${res.status}`)
         callbacks?.onRetry?.({
           attempt: attempt + 1,
           nextAttempt: attempt + 2,
           delayMs: GENERATE_RETRY_DELAYS[attempt],
-          error: retryMessage(e),
+          error: retryMessage(lastError),
         })
         continue
       }
-      throw e
+
+      data = (await res.json()) as ApiResponse
+    } catch (e) {
+      const error = normalizeGenerationAbortError(e, generationSignal.signal)
+      lastError = error
+      if (isRetryable(error) && attempt < GENERATE_MAX_RETRIES) {
+        callbacks?.onRetry?.({
+          attempt: attempt + 1,
+          nextAttempt: attempt + 2,
+          delayMs: GENERATE_RETRY_DELAYS[attempt],
+          error: retryMessage(error),
+        })
+        continue
+      }
+      throw error
+    } finally {
+      generationSignal.cleanup()
     }
 
-    if (isRetryable(null, res.status) && attempt < GENERATE_MAX_RETRIES) {
-      lastError = new Error(`Server error ${res.status}`)
-      callbacks?.onRetry?.({
-        attempt: attempt + 1,
-        nextAttempt: attempt + 2,
-        delayMs: GENERATE_RETRY_DELAYS[attempt],
-        error: retryMessage(lastError),
-      })
-      continue
-    }
-
-    const data: ApiResponse = await res.json()
     if (data.error) throw new Error(data.error.message)
     if (!data.candidates?.length) throw new Error('No response from model')
 
@@ -168,7 +179,7 @@ export async function generateImageGoogle(
       throw lastError
     }
 
-    const parts_ = candidate.content.parts ?? []
+    const parts_ = candidate.content?.parts ?? []
     const imagePart = parts_.find((p) => p.inlineData || p.inline_data)
     if (!imagePart) {
       const textPart = parts_.find((p) => p.text)

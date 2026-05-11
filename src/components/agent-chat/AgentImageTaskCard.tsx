@@ -434,7 +434,8 @@ export function AgentImageTaskCard({
     (task.status === 'queued' ||
       task.status === 'running' ||
       task.status === 'approved' ||
-      task.status === 'completed'),
+      task.status === 'completed' ||
+      task.status === 'failed'),
   )
   const handleCardClick = canFocus && task ? () => onFocus?.(task, { behavior: 'open' }) : undefined
   const handleLocateClick = canFocus && task ? () => onFocus?.(task, { behavior: 'locate' }) : undefined

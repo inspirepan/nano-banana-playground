@@ -1,4 +1,12 @@
-import { GENERATE_MAX_RETRIES, GENERATE_RETRY_DELAYS, isRetryable, REQUEST_TIMEOUT_MS, retryMessage } from './retry'
+import {
+  createGenerationAbortSignal,
+  GENERATE_MAX_RETRIES,
+  GENERATE_RETRY_DELAYS,
+  isRetryable,
+  normalizeGenerationAbortError,
+  REQUEST_TIMEOUT_MS,
+  retryMessage,
+} from './retry'
 import type { GenerateCallbacks, GenerateParams } from './types'
 import type { PlaygroundImage, TokenUsage } from '../types'
 import { resolveBaseUrl } from '../validateKey'
@@ -100,12 +108,10 @@ export async function generateImageDoubao(
   }
 
   const url = `${resolveBaseUrl('doubao', baseUrl)}/images/generations`
-  const timeoutSignal = AbortSignal.timeout(REQUEST_TIMEOUT_MS)
   const requestInit: RequestInit = {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
     body: JSON.stringify(body),
-    signal: signal ? AbortSignal.any([signal, timeoutSignal]) : timeoutSignal,
   }
 
   let lastError: unknown
@@ -118,35 +124,41 @@ export async function generateImageDoubao(
       if (signal?.aborted) throw signal.reason
     }
 
+    const generationSignal = createGenerationAbortSignal(signal, REQUEST_TIMEOUT_MS)
     let res: Response
+    let data: DoubaoResponse
     try {
-      res = await fetch(url, requestInit)
-    } catch (e) {
-      lastError = e
-      if (isRetryable(e) && attempt < GENERATE_MAX_RETRIES) {
+      res = await fetch(url, { ...requestInit, signal: generationSignal.signal })
+
+      if (isRetryable(null, res.status) && attempt < GENERATE_MAX_RETRIES) {
+        lastError = new Error(`Server error ${res.status}`)
         callbacks?.onRetry?.({
           attempt: attempt + 1,
           nextAttempt: attempt + 2,
           delayMs: GENERATE_RETRY_DELAYS[attempt],
-          error: retryMessage(e),
+          error: retryMessage(lastError),
         })
         continue
       }
-      throw e
+
+      data = (await res.json()) as DoubaoResponse
+    } catch (e) {
+      const error = normalizeGenerationAbortError(e, generationSignal.signal)
+      lastError = error
+      if (isRetryable(error) && attempt < GENERATE_MAX_RETRIES) {
+        callbacks?.onRetry?.({
+          attempt: attempt + 1,
+          nextAttempt: attempt + 2,
+          delayMs: GENERATE_RETRY_DELAYS[attempt],
+          error: retryMessage(error),
+        })
+        continue
+      }
+      throw error
+    } finally {
+      generationSignal.cleanup()
     }
 
-    if (isRetryable(null, res.status) && attempt < GENERATE_MAX_RETRIES) {
-      lastError = new Error(`Server error ${res.status}`)
-      callbacks?.onRetry?.({
-        attempt: attempt + 1,
-        nextAttempt: attempt + 2,
-        delayMs: GENERATE_RETRY_DELAYS[attempt],
-        error: retryMessage(lastError),
-      })
-      continue
-    }
-
-    const data = (await res.json()) as DoubaoResponse
     const itemError = data.data?.find((item) => item.error)?.error
     if (!res.ok || data.error || itemError) {
       throw new Error(data.error?.message ?? itemError?.message ?? `HTTP ${res.status}`)

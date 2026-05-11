@@ -158,6 +158,7 @@ function App() {
         onCancelGenerationJob={pg.cancelGenerationJob}
         onDismissGenerationJob={pg.dismissGenerationJob}
         onCancelGenerationSlot={pg.cancelGenerationSlot}
+        onDismissGenerationSlot={pg.dismissGenerationSlot}
         onRetryGenerationSlot={handleRetryGenerationSlot}
         onRetryFailedGenerationImage={handleRetryFailedGenerationImage}
         onRemove={pg.removeFromHistory}
@@ -187,6 +188,7 @@ function App() {
         onCancelGenerationJob={pg.cancelGenerationJob}
         onDismissGenerationJob={pg.dismissGenerationJob}
         onCancelGenerationSlot={pg.cancelGenerationSlot}
+        onDismissGenerationSlot={pg.dismissGenerationSlot}
         onRetryGenerationSlot={handleRetryGenerationSlot}
         onRetryFailedGenerationImage={handleRetryFailedGenerationImage}
         onAddToRef={handleAddToRef}

@@ -1,4 +1,12 @@
-import { GENERATE_MAX_RETRIES, GENERATE_RETRY_DELAYS, isRetryable, REQUEST_TIMEOUT_MS, retryMessage } from './retry'
+import {
+  createGenerationAbortSignal,
+  GENERATE_MAX_RETRIES,
+  GENERATE_RETRY_DELAYS,
+  isRetryable,
+  normalizeGenerationAbortError,
+  REQUEST_TIMEOUT_MS,
+  retryMessage,
+} from './retry'
 import type { GenerateCallbacks, GenerateParams } from './types'
 import { base64ToBlob } from '../blobUtils'
 import { openAISize } from '../openai'
@@ -65,8 +73,6 @@ export async function generateImageOpenAI(
   const base = resolveBaseUrl('openai', baseUrl)
   const hasRefs = referenceImages.length > 0
   const url = hasRefs ? `${base}/images/edits` : `${base}/images/generations`
-  const timeoutSignal = AbortSignal.timeout(REQUEST_TIMEOUT_MS)
-  const mergedSignal = signal ? AbortSignal.any([signal, timeoutSignal]) : timeoutSignal
 
   let body: BodyInit
   const headers: Record<string, string> = { Authorization: `Bearer ${apiKey}` }
@@ -93,7 +99,7 @@ export async function generateImageOpenAI(
     body = JSON.stringify({ model: model.apiModel, prompt, size, quality, n: 1 })
   }
 
-  const requestInit: RequestInit = { method: 'POST', headers, body, signal: mergedSignal }
+  const requestInit: RequestInit = { method: 'POST', headers, body }
   let lastError: unknown
   for (let attempt = 0; attempt <= GENERATE_MAX_RETRIES; attempt++) {
     if (attempt > 0) {
@@ -104,35 +110,40 @@ export async function generateImageOpenAI(
       if (signal?.aborted) throw signal.reason
     }
 
+    const generationSignal = createGenerationAbortSignal(signal, REQUEST_TIMEOUT_MS)
     let res: Response
+    let data: OpenAIImageResponse
     try {
-      res = await fetch(url, requestInit)
-    } catch (e) {
-      lastError = e
-      if (isRetryable(e) && attempt < GENERATE_MAX_RETRIES) {
+      res = await fetch(url, { ...requestInit, signal: generationSignal.signal })
+
+      if (isRetryable(null, res.status) && attempt < GENERATE_MAX_RETRIES) {
+        lastError = new Error(`Server error ${res.status}`)
         callbacks?.onRetry?.({
           attempt: attempt + 1,
           nextAttempt: attempt + 2,
           delayMs: GENERATE_RETRY_DELAYS[attempt],
-          error: retryMessage(e),
+          error: retryMessage(lastError),
         })
         continue
       }
-      throw e
-    }
 
-    if (isRetryable(null, res.status) && attempt < GENERATE_MAX_RETRIES) {
-      lastError = new Error(`Server error ${res.status}`)
-      callbacks?.onRetry?.({
-        attempt: attempt + 1,
-        nextAttempt: attempt + 2,
-        delayMs: GENERATE_RETRY_DELAYS[attempt],
-        error: retryMessage(lastError),
-      })
-      continue
+      data = await readOpenAIImageResponse(res)
+    } catch (e) {
+      const error = normalizeGenerationAbortError(e, generationSignal.signal)
+      lastError = error
+      if (isRetryable(error) && attempt < GENERATE_MAX_RETRIES) {
+        callbacks?.onRetry?.({
+          attempt: attempt + 1,
+          nextAttempt: attempt + 2,
+          delayMs: GENERATE_RETRY_DELAYS[attempt],
+          error: retryMessage(error),
+        })
+        continue
+      }
+      throw error
+    } finally {
+      generationSignal.cleanup()
     }
-
-    const data = await readOpenAIImageResponse(res)
 
     if (!res.ok || data.error) throw new Error(openAIImageErrorMessage(data, res.status) ?? `HTTP ${res.status}`)
 
@@ -141,8 +152,7 @@ export async function generateImageOpenAI(
 
     const outputImageTokens = data.usage?.output_tokens_details?.image_tokens ?? data.usage?.output_tokens ?? 0
     const outputTextTokens =
-      data.usage?.output_tokens_details?.text_tokens ??
-      Math.max((data.usage?.output_tokens ?? 0) - outputImageTokens, 0)
+      data.usage?.output_tokens_details?.text_tokens ?? Math.max((data.usage?.output_tokens ?? 0) - outputImageTokens, 0)
     const tokenUsage: TokenUsage | undefined = data.usage
       ? {
           inputTokens: data.usage.input_tokens ?? 0,

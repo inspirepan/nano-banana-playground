@@ -36,11 +36,12 @@ export type {
   GenerationQueueSummary,
   GenerationSlot,
   GenerationSlotStatus,
+  QueuedGenerationResult,
   RetryGenerationSlotResult,
 } from './useGenerationQueue'
 
 export type RerollGeneratedImageResult =
-  | { status: 'queued'; batchId: string }
+  | { status: 'queued'; batchId: string; slotId: string; slotIndex: number }
   | { status: 'unsupported-mask' }
   | { status: 'unavailable' }
 
@@ -224,6 +225,7 @@ export function usePlayground() {
     cancelGenerationSlot,
     cancelGenerationJob,
     dismissGenerationJob,
+    dismissGenerationSlot,
   } = useGenerationQueue({
     getProviderCredentials,
     invalidateGenerationKey,
@@ -272,6 +274,28 @@ export function usePlayground() {
     [dismissGenerationJob, generationJobs, setHistory],
   )
 
+  const dismissGenerationSlotWithFailure = useCallback(
+    (jobId: string, slotId: string) => {
+      const job = generationJobs.find((item) => item.id === jobId)
+      const slot = job?.slots.find((item) => item.id === slotId)
+      const failureId =
+        job && slot?.status === 'failed' && job.request.outputImageIdSource !== 'agent'
+          ? generationFailureImageId(job.id, slot.id)
+          : null
+
+      dismissGenerationSlot(slotId)
+      if (!failureId) return
+      setHistory((prev) => prev.filter((image) => image.id !== failureId))
+      void deleteFromHistory(failureId).catch(() => {})
+    },
+    [dismissGenerationSlot, generationJobs, setHistory],
+  )
+
+  const enqueueGenerationJobBatchId = useCallback(
+    (...args: Parameters<typeof enqueueGenerationJob>) => enqueueGenerationJob(...args).batchId,
+    [enqueueGenerationJob],
+  )
+
   const agent = useAgentPlayground({
     initialSessionId: _initial.agentSessionId,
     keyHooks,
@@ -280,7 +304,7 @@ export function usePlayground() {
     generationJobs,
     getProviderCredentials,
     invalidateGenerationKey,
-    enqueueGenerationJob,
+    enqueueGenerationJob: enqueueGenerationJobBatchId,
     cancelGenerationJob,
     dismissGenerationJob: dismissGenerationJobWithFailures,
   })
@@ -548,12 +572,14 @@ export function usePlayground() {
       }
       const activeJob = findActiveGenerationJob({ request, stackId, parentImageId })
       if (activeJob) {
-        const slotId = appendGenerationSlot(activeJob.id, undefined, stackTitle)
-        if (slotId) return { status: 'queued', batchId: activeJob.id }
+        const slot = appendGenerationSlot(activeJob.id, undefined, stackTitle)
+        if (slot) return { status: 'queued', batchId: activeJob.id, slotId: slot.id, slotIndex: slot.index }
       }
 
-      const batchId = enqueueGenerationJob(request, 1, stackId, parentImageId, stackTitle)
-      return { status: 'queued', batchId }
+      const enqueued = enqueueGenerationJob(request, 1, stackId, parentImageId, stackTitle)
+      const [slot] = enqueued.slots
+      if (!slot) return { status: 'unavailable' }
+      return { status: 'queued', batchId: enqueued.batchId, slotId: slot.id, slotIndex: slot.index }
     },
     [
       appendGenerationSlot,
@@ -606,12 +632,14 @@ export function usePlayground() {
       }
       const activeJob = findActiveGenerationJob({ request, stackId, parentImageId })
       if (activeJob) {
-        const slotId = appendGenerationSlot(activeJob.id, source.outputImageId, stackTitle)
-        if (slotId) return { status: 'queued', batchId: activeJob.id }
+        const slot = appendGenerationSlot(activeJob.id, source.outputImageId, stackTitle)
+        if (slot) return { status: 'queued', batchId: activeJob.id, slotId: slot.id, slotIndex: slot.index }
       }
 
-      const batchId = enqueueGenerationJob(request, 1, stackId, parentImageId, stackTitle)
-      return { status: 'queued', batchId }
+      const enqueued = enqueueGenerationJob(request, 1, stackId, parentImageId, stackTitle)
+      const [slot] = enqueued.slots
+      if (!slot) return { status: 'unavailable' }
+      return { status: 'queued', batchId: enqueued.batchId, slotId: slot.id, slotIndex: slot.index }
     },
     [
       appendGenerationSlot,
@@ -737,7 +765,7 @@ export function usePlayground() {
         stackId,
         params.sourceImage.id,
         stackTitleForPrompt(trimmed),
-      )
+      ).batchId
     },
     [keyHooks, resolveFullImages, enqueueGenerationJob],
   )
@@ -818,6 +846,7 @@ export function usePlayground() {
     cancelGenerationJob,
     dismissGenerationJob: dismissGenerationJobWithFailures,
     cancelGenerationSlot,
+    dismissGenerationSlot: dismissGenerationSlotWithFailure,
     addToReferences,
     removeFromHistory,
     loadMoreHistory,

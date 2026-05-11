@@ -3,10 +3,14 @@ import { useCallback, useMemo, useRef, useState } from 'react'
 import { useExternalSync, useMountEffect } from './effects'
 import { putBlobInCache, removeBlobFromCache } from './useImageSrc'
 import type { ModelConfig } from '../config/models'
-import { translate } from '../i18n'
 import { GENERATE_MAX_ATTEMPTS, generateImage } from '../lib/api'
 import { deleteFromHistory, saveToHistory } from '../lib/history'
-import { generationAbortErrorMessage, generationNetworkErrorMessage, isAbortError } from '../lib/imageApi/retry'
+import {
+  generationAbortErrorMessage,
+  generationNetworkErrorMessage,
+  isAbortError,
+  timeoutErrorMessage,
+} from '../lib/imageApi/retry'
 import { readGenerationConcurrencyPreference, writeGenerationConcurrencyPreference } from '../lib/preferenceStore'
 import { stackTitleForPrompt } from '../lib/stackTitle'
 import type { GenerationAttemptError, PlaygroundImage } from '../lib/types'
@@ -68,9 +72,11 @@ export type GenerationQueueSummary = {
   activeJobs: number
 }
 
-export type RetryGenerationSlotResult = { status: 'queued'; batchId: string } | { status: 'unavailable' }
+export type QueuedGenerationResult = { status: 'queued'; batchId: string; slotId: string; slotIndex: number }
+export type RetryGenerationSlotResult = QueuedGenerationResult | { status: 'unavailable' }
 
 type ProviderCredentials = { apiKey: string; baseUrl?: string }
+type EnqueuedGenerationJob = { batchId: string; slots: { id: string; index: number }[] }
 
 type UseGenerationQueueParams = {
   getProviderCredentials: (provider: ModelConfig['provider']) => ProviderCredentials
@@ -149,7 +155,7 @@ function summarizeGenerationQueue(jobs: GenerationJob[]): GenerationQueueSummary
 
 function toDisplayError(e: unknown): string {
   const err = e instanceof Error ? e : new Error(String(e))
-  if (err.name === 'TimeoutError') return translate('configLib.generationQueue.timeout')
+  if (err.name === 'TimeoutError') return timeoutErrorMessage(err)
   if (isAbortError(err)) return generationAbortErrorMessage()
   if (err instanceof TypeError) return generationNetworkErrorMessage(err)
   return err.message
@@ -443,8 +449,16 @@ export function useGenerationQueue({
       stackId: string,
       parentImageId?: string,
       stackTitle?: string,
-    ): string => {
+    ): EnqueuedGenerationJob => {
       const batchId = crypto.randomUUID()
+      const slots: GenerationSlot[] = Array.from({ length: batchCount }, (_, index) => ({
+        id: crypto.randomUUID(),
+        index,
+        status: 'queued',
+        attempt: 1,
+        maxAttempts: GENERATE_MAX_ATTEMPTS,
+        outputImageId: request.outputImageIds?.[index],
+      }))
       const job: GenerationJob = {
         id: batchId,
         stackId,
@@ -453,36 +467,30 @@ export function useGenerationQueue({
         createdAt: Date.now(),
         status: 'queued',
         request,
-        slots: Array.from({ length: batchCount }, (_, index) => ({
-          id: crypto.randomUUID(),
-          index,
-          status: 'queued',
-          attempt: 1,
-          maxAttempts: GENERATE_MAX_ATTEMPTS,
-          outputImageId: request.outputImageIds?.[index],
-        })),
+        slots,
       }
       setGenerationJobs((prev) => [job, ...prev.filter(shouldKeepExistingJob)])
       for (const refImg of request.referenceImages) putBlobInCache(refImg.id, refImg.data)
       pumpQueueRef.current()
-      return batchId
+      return { batchId, slots: slots.map((slot) => ({ id: slot.id, index: slot.index })) }
     },
     [setGenerationJobs],
   )
 
   const appendGenerationSlot = useCallback(
-    (jobId: string, outputImageId?: string, stackTitle?: string): string | null => {
+    (jobId: string, outputImageId?: string, stackTitle?: string): { id: string; index: number } | null => {
       const slotId = crypto.randomUUID()
-      let appended = false
+      let appendedSlot: { id: string; index: number } | null = null
       setGenerationJobs((prev) =>
         prev.map((job) => {
           if (job.id !== jobId || !isActiveJob(job)) return job
-          appended = true
+          const slotIndex = job.slots.length
+          appendedSlot = { id: slotId, index: slotIndex }
           const slots: GenerationSlot[] = [
             ...job.slots,
             {
               id: slotId,
-              index: job.slots.length,
+              index: slotIndex,
               status: 'queued',
               attempt: 1,
               maxAttempts: GENERATE_MAX_ATTEMPTS,
@@ -498,9 +506,9 @@ export function useGenerationQueue({
           }
         }),
       )
-      if (!appended) return null
+      if (!appendedSlot) return null
       pumpQueueRef.current()
-      return slotId
+      return appendedSlot
     },
     [setGenerationJobs],
   )
@@ -540,12 +548,14 @@ export function useGenerationQueue({
       const stackTitle = job.stackTitle ?? stackTitleForPrompt(request.prompt)
       const activeJob = findActiveGenerationJob({ request, stackId: job.stackId, parentImageId: job.parentImageId })
       if (activeJob) {
-        const nextSlotId = appendGenerationSlot(activeJob.id, slot.outputImageId, stackTitle)
-        if (nextSlotId) return { status: 'queued', batchId: activeJob.id }
+        const nextSlot = appendGenerationSlot(activeJob.id, slot.outputImageId, stackTitle)
+        if (nextSlot) return { status: 'queued', batchId: activeJob.id, slotId: nextSlot.id, slotIndex: nextSlot.index }
       }
 
-      const batchId = enqueueGenerationJob(request, 1, job.stackId, job.parentImageId, stackTitle)
-      return { status: 'queued', batchId }
+      const enqueued = enqueueGenerationJob(request, 1, job.stackId, job.parentImageId, stackTitle)
+      const [nextSlot] = enqueued.slots
+      if (!nextSlot) return { status: 'unavailable' }
+      return { status: 'queued', batchId: enqueued.batchId, slotId: nextSlot.id, slotIndex: nextSlot.index }
     },
     [appendGenerationSlot, enqueueGenerationJob, findActiveGenerationJob, getProviderCredentials],
   )
@@ -610,6 +620,31 @@ export function useGenerationQueue({
     [setGenerationJobs],
   )
 
+  const dismissGenerationSlot = useCallback(
+    (slotId: string) => {
+      setGenerationJobs((prev) =>
+        prev.flatMap((job) => {
+          const slot = job.slots.find((item) => item.id === slotId)
+          if (!slot || (slot.status !== 'failed' && slot.status !== 'canceled')) return [job]
+
+          const slots = job.slots.filter((item) => item.id !== slotId)
+          if (slots.length === 0) return []
+
+          const status = deriveJobStatus(slots)
+          return [
+            {
+              ...job,
+              slots,
+              status,
+              finishedAt: slots.some(isActiveSlot) ? undefined : (job.finishedAt ?? Date.now()),
+            },
+          ]
+        }),
+      )
+    },
+    [setGenerationJobs],
+  )
+
   const generationQueueSummary = useMemo(() => summarizeGenerationQueue(generationJobs), [generationJobs])
 
   return {
@@ -624,5 +659,6 @@ export function useGenerationQueue({
     cancelGenerationSlot,
     cancelGenerationJob,
     dismissGenerationJob,
+    dismissGenerationSlot,
   }
 }

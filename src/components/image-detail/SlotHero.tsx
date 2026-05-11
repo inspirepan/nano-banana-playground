@@ -29,11 +29,20 @@ export function SlotHero({
             ? t('imageDetail.queue.status.generating')
             : t('imageDetail.queue.status.queued')
   const detail = slot?.attemptErrors?.length
-    ? slot.attemptErrors
-        .map((item) => t('imageDetail.queue.attemptError', { attempt: item.attempt, error: item.error }))
-        .join('\n')
-    : (slot?.error ?? (slot?.status === 'canceled' ? t('imageDetail.queue.canceledDetail') : null))
+    ? t('imageDetail.queue.latestError', {
+        error: slot.attemptErrors[slot.attemptErrors.length - 1].error || t('common.unknown'),
+      })
+    : slot?.status === 'failed' && slot.error
+      ? t('imageDetail.queue.latestError', { error: slot.error })
+      : slot?.status === 'failed'
+        ? t('imageDetail.queue.latestError', { error: t('common.unknown') })
+        : (slot?.error ?? (slot?.status === 'canceled' ? t('imageDetail.queue.canceledDetail') : null))
   const showKeepPageOpenNote = slot && ['queued', 'running', 'retrying'].includes(slot.status)
+  const detailColorClass = slot?.status === 'failed' ? 'text-(--color-danger)' : 'text-(--color-text-2)'
+  const detailBoxClass =
+    slot?.status === 'failed'
+      ? 'w-full max-w-[56ch] rounded-[var(--radius-md)] bg-(--color-surface) px-3 py-2 text-left shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]'
+      : 'max-w-[56ch]'
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-8 text-center text-(--color-text-3)">
       {slot?.status === 'failed' || slot?.status === 'canceled' ? (
@@ -45,7 +54,7 @@ export function SlotHero({
       {showKeepPageOpenNote && (
         <div className="text-sm text-(--color-text-3)">{t('imageDetail.queue.keepPageOpen')}</div>
       )}
-      {detail && <div className="copy-soft max-w-[56ch] whitespace-pre-wrap text-(--color-text-2)">{detail}</div>}
+      {detail && <div className={`copy-soft whitespace-pre-wrap ${detailColorClass} ${detailBoxClass}`}>{detail}</div>}
       {slot &&
         job &&
         (slot.status === 'queued' || slot.status === 'running' || slot.status === 'retrying') &&

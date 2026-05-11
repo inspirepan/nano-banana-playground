@@ -14,6 +14,8 @@ type Params = {
   t: Translate
 }
 
+type RegenerationActionResult = { ok: boolean; message: string; batchId?: string; slotId?: string; slotIndex?: number }
+
 const TOAST_DURATION_MS = 2500
 
 // Shared toast surface for restore-prompt / reroll / retry-slot actions.
@@ -52,7 +54,7 @@ export function useRegenerationToast({
   )
 
   const handleReroll = useCallback(
-    async (image: PlaygroundImageMeta) => {
+    async (image: PlaygroundImageMeta): Promise<RegenerationActionResult> => {
       const result = await rerollGeneratedImage(image).catch(() => ({ status: 'unavailable' as const }))
       const message =
         result.status === 'queued'
@@ -61,27 +63,33 @@ export function useRegenerationToast({
             ? t('app.toast.rerollUnsupportedMask')
             : t('app.toast.rerollFailed')
       showToast(message)
-      return { ok: result.status === 'queued', message }
+      return result.status === 'queued'
+        ? { ok: true, message, batchId: result.batchId, slotId: result.slotId, slotIndex: result.slotIndex }
+        : { ok: false, message }
     },
     [rerollGeneratedImage, showToast, t],
   )
 
   const handleRetryGenerationSlot = useCallback(
-    (jobId: string, slotId: string) => {
+    (jobId: string, slotId: string): RegenerationActionResult => {
       const result = retryGenerationSlot(jobId, slotId)
       const message = result.status === 'queued' ? t('app.toast.retryQueued') : t('app.toast.retryFailed')
       showToast(message)
-      return { ok: result.status === 'queued', message }
+      return result.status === 'queued'
+        ? { ok: true, message, batchId: result.batchId, slotId: result.slotId, slotIndex: result.slotIndex }
+        : { ok: false, message }
     },
     [retryGenerationSlot, showToast, t],
   )
 
   const handleRetryFailedGenerationImage = useCallback(
-    async (image: PlaygroundImageMeta) => {
+    async (image: PlaygroundImageMeta): Promise<RegenerationActionResult> => {
       const result = await retryFailedGenerationImage(image).catch(() => ({ status: 'unavailable' as const }))
       const message = result.status === 'queued' ? t('app.toast.retryQueued') : t('app.toast.retryFailed')
       showToast(message)
-      return { ok: result.status === 'queued', message }
+      return result.status === 'queued'
+        ? { ok: true, message, batchId: result.batchId, slotId: result.slotId, slotIndex: result.slotIndex }
+        : { ok: false, message }
     },
     [retryFailedGenerationImage, showToast, t],
   )

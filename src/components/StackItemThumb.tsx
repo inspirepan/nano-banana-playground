@@ -36,13 +36,12 @@ function slotReasonText(slot: Slot, t: Translate): string | null {
   if (slot.status === 'canceled') return t('input.stack.status.canceled')
   if (slot.status === 'failed') {
     if (slot.attemptErrors?.length) {
-      return slot.attemptErrors
-        .map((item) => t('imageDetail.queue.attemptError', { attempt: item.attempt, error: item.error }))
-        .join('\n')
+      const latest = slot.attemptErrors[slot.attemptErrors.length - 1]
+      return t('imageDetail.queue.latestError', { error: latest.error || t('common.unknown') })
     }
     return slot.error
-      ? t('input.stack.status.failedWithError', { error: slot.error })
-      : t('input.stack.status.failedUnknown')
+      ? t('imageDetail.queue.latestError', { error: slot.error })
+      : t('imageDetail.queue.latestError', { error: t('common.unknown') })
   }
   if (slot.status !== 'retrying') return null
 
@@ -103,6 +102,7 @@ export const StackItemThumb = memo(function StackItemThumb({
   const showKeepPageOpenNote = showSlotReason && slot && ['queued', 'running', 'retrying'].includes(slot.status)
   const keepPageOpenNote = showKeepPageOpenNote ? t('imageDetail.queue.keepPageOpen') : null
   const compactSlotIndicator = compactSlotStatus && slot && !slotStatusLabel && !keepPageOpenNote
+  const showFailedReasonBox = Boolean(slot && slot.status === 'failed' && slotReason)
   const title =
     image?.source.type === 'generated' ? image.source.prompt : (slotStatusLabel ?? keepPageOpenNote ?? undefined)
   const ariaLabel = image
@@ -166,6 +166,8 @@ export const StackItemThumb = memo(function StackItemThumb({
       : selectionIndicatorPosition === 'bottom-right'
         ? { right: 8, bottom: 9 }
         : { right: 8, top: 8 }
+  const imageIdLabelBottom = numberBadgeInset
+  const slotActions = slot ? actions : null
   const slotStatusIcon =
     slot?.status === 'failed' || slot?.status === 'canceled' ? (
       <Icon name="close" size={13} strokeWidth={1.8} />
@@ -241,8 +243,23 @@ export const StackItemThumb = memo(function StackItemThumb({
             {!compactSlotIndicator && !slotStatusLabel && (
               <span className="text-sm">#{(slot?.index ?? item.order) + 1}</span>
             )}
-            {slotStatusLabel && slot && (
-              <span
+            {slotStatusLabel && slot && showFailedReasonBox ? (
+              <div className="mt-1 flex w-full justify-center px-2">
+                <div
+                  className="max-w-full text-left text-sm font-normal leading-[1.45]"
+                  style={{
+                    color: slotReasonColor(slot),
+                    display: '-webkit-box',
+                    WebkitBoxOrient: 'vertical',
+                    WebkitLineClamp: 3,
+                    overflow: 'hidden',
+                  }}
+                >
+                  {slotStatusLabel}
+                </div>
+              </div>
+            ) : slotStatusLabel && slot ? (
+              <div
                 className="mt-1 max-w-full text-center text-sm font-normal leading-[1.45]"
                 style={{
                   color: slotReason ? slotReasonColor(slot) : 'var(--color-text-3)',
@@ -253,13 +270,14 @@ export const StackItemThumb = memo(function StackItemThumb({
                 }}
               >
                 {slotStatusLabel}
-              </span>
-            )}
+              </div>
+            ) : null}
             {keepPageOpenNote && (
               <span className="max-w-full text-center text-xs font-normal leading-[1.35] text-(--color-text-3)">
                 {keepPageOpenNote}
               </span>
             )}
+            {slotActions && <div className="mt-2 flex w-full max-w-[24rem] justify-center px-1">{slotActions}</div>}
           </div>
         )}
       </div>
@@ -284,7 +302,7 @@ export const StackItemThumb = memo(function StackItemThumb({
           className="pointer-events-none absolute z-10 mono max-w-[calc(100%-16px)] truncate rounded-[var(--radius-xs)] px-1.5 py-0.5 text-[10px] leading-none"
           style={{
             left: numberBadgeInset,
-            bottom: numberBadgeInset,
+            bottom: imageIdLabelBottom,
             ...badgeSurface,
             backdropFilter: 'blur(8px)',
           }}
@@ -361,7 +379,7 @@ export const StackItemThumb = memo(function StackItemThumb({
           style={{ borderRadius: 'inherit', boxShadow: 'inset 0 0 0 1px var(--ring-edge-soft)' }}
         />
       )}
-      {actions && (
+      {actions && !slot && (
         <div
           className={`stack-thumb-actions absolute inset-x-1.5 bottom-1.5 z-10 ${onQuickSelect && selectionIndicatorPosition === 'bottom-right' ? 'pr-7' : ''}`}
           style={actionStyle}

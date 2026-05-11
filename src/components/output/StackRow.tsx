@@ -2,14 +2,13 @@ import { memo, useCallback, useMemo, useState } from 'react'
 
 import {
   activeStackStatusParts,
-  canDismissFailedGenerationJob,
   stackItemAspectRatio,
   stackItemGenerationSummary,
 } from './outputPanelHelpers'
 import type { Translate } from '../../i18n'
 import { downloadImagePng, downloadImagesZip } from '../../lib/exportImages'
 import { formatTime } from '../../lib/queueJobDisplay'
-import type { ImageStack, StackItem, StackImageItem } from '../../lib/stacks'
+import type { ImageStack, StackItem, StackImageItem, StackSlotItem } from '../../lib/stacks'
 import { Icon } from '../Icon'
 import { GridCell, ImageGrid } from '../ImageGrid'
 import { StackItemThumb } from '../StackItemThumb'
@@ -18,9 +17,9 @@ export type StackRowProps = {
   stack: ImageStack
   onOpenItem: (stackId: string, item: StackItem) => void
   onEditItem: (stackId: string, item: StackItem) => void
-  onCancelStackGeneration: (stack: ImageStack) => void
-  onRetryStackFailedSlots: (stack: ImageStack) => void
-  onDismissStackFailedJobs: (stack: ImageStack) => void
+  onCancelGenerationSlot: (slotId: string) => void
+  onRetrySlotItem: (item: StackSlotItem) => void
+  onDismissSlotItem: (item: StackSlotItem) => void
   onRemoveStackImages: (stack: ImageStack) => void
   onOpenGenerationSettings: () => void
   batchManageMode?: boolean
@@ -28,6 +27,14 @@ export type StackRowProps = {
   onToggleBatchImage?: (image: StackImageItem['image']) => void
   onLongPressBatchImage?: (image: StackImageItem['image']) => void
   compactHeader?: boolean
+  t: Translate
+}
+
+type SlotThumbActionsProps = {
+  item: StackSlotItem
+  onCancelGenerationSlot: (slotId: string) => void
+  onRetrySlotItem: (item: StackSlotItem) => void
+  onDismissSlotItem: (item: StackSlotItem) => void
   t: Translate
 }
 
@@ -67,13 +74,66 @@ const StackThumbActions = memo(function StackThumbActions({ item, stackId, onEdi
   )
 })
 
+const SlotThumbActions = memo(function SlotThumbActions({
+  item,
+  onCancelGenerationSlot,
+  onRetrySlotItem,
+  onDismissSlotItem,
+  t,
+}: SlotThumbActionsProps) {
+  const active = item.slot.status === 'queued' || item.slot.status === 'running' || item.slot.status === 'retrying'
+  if (active) {
+    return (
+      <div className="pointer-events-auto flex w-full max-w-[9rem] items-center gap-1.5">
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation()
+            onCancelGenerationSlot(item.slot.id)
+          }}
+          className="media-action danger min-w-0 flex-1 px-2"
+        >
+          {t('common.cancel')}
+        </button>
+      </div>
+    )
+  }
+
+  if (item.slot.status !== 'failed') return null
+  return (
+    <div className="pointer-events-auto flex w-full max-w-[18rem] items-center gap-1.5">
+      <button
+        type="button"
+        onClick={(event) => {
+          event.stopPropagation()
+          onRetrySlotItem(item)
+        }}
+        className="media-action light min-w-0 flex-1 px-2"
+      >
+        <Icon name="refresh" size={11} strokeWidth={1.8} />
+        {t('common.retry')}
+      </button>
+      <button
+        type="button"
+        onClick={(event) => {
+          event.stopPropagation()
+          onDismissSlotItem(item)
+        }}
+        className="media-action light min-w-0 flex-1 px-2"
+      >
+        {t('common.close')}
+      </button>
+    </div>
+  )
+})
+
 export const StackRow = memo(function StackRow({
   stack,
   onOpenItem,
   onEditItem,
-  onCancelStackGeneration,
-  onRetryStackFailedSlots,
-  onDismissStackFailedJobs,
+  onCancelGenerationSlot,
+  onRetrySlotItem,
+  onDismissSlotItem,
   onRemoveStackImages,
   onOpenGenerationSettings,
   batchManageMode = false,
@@ -85,9 +145,7 @@ export const StackRow = memo(function StackRow({
 }: StackRowProps) {
   const [exporting, setExporting] = useState(false)
   const [deleteConfirming, setDeleteConfirming] = useState(false)
-  const totalItems = stack.images.length + stack.activeSlotCount + stack.failedSlotCount
   const activeStatusParts = useMemo(() => activeStackStatusParts(stack, t), [stack, t])
-  const hasDismissibleFailures = useMemo(() => stack.jobs.some(canDismissFailedGenerationJob), [stack.jobs])
   const stackItemNumberById = useMemo(
     () => new Map(stack.items.map((item, index) => [item.id, index + 1])),
     [stack.items],
@@ -127,21 +185,20 @@ export const StackRow = memo(function StackRow({
   }, [deleteConfirming, onRemoveStackImages, stack])
 
   return (
-    <div className="min-w-0">
-      <div className="min-w-0 px-3 py-2">
+    <div className="w-full max-w-full min-w-0 overflow-hidden">
+      <div className="w-full max-w-full min-w-0 px-3 py-2">
         <div
-          className={`mb-2 flex min-w-0 gap-x-2 gap-y-1 text-base ${compactHeader ? 'flex-col items-start' : 'flex-wrap items-center'}`}
+          className={`mb-2 flex w-full max-w-full min-w-0 gap-x-2 gap-y-1 overflow-hidden text-base ${compactHeader ? 'flex-col items-start' : 'flex-wrap items-center'}`}
         >
           {stack.title && (
-            <span className="min-w-0 max-w-[48ch] truncate font-medium text-(--color-text-2)" title={stack.title}>
+            <span className="block w-full min-w-0 truncate font-medium text-(--color-text-2)" title={stack.title}>
               {stack.title}
             </span>
           )}
-          <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 font-[450] leading-none">
-            {stack.title && !compactHeader && <span className="meta-dot text-(--color-text-4)" aria-hidden />}
+          <div className="flex max-w-full min-w-0 flex-wrap items-center gap-x-2 gap-y-1 font-[450] leading-none">
             <span className="shrink-0 tabular-nums text-(--color-text-3)">{formatTime(stack.updatedAt, t)}</span>
             <span className="meta-dot text-(--color-text-4)" aria-hidden />
-            <span className="tabular-nums text-(--color-text-3)">{t('output.imageCount', { count: totalItems })}</span>
+            <span className="tabular-nums text-(--color-text-3)">{t('output.imageCount', { count: stack.images.length })}</span>
             {activeStatusParts.length > 0 && (
               <>
                 <span className="meta-dot text-(--color-text-4)" aria-hidden />
@@ -165,15 +222,6 @@ export const StackRow = memo(function StackRow({
                       </span>
                     ))}
                   </span>
-                  <span className="meta-dot text-(--color-text-4)" aria-hidden />
-                  <button
-                    type="button"
-                    onClick={() => onCancelStackGeneration(stack)}
-                    className="bg-transparent p-0 text-base font-semibold transition-colors hover:brightness-110"
-                    style={{ color: 'var(--color-danger)' }}
-                  >
-                    {t('output.cancelGeneration')}
-                  </button>
                 </span>
               </>
             )}
@@ -183,28 +231,6 @@ export const StackRow = memo(function StackRow({
                 <span className="text-base tabular-nums" style={{ color: 'var(--color-danger)' }}>
                   {t('output.failedCount', { count: stack.failedSlotCount })}
                 </span>
-                <span className="meta-dot text-(--color-text-4)" aria-hidden />
-                <button
-                  type="button"
-                  onClick={() => onRetryStackFailedSlots(stack)}
-                  className="bg-transparent p-0 text-base font-semibold transition-colors hover:text-(--color-text-2)"
-                  style={{ color: 'var(--color-text-3)' }}
-                >
-                  {t('output.retryFailed')}
-                </button>
-                {hasDismissibleFailures && (
-                  <>
-                    <span className="meta-dot text-(--color-text-4)" aria-hidden />
-                    <button
-                      type="button"
-                      onClick={() => onDismissStackFailedJobs(stack)}
-                      className="bg-transparent p-0 text-base font-semibold transition-colors hover:brightness-110"
-                      style={{ color: 'var(--color-danger)' }}
-                    >
-                      {t('output.clearFailed')}
-                    </button>
-                  </>
-                )}
               </>
             )}
             {stack.images.length > 0 && (
@@ -273,6 +299,14 @@ export const StackRow = memo(function StackRow({
                       actions={
                         !batchManageMode && item.type === 'image' ? (
                           <StackThumbActions item={item} stackId={stackId} onEditItem={onEditItem} t={t} />
+                        ) : !batchManageMode && item.type === 'slot' ? (
+                          <SlotThumbActions
+                            item={item}
+                            onCancelGenerationSlot={onCancelGenerationSlot}
+                            onRetrySlotItem={onRetrySlotItem}
+                            onDismissSlotItem={onDismissSlotItem}
+                            t={t}
+                          />
                         ) : undefined
                       }
                     />

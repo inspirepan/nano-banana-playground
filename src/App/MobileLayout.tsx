@@ -39,6 +39,7 @@ type Props = {
   onCancelGenerationJob: OutputPanelProps['onCancelGenerationJob']
   onDismissGenerationJob: OutputPanelProps['onDismissGenerationJob']
   onCancelGenerationSlot: ImageDetailModalProps['onCancelGenerationSlot']
+  onDismissGenerationSlot: ImageDetailModalProps['onDismissGenerationSlot']
   onRetryGenerationSlot: OutputPanelProps['onRetryGenerationSlot']
   onRetryFailedGenerationImage: OutputPanelProps['onRetryFailedGenerationImage']
   onRemove: OutputPanelProps['onRemove']
@@ -68,6 +69,7 @@ export function MobileLayout({
   onCancelGenerationJob,
   onDismissGenerationJob,
   onCancelGenerationSlot,
+  onDismissGenerationSlot,
   onRetryGenerationSlot,
   onRetryFailedGenerationImage,
   onRemove,
@@ -127,6 +129,7 @@ export function MobileLayout({
               onCancelGenerationJob={onCancelGenerationJob}
               onDismissGenerationJob={onDismissGenerationJob}
               onCancelGenerationSlot={onCancelGenerationSlot}
+              onDismissGenerationSlot={onDismissGenerationSlot}
               onRetryGenerationSlot={onRetryGenerationSlot}
               onRetryFailedGenerationImage={onRetryFailedGenerationImage}
               onAddToRef={onAddToRef}
@@ -168,6 +171,7 @@ export function MobileLayout({
               onCancelGenerationJob={onCancelGenerationJob}
               onDismissGenerationJob={onDismissGenerationJob}
               onCancelGenerationSlot={onCancelGenerationSlot}
+              onDismissGenerationSlot={onDismissGenerationSlot}
               onRetryGenerationSlot={onRetryGenerationSlot}
               onRetryFailedGenerationImage={onRetryFailedGenerationImage}
               onRemove={onRemove}

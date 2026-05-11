@@ -13,7 +13,7 @@ import { useImageDetailModalState, type ModalViewMode } from './useImageDetailMo
 import { useImageDetailNavigation, useImageDetailSelection } from './useImageDetailNavigation'
 import type { ZoomableImageViewState } from './ZoomableImageView'
 import { MODEL_CONFIGS } from '../../config/models'
-import { useMediaQuery, useVisualViewport } from '../../hooks/effects'
+import { useExternalSync, useMediaQuery, useVisualViewport } from '../../hooks/effects'
 import type { GenerationJob } from '../../hooks/usePlayground'
 import { useI18n } from '../../i18n'
 import { setEditItems } from '../../lib/editStateCache'
@@ -24,6 +24,8 @@ import type { ImageStack } from '../../lib/stacks'
 import type { PlaygroundImageMeta } from '../../lib/types'
 
 type StackNavigationTarget = { stackId: string; itemId: string }
+type RetryActionResult = { ok: boolean; message: string; batchId?: string; slotId?: string; slotIndex?: number }
+type PendingRetrySelection = { batchId: string; slotId: string; slotIndex: number }
 
 type Props = {
   stack: ImageStack
@@ -38,13 +40,14 @@ type Props = {
   onClose: () => void
   onAddToRef: (image: PlaygroundImageMeta) => void
   onRegenerate: (image: PlaygroundImageMeta) => void
-  onReroll: (image: PlaygroundImageMeta) => Promise<{ ok: boolean; message: string }>
+  onReroll: (image: PlaygroundImageMeta) => Promise<RetryActionResult>
   onEditImage: EditImageHandler
   onCancelGenerationJob: (jobId: string) => void
   onDismissGenerationJob: (jobId: string) => void
   onCancelGenerationSlot: (slotId: string) => void
-  onRetryGenerationSlot: (jobId: string, slotId: string) => { ok: boolean; message: string }
-  onRetryFailedGenerationImage: (image: PlaygroundImageMeta) => Promise<{ ok: boolean; message: string }>
+  onDismissGenerationSlot: (jobId: string, slotId: string) => void
+  onRetryGenerationSlot: (jobId: string, slotId: string) => RetryActionResult
+  onRetryFailedGenerationImage: (image: PlaygroundImageMeta) => Promise<RetryActionResult>
   onRemove: (id: string) => void | Promise<void>
 }
 
@@ -66,6 +69,7 @@ export function ImageDetailModal({
   onCancelGenerationJob,
   onDismissGenerationJob,
   onCancelGenerationSlot,
+  onDismissGenerationSlot,
   onRetryGenerationSlot,
   onRetryFailedGenerationImage,
   onRemove,
@@ -148,6 +152,7 @@ export function ImageDetailModal({
 
   const [toast, setToast] = useState<string | null>(null)
   const [copiedPrompt, setCopiedPrompt] = useState(false)
+  const pendingRetrySelectionRef = useRef<PendingRetrySelection | null>(null)
   const mobilePreviewAnchorRef = useRef<HTMLDivElement | null>(null)
   const detailScrollRef = useRef<HTMLDivElement | null>(null)
 
@@ -248,27 +253,54 @@ export function ImageDetailModal({
     })
   }
 
+  useExternalSync(() => {
+    const target = pendingRetrySelectionRef.current
+    if (!target) return
+    const item =
+      stack.items.find((item) => item.id === target.slotId) ??
+      stack.items.find((item) => item.batchId === target.batchId && item.order === target.slotIndex)
+    if (!item) return
+
+    pendingRetrySelectionRef.current = null
+    setSelection({ id: item.id, batchId: item.batchId, order: item.order })
+    setRefDetailId(null)
+    resetDetailTab()
+    detailScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
+  }, [resetDetailTab, setSelection, stack.items])
+
+  const selectQueuedRetry = (result: RetryActionResult) => {
+    if (!result.ok || !result.batchId || !result.slotId) return
+    pendingRetrySelectionRef.current = {
+      batchId: result.batchId,
+      slotId: result.slotId,
+      slotIndex: result.slotIndex ?? 0,
+    }
+  }
+
   const handleRetrySlotAction = () => {
     if (selectedItem?.type === 'slot' && selectedItem.failureImage) {
       void onRetryFailedGenerationImage(selectedItem.failureImage).then((result) => {
-        flash(result.ok ? t('imageDetail.toast.retryQueued') : result.message)
+        flash(result.ok ? t('imageDetail.toast.retryQueuedViewing') : result.message)
+        selectQueuedRetry(result)
       })
       return
     }
     if (!currentJob || !currentSlot) return
     const result = onRetryGenerationSlot(currentJob.id, currentSlot.id)
-    flash(result.ok ? t('imageDetail.toast.retryQueued') : result.message)
+    flash(result.ok ? t('imageDetail.toast.retryQueuedViewing') : result.message)
+    selectQueuedRetry(result)
   }
 
   const handleDismissSlotJob = useCallback(
     (jobId: string) => {
-      if (selectedItem?.type === 'slot' && selectedItem.failureImage && selectedItem.job.id === jobId) {
-        void onRemove(selectedItem.failureImage.id)
+      if (selectedItem?.type === 'slot' && selectedItem.job.id === jobId) {
+        if (selectedItem.failureImage) void onRemove(selectedItem.failureImage.id)
+        else onDismissGenerationSlot(jobId, selectedItem.slot.id)
         return
       }
       onDismissGenerationJob(jobId)
     },
-    [onDismissGenerationJob, onRemove, selectedItem],
+    [onDismissGenerationJob, onDismissGenerationSlot, onRemove, selectedItem],
   )
 
   const hasDrawableMarks = drawableCounts.annotate > 0 || drawableCounts.mask > 0

@@ -61,8 +61,8 @@ export const configLibMessages: MessageDictionary = {
 
   'configLib.useApiKey.validationFailed': { 'zh-CN': '校验失败', en: 'Validation failed' },
   'configLib.generationQueue.timeout': {
-    'zh-CN': '请求超时（5min），请检查网络连接或代理配置后重试',
-    en: 'Request timed out (5 min). Check your network connection or proxy settings, then try again.',
+    'zh-CN': '请求超时（{minutes}min），请检查网络连接或代理配置后重试',
+    en: 'Request timed out ({minutes} min). Check your network connection or proxy settings, then try again.',
   },
   'configLib.generationQueue.requestAborted': {
     'zh-CN': '请求被浏览器或网络中断，请检查网络连接或代理配置后重试',

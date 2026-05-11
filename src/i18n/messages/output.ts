@@ -5,6 +5,7 @@ export const outputMessages: MessageDictionary = {
   'output.batchManage': { 'zh-CN': '批量管理', en: 'Batch manage' },
   'output.cancelGeneration': { 'zh-CN': '取消生成', en: 'Cancel generation' },
   'output.clearFailed': { 'zh-CN': '清空失败', en: 'Clear failed' },
+  'output.clearFailedItems': { 'zh-CN': '清空失败项', en: 'Clear failed items' },
   'output.confirmDeleteSelected': { 'zh-CN': '确认删除 {count} 张', en: 'Confirm delete {count}' },
   'output.confirmDeleteStack': { 'zh-CN': '确认删除这组 {count} 张', en: 'Confirm delete {count} in this group' },
   'output.deleteStack': { 'zh-CN': '删除这组图片', en: 'Delete this group' },

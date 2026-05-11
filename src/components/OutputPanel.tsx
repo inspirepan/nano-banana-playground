@@ -3,7 +3,7 @@ import { lazy, memo, Suspense, useCallback, useMemo, useState } from 'react'
 import { Icon } from './Icon'
 import { LazyChunkLoadErrorBoundary } from './LazyChunkLoadErrorBoundary'
 import { Tooltip } from './Tooltip'
-import { canDismissFailedGenerationJob, hasActiveGenerationSlots, type DetailTarget } from './output/outputPanelHelpers'
+import { canDismissFailedGenerationJob, type DetailTarget } from './output/outputPanelHelpers'
 import { StackRow } from './output/StackRow'
 import { useInfiniteScrollSentinel } from './output/useInfiniteScrollSentinel'
 import { useStackDetailNavigation } from './output/useStackDetailNavigation'
@@ -14,7 +14,7 @@ import { useExternalSync, useWindowEvent } from '../hooks/effects'
 import type { GenerationJob } from '../hooks/usePlayground'
 import { useStripDownloadMetadata } from '../hooks/useStripDownloadMetadata'
 import { useI18n } from '../i18n'
-import { buildImageStacks, type ImageStack } from '../lib/stacks'
+import { buildImageStacks, type ImageStack, type StackSlotItem } from '../lib/stacks'
 import { downloadImagesZip } from '../lib/exportImages'
 import { recoverFromLazyChunkLoadError } from '../lib/lazyChunkRecovery'
 import type { PlaygroundImage, PlaygroundImageMeta } from '../lib/types'
@@ -38,11 +38,12 @@ type Props = {
   onCancelGenerationJob: (jobId: string) => void
   onDismissGenerationJob: (jobId: string) => void
   onCancelGenerationSlot: (slotId: string) => void
-  onRetryGenerationSlot: (jobId: string, slotId: string) => { ok: boolean; message: string }
-  onRetryFailedGenerationImage: (image: PlaygroundImageMeta) => Promise<{ ok: boolean; message: string }>
+  onDismissGenerationSlot: (jobId: string, slotId: string) => void
+  onRetryGenerationSlot: (jobId: string, slotId: string) => RetryActionResult
+  onRetryFailedGenerationImage: (image: PlaygroundImageMeta) => Promise<RetryActionResult>
   onAddToRef: (image: PlaygroundImageMeta) => void
   onRegenerate: (image: PlaygroundImageMeta) => void
-  onReroll: (image: PlaygroundImageMeta) => Promise<{ ok: boolean; message: string }>
+  onReroll: (image: PlaygroundImageMeta) => Promise<RetryActionResult>
   onEditImage: (params: {
     sourceImage: PlaygroundImageMeta
     model: ModelConfig
@@ -64,6 +65,8 @@ type Props = {
   compactStackHeader?: boolean
 }
 
+type RetryActionResult = { ok: boolean; message: string; batchId?: string; slotId?: string; slotIndex?: number }
+
 export const OutputPanel = memo(function OutputPanel({
   history,
   historyHasMore,
@@ -71,6 +74,7 @@ export const OutputPanel = memo(function OutputPanel({
   onCancelGenerationJob,
   onDismissGenerationJob,
   onCancelGenerationSlot,
+  onDismissGenerationSlot,
   onRetryGenerationSlot,
   onRetryFailedGenerationImage,
   onAddToRef,
@@ -96,6 +100,7 @@ export const OutputPanel = memo(function OutputPanel({
     for (const stack of stacks) total += stack.images.length
     return total
   }, [stacks])
+  const hasFailedItems = useMemo(() => stacks.some((stack) => stack.failedSlotCount > 0), [stacks])
   const [batchManageMode, setBatchManageMode] = useState(false)
   const [selectedImageIds, setSelectedImageIds] = useState<Set<string>>(() => new Set())
   const [batchExporting, setBatchExporting] = useState(false)
@@ -130,15 +135,6 @@ export const OutputPanel = memo(function OutputPanel({
     history: exportableHistory,
   })
 
-  const handleCancelStackGeneration = useCallback(
-    (stack: ImageStack) => {
-      for (const job of stack.jobs) {
-        if (hasActiveGenerationSlots(job)) onCancelGenerationJob(job.id)
-      }
-    },
-    [onCancelGenerationJob],
-  )
-
   const handleDismissStackFailedJobs = useCallback(
     (stack: ImageStack) => {
       for (const job of stack.jobs) {
@@ -150,6 +146,10 @@ export const OutputPanel = memo(function OutputPanel({
     },
     [onDismissGenerationJob, onRemove],
   )
+
+  const handleDismissAllFailedItems = useCallback(() => {
+    for (const stack of stacks) handleDismissStackFailedJobs(stack)
+  }, [handleDismissStackFailedJobs, stacks])
 
   const handleRemoveStackImages = useCallback(
     (stack: ImageStack) => {
@@ -165,15 +165,23 @@ export const OutputPanel = memo(function OutputPanel({
     [onRemove],
   )
 
-  const handleRetryStackFailedSlots = useCallback(
-    (stack: ImageStack) => {
-      for (const item of stack.items) {
-        if (item.type !== 'slot' || item.slot.status !== 'failed') continue
-        if (item.failureImage) void onRetryFailedGenerationImage(item.failureImage)
-        else onRetryGenerationSlot(item.job.id, item.slot.id)
-      }
+  const handleRetrySlotItem = useCallback(
+    (item: StackSlotItem) => {
+      if (item.failureImage) void onRetryFailedGenerationImage(item.failureImage)
+      else onRetryGenerationSlot(item.job.id, item.slot.id)
     },
     [onRetryFailedGenerationImage, onRetryGenerationSlot],
+  )
+
+  const handleDismissSlotItem = useCallback(
+    (item: StackSlotItem) => {
+      if (item.failureImage) {
+        void onRemove(item.failureImage.id)
+        return
+      }
+      onDismissGenerationSlot(item.job.id, item.slot.id)
+    },
+    [onDismissGenerationSlot, onRemove],
   )
 
   const handleEnterBatchManage = useCallback(() => {
@@ -301,38 +309,47 @@ export const OutputPanel = memo(function OutputPanel({
           </div>
         </div>
         <div className="flex-1" />
-        {exportableHistory.length > 0 && (
+        {(exportableHistory.length > 0 || hasFailedItems) && (
           <div className="flex w-full shrink-0 flex-wrap items-center justify-start gap-1.5 sm:w-auto sm:justify-end">
             {!batchManageMode && (
               <>
-                <Tooltip
-                  text={t('output.stripMetadataTooltip')}
-                  placement="top"
-                  maxWidth={300}
-                  className="inline-flex shrink-0"
-                >
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={stripDownloadMetadata}
-                    aria-label={t('output.stripMetadataToggle')}
-                    onClick={() => setStripDownloadMetadata(!stripDownloadMetadata)}
-                    data-active={stripDownloadMetadata}
-                    className="chip shrink-0"
-                  >
-                    <span
-                      className={`size-1.5 rounded-full ${stripDownloadMetadata ? 'bg-(--color-accent)' : 'bg-(--color-text-4)'}`}
-                      aria-hidden="true"
-                    />
-                    {t('output.stripMetadataShort')}
+                {exportableHistory.length > 0 && (
+                  <>
+                    <Tooltip
+                      text={t('output.stripMetadataTooltip')}
+                      placement="top"
+                      maxWidth={300}
+                      className="inline-flex shrink-0"
+                    >
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={stripDownloadMetadata}
+                        aria-label={t('output.stripMetadataToggle')}
+                        onClick={() => setStripDownloadMetadata(!stripDownloadMetadata)}
+                        data-active={stripDownloadMetadata}
+                        className="chip shrink-0"
+                      >
+                        <span
+                          className={`size-1.5 rounded-full ${stripDownloadMetadata ? 'bg-(--color-accent)' : 'bg-(--color-text-4)'}`}
+                          aria-hidden="true"
+                        />
+                        {t('output.stripMetadataShort')}
+                      </button>
+                    </Tooltip>
+                    <button type="button" onClick={handleExportAll} disabled={exporting} className="chip shrink-0">
+                      <Icon name="download" size={12} /> {exporting ? t('output.exporting') : t('output.exportZip')}
+                    </button>
+                    <button type="button" onClick={handleEnterBatchManage} className="chip shrink-0">
+                      <Icon name="list_checks" size={12} /> {t('output.batchManage')}
+                    </button>
+                  </>
+                )}
+                {hasFailedItems && (
+                  <button type="button" onClick={handleDismissAllFailedItems} className="chip danger shrink-0">
+                    {t('output.clearFailedItems')}
                   </button>
-                </Tooltip>
-                <button type="button" onClick={handleExportAll} disabled={exporting} className="chip shrink-0">
-                  <Icon name="download" size={12} /> {exporting ? t('output.exporting') : t('output.exportZip')}
-                </button>
-                <button type="button" onClick={handleEnterBatchManage} className="chip shrink-0">
-                  <Icon name="list_checks" size={12} /> {t('output.batchManage')}
-                </button>
+                )}
               </>
             )}
           </div>
@@ -364,9 +381,9 @@ export const OutputPanel = memo(function OutputPanel({
                     stack={stack}
                     onOpenItem={openStackItem}
                     onEditItem={editStackItem}
-                    onCancelStackGeneration={handleCancelStackGeneration}
-                    onRetryStackFailedSlots={handleRetryStackFailedSlots}
-                    onDismissStackFailedJobs={handleDismissStackFailedJobs}
+                    onCancelGenerationSlot={onCancelGenerationSlot}
+                    onRetrySlotItem={handleRetrySlotItem}
+                    onDismissSlotItem={handleDismissSlotItem}
                     onRemoveStackImages={handleRemoveStackImages}
                     onOpenGenerationSettings={onOpenGenerationSettings}
                     batchManageMode={batchManageMode}
@@ -442,6 +459,7 @@ export const OutputPanel = memo(function OutputPanel({
               onCancelGenerationJob={onCancelGenerationJob}
               onDismissGenerationJob={onDismissGenerationJob}
               onCancelGenerationSlot={onCancelGenerationSlot}
+              onDismissGenerationSlot={onDismissGenerationSlot}
               onRetryGenerationSlot={onRetryGenerationSlot}
               onRetryFailedGenerationImage={onRetryFailedGenerationImage}
               onRemove={onRemove}

@@ -41,16 +41,37 @@ function resolveTaskDetailItemId(
 ): string | undefined {
   if (requestedItemId && stack.items.some((item) => item.id === requestedItemId)) return requestedItemId
   const resultIds = new Set(task.resultImageIds)
+  const reservedIds = new Set(task.request.reservedImageIds)
   let newestTaskImage: PlaygroundImageMeta | undefined
   for (const image of stack.images) {
     if (!resultIds.has(image.id)) continue
     if (!newestTaskImage || image.timestamp > newestTaskImage.timestamp) newestTaskImage = image
   }
-  return newestTaskImage?.id ?? stack.items[stack.items.length - 1]?.id
+  const failureItem = stack.items.find(
+    (item) =>
+      item.type === 'slot' &&
+      item.slot.status === 'failed' &&
+      ((task.generationJobId && item.batchId === task.generationJobId) ||
+        (item.slot.outputImageId && reservedIds.has(item.slot.outputImageId))),
+  )
+  return newestTaskImage?.id ?? failureItem?.id ?? stack.items[stack.items.length - 1]?.id
 }
 
-function targetItemIdsForTask(task: AgentImageTask, requestedItemId: string | undefined): string[] {
-  return requestedItemId ? [requestedItemId] : task.resultImageIds
+function targetItemIdsForTask(
+  task: AgentImageTask,
+  stack: ImageStack | undefined,
+  requestedItemId: string | undefined,
+): string[] {
+  if (requestedItemId) return [requestedItemId]
+  if (task.resultImageIds.length > 0) return task.resultImageIds
+  if (task.status !== 'failed' || !stack) return []
+  const reservedIds = new Set(task.request.reservedImageIds)
+  return stack.items.flatMap((item) => {
+    if (item.type !== 'slot' || item.slot.status !== 'failed') return []
+    if (task.generationJobId && item.batchId === task.generationJobId) return [item.id]
+    if (item.slot.outputImageId && reservedIds.has(item.slot.outputImageId)) return [item.id]
+    return []
+  })
 }
 
 function stackHasTargetItem(stack: ImageStack, targetItemIds: string[]): boolean {
@@ -162,7 +183,7 @@ export function useMobileDetailModal({ history, generationJobs }: Params) {
       if (!stackId) return
       const stack = allStacks.find((s) => s.id === stackId)
       if (isMobileLayout) {
-        const targetItemIds = targetItemIdsForTask(task, options?.itemId)
+        const targetItemIds = targetItemIdsForTask(task, stack, options?.itemId)
         if (!stack || !stackHasTargetItem(stack, targetItemIds)) {
           setPendingMobileDetailState({
             stackId,
@@ -181,7 +202,10 @@ export function useMobileDetailModal({ history, generationJobs }: Params) {
       }
 
       pulseHighlightStack(stackId)
-      if ((options?.behavior ?? 'open') === 'locate' || task.status !== 'completed' || !stack) return
+      const openableStatus = task.status === 'completed' || task.status === 'failed'
+      if ((options?.behavior ?? 'open') === 'locate' || !openableStatus || !stack) {
+        return
+      }
       setDesktopDetailTarget({
         stackId: stack.id,
         itemId: resolveTaskDetailItemId(task, stack, options?.itemId),

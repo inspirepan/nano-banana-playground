@@ -46,6 +46,7 @@ type Props = {
   onCancelGenerationJob: OutputPanelProps['onCancelGenerationJob']
   onDismissGenerationJob: OutputPanelProps['onDismissGenerationJob']
   onCancelGenerationSlot: OutputPanelProps['onCancelGenerationSlot']
+  onDismissGenerationSlot: OutputPanelProps['onDismissGenerationSlot']
   onRetryGenerationSlot: OutputPanelProps['onRetryGenerationSlot']
   onRetryFailedGenerationImage: OutputPanelProps['onRetryFailedGenerationImage']
   onAddToRef: OutputPanelProps['onAddToRef']
@@ -77,6 +78,7 @@ export function DesktopLayout({
   onCancelGenerationJob,
   onDismissGenerationJob,
   onCancelGenerationSlot,
+  onDismissGenerationSlot,
   onRetryGenerationSlot,
   onRetryFailedGenerationImage,
   onAddToRef,
@@ -185,6 +187,7 @@ export function DesktopLayout({
       onCancelGenerationJob={onCancelGenerationJob}
       onDismissGenerationJob={onDismissGenerationJob}
       onCancelGenerationSlot={onCancelGenerationSlot}
+      onDismissGenerationSlot={onDismissGenerationSlot}
       onRetryGenerationSlot={onRetryGenerationSlot}
       onRetryFailedGenerationImage={onRetryFailedGenerationImage}
       onAddToRef={onAddToRef}

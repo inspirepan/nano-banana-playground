@@ -142,6 +142,7 @@ export const imageDetailMessages: MessageDictionary = {
   'imageDetail.option.yes': { 'zh-CN': '是', en: 'Yes' },
   'imageDetail.queue.attempt': { 'zh-CN': '第 {attempt}/{max} 次尝试', en: 'Attempt {attempt}/{max}' },
   'imageDetail.queue.attemptError': { 'zh-CN': '第 {attempt} 次：{error}', en: 'Attempt {attempt}: {error}' },
+  'imageDetail.queue.latestError': { 'zh-CN': '出错了：{error}', en: 'Error: {error}' },
   'imageDetail.queue.autoStart': { 'zh-CN': '前面的图片完成后自动开始', en: 'Starts after previous images finish' },
   'imageDetail.queue.cancelAll': { 'zh-CN': '取消全部', en: 'Cancel all' },
   'imageDetail.queue.cancelCurrent': { 'zh-CN': '取消当前', en: 'Cancel current' },
@@ -185,6 +186,10 @@ export const imageDetailMessages: MessageDictionary = {
   'imageDetail.toast.downloadPngStarted': { 'zh-CN': '开始下载 PNG', en: 'Started PNG download' },
   'imageDetail.toast.rerollQueued': { 'zh-CN': '已加入重新生成队列', en: 'Added to regenerate queue' },
   'imageDetail.toast.retryQueued': { 'zh-CN': '已加入重试队列', en: 'Added to retry queue' },
+  'imageDetail.toast.retryQueuedViewing': {
+    'zh-CN': '已加入重试队列，正在查看新任务',
+    en: 'Added to retry queue, now viewing the new task',
+  },
   'imageDetail.zoom.in': { 'zh-CN': '放大', en: 'Zoom in' },
   'imageDetail.zoom.out': { 'zh-CN': '缩小', en: 'Zoom out' },
   'imageDetail.zoom.reset': { 'zh-CN': '重置', en: 'Reset' },
