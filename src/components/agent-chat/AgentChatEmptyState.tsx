@@ -5,7 +5,7 @@ import { MODEL_CONFIGS } from '../../config/models'
 import { getProviderConfig } from '../../config/providers'
 import { useI18n } from '../../i18n'
 import { BrandIcon, Icon } from '../Icon'
-import { CollapsibleDrawingSkillStarters } from './DrawingSkillStarters'
+import { DrawingSkillStarters } from './DrawingSkillStarters'
 
 const ASPECT_RATIO_QUICK_PICKS = ['1:1', '16:9', '9:16', '3:4', '4:3', '21:9', '2:3', '3:2'] as const
 const RESOLUTION_QUICK_PICKS = ['1K', '2K', '4K'] as const
@@ -152,7 +152,7 @@ export function AgentChatEmptyState({ drawingSkills, onPickSkill, onInsertText }
   return (
     <div className="flex w-full min-w-0 flex-col justify-center gap-8 md:gap-6">
       {drawingSkills.length > 0 ? (
-        <CollapsibleDrawingSkillStarters skills={drawingSkills} onPick={onPickSkill} />
+        <DrawingSkillStarters skills={drawingSkills} onPick={onPickSkill} />
       ) : (
         <div className="text-center">
           <div className="font-display text-lg font-semibold tracking-[-0.01em] text-(--color-text)">

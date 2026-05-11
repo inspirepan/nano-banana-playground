@@ -1,7 +1,6 @@
-import { useCallback, useState } from 'react'
+import { useCallback } from 'react'
 import { displayNameForLanguage, type AgentSkillSummary } from '../../agent'
 import { useI18n } from '../../i18n'
-import { Icon } from '../Icon'
 import { SkillIcon } from '../SkillIcon'
 
 const MOBILE_SKILL_STARTER_MEDIA = '(max-width: 639px)'
@@ -56,11 +55,6 @@ export function DrawingSkillStarters({
               </span>
             )}
             {skill.previewImage ? (
-              <span className="absolute left-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-[var(--radius-sm)] bg-(--color-surface) text-(--color-text-3) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
-                <SkillIcon name={skill.icon} size={13} strokeWidth={1.9} />
-              </span>
-            ) : null}
-            {skill.previewImage ? (
               <span className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-[linear-gradient(to_top,rgb(0_0_0_/_0.58),transparent)]" />
             ) : null}
             <span className="absolute inset-x-2 bottom-2 flex min-h-6 items-end">
@@ -72,59 +66,6 @@ export function DrawingSkillStarters({
             </span>
           </button>
         ))}
-      </div>
-    </div>
-  )
-}
-
-export function CollapsibleDrawingSkillStarters({
-  skills,
-  onPick,
-}: {
-  skills: AgentSkillSummary[]
-  onPick: (skill: AgentSkillSummary) => void
-}) {
-  const { t } = useI18n()
-  const [open, setOpen] = useState(false)
-
-  return (
-    <div className="mx-auto w-full max-w-[980px]">
-      <button
-        type="button"
-        onClick={() => setOpen((prev) => !prev)}
-        aria-expanded={open}
-        className="group flex h-9 w-full items-center justify-between rounded-[var(--radius-lg)] bg-(--color-bg) px-3 text-left shadow-[inset_0_0_0_1px_var(--ring-edge)] transition-[background-color,box-shadow] duration-[160ms] ease-[var(--ease-out)] hover:bg-(--color-surface) hover:shadow-[inset_0_0_0_1px_var(--ring-edge-strong)]"
-      >
-        <span className="flex min-w-0 items-center gap-2">
-          <Icon name="brush" size={14} className="shrink-0 text-(--color-text-3)" />
-          <span className="truncate text-sm font-medium text-(--color-text)">
-            {t('agentChat.empty.skillStarter.toggle')}
-          </span>
-        </span>
-        <span className="ml-3 flex shrink-0 items-center gap-2 text-(--color-text-3)">
-          <span className="flex h-5 min-w-5 items-center justify-center rounded-[var(--radius-sm)] px-1.5 text-xs tabular-nums shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
-            {skills.length}
-          </span>
-          <Icon
-            name="chevron_right"
-            size={14}
-            className="transition-transform duration-[160ms] ease-[var(--ease-out)] motion-reduce:transition-none"
-            style={{ transform: open ? 'rotate(90deg)' : 'rotate(0deg)' }}
-          />
-        </span>
-      </button>
-      <div
-        className="grid motion-reduce:transition-none"
-        style={{
-          gridTemplateRows: open ? '1fr' : '0fr',
-          transition: 'grid-template-rows 220ms var(--ease-drawer)',
-        }}
-      >
-        <div className="min-h-0 overflow-hidden">
-          <div className="pt-6">
-            <DrawingSkillStarters skills={skills} onPick={onPick} />
-          </div>
-        </div>
       </div>
     </div>
   )
