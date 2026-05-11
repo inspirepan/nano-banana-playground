@@ -1,4 +1,15 @@
-import { createContext, useContext, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import {
+  Children,
+  cloneElement,
+  createContext,
+  isValidElement,
+  useContext,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react'
 
 import { useMediaQuery } from '../hooks/effects'
 
@@ -12,6 +23,11 @@ const DEFAULT_GRID_COLS = 8
 type GridSpan = {
   cols: number
   rows: number
+}
+
+type GridPlacement = GridSpan & {
+  colStart: number
+  rowStart: number
 }
 
 type ImageGridLayout = 'mosaic' | 'justified'
@@ -71,6 +87,38 @@ function normalizeGridSpan(span: GridSpan, gridCols: number): GridSpan {
   }
 }
 
+function getCellSpan(props: Pick<GridCellProps, 'aspectRatio' | 'cols' | 'rows'>, gridCols: number): GridSpan {
+  const baseSpan = props.aspectRatio ? getGridSpan(props.aspectRatio) : { cols: props.cols ?? 1, rows: props.rows ?? 1 }
+  return normalizeGridSpan(baseSpan, gridCols)
+}
+
+function packGridSpans(spans: GridSpan[], gridCols: number): GridPlacement[] {
+  const columnHeights = Array.from({ length: gridCols }, () => 0)
+
+  return spans.map((span) => {
+    let bestCol = 0
+    let bestRow = Number.POSITIVE_INFINITY
+
+    for (let col = 0; col <= gridCols - span.cols; col++) {
+      let row = 0
+      for (let offset = 0; offset < span.cols; offset++) row = Math.max(row, columnHeights[col + offset])
+      if (row < bestRow) {
+        bestRow = row
+        bestCol = col
+      }
+    }
+
+    const nextHeight = bestRow + span.rows
+    for (let offset = 0; offset < span.cols; offset++) columnHeights[bestCol + offset] = nextHeight
+
+    return {
+      ...span,
+      colStart: bestCol + 1,
+      rowStart: bestRow + 1,
+    }
+  })
+}
+
 type GridContext = { cols: number; layout: ImageGridLayout; justifiedRowHeight: number }
 
 const GridColsContext = createContext<GridContext>({
@@ -99,6 +147,19 @@ export function ImageGrid({ children, layout = 'mosaic', maxRowHeight, justified
     () => ({ cols: gridCols, layout, justifiedRowHeight: targetJustifiedRowHeight }),
     [gridCols, layout, targetJustifiedRowHeight],
   )
+  const packedChildren = useMemo(() => {
+    if (layout === 'justified') return children
+
+    const childArray = Children.toArray(children)
+    const spans = childArray.map((child) =>
+      isValidElement<GridCellProps>(child) ? getCellSpan(child.props, gridCols) : { cols: 1, rows: 1 },
+    )
+    const placements = packGridSpans(spans, gridCols)
+
+    return childArray.map((child, index) =>
+      isValidElement<GridCellProps>(child) ? cloneElement(child, { placement: placements[index] }) : child,
+    )
+  }, [children, gridCols, layout])
 
   useLayoutEffect(() => {
     if (layout === 'justified') return
@@ -136,11 +197,10 @@ export function ImageGrid({ children, layout = 'mosaic', maxRowHeight, justified
             : {
                 gridTemplateColumns: `repeat(${gridCols}, minmax(0, 1fr))`,
                 gridAutoRows: `${rowHeight}px`,
-                gridAutoFlow: 'dense',
               }
         }
       >
-        {children}
+        {packedChildren}
         {layout === 'justified' && <div aria-hidden="true" className="h-0 flex-grow-[999999]" />}
       </div>
     </GridColsContext.Provider>
@@ -152,9 +212,10 @@ type GridCellProps = {
   aspectRatio?: string
   cols?: number
   rows?: number
+  placement?: GridPlacement
 }
 
-export function GridCell({ children, aspectRatio, cols, rows }: GridCellProps) {
+export function GridCell({ children, aspectRatio, cols, rows, placement }: GridCellProps) {
   const { cols: gridCols, layout, justifiedRowHeight } = useContext(GridColsContext)
   const ratio = aspectRatio ? parseAspectRatio(aspectRatio) : cols && rows ? cols / rows : 1
 
@@ -172,14 +233,13 @@ export function GridCell({ children, aspectRatio, cols, rows }: GridCellProps) {
     )
   }
 
-  const baseSpan = aspectRatio ? getGridSpan(aspectRatio) : { cols: cols ?? 1, rows: rows ?? 1 }
-  const span = normalizeGridSpan(baseSpan, gridCols)
+  const span = placement ?? getCellSpan({ aspectRatio, cols, rows }, gridCols)
 
   return (
     <div
       style={{
-        gridColumn: `span ${span.cols}`,
-        gridRow: `span ${span.rows}`,
+        gridColumn: placement ? `${placement.colStart} / span ${span.cols}` : `span ${span.cols}`,
+        gridRow: placement ? `${placement.rowStart} / span ${span.rows}` : `span ${span.rows}`,
       }}
     >
       {children}
