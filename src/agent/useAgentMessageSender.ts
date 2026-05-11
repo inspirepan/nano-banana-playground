@@ -15,16 +15,9 @@ import { buildAvailableSkillsSystemMessage } from './skills/listing'
 import { getAgentSkillSummaries } from './skills/registry'
 import { parseAgentSlashCommands } from './slashCommands'
 import { formatLoadedSkillText } from './tools/skill'
-import { isKeyError } from '../lib/validateKey'
 import { stackIdForAgentTurn } from '../lib/stackId'
-
-const AGENT_STACK_TITLE_MAX_LENGTH = 56
-
-function stackTitleForUserMessage(text: string): string {
-  const collapsed = text.replace(/\s+/g, ' ').trim()
-  if (collapsed.length <= AGENT_STACK_TITLE_MAX_LENGTH) return collapsed
-  return `${collapsed.slice(0, AGENT_STACK_TITLE_MAX_LENGTH - 3).trimEnd()}...`
-}
+import { stackTitleForPrompt } from '../lib/stackTitle'
+import { isKeyError } from '../lib/validateKey'
 
 function textFromLoadedSkill(skillName: string): string | null {
   const result = formatLoadedSkillText(skillName)
@@ -168,7 +161,7 @@ export function useAgentMessageSender({
     const inFlight = runtime.isStreaming || hasInFlightResolver
     const userTurnId = crypto.randomUUID()
     const userTurnStackId = stackIdForAgentTurn(runtime.sessionId, userTurnId)
-    const userTurnStackTitle = stackTitleForUserMessage(promptBody)
+    const userTurnStackTitle = stackTitleForPrompt(promptBody)
 
     runtime.draft = ''
     runtime.attachments = []

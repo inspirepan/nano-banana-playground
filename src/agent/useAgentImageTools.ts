@@ -107,8 +107,7 @@ export function useAgentImageTools({
 
       applyAgentRuntimeConfig(runtime)
       runtime.currentAgentTurnId = crypto.randomUUID()
-      runtime.currentAgentTurnStackId = null
-      runtime.currentAgentTurnStackTitle = null
+      // System callbacks keep the last user-facing stack context for follow-up image tasks.
       if (runtime.agent.state.isStreaming || runtime.isCompacting) {
         queueAgentResponseMetadata(runtime, config.id)
         await runtime.agent.queueMessage({ role: 'user', content: [{ type: 'text', text }], timestamp: Date.now() })
@@ -159,13 +158,15 @@ export function useAgentImageTools({
       if (runtime.agent.state.isStreaming || runtime.isCompacting) return
 
       const callbackStates = readyCallbacks.map((item) => item.callbackState)
-      const text = buildAgentTaskCallbackText(readyCallbacks.flatMap((item) => item.tasks))
+      const callbackTasks = readyCallbacks.flatMap((item) => item.tasks)
+      const callbackStackSource = callbackTasks.find((task) => task.request.stackId || task.request.stackTitle)
+      const text = buildAgentTaskCallbackText(callbackTasks)
       for (const callbackState of callbackStates) callbackState.callbackQueued = true
       scheduleRuntimeSidecarPersist(runtime)
 
       runtime.currentAgentTurnId = crypto.randomUUID()
-      runtime.currentAgentTurnStackId = null
-      runtime.currentAgentTurnStackTitle = null
+      runtime.currentAgentTurnStackId = callbackStackSource?.request.stackId ?? runtime.currentAgentTurnStackId
+      runtime.currentAgentTurnStackTitle = callbackStackSource?.request.stackTitle ?? runtime.currentAgentTurnStackTitle
       activateAgentResponseMetadata(runtime, config.id)
       const promptPromise = runtime.agent.prompt(text)
       syncRuntimeSnapshot(runtime)

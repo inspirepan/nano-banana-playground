@@ -27,6 +27,7 @@ import {
   clearDraftRefs,
 } from '../lib/history'
 import { stackIdForGenerationRequest } from '../lib/stackId'
+import { stackTitleForPrompt } from '../lib/stackTitle'
 import type { GenerationFailureSource, GeneratedSource, PlaygroundImage, PlaygroundImageMeta } from '../lib/types'
 import { AGENT_MODE_SENTINEL, readSimpleUrlParams, updateUrl } from '../lib/urlState'
 
@@ -534,6 +535,7 @@ export function usePlayground() {
 
       const stackId = source.stackId ?? source.batchId
       const parentImageId = source.parentImageId
+      const stackTitle = stackTitleForPrompt(trimmed)
       const request: GenerationJob['request'] = {
         apiKey: keyHook.apiKey,
         baseUrl: keyHook.baseUrl,
@@ -546,11 +548,11 @@ export function usePlayground() {
       }
       const activeJob = findActiveGenerationJob({ request, stackId, parentImageId })
       if (activeJob) {
-        const slotId = appendGenerationSlot(activeJob.id)
+        const slotId = appendGenerationSlot(activeJob.id, undefined, stackTitle)
         if (slotId) return { status: 'queued', batchId: activeJob.id }
       }
 
-      const batchId = enqueueGenerationJob(request, 1, stackId, parentImageId)
+      const batchId = enqueueGenerationJob(request, 1, stackId, parentImageId, stackTitle)
       return { status: 'queued', batchId }
     },
     [
@@ -589,6 +591,7 @@ export function usePlayground() {
       const stackId = source.stackId ?? source.batchId
       const parentImageId = source.parentImageId
       const outputImageIds = source.outputImageId ? [source.outputImageId] : undefined
+      const stackTitle = stackTitleForPrompt(trimmed)
       const request: GenerationJob['request'] = {
         apiKey: keyHook.apiKey,
         baseUrl: keyHook.baseUrl,
@@ -603,11 +606,11 @@ export function usePlayground() {
       }
       const activeJob = findActiveGenerationJob({ request, stackId, parentImageId })
       if (activeJob) {
-        const slotId = appendGenerationSlot(activeJob.id, source.outputImageId)
+        const slotId = appendGenerationSlot(activeJob.id, source.outputImageId, stackTitle)
         if (slotId) return { status: 'queued', batchId: activeJob.id }
       }
 
-      const batchId = enqueueGenerationJob(request, 1, stackId, parentImageId)
+      const batchId = enqueueGenerationJob(request, 1, stackId, parentImageId, stackTitle)
       return { status: 'queued', batchId }
     },
     [
@@ -653,6 +656,8 @@ export function usePlayground() {
       },
       batchCount,
       stackId,
+      undefined,
+      stackTitleForPrompt(trimmed),
     )
   }, [
     currentApiKey,
@@ -731,6 +736,7 @@ export function usePlayground() {
         params.batchCount,
         stackId,
         params.sourceImage.id,
+        stackTitleForPrompt(trimmed),
       )
     },
     [keyHooks, resolveFullImages, enqueueGenerationJob],

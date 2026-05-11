@@ -8,6 +8,7 @@ import { GENERATE_MAX_ATTEMPTS, generateImage } from '../lib/api'
 import { deleteFromHistory, saveToHistory } from '../lib/history'
 import { generationAbortErrorMessage, generationNetworkErrorMessage, isAbortError } from '../lib/imageApi/retry'
 import { readGenerationConcurrencyPreference, writeGenerationConcurrencyPreference } from '../lib/preferenceStore'
+import { stackTitleForPrompt } from '../lib/stackTitle'
 import type { GenerationAttemptError, PlaygroundImage } from '../lib/types'
 import { isKeyError } from '../lib/validateKey'
 
@@ -470,7 +471,7 @@ export function useGenerationQueue({
   )
 
   const appendGenerationSlot = useCallback(
-    (jobId: string, outputImageId?: string): string | null => {
+    (jobId: string, outputImageId?: string, stackTitle?: string): string | null => {
       const slotId = crypto.randomUUID()
       let appended = false
       setGenerationJobs((prev) =>
@@ -488,7 +489,13 @@ export function useGenerationQueue({
               outputImageId,
             },
           ]
-          return { ...job, slots, status: deriveJobStatus(slots), finishedAt: undefined }
+          return {
+            ...job,
+            stackTitle: job.stackTitle ?? stackTitle,
+            slots,
+            status: deriveJobStatus(slots),
+            finishedAt: undefined,
+          }
         }),
       )
       if (!appended) return null
@@ -530,13 +537,14 @@ export function useGenerationQueue({
         outputImageIds: slot.outputImageId ? [slot.outputImageId] : undefined,
         outputImageIdSource: job.request.outputImageIdSource,
       }
+      const stackTitle = job.stackTitle ?? stackTitleForPrompt(request.prompt)
       const activeJob = findActiveGenerationJob({ request, stackId: job.stackId, parentImageId: job.parentImageId })
       if (activeJob) {
-        const nextSlotId = appendGenerationSlot(activeJob.id, slot.outputImageId)
+        const nextSlotId = appendGenerationSlot(activeJob.id, slot.outputImageId, stackTitle)
         if (nextSlotId) return { status: 'queued', batchId: activeJob.id }
       }
 
-      const batchId = enqueueGenerationJob(request, 1, job.stackId, job.parentImageId)
+      const batchId = enqueueGenerationJob(request, 1, job.stackId, job.parentImageId, stackTitle)
       return { status: 'queued', batchId }
     },
     [appendGenerationSlot, enqueueGenerationJob, findActiveGenerationJob, getProviderCredentials],
