@@ -151,3 +151,21 @@ export function summarizeSystemEvent(text: string): string {
     .map((part) => part.text)
     .join('')
 }
+
+export type SystemEventVariant = 'completed' | 'failed' | 'rejected' | 'canceled' | 'other'
+
+// Classify a <system> event for UI treatment (e.g. decorating completed GenImage
+// batches with a success icon). Mirrors the precedence in summarizeSystemEventParts.
+export function classifySystemEvent(text: string): SystemEventVariant {
+  const callbacks = parseToolCallbacks(text)
+  if (callbacks[0]?.tool !== 'GenImage') return 'other'
+  const statuses = callbacks
+    .filter((callback) => callback.tool === 'GenImage')
+    .map((callback) => callback.fields.status)
+    .filter(Boolean)
+  if (statuses.length > 0 && statuses.every((item) => item === 'completed')) return 'completed'
+  if (statuses.includes('failed')) return 'failed'
+  if (statuses.length > 0 && statuses.every((item) => item === 'rejected')) return 'rejected'
+  if (statuses.includes('canceled')) return 'canceled'
+  return 'other'
+}

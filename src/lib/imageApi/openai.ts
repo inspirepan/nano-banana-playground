@@ -5,6 +5,35 @@ import { openAISize } from '../openai'
 import type { PlaygroundImage, TokenUsage } from '../types'
 import { resolveBaseUrl } from '../validateKey'
 
+type OpenAIImageResponse = {
+  data?: Array<{ b64_json?: string }>
+  usage?: {
+    input_tokens?: number
+    output_tokens?: number
+    total_tokens?: number
+    input_tokens_details?: { text_tokens?: number; image_tokens?: number }
+    output_tokens_details?: { text_tokens?: number; image_tokens?: number }
+  }
+  error?: string | { message?: string; code?: string; status?: number }
+  message?: string
+}
+
+async function readOpenAIImageResponse(res: Response): Promise<OpenAIImageResponse> {
+  const text = await res.text()
+  try {
+    return JSON.parse(text) as OpenAIImageResponse
+  } catch {
+    const message = text.trim() || `HTTP ${res.status}`
+    return { error: { message, status: res.status } }
+  }
+}
+
+function openAIImageErrorMessage(data: OpenAIImageResponse, status: number): string | undefined {
+  if (!data.error) return data.message
+  if (typeof data.error === 'string') return data.message ?? data.error
+  return data.error.message ?? data.error.code ?? data.message ?? `HTTP ${status}`
+}
+
 export async function generateImageOpenAI(
   params: GenerateParams,
   signal?: AbortSignal,
@@ -103,19 +132,9 @@ export async function generateImageOpenAI(
       continue
     }
 
-    const data = (await res.json()) as {
-      data?: Array<{ b64_json?: string }>
-      usage?: {
-        input_tokens?: number
-        output_tokens?: number
-        total_tokens?: number
-        input_tokens_details?: { text_tokens?: number; image_tokens?: number }
-        output_tokens_details?: { text_tokens?: number; image_tokens?: number }
-      }
-      error?: { message: string }
-    }
+    const data = await readOpenAIImageResponse(res)
 
-    if (!res.ok || data.error) throw new Error(data.error?.message ?? `HTTP ${res.status}`)
+    if (!res.ok || data.error) throw new Error(openAIImageErrorMessage(data, res.status) ?? `HTTP ${res.status}`)
 
     const b64 = data.data?.[0]?.b64_json
     if (!b64) throw new Error('No image in response')

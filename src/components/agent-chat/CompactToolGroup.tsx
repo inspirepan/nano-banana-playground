@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 
 import { summarizeToolArgs, summarizeToolResult, toolLabel } from './utils'
 import type { AgentMessageToolCall, AgentMessageToolResult } from '../../agent'
+import { Icon, type IconName } from '../Icon'
 import { Tooltip } from '../Tooltip'
 
 function formatToolArgValue(value: unknown): string {
@@ -92,22 +93,26 @@ export function CompactToolGroup({ rows }: { rows: ReactNode[] }) {
   )
 }
 
-export function InlineToolNotice({ label }: { label: ReactNode }) {
+export function InlineToolNotice({ icon, label }: { icon?: IconName; label: ReactNode }) {
   return (
     <div className="flex justify-start">
       <div className="mr-3 flex max-w-[94%] items-center gap-2 pl-3 text-(--color-text-4)">
-        <span>{label}</span>
-        <span className="spinner" style={{ width: 10, height: 10 }} />
+        {icon ? <Icon name={icon} size={14} className="shrink-0" /> : null}
+        <span className="min-w-0">{label}</span>
+        <span className="spinner shrink-0" style={{ width: 10, height: 10 }} />
       </div>
     </div>
   )
 }
 
-export function InlineToolDone({ label, children }: { label: ReactNode; children?: ReactNode }) {
+export function InlineToolDone({ icon, label, children }: { icon?: IconName; label: ReactNode; children?: ReactNode }) {
   return (
     <div className="flex justify-start">
       <div className="mr-3 max-w-[94%] pl-3 text-(--color-text-3)">
-        <div>{label}</div>
+        <div className="flex items-center gap-2">
+          {icon ? <Icon name={icon} size={14} className="shrink-0" /> : null}
+          <span className="min-w-0">{label}</span>
+        </div>
         {children}
       </div>
     </div>

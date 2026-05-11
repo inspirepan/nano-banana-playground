@@ -18,6 +18,8 @@ import Copy from 'lucide-react/dist/esm/icons/copy.mjs'
 import Crop from 'lucide-react/dist/esm/icons/crop.mjs'
 import Download from 'lucide-react/dist/esm/icons/download.mjs'
 import Eraser from 'lucide-react/dist/esm/icons/eraser.mjs'
+import FileText from 'lucide-react/dist/esm/icons/file-text.mjs'
+import Globe from 'lucide-react/dist/esm/icons/globe.mjs'
 import GripVertical from 'lucide-react/dist/esm/icons/grip-vertical.mjs'
 import HelpCircle from 'lucide-react/dist/esm/icons/help-circle.mjs'
 import ImageIcon from 'lucide-react/dist/esm/icons/image.mjs'
@@ -47,6 +49,7 @@ import Trash2 from 'lucide-react/dist/esm/icons/trash-2.mjs'
 import Undo2 from 'lucide-react/dist/esm/icons/undo-2.mjs'
 import Upload from 'lucide-react/dist/esm/icons/upload.mjs'
 import Wand2 from 'lucide-react/dist/esm/icons/wand-2.mjs'
+import Wrench from 'lucide-react/dist/esm/icons/wrench.mjs'
 import X from 'lucide-react/dist/esm/icons/x.mjs'
 import ZoomIn from 'lucide-react/dist/esm/icons/zoom-in.mjs'
 import ZoomOut from 'lucide-react/dist/esm/icons/zoom-out.mjs'
@@ -75,6 +78,8 @@ export type IconName =
   | 'drag'
   | 'eraser'
   | 'expand_more'
+  | 'file_text'
+  | 'globe'
   | 'help_circle'
   | 'image'
   | 'image_off'
@@ -103,6 +108,7 @@ export type IconName =
   | 'undo'
   | 'upload'
   | 'wand'
+  | 'wrench'
   | 'zoom_in'
   | 'zoom_out_map'
 
@@ -138,6 +144,8 @@ const ICONS = {
   drag: GripVertical,
   eraser: Eraser,
   expand_more: ChevronDown,
+  file_text: FileText,
+  globe: Globe,
   help_circle: HelpCircle,
   image: ImageIcon,
   image_off: ImageOff,
@@ -166,6 +174,7 @@ const ICONS = {
   undo: Undo2,
   upload: Upload,
   wand: Wand2,
+  wrench: Wrench,
   zoom_in: ZoomIn,
   zoom_out_map: ZoomOut,
 } satisfies Record<IconName, LucideIcon>

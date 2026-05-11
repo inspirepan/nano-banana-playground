@@ -14,6 +14,7 @@ import type {
 } from '../../agent'
 import { useI18n, type Translate } from '../../i18n'
 import type { StackItem } from '../../lib/stacks'
+import type { IconName } from '../Icon'
 
 type WebSearchResultLink = {
   position: number
@@ -95,6 +96,30 @@ function hasCompleteToolArguments(call: AgentMessageToolCall): boolean {
 
 function toolErrorText(result: AgentMessageToolResult, t: Translate): string {
   return result.text?.trim() || t('agentChat.tool.result.failed')
+}
+
+// Icon mapped to a tool's intent — file ops use file-text, web tools use
+// globe/search, Skill uses wand, CreateSkill uses plus. Falls back to wrench.
+function toolIconName(name: string): IconName {
+  switch (name) {
+    case 'ReadImage':
+      return 'image'
+    case 'ReadAgentFile':
+    case 'ReadSkillFile':
+      return 'file_text'
+    case 'Skill':
+      return 'wand'
+    case 'CreateSkill':
+      return 'plus'
+    case 'WebFetch':
+      return 'globe'
+    case 'WebSearch':
+      return 'search'
+    case 'AskUserQuestion':
+      return 'help_circle'
+    default:
+      return 'wrench'
+  }
 }
 
 function toolPreparingLabel(call: AgentMessageToolCall, t: Translate): string {
@@ -289,7 +314,9 @@ export function ToolActivityCard({
       continue
     }
     if (isStreaming && !result && !hasCompleteToolArguments(call)) {
-      inlineNotices.push(<InlineToolNotice key={call.id} label={toolPreparingLabel(call, t)} />)
+      inlineNotices.push(
+        <InlineToolNotice key={call.id} icon={toolIconName(call.name)} label={toolPreparingLabel(call, t)} />,
+      )
       continue
     }
     if (call.name === 'AskUserQuestion') {
@@ -308,29 +335,42 @@ export function ToolActivityCard({
       } else if (finished) {
         richCards.push(<AskUserQuestionResultCard key={call.id} call={call} result={finished} />)
       } else {
-        inlineNotices.push(<InlineToolNotice key={call.id} label={t('agentChat.tool.askUserQuestion.preparing')} />)
+        inlineNotices.push(
+          <InlineToolNotice
+            key={call.id}
+            icon={toolIconName(call.name)}
+            label={t('agentChat.tool.askUserQuestion.preparing')}
+          />,
+        )
       }
       continue
     }
 
     // Unified inline treatment for all remaining tools.
+    const icon = toolIconName(call.name)
     if (!result) {
-      inlineNotices.push(<InlineToolNotice key={call.id} label={toolRunningLabel(call, t)} />)
+      inlineNotices.push(<InlineToolNotice key={call.id} icon={icon} label={toolRunningLabel(call, t)} />)
       continue
     }
     if (call.name === 'WebSearch') {
       inlineNotices.push(
-        <InlineToolDone key={call.id} label={toolDoneLabel(call, result, t)}>
+        <InlineToolDone key={call.id} icon={icon} label={toolDoneLabel(call, result, t)}>
           {!result.isError && <WebSearchResultLinks result={result} />}
         </InlineToolDone>,
       )
     } else {
-      inlineNotices.push(<InlineToolDone key={call.id} label={toolDoneLabel(call, result, t)} />)
+      inlineNotices.push(<InlineToolDone key={call.id} icon={icon} label={toolDoneLabel(call, result, t)} />)
     }
   }
   if (calls.length === 0) {
     for (const result of results) {
-      inlineNotices.push(<InlineToolDone key={result.toolCallId} label={standaloneResultLabel(result, t)} />)
+      inlineNotices.push(
+        <InlineToolDone
+          key={result.toolCallId}
+          icon={toolIconName(result.toolName)}
+          label={standaloneResultLabel(result, t)}
+        />,
+      )
     }
   }
 
