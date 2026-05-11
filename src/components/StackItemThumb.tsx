@@ -318,11 +318,15 @@ export const StackItemThumb = memo(function StackItemThumb({
             background: selected
               ? 'var(--color-accent)'
               : 'color-mix(in srgb, var(--media-overlay-bg) 78%, transparent)',
+            // Check icon on a filled accent chip must use --color-accent-fg
+            // (the token paired with accent fills), not --media-overlay-fg
+            // (white). With a light accent like lime the white check drops
+            // below AA and reads as a blank tile.
             color: selected
-              ? 'var(--media-overlay-fg)'
+              ? 'var(--color-accent-fg)'
               : 'color-mix(in srgb, var(--media-overlay-fg) 64%, transparent)',
             boxShadow: selected
-              ? 'inset 0 0 0 1px color-mix(in srgb, var(--color-accent-fg) 16%, transparent)'
+              ? 'inset 0 0 0 1px color-mix(in srgb, var(--color-accent-fg) 22%, transparent)'
               : 'inset 0 0 0 1px color-mix(in srgb, var(--media-overlay-fg) 22%, transparent)',
             backdropFilter: 'blur(12px) saturate(1.06)',
           }}
