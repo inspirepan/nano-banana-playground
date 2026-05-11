@@ -9,6 +9,15 @@ display_name:
 display_description:
   zh-CN: 高密度知识卡 / 信息图，notion 极简、sketch-notes 手绘、chalkboard 黑板三选一。
   en: Dense knowledge cards in notion line, sketch-notes, or chalkboard styles.
+starter_examples:
+  zh-CN:
+    - Transformer 注意力机制信息图，流程清晰，关键概念和误区
+    - 独立开发者定价策略卡，紧凑四象限，对比表和行动清单
+    - 咖啡萃取手绘速查卡，步骤变量，失败原因
+  en:
+    - transformer attention infographic, clear flow, key concepts and mistakes
+    - indie pricing strategy card, compact quadrant, comparison and checklist
+    - coffee extraction sketch cheat sheet, steps, variables and failure causes
 ---
 
 # Knowledge Infographic

@@ -1,12 +1,14 @@
 import type { Language } from '../../config/languages'
 
 type FrontmatterLocalizedText = Partial<Record<Language, string>>
+type FrontmatterLocalizedStringList = Partial<Record<Language, string[]>>
 
 export type SkillFrontmatter = {
   name?: string
   description?: string
   displayName?: FrontmatterLocalizedText
   displayDescription?: FrontmatterLocalizedText
+  starterExamples?: FrontmatterLocalizedStringList
   icon?: string
   previewImage?: string
 }
@@ -56,6 +58,38 @@ function readYamlLanguageMap(
     }
     const language = languageFromYamlKey(match[1] ?? '')
     if (language) value[language] = (match[2] ?? '').replace(/^['"]|['"]$/g, '').trim()
+    index++
+  }
+  return { value, nextIndex: index }
+}
+
+function readYamlLanguageStringListMap(
+  lines: string[],
+  startIndex: number,
+): { value: FrontmatterLocalizedStringList; nextIndex: number } {
+  const first = lines[startIndex] ?? ''
+  const raw = first.replace(/^\s*[^:]+:\s*/, '')
+  const value: FrontmatterLocalizedStringList = {}
+  if (raw.trim()) return { value, nextIndex: startIndex + 1 }
+
+  let index = startIndex + 1
+  let language: Language | null = null
+  while (index < lines.length && /^\s+/.test(lines[index] ?? '')) {
+    const line = lines[index] ?? ''
+    const languageMatch = line.match(/^\s+([A-Za-z][A-Za-z0-9_-]*):\s*(.*)$/)
+    if (languageMatch) {
+      language = languageFromYamlKey(languageMatch[1] ?? '')
+      const inlineValue = (languageMatch[2] ?? '').replace(/^['"]|['"]$/g, '').trim()
+      if (language) value[language] = inlineValue ? [inlineValue] : []
+      index++
+      continue
+    }
+
+    const listMatch = line.match(/^\s+-\s*(.*)$/)
+    if (language && listMatch) {
+      const item = (listMatch[1] ?? '').replace(/^['"]|['"]$/g, '').trim()
+      if (item) value[language] = [...(value[language] ?? []), item]
+    }
     index++
   }
   return { value, nextIndex: index }
@@ -112,6 +146,12 @@ export function parseSkillFrontmatter(markdown: string): { frontmatter: SkillFro
     if (/^\s*(display[-_]?description|displayDescription)\s*:/.test(line)) {
       const result = readYamlLanguageMap(lines, index)
       frontmatter.displayDescription = result.value
+      index = result.nextIndex
+      continue
+    }
+    if (/^\s*(starter[-_]?examples|starterExamples)\s*:/.test(line)) {
+      const result = readYamlLanguageStringListMap(lines, index)
+      frontmatter.starterExamples = result.value
       index = result.nextIndex
       continue
     }

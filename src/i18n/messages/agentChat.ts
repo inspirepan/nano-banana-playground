@@ -19,8 +19,8 @@ export const agentChatMessages: MessageDictionary = {
   'agentChat.empty.quick.aspect': { 'zh-CN': '比例', en: 'Aspect' },
   'agentChat.empty.quick.resolution': { 'zh-CN': '分辨率', en: 'Resolution' },
   'agentChat.empty.skillStarter.prompt': {
-    'zh-CN': '使用 {skill} Skill，帮我生成图片。',
-    en: 'Use the {skill} skill to help me generate images.',
+    'zh-CN': '使用 {skill} Skill，帮我生成图片：',
+    en: 'Use the {skill} skill to help me generate images: ',
   },
   'agentChat.status.running': { 'zh-CN': 'Agent 正在运行', en: 'Agent is running' },
   'agentChat.status.generatingImages': { 'zh-CN': '图片生成中', en: 'Generating images' },
@@ -53,6 +53,7 @@ export const agentChatMessages: MessageDictionary = {
   },
   'agentChat.composer.attachFromGallery': { 'zh-CN': '从图库选择图片', en: 'Pick from gallery' },
   'agentChat.composer.attachFromGalleryEmpty': { 'zh-CN': '图库暂无图片', en: 'Gallery is empty' },
+  'agentChat.composer.applyCompletion': { 'zh-CN': '应用补全', en: 'Apply completion' },
   'agentChat.galleryPicker.title': { 'zh-CN': '从图库选择', en: 'Pick from gallery' },
   'agentChat.galleryPicker.empty': { 'zh-CN': '图库暂无图片', en: 'No images in gallery yet' },
   'agentChat.galleryPicker.alreadyAttached': { 'zh-CN': '已附加', en: 'Already attached' },

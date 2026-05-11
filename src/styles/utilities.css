@@ -40,6 +40,26 @@
     animation: fadeSlide 200ms var(--ease-out);
   }
 
+  @keyframes agent-starter-example-ghost {
+    0%,
+    100% {
+      opacity: 0;
+    }
+    14%,
+    82% {
+      opacity: 1;
+    }
+  }
+  .agent-starter-example-ghost {
+    animation: agent-starter-example-ghost 3000ms var(--ease-in-out) infinite both;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .agent-starter-example-ghost {
+      animation: none;
+    }
+  }
+
   @keyframes agent-image-task-approval-ring {
     0%,
     100% {

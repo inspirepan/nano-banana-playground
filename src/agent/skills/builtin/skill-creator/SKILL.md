@@ -8,6 +8,15 @@ display_name:
 display_description:
   zh-CN: 帮助 Agent 把可复用流程沉淀成精简 Skill。
   en: Helps the agent turn reusable workflows into concise skills.
+starter_examples:
+  zh-CN:
+    - 发布前检查 Skill，覆盖 SEO、OG 图和 accessibility
+    - 长文章分析 Skill，输出社媒选题角度和负面触发
+    - 绘画流程 Skill，先问风格比例，再拼 GenImage prompt
+  en:
+    - release checklist skill, covering SEO, OG images and accessibility
+    - article analysis skill, social angles and negative triggers
+    - drawing workflow skill, ask style and ratio before GenImage prompt
 metadata:
   short-description: Create or update a skill
 ---
@@ -91,7 +100,8 @@ skill-name/
 │   │   ├── name: (required)
 │   │   ├── description: (required)
 │   │   ├── icon: (required, Lucide kebab-case name)
-│   │   └── display_name / display_description: (recommended, zh-CN + en)
+│   │   ├── display_name / display_description: (recommended, zh-CN + en)
+│   │   └── starter_examples: (recommended, zh-CN + en lists)
 │   └── Markdown instructions (required)
 └── Bundled Resources (optional)
     └── references/       - Markdown documentation loaded into context as needed
@@ -112,6 +122,13 @@ Every SKILL.md consists of:
   display_description:
     zh-CN: 一句中文 UI 描述
     en: One-line English UI description
+  starter_examples:
+    zh-CN:
+      - 发布前检查 Skill，覆盖 SEO、OG 图和 accessibility
+      - 长文章分析 Skill，输出社媒选题角度和负面触发
+    en:
+      - release checklist skill, covering SEO, OG images and accessibility
+      - article analysis skill, social angles and negative triggers
   icon: lucide-kebab-icon
   ```
 
@@ -258,6 +275,15 @@ display_name:
 display_description:
   zh-CN: 帮助 Agent 把可复用流程沉淀成精简 Skill。
   en: Helps the agent turn reusable workflows into concise skills.
+starter_examples:
+  zh-CN:
+    - 发布前检查 Skill，覆盖 SEO、OG 图和 accessibility
+    - 长文章分析 Skill，输出社媒选题角度和负面触发
+    - 绘画流程 Skill，先问风格比例，再拼 GenImage prompt
+  en:
+    - release checklist skill, covering SEO, OG images and accessibility
+    - article analysis skill, social angles and negative triggers
+    - drawing workflow skill, ask style and ratio before GenImage prompt
 ```
 
 #### How Skill Triggering Works

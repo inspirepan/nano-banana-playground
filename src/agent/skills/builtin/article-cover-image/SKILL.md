@@ -9,6 +9,15 @@ display_name:
 display_description:
   zh-CN: 文章 / 公众号 / 博客封面图，type × palette × rendering × text × mood 五维度自由组合。
   en: Article / blog cover images via the 5-dimension system (type × palette × rendering × text × mood).
+starter_examples:
+  zh-CN:
+    - AI 代理博客头图，深灰极简，抽象工作流节点
+    - 个人知识库公众号封面，温暖纸感，书页和链接笔记
+    - 模型上下文工程封面，冷静蓝灰，低饱和 3D 结构
+  en:
+    - AI agents blog hero, minimal dark gray workflow nodes
+    - personal knowledge base cover, warm paper texture and linked notes
+    - context engineering cover, restrained blue gray 3D structures
 ---
 
 # Article Cover Image

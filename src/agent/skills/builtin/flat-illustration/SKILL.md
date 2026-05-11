@@ -9,6 +9,15 @@ display_name:
 display_description:
   zh-CN: 有厚度和光影的 2.5D 扁平插画，适合人物、动物、物品和简单角色。
   en: Layered 2.5D flat illustrations with clean geometry, soft lighting, and visible depth.
+starter_examples:
+  zh-CN:
+    - 窗边喝咖啡的橘猫，2.5D 扁平，奶油色背景
+    - 黄色雨衣小机器人抱盆栽，干净几何，薄荷绿背景
+    - 专注写代码的可爱角色，简洁桌面，小台灯
+  en:
+    - orange cat drinking coffee, layered flat style, cream background
+    - tiny robot in yellow raincoat, clean geometry, mint background
+    - focused coding character, simple desk, tiny lamp
 ---
 
 # Flat Illustration

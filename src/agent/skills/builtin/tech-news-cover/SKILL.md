@@ -9,6 +9,15 @@ display_name:
 display_description:
   zh-CN: 中文科技 / 财经 / 行业爆款封面，16:9 高信息密度 + 粗黑大标题 + 数据卡片。
   en: Chinese tech / finance / industry viral covers with dense infographic layout and bold headlines.
+starter_examples:
+  zh-CN:
+    - 国产 GPU 新训练卡封面，粗黑大标题，参数卡
+    - AI 手机销量暴涨封面，红黑高对比，大数字
+    - 游戏行业突发港媒封面，重磅标签，人物剪影
+  en:
+    - domestic GPU launch cover, bold headline, spec cards
+    - AI phone sales surge cover, red black contrast, huge numbers
+    - Hong Kong gaming breaking cover, heavy tag, figure silhouette
 ---
 
 # Tech News Viral Cover

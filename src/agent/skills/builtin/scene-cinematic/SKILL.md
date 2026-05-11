@@ -9,6 +9,15 @@ display_name:
 display_description:
   zh-CN: 电影感叙事场景图，强氛围、宽幅 2.35:1、大气透视。
   en: Cinematic narrative scene images with strong atmosphere and wide 2.35:1 framing.
+starter_examples:
+  zh-CN:
+    - 雨夜未来图书馆，霓虹倒影，宽幅电影感
+    - 黄昏海边风电场，金色雾气，大气透视
+    - 深夜雪原列车，暖色车窗，冷蓝月光
+  en:
+    - rainy futuristic library, neon reflections, wide cinematic frame
+    - golden coastal wind farm, warm mist, aerial perspective
+    - midnight snowfield train, warm windows, cold blue moonlight
 ---
 
 # Scene Cinematic

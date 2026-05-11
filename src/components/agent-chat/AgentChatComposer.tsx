@@ -4,6 +4,7 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  useSyncExternalStore,
   type ChangeEvent,
   type Dispatch,
   type KeyboardEvent,
@@ -25,6 +26,7 @@ import {
   type AgentModelConfig,
   type AgentThinkingLevel,
 } from '../../config/agentModels'
+import type { Language } from '../../config/languages'
 import { MODEL_CONFIGS, type Provider } from '../../config/models'
 import type { ApiKeyStatus } from '../../hooks/useApiKey'
 import { useComposerSubmitMode } from '../../hooks/useComposerSubmitMode'
@@ -37,6 +39,33 @@ import { SkillIcon } from '../SkillIcon'
 const MAX_COMPOSER_HEIGHT = 150
 const MAX_COMPOSER_HEIGHT_NEW_SESSION = 420
 const MOBILE_COMPOSER_AUTOFOCUS_QUERY = '(max-width: 767px), (hover: none) and (pointer: coarse)'
+const STARTER_EXAMPLE_ROTATION_MS = 3000
+
+let starterExampleTick = 0
+let starterExampleTimer: number | null = null
+const starterExampleTickListeners = new Set<() => void>()
+
+function subscribeStarterExampleTick(listener: () => void): () => void {
+  if (typeof window === 'undefined') return () => {}
+  starterExampleTickListeners.add(listener)
+  if (starterExampleTimer === null) {
+    starterExampleTimer = window.setInterval(() => {
+      starterExampleTick++
+      starterExampleTickListeners.forEach((notify) => notify())
+    }, STARTER_EXAMPLE_ROTATION_MS)
+  }
+  return () => {
+    starterExampleTickListeners.delete(listener)
+    if (starterExampleTickListeners.size === 0 && starterExampleTimer !== null) {
+      window.clearInterval(starterExampleTimer)
+      starterExampleTimer = null
+    }
+  }
+}
+
+function getStarterExampleTick(): number {
+  return starterExampleTick
+}
 
 type SlashCompletionContext = {
   start: number
@@ -49,6 +78,12 @@ type SlashSuggestion = {
   name: string
   label: string
   icon?: AgentSkillSummary['icon']
+}
+
+function starterExamplesForLanguage(skill: AgentSkillSummary, language: Language): string[] {
+  return (skill.starterExamples[language] ?? skill.starterExamples['zh-CN'] ?? skill.starterExamples.en ?? []).filter(
+    (example) => example.trim().length > 0,
+  )
 }
 
 function autoResizeComposer(el: HTMLTextAreaElement, maxHeight: number) {
@@ -188,6 +223,11 @@ export const AgentChatComposer = forwardRef<AgentChatComposerHandle, AgentChatCo
   const [composerFocused, setComposerFocused] = useState(false)
   const [slashActiveIndex, setSlashActiveIndex] = useState(0)
   const [cursorOffset, setCursorOffset] = useState(draft.length)
+  const currentStarterExampleTick = useSyncExternalStore(
+    subscribeStarterExampleTick,
+    getStarterExampleTick,
+    getStarterExampleTick,
+  )
   const maxComposerHeight = isNewSession ? MAX_COMPOSER_HEIGHT_NEW_SESSION : MAX_COMPOSER_HEIGHT
   const effectiveThinkingLevel = model.supportsThinking
     ? effectiveAgentThinkingLevelForModel(model, thinkingLevel)
@@ -236,7 +276,23 @@ export const AgentChatComposer = forwardRef<AgentChatComposerHandle, AgentChatCo
   const modelGhostSuffix = modelCompletion
     ? modelCompletion.name.slice(draft.slice(0, cursorOffset).length - modelCompletion.start)
     : ''
-  const ghostSuffix = slashGhostSuffix || modelGhostSuffix
+  const starterExampleOptions =
+    composerCompletionEnabled && !slashContext && cursorAtEnd && composerFocused
+      ? skills
+          .filter((skill) => skill.enabled)
+          .flatMap((skill) => {
+            const starterDraft = `/${skill.name} ${t('agentChat.empty.skillStarter.prompt', {
+              skill: displayNameForLanguage(skill, language),
+            })}`
+            return draft === starterDraft ? starterExamplesForLanguage(skill, language) : []
+          })
+      : []
+  const starterExampleGhostSuffix =
+    starterExampleOptions.length > 0
+      ? (starterExampleOptions[currentStarterExampleTick % starterExampleOptions.length] ?? '')
+      : ''
+  const ghostSuffix = slashGhostSuffix || modelGhostSuffix || starterExampleGhostSuffix
+  const starterExampleGhostActive = Boolean(starterExampleGhostSuffix && !slashGhostSuffix && !modelGhostSuffix)
   const showGhost = ghostSuffix.length > 0
 
   useImperativeHandle(
@@ -309,6 +365,20 @@ export const AgentChatComposer = forwardRef<AgentChatComposerHandle, AgentChatCo
     })
   }
 
+  const applyStarterExampleCompletion = () => {
+    if (!starterExampleGhostSuffix || isMobileComposerContext()) return
+    const nextDraft = `${draft}${starterExampleGhostSuffix}`
+    const cursor = nextDraft.length
+    onDraftChange(nextDraft)
+    setCursorOffset(cursor)
+    requestAnimationFrame(() => {
+      const textarea = textareaRef.current
+      if (!textarea) return
+      if (!shouldSkipProgrammaticComposerFocus()) textarea.focus({ preventScroll: true })
+      textarea.setSelectionRange(cursor, cursor)
+    })
+  }
+
   const applySlashSuggestion = (suggestion: SlashSuggestion) => {
     const textarea = textareaRef.current
     const context = getSlashCompletionContext(draft, textarea?.selectionStart ?? draft.length)
@@ -325,6 +395,18 @@ export const AgentChatComposer = forwardRef<AgentChatComposerHandle, AgentChatCo
       if (!shouldSkipProgrammaticComposerFocus()) textarea.focus({ preventScroll: true })
       textarea.setSelectionRange(cursor, cursor)
     })
+  }
+
+  const applyGhostCompletion = () => {
+    if (slashGhostSuffix && activeSlashSuggestion) {
+      applySlashSuggestion(activeSlashSuggestion)
+      return
+    }
+    if (modelGhostSuffix) {
+      applyModelCompletion()
+      return
+    }
+    if (starterExampleGhostSuffix) applyStarterExampleCompletion()
   }
 
   const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -379,6 +461,20 @@ export const AgentChatComposer = forwardRef<AgentChatComposerHandle, AgentChatCo
       if (event.key === 'Tab' || event.key === 'ArrowRight') {
         event.preventDefault()
         applyModelCompletion()
+        return
+      }
+    }
+    if (
+      !isMobileComposerContext() &&
+      starterExampleGhostSuffix &&
+      !event.shiftKey &&
+      !event.metaKey &&
+      !event.ctrlKey &&
+      !event.altKey
+    ) {
+      if (event.key === 'Tab' || event.key === 'ArrowRight') {
+        event.preventDefault()
+        applyStarterExampleCompletion()
         return
       }
     }
@@ -438,7 +534,7 @@ export const AgentChatComposer = forwardRef<AgentChatComposerHandle, AgentChatCo
 
           <ComposerAttachments attachments={attachments} onRemoveAttachment={onRemoveAttachment} />
 
-          <div className="relative">
+          <div className="relative grid">
             <textarea
               ref={textareaRef}
               value={draft}
@@ -464,18 +560,50 @@ export const AgentChatComposer = forwardRef<AgentChatComposerHandle, AgentChatCo
               }
               rows={1}
               style={{ maxHeight: `${maxComposerHeight}px` }}
-              className="block min-h-[44px] w-full resize-none bg-transparent px-3 pt-2.5 pb-1 text-[16px] leading-[1.55] text-(--color-text) focus:outline-none md:text-base"
+              className="col-start-1 row-start-1 block min-h-[44px] w-full resize-none bg-transparent px-3 pt-2.5 pb-1 text-[16px] leading-[1.55] text-(--color-text) focus:outline-none md:text-base"
             />
             {showGhost && (
               <div
-                aria-hidden
-                className="pointer-events-none absolute inset-0 hidden px-3 pt-2.5 pb-1 text-[16px] leading-[1.55] break-words whitespace-pre-wrap md:block md:text-base"
+                className="pointer-events-none col-start-1 row-start-1 hidden min-h-[44px] overflow-hidden px-3 pt-2.5 pb-1 text-[16px] leading-[1.55] break-words whitespace-pre-wrap md:block md:text-base"
+                style={{ maxHeight: `${maxComposerHeight}px` }}
               >
-                <span className="text-transparent">{draft}</span>
-                <span className="text-(--color-text-4)">{ghostSuffix}</span>
-                <kbd className="ml-1 inline-flex h-[18px] items-center rounded-[var(--radius-xs)] bg-(--color-surface-2) px-1 text-xs leading-none text-(--color-text-3) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
-                  →
-                </kbd>
+                <span aria-hidden className="text-transparent">
+                  {draft}
+                </span>
+                {starterExampleGhostActive ? (
+                  <button
+                    key={starterExampleGhostSuffix}
+                    type="button"
+                    tabIndex={-1}
+                    aria-label={t('agentChat.composer.applyCompletion')}
+                    onMouseDown={(event) => {
+                      event.preventDefault()
+                      applyGhostCompletion()
+                    }}
+                    className="agent-starter-example-ghost pointer-events-auto inline cursor-pointer appearance-none border-0 bg-transparent p-0 text-left [font:inherit]"
+                  >
+                    <span className="text-(--color-text-4)">{ghostSuffix}</span>
+                    <kbd className="ml-1 inline-flex h-[18px] items-center rounded-[var(--radius-xs)] bg-(--color-surface-2) px-1 text-xs leading-none text-(--color-text-3) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
+                      →
+                    </kbd>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    aria-label={t('agentChat.composer.applyCompletion')}
+                    onMouseDown={(event) => {
+                      event.preventDefault()
+                      applyGhostCompletion()
+                    }}
+                    className="pointer-events-auto inline cursor-pointer appearance-none border-0 bg-transparent p-0 text-left [font:inherit]"
+                  >
+                    <span className="text-(--color-text-4)">{ghostSuffix}</span>
+                    <kbd className="ml-1 inline-flex h-[18px] items-center rounded-[var(--radius-xs)] bg-(--color-surface-2) px-1 text-xs leading-none text-(--color-text-3) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
+                      →
+                    </kbd>
+                  </button>
+                )}
               </div>
             )}
           </div>

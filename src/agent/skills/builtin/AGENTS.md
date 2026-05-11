@@ -22,7 +22,7 @@
 加任何 skill 之前，先 `ReadSkillFile` 或本地读一遍：
 
 - `src/agent/skills/builtin/skill-creator/SKILL.md` — 本项目里 **"skill 到底长什么样"** 的权威来源：描述 YAML frontmatter、discovery description 怎么写（push 力度、负面触发）、dimension 模式、`AskUserQuestion` 的 1–4 题约束、referenced markdown 文件规范。
-- `src/agent/skills/frontmatter.ts` — frontmatter 实际支持的字段（`name` / `description` / `displayName` / `displayDescription` / `icon` / `previewImage`）和解析规则；YAML 键名也支持 snake_case (`preview_image`、`display_name`) 与 camelCase。
+- `src/agent/skills/frontmatter.ts` — frontmatter 实际支持的字段（`name` / `description` / `displayName` / `displayDescription` / `starterExamples` / `icon` / `previewImage`）和解析规则；YAML 键名也支持 snake_case (`preview_image`、`display_name`、`starter_examples`) 与 camelCase。
 - `src/agent/skills/types.ts` — `AgentSkill` / `AgentSkillSummary` 类型签名；`displayDescription` 是 `Record<Language, string>`，zh-CN + en 都建议填。
 - `src/agent/skills/builtin.ts` — 扫描逻辑。了解"`./builtin/**/*.md` 会 eager 打包，再按顶层子目录名聚合成一个 skill"这一条就够。
 
@@ -55,6 +55,15 @@ display_name:
 display_description:
   zh-CN: 一句中文 UI 描述，讲清场景和输出形态。
   en: One-line English UI description.
+starter_examples:
+  zh-CN:
+    - AI 代理博客头图，深灰极简，抽象工作流节点
+    - 个人知识库公众号封面，温暖纸感，书页和链接笔记
+    - 模型上下文工程封面，冷静蓝灰，低饱和 3D 结构
+  en:
+    - AI agents blog hero, minimal dark gray workflow nodes
+    - personal knowledge base cover, warm paper texture and linked notes
+    - context engineering cover, restrained blue gray 3D structures
 ---
 
 # <Skill name, human-readable>
@@ -94,13 +103,13 @@ Role: ...
 ### 必须遵守的约束（会被 code-reviewer 直接盯的点）
 
 - **Agent 分析 vs 生图模型 prompt 严格分离**：Agent 阶段的"自动分析 / 自动选择 / 根据主题自适应"指令，绝不出现在交给生图模型的 prompt 里。生图模型只能看到已经填好具体字符串的模板。
-- **frontmatter 完整**：`name` / `description` / `icon` / `preview_image` / `display_name.zh-CN` / `display_name.en` / `display_description.zh-CN` / `display_description.en` 七项齐全。
+- **frontmatter 完整**：`name` / `description` / `icon` / `preview_image` / `display_name.zh-CN` / `display_name.en` / `display_description.zh-CN` / `display_description.en` / `starter_examples.zh-CN[]` / `starter_examples.en[]` 齐全。`skill-creator` 这种非绘画 starter 可以没有 `preview_image`，但仍建议写 `starter_examples`，便于 slash / starter 补全复用。
 - **description 要 pushy 且含负面触发**：列出具体中英文触发短语；明确写 "Do NOT use for X (use <other-skill>)"，避免与已有 skill 功能重叠触发。现有 skill 的负面触发对列参考：
   - `article-cover-image` ↔ `tech-news-cover` / `editorial-poster` / `xhs-card-series` / `knowledge-infographic`
   - `tech-news-cover` ↔ `article-cover-image`（极简 Apple 风）/ `editorial-poster`（电影海报）
   - `encyclopedia-card` ↔ `knowledge-infographic`（business report）/ `xhs-card-series`（社交多图）
 - **不要依赖脚本 / 二进制资源 / 外部 fetch**：本项目的 skill 走浏览器虚拟包语义，`scripts/` 和 `assets/` 目录不会被正确使用。若需要复杂查表，用 markdown reference 文件（`references/*.md`）+ `ReadSkillFile` 在运行时读取。
-- **UI 文字不进 skill**：skill 面向 Agent 的文字可以是中文或英文；但项目 UI 文字走 `src/i18n/`，不要在 skill 里重复国际化 UI 字符串。
+- **UI 文字不进 skill**：skill 面向 Agent 的文字可以是中文或英文；但项目 UI 文字走 `src/i18n/`，不要在 skill 里重复国际化 UI 字符串。例外是 `starter_examples`：它是 skill 自身的 i18n 示例内容，用于输入框灰色轮播补全；写成用户可直接接在 starter 冒号后的单句需求片段，建议包含“主体 + 风格 + 关键约束”（如“AI 代理博客头图，深灰极简，抽象工作流节点”），不要写成多句，也不要包含 slash command 本身。
 - **图片模型限制**：
   - `gpt-image-2` — 中文 + 高密度文字最稳，默认选它；不支持 transparent 背景、不支持 `input_fidelity`。
   - `nano-banana-pro` — 插画画质强、长 prompt 稳定；中文文字量大的 skill 不要默认选它。

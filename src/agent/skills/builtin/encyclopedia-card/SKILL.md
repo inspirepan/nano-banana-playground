@@ -9,6 +9,15 @@ display_name:
 display_description:
   zh-CN: 竖版百科全书式图鉴卡，主视觉 + 细节放大 + 模块化信息面板 + 评分摘要。
   en: Vertical encyclopedia-style field-guide cards with hero art, zoomed detail callouts, and modular info panels.
+starter_examples:
+  zh-CN:
+    - 雪豹竖版图鉴卡，爪印细节，栖息地和保护等级
+    - Espresso 百科卡，奶油棕配色，萃取参数和风味轮
+    - 韦伯望远镜手册卡，深空蓝，结构放大和关键指标
+  en:
+    - snow leopard field guide, paw detail, habitat and status
+    - espresso encyclopedia card, creamy brown palette, extraction and flavor wheel
+    - Webb telescope guide, deep space blue, structure callouts and metrics
 ---
 
 # Encyclopedia Card

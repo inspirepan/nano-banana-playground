@@ -9,6 +9,15 @@ display_name:
 display_description:
   zh-CN: 多格漫画 / 分镜故事，single-sheet 一图多格或 multi-image 多张连贯。
   en: Multi-panel comic strips and storyboards in single-sheet or multi-image mode.
+starter_examples:
+  zh-CN:
+    - 程序员修 bug 四格漫画，黑白网点，结尾反转
+    - 猫闯机器人实验室六格分镜，彩色冒险，角色一致
+    - 第一次用新相机三格短漫，轻松生活，台词简短
+  en:
+    - developer bug fixing comic, black and white, twist ending
+    - cat in robot lab storyboard, colorful adventure, consistent character
+    - first camera slice comic, lighthearted mood, short dialogue
 ---
 
 # Comic Strip / 多格漫画

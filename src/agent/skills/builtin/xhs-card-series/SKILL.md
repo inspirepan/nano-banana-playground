@@ -9,6 +9,15 @@ display_name:
 display_description:
   zh-CN: 小红书 / 微信图文系列卡，多张连贯，12 风格 × 8 布局 × 3 配色。
   en: Coherent Xiaohongshu / WeChat image card series across 12 styles, 8 layouts, and 3 palettes.
+starter_examples:
+  zh-CN:
+    - 30 天学会做饭系列卡，抓眼封面，步骤清单
+    - 咖啡入门小红书图卡，奶油棕配色，强标题封面
+    - 旅行攻略多图笔记，清爽地图，预算和路线
+  en:
+    - cooking in 30 days card series, catchy cover, step checklist
+    - beginner coffee RedNote cards, creamy brown palette, bold cover
+    - travel guide card series, fresh map, budget and route
 ---
 
 # XHS Card Series

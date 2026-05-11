@@ -50,6 +50,7 @@ export function getBuiltinAgentSkills(): AgentSkill[] {
             parsed.frontmatter.displayDescription?.['zh-CN'] ||
             description,
         },
+        starterExamples: parsed.frontmatter.starterExamples ?? {},
         icon: normalizeSkillIcon(parsed.frontmatter.icon),
         previewImage: parsed.frontmatter.previewImage,
         source: 'system',

@@ -9,6 +9,15 @@ display_name:
 display_description:
   zh-CN: 影评 / 书评 / 演唱会海报，screen-print + duotone 双色调编辑风。
   en: Editorial movie / book / concert posters in screen-print and duotone style.
+starter_examples:
+  zh-CN:
+    - 《降临》影评海报，双色调，巨大圆形飞船剪影
+    - 爵士乐演出海报，黑红丝网印刷，萨克斯轮廓
+    - 反乌托邦书评海报，旧纸质感，高塔剪影
+  en:
+    - Arrival movie poster, duotone screen print, circular ship silhouette
+    - jazz concert poster, black red silkscreen, saxophone silhouette
+    - dystopian book poster, aged paper texture, tower silhouette
 ---
 
 # Editorial Poster

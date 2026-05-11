@@ -9,6 +9,15 @@ display_name:
 display_description:
   zh-CN: 给风景照 / 宣传图叠加高级复古半调、纸纹和油墨质感。
   en: Premium retro halftone, paper grain, and ink texture for landscape hero visuals.
+starter_examples:
+  zh-CN:
+    - 阿尔卑斯湖畔旅行海报，复古半调，清晨大留白
+    - 海岸公路品牌 Hero，高级 CMYK 网点，纸纹质感
+    - 荒漠户外宣传图，低饱和橙蓝，局部油墨错位
+  en:
+    - alpine lakeside travel poster, retro halftone, morning negative space
+    - coastal road brand hero, refined CMYK dots, paper grain
+    - desert outdoor campaign image, muted orange blue, ink misregistration
 ---
 
 # Retro Halftone Hero

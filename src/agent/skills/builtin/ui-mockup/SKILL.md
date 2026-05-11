@@ -9,6 +9,15 @@ display_name:
 display_description:
   zh-CN: App / 网站 / Dashboard / SaaS 界面概念图，像真实产品截图但用于视觉探索。
   en: App, website, dashboard, and SaaS interface concept images that look like shippable product mockups.
+starter_examples:
+  zh-CN:
+    - AI 图片管理桌面 Dashboard，左侧图库，右侧成本面板
+    - 移动端冥想 App 首页，柔和深色，今日练习和情绪记录
+    - SaaS 数据看板概念图，紧凑工具感，表格和筛选器
+  en:
+    - AI image desktop dashboard, left gallery, right cost panel
+    - mobile meditation app home, soft dark mode, practice and mood log
+    - SaaS analytics dashboard, compact tool feel, table and filters
 ---
 
 # UI Mockup
