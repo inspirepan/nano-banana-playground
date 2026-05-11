@@ -1,6 +1,13 @@
 import { HISTORY_META_STORE, IMAGE_BLOB_STORE, IMAGE_PREVIEW_STORE, openNanoBananaDB } from './db'
 import { clearDraftRefMetas, loadDraftRefMetas, saveDraftRefMetas, type DraftRefMeta } from './draftRefStore'
-import type { PlaygroundImage, PlaygroundImageMeta } from './types'
+import { isGeneratedLikeSource, type PlaygroundImage, type PlaygroundImageMeta } from './types'
+
+// Inlined here (rather than imported from `./stacks`) to avoid a cycle:
+// stacks.ts -> usePlayground -> history.ts.
+function stackIdOfImage(image: PlaygroundImageMeta): string | null {
+  if (!isGeneratedLikeSource(image.source)) return null
+  return image.source.stackId ?? image.source.batchId
+}
 
 export type ImagePreviewRecord = {
   data: string
@@ -34,18 +41,33 @@ export async function saveHistoryMeta(image: PlaygroundImageMeta): Promise<void>
   })
 }
 
-// Load a page of metadata (no blob data), sorted by timestamp descending
+// Load a page of metadata (no blob data), sorted by timestamp descending.
+//
+// When `extendToStackBoundary` is enabled, the cursor keeps consuming items
+// beyond `limit` as long as the next item belongs to the same stack as the
+// last admitted one. This prevents page boundaries from splitting a stack,
+// which would otherwise cause earlier images of a partial stack to pop in
+// above existing content on the next "load more" and shift the viewport.
+//
+// A hard ceiling of `limit * MAX_PAGE_MULTIPLIER` caps the extension so a
+// pathologically large stack can't trap the loader in a single page.
+const MAX_PAGE_MULTIPLIER = 3
+
 export async function loadHistoryPage(
   offset: number,
   limit: number,
+  options?: { extendToStackBoundary?: boolean },
 ): Promise<{ items: PlaygroundImageMeta[]; hasMore: boolean }> {
   const db = await openDB()
+  const extend = options?.extendToStackBoundary ?? false
+  const ceiling = extend ? limit * MAX_PAGE_MULTIPLIER : limit
   return new Promise((resolve, reject) => {
     const tx = db.transaction(META_STORE, 'readonly')
     const index = tx.objectStore(META_STORE).index('timestamp')
     const req = index.openCursor(null, 'prev')
     const results: PlaygroundImageMeta[] = []
     let advanced = false
+    let lastStackId: string | null = null
 
     req.onsuccess = () => {
       const cursor = req.result
@@ -58,12 +80,24 @@ export async function loadHistoryPage(
         cursor.advance(offset)
         return
       }
+      const item = cursor.value as PlaygroundImageMeta
+
       if (results.length < limit) {
-        results.push(cursor.value as PlaygroundImageMeta)
+        results.push(item)
+        lastStackId = stackIdOfImage(item)
         cursor.continue()
-      } else {
-        resolve({ items: results, hasMore: true })
+        return
       }
+
+      const shouldExtend =
+        extend && results.length < ceiling && lastStackId !== null && stackIdOfImage(item) === lastStackId
+      if (shouldExtend) {
+        results.push(item)
+        cursor.continue()
+        return
+      }
+
+      resolve({ items: results, hasMore: true })
     }
     req.onerror = () => reject(req.error)
   })

@@ -309,9 +309,11 @@ export function usePlayground() {
     dismissGenerationJob: dismissGenerationJobWithFailures,
   })
 
-  // Load first page of history on mount
+  // Load first page of history on mount. `extendToStackBoundary` keeps page
+  // edges aligned with whole stacks so the next "load more" doesn't insert
+  // earlier images of a partial stack above existing content (visible jump).
   useMountEffect(() => {
-    void loadHistoryPage(0, HISTORY_PAGE_SIZE)
+    void loadHistoryPage(0, HISTORY_PAGE_SIZE, { extendToStackBoundary: true })
       .then(({ items, hasMore }) => {
         setHistory(items)
         setHistoryHasMore(hasMore)
@@ -337,12 +339,15 @@ export function usePlayground() {
       })
   })
 
-  // Load more history pages (infinite scroll)
+  // Load more history pages (infinite scroll). Same stack-aligned boundary
+  // as the initial load so subsequent pages never split a stack either.
   const loadMoreHistory = useCallback(async () => {
     if (!historyHasMore || historyLoadingRef.current) return
     historyLoadingRef.current = true
     try {
-      const { items, hasMore } = await loadHistoryPage(historyLengthRef.current, HISTORY_PAGE_SIZE)
+      const { items, hasMore } = await loadHistoryPage(historyLengthRef.current, HISTORY_PAGE_SIZE, {
+        extendToStackBoundary: true,
+      })
       setHistory((prev) => [...prev, ...items])
       setHistoryHasMore(hasMore)
     } finally {
