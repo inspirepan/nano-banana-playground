@@ -226,7 +226,7 @@ export function GenerateModeView({
 
       {/* CTA */}
       <div className="mb-[22px]">
-        <div className="mb-5 pt-3 shadow-[inset_0_1px_0_var(--ring-edge-soft)]">
+        <div className="mb-5 pt-3">
           <div className="flex items-baseline justify-between mb-1.5">
             <span className="text-sm text-(--color-text-4)">{t('input.summary.title')}</span>
             {estimatedCost !== null && (
