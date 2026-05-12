@@ -1,4 +1,4 @@
-import { useCallback, type RefObject } from 'react'
+import { useCallback, useState, type RefObject } from 'react'
 
 import { MODEL_CONFIGS, type ModelConfig, type Provider } from '../../config/models'
 import { getProviderConfig } from '../../config/providers'
@@ -91,18 +91,38 @@ export function GenerateModeView({
   const optionSummaryLabels = getOptionSummaryLabels(model, options)
   const optionSummary = optionSummaryLabels.join(t('input.summary.optionSeparator'))
   const primaryModifierKey = getPrimaryModifierKeyLabel()
+  const [suppressPromptPlaceholder, setSuppressPromptPlaceholder] = useState(false)
 
   const currentKeyStatus = keyStatuses[model.provider]
   const isCurrentKeyMissing = currentKeyStatus === 'empty' || apiKey.trim() === ''
   const providerLabel = getProviderConfig(model.provider).shortLabel
 
-  const handlePromptChange = useCallback(
-    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-      onPromptChange(e.target.value)
-      pushHistory(e.target.value)
-      autoResizeTextarea(e.target)
+  const commitPromptValue = useCallback(
+    (el: HTMLTextAreaElement) => {
+      onPromptChange(el.value)
+      pushHistory(el.value)
+      autoResizeTextarea(el)
     },
     [onPromptChange, pushHistory],
+  )
+
+  const handlePromptChange = useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      commitPromptValue(e.currentTarget)
+    },
+    [commitPromptValue],
+  )
+
+  const handlePromptCompositionStart = useCallback(() => {
+    setSuppressPromptPlaceholder(true)
+  }, [])
+
+  const handlePromptCompositionEnd = useCallback(
+    (e: React.CompositionEvent<HTMLTextAreaElement>) => {
+      commitPromptValue(e.currentTarget)
+      requestAnimationFrame(() => setSuppressPromptPlaceholder(false))
+    },
+    [commitPromptValue],
   )
 
   const handlePromptClear = useCallback(() => {
@@ -199,7 +219,9 @@ export function GenerateModeView({
             ref={textareaRef}
             value={prompt}
             onChange={handlePromptChange}
-            placeholder={t('input.prompt.placeholder')}
+            onCompositionStart={handlePromptCompositionStart}
+            onCompositionEnd={handlePromptCompositionEnd}
+            placeholder={suppressPromptPlaceholder && prompt === '' ? '' : t('input.prompt.placeholder')}
             rows={1}
             className="block w-full bg-transparent px-3 py-2.5 text-[16px] md:text-base leading-[1.55] resize-none focus:outline-none"
           />
