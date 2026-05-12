@@ -151,6 +151,14 @@ export const configLibMessages: MessageDictionary = {
     'zh-CN': '参考图尚未准备好：{id}',
     en: 'Reference image is not ready: {id}',
   },
+  'configLib.agent.dependencyImageUnavailable': {
+    'zh-CN': '依赖的参考图没有生成可用结果：{id}',
+    en: 'A referenced dependency did not produce a usable image: {id}',
+  },
+  'configLib.agent.dependencyCycle': {
+    'zh-CN': '检测到图片任务依赖循环：{ids}',
+    en: 'Image task dependency cycle detected: {ids}',
+  },
   'configLib.agent.unknownGenImageModel': {
     'zh-CN': '未知 GenImage 模型：{model}。',
     en: 'Unknown GenImage model: {model}.',
@@ -160,6 +168,10 @@ export const configLibMessages: MessageDictionary = {
   'configLib.agent.taskStarted': {
     'zh-CN': '任务已经提交并开始生成。',
     en: 'The task has been submitted and generation has started.',
+  },
+  'configLib.agent.taskWaitingDependencies': {
+    'zh-CN': '任务已通过，等待依赖参考图生成完成后自动开始。',
+    en: 'The task is approved and will start automatically after its reference images are ready.',
   },
   'configLib.agent.defaultSessionTitle': { 'zh-CN': '新对话', en: 'New conversation' },
   'configLib.agent.imageCompressionCanvasFailed': {

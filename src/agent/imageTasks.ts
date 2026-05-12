@@ -5,6 +5,7 @@ import type { PlaygroundImage, PlaygroundImageMeta } from '../lib/types'
 export type AgentImageTaskStatus =
   | 'pending_approval'
   | 'approved'
+  | 'waiting_dependencies'
   | 'rejected'
   | 'queued'
   | 'running'

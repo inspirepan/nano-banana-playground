@@ -162,7 +162,13 @@ export function injectAbandonedToolResults(messages: AgentMessage[], skipIds?: S
 
 export function restoreAgentImageTasks(tasks: AgentImageTask[]): AgentImageTask[] {
   return tasks.map((task) => {
-    if (task.status !== 'approved' && task.status !== 'queued' && task.status !== 'running') return task
+    if (
+      task.status !== 'approved' &&
+      task.status !== 'waiting_dependencies' &&
+      task.status !== 'queued' &&
+      task.status !== 'running'
+    )
+      return task
     return {
       ...task,
       status: 'failed',

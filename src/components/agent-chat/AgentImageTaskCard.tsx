@@ -327,11 +327,8 @@ function AgentImageErrorDetail({ text }: { text: string }) {
   const canExpand = detailText !== '' && detailText !== summaryText
 
   return (
-    <div className="mt-2.5 px-2 text-base leading-[1.45] text-(--color-danger)">
-      <p className="m-0 min-w-0 break-words [overflow-wrap:anywhere]">
-        <span className="font-medium">{t('agentChat.errorPrefix')}</span>
-        <span>{summaryText}</span>
-      </p>
+    <div className="mt-2 px-2 text-sm leading-[1.45] text-(--color-danger)">
+      <p className="m-0 min-w-0 break-words [overflow-wrap:anywhere]">{summaryText}</p>
       {canExpand && (
         <button
           type="button"
@@ -382,14 +379,17 @@ export function AgentImageTaskCard({
   const { t } = useI18n()
   const touchStartRef = useRef<{ x: number; y: number } | null>(null)
   const ignoreNextShellClickRef = useRef(false)
+  const [failedDetailsOpen, setFailedDetailsOpen] = useState(false)
 
   const isComposingPrompt = isStreaming && !task && !result && !hasCompleteGenImageArguments(call)
   const status: AgentImageTask['status'] = task?.status ?? (result?.isError ? 'failed' : 'pending_approval')
   const isCompleted = status === 'completed'
   const isFailed = status === 'failed'
   const isDimmed = status === 'rejected' || status === 'canceled'
+  const isWaitingDependencies = status === 'waiting_dependencies'
   const isActiveGenerating = status === 'approved' || status === 'queued' || status === 'running'
   const isPendingApproval = task?.status === 'pending_approval'
+  const failedCollapsed = isFailed && !failedDetailsOpen
   const activeElapsedTime = useElapsedTime(task?.createdAt ?? null, Boolean(task && isActiveGenerating))
 
   const reservedIds = task?.request.reservedImageIds ?? []
@@ -422,6 +422,7 @@ export function AgentImageTaskCard({
   const showApprove = task?.status === 'pending_approval'
   const showCancel = task
     ? task.status === 'pending_approval' ||
+      task.status === 'waiting_dependencies' ||
       task.status === 'queued' ||
       task.status === 'running' ||
       task.status === 'approved'
@@ -439,16 +440,26 @@ export function AgentImageTaskCard({
   )
   const handleCardClick = canFocus && task ? () => onFocus?.(task, { behavior: 'open' }) : undefined
   const handleLocateClick = canFocus && task ? () => onFocus?.(task, { behavior: 'locate' }) : undefined
-  const handleShellClick = canFocus
+  const shellInteractive = failedCollapsed || canFocus
+  const handleShellClick = failedCollapsed
     ? (event: MouseEvent<HTMLDivElement>) => {
         if (ignoreNextShellClickRef.current) {
           ignoreNextShellClickRef.current = false
           return
         }
-        if (event.target instanceof Element && event.target.closest('[data-stack-item-thumb]')) return
-        handleCardClick?.()
+        if (event.target instanceof Element && event.target.closest('button')) return
+        setFailedDetailsOpen(true)
       }
-    : undefined
+    : canFocus
+      ? (event: MouseEvent<HTMLDivElement>) => {
+          if (ignoreNextShellClickRef.current) {
+            ignoreNextShellClickRef.current = false
+            return
+          }
+          if (event.target instanceof Element && event.target.closest('[data-stack-item-thumb]')) return
+          handleCardClick?.()
+        }
+      : undefined
   const handleShellPointerDown = canFocus
     ? (event: PointerEvent<HTMLDivElement>) => {
         if (event.pointerType !== 'touch' || !event.isPrimary) return
@@ -476,9 +487,10 @@ export function AgentImageTaskCard({
     : 'shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-lift)]'
 
   // Param chip row, shared by all post-composing states. Renders nothing in
-  // composing because we don't know the model/resolution yet.
+  // composing because we don't know the model/resolution yet. Hidden when the
+  // failed card is collapsed so the header shrinks to target id + failed chip.
   const paramTags =
-    task && modelName ? (
+    task && modelName && !failedCollapsed ? (
       <>
         <Tag bold={isActiveGenerating}>{modelName}</Tag>
         <Tag tabular>{task.request.resolution}</Tag>
@@ -500,6 +512,24 @@ export function AgentImageTaskCard({
       <span>{t('agentChat.taskStatus.pendingApproval')}</span>
     </span>
   ) : null
+  const failedStatusNode = isFailed ? (
+    <button
+      type="button"
+      aria-expanded={failedDetailsOpen}
+      onClick={(event) => {
+        event.stopPropagation()
+        setFailedDetailsOpen((prev) => !prev)
+      }}
+      className="inline-flex items-center gap-1.5 rounded-[var(--radius-xs)] bg-[color-mix(in_srgb,var(--color-danger)_10%,transparent)] px-2 py-1 text-xs leading-none font-semibold text-(--color-danger) shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-danger)_18%,transparent)] transition-opacity hover:opacity-80"
+      title={
+        failedDetailsOpen ? t('agentChat.imageTask.hideFailureDetails') : t('agentChat.imageTask.showFailureDetails')
+      }
+    >
+      <Icon name="alert_circle" size={12} />
+      <span>{taskStatusLabel('failed')}</span>
+      <Icon name={failedDetailsOpen ? 'chevron_down' : 'chevron_right'} size={12} />
+    </button>
+  ) : null
   const activeStatusNode =
     task && isActiveGenerating ? (
       <span
@@ -514,6 +544,16 @@ export function AgentImageTaskCard({
         ) : (
           activeElapsedTime && <span className="tabular-nums text-(--color-text-4)">{activeElapsedTime}</span>
         )}
+      </span>
+    ) : null
+  const waitingStatusNode =
+    task && isWaitingDependencies ? (
+      <span
+        className="inline-flex items-center gap-1.5 py-0.5 text-sm leading-none font-medium text-(--color-text-3)"
+        title={taskStatusLabel(status)}
+      >
+        <span className="h-1.5 w-1.5 rounded-full bg-(--color-text-4)" />
+        <span>{taskStatusLabel(status)}</span>
       </span>
     ) : null
 
@@ -677,23 +717,27 @@ export function AgentImageTaskCard({
   // ─────────────────────── Non-completed layout ───────────────────────────
   return (
     <div
-      role={canFocus ? 'button' : undefined}
-      tabIndex={canFocus ? 0 : undefined}
+      role={shellInteractive ? 'button' : undefined}
+      tabIndex={shellInteractive ? 0 : undefined}
       onClick={handleShellClick}
       onPointerDown={handleShellPointerDown}
       onPointerUp={handleShellPointerUp}
       onKeyDown={
-        canFocus
+        shellInteractive
           ? (event) => {
               if (event.target !== event.currentTarget) return
               if (event.key === 'Enter' || event.key === ' ') {
                 event.preventDefault()
-                handleCardClick?.()
+                if (failedCollapsed) {
+                  setFailedDetailsOpen(true)
+                } else {
+                  handleCardClick?.()
+                }
               }
             }
           : undefined
       }
-      className={`w-full rounded-[var(--radius-lg)] bg-(--color-surface) px-3 py-2.5 ${shellShadowClass} md:m-1 md:max-w-[560px] ${isPendingApproval ? 'agent-image-task-card-pending' : ''} ${canFocus ? 'cursor-pointer transition-colors duration-150 hover:bg-[color-mix(in_srgb,var(--color-surface-2)_50%,var(--color-surface))]' : ''} ${isDimmed ? 'opacity-60' : ''}`}
+      className={`w-full rounded-[var(--radius-lg)] bg-(--color-surface) px-3 py-2.5 ${shellShadowClass} md:m-1 md:max-w-[560px] ${isPendingApproval ? 'agent-image-task-card-pending' : ''} ${shellInteractive ? 'cursor-pointer transition-colors duration-150 hover:bg-[color-mix(in_srgb,var(--color-surface-2)_50%,var(--color-surface))]' : ''} ${isDimmed ? 'opacity-60' : ''}`}
     >
       {/* Composing micro header (only state that gets a header) */}
       {isComposingPrompt && (
@@ -707,33 +751,33 @@ export function AgentImageTaskCard({
       )}
 
       {/* Target id on the left, generation parameter tags on the right. */}
-      {!isComposingPrompt && (approvalStatusNode || activeStatusNode || paramTags || targetIdNode) && (
-        <div className="flex max-w-[532px] min-w-0 flex-col items-stretch gap-1.5 px-2 md:flex-row md:items-start md:justify-between md:gap-2">
-          {(targetIdNode || approvalStatusNode) && (
-            <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-              {targetIdNode}
-              {approvalStatusNode}
-            </div>
-          )}
-          {(activeStatusNode || paramTags || isFailed) && (
-            <div className="flex min-w-0 items-start justify-between gap-2 md:ml-auto md:shrink-0">
-              <div className="flex min-w-0 items-center">{activeStatusNode}</div>
-              <div className="flex flex-wrap items-center justify-end gap-x-2 gap-y-1">
-                {paramTags}
-                {isFailed && (
-                  <span className="inline-flex items-center" style={{ color: 'var(--color-danger)' }}>
-                    <Icon name="alert_circle" size={13} />
-                  </span>
-                )}
+      {!isComposingPrompt &&
+        (approvalStatusNode ||
+          failedStatusNode ||
+          activeStatusNode ||
+          waitingStatusNode ||
+          paramTags ||
+          targetIdNode) && (
+          <div className="flex max-w-[532px] min-w-0 flex-col items-stretch gap-1.5 px-2 md:flex-row md:items-start md:justify-between md:gap-2">
+            {(targetIdNode || approvalStatusNode || failedStatusNode) && (
+              <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+                {targetIdNode}
+                {approvalStatusNode}
+                {failedStatusNode}
               </div>
-            </div>
-          )}
-        </div>
-      )}
+            )}
+            {(activeStatusNode || waitingStatusNode || paramTags) && (
+              <div className="flex min-w-0 items-start justify-between gap-2 md:ml-auto md:shrink-0">
+                <div className="flex min-w-0 items-center">{activeStatusNode ?? waitingStatusNode}</div>
+                <div className="flex flex-wrap items-center justify-end gap-x-2 gap-y-1">{paramTags}</div>
+              </div>
+            )}
+          </div>
+        )}
 
-      {promptText && <AgentImagePromptBox text={promptText} />}
+      {!failedCollapsed && promptText && <AgentImagePromptBox text={promptText} />}
 
-      {referenceIds.length > 0 && (
+      {!failedCollapsed && referenceIds.length > 0 && (
         <div className="mt-2 flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 px-2 text-sm text-(--color-text-3)">
           <span className="text-(--color-text-3)">{t('agentChat.imageTask.reference')}</span>
           <span className="mono truncate text-(--color-text-4)" title={referenceIds.join(', ')}>
@@ -742,9 +786,9 @@ export function AgentImageTaskCard({
         </div>
       )}
 
-      {renderInProgressGrid()}
+      {!failedCollapsed && renderInProgressGrid()}
 
-      {taskErrorText && <AgentImageErrorDetail text={taskErrorText} />}
+      {!failedCollapsed && taskErrorText && <AgentImageErrorDetail text={taskErrorText} />}
       {taskDetail && (
         <div
           className="mt-2.5 px-2 text-base leading-[1.45]"
@@ -753,7 +797,7 @@ export function AgentImageTaskCard({
           {taskDetail}
         </div>
       )}
-      {noTaskErrorText && <AgentImageErrorDetail text={noTaskErrorText} />}
+      {!failedCollapsed && noTaskErrorText && <AgentImageErrorDetail text={noTaskErrorText} />}
 
       {(showApprove || showCancel) && task && (
         <div className="mt-2.5 flex flex-wrap gap-1.5 px-2">

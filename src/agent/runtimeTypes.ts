@@ -11,6 +11,7 @@ export const AGENT_MAX_ATTACHMENTS = 8
 export const AGENT_TASK_PROTOCOL_MESSAGES = {
   autoStarted: 'The task has been submitted and automatically started generation.',
   failedToStart: 'The task was submitted but could not start generation.',
+  waitingDependencies: 'The task has been submitted and will start automatically after its reference images are ready.',
   pending: 'The task has been submitted and is waiting for user approval.',
   pendingWithReserved: (ids: string[]) =>
     `The task has been submitted and is waiting for user approval. image_id has been reserved as ${ids.join(', ')}.`,
@@ -81,7 +82,9 @@ export type AgentSessionRuntime = {
 export function getAgentSessionStatus(runtime: AgentSessionRuntime): AgentSessionStatus | null {
   if (runtime.pendingQuestions.length > 0) return 'waiting_for_question'
   if (runtime.isStreaming) return 'running'
-  return runtime.imageTasks.some((task) => task.status === 'queued' || task.status === 'running')
+  return runtime.imageTasks.some(
+    (task) => task.status === 'waiting_dependencies' || task.status === 'queued' || task.status === 'running',
+  )
     ? 'generating_images'
     : null
 }

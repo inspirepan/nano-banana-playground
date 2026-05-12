@@ -1,6 +1,13 @@
-import { useCallback, type RefObject } from 'react'
+import { useCallback, useRef, type RefObject } from 'react'
 
 import { compressImageForAgentInput, compressImageForGenerationReference } from './imageCompression'
+import {
+  buildAgentImageTaskOutputIndex,
+  findActiveAgentImageTaskDependencies,
+  findAgentImageTaskDependencyCycle,
+  findBlockedWaitingAgentImageTasks,
+  findStartableWaitingAgentImageTasks,
+} from './imageTaskGraph'
 import {
   AGENT_PROMPT_DEFAULT_LINE_LIMIT,
   formatPromptLines,
@@ -96,6 +103,10 @@ export function useAgentImageTools({
   isCurrentRuntime: (runtime: AgentSessionRuntime) => boolean
   setAgentImageTasksState: (tasks: AgentImageTask[]) => void
 }) {
+  const processWaitingAgentImageTasksRef = useRef<(runtime: AgentSessionRuntime, tasks?: AgentImageTask[]) => void>(
+    () => {},
+  )
+
   const sendAgentSystemEvent = useCallback(
     async (runtime: AgentSessionRuntime, text: string): Promise<boolean> => {
       const config = resolveAgentModelConfig(runtime.modelId)
@@ -200,10 +211,15 @@ export function useAgentImageTools({
   }, [maybeDispatchAgentImageCallbacks, maybeDispatchAgentImageCallbacksRef])
 
   const startAgentImageTask = useCallback(
-    async (runtime: AgentSessionRuntime, task: AgentImageTask): Promise<{ ok: boolean; message: string }> => {
+    async (
+      runtime: AgentSessionRuntime,
+      task: AgentImageTask,
+    ): Promise<{ ok: boolean; message: string; status?: AgentImageTask['status'] }> => {
       setRuntimeImageTasks(runtime, (prev) =>
         prev.map((item) =>
-          item.id === task.id && item.status === 'pending_approval' ? { ...item, status: 'approved' } : item,
+          item.id === task.id && (item.status === 'pending_approval' || item.status === 'waiting_dependencies')
+            ? { ...item, status: 'approved' }
+            : item,
         ),
       )
 
@@ -215,7 +231,8 @@ export function useAgentImageTools({
         )
         for (const id of task.request.reservedImageIds) runtime.imageRegistry.delete(id)
         maybeDispatchAgentImageCallbacks(runtime, next)
-        return { ok: false, message }
+        processWaitingAgentImageTasksRef.current(runtime, next)
+        return { ok: false, message, status: 'failed' }
       }
 
       const credentials = getProviderCredentials(modelConfig.provider)
@@ -229,7 +246,33 @@ export function useAgentImageTools({
         )
         for (const id of task.request.reservedImageIds) runtime.imageRegistry.delete(id)
         maybeDispatchAgentImageCallbacks(runtime, next)
-        return { ok: false, message }
+        processWaitingAgentImageTasksRef.current(runtime, next)
+        return { ok: false, message, status: 'failed' }
+      }
+
+      const currentTaskBeforeReferences = runtime.imageTasks.find((item) => item.id === task.id)
+      if (!currentTaskBeforeReferences || isTerminalAgentImageTaskStatus(currentTaskBeforeReferences.status)) {
+        return { ok: false, message: translate('configLib.agent.taskCanceled') }
+      }
+
+      const activeDependencies = findActiveAgentImageTaskDependencies(runtime.imageTasks, currentTaskBeforeReferences)
+      if (activeDependencies.length > 0) {
+        setRuntimeImageTasks(runtime, (prev) =>
+          prev.map((item) =>
+            item.id === task.id
+              ? {
+                  ...item,
+                  status: 'waiting_dependencies',
+                  error: undefined,
+                }
+              : item,
+          ),
+        )
+        return {
+          ok: true,
+          message: translate('configLib.agent.taskWaitingDependencies'),
+          status: 'waiting_dependencies',
+        }
       }
 
       let referenceImages: PlaygroundImage[]
@@ -242,7 +285,8 @@ export function useAgentImageTools({
         )
         for (const id of task.request.reservedImageIds) runtime.imageRegistry.delete(id)
         maybeDispatchAgentImageCallbacks(runtime, next)
-        return { ok: false, message }
+        processWaitingAgentImageTasksRef.current(runtime, next)
+        return { ok: false, message, status: 'failed' }
       }
 
       if (!runtime.ready || agentRuntimesRef.current.get(runtime.sessionId) !== runtime) {
@@ -265,24 +309,37 @@ export function useAgentImageTools({
         return { ok: false, message: translate('configLib.agent.sessionDeleted') }
       }
 
-      const stackId = task.request.stackId ?? stackIdForAgentTurn(runtime.sessionId, task.agentTurnId)
+      const taskBeforeEnqueue = runtime.imageTasks.find((item) => item.id === task.id)
+      if (
+        !taskBeforeEnqueue ||
+        isTerminalAgentImageTaskStatus(taskBeforeEnqueue.status) ||
+        taskBeforeEnqueue.generationJobId
+      ) {
+        return { ok: false, message: translate('configLib.agent.taskCanceled') }
+      }
+
+      const editSource = referenceImages.find((image) => image.source.type === 'generated')
+      const parentImageId =
+        taskBeforeEnqueue.request.parentImageId ?? (editSource?.source.type === 'generated' ? editSource.id : undefined)
+      const stackId =
+        taskBeforeEnqueue.request.stackId ?? stackIdForAgentTurn(runtime.sessionId, taskBeforeEnqueue.agentTurnId)
       const batchId = enqueueGenerationJob(
         {
           apiKey: credentials.apiKey,
           baseUrl: credentials.baseUrl,
           model: modelConfig,
-          prompt: task.request.prompt,
+          prompt: taskBeforeEnqueue.request.prompt,
           referenceImages: generationReferenceImages,
-          resolution: task.request.resolution,
-          aspectRatio: task.request.aspectRatio,
-          options: task.request.options,
-          outputImageIds: task.request.reservedImageIds,
+          resolution: taskBeforeEnqueue.request.resolution,
+          aspectRatio: taskBeforeEnqueue.request.aspectRatio,
+          options: taskBeforeEnqueue.request.options,
+          outputImageIds: taskBeforeEnqueue.request.reservedImageIds,
           outputImageIdSource: 'agent',
         },
-        task.request.batchCount,
+        taskBeforeEnqueue.request.batchCount,
         stackId,
-        task.request.parentImageId,
-        task.request.stackTitle,
+        parentImageId,
+        taskBeforeEnqueue.request.stackTitle,
       )
       setRuntimeImageTasks(runtime, (prev) =>
         prev.map((item) =>
@@ -292,12 +349,12 @@ export function useAgentImageTools({
                 status: 'queued',
                 generationJobId: batchId,
                 error: undefined,
-                request: { ...item.request, stackId },
+                request: { ...item.request, stackId, parentImageId },
               }
             : item,
         ),
       )
-      return { ok: true, message: translate('configLib.agent.taskStarted') }
+      return { ok: true, message: translate('configLib.agent.taskStarted'), status: 'queued' }
     },
     [
       agentRuntimesRef,
@@ -308,6 +365,45 @@ export function useAgentImageTools({
       setRuntimeImageTasks,
     ],
   )
+
+  const processWaitingAgentImageTasks = useCallback(
+    (runtime: AgentSessionRuntime, tasks = runtime.imageTasks) => {
+      let currentTasks = tasks
+      let changed = false
+
+      for (let pass = 0; pass < tasks.length; pass += 1) {
+        const blocked = findBlockedWaitingAgentImageTasks(currentTasks)
+        if (blocked.length === 0) break
+
+        const blockedByTaskId = new Map(blocked.map((item) => [item.task.id, item.dependency.imageId]))
+        const next = setRuntimeImageTasks(runtime, (prev) =>
+          prev.map((item) => {
+            const dependencyImageId = blockedByTaskId.get(item.id)
+            if (!dependencyImageId) return item
+            for (const id of item.request.reservedImageIds) runtime.imageRegistry.delete(id)
+            return {
+              ...item,
+              status: 'failed',
+              error: translate('configLib.agent.dependencyImageUnavailable', { id: dependencyImageId }),
+            }
+          }),
+        )
+        currentTasks = next
+        changed = true
+      }
+
+      if (changed) maybeDispatchAgentImageCallbacks(runtime, currentTasks)
+
+      for (const task of findStartableWaitingAgentImageTasks(currentTasks)) {
+        void startAgentImageTask(runtime, task)
+      }
+    },
+    [maybeDispatchAgentImageCallbacks, setRuntimeImageTasks, startAgentImageTask],
+  )
+
+  useExternalSync(() => {
+    processWaitingAgentImageTasksRef.current = processWaitingAgentImageTasks
+  }, [processWaitingAgentImageTasks])
 
   const approveAgentImageTask = useCallback(
     (taskId: string) => {
@@ -337,6 +433,7 @@ export function useAgentImageTools({
         )
         for (const id of task.request.reservedImageIds) runtime.imageRegistry.delete(id)
         maybeDispatchAgentImageCallbacks(runtime, next)
+        processWaitingAgentImageTasks(runtime, next)
         return
       }
       if (task.generationJobId) {
@@ -355,6 +452,7 @@ export function useAgentImageTools({
         prev.map((item) => (item.id === taskId ? { ...item, status: 'canceled', resultImageIds } : item)),
       )
       maybeDispatchAgentImageCallbacks(runtime, next)
+      processWaitingAgentImageTasks(runtime, next)
     },
     [
       cancelGenerationJob,
@@ -362,6 +460,7 @@ export function useAgentImageTools({
       generationJobsRefForAgent,
       getCurrentRuntime,
       maybeDispatchAgentImageCallbacks,
+      processWaitingAgentImageTasks,
       setRuntimeImageTasks,
     ],
   )
@@ -389,15 +488,33 @@ export function useAgentImageTools({
       const resolution = normalizeResolution(modelConfig, args.resolution)
       const aspect = normalizeAspectRatio(modelConfig, args.ratio)
       const referenceImageIds = args.reference_image_ids.filter((id) => id.trim()).map((id) => id.trim())
-      const [referenceImages, reserved] = await Promise.all([
-        resolveAgentReferenceImages(runtime, referenceImageIds),
+      const outputIndex = buildAgentImageTaskOutputIndex(runtime.imageTasks)
+      const [referenceResults, reserved] = await Promise.all([
+        Promise.all(referenceImageIds.map(async (id) => ({ id, result: await resolveAgentImageById(runtime, id) }))),
         reserveAgentImageIdsForRuntime(runtime, args.image_id, batchCount),
       ])
       if (signal?.aborted) throw new Error('GenImage was aborted.')
-      const editSource = referenceImages.find((image) => image.source.type === 'generated')
-      const agentTurnId = runtime.currentAgentTurnId ?? crypto.randomUUID()
-      const stackId = runtime.currentAgentTurnStackId ?? stackIdForAgentTurn(runtime.sessionId, agentTurnId)
       try {
+        const referenceImages: PlaygroundImage[] = []
+        for (const { id, result } of referenceResults) {
+          if (result?.status === 'ready') {
+            referenceImages.push(result.image)
+            continue
+          }
+          const dependencyTask = outputIndex.get(id)
+          if (dependencyTask && !isTerminalAgentImageTaskStatus(dependencyTask.status)) continue
+          if (dependencyTask && isTerminalAgentImageTaskStatus(dependencyTask.status)) {
+            throw new Error(translate('configLib.agent.dependencyImageUnavailable', { id }))
+          }
+          throw new Error(
+            result
+              ? translate('configLib.agent.referenceNotReady', { id })
+              : translate('configLib.agent.referenceMissing', { id }),
+          )
+        }
+        const editSource = referenceImages.find((image) => image.source.type === 'generated')
+        const agentTurnId = runtime.currentAgentTurnId ?? crypto.randomUUID()
+        const stackId = runtime.currentAgentTurnStackId ?? stackIdForAgentTurn(runtime.sessionId, agentTurnId)
         const activeOptions = activeOptionsForModel(modelConfig, defaultOptionsFor(modelConfig))
         const task: AgentImageTask = {
           id: crypto.randomUUID(),
@@ -422,6 +539,10 @@ export function useAgentImageTools({
           resultImageIds: [],
           renamedImageIds: reserved.renamed,
         }
+        const dependencyCycle = findAgentImageTaskDependencyCycle([task, ...runtime.imageTasks], task.id)
+        if (dependencyCycle) {
+          throw new Error(translate('configLib.agent.dependencyCycle', { ids: dependencyCycle.join(' -> ') }))
+        }
 
         const callbackState = runtime.turnCallbacks.get(task.agentTurnId) ?? {
           agentTurnId: task.agentTurnId,
@@ -442,10 +563,12 @@ export function useAgentImageTools({
         setRuntimeImageTasks(runtime, (prev) => [task, ...prev])
 
         const startResult = runtime.autoApproveImageTasks ? await startAgentImageTask(runtime, task) : null
-        const status = runtime.autoApproveImageTasks ? (startResult?.ok ? 'queued' : 'failed') : 'pending_approval'
+        const status = runtime.autoApproveImageTasks ? (startResult?.status ?? 'failed') : 'pending_approval'
         const message = runtime.autoApproveImageTasks
           ? startResult?.ok
-            ? AGENT_TASK_PROTOCOL_MESSAGES.autoStarted
+            ? status === 'waiting_dependencies'
+              ? AGENT_TASK_PROTOCOL_MESSAGES.waitingDependencies
+              : AGENT_TASK_PROTOCOL_MESSAGES.autoStarted
             : AGENT_TASK_PROTOCOL_MESSAGES.failedToStart
           : reserved.renamed
             ? AGENT_TASK_PROTOCOL_MESSAGES.pendingWithReserved(reserved.reservedImageIds)
@@ -467,7 +590,7 @@ export function useAgentImageTools({
       agentRuntimesRef,
       releasePendingAgentImageIds,
       reserveAgentImageIdsForRuntime,
-      resolveAgentReferenceImages,
+      resolveAgentImageById,
       setRuntimeImageTasks,
       startAgentImageTask,
     ],
@@ -607,6 +730,7 @@ export function useAgentImageTools({
       syncRuntimeSessionStatus(runtime)
       scheduleRuntimeSidecarPersist(runtime)
       maybeDispatchAgentImageCallbacks(runtime, next)
+      processWaitingAgentImageTasks(runtime, next)
     }
   }, [
     agentRuntimesRef,
@@ -614,6 +738,7 @@ export function useAgentImageTools({
     generationJobs,
     isCurrentRuntime,
     maybeDispatchAgentImageCallbacks,
+    processWaitingAgentImageTasks,
     scheduleRuntimeSidecarPersist,
     setAgentImageTasksState,
     syncRuntimeSessionStatus,

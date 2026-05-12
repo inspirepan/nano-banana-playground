@@ -17,6 +17,7 @@ function textPart(text: string): SystemEventSummaryPart[] {
 
 function systemStatusLabel(status: string): string {
   if (status === 'pending_approval') return translate('agentChat.taskStatus.pendingApproval')
+  if (status === 'waiting_dependencies') return translate('agentChat.taskStatus.waitingDependencies')
   if (status === 'queued') return translate('agentChat.taskStatus.queued')
   if (status === 'running') return translate('agentChat.taskStatus.running')
   if (status === 'completed') return translate('agentChat.taskStatus.completed')

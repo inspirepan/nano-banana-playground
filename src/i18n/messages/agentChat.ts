@@ -112,6 +112,8 @@ export const agentChatMessages: MessageDictionary = {
   'agentChat.imageTask.alwaysAutoApprove': { 'zh-CN': '始终自动通过', en: 'Always auto-approve' },
   'agentChat.imageTask.locateInGallery': { 'zh-CN': '在图库中定位', en: 'Locate in gallery' },
   'agentChat.imageTask.deleted': { 'zh-CN': '已删除', en: 'Deleted' },
+  'agentChat.imageTask.showFailureDetails': { 'zh-CN': '查看失败详情', en: 'Show failure details' },
+  'agentChat.imageTask.hideFailureDetails': { 'zh-CN': '收起失败详情', en: 'Hide failure details' },
   'agentChat.imageTask.rejectedDetail': {
     'zh-CN': '你在生成前拒绝了这次任务，未向模型发起请求。',
     en: 'You rejected this task before generation, so no model request was sent.',
@@ -122,6 +124,7 @@ export const agentChatMessages: MessageDictionary = {
   },
   'agentChat.taskStatus.prompting': { 'zh-CN': '生成提示词中', en: 'Writing prompt' },
   'agentChat.taskStatus.pendingApproval': { 'zh-CN': '待审批', en: 'Pending approval' },
+  'agentChat.taskStatus.waitingDependencies': { 'zh-CN': '等待依赖', en: 'Waiting for references' },
   'agentChat.taskStatus.queued': { 'zh-CN': '排队中', en: 'Queued' },
   'agentChat.taskStatus.running': { 'zh-CN': '生成中', en: 'Generating' },
   'agentChat.taskStatus.completed': { 'zh-CN': '已完成', en: 'Completed' },
