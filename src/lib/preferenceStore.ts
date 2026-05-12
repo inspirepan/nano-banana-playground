@@ -13,6 +13,13 @@ const PREFERRED_AGENT_MODEL_KEY = 'nano-banana-agent-model'
 const PREFERRED_AGENT_THINKING_LEVEL_KEY = 'nano-banana-agent-thinking-level'
 const COMPOSER_SUBMIT_MODE_KEY = 'nano-banana-composer-submit-mode'
 const STRIP_DOWNLOAD_METADATA_KEY = 'nano-banana-strip-download-metadata'
+const TITLE_MODEL_KEY = 'nano-banana-title-model'
+
+// Sentinel string for the "title generation disabled" preference. Distinct
+// from `null`/missing, which means "fall back to the default auto-picked
+// model" — so users who explicitly turn the feature off don't get
+// re-enabled when a key for some title model gets configured later.
+export const TITLE_MODEL_DISABLED = '__disabled__'
 
 function read(key: string): string | null {
   return getStorageItem('localStorage', key)
@@ -100,4 +107,12 @@ export function readStripDownloadMetadataPreference(): boolean {
 
 export function writeStripDownloadMetadataPreference(strip: boolean): boolean {
   return write(STRIP_DOWNLOAD_METADATA_KEY, strip ? '1' : '0')
+}
+
+export function readTitleModelPreference(): string | null {
+  return read(TITLE_MODEL_KEY)
+}
+
+export function writeTitleModelPreference(value: string): boolean {
+  return write(TITLE_MODEL_KEY, value)
 }

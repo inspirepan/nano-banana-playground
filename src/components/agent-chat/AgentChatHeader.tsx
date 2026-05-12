@@ -35,18 +35,21 @@ export function AgentChatHeader({
 }: AgentChatHeaderProps) {
   const { t } = useI18n()
   const currentSession = useMemo(() => sessions.find((s) => s.id === currentSessionId), [sessions, currentSessionId])
-  const centeredDisplayTitle = currentSession?.firstUserText.replace(/\s+/g, ' ').trim()
   const title = sessionsLoading
     ? t('agentChat.header.loadingSessions')
     : (currentSession?.title ?? t('agentChat.header.newConversation'))
 
   if (centeredTitle) {
-    if (!centeredDisplayTitle) return null
+    // Wide-layout header strip. Match the InputPanelHeader switcher height +
+    // bottom margin so this row aligns with the left/right rail headers.
+    const showTitle = !sessionsLoading && Boolean(currentSession)
     return (
-      <div className="mb-0.5 flex min-h-[24px] items-center justify-center text-center">
-        <div className="w-full min-w-0 max-w-[min(960px,100%)] truncate font-display text-base font-semibold text-(--color-text)">
-          {centeredDisplayTitle}
-        </div>
+      <div className="mb-[var(--panel-header-mb)] flex min-h-[30px] items-center justify-center text-center">
+        {showTitle ? (
+          <div className="w-full min-w-0 max-w-[min(960px,100%)] truncate font-display text-base font-semibold text-(--color-text)">
+            {title}
+          </div>
+        ) : null}
       </div>
     )
   }

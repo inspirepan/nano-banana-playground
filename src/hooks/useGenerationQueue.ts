@@ -477,6 +477,32 @@ export function useGenerationQueue({
     [setGenerationJobs],
   )
 
+  const patchGenerationJobStackTitle = useCallback(
+    (jobId: string, stackTitle: string) => {
+      const cleaned = stackTitle.trim()
+      if (!cleaned) return
+      setGenerationJobs((prev) =>
+        prev.map((job) => (job.id === jobId && job.stackTitle !== cleaned ? { ...job, stackTitle: cleaned } : job)),
+      )
+    },
+    [setGenerationJobs],
+  )
+
+  // Agent turns enqueue multiple jobs that share a stackId. When the LLM title
+  // arrives we patch all of them at once so the stack header settles in one go.
+  const patchGenerationJobsForStackTitle = useCallback(
+    (stackId: string, stackTitle: string) => {
+      const cleaned = stackTitle.trim()
+      if (!cleaned) return
+      setGenerationJobs((prev) =>
+        prev.map((job) =>
+          job.stackId === stackId && job.stackTitle !== cleaned ? { ...job, stackTitle: cleaned } : job,
+        ),
+      )
+    },
+    [setGenerationJobs],
+  )
+
   const appendGenerationSlot = useCallback(
     (jobId: string, outputImageId?: string, stackTitle?: string): { id: string; index: number } | null => {
       const slotId = crypto.randomUUID()
@@ -660,5 +686,7 @@ export function useGenerationQueue({
     cancelGenerationJob,
     dismissGenerationJob,
     dismissGenerationSlot,
+    patchGenerationJobStackTitle,
+    patchGenerationJobsForStackTitle,
   }
 }

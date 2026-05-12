@@ -51,6 +51,9 @@ export type AgentModelConfig = {
   thinkingOptions: AgentThinkingOptionConfig[]
   sendsThinkingEffort: boolean
   supportsImages: boolean
+  // Hidden from the main agent model menu; only surfaced in title-generation
+  // settings. These are tiny/cheap models we don't want to drive full sessions.
+  titleOnly?: boolean
 }
 
 type AgentModelThinkingConfig = {
@@ -109,6 +112,42 @@ const GPT_5_4_MINI_MODEL: Model<Api> = {
   },
   contextWindow: 400000,
   maxTokens: 128000,
+}
+
+const GPT_5_4_NANO_MODEL: Model<Api> = {
+  id: 'gpt-5.4-nano',
+  name: 'GPT-5.4 nano',
+  api: 'openai-responses',
+  provider: 'openai',
+  baseUrl: 'https://api.openai.com/v1',
+  reasoning: false,
+  input: ['text'],
+  cost: {
+    input: 0.05,
+    output: 0.4,
+    cacheRead: 0.005,
+    cacheWrite: 0,
+  },
+  contextWindow: 400000,
+  maxTokens: 32000,
+}
+
+const GEMINI_3_1_FLASH_LITE_MODEL: Model<Api> = {
+  id: 'gemini-3.1-flash-lite',
+  name: 'Gemini 3.1 Flash Lite',
+  api: 'google-generative-ai',
+  provider: 'google',
+  baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
+  reasoning: false,
+  input: ['text'],
+  cost: {
+    input: 0.05,
+    output: 0.4,
+    cacheRead: 0.0125,
+    cacheWrite: 0,
+  },
+  contextWindow: 1000000,
+  maxTokens: 32000,
 }
 
 function kimiK26Model(provider: Extract<Provider, 'moonshot-cn' | 'moonshot-ai'>): Model<Api> {
@@ -232,7 +271,42 @@ export const AGENT_MODEL_CONFIGS: AgentModelConfig[] = [
     providerLabel: providerLabel('moonshot-ai'),
     ...asAgentModel(kimiK26Model('moonshot-ai'), AGENT_THINKING_TOGGLE_CONFIG),
   },
+  {
+    id: 'gpt-5.4-nano',
+    label: 'GPT 5.4 nano',
+    shortLabel: '5.4 nano',
+    provider: 'openai',
+    providerLabel: providerLabel('openai'),
+    ...asAgentModel(GPT_5_4_NANO_MODEL),
+    titleOnly: true,
+  },
+  {
+    id: 'gemini-3.1-flash-lite',
+    label: 'Gemini 3.1 Flash Lite',
+    shortLabel: '3.1 Flash Lite',
+    provider: 'google',
+    providerLabel: providerLabel('google'),
+    ...asAgentModel(GEMINI_3_1_FLASH_LITE_MODEL),
+    titleOnly: true,
+  },
 ]
+
+export const AGENT_MENU_MODEL_CONFIGS: AgentModelConfig[] = AGENT_MODEL_CONFIGS.filter((item) => !item.titleOnly)
+
+// Auto-selection walks this list in order, so the cheapest/fastest title
+// models are preferred when their API key is configured.
+const TITLE_MODEL_IDS = [
+  'gpt-5.4-nano',
+  'gemini-3.1-flash-lite',
+  'claude-haiku-4-5-20251001',
+  'gpt-5.4-mini',
+  'gemini-3-flash-preview',
+] as const
+
+export const TITLE_MODEL_CONFIGS: AgentModelConfig[] = TITLE_MODEL_IDS.flatMap((id) => {
+  const found = AGENT_MODEL_CONFIGS.find((item) => item.id === id)
+  return found ? [found] : []
+})
 
 export function agentThinkingLevelsForModel(model: Pick<AgentModelConfig, 'thinkingOptions'>): AgentThinkingLevel[] {
   return model.thinkingOptions.map((item) => item.value)

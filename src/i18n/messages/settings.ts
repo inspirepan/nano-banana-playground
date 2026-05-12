@@ -115,6 +115,31 @@ export const settingsMessages: MessageDictionary = {
     'zh-CN': '配置图像生成和 Agent 大模型服务的访问密钥。',
     en: 'Configure access keys for image generation and agent LLM services.',
   },
+  'settings.titleModel.title': { 'zh-CN': '标题模型', en: 'Title model' },
+  'settings.titleModel.description': {
+    'zh-CN': '用小模型为图片堆栈和 Agent 会话异步生成标题。',
+    en: 'Use a small model to asynchronously summarize stack and agent session titles.',
+  },
+  'settings.titleModel.mode.auto': { 'zh-CN': '自动选择', en: 'Auto' },
+  'settings.titleModel.mode.autoDescription': {
+    'zh-CN': '挑第一个可用 API Key 的小模型。',
+    en: 'Pick the first title model with a configured API key.',
+  },
+  'settings.titleModel.mode.disabled': { 'zh-CN': '关闭', en: 'Off' },
+  'settings.titleModel.mode.disabledDescription': {
+    'zh-CN': '不调用小模型，标题始终用提示词截断。',
+    en: 'Skip the small model and always use the truncated prompt as the title.',
+  },
+  'settings.titleModel.modelLabel': { 'zh-CN': '指定模型', en: 'Pick a model' },
+  'settings.titleModel.missingKey': { 'zh-CN': '缺 API Key', en: 'Missing API key' },
+  'settings.titleModel.autoResolved': {
+    'zh-CN': '当前自动使用 {model}',
+    en: 'Currently using {model}',
+  },
+  'settings.titleModel.autoUnavailable': {
+    'zh-CN': '尚无任何小模型 API Key',
+    en: 'No title model has a configured API key',
+  },
   'settings.webTools.title': { 'zh-CN': 'Web 工具', en: 'Web tools' },
   'settings.webTools.description': {
     'zh-CN': '为 Agent 的网页搜索和网页抓取选择后端服务。',

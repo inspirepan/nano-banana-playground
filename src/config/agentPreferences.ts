@@ -1,5 +1,5 @@
 import {
-  AGENT_MODEL_CONFIGS,
+  AGENT_MENU_MODEL_CONFIGS,
   AGENT_THINKING_OPTIONS,
   DEFAULT_AGENT_MODEL,
   type AgentThinkingLevel,
@@ -15,12 +15,12 @@ const DEFAULT_THINKING_LEVEL: AgentThinkingLevel = 'low'
 
 export function getPreferredAgentModelId(): string {
   const stored = readPreferredAgentModelPreference()
-  if (stored && AGENT_MODEL_CONFIGS.some((m) => m.id === stored)) return stored
+  if (stored && AGENT_MENU_MODEL_CONFIGS.some((m) => m.id === stored)) return stored
   return DEFAULT_AGENT_MODEL.id
 }
 
 export function setPreferredAgentModelId(id: string): void {
-  if (!AGENT_MODEL_CONFIGS.some((m) => m.id === id)) return
+  if (!AGENT_MENU_MODEL_CONFIGS.some((m) => m.id === id)) return
   writePreferredAgentModelPreference(id)
 }
 

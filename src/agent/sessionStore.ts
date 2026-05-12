@@ -333,6 +333,41 @@ export async function appendAgentSessionMessage(params: {
   })
 }
 
+// Title-only update: preserve `updatedAt` so the session list doesn't reshuffle
+// when an async title refresh lands. Returns null if the session is gone.
+export async function updateAgentSessionTitleOnly(
+  sessionId: string,
+  title: string,
+): Promise<AgentSessionRecord | null> {
+  const trimmed = title.trim()
+  if (!trimmed) return null
+  const db = await openNanoBananaDB()
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(AGENT_SESSION_STORE, 'readwrite')
+    const store = tx.objectStore(AGENT_SESSION_STORE)
+    const getReq = store.get(sessionId) as IDBRequest<AgentSessionRecord | undefined>
+    let next: AgentSessionRecord | null = null
+    let missing = false
+
+    getReq.onsuccess = () => {
+      const record = getReq.result
+      if (!record) {
+        missing = true
+        return
+      }
+      if (record.title === trimmed) {
+        next = record
+        return
+      }
+      next = { ...record, title: trimmed }
+      store.put(next)
+    }
+    getReq.onerror = () => reject(getReq.error)
+    tx.oncomplete = () => resolve(missing ? null : next)
+    tx.onerror = () => reject(tx.error)
+  })
+}
+
 export async function updateAgentSessionConfig(
   sessionId: string,
   patch: Partial<Pick<AgentSessionRecord, 'modelId' | 'thinkingLevel' | 'autoApproveImageTasks' | 'title'>>,

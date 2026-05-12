@@ -6,6 +6,8 @@ import { useGenerationQueue, type GenerationJob } from './useGenerationQueue'
 import { putBlobInCache, getBlobFromCache, removeBlobFromCache } from './useImageSrc'
 import { findModelConfig, normalizeAspectRatio, normalizeResolution } from '../agent/modelLookup'
 import { useAgentPlayground } from '../agent/useAgentPlayground'
+import { useTitleGenerator } from '../agent/useTitleGenerator'
+import type { AgentModelProvider } from '../config/agentModels'
 import {
   MODEL_CONFIGS,
   DEFAULT_MODEL,
@@ -226,11 +228,70 @@ export function usePlayground() {
     cancelGenerationJob,
     dismissGenerationJob,
     dismissGenerationSlot,
+    patchGenerationJobStackTitle,
+    patchGenerationJobsForStackTitle,
   } = useGenerationQueue({
     getProviderCredentials,
     invalidateGenerationKey,
     onImageSaved: onGeneratedImageSaved,
   })
+
+  const agentProviderCredentials = useMemo(
+    () =>
+      ({
+        google: { apiKey: googleKeyHook.apiKey, baseUrl: googleKeyHook.baseUrl },
+        openai: { apiKey: openaiKeyHook.apiKey, baseUrl: openaiKeyHook.baseUrl },
+        anthropic: { apiKey: anthropicKeyHook.apiKey, baseUrl: anthropicKeyHook.baseUrl },
+        'moonshot-cn': { apiKey: moonshotCnKeyHook.apiKey, baseUrl: moonshotCnKeyHook.baseUrl },
+        'moonshot-ai': { apiKey: moonshotAiKeyHook.apiKey, baseUrl: moonshotAiKeyHook.baseUrl },
+      }) satisfies Record<AgentModelProvider, { apiKey: string; baseUrl: string }>,
+    [
+      anthropicKeyHook.apiKey,
+      anthropicKeyHook.baseUrl,
+      googleKeyHook.apiKey,
+      googleKeyHook.baseUrl,
+      moonshotAiKeyHook.apiKey,
+      moonshotAiKeyHook.baseUrl,
+      moonshotCnKeyHook.apiKey,
+      moonshotCnKeyHook.baseUrl,
+      openaiKeyHook.apiKey,
+      openaiKeyHook.baseUrl,
+    ],
+  )
+
+  const agentKeyStatuses = useMemo(
+    () =>
+      ({
+        google: googleKeyHook.status,
+        openai: openaiKeyHook.status,
+        anthropic: anthropicKeyHook.status,
+        'moonshot-cn': moonshotCnKeyHook.status,
+        'moonshot-ai': moonshotAiKeyHook.status,
+      }) satisfies Record<AgentModelProvider, ReturnType<typeof useApiKey>['status']>,
+    [
+      anthropicKeyHook.status,
+      googleKeyHook.status,
+      moonshotAiKeyHook.status,
+      moonshotCnKeyHook.status,
+      openaiKeyHook.status,
+    ],
+  )
+
+  const { requestStackTitle, requestSessionTitle, setTitleModelPreference } = useTitleGenerator({
+    keyStatuses: agentKeyStatuses,
+    providerCredentials: agentProviderCredentials,
+  })
+
+  const scheduleStackTitleRefresh = useCallback(
+    (batchId: string, prompt: string) => {
+      const trimmed = prompt.trim()
+      if (!trimmed) return
+      void requestStackTitle({ prompt: trimmed, dedupeKey: `stack:${batchId}` }).then((title) => {
+        if (title) patchGenerationJobStackTitle(batchId, title)
+      })
+    },
+    [patchGenerationJobStackTitle, requestStackTitle],
+  )
 
   const recordedFailureIdsRef = useRef(new Set<string>())
 
@@ -307,6 +368,8 @@ export function usePlayground() {
     enqueueGenerationJob: enqueueGenerationJobBatchId,
     cancelGenerationJob,
     dismissGenerationJob: dismissGenerationJobWithFailures,
+    requestSessionTitle,
+    patchGenerationJobsForStackTitle,
   })
 
   // Load first page of history on mount. `extendToStackBoundary` keeps page
@@ -584,6 +647,7 @@ export function usePlayground() {
       const enqueued = enqueueGenerationJob(request, 1, stackId, parentImageId, stackTitle)
       const [slot] = enqueued.slots
       if (!slot) return { status: 'unavailable' }
+      scheduleStackTitleRefresh(enqueued.batchId, trimmed)
       return { status: 'queued', batchId: enqueued.batchId, slotId: slot.id, slotIndex: slot.index }
     },
     [
@@ -593,6 +657,7 @@ export function usePlayground() {
       keyHooks,
       resolveFullImages,
       resolveReferenceMetas,
+      scheduleStackTitleRefresh,
     ],
   )
 
@@ -644,6 +709,7 @@ export function usePlayground() {
       const enqueued = enqueueGenerationJob(request, 1, stackId, parentImageId, stackTitle)
       const [slot] = enqueued.slots
       if (!slot) return { status: 'unavailable' }
+      scheduleStackTitleRefresh(enqueued.batchId, trimmed)
       return { status: 'queued', batchId: enqueued.batchId, slotId: slot.id, slotIndex: slot.index }
     },
     [
@@ -653,6 +719,7 @@ export function usePlayground() {
       keyHooks,
       resolveFullImages,
       resolveReferenceMetas,
+      scheduleStackTitleRefresh,
     ],
   )
 
@@ -676,7 +743,7 @@ export function usePlayground() {
       options: activeOptions,
       batchCount,
     })
-    enqueueGenerationJob(
+    const enqueued = enqueueGenerationJob(
       {
         apiKey: currentApiKey,
         baseUrl: currentBaseUrl,
@@ -692,6 +759,7 @@ export function usePlayground() {
       undefined,
       stackTitleForPrompt(trimmed),
     )
+    scheduleStackTitleRefresh(enqueued.batchId, trimmed)
   }, [
     currentApiKey,
     currentBaseUrl,
@@ -703,6 +771,7 @@ export function usePlayground() {
     options,
     batchCount,
     enqueueGenerationJob,
+    scheduleStackTitleRefresh,
   ])
 
   // Edit an existing image: prepends the source as the first reference and
@@ -754,7 +823,7 @@ export function usePlayground() {
           ? (params.sourceImage.source.stackId ?? params.sourceImage.source.batchId)
           : crypto.randomUUID()
 
-      return enqueueGenerationJob(
+      const enqueued = enqueueGenerationJob(
         {
           apiKey: keyHook.apiKey,
           baseUrl: keyHook.baseUrl,
@@ -770,9 +839,11 @@ export function usePlayground() {
         stackId,
         params.sourceImage.id,
         stackTitleForPrompt(trimmed),
-      ).batchId
+      )
+      scheduleStackTitleRefresh(enqueued.batchId, trimmed)
+      return enqueued.batchId
     },
-    [keyHooks, resolveFullImages, enqueueGenerationJob],
+    [keyHooks, resolveFullImages, enqueueGenerationJob, scheduleStackTitleRefresh],
   )
 
   const addToReferences = useCallback(
@@ -855,5 +926,6 @@ export function usePlayground() {
     addToReferences,
     removeFromHistory,
     loadMoreHistory,
+    setTitleModelPreference,
   }
 }

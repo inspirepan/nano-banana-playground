@@ -429,6 +429,13 @@ export function AgentChatPanel({
     el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' })
   }, [setNearBottomValue])
 
+  const scrollToTop = useCallback(() => {
+    const el = scrollRef.current
+    if (!el) return
+    setNearBottomValue(false)
+    el.scrollTo({ top: 0, behavior: 'smooth' })
+  }, [setNearBottomValue])
+
   const scrollToBottomAfterSend = useCallback(() => {
     setNearBottomValue(true)
     requestAnimationFrame(() => {
@@ -489,8 +496,17 @@ export function AgentChatPanel({
     return true
   }
   const contentRightPaddingClass = 'px-[var(--panel-pad-x)]'
-  const headerPaddingClass = wideLayout ? 'pb-0' : 'pb-3'
-  const scrollBodyClass = 'flex-1 overflow-y-auto overscroll-y-none pt-14 pb-8 md:[scrollbar-gutter:stable_both-edges]'
+  const currentSessionForTitle = sessions.find((session) => session.id === currentSessionId)
+  const floatingTitleText = sessionsLoading
+    ? t('agentChat.header.loadingSessions')
+    : (currentSessionForTitle?.title ?? t('agentChat.header.newConversation'))
+  const showFloatingTitle = wideLayout && !isEmpty && !sessionsLoading && Boolean(currentSessionForTitle)
+  // Wide layout has a floating frosted title overlay (~21+30+6 frosted +
+  // 24 gradient = ~81px); reserve enough top padding so the first message
+  // clears it when the scroll container is at its top.
+  const scrollBodyClass = wideLayout
+    ? 'flex-1 overflow-y-auto overscroll-y-none pt-[88px] pb-8 md:[scrollbar-gutter:stable_both-edges]'
+    : 'flex-1 overflow-y-auto overscroll-y-none pt-14 pb-8 md:[scrollbar-gutter:stable_both-edges]'
   // `my-auto` inside a flex-column scroll container centers content when it
   // fits and collapses to 0 when content overflows, avoiding the phantom
   // scroll that `min-h-full` + scrollRef padding produces (min-height: 100%
@@ -567,54 +583,83 @@ export function AgentChatPanel({
         onAddAttachments(files)
       }}
     >
-      <div className={`${contentRightPaddingClass} ${headerPaddingClass}`}>
-        {!wideLayout ? (
-          <AgentChatHeader
-            sessions={sessions}
-            sessionStatuses={visibleSessionStatuses}
-            currentSessionId={currentSessionId}
-            sessionsLoading={sessionsLoading}
-            showNewSessionButton={!isEmpty}
-            openMenu={openMenu}
-            setOpenMenu={setOpenMenu}
-            onNewSession={handleNewSession}
-            onSwitchSession={onSwitchSession}
-            onDeleteSession={onDeleteSession}
-          />
-        ) : null}
+      {!wideLayout || keyMissing ? (
+        <div className={`${contentRightPaddingClass} ${wideLayout ? 'pt-[21px] pb-3' : 'pb-3'}`}>
+          {!wideLayout ? (
+            <AgentChatHeader
+              sessions={sessions}
+              sessionStatuses={visibleSessionStatuses}
+              currentSessionId={currentSessionId}
+              sessionsLoading={sessionsLoading}
+              showNewSessionButton={!isEmpty}
+              openMenu={openMenu}
+              setOpenMenu={setOpenMenu}
+              onNewSession={handleNewSession}
+              onSwitchSession={onSwitchSession}
+              onDeleteSession={onDeleteSession}
+            />
+          ) : null}
 
-        {keyMissing ? (
-          <button
-            type="button"
-            onClick={onOpenApiKeys}
-            className="card mb-3 flex w-full items-start gap-2.5 px-3 py-2.5 text-left transition-colors"
-            style={{
-              color: 'var(--color-danger)',
-              background: 'var(--color-danger-soft)',
-              boxShadow: 'inset 0 0 0 1px color-mix(in srgb, var(--color-danger) 24%, transparent)',
-            }}
-          >
-            <Icon name="alert_circle" size={14} style={{ marginTop: 1, flexShrink: 0 }} />
-            <span className="flex-1">
-              <span className="block text-base font-medium">{t('agentChat.apiKeyMissing.title')}</span>
-              <span className="mt-0.5 block text-sm leading-[1.45] opacity-80">
-                {t('agentChat.apiKeyMissing.description', { model: model.label, provider: model.providerLabel })}
+          {keyMissing ? (
+            <button
+              type="button"
+              onClick={onOpenApiKeys}
+              className="card mb-3 flex w-full items-start gap-2.5 px-3 py-2.5 text-left transition-colors"
+              style={{
+                color: 'var(--color-danger)',
+                background: 'var(--color-danger-soft)',
+                boxShadow: 'inset 0 0 0 1px color-mix(in srgb, var(--color-danger) 24%, transparent)',
+              }}
+            >
+              <Icon name="alert_circle" size={14} style={{ marginTop: 1, flexShrink: 0 }} />
+              <span className="flex-1">
+                <span className="block text-base font-medium">{t('agentChat.apiKeyMissing.title')}</span>
+                <span className="mt-0.5 block text-sm leading-[1.45] opacity-80">
+                  {t('agentChat.apiKeyMissing.description', { model: model.label, provider: model.providerLabel })}
+                </span>
               </span>
-            </span>
-            <span className="chip danger shrink-0 text-sm" style={{ height: 22, padding: '0 7px' }}>
-              {t('agentChat.apiKeyMissing.action')}
-            </span>
-          </button>
-        ) : null}
-      </div>
+              <span className="chip danger shrink-0 text-sm" style={{ height: 22, padding: '0 7px' }}>
+                {t('agentChat.apiKeyMissing.action')}
+              </span>
+            </button>
+          ) : null}
+        </div>
+      ) : null}
 
       <div
         className={`relative flex min-h-0 min-w-0 flex-1 flex-col${isEmpty ? ' md:grid md:grid-cols-[minmax(0,1fr)] md:grid-rows-[minmax(0,1fr)_auto_minmax(0,1fr)]' : ''}`}
       >
-        {!isEmpty ? (
+        {showFloatingTitle ? (
+          <div aria-hidden="false" className="pointer-events-none absolute inset-x-0 top-0 z-40">
+            <button
+              type="button"
+              onClick={scrollToTop}
+              title={t('agentChat.header.scrollToTop')}
+              aria-label={t('agentChat.header.scrollToTop')}
+              className={`pointer-events-auto block w-full cursor-pointer text-center transition-colors ${contentRightPaddingClass} group`}
+              style={{
+                backdropFilter: 'saturate(140%) blur(8px)',
+                WebkitBackdropFilter: 'saturate(140%) blur(8px)',
+                background: 'color-mix(in srgb, var(--color-bg) 55%, transparent)',
+                paddingTop: '21px',
+                paddingBottom: '6px',
+              }}
+            >
+              <span className="flex min-h-[30px] items-center justify-center">
+                <span className="inline-block max-w-[min(960px,100%)] min-w-0 truncate font-display text-base font-semibold text-(--color-text) transition-colors group-hover:text-(--color-text-2)">
+                  {floatingTitleText}
+                </span>
+              </span>
+            </button>
+            <div
+              aria-hidden
+              className="h-6 bg-[linear-gradient(to_bottom,color-mix(in_srgb,var(--color-bg)_55%,transparent)_0%,transparent_100%)]"
+            />
+          </div>
+        ) : !isEmpty ? (
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-x-0 top-0 z-30 h-12 bg-[linear-gradient(to_bottom,var(--color-bg)_0%,color-mix(in_srgb,var(--color-bg)_78%,transparent)_46%,transparent_100%)]"
+            className="pointer-events-none absolute inset-x-0 top-0 z-30 h-8 bg-[linear-gradient(to_bottom,color-mix(in_srgb,var(--color-bg)_72%,transparent)_0%,color-mix(in_srgb,var(--color-bg)_42%,transparent)_42%,transparent_100%)]"
           />
         ) : null}
         <div

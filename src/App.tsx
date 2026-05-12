@@ -237,6 +237,7 @@ function App() {
               onDeleteAgentSkill={pg.deleteAgentSkill}
               onGetAgentSkillPackage={pg.getAgentSkillPackage}
               onCreateAgentSkill={pg.createUserAgentSkill}
+              onTitleModelPreferenceChange={pg.setTitleModelPreference}
               onClose={() => setSettingsOpen(false)}
             />
           </Suspense>

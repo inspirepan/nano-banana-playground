@@ -77,6 +77,9 @@ export type AgentSessionRuntime = {
   lastCompaction: AgentCompactionState | undefined
   isCompacting: boolean
   compactionAbort: AbortController | null
+  // Most recent LLM-generated session title for this runtime; passed as the
+  // previousTitle hint so the next refresh refines instead of replacing.
+  lastSessionTitle: string | null
 }
 
 export function getAgentSessionStatus(runtime: AgentSessionRuntime): AgentSessionStatus | null {

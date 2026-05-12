@@ -1,6 +1,12 @@
 import { useCallback, type RefObject } from 'react'
 
-import { compressedAttachmentToAgentAttachment, type AgentChatAttachment } from './agentChat'
+import {
+  agentMessageRole,
+  agentMessageText,
+  compressedAttachmentToAgentAttachment,
+  stripSystemDirectives,
+  type AgentChatAttachment,
+} from './agentChat'
 import { activateAgentResponseMetadata, getAgentError, queueAgentResponseMetadata } from './messageRecovery'
 import { buildCurrentDateDirective, buildLanguageDirective } from './runtimeConfig'
 import type {
@@ -11,6 +17,8 @@ import type {
 } from './runtimeTypes'
 import { resolveAgentModelConfig, type AgentModelProvider } from '../config/agentModels'
 import { getActiveLanguage, translate } from '../i18n'
+import { updateAgentSessionTitleOnly } from './sessionStore'
+import type { AgentSessionRecord } from './sessionTypes'
 import { buildAvailableSkillsSystemMessage } from './skills/listing'
 import { getAgentSkillSummaries } from './skills/registry'
 import { parseAgentSlashCommands } from './slashCommands'
@@ -18,6 +26,21 @@ import { formatLoadedSkillText } from './tools/skill'
 import { stackIdForAgentTurn } from '../lib/stackId'
 import { stackTitleForPrompt } from '../lib/stackTitle'
 import { isKeyError } from '../lib/validateKey'
+
+const PREVIOUS_USER_MESSAGE_LIMIT = 8
+
+function collectPreviousUserMessages(runtime: AgentSessionRuntime): string[] {
+  const result: string[] = []
+  for (const message of runtime.agent.state.messages) {
+    if (agentMessageRole(message) !== 'user') continue
+    const cleaned = stripSystemDirectives(agentMessageText(message))
+    if (!cleaned) continue
+    result.push(cleaned)
+  }
+  return result.length > PREVIOUS_USER_MESSAGE_LIMIT
+    ? result.slice(result.length - PREVIOUS_USER_MESSAGE_LIMIT)
+    : result
+}
 
 function textFromLoadedSkill(skillName: string): string | null {
   const result = formatLoadedSkillText(skillName)
@@ -73,6 +96,9 @@ export function useAgentMessageSender({
   setAgentAttachments,
   setAgentAttachmentError,
   setAgentIsStreaming,
+  requestSessionTitle,
+  patchGenerationJobsForStackTitle,
+  upsertAgentSessionSummary,
 }: {
   agentCredentialsRef: RefObject<Record<AgentModelProvider, ProviderCredentials>>
   getCurrentRuntime: () => AgentSessionRuntime | null
@@ -92,6 +118,14 @@ export function useAgentMessageSender({
   setAgentAttachments: (attachments: AgentChatAttachment[]) => void
   setAgentAttachmentError: (message: string | null) => void
   setAgentIsStreaming: (isStreaming: boolean) => void
+  requestSessionTitle: (params: {
+    sessionId: string
+    currentUserMessage: string
+    previousUserMessages: string[]
+    previousTitle?: string
+  }) => Promise<string | null>
+  patchGenerationJobsForStackTitle: (stackId: string, stackTitle: string) => void
+  upsertAgentSessionSummary: (record: AgentSessionRecord) => void
 }) {
   const sendAgentMessage = useCallback(() => {
     const runtime = getCurrentRuntime()
@@ -182,6 +216,33 @@ export function useAgentMessageSender({
     }
     syncRuntimeSnapshot(runtime)
     scheduleRuntimeSidecarPersist(runtime)
+
+    const previousUserMessages = collectPreviousUserMessages(runtime)
+    const previousSessionTitle = runtime.lastSessionTitle ?? undefined
+
+    // One LLM call covers both the agent turn's stack header and the session
+    // title. They describe the same conversation focus, and a session title
+    // refined with previous messages reads at least as well as a per-turn
+    // stack title cut from the latest prompt alone. Fire-and-forget; on
+    // failure the synchronous truncation that already filled the slots stays.
+    void requestSessionTitle({
+      sessionId: runtime.sessionId,
+      currentUserMessage: promptBody,
+      previousUserMessages,
+      previousTitle: previousSessionTitle,
+    }).then((title) => {
+      if (!title) return
+      if (runtime.currentAgentTurnId === userTurnId) runtime.currentAgentTurnStackTitle = title
+      setRuntimeQueuedUserMessages(runtime, (prev) =>
+        prev.map((queued) => (queued.agentTurnId === userTurnId ? { ...queued, stackTitle: title } : queued)),
+      )
+      patchGenerationJobsForStackTitle(userTurnStackId, title)
+      runtime.lastSessionTitle = title
+      scheduleRuntimeSidecarPersist(runtime)
+      void updateAgentSessionTitleOnly(runtime.sessionId, title).then((record) => {
+        if (record) upsertAgentSessionSummary(record)
+      })
+    })
 
     const queuedMessageId = inFlight ? crypto.randomUUID() : null
     const queuedMessage =
@@ -291,6 +352,8 @@ export function useAgentMessageSender({
     invalidateGenerationKey,
     isCurrentRuntime,
     maybeDispatchAgentImageCallbacks,
+    patchGenerationJobsForStackTitle,
+    requestSessionTitle,
     scheduleRuntimeSidecarPersist,
     setAgentAttachmentError,
     setAgentAttachments,
@@ -299,6 +362,7 @@ export function useAgentMessageSender({
     setRuntimeQueuedUserMessages,
     setRuntimeError,
     syncRuntimeSnapshot,
+    upsertAgentSessionSummary,
   ])
 
   const stopAgentMessage = useCallback(() => {

@@ -146,6 +146,7 @@ export function useAgentRuntimeFactory({
         lastCompaction: params.lastCompaction,
         isCompacting: false,
         compactionAbort: null,
+        lastSessionTitle: null,
       }
       agent.subscribe((event) => {
         if (event.type === 'message_end') {

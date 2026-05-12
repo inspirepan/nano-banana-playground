@@ -23,7 +23,7 @@ import { useAgentRuntimeStore } from './useAgentRuntimeStore'
 import { useAgentSessionLifecycle } from './useAgentSessionLifecycle'
 import { useAgentSkills } from './useAgentSkills'
 import {
-  AGENT_MODEL_CONFIGS,
+  AGENT_MENU_MODEL_CONFIGS,
   resolveAgentModelConfig,
   type AgentModelProvider,
   type AgentThinkingLevel,
@@ -56,6 +56,13 @@ export type UseAgentPlaygroundParams = {
   ) => string
   cancelGenerationJob: (jobId: string) => void
   dismissGenerationJob: (jobId: string) => void
+  requestSessionTitle: (params: {
+    sessionId: string
+    currentUserMessage: string
+    previousUserMessages: string[]
+    previousTitle?: string
+  }) => Promise<string | null>
+  patchGenerationJobsForStackTitle: (stackId: string, stackTitle: string) => void
 }
 
 export function useAgentPlayground({
@@ -69,6 +76,8 @@ export function useAgentPlayground({
   enqueueGenerationJob,
   cancelGenerationJob,
   dismissGenerationJob,
+  requestSessionTitle,
+  patchGenerationJobsForStackTitle,
 }: UseAgentPlaygroundParams) {
   const moonshotCnKeyHook = keyHooks['moonshot-cn']
   const moonshotAiKeyHook = keyHooks['moonshot-ai']
@@ -361,6 +370,9 @@ export function useAgentPlayground({
     setAgentAttachments,
     setAgentAttachmentError,
     setAgentIsStreaming,
+    requestSessionTitle,
+    patchGenerationJobsForStackTitle,
+    upsertAgentSessionSummary,
   })
 
   const clearAgentChat = useCallback(() => {
@@ -384,7 +396,7 @@ export function useAgentPlayground({
   )
 
   return {
-    agentModels: AGENT_MODEL_CONFIGS,
+    agentModels: AGENT_MENU_MODEL_CONFIGS,
     agentModel,
     agentThinkingLevel,
     agentMessages,

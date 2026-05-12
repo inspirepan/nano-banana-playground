@@ -3,12 +3,15 @@ import { createPortal } from 'react-dom'
 
 import { Icon, type IconName } from './Icon'
 import type { AgentSkill, AgentSkillCreateInput, AgentSkillSummary } from '../agent'
+import type { TitleModelPreference } from '../agent/useTitleGenerator'
 import { ApiKeySettingsTab, type KeyHook } from './settings/ApiKeySettingsTab'
 import { DataSettingsTab } from './settings/DataSettingsTab'
 import { GeneralSettingsTab } from './settings/GeneralSettingsTab'
 import { SettingsBackupTab } from './settings/SettingsBackupTab'
 import { SkillsSettingsTab } from './settings/SkillsSettingsTab'
+import { TitleModelSettingsTab } from './settings/TitleModelSettingsTab'
 import { WebToolsSettingsTab, type WebProviderNotice } from './settings/WebToolsSettingsTab'
+import type { AgentModelProvider } from '../config/agentModels'
 import type { LanguagePreference } from '../config/languages'
 import type { Provider } from '../config/models'
 import type { Theme } from '../config/theme'
@@ -84,6 +87,7 @@ type Props = {
   onDeleteAgentSkill: (name: string) => void
   onGetAgentSkillPackage: (name: string) => AgentSkill | null
   onCreateAgentSkill: (input: AgentSkillCreateInput) => void
+  onTitleModelPreferenceChange: (value: TitleModelPreference) => void
   onClose: () => void
 }
 
@@ -104,6 +108,7 @@ export function SettingsDialog({
   onDeleteAgentSkill,
   onGetAgentSkillPackage,
   onCreateAgentSkill,
+  onTitleModelPreferenceChange,
   onClose,
 }: Props) {
   const { t } = useI18n()
@@ -427,6 +432,20 @@ export function SettingsDialog({
                 onUseWebProviderForFetch={handleUseWebProviderForFetch}
                 onUndoWebProviderSwitch={handleUndoWebProviderSwitch}
                 onDismissWebProviderNotice={() => setWebProviderNotice(null)}
+              />
+              <TitleModelSettingsTab
+                keyStatuses={
+                  {
+                    google: keyHooks.google.status,
+                    openai: keyHooks.openai.status,
+                    anthropic: keyHooks.anthropic.status,
+                    'moonshot-cn': keyHooks['moonshot-cn'].status,
+                    'moonshot-ai': keyHooks['moonshot-ai'].status,
+                  } satisfies Record<AgentModelProvider, KeyHook['status']>
+                }
+                onPreferenceChange={onTitleModelPreferenceChange}
+                embedded
+                divider
               />
             </div>
           )}
