@@ -441,20 +441,22 @@ export function AgentChatPanel({
     return map
   }, [imageTasks])
   const imageStacks = useMemo(() => buildImageStacks(history, generationJobs), [generationJobs, history])
-  const stackItemByImageId = useMemo(() => {
+  const stackItemByOutputId = useMemo(() => {
     const map = new Map<string, StackItem>()
     for (const stack of imageStacks) {
       for (const item of stack.items) {
         if (item.type === 'image') map.set(item.image.id, item)
+        else if (item.slot.outputImageId) map.set(item.slot.outputImageId, item)
       }
     }
     return map
   }, [imageStacks])
-  const stackItemNumberByImageId = useMemo(() => {
+  const stackItemNumberByOutputId = useMemo(() => {
     const map = new Map<string, number>()
     for (const stack of imageStacks) {
       stack.items.forEach((item, index) => {
         if (item.type === 'image') map.set(item.image.id, index + 1)
+        else if (item.slot.outputImageId) map.set(item.slot.outputImageId, index + 1)
       })
     }
     return map
@@ -937,8 +939,8 @@ export function AgentChatPanel({
                           calls={item.calls}
                           results={item.results}
                           imageTaskByToolCallId={imageTaskByToolCallId}
-                          stackItemByImageId={stackItemByImageId}
-                          stackItemNumberByImageId={stackItemNumberByImageId}
+                          stackItemByOutputId={stackItemByOutputId}
+                          stackItemNumberByOutputId={stackItemNumberByOutputId}
                           pendingQuestionByToolCallId={pendingQuestionByToolCallId}
                           isStreaming={item.isStreaming}
                           autoApproveImageTasks={autoApproveImageTasks}

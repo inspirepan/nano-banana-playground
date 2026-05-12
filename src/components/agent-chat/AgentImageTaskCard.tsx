@@ -423,8 +423,8 @@ function AgentImageErrorDetail({ text }: { text: string }) {
 export function AgentImageTaskCard({
   call,
   task,
-  stackItemByImageId,
-  stackItemNumberByImageId,
+  stackItemByOutputId,
+  stackItemNumberByOutputId,
   result,
   isStreaming,
   autoApproveImageTasks,
@@ -436,8 +436,8 @@ export function AgentImageTaskCard({
 }: {
   call: AgentMessageToolCall
   task: AgentImageTask | undefined
-  stackItemByImageId: Map<string, StackItem>
-  stackItemNumberByImageId: Map<string, number>
+  stackItemByOutputId: Map<string, StackItem>
+  stackItemNumberByOutputId: Map<string, number>
   result?: AgentMessageToolResult
   isStreaming: boolean
   autoApproveImageTasks: boolean
@@ -471,6 +471,12 @@ export function AgentImageTaskCard({
   const targetIds = reservedIds.length > 0 ? reservedIds : requestedFromArgs ? [requestedFromArgs] : []
   const targetIdLabel = compactImageIdLabel(targetIds)
   const targetIdTitle = targetIds.length > 1 ? Array.from(new Set(targetIds)).join(', ') : targetIdLabel
+  const targetStackItems = targetIds
+    .map((id) => stackItemByOutputId.get(id))
+    .filter((item): item is StackItem => Boolean(item))
+  const retryingSlot = targetStackItems.find(
+    (item): item is Extract<StackItem, { type: 'slot' }> => item.type === 'slot' && item.slot.status === 'retrying',
+  )?.slot
 
   const promptText = task?.request.prompt ?? promptFromArgs
   const referenceIds = task?.request.referenceImageIds ?? []
@@ -481,7 +487,18 @@ export function AgentImageTaskCard({
     ? (MODEL_CONFIGS.find((item) => item.id === task.request.modelId)?.name ?? task.request.modelId)
     : null
 
-  const taskErrorText = task?.error
+  const retryingStatusText = retryingSlot
+    ? retryingSlot.error
+      ? t('input.stack.status.retryingWithError', {
+          attempt: retryingSlot.attempt,
+          max: retryingSlot.maxAttempts,
+          error: retryingSlot.error,
+        })
+      : t('input.stack.status.retrying', { attempt: retryingSlot.attempt, max: retryingSlot.maxAttempts })
+    : targetStackItems.length === 0 && task?.status === 'running' && task.error
+      ? `${t('imageDetail.queue.status.retrying')} · ${summarizeImageTaskError(task.error)}`
+      : null
+  const taskErrorText = isFailed ? task?.error : undefined
   const taskDetail = taskErrorText
     ? undefined
     : task?.status === 'rejected'
@@ -605,12 +622,17 @@ export function AgentImageTaskCard({
   ) : null
   const activeStatusNode =
     task && isActiveGenerating ? (
-      <Tooltip text={taskStatusLabel(status)} placement="top" className="inline-flex">
+      <Tooltip text={retryingStatusText ?? taskStatusLabel(status)} placement="top" className="inline-flex min-w-0">
         <span className="inline-flex items-center gap-1.5 py-0.5 text-sm leading-none font-medium text-(--color-text-3)">
           {status === 'queued' ? (
             <>
               <span className="h-1.5 w-1.5 rounded-full bg-(--color-text-4)" />
               <span>{taskStatusLabel(status)}</span>
+            </>
+          ) : retryingStatusText ? (
+            <>
+              <span className="spinner shrink-0" style={{ width: 10, height: 10 }} />
+              <span className="min-w-0 truncate text-(--color-accent-text)">{retryingStatusText}</span>
             </>
           ) : (
             activeElapsedTime && <span className="tabular-nums text-(--color-text-4)">{activeElapsedTime}</span>
@@ -640,27 +662,39 @@ export function AgentImageTaskCard({
     const items: ReactNode[] = []
     for (let index = 0; index < slots; index += 1) {
       const id = resultIds[index]
-      if (id) {
-        const item = stackItemByImageId.get(id)
-        items.push(
-          item ? (
-            <div key={id} className="w-full" style={{ aspectRatio: aspectRatioCss }}>
+      const targetId = targetIds[index]
+      const itemLookupId = id ?? targetId
+      if (itemLookupId) {
+        const item = stackItemByOutputId.get(itemLookupId)
+        if (item) {
+          items.push(
+            <div key={item.id} className="w-full" style={{ aspectRatio: aspectRatioCss }}>
               <StackItemThumb
                 item={item}
-                number={stackItemNumberByImageId.get(id)}
+                number={stackItemNumberByOutputId.get(itemLookupId)}
                 outerRing
                 hoverLift={false}
+                compactSlotStatus={item.type === 'slot'}
                 className="h-full w-full"
                 numberBadgeInset={6}
-                onSelect={() => {
-                  if (canFocus) onFocus?.(task, { behavior: 'open' })
+                onSelect={(selectedItem) => {
+                  if (canFocus) onFocus?.(task, { behavior: 'open', itemId: selectedItem.id })
                 }}
               />
-            </div>
-          ) : (
-            <GenImageResultThumb key={id} id={id} />
-          ),
-        )
+            </div>,
+          )
+        } else if (id) {
+          items.push(<GenImageResultThumb key={id} id={id} />)
+        } else if (isActiveGenerating) {
+          items.push(
+            <SkeletonSlot
+              key={`skeleton-${index}`}
+              aspectRatio={aspectRatioCss}
+              compact
+              queued={status === 'queued'}
+            />,
+          )
+        }
       } else if (isActiveGenerating) {
         items.push(
           <SkeletonSlot key={`skeleton-${index}`} aspectRatio={aspectRatioCss} compact queued={status === 'queued'} />,
@@ -703,7 +737,7 @@ export function AgentImageTaskCard({
         }}
       >
         {resultIds.map((id) => {
-          const item = stackItemByImageId.get(id)
+          const item = stackItemByOutputId.get(id)
           return (
             <div
               key={id}
@@ -720,7 +754,7 @@ export function AgentImageTaskCard({
                 {item ? (
                   <StackItemThumb
                     item={item}
-                    number={stackItemNumberByImageId.get(id)}
+                    number={stackItemNumberByOutputId.get(id)}
                     outerRing
                     hoverLift={false}
                     className="h-full w-full"
