@@ -85,7 +85,7 @@ export const agentChatMessages: MessageDictionary = {
   'agentChat.options.thinking': { 'zh-CN': '智能', en: 'Intelligence' },
   'agentChat.options.agentModel': { 'zh-CN': '对话模型', en: 'Agent model' },
   'agentChat.thinking.label': { 'zh-CN': '思考中', en: 'Thinking' },
-  'agentChat.thinking.thought': { 'zh-CN': '已思考', en: 'Thought' },
+  'agentChat.thinking.thought': { 'zh-CN': '思考了片刻', en: 'Thought for a sec' },
   'agentChat.thinking.thoughtForOneSecond': { 'zh-CN': '思考了片刻', en: 'Thought for a sec' },
   'agentChat.thinking.thoughtForSeconds': { 'zh-CN': '思考了 {seconds} 秒', en: 'Thought for {seconds}s' },
   'agentChat.thinking.off': { 'zh-CN': '关闭', en: 'Off' },
