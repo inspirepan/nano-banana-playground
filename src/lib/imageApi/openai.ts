@@ -152,7 +152,8 @@ export async function generateImageOpenAI(
 
     const outputImageTokens = data.usage?.output_tokens_details?.image_tokens ?? data.usage?.output_tokens ?? 0
     const outputTextTokens =
-      data.usage?.output_tokens_details?.text_tokens ?? Math.max((data.usage?.output_tokens ?? 0) - outputImageTokens, 0)
+      data.usage?.output_tokens_details?.text_tokens ??
+      Math.max((data.usage?.output_tokens ?? 0) - outputImageTokens, 0)
     const tokenUsage: TokenUsage | undefined = data.usage
       ? {
           inputTokens: data.usage.input_tokens ?? 0,

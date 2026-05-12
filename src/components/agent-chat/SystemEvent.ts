@@ -100,11 +100,7 @@ function collectFailedIdParts(callbacks: ParsedToolCallback[]): SystemEventSumma
 
 // Substitute a single marker in `template` with `parts`, dropping the marker
 // even if `parts` is empty so stray sentinel chars never reach the UI.
-function weaveAtMarker(
-  template: string,
-  marker: string,
-  parts: SystemEventSummaryPart[],
-): SystemEventSummaryPart[] {
+function weaveAtMarker(template: string, marker: string, parts: SystemEventSummaryPart[]): SystemEventSummaryPart[] {
   const idx = template.indexOf(marker)
   if (idx < 0) return textPart(template)
   const before = template.slice(0, idx)
