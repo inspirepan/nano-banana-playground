@@ -24,6 +24,7 @@ export type StackRowProps = {
   onToggleBatchImage?: (image: StackImageItem['image']) => void
   onLongPressBatchImage?: (image: StackImageItem['image']) => void
   compactHeader?: boolean
+  indexNumber?: number
   t: Translate
 }
 
@@ -142,6 +143,7 @@ export const StackRow = memo(function StackRow({
   onToggleBatchImage,
   onLongPressBatchImage,
   compactHeader = false,
+  indexNumber,
   t,
 }: StackRowProps) {
   const [exporting, setExporting] = useState(false)
@@ -219,16 +221,21 @@ export const StackRow = memo(function StackRow({
     <div className="group/stack w-full max-w-full min-w-0 overflow-hidden">
       <div className="w-full max-w-full min-w-0 px-3 py-2">
         <div className="mb-1 flex w-full min-w-0 flex-col gap-y-1 overflow-hidden">
-          {stack.title && (
+          {(stack.title || indexNumber !== undefined) && (
             <span
               className="block w-full min-w-0 truncate text-base font-medium leading-tight text-(--color-text-1) tracking-[-0.005em]"
               title={stack.title}
             >
+              {indexNumber !== undefined && (
+                <span className="mono mr-2 text-xs font-medium text-(--color-text-4) tabular-nums tracking-normal">
+                  #{String(indexNumber).padStart(2, '0')}
+                </span>
+              )}
               {stack.title}
             </span>
           )}
           <div className="flex w-full min-w-0 flex-wrap items-center gap-x-2 gap-y-1 leading-none">
-            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-(--color-text-3)">
+            <div className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-(--color-text-3)">
               <span className="shrink-0 tabular-nums">{formatTime(stack.updatedAt, t)}</span>
               <span className="meta-dot text-(--color-text-4)" aria-hidden />
               <span className="tabular-nums">{t('output.imageCount', { count: stack.images.length })}</span>
@@ -267,7 +274,7 @@ export const StackRow = memo(function StackRow({
             </div>
             {stack.images.length > 0 && (
               <div
-                className={`ml-auto flex shrink-0 items-center gap-1 transition-opacity duration-150 ${
+                className={`flex shrink-0 items-center gap-1 transition-opacity duration-150 ${
                   actionsPinned || compactHeader
                     ? 'opacity-100'
                     : 'opacity-100 md:pointer-events-none md:opacity-0 md:group-hover/stack:pointer-events-auto md:group-hover/stack:opacity-100 md:group-focus-within/stack:pointer-events-auto md:group-focus-within/stack:opacity-100'

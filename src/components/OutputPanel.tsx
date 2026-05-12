@@ -363,8 +363,8 @@ export const OutputPanel = memo(function OutputPanel({
 
       {stacks.length > 0 ? (
         <div className="space-y-[26px]">
-          <div className="space-y-4">
-            {stacks.map((stack) => {
+          <div className="space-y-3">
+            {stacks.map((stack, index) => {
               const isHighlighted = highlightStackId === stack.id
               return (
                 <div
@@ -396,6 +396,7 @@ export const OutputPanel = memo(function OutputPanel({
                     onToggleBatchImage={handleToggleBatchImage}
                     onLongPressBatchImage={handleLongPressBatchImage}
                     compactHeader={compactStackHeader}
+                    indexNumber={index + 1}
                     t={t}
                   />
                 </div>

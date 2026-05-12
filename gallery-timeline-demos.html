@@ -1,0 +1,1321 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gallery Timeline 方案</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+
+        --color-bg: #ffffff;
+        --color-bg-sunken: #f6f6f6;
+        --color-surface: #fafafa;
+        --color-surface-2: #f5f5f5;
+        --color-text-1: #1a1d22;
+        --color-text-2: #343a42;
+        --color-text-3: #5f6874;
+        --color-text-4: #7f8996;
+        --color-accent: oklch(0.42 0.115 258);
+        --color-accent-text: oklch(0.36 0.125 258);
+        --color-accent-wash: color-mix(in oklch, var(--color-accent) 10%, transparent);
+        --color-accent-wash-2: color-mix(in oklch, var(--color-accent) 17%, transparent);
+
+        --ring-edge: rgba(32, 35, 40, 0.078);
+        --ring-edge-elevated: rgba(32, 35, 40, 0.1);
+        --ring-edge-strong: rgba(32, 35, 40, 0.14);
+        --ring-edge-soft: rgba(32, 35, 40, 0.048);
+
+        --shadow-lift: 0 12px 28px -20px rgba(32, 35, 40, 0.2), 0 1px 2px rgba(32, 35, 40, 0.045);
+
+        --radius-xs: 4px;
+        --radius-sm: 6px;
+        --radius-md: 8px;
+        --radius-lg: 10px;
+
+        --font-sans: 'Inter', 'PingFang SC', 'Hiragino Sans GB', system-ui, sans-serif;
+        --font-mono: 'Geist Mono', 'JetBrains Mono', ui-monospace, Menlo, monospace;
+      }
+
+      .dark {
+        --color-bg: #0d0e10;
+        --color-bg-sunken: #08090b;
+        --color-surface: #17191d;
+        --color-surface-2: #1e2127;
+        --color-text-1: #e6e8ec;
+        --color-text-2: #c3c8d0;
+        --color-text-3: #9097a3;
+        --color-text-4: #666d78;
+        --color-accent: oklch(0.945 0.231 122);
+        --color-accent-text: oklch(0.9 0.2 122);
+        --color-accent-wash: color-mix(in oklch, var(--color-accent) 18%, transparent);
+        --color-accent-wash-2: color-mix(in oklch, var(--color-accent) 28%, transparent);
+
+        --ring-edge: rgba(255, 255, 255, 0.07);
+        --ring-edge-elevated: rgba(255, 255, 255, 0.094);
+        --ring-edge-strong: rgba(255, 255, 255, 0.142);
+        --ring-edge-soft: rgba(255, 255, 255, 0.05);
+
+        --shadow-lift: inset 0 1px 0 rgba(255, 255, 255, 0.055), 0 1px 0 rgba(0, 0, 0, 0.32);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: var(--color-bg-sunken);
+        color: var(--color-text-1);
+        font-family: var(--font-sans);
+        font-size: 13px;
+        line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
+        font-feature-settings: 'kern', 'liga', 'calt', 'case';
+      }
+
+      .page {
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 48px 32px 96px;
+      }
+
+      .page-header {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 40px;
+      }
+
+      .page-title {
+        font-size: 22px;
+        font-weight: 550;
+        letter-spacing: -0.015em;
+        text-wrap: balance;
+        margin: 0 0 6px;
+      }
+      .page-subtitle {
+        font-size: 13px;
+        color: var(--color-text-3);
+        margin: 0;
+      }
+
+      .theme-toggle {
+        font-family: var(--font-sans);
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--color-text-2);
+        background: var(--color-surface);
+        padding: 6px 12px;
+        border-radius: var(--radius-sm);
+        box-shadow: inset 0 0 0 1px var(--ring-edge);
+        cursor: pointer;
+        border: 0;
+      }
+      .theme-toggle:hover {
+        box-shadow: inset 0 0 0 1px var(--ring-edge-strong);
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 28px;
+      }
+      @media (max-width: 1100px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .demo {
+        background: var(--color-bg);
+        border-radius: var(--radius-lg);
+        box-shadow: inset 0 0 0 1px var(--ring-edge), var(--shadow-lift);
+        overflow: hidden;
+      }
+      .demo-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 18px 22px 14px;
+        box-shadow: inset 0 -1px 0 var(--ring-edge-soft);
+      }
+      .demo-title {
+        font-size: 15px;
+        font-weight: 550;
+        letter-spacing: -0.012em;
+        margin: 0;
+      }
+      .demo-tag {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        font-weight: 500;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--color-text-4);
+      }
+      .demo-desc {
+        font-size: 12.5px;
+        color: var(--color-text-3);
+        padding: 0 22px 14px;
+        margin: 0;
+        text-wrap: pretty;
+        max-width: 56ch;
+      }
+      .demo-body {
+        padding: 8px 22px 26px;
+        background: var(--color-bg);
+      }
+
+      .label {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        font-weight: 500;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--color-text-4);
+      }
+      .mono {
+        font-family: var(--font-mono);
+        font-feature-settings: 'tnum', 'zero';
+      }
+
+      /* ===== shared thumb strip ===== */
+      .thumbs {
+        display: flex;
+        gap: 6px;
+      }
+      .thumb {
+        width: 56px;
+        height: 56px;
+        border-radius: var(--radius-sm);
+        box-shadow: inset 0 0 0 1px var(--ring-edge);
+        background: linear-gradient(135deg, var(--color-surface-2), var(--color-surface));
+        position: relative;
+        overflow: hidden;
+      }
+      .thumb::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background-image: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.4), transparent 55%),
+          radial-gradient(circle at 70% 70%, rgba(0, 0, 0, 0.15), transparent 55%);
+      }
+      .thumb.t-1 {
+        background: linear-gradient(135deg, #6b7c93, #2b3441);
+      }
+      .thumb.t-2 {
+        background: linear-gradient(135deg, #c2926a, #6b4528);
+      }
+      .thumb.t-3 {
+        background: linear-gradient(135deg, #4a6b5c, #1e3328);
+      }
+      .thumb.t-4 {
+        background: linear-gradient(135deg, #8a6ba8, #3c2b56);
+      }
+      .thumb.t-5 {
+        background: linear-gradient(135deg, #b0656b, #5a2a30);
+      }
+      .thumb.t-6 {
+        background: linear-gradient(135deg, #6a8aa8, #2a3e56);
+      }
+      .thumb.t-7 {
+        background: linear-gradient(135deg, #a89668, #4a3e1e);
+      }
+      .thumb.t-8 {
+        background: linear-gradient(135deg, #828893, #383d45);
+      }
+
+      /* small thumb variant for log row */
+      .thumb-sm {
+        width: 44px;
+        height: 44px;
+      }
+
+      /* ============================================================ */
+      /* A. 左侧轨道 + 节点                                            */
+      /* ============================================================ */
+      .timeline-a {
+        position: relative;
+      }
+      .timeline-a::before {
+        content: '';
+        position: absolute;
+        left: 14px;
+        top: 8px;
+        bottom: 8px;
+        width: 1px;
+        background: linear-gradient(to bottom, transparent, var(--ring-edge-strong) 12%, var(--ring-edge-strong) 88%, transparent);
+      }
+      .ta-row {
+        position: relative;
+        padding: 14px 0 14px 40px;
+      }
+      .ta-row + .ta-row {
+        box-shadow: inset 0 1px 0 var(--ring-edge-soft);
+      }
+      .ta-node {
+        position: absolute;
+        left: 8px;
+        top: 20px;
+        width: 13px;
+        height: 13px;
+        border-radius: 50%;
+        background: var(--color-bg);
+        box-shadow: inset 0 0 0 1px var(--ring-edge-strong);
+      }
+      .ta-node::after {
+        content: '';
+        position: absolute;
+        inset: 3px;
+        border-radius: 50%;
+        background: var(--color-text-4);
+      }
+      .ta-row.accent .ta-node::after {
+        background: var(--color-accent);
+      }
+      .ta-head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 4px;
+      }
+      .ta-model {
+        font-size: 12.5px;
+        font-weight: 550;
+        color: var(--color-text-2);
+      }
+      .ta-meta {
+        font-size: 11.5px;
+        color: var(--color-text-4);
+      }
+      .ta-meta .dot {
+        margin: 0 5px;
+        opacity: 0.5;
+      }
+      .ta-title {
+        font-size: 13.5px;
+        color: var(--color-text-1);
+        margin: 0 0 10px;
+        max-width: 56ch;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      /* ============================================================ */
+      /* B. Sticky 日期分组                                            */
+      /* ============================================================ */
+      .tb-group + .tb-group {
+        margin-top: 22px;
+      }
+      .tb-day {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 6px 0 10px;
+        position: sticky;
+        top: 0;
+        background: linear-gradient(to bottom, var(--color-bg) 70%, transparent);
+        z-index: 1;
+      }
+      .tb-day .label {
+        color: var(--color-text-3);
+      }
+      .tb-day .count {
+        font-size: 11.5px;
+        color: var(--color-text-4);
+        font-variant-numeric: tabular-nums;
+      }
+      .tb-day .rule {
+        flex: 1;
+        height: 1px;
+        background: var(--ring-edge-soft);
+      }
+      .tb-card {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 12px 14px;
+        border-radius: var(--radius-md);
+        box-shadow: inset 0 0 0 1px var(--ring-edge-soft);
+        margin-bottom: 8px;
+        background: var(--color-bg);
+      }
+      .tb-card:hover {
+        box-shadow: inset 0 0 0 1px var(--ring-edge);
+        background: var(--color-surface);
+      }
+      .tb-card .meta {
+        flex: 1;
+        min-width: 0;
+      }
+      .tb-card .meta-top {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        margin-bottom: 2px;
+      }
+      .tb-card .time {
+        font-family: var(--font-mono);
+        font-size: 11.5px;
+        color: var(--color-text-4);
+        font-variant-numeric: tabular-nums;
+      }
+      .tb-card .model {
+        font-size: 12.5px;
+        font-weight: 550;
+        color: var(--color-text-2);
+      }
+      .tb-card .title {
+        font-size: 13px;
+        color: var(--color-text-2);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .tb-card .count-chip {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        font-variant-numeric: tabular-nums;
+        color: var(--color-text-3);
+        padding: 3px 7px;
+        border-radius: var(--radius-xs);
+        box-shadow: inset 0 0 0 1px var(--ring-edge-soft);
+        background: var(--color-surface);
+      }
+
+      /* ============================================================ */
+      /* C. 左 mono 时间戳（log 风格）                                  */
+      /* ============================================================ */
+      .tc-row {
+        display: grid;
+        grid-template-columns: 64px 1fr;
+        gap: 18px;
+        padding: 12px 0;
+        align-items: start;
+      }
+      .tc-row + .tc-row {
+        box-shadow: inset 0 1px 0 var(--ring-edge-soft);
+      }
+      .tc-time {
+        font-family: var(--font-mono);
+        font-size: 12px;
+        font-variant-numeric: tabular-nums;
+        color: var(--color-text-3);
+        padding-top: 6px;
+        text-align: right;
+      }
+      .tc-time .ago {
+        display: block;
+        font-size: 10.5px;
+        color: var(--color-text-4);
+        margin-top: 2px;
+      }
+      .tc-content .head {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        margin-bottom: 8px;
+      }
+      .tc-content .model {
+        font-size: 12.5px;
+        font-weight: 550;
+        color: var(--color-text-2);
+      }
+      .tc-content .title {
+        font-size: 12.5px;
+        color: var(--color-text-3);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 48ch;
+      }
+      .tc-day-divider {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 14px 0 6px;
+      }
+      .tc-day-divider .label {
+        color: var(--color-text-3);
+      }
+      .tc-day-divider .rule {
+        flex: 1;
+        height: 1px;
+        background: var(--ring-edge-soft);
+      }
+
+      /* ============================================================ */
+      /* D. 卡片左色条 + 头部 inline meta                              */
+      /* ============================================================ */
+      .td-card {
+        position: relative;
+        padding: 14px 16px 14px 20px;
+        border-radius: var(--radius-md);
+        box-shadow: inset 0 0 0 1px var(--ring-edge);
+        margin-bottom: 12px;
+        background: var(--color-bg);
+        overflow: hidden;
+      }
+      .td-card::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 8px;
+        bottom: 8px;
+        width: 2px;
+        border-radius: 2px;
+        background: color-mix(in srgb, var(--color-text-3) 40%, transparent);
+      }
+      .td-card.accent::before {
+        background: var(--color-accent);
+      }
+      .td-card .head {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        margin-bottom: 4px;
+      }
+      .td-card .model {
+        font-size: 12.5px;
+        font-weight: 550;
+        color: var(--color-text-2);
+      }
+      .td-card .dot {
+        color: var(--color-text-4);
+        opacity: 0.6;
+      }
+      .td-card .ago {
+        font-size: 11.5px;
+        color: var(--color-text-4);
+      }
+      .td-card .exact {
+        font-family: var(--font-mono);
+        font-size: 10.5px;
+        font-variant-numeric: tabular-nums;
+        color: var(--color-text-4);
+        margin-left: auto;
+        opacity: 0.7;
+      }
+      .td-card .title {
+        font-size: 13.5px;
+        color: var(--color-text-1);
+        margin: 0 0 12px;
+        max-width: 56ch;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      /* ============================================================ */
+      /* E. 跨日 hairline + 同日大时间戳 header                         */
+      /* ============================================================ */
+      .te-stack {
+        padding: 14px 0 18px;
+      }
+      .te-head {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+      .te-time {
+        font-family: var(--font-mono);
+        font-size: 18px;
+        font-weight: 500;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: -0.01em;
+        color: var(--color-text-1);
+      }
+      .te-ago {
+        font-size: 11.5px;
+        color: var(--color-text-4);
+        font-variant-numeric: tabular-nums;
+      }
+      .te-meta {
+        font-size: 12px;
+        color: var(--color-text-3);
+        margin-left: auto;
+      }
+      .te-meta .dot {
+        margin: 0 6px;
+        color: var(--color-text-4);
+        opacity: 0.6;
+      }
+      .te-title {
+        font-size: 13.5px;
+        color: var(--color-text-2);
+        margin: -4px 0 12px;
+        max-width: 64ch;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .te-day-band {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 0 4px;
+        margin-top: 6px;
+      }
+      .te-day-band .label {
+        color: var(--color-text-3);
+      }
+      .te-day-band .date {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        color: var(--color-text-4);
+        font-variant-numeric: tabular-nums;
+      }
+      .te-day-band .rule {
+        flex: 1;
+        height: 1px;
+        background: var(--ring-edge-soft);
+      }
+
+      /* ============================================================ */
+      /* F. 间隔差 chip（commit 风格）                                  */
+      /* ============================================================ */
+      .tf-stack {
+        padding: 14px 0;
+      }
+      .tf-head {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        margin-bottom: 10px;
+      }
+      .tf-model {
+        font-size: 13px;
+        font-weight: 550;
+        color: var(--color-text-1);
+      }
+      .tf-ago {
+        font-size: 11.5px;
+        color: var(--color-text-4);
+        font-variant-numeric: tabular-nums;
+      }
+      .tf-time {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        color: var(--color-text-4);
+        font-variant-numeric: tabular-nums;
+        margin-left: auto;
+      }
+      .tf-title {
+        font-size: 13px;
+        color: var(--color-text-2);
+        margin: -6px 0 12px;
+        max-width: 64ch;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .tf-gap {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 4px 0;
+      }
+      .tf-gap .rule {
+        flex: 1;
+        height: 1px;
+        background: var(--ring-edge-soft);
+      }
+      .tf-gap .chip {
+        font-family: var(--font-mono);
+        font-size: 10.5px;
+        font-variant-numeric: tabular-nums;
+        color: var(--color-text-4);
+        padding: 2px 6px;
+        border-radius: var(--radius-xs);
+        background: var(--color-surface);
+        box-shadow: inset 0 0 0 1px var(--ring-edge-soft);
+      }
+      .tf-gap.day .chip {
+        color: var(--color-text-2);
+        background: var(--color-bg);
+        box-shadow: inset 0 0 0 1px var(--ring-edge);
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        font-weight: 500;
+      }
+
+      /* ============================================================ */
+      /* G. 模型色侧条（承载模型 + 新鲜度）                              */
+      /* ============================================================ */
+      .tg-stack {
+        position: relative;
+        padding: 12px 0 14px 14px;
+        margin-bottom: 10px;
+      }
+      .tg-stack::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 16px;
+        bottom: 12px;
+        width: 3px;
+        border-radius: 3px;
+      }
+      .tg-stack.m-nano::before {
+        background: oklch(0.7 0.16 75);
+      }
+      .tg-stack.m-imagen::before {
+        background: oklch(0.62 0.13 220);
+      }
+      .tg-stack.m-gpt::before {
+        background: oklch(0.62 0.14 160);
+      }
+      .tg-stack.m-flux::before {
+        background: oklch(0.58 0.14 330);
+      }
+      .tg-stack.aged-1::before {
+        opacity: 0.55;
+      }
+      .tg-stack.aged-2::before {
+        opacity: 0.32;
+      }
+      .tg-head {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        margin-bottom: 8px;
+      }
+      .tg-model {
+        font-size: 12.5px;
+        font-weight: 550;
+        color: var(--color-text-2);
+      }
+      .tg-ago {
+        font-size: 11.5px;
+        color: var(--color-text-4);
+        font-variant-numeric: tabular-nums;
+      }
+      .tg-time {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        color: var(--color-text-4);
+        font-variant-numeric: tabular-nums;
+        margin-left: auto;
+      }
+      .tg-title {
+        font-size: 13px;
+        color: var(--color-text-2);
+        margin: -4px 0 10px;
+        max-width: 64ch;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      /* ============================================================ */
+      /* H. 极简：仅在 stack 之间插 hairline + relative time            */
+      /* ============================================================ */
+      .th-stack {
+        padding: 12px 0 14px;
+      }
+      .th-head {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        margin-bottom: 8px;
+      }
+      .th-model {
+        font-size: 12.5px;
+        font-weight: 550;
+        color: var(--color-text-2);
+      }
+      .th-title {
+        font-size: 12.5px;
+        color: var(--color-text-3);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 48ch;
+      }
+      .th-spacer {
+        height: 14px;
+        position: relative;
+      }
+      .th-spacer::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 50%;
+        height: 1px;
+        background: var(--ring-edge-soft);
+      }
+      .th-spacer .meta {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-family: var(--font-mono);
+        font-size: 10.5px;
+        font-variant-numeric: tabular-nums;
+        color: var(--color-text-4);
+        background: var(--color-bg);
+        padding: 0 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <header class="page-header">
+        <div>
+          <h1 class="page-title">Gallery Timeline 方案</h1>
+          <p class="page-subtitle">
+            A/B/C/D 旧方向 + E/F/G/H 新方向（不占左侧轨道、让 timeline 元素承载真信息）。
+          </p>
+        </div>
+        <button class="theme-toggle" onclick="document.documentElement.classList.toggle('dark')">Toggle theme</button>
+      </header>
+
+      <div class="grid">
+        <!-- ============== A ============== -->
+        <section class="demo">
+          <div class="demo-head">
+            <h2 class="demo-title">A. 节点 + 连线</h2>
+            <span class="demo-tag">classical</span>
+          </div>
+          <p class="demo-desc">
+            经典 vertical timeline：左侧一条软线穿起每个 stack 的小节点，最新一项节点用主色。适合让用户感觉"批次是顺着时间发生的"，但占用 40px 左轨。
+          </p>
+          <div class="demo-body">
+            <div class="timeline-a">
+              <div class="ta-row accent">
+                <span class="ta-node"></span>
+                <div class="ta-head">
+                  <span class="ta-model">nano-banana</span>
+                  <span class="ta-meta"><span class="mono">2 min ago</span><span class="dot">·</span>4 images<span class="dot">·</span><span class="mono">1024×1024</span></span>
+                </div>
+                <p class="ta-title">a tiny brass robot sketching maps under a desk lamp</p>
+                <div class="thumbs">
+                  <div class="thumb t-1"></div>
+                  <div class="thumb t-2"></div>
+                  <div class="thumb t-3"></div>
+                  <div class="thumb t-4"></div>
+                </div>
+              </div>
+
+              <div class="ta-row">
+                <span class="ta-node"></span>
+                <div class="ta-head">
+                  <span class="ta-model">imagen-4</span>
+                  <span class="ta-meta"><span class="mono">14:32</span><span class="dot">·</span>2 images<span class="dot">·</span><span class="mono">2048×1152</span></span>
+                </div>
+                <p class="ta-title">linen-textured product shot of a ceramic teapot, soft window light</p>
+                <div class="thumbs">
+                  <div class="thumb t-5"></div>
+                  <div class="thumb t-6"></div>
+                </div>
+              </div>
+
+              <div class="ta-row">
+                <span class="ta-node"></span>
+                <div class="ta-head">
+                  <span class="ta-model">gpt-image-1</span>
+                  <span class="ta-meta"><span class="mono">11:08</span><span class="dot">·</span>3 images</span>
+                </div>
+                <p class="ta-title">storyboard frames: a courier cat delivering parcels across rooftops</p>
+                <div class="thumbs">
+                  <div class="thumb t-7"></div>
+                  <div class="thumb t-8"></div>
+                  <div class="thumb t-1"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============== B ============== -->
+        <section class="demo">
+          <div class="demo-head">
+            <h2 class="demo-title">B. Sticky 日期分组</h2>
+            <span class="demo-tag">linear inbox</span>
+          </div>
+          <p class="demo-desc">
+            按天分组，分组 label 是 uppercase eyebrow + 一条 hairline；滚动时 day header 吸顶。Linear / Things 那种"明确日历"的节奏，最适合长历史。
+          </p>
+          <div class="demo-body" style="max-height: 460px; overflow-y: auto">
+            <div class="tb-group">
+              <div class="tb-day">
+                <span class="label">Today</span>
+                <span class="count">· 3 batches · 9 images</span>
+                <span class="rule"></span>
+              </div>
+              <div class="tb-card">
+                <div class="thumb t-1"></div>
+                <div class="meta">
+                  <div class="meta-top">
+                    <span class="time">14:32</span>
+                    <span class="model">nano-banana</span>
+                  </div>
+                  <div class="title">a tiny brass robot sketching maps under a desk lamp</div>
+                </div>
+                <span class="count-chip">4</span>
+              </div>
+              <div class="tb-card">
+                <div class="thumb t-5"></div>
+                <div class="meta">
+                  <div class="meta-top">
+                    <span class="time">11:08</span>
+                    <span class="model">imagen-4</span>
+                  </div>
+                  <div class="title">linen-textured product shot of a ceramic teapot</div>
+                </div>
+                <span class="count-chip">2</span>
+              </div>
+              <div class="tb-card">
+                <div class="thumb t-7"></div>
+                <div class="meta">
+                  <div class="meta-top">
+                    <span class="time">09:42</span>
+                    <span class="model">gpt-image-1</span>
+                  </div>
+                  <div class="title">storyboard frames: a courier cat delivering parcels</div>
+                </div>
+                <span class="count-chip">3</span>
+              </div>
+            </div>
+
+            <div class="tb-group">
+              <div class="tb-day">
+                <span class="label">Yesterday</span>
+                <span class="count">· 2 batches · 5 images</span>
+                <span class="rule"></span>
+              </div>
+              <div class="tb-card">
+                <div class="thumb t-3"></div>
+                <div class="meta">
+                  <div class="meta-top">
+                    <span class="time">22:14</span>
+                    <span class="model">nano-banana</span>
+                  </div>
+                  <div class="title">isometric diorama of a tea garden in late autumn</div>
+                </div>
+                <span class="count-chip">3</span>
+              </div>
+              <div class="tb-card">
+                <div class="thumb t-2"></div>
+                <div class="meta">
+                  <div class="meta-top">
+                    <span class="time">17:51</span>
+                    <span class="model">flux-pro</span>
+                  </div>
+                  <div class="title">moody noir portrait, cigarette smoke catching a single rim light</div>
+                </div>
+                <span class="count-chip">2</span>
+              </div>
+            </div>
+
+            <div class="tb-group">
+              <div class="tb-day">
+                <span class="label">May 09</span>
+                <span class="count">· 1 batch · 4 images</span>
+                <span class="rule"></span>
+              </div>
+              <div class="tb-card">
+                <div class="thumb t-6"></div>
+                <div class="meta">
+                  <div class="meta-top">
+                    <span class="time">19:03</span>
+                    <span class="model">nano-banana</span>
+                  </div>
+                  <div class="title">retro travel poster for a fictional coastal town</div>
+                </div>
+                <span class="count-chip">4</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============== C ============== -->
+        <section class="demo">
+          <div class="demo-head">
+            <h2 class="demo-title">C. 左侧 mono 时间戳</h2>
+            <span class="demo-tag">log / journal</span>
+          </div>
+          <p class="demo-desc">
+            像 git log / Things journal：左固定列 mono 时间，右侧 stack 内容。没有节点也没有连线，靠对齐表达 timeline，最节省视觉成本；跨日插入一条 hairline + label。
+          </p>
+          <div class="demo-body">
+            <div>
+              <div class="tc-row">
+                <div class="tc-time">14:32<span class="ago">2m</span></div>
+                <div class="tc-content">
+                  <div class="head">
+                    <span class="model">nano-banana</span>
+                    <span class="title">a tiny brass robot sketching maps under a desk lamp</span>
+                  </div>
+                  <div class="thumbs">
+                    <div class="thumb thumb-sm t-1"></div>
+                    <div class="thumb thumb-sm t-2"></div>
+                    <div class="thumb thumb-sm t-3"></div>
+                    <div class="thumb thumb-sm t-4"></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="tc-row">
+                <div class="tc-time">11:08<span class="ago">3h</span></div>
+                <div class="tc-content">
+                  <div class="head">
+                    <span class="model">imagen-4</span>
+                    <span class="title">linen-textured product shot of a ceramic teapot</span>
+                  </div>
+                  <div class="thumbs">
+                    <div class="thumb thumb-sm t-5"></div>
+                    <div class="thumb thumb-sm t-6"></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="tc-day-divider">
+                <span class="label">Yesterday</span>
+                <span class="rule"></span>
+              </div>
+
+              <div class="tc-row">
+                <div class="tc-time">22:14<span class="ago">1d</span></div>
+                <div class="tc-content">
+                  <div class="head">
+                    <span class="model">nano-banana</span>
+                    <span class="title">isometric diorama of a tea garden in late autumn</span>
+                  </div>
+                  <div class="thumbs">
+                    <div class="thumb thumb-sm t-3"></div>
+                    <div class="thumb thumb-sm t-7"></div>
+                    <div class="thumb thumb-sm t-8"></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="tc-row">
+                <div class="tc-time">17:51<span class="ago">1d</span></div>
+                <div class="tc-content">
+                  <div class="head">
+                    <span class="model">flux-pro</span>
+                    <span class="title">moody noir portrait, cigarette smoke catching a rim light</span>
+                  </div>
+                  <div class="thumbs">
+                    <div class="thumb thumb-sm t-2"></div>
+                    <div class="thumb thumb-sm t-5"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============== D ============== -->
+        <section class="demo">
+          <div class="demo-head">
+            <h2 class="demo-title">D. 卡片色条 + inline meta</h2>
+            <span class="demo-tag">notion subtle</span>
+          </div>
+          <p class="demo-desc">
+            最贴近你现在的 StackRow，改动最小：在卡片左缘加一条 2px 色条作为时间锚点（最新批次用 accent），头部把模型名 / 相对时间 / 绝对时间合并到一行。没有大轨道、不分组。
+          </p>
+          <div class="demo-body">
+            <div class="td-card accent">
+              <div class="head">
+                <span class="model">nano-banana</span>
+                <span class="dot">·</span>
+                <span class="ago">2 min ago</span>
+                <span class="exact mono">14:32</span>
+              </div>
+              <p class="title">a tiny brass robot sketching maps under a desk lamp</p>
+              <div class="thumbs">
+                <div class="thumb t-1"></div>
+                <div class="thumb t-2"></div>
+                <div class="thumb t-3"></div>
+                <div class="thumb t-4"></div>
+              </div>
+            </div>
+
+            <div class="td-card">
+              <div class="head">
+                <span class="model">imagen-4</span>
+                <span class="dot">·</span>
+                <span class="ago">3 hours ago</span>
+                <span class="exact mono">11:08</span>
+              </div>
+              <p class="title">linen-textured product shot of a ceramic teapot, soft window light</p>
+              <div class="thumbs">
+                <div class="thumb t-5"></div>
+                <div class="thumb t-6"></div>
+              </div>
+            </div>
+
+            <div class="td-card">
+              <div class="head">
+                <span class="model">gpt-image-1</span>
+                <span class="dot">·</span>
+                <span class="ago">Yesterday</span>
+                <span class="exact mono">22:14</span>
+              </div>
+              <p class="title">isometric diorama of a tea garden in late autumn</p>
+              <div class="thumbs">
+                <div class="thumb t-3"></div>
+                <div class="thumb t-7"></div>
+                <div class="thumb t-8"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============== E ============== -->
+        <section class="demo">
+          <div class="demo-head">
+            <h2 class="demo-title">E. 大 mono 时间 + 跨日 hairline</h2>
+            <span class="demo-tag">terminal log</span>
+          </div>
+          <p class="demo-desc">
+            把 header 里的小字时间换成 18px mono 大时间戳，作为视觉锚；同日内 stack 之间无任何分隔，跨日时插一条 hairline + 日期 label。不占左侧任何宽度，时间承载"现在看的是哪个时刻"。
+          </p>
+          <div class="demo-body">
+            <div class="te-stack">
+              <div class="te-head">
+                <span class="te-time">14:32</span>
+                <span class="te-ago">2 min ago</span>
+                <span class="te-meta">nano-banana<span class="dot">·</span>4 images<span class="dot">·</span><span class="mono">1024×1024</span></span>
+              </div>
+              <p class="te-title">a tiny brass robot sketching maps under a desk lamp</p>
+              <div class="thumbs">
+                <div class="thumb t-1"></div>
+                <div class="thumb t-2"></div>
+                <div class="thumb t-3"></div>
+                <div class="thumb t-4"></div>
+              </div>
+            </div>
+
+            <div class="te-stack">
+              <div class="te-head">
+                <span class="te-time">11:08</span>
+                <span class="te-ago">3h ago</span>
+                <span class="te-meta">imagen-4<span class="dot">·</span>2 images<span class="dot">·</span><span class="mono">2048×1152</span></span>
+              </div>
+              <p class="te-title">linen-textured product shot of a ceramic teapot</p>
+              <div class="thumbs">
+                <div class="thumb t-5"></div>
+                <div class="thumb t-6"></div>
+              </div>
+            </div>
+
+            <div class="te-day-band">
+              <span class="label">Yesterday</span>
+              <span class="date">May 11</span>
+              <span class="rule"></span>
+            </div>
+
+            <div class="te-stack">
+              <div class="te-head">
+                <span class="te-time">22:14</span>
+                <span class="te-ago">1d ago</span>
+                <span class="te-meta">nano-banana<span class="dot">·</span>3 images</span>
+              </div>
+              <p class="te-title">isometric diorama of a tea garden in late autumn</p>
+              <div class="thumbs">
+                <div class="thumb t-3"></div>
+                <div class="thumb t-7"></div>
+                <div class="thumb t-8"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============== F ============== -->
+        <section class="demo">
+          <div class="demo-head">
+            <h2 class="demo-title">F. 间隔差 chip（commit 风格）</h2>
+            <span class="demo-tag">git log</span>
+          </div>
+          <p class="demo-desc">
+            stack 之间插入一条 hairline，中间夹一个 mono 小 chip 标 "+ 3h 24m"——你能直接读出"上一次距离这次隔了多久"。跨日时 chip 升级成日期 band。零左侧占用，分隔本身就是 timeline。
+          </p>
+          <div class="demo-body">
+            <div class="tf-stack">
+              <div class="tf-head">
+                <span class="tf-model">nano-banana</span>
+                <span class="tf-ago">2 min ago</span>
+                <span class="tf-time">14:32</span>
+              </div>
+              <p class="tf-title">a tiny brass robot sketching maps under a desk lamp</p>
+              <div class="thumbs">
+                <div class="thumb t-1"></div>
+                <div class="thumb t-2"></div>
+                <div class="thumb t-3"></div>
+                <div class="thumb t-4"></div>
+              </div>
+            </div>
+
+            <div class="tf-gap">
+              <span class="rule"></span>
+              <span class="chip">+ 3h 24m</span>
+              <span class="rule"></span>
+            </div>
+
+            <div class="tf-stack">
+              <div class="tf-head">
+                <span class="tf-model">imagen-4</span>
+                <span class="tf-ago">3h ago</span>
+                <span class="tf-time">11:08</span>
+              </div>
+              <p class="tf-title">linen-textured product shot of a ceramic teapot</p>
+              <div class="thumbs">
+                <div class="thumb t-5"></div>
+                <div class="thumb t-6"></div>
+              </div>
+            </div>
+
+            <div class="tf-gap day">
+              <span class="rule"></span>
+              <span class="chip">YESTERDAY · MAY 11</span>
+              <span class="rule"></span>
+            </div>
+
+            <div class="tf-stack">
+              <div class="tf-head">
+                <span class="tf-model">nano-banana</span>
+                <span class="tf-ago">22:14</span>
+                <span class="tf-time">May 11</span>
+              </div>
+              <p class="tf-title">isometric diorama of a tea garden in late autumn</p>
+              <div class="thumbs">
+                <div class="thumb t-3"></div>
+                <div class="thumb t-7"></div>
+                <div class="thumb t-8"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============== G ============== -->
+        <section class="demo">
+          <div class="demo-head">
+            <h2 class="demo-title">G. 模型色侧条（承载新鲜度 + 模型）</h2>
+            <span class="demo-tag">linear status</span>
+          </div>
+          <p class="demo-desc">
+            内嵌 3px 色条贴在卡片内左缘——色相 = 哪个模型，透明度 = 距今多新（今天 100% / 昨天 55% / 更久 32%）。一眼可读"批次属于哪个模型 + 大致新旧"，且不占任何额外宽度。
+          </p>
+          <div class="demo-body">
+            <div class="tg-stack m-nano">
+              <div class="tg-head">
+                <span class="tg-model">nano-banana</span>
+                <span class="tg-ago">2 min ago</span>
+                <span class="tg-time">14:32</span>
+              </div>
+              <p class="tg-title">a tiny brass robot sketching maps under a desk lamp</p>
+              <div class="thumbs">
+                <div class="thumb t-1"></div>
+                <div class="thumb t-2"></div>
+                <div class="thumb t-3"></div>
+                <div class="thumb t-4"></div>
+              </div>
+            </div>
+
+            <div class="tg-stack m-imagen">
+              <div class="tg-head">
+                <span class="tg-model">imagen-4</span>
+                <span class="tg-ago">3h ago</span>
+                <span class="tg-time">11:08</span>
+              </div>
+              <p class="tg-title">linen-textured product shot of a ceramic teapot</p>
+              <div class="thumbs">
+                <div class="thumb t-5"></div>
+                <div class="thumb t-6"></div>
+              </div>
+            </div>
+
+            <div class="tg-stack m-nano aged-1">
+              <div class="tg-head">
+                <span class="tg-model">nano-banana</span>
+                <span class="tg-ago">Yesterday</span>
+                <span class="tg-time">22:14</span>
+              </div>
+              <p class="tg-title">isometric diorama of a tea garden in late autumn</p>
+              <div class="thumbs">
+                <div class="thumb t-3"></div>
+                <div class="thumb t-7"></div>
+                <div class="thumb t-8"></div>
+              </div>
+            </div>
+
+            <div class="tg-stack m-flux aged-2">
+              <div class="tg-head">
+                <span class="tg-model">flux-pro</span>
+                <span class="tg-ago">May 09</span>
+                <span class="tg-time">19:03</span>
+              </div>
+              <p class="tg-title">retro travel poster for a fictional coastal town</p>
+              <div class="thumbs">
+                <div class="thumb t-6"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============== H ============== -->
+        <section class="demo">
+          <div class="demo-head">
+            <h2 class="demo-title">H. 极简：仅 hairline 分隔 + 居中相对时间</h2>
+            <span class="demo-tag">whisper</span>
+          </div>
+          <p class="demo-desc">
+            最克制的方案：stack 之间一条 hairline，居中一个 mono "3h" / "1d"，像 iMessage 时间分隔。stack 本身完全保持你现在的样子，零结构变更，只是把"间隔"语义化。
+          </p>
+          <div class="demo-body">
+            <div class="th-stack">
+              <div class="th-head">
+                <span class="th-model">nano-banana</span>
+                <span class="th-title">a tiny brass robot sketching maps under a desk lamp</span>
+              </div>
+              <div class="thumbs">
+                <div class="thumb t-1"></div>
+                <div class="thumb t-2"></div>
+                <div class="thumb t-3"></div>
+                <div class="thumb t-4"></div>
+              </div>
+            </div>
+
+            <div class="th-spacer"><span class="meta">3h</span></div>
+
+            <div class="th-stack">
+              <div class="th-head">
+                <span class="th-model">imagen-4</span>
+                <span class="th-title">linen-textured product shot of a ceramic teapot</span>
+              </div>
+              <div class="thumbs">
+                <div class="thumb t-5"></div>
+                <div class="thumb t-6"></div>
+              </div>
+            </div>
+
+            <div class="th-spacer"><span class="meta">1d</span></div>
+
+            <div class="th-stack">
+              <div class="th-head">
+                <span class="th-model">nano-banana</span>
+                <span class="th-title">isometric diorama of a tea garden in late autumn</span>
+              </div>
+              <div class="thumbs">
+                <div class="thumb t-3"></div>
+                <div class="thumb t-7"></div>
+                <div class="thumb t-8"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </body>
+</html>
