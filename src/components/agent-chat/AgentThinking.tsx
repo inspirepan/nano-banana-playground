@@ -28,11 +28,13 @@ export function AgentThinking({
   isStreaming,
   hasTrailingContent,
   hasInlineTrailingContent = hasTrailingContent,
+  onAutoCollapseReserve,
 }: {
   thinking: string
   isStreaming: boolean
   hasTrailingContent: boolean
   hasInlineTrailingContent?: boolean
+  onAutoCollapseReserve?: (height: number) => boolean
 }) {
   const { t } = useI18n()
   const initialOpen = isStreaming && !hasTrailingContent
@@ -44,6 +46,7 @@ export function AgentThinking({
   const thinkingOpenRef = useRef(thinkingOpen)
   thinkingOpenRef.current = thinkingOpen
   const pendingScrollAdjustRef = useRef<{ scrollEl: HTMLElement; delta: number } | null>(null)
+  const collapsePanelRef = useRef<HTMLDivElement>(null)
 
   useExternalSync(() => {
     if (isStreaming) {
@@ -70,7 +73,8 @@ export function AgentThinking({
     }
     if (!thinkingOpenRef.current) return
 
-    const el = contentRef.current
+    const reserved = onAutoCollapseReserve?.(collapsePanelRef.current?.getBoundingClientRect().height ?? 0) ?? false
+    const el = reserved ? null : contentRef.current
     if (el) {
       const scrollEl = findScrollParent(el)
       if (scrollEl) {
@@ -87,7 +91,7 @@ export function AgentThinking({
     }
     setInstantCollapse(true)
     setThinkingOpen(false)
-  }, [isStreaming, hasTrailingContent])
+  }, [isStreaming, hasTrailingContent, onAutoCollapseReserve])
 
   useLayoutEffect(() => {
     if (thinkingOpen || !instantCollapse) return
@@ -126,6 +130,7 @@ export function AgentThinking({
         />
       </button>
       <div
+        ref={collapsePanelRef}
         className="grid motion-reduce:!transition-none"
         style={{
           gridTemplateRows: thinkingOpen ? '1fr' : '0fr',

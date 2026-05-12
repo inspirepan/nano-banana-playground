@@ -4,7 +4,6 @@ import { flushSync } from 'react-dom'
 
 import {
   agentMessageError,
-  agentMessageImages,
   agentMessageRole,
   agentMessageText,
   displayNameForLanguage,
@@ -37,7 +36,7 @@ import { isDrawingSkill } from './agent-chat/drawingSkills'
 import { MessageBubble } from './agent-chat/MessageBubble'
 import { ToolActivityCard } from './agent-chat/ToolActivityCard'
 import type { AgentChatMenu, AgentImageTaskFocusHandler } from './agent-chat/types'
-import { buildChatRenderItems, isImageFile, parseDraggedPlaygroundImage, type ChatRenderItem } from './agent-chat/utils'
+import { buildChatRenderItems, isImageFile, parseDraggedPlaygroundImage } from './agent-chat/utils'
 import { Icon } from './Icon'
 
 type Props = {
@@ -104,37 +103,21 @@ const QueuedMessageBubble = memo(function QueuedMessageBubble({ queued }: { queu
   return <MessageBubble message={queued.message} isStreaming={false} isQueued />
 })
 
-function isStickyUserMessage(message: AgentMessage): boolean {
-  if (agentMessageRole(message) !== 'user') return false
-  return stripSystemDirectives(agentMessageText(message)).trim() !== '' || agentMessageImages(message).length > 0
-}
-
-type MessageRenderItem = Extract<ChatRenderItem, { type: 'message' }>
-type ChatRenderSection = { key: string; stickyUserItem: MessageRenderItem | null; items: ChatRenderItem[] }
-
-const AUTO_FOLLOW_DETACH_DELTA = 2
+const AUTO_FOLLOW_DETACH_DISTANCE = 2
 const AUTO_FOLLOW_REJOIN_DISTANCE = 16
+const AUTO_FOLLOW_SCROLL_EPSILON = 0.5
 
 function getScrollBottomDistance(el: HTMLElement): number {
   return Math.max(0, el.scrollHeight - el.scrollTop - el.clientHeight)
 }
 
-function buildStickyUserSections(items: ChatRenderItem[]): ChatRenderSection[] {
-  const sections: ChatRenderSection[] = []
-  let current: ChatRenderSection = { key: 'intro', stickyUserItem: null, items: [] }
-
-  for (const item of items) {
-    const startsStickySection = item.type === 'message' && isStickyUserMessage(item.message)
-    if (startsStickySection) {
-      if (current.stickyUserItem || current.items.length > 0) sections.push(current)
-      current = { key: item.key, stickyUserItem: item, items: [] }
-      continue
-    }
-    current.items.push(item)
-  }
-
-  if (current.stickyUserItem || current.items.length > 0) sections.push(current)
-  return sections
+function getOuterHeight(el: HTMLElement): number {
+  const style = getComputedStyle(el)
+  return (
+    el.getBoundingClientRect().height +
+    Number.parseFloat(style.marginTop || '0') +
+    Number.parseFloat(style.marginBottom || '0')
+  )
 }
 
 export function AgentChatPanel({
@@ -186,16 +169,17 @@ export function AgentChatPanel({
   const scrollRef = useRef<HTMLDivElement>(null)
   const controlsRef = useRef<HTMLDivElement>(null)
   const composerRef = useRef<AgentChatComposerHandle>(null)
-  const userMessageRefs = useRef(new Map<string, HTMLDivElement>())
   const nearBottomRef = useRef(true)
   const lastScrollTopRef = useRef(0)
   const lastScrollHeightRef = useRef<number | null>(null)
   const bottomReserveHeightRef = useRef(0)
+  const runningIndicatorRef = useRef<HTMLDivElement>(null)
+  const runningIndicatorHeightRef = useRef(0)
+  const showRunningIndicatorRef = useRef(false)
   const [openMenu, setOpenMenu] = useState<AgentChatMenu>(null)
   const [nearBottom, setNearBottom] = useState(true)
   const [bottomReserveHeight, setBottomReserveHeightState] = useState(0)
   const [optimisticRunning, setOptimisticRunning] = useState(false)
-  const [stuckStickyUserMessageKey, setStuckStickyUserMessageKey] = useState<string | null>(null)
 
   const currentKeyStatus = keyStatuses[model.provider]
   const keyMissing = currentKeyStatus === 'empty'
@@ -222,10 +206,6 @@ export function AgentChatPanel({
     }
     return next
   }, [currentSessionId, currentSessionSidebarStatus, sessionStatuses])
-  const showStop = isAgentActivelyRunning && !hasComposerContent
-  const showRunningIndicator = isAgentActivelyRunning
-  const scrollButtonBusy = isAgentActivelyRunning || hasGeneratingImageTask
-  const stickyUserTopOffset = 12
   const visibleMessages = useMemo(
     () => (streamingMessage ? [...messages, streamingMessage] : messages),
     [messages, streamingMessage],
@@ -234,15 +214,16 @@ export function AgentChatPanel({
     () => buildChatRenderItems(visibleMessages, streamingMessage),
     [visibleMessages, streamingMessage],
   )
-  const renderSections = useMemo(() => buildStickyUserSections(renderItems), [renderItems])
-  const lastRenderSection = renderSections.at(-1)
-  const runningIndicatorSectionKey =
-    showRunningIndicator &&
-    queuedMessages.length === 0 &&
-    lastRenderSection?.stickyUserItem &&
-    lastRenderSection.items.length === 0
-      ? lastRenderSection.key
-      : null
+  const streamingAssistantHasVisibleText = renderItems.some(
+    (item) =>
+      item.type === 'message' &&
+      item.isStreaming &&
+      agentMessageRole(item.message) === 'assistant' &&
+      stripSystemDirectives(agentMessageText(item.message)).trim() !== '',
+  )
+  const showStop = isAgentActivelyRunning && !hasComposerContent
+  const showRunningIndicator = isAgentActivelyRunning && !streamingAssistantHasVisibleText
+  const scrollButtonBusy = isAgentActivelyRunning || hasGeneratingImageTask
   const titledAssistantMessages = useMemo(() => {
     const titled = new WeakSet<AgentMessage>()
     let nextVisibleAssistantStartsTurn = false
@@ -309,14 +290,16 @@ export function AgentChatPanel({
   const isEmpty = renderItems.length === 0 && queuedMessages.length === 0 && !showRunningIndicator
 
   const setNearBottomValue = useCallback((next: boolean) => {
+    if (nearBottomRef.current === next) return
     nearBottomRef.current = next
-    setNearBottom((prev) => (prev === next ? prev : next))
+    setNearBottom(next)
   }, [])
 
   const setBottomReserveHeight = useCallback((height: number) => {
     const next = Math.max(0, Math.ceil(height))
+    if (bottomReserveHeightRef.current === next) return
     bottomReserveHeightRef.current = next
-    setBottomReserveHeightState((prev) => (prev === next ? prev : next))
+    setBottomReserveHeightState(next)
   }, [])
 
   const handleOpenImageTaskImage = useCallback(
@@ -328,7 +311,7 @@ export function AgentChatPanel({
     [imageTaskByToolCallId, onFocusImageTask],
   )
 
-  const reserveThinkingCollapseSpace = useCallback(
+  const reserveBottomSpace = useCallback(
     (height: number): boolean => {
       const el = scrollRef.current
       if (!el || !nearBottomRef.current || height <= 0) return false
@@ -336,11 +319,15 @@ export function AgentChatPanel({
 
       const reserve = Math.min(Math.ceil(height), el.clientHeight)
       if (reserve <= 0) return false
-      setBottomReserveHeight(bottomReserveHeightRef.current + reserve)
+      const currentReserve = Math.min(bottomReserveHeightRef.current, el.clientHeight)
+      const nextReserve = Math.min(currentReserve + reserve, el.clientHeight)
+      if (nextReserve !== bottomReserveHeightRef.current) setBottomReserveHeight(nextReserve)
       return true
     },
     [setBottomReserveHeight],
   )
+
+  const reserveThinkingCollapseSpace = reserveBottomSpace
 
   const handleInsertText = useCallback(
     (text: string) => {
@@ -354,29 +341,6 @@ export function AgentChatPanel({
     [draft, onDraftChange],
   )
 
-  const scrollToUserMessage = useCallback((key: string) => {
-    const el = scrollRef.current
-    const node = userMessageRefs.current.get(key)
-    if (!el || !node) return
-    const target = el.scrollTop + node.getBoundingClientRect().top - el.getBoundingClientRect().top - 16
-    el.scrollTo({ top: target, behavior: 'smooth' })
-  }, [])
-
-  const updateStuckStickyUserMessage = useCallback(() => {
-    const el = scrollRef.current
-    if (!el) return
-    if (el.scrollTop <= 1) {
-      setStuckStickyUserMessageKey((prev) => (prev === null ? prev : null))
-      return
-    }
-    const threshold = el.getBoundingClientRect().top + stickyUserTopOffset + 1
-    let nextKey: string | null = null
-    for (const [key, node] of userMessageRefs.current) {
-      if (node.getBoundingClientRect().top <= threshold) nextKey = key
-    }
-    setStuckStickyUserMessageKey((prev) => (prev === nextKey ? prev : nextKey))
-  }, [stickyUserTopOffset])
-
   useExternalSync(() => {
     if (optimisticRunning && (isStreaming || error)) setOptimisticRunning(false)
   }, [error, isStreaming, optimisticRunning])
@@ -385,49 +349,93 @@ export function AgentChatPanel({
     const el = scrollRef.current
     if (!el) return
     const handle = () => {
-      const dist = el.scrollHeight - el.scrollTop - el.clientHeight
-      setNearBottom(dist <= 120)
-      updateStuckStickyUserMessage()
+      const scrollTop = el.scrollTop
+      const dist = getScrollBottomDistance(el)
+      const scrollingUp = scrollTop < lastScrollTopRef.current - AUTO_FOLLOW_SCROLL_EPSILON
+      lastScrollTopRef.current = scrollTop
+
+      if (scrollingUp && dist > AUTO_FOLLOW_DETACH_DISTANCE) {
+        setNearBottomValue(false)
+      } else if (dist <= AUTO_FOLLOW_REJOIN_DISTANCE) {
+        setNearBottomValue(true)
+      }
     }
+    lastScrollTopRef.current = el.scrollTop
     handle()
     el.addEventListener('scroll', handle, { passive: true })
     return () => el.removeEventListener('scroll', handle)
-  }, [updateStuckStickyUserMessage])
+  }, [setNearBottomValue])
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies(nearBottom): intentionally excluded during smooth scroll
   useLayoutEffect(() => {
-    updateStuckStickyUserMessage()
-    if (!nearBottom) return
+    setBottomReserveHeight(0)
+    lastScrollHeightRef.current = null
+    runningIndicatorHeightRef.current = 0
+    showRunningIndicatorRef.current = false
+    setNearBottomValue(true)
+  }, [currentSessionId, setBottomReserveHeight, setNearBottomValue])
+
+  useLayoutEffect(() => {
     const el = scrollRef.current
     if (!el) return
+
+    const wasShowingRunningIndicator = showRunningIndicatorRef.current
+    if (showRunningIndicator) {
+      const indicator = runningIndicatorRef.current
+      if (indicator) runningIndicatorHeightRef.current = getOuterHeight(indicator)
+    } else if (wasShowingRunningIndicator) {
+      const reserved = reserveBottomSpace(runningIndicatorHeightRef.current)
+      runningIndicatorHeightRef.current = 0
+      showRunningIndicatorRef.current = false
+      if (reserved) {
+        lastScrollHeightRef.current = null
+        return
+      }
+    }
+    showRunningIndicatorRef.current = showRunningIndicator
+
+    bottomReserveHeightRef.current = bottomReserveHeight
+    const previousScrollHeight = lastScrollHeightRef.current
+    const currentScrollHeight = el.scrollHeight
+    if (previousScrollHeight !== null) {
+      const heightDelta = currentScrollHeight - previousScrollHeight
+      if (heightDelta > 0 && bottomReserveHeight > 0) {
+        const consumed = Math.min(heightDelta, bottomReserveHeight)
+        setBottomReserveHeight(bottomReserveHeight - consumed)
+        lastScrollHeightRef.current = currentScrollHeight - consumed
+        return
+      }
+    }
+
+    lastScrollHeightRef.current = currentScrollHeight
+    if (!nearBottomRef.current) return
     el.scrollTop = el.scrollHeight
-    updateStuckStickyUserMessage()
-    // Note: nearBottom is intentionally excluded from deps — flipping it true
-    // mid-smooth-scroll would otherwise snap the animation to its end.
+    lastScrollTopRef.current = el.scrollTop
   }, [
+    bottomReserveHeight,
     currentSessionId,
     visibleMessages.length,
     queuedMessages.length,
     streamingMessage,
     showRunningIndicator,
-    renderSections,
-    updateStuckStickyUserMessage,
+    renderItems,
+    reserveBottomSpace,
+    setBottomReserveHeight,
   ])
 
   const scrollToBottom = useCallback(() => {
     const el = scrollRef.current
     if (!el) return
-    setNearBottom(true)
+    setNearBottomValue(true)
     el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' })
-  }, [])
+  }, [setNearBottomValue])
 
   const scrollToBottomAfterSend = useCallback(() => {
-    setNearBottom(true)
+    setNearBottomValue(true)
     requestAnimationFrame(() => {
       scrollToBottom()
       requestAnimationFrame(scrollToBottom)
     })
-  }, [scrollToBottom])
+  }, [scrollToBottom, setNearBottomValue])
 
   const handleNewSession = useCallback(() => {
     onNewSession()
@@ -482,8 +490,7 @@ export function AgentChatPanel({
   }
   const contentRightPaddingClass = 'px-[var(--panel-pad-x)]'
   const headerPaddingClass = wideLayout ? 'pb-0' : 'pb-3'
-  const scrollBodyClass = 'flex-1 overflow-y-auto overscroll-y-none pt-3 pb-8 md:[scrollbar-gutter:stable_both-edges]'
-  const stickyUserClass = 'sticky top-3'
+  const scrollBodyClass = 'flex-1 overflow-y-auto overscroll-y-none pt-14 pb-8 md:[scrollbar-gutter:stable_both-edges]'
   // `my-auto` inside a flex-column scroll container centers content when it
   // fits and collapses to 0 when content overflows, avoiding the phantom
   // scroll that `min-h-full` + scrollRef padding produces (min-height: 100%
@@ -607,7 +614,7 @@ export function AgentChatPanel({
         {!isEmpty ? (
           <div
             aria-hidden
-            className={`${contentRightPaddingClass} pointer-events-none absolute inset-x-0 top-0 z-[35] h-20 bg-[linear-gradient(to_bottom,var(--color-bg)_0%,color-mix(in_srgb,var(--color-bg)_84%,transparent)_54%,transparent_100%)]`}
+            className="pointer-events-none absolute inset-x-0 top-0 z-30 h-12 bg-[linear-gradient(to_bottom,var(--color-bg)_0%,color-mix(in_srgb,var(--color-bg)_78%,transparent)_46%,transparent_100%)]"
           />
         ) : null}
         <div
@@ -618,7 +625,10 @@ export function AgentChatPanel({
               : scrollBodyClass
           }`}
         >
-          <div className={contentLayoutClass}>
+          <div
+            className={contentLayoutClass}
+            style={!isEmpty && bottomReserveHeight > 0 ? { paddingBottom: bottomReserveHeight } : undefined}
+          >
             {isEmpty ? (
               <AgentChatEmptyState
                 drawingSkills={drawingSkills}
@@ -635,90 +645,43 @@ export function AgentChatPanel({
               />
             ) : (
               <>
-                {renderSections.map((section) => {
-                  const stickyUserItem = section.stickyUserItem
-                  const stickyUserIsStuck = Boolean(stickyUserItem && stuckStickyUserMessageKey === stickyUserItem.key)
-                  return (
-                    <div
-                      key={section.key}
-                      ref={(node) => {
-                        if (!stickyUserItem) return
-                        if (node) userMessageRefs.current.set(stickyUserItem.key, node)
-                        else userMessageRefs.current.delete(stickyUserItem.key)
-                      }}
-                      className="space-y-4 scroll-mt-4"
-                    >
-                      {stickyUserItem ? (
-                        <div
-                          className={`${stickyUserClass} z-40`}
-                          role={stickyUserIsStuck ? 'button' : undefined}
-                          tabIndex={stickyUserIsStuck ? 0 : undefined}
-                          title={t('agentChat.message.scrollToUserMessage')}
-                          aria-label={t('agentChat.message.scrollToUserMessage')}
-                          onClick={(event) => {
-                            if (!stickyUserIsStuck) return
-                            if (event.target instanceof Element && event.target.closest('button')) return
-                            scrollToUserMessage(stickyUserItem.key)
-                          }}
-                          onKeyDown={(event) => {
-                            if (!stickyUserIsStuck) return
-                            if (event.key !== 'Enter' && event.key !== ' ') return
-                            if (event.target instanceof Element && event.target.closest('button')) return
-                            event.preventDefault()
-                            scrollToUserMessage(stickyUserItem.key)
-                          }}
-                        >
-                          <div className="relative z-10">
-                            <MessageBubble
-                              message={stickyUserItem.message}
-                              isStreaming={stickyUserItem.isStreaming}
-                              assistantTitle={assistantTitleFor(stickyUserItem.message, stickyUserItem.isStreaming)}
-                              hideCopyAction={stickyUserIsStuck}
-                              onOpenImageTaskImage={handleOpenImageTaskImage}
-                            />
-                          </div>
-                        </div>
-                      ) : null}
-                      {section.items.map((item) =>
-                        item.type === 'message' ? (
-                          <MessageBubble
-                            key={item.key}
-                            message={item.message}
-                            isStreaming={item.isStreaming}
-                            assistantTitle={assistantTitleFor(item.message, item.isStreaming)}
-                            onOpenImageTaskImage={handleOpenImageTaskImage}
-                          />
-                        ) : (
-                          <ToolActivityCard
-                            key={item.key}
-                            calls={item.calls}
-                            results={item.results}
-                            imageTaskByToolCallId={imageTaskByToolCallId}
-                            stackItemByImageId={stackItemByImageId}
-                            stackItemNumberByImageId={stackItemNumberByImageId}
-                            pendingQuestionByToolCallId={pendingQuestionByToolCallId}
-                            isStreaming={item.isStreaming}
-                            autoApproveImageTasks={autoApproveImageTasks}
-                            onApproveImageTask={onApproveImageTask}
-                            onCancelImageTask={onCancelImageTask}
-                            onToggleAutoApproveImageTasks={onToggleAutoApproveImageTasks}
-                            onSubmitQuestionAnswers={onSubmitQuestionAnswers}
-                            onCancelQuestion={onCancelQuestion}
-                            onFocusImageTask={onFocusImageTask}
-                          />
-                        ),
-                      )}
-                      {runningIndicatorSectionKey === section.key ? (
-                        <AgentRunningIndicator label={t('agentChat.status.running')} />
-                      ) : null}
-                    </div>
-                  )
-                })}
+                {renderItems.map((item) =>
+                  item.type === 'message' ? (
+                    <MessageBubble
+                      key={item.key}
+                      message={item.message}
+                      isStreaming={item.isStreaming}
+                      assistantTitle={assistantTitleFor(item.message, item.isStreaming)}
+                      onOpenImageTaskImage={handleOpenImageTaskImage}
+                      onThinkingAutoCollapseReserve={reserveThinkingCollapseSpace}
+                    />
+                  ) : (
+                    <ToolActivityCard
+                      key={item.key}
+                      calls={item.calls}
+                      results={item.results}
+                      imageTaskByToolCallId={imageTaskByToolCallId}
+                      stackItemByImageId={stackItemByImageId}
+                      stackItemNumberByImageId={stackItemNumberByImageId}
+                      pendingQuestionByToolCallId={pendingQuestionByToolCallId}
+                      isStreaming={item.isStreaming}
+                      autoApproveImageTasks={autoApproveImageTasks}
+                      onApproveImageTask={onApproveImageTask}
+                      onCancelImageTask={onCancelImageTask}
+                      onToggleAutoApproveImageTasks={onToggleAutoApproveImageTasks}
+                      onSubmitQuestionAnswers={onSubmitQuestionAnswers}
+                      onCancelQuestion={onCancelQuestion}
+                      onFocusImageTask={onFocusImageTask}
+                    />
+                  ),
+                )}
                 {queuedMessages.map((queued) => (
                   <QueuedMessageBubble key={queued.id} queued={queued} />
                 ))}
-                {showRunningIndicator && runningIndicatorSectionKey === null ? (
-                  <AgentRunningIndicator label={t('agentChat.status.running')} />
+                {showRunningIndicator ? (
+                  <div ref={runningIndicatorRef}>
+                    <AgentRunningIndicator label={t('agentChat.status.running')} />
+                  </div>
                 ) : null}
               </>
             )}
