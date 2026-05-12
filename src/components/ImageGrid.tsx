@@ -87,9 +87,22 @@ function normalizeGridSpan(span: GridSpan, gridCols: number): GridSpan {
   }
 }
 
-function getCellSpan(props: Pick<GridCellProps, 'aspectRatio' | 'cols' | 'rows'>, gridCols: number): GridSpan {
+function getCellSpan(
+  props: Pick<GridCellProps, 'aspectRatio' | 'cols' | 'rows'>,
+  gridCols: number,
+  isMobile: boolean,
+): GridSpan {
   const baseSpan = props.aspectRatio ? getGridSpan(props.aspectRatio) : { cols: props.cols ?? 1, rows: props.rows ?? 1 }
-  return normalizeGridSpan(baseSpan, gridCols)
+  const span = normalizeGridSpan(baseSpan, gridCols)
+
+  if (isMobile && props.aspectRatio) {
+    const ratio = parseAspectRatio(props.aspectRatio)
+    if (ratio > 1.9) return { cols: gridCols, rows: 3 }
+    if (ratio > 1.55) return { cols: gridCols, rows: 4 }
+    if (ratio >= 1.15) return { cols: 3, rows: 2 }
+  }
+
+  return span
 }
 
 function packGridSpans(spans: GridSpan[], gridCols: number): GridPlacement[] {
@@ -119,12 +132,13 @@ function packGridSpans(spans: GridSpan[], gridCols: number): GridPlacement[] {
   })
 }
 
-type GridContext = { cols: number; layout: ImageGridLayout; justifiedRowHeight: number }
+type GridContext = { cols: number; layout: ImageGridLayout; justifiedRowHeight: number; isMobile: boolean }
 
 const GridColsContext = createContext<GridContext>({
   cols: DEFAULT_GRID_COLS,
   layout: 'mosaic',
   justifiedRowHeight: TARGET_CELL_WIDTH,
+  isMobile: false,
 })
 
 type ImageGridProps = {
@@ -144,22 +158,22 @@ export function ImageGrid({ children, layout = 'mosaic', maxRowHeight, justified
   const minCols = isMobile ? MIN_GRID_COLS_MOBILE : MIN_GRID_COLS_DESKTOP
   const targetJustifiedRowHeight = justifiedRowHeight ?? (isMobile ? 154 : 320)
   const contextValue = useMemo(
-    () => ({ cols: gridCols, layout, justifiedRowHeight: targetJustifiedRowHeight }),
-    [gridCols, layout, targetJustifiedRowHeight],
+    () => ({ cols: gridCols, layout, justifiedRowHeight: targetJustifiedRowHeight, isMobile }),
+    [gridCols, isMobile, layout, targetJustifiedRowHeight],
   )
   const packedChildren = useMemo(() => {
     if (layout === 'justified') return children
 
     const childArray = Children.toArray(children)
     const spans = childArray.map((child) =>
-      isValidElement<GridCellProps>(child) ? getCellSpan(child.props, gridCols) : { cols: 1, rows: 1 },
+      isValidElement<GridCellProps>(child) ? getCellSpan(child.props, gridCols, isMobile) : { cols: 1, rows: 1 },
     )
     const placements = packGridSpans(spans, gridCols)
 
     return childArray.map((child, index) =>
       isValidElement<GridCellProps>(child) ? cloneElement(child, { placement: placements[index] }) : child,
     )
-  }, [children, gridCols, layout])
+  }, [children, gridCols, isMobile, layout])
 
   useLayoutEffect(() => {
     if (layout === 'justified') return
@@ -216,7 +230,7 @@ type GridCellProps = {
 }
 
 export function GridCell({ children, aspectRatio, cols, rows, placement }: GridCellProps) {
-  const { cols: gridCols, layout, justifiedRowHeight } = useContext(GridColsContext)
+  const { cols: gridCols, layout, justifiedRowHeight, isMobile } = useContext(GridColsContext)
   const ratio = aspectRatio ? parseAspectRatio(aspectRatio) : cols && rows ? cols / rows : 1
 
   if (layout === 'justified') {
@@ -233,13 +247,13 @@ export function GridCell({ children, aspectRatio, cols, rows, placement }: GridC
     )
   }
 
-  const span = placement ?? getCellSpan({ aspectRatio, cols, rows }, gridCols)
+  const span = placement ?? getCellSpan({ aspectRatio, cols, rows }, gridCols, isMobile)
 
   return (
     <div
       style={{
-        gridColumn: placement ? `${placement.colStart} / span ${span.cols}` : `span ${span.cols}`,
-        gridRow: placement ? `${placement.rowStart} / span ${span.rows}` : `span ${span.rows}`,
+        gridColumn: placement ? `${placement.colStart} / ${placement.colStart + span.cols}` : `span ${span.cols}`,
+        gridRow: placement ? `${placement.rowStart} / ${placement.rowStart + span.rows}` : `span ${span.rows}`,
       }}
     >
       {children}
