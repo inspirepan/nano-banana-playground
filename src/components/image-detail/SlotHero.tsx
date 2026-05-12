@@ -59,26 +59,31 @@ export function SlotHero({
         job &&
         (slot.status === 'queued' || slot.status === 'running' || slot.status === 'retrying') &&
         (job.slots.length === 1 ? (
-          <button type="button" className="chip danger mt-2" onClick={() => onCancelSlot(slot.id)}>
+          <button type="button" className="media-action danger mt-2 px-2" onClick={() => onCancelSlot(slot.id)}>
             {t('common.cancel')}
           </button>
         ) : (
           <div className="mt-2 flex items-center gap-2">
-            <button type="button" className="chip danger" onClick={() => onCancelSlot(slot.id)}>
+            <button type="button" className="media-action danger px-2" onClick={() => onCancelSlot(slot.id)}>
               {t('imageDetail.queue.cancelCurrent')}
             </button>
-            <button type="button" className="chip ghost" onClick={() => onCancelJob(job.id)}>
+            <button type="button" className="media-action light px-2" onClick={() => onCancelJob(job.id)}>
               {t('imageDetail.queue.cancelAll')}
             </button>
           </div>
         ))}
       {slot && job && (slot.status === 'failed' || slot.status === 'canceled') && (
         <div className="mt-2 flex items-center gap-2">
-          <button type="button" className="chip" onClick={onRetry} title={t('imageDetail.action.retryOriginal')}>
-            <Icon name="refresh" size={12} strokeWidth={1.8} />
+          <button
+            type="button"
+            className="media-action light px-2"
+            onClick={onRetry}
+            title={t('imageDetail.action.retryOriginal')}
+          >
+            <Icon name="refresh" size={11} strokeWidth={1.8} />
             {t('common.retry')}
           </button>
-          <button type="button" className="chip ghost" onClick={() => onDismissJob(job.id)}>
+          <button type="button" className="media-action light px-2" onClick={() => onDismissJob(job.id)}>
             {t('imageDetail.action.closeTask')}
           </button>
         </div>

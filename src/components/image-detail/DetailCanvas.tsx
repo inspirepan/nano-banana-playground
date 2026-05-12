@@ -134,8 +134,7 @@ export function DetailCanvas({
           <button
             type="button"
             onClick={onCloseRefDetail}
-            className="absolute top-3 right-3 z-30 chip"
-            style={{ height: 26 }}
+            className="media-action light absolute top-3 right-3 z-30 px-2"
             title={t('imageDetail.action.exitCompare')}
             aria-label={t('imageDetail.action.exitCompare')}
           >
