@@ -98,8 +98,6 @@ export function AgentThinking({
           >
             <Streamdown
               parseIncompleteMarkdown={isStreaming}
-              isAnimating={isStreaming}
-              animated={{ animation: 'fadeIn', sep: 'word', duration: 220, stagger: 12 }}
               components={MARKDOWN_COMPONENTS}
             >
               {thinking.replace(/\n{3,}/g, '\n\n')}

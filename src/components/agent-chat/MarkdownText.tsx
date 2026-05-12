@@ -66,8 +66,6 @@ export function MarkdownText({ text, isStreaming }: { text: string; isStreaming?
     <div className="space-y-2.5 text-base leading-[1.62] text-(--color-text-2) [&_>_*]:my-0">
       <Streamdown
         parseIncompleteMarkdown={isStreaming ?? false}
-        isAnimating={isStreaming ?? false}
-        animated={{ animation: 'fadeIn', sep: 'word', duration: 220, stagger: 12 }}
         components={MARKDOWN_COMPONENTS}
       >
         {text}
