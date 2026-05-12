@@ -14,6 +14,8 @@ import type { AgentImageTaskFocusHandler } from './types'
 
 const PROMPT_BOX_COLLAPSED_LINE_COUNT = 3
 const ERROR_SUMMARY_MAX_LENGTH = 180
+const READY_REVEAL_DURATION_MS = 260
+const READY_REVEAL_CLEANUP_BUFFER_MS = 80
 
 type PromptBoxMeasurement = {
   overflowing: boolean
@@ -80,6 +82,67 @@ function useElapsedTime(startedAt: number | null, enabled: boolean): string | nu
 
   if (!enabled || startedAt === null) return null
   return formatElapsedTime(now - startedAt)
+}
+
+function useReadyRevealHeight(isComposingPrompt: boolean, revealDelayMs: number) {
+  const ref = useRef<HTMLDivElement>(null)
+  const previousHeightRef = useRef<number | null>(null)
+  const wasComposingPromptRef = useRef(isComposingPrompt)
+
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!el) return
+
+    const nextHeight = el.getBoundingClientRect().height
+    const previousHeight = previousHeightRef.current
+    const shouldReveal = wasComposingPromptRef.current && !isComposingPrompt
+
+    wasComposingPromptRef.current = isComposingPrompt
+    previousHeightRef.current = nextHeight
+
+    if (!shouldReveal || previousHeight === null || nextHeight <= previousHeight + 1) return
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+
+    const previousInlineHeight = el.style.height
+    const previousInlineOverflow = el.style.overflow
+    const previousInlineTransition = el.style.transition
+    const previousInlineWillChange = el.style.willChange
+    let frame: number | null = null
+    let timeout: number | null = null
+    let cleaned = false
+
+    const cleanup = () => {
+      if (cleaned) return
+      cleaned = true
+      if (frame !== null) window.cancelAnimationFrame(frame)
+      if (timeout !== null) window.clearTimeout(timeout)
+      el.removeEventListener('transitionend', handleTransitionEnd)
+      el.style.height = previousInlineHeight
+      el.style.overflow = previousInlineOverflow
+      el.style.transition = previousInlineTransition
+      el.style.willChange = previousInlineWillChange
+    }
+
+    const handleTransitionEnd = (event: TransitionEvent) => {
+      if (event.target === el && event.propertyName === 'height') cleanup()
+    }
+
+    el.style.height = `${previousHeight}px`
+    el.style.overflow = 'hidden'
+    el.style.willChange = 'height'
+    el.addEventListener('transitionend', handleTransitionEnd)
+
+    frame = window.requestAnimationFrame(() => {
+      frame = null
+      el.style.transition = `height ${READY_REVEAL_DURATION_MS}ms var(--ease-drawer) ${revealDelayMs}ms`
+      el.style.height = `${nextHeight}px`
+    })
+    timeout = window.setTimeout(cleanup, revealDelayMs + READY_REVEAL_DURATION_MS + READY_REVEAL_CLEANUP_BUFFER_MS)
+
+    return cleanup
+  }, [isComposingPrompt, revealDelayMs])
+
+  return ref
 }
 
 function GenImageResultThumb({ id, flush = false, className }: { id: string; flush?: boolean; className?: string }) {
@@ -363,6 +426,7 @@ export function AgentImageTaskCard({
   onCancel,
   onToggleAutoApproveImageTasks,
   onFocus,
+  revealDelayMs = 0,
 }: {
   call: AgentMessageToolCall
   task: AgentImageTask | undefined
@@ -375,6 +439,7 @@ export function AgentImageTaskCard({
   onCancel: (taskId: string) => void
   onToggleAutoApproveImageTasks: (value: boolean) => void
   onFocus?: AgentImageTaskFocusHandler
+  revealDelayMs?: number
 }) {
   const { t } = useI18n()
   const touchStartRef = useRef<{ x: number; y: number } | null>(null)
@@ -382,6 +447,7 @@ export function AgentImageTaskCard({
   const [failedDetailsOpen, setFailedDetailsOpen] = useState(false)
 
   const isComposingPrompt = isStreaming && !task && !result && !hasCompleteGenImageArguments(call)
+  const shellRef = useReadyRevealHeight(isComposingPrompt, revealDelayMs)
   const status: AgentImageTask['status'] = task?.status ?? (result?.isError ? 'failed' : 'pending_approval')
   const isCompleted = status === 'completed'
   const isFailed = status === 'failed'
@@ -678,6 +744,7 @@ export function AgentImageTaskCard({
   if (isCompleted) {
     return (
       <div
+        ref={shellRef}
         role={canFocus ? 'button' : undefined}
         tabIndex={canFocus ? 0 : undefined}
         onClick={handleShellClick}
@@ -718,6 +785,7 @@ export function AgentImageTaskCard({
   // ─────────────────────── Non-completed layout ───────────────────────────
   return (
     <div
+      ref={shellRef}
       role={shellInteractive ? 'button' : undefined}
       tabIndex={shellInteractive ? 0 : undefined}
       onClick={handleShellClick}

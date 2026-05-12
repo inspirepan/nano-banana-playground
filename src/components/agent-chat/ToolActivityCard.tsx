@@ -16,6 +16,9 @@ import { useI18n, type Translate } from '../../i18n'
 import type { StackItem } from '../../lib/stacks'
 import type { IconName } from '../Icon'
 
+const GEN_IMAGE_READY_REVEAL_STAGGER_MS = 55
+const GEN_IMAGE_READY_REVEAL_MAX_DELAY_MS = 220
+
 type WebSearchResultLink = {
   position: number
   title: string
@@ -312,12 +315,19 @@ export function ToolActivityCard({
   // GenImage and AskUserQuestion render as standalone rich cards because they
   // require user interaction (approval / form submission). All other tools use
   // lightweight inline rows to minimize card clutter.
+  const genImageCallCount = calls.reduce((count, call) => count + (call.name === 'GenImage' ? 1 : 0), 0)
+  let genImageCardIndex = 0
   const richCards: ReactNode[] = []
   const inlineNotices: ReactNode[] = []
 
   for (const call of calls) {
     const result = resultByCallId.get(call.id)
     if (call.name === 'GenImage') {
+      const revealDelayMs =
+        genImageCallCount > 1
+          ? Math.min(genImageCardIndex * GEN_IMAGE_READY_REVEAL_STAGGER_MS, GEN_IMAGE_READY_REVEAL_MAX_DELAY_MS)
+          : 0
+      genImageCardIndex += 1
       richCards.push(
         <AgentImageTaskCard
           key={call.id}
@@ -332,6 +342,7 @@ export function ToolActivityCard({
           onCancel={onCancelImageTask}
           onToggleAutoApproveImageTasks={onToggleAutoApproveImageTasks}
           onFocus={onFocusImageTask}
+          revealDelayMs={revealDelayMs}
         />,
       )
       continue
