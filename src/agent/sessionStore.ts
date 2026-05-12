@@ -403,6 +403,12 @@ export async function saveAgentSessionSidecar(
     Promise.all(params.attachments.map((attachment) => persistAttachment(params.sessionId, 'draft', attachment))),
     Promise.all(params.imageRegistry.map((entry) => persistRegistryEntry(params.sessionId, entry))),
   ])
+  const referencedAttachmentBlobIds = new Set(
+    [
+      ...attachments.map((attachment) => attachment.dataRef),
+      ...imageRegistry.flatMap((entry) => (entry.attachment ? [entry.attachment.dataRef] : [])),
+    ].filter((id): id is string => Boolean(id)),
+  )
   const imageCount = countReadyGeneratedAgentImages(imageRegistry)
   const record: AgentSessionSidecarRecord = {
     sessionId: params.sessionId,
@@ -418,11 +424,22 @@ export async function saveAgentSessionSidecar(
   }
   const db = await openNanoBananaDB()
   return new Promise((resolve, reject) => {
-    const tx = db.transaction([AGENT_SESSION_STORE, AGENT_SESSION_SIDECAR_STORE], 'readwrite')
+    const tx = db.transaction([AGENT_SESSION_STORE, AGENT_SESSION_SIDECAR_STORE, IMAGE_BLOB_STORE], 'readwrite')
     const sessionStore = tx.objectStore(AGENT_SESSION_STORE)
     let nextRecord: AgentSessionRecord | null = null
 
     tx.objectStore(AGENT_SESSION_SIDECAR_STORE).put(record)
+    const attachmentBlobPrefix = `agent-attachment:${params.sessionId}:`
+    const blobCursorReq = tx
+      .objectStore(IMAGE_BLOB_STORE)
+      .openCursor(IDBKeyRange.bound(attachmentBlobPrefix, `${attachmentBlobPrefix}\uffff`))
+    blobCursorReq.onsuccess = () => {
+      const cursor = blobCursorReq.result
+      if (!cursor) return
+      const key = typeof cursor.primaryKey === 'string' ? cursor.primaryKey : ''
+      if (key.startsWith(attachmentBlobPrefix) && !referencedAttachmentBlobIds.has(key)) cursor.delete()
+      cursor.continue()
+    }
     const getReq = sessionStore.get(params.sessionId) as IDBRequest<AgentSessionRecord | undefined>
     getReq.onsuccess = () => {
       const sessionRecord = getReq.result

@@ -31,7 +31,7 @@ import {
 import { stackIdForGenerationRequest } from '../lib/stackId'
 import { stackTitleForPrompt } from '../lib/stackTitle'
 import type { GenerationFailureSource, GeneratedSource, PlaygroundImage, PlaygroundImageMeta } from '../lib/types'
-import { AGENT_MODE_SENTINEL, readSimpleUrlParams, updateUrl } from '../lib/urlState'
+import { AGENT_MODE_SENTINEL, readSimpleUrlParams, updateUrl, type SimpleUrlParams } from '../lib/urlState'
 
 export type {
   GenerationJob,
@@ -371,6 +371,39 @@ export function usePlayground() {
     requestSessionTitle,
     patchGenerationJobsForStackTitle,
   })
+
+  const applyUrlParams = useCallback(
+    (params: SimpleUrlParams) => {
+      const nextModel = resolveModel(params.modelId)
+      setModel(nextModel)
+      setResolutionRaw(
+        params.resolution && nextModel.resolutions.includes(params.resolution)
+          ? params.resolution
+          : nextModel.defaultResolution,
+      )
+      setAspectRatioRaw(
+        params.aspectRatio && nextModel.aspectRatios.includes(params.aspectRatio)
+          ? params.aspectRatio
+          : nextModel.defaultAspectRatio,
+      )
+      setBatchCountRaw(
+        params.batchCount !== null ? Math.min(Math.max(1, params.batchCount), nextModel.maxBatchCount) : 1,
+      )
+      setOptionsState(initialOptionsFor(nextModel, params.rawParams))
+      setPromptRaw(params.prompt ?? '')
+      setInputMode(params.agentMode ? 'agent' : 'generate')
+      if (params.agentMode && params.agentSessionId && params.agentSessionId !== AGENT_MODE_SENTINEL) {
+        agent.switchAgentSession(params.agentSessionId)
+      }
+    },
+    [agent.switchAgentSession],
+  )
+
+  useExternalSync(() => {
+    const handlePopState = () => applyUrlParams(readSimpleUrlParams())
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [applyUrlParams])
 
   // Load first page of history on mount. `extendToStackBoundary` keeps page
   // edges aligned with whole stacks so the next "load more" doesn't insert

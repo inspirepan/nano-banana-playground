@@ -29,6 +29,7 @@ import { stackTitleForPrompt } from '../lib/stackTitle'
 import { isKeyError } from '../lib/validateKey'
 
 const PREVIOUS_USER_MESSAGE_LIMIT = 8
+const MAX_INVOKED_SKILL_SYSTEM_CHARS = 24_000
 
 function collectPreviousUserMessages(runtime: AgentSessionRuntime): string[] {
   const result: string[] = []
@@ -47,11 +48,17 @@ function textFromLoadedSkill(skillName: string): string | null {
   const result = formatLoadedSkillText(skillName)
   const details = typeof result.details === 'object' && result.details !== null ? result.details : {}
   if ((details as { status?: unknown }).status !== 'loaded') return null
-  return result.content
+  const text = result.content
     .filter((block): block is { type: 'text'; text: string } => block.type === 'text')
     .map((block) => block.text)
     .join('\n\n')
     .trim()
+  if (text.length <= MAX_INVOKED_SKILL_SYSTEM_CHARS) return text
+  return [
+    text.slice(0, MAX_INVOKED_SKILL_SYSTEM_CHARS),
+    '',
+    '[The skill content was truncated for this automatic slash-command injection. Use ReadSkillFile to inspect the remaining skill files if more detail is needed.]',
+  ].join('\n')
 }
 
 function buildInvokedSkillSystemMessage(skillName: string, skillText: string): string {

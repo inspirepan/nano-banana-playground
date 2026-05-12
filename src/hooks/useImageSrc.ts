@@ -7,6 +7,8 @@ const PREVIEW_MAX_SIZE = 1024
 const PREVIEW_EXPORT_MIME = 'image/jpeg'
 const PREVIEW_JPEG_QUALITY = 0.86
 const PREVIEW_SAMPLE_SIZE = 24
+const MAX_BLOB_CACHE_ITEMS = 60
+const MAX_PREVIEW_CACHE_ITEMS = 160
 
 // Module-level caches: originals are base64; previews also carry their MIME.
 const blobCache = new Map<string, string>()
@@ -23,12 +25,34 @@ type PreviewData = {
   mimeType: string
 }
 
+function getCacheValue<T>(cache: Map<string, T>, id: string): T | undefined {
+  const value = cache.get(id)
+  if (value === undefined) return undefined
+  cache.delete(id)
+  cache.set(id, value)
+  return value
+}
+
+function peekCacheValue<T>(cache: Map<string, T>, id: string): T | undefined {
+  return cache.get(id)
+}
+
+function putCacheValue<T>(cache: Map<string, T>, id: string, value: T, maxItems: number) {
+  if (cache.has(id)) cache.delete(id)
+  cache.set(id, value)
+  while (cache.size > maxItems) {
+    const oldest = cache.keys().next().value
+    if (oldest === undefined) break
+    cache.delete(oldest)
+  }
+}
+
 export function putBlobInCache(id: string, data: string) {
-  blobCache.set(id, data)
+  putCacheValue(blobCache, id, data, MAX_BLOB_CACHE_ITEMS)
 }
 
 export function getBlobFromCache(id: string): string | undefined {
-  return blobCache.get(id)
+  return getCacheValue(blobCache, id)
 }
 
 export function removeBlobFromCache(id: string) {
@@ -46,11 +70,11 @@ function previewToDataUrl(preview: PreviewData): string {
 
 function cachedSrcFor(id: string, mimeType: string, variant: ImageSrcVariant, inlineData?: string): string | null {
   if (variant === 'preview') {
-    const preview = previewCache.get(id)
+    const preview = peekCacheValue(previewCache, id)
     if (preview) return previewToDataUrl(preview)
   }
 
-  const original = inlineData ?? blobCache.get(id)
+  const original = inlineData ?? peekCacheValue(blobCache, id)
   return original ? toDataUrl(mimeType, original) : null
 }
 
@@ -145,26 +169,26 @@ async function isPreviewDataLikelyBroken(preview: PreviewData): Promise<boolean>
 }
 
 async function ensurePreviewLoaded(id: string, mimeType: string, inlineData?: string): Promise<PreviewData | null> {
-  const cachedPreview = previewCache.get(id)
+  const cachedPreview = getCacheValue(previewCache, id)
   if (cachedPreview) return cachedPreview
 
   const storedPreview = await loadImagePreview(id)
   if (storedPreview) {
     const preview = { data: storedPreview.data, mimeType: storedPreview.mimeType ?? mimeType }
     if (!(await isPreviewDataLikelyBroken(preview))) {
-      previewCache.set(id, preview)
+      putCacheValue(previewCache, id, preview, MAX_PREVIEW_CACHE_ITEMS)
       return preview
     }
     await deleteImagePreview(id).catch(() => {})
   }
 
-  const original = inlineData ?? blobCache.get(id) ?? (await loadImageBlob(id))
+  const original = inlineData ?? getCacheValue(blobCache, id) ?? (await loadImageBlob(id))
   if (!original) return null
 
-  blobCache.set(id, original)
+  putCacheValue(blobCache, id, original, MAX_BLOB_CACHE_ITEMS)
   const preview = await createPreviewData(original, mimeType)
   const next = preview === original ? { data: original, mimeType } : { data: preview, mimeType: PREVIEW_EXPORT_MIME }
-  previewCache.set(id, next)
+  putCacheValue(previewCache, id, next, MAX_PREVIEW_CACHE_ITEMS)
 
   if (preview !== original) {
     await saveImagePreview(id, preview, PREVIEW_EXPORT_MIME)
@@ -216,12 +240,12 @@ export function useImageSrc(
   // id without inlineData can resolve immediately. Done in an effect to keep the
   // render body free of side effects.
   useExternalSync(() => {
-    if (inlineData) blobCache.set(id, inlineData)
+    if (inlineData) putBlobInCache(id, inlineData)
   }, [id, inlineData])
 
   useExternalSync(() => {
     // Skip if cache already has it (sync path handled it)
-    const cached = variant === 'preview' ? previewCache.get(id) : (inlineData ?? blobCache.get(id))
+    const cached = variant === 'preview' ? getCacheValue(previewCache, id) : (inlineData ?? getBlobFromCache(id))
     if (cached) return
 
     const element = ref.current
@@ -235,9 +259,9 @@ export function useImageSrc(
           ? await ensurePreviewLoaded(id, mimeType, inlineData).then((preview) =>
               preview ? previewToDataUrl(preview) : null,
             )
-          : await Promise.resolve(inlineData ?? blobCache.get(id) ?? (await loadImageBlob(id))).then((data) => {
+          : await Promise.resolve(inlineData ?? getBlobFromCache(id) ?? (await loadImageBlob(id))).then((data) => {
               if (!data) return null
-              blobCache.set(id, data)
+              putBlobInCache(id, data)
               return toDataUrl(mimeType, data)
             })
 
@@ -273,12 +297,12 @@ export function useImageSrc(
  * Returns the data URL, or null if not found.
  */
 export async function ensureBlobLoaded(id: string, mimeType: string): Promise<string | null> {
-  const cached = blobCache.get(id)
+  const cached = getBlobFromCache(id)
   if (cached) return toDataUrl(mimeType, cached)
 
   const data = await loadImageBlob(id)
   if (data) {
-    blobCache.set(id, data)
+    putBlobInCache(id, data)
     return toDataUrl(mimeType, data)
   }
   return null

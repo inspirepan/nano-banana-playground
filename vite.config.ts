@@ -17,6 +17,8 @@ const PROVIDER_TARGETS: Record<string, string> = {
 const DEV_PROXY_TARGETS = [
   { prefix: '/api/exa', target: 'https://api.exa.ai' },
   { prefix: '/api/tavily', target: 'https://api.tavily.com' },
+  { prefix: '/api/brave', target: 'https://api.search.brave.com' },
+  { prefix: '/api/parallel', target: 'https://api.parallel.ai' },
 ]
 
 const REQUEST_HEADER_ALLOWLIST = new Set([
