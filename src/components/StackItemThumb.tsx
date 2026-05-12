@@ -105,9 +105,8 @@ export const StackItemThumb = memo(function StackItemThumb({
   const compactSlotIndicator = compactSlotStatus && slot && !slotStatusLabel && !keepPageOpenNote
   const showFailedReasonBox = Boolean(slot && slot.status === 'failed' && slotReason)
   // Compose the root tooltip so narrow thumbs (where the visible meta badge is
-  // hidden via container query) still surface model/resolution on hover.
+  // hidden via container query) still surface compact metadata on hover.
   const tooltipParts: string[] = []
-  if (image?.source.type === 'generated' && image.source.prompt) tooltipParts.push(image.source.prompt)
   if (imageIdLabel) tooltipParts.push(imageIdLabel)
   if (metaBadge) tooltipParts.push(metaBadgeTitle ?? metaBadge)
   const tooltipText =
