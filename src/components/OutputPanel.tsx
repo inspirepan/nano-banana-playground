@@ -57,7 +57,7 @@ type Props = {
     mask?: PlaygroundImage
   }) => Promise<string | null>
   onRemove: (id: string) => void
-  onLoadMore: () => void
+  onLoadMore: () => void | Promise<void>
   onOpenGenerationSettings: () => void
   highlightStackId?: string | null
   externalDetailTarget?: DetailTarget | null
@@ -263,7 +263,12 @@ export const OutputPanel = memo(function OutputPanel({
   )
 
   const { scrollRef, stackRowRefs } = useStackScrollSync({ stacks, highlightStackId })
-  const { sentinelRef } = useInfiniteScrollSentinel({ historyHasMore, onLoadMore })
+  const { sentinelRef, isLoadingMore, loadMore } = useInfiniteScrollSentinel({
+    historyHasMore,
+    historyLength: history.length,
+    onLoadMore,
+    rootRef: scrollRef,
+  })
   const batchToolbar = (
     <>
       <span className="inline-flex h-7 shrink-0 items-center rounded-[var(--radius-sm)] bg-(--color-accent-wash) px-2.5 text-base font-medium text-(--color-accent-text) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
@@ -400,9 +405,19 @@ export const OutputPanel = memo(function OutputPanel({
 
           {historyHasMore && (
             <div ref={sentinelRef} className="flex justify-center py-4">
-              <button type="button" onClick={onLoadMore} className="chip justify-center text-sm">
-                <Icon name="expand_more" size={13} />
-                {t('common.loadMore')}
+              <button
+                type="button"
+                onClick={loadMore}
+                disabled={isLoadingMore}
+                aria-live="polite"
+                className="chip justify-center text-sm"
+              >
+                {isLoadingMore ? (
+                  <span className="spinner motion-reduce:animate-none" style={{ width: 11, height: 11 }} />
+                ) : (
+                  <Icon name="expand_more" size={13} />
+                )}
+                {isLoadingMore ? t('common.loadingMore') : t('common.loadMore')}
               </button>
             </div>
           )}
