@@ -58,7 +58,7 @@ export function AgentChatHeader({
         data-agent-menu-trigger
         onClick={() => setOpenMenu((prev) => (prev === 'sessions' ? null : 'sessions'))}
         aria-expanded={openMenu === 'sessions'}
-        className={`group flex h-[28px] min-w-0 shrink items-center gap-1.5 rounded-[var(--radius-sm)] bg-transparent text-left transition-colors duration-150 ${showNewSessionButton ? 'max-w-[calc(100%-86px)]' : 'max-w-full'}`}
+        className={`group flex h-[30px] min-w-0 shrink items-center gap-1.5 rounded-[var(--radius-sm)] bg-(--color-surface) px-2.5 text-left shadow-[inset_0_0_0_1px_var(--ring-edge)] transition-[background-color,box-shadow,color] duration-150 hover:bg-(--color-surface-2) hover:shadow-[inset_0_0_0_1px_var(--ring-edge-strong)] ${showNewSessionButton ? 'max-w-[calc(100%-86px)]' : 'max-w-full'}`}
         title={t('agentChat.header.switchTitle')}
       >
         <span className="min-w-0 flex-1 truncate text-base font-medium text-(--color-text-2) transition-colors group-hover:text-(--color-text)">

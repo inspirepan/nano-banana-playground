@@ -306,7 +306,7 @@ export const OutputPanel = memo(function OutputPanel({
       ref={scrollRef}
       className="flex-1 overflow-visible px-[var(--panel-pad-x)] py-[var(--panel-pad-top)] pb-[var(--panel-pad-bottom)] md:flex-[2_1_0%] md:overflow-y-auto md:overscroll-y-none md:[scrollbar-gutter:stable_both-edges] md:px-[26px] md:py-[22px] md:pb-[80px]"
     >
-      <div className="mb-5 flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
+      <div className="mb-5 flex flex-wrap items-start justify-between gap-x-3 gap-y-2 px-3 md:px-0">
         <div className="min-w-0">
           <div className="font-display text-xl font-semibold tracking-[-0.01em]">{t('common.gallery')}</div>
           <div className="mt-1.5 text-pretty text-sm tabular-nums text-(--color-text-3)">
