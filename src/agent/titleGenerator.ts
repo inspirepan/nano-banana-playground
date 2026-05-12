@@ -4,16 +4,18 @@ import type { Language } from '../config/languages'
 
 const STACK_TITLE_MAX_LENGTH = 56
 const SESSION_TITLE_MAX_LENGTH = 80
-const TITLE_GENERATION_MAX_TOKENS = 256
+const TITLE_GENERATION_MAX_TOKENS = 4096
 const TITLE_GENERATION_ATTEMPTS = 2
 
 function languageInstruction(language: Language): string {
-  return language === 'en' ? 'Write the title in English.' : 'Write the title in Simplified Chinese (简体中文).'
+  return language === 'en'
+    ? 'Write the title in English.'
+    : 'Write the title in Simplified Chinese (简体中文). Add spaces between Chinese characters and English words or letters.'
 }
 
 const STACK_TITLE_SYSTEM_PROMPT_BASE = [
   'You generate short, specific titles for image generation prompts.',
-  'Reply with only the title, no quotes, no markdown, no explanation.',
+  'Reply with only the title, no quotes, no markdown, no explanation, no emoji.',
 ].join(' ')
 
 const STACK_TITLE_USER_PROMPT = `Generate a short title that captures what this image is meant to depict.
@@ -30,7 +32,7 @@ Rules:
 
 const SESSION_TITLE_SYSTEM_PROMPT_BASE = [
   'You generate short, specific conversation titles from user messages.',
-  'Reply with only the title, no quotes, no markdown, no explanation.',
+  'Reply with only the title, no quotes, no markdown, no explanation, no emoji.',
 ].join(' ')
 
 const SESSION_TITLE_USER_PROMPT = `Generate a short session title that captures the specific task.
@@ -40,7 +42,9 @@ Rules:
 - reflect user intent, not tool usage or internal operations
 - {language_instruction}
 - maximum 60 characters; prefer concise phrasing
-- single line, imperative or noun phrase, no filler words
+- single line, prefer a noun phrase over an imperative sentence
+- omit generic request verbs like generate, create, write, introduce, summarize, or analyze unless they are part of the subject itself
+- for Chinese titles, prefer the pattern “specific topic + task type”, for example “JetBrains 公司总结介绍” instead of “生成 JetBrains 公司总结介绍”
 - if a previous title exists and the topic hasn't changed, refine it rather than replace it
 
 {previous_title_block}<previous_user_messages>
