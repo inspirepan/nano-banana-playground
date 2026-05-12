@@ -98,10 +98,10 @@ export const imageDetailMessages: MessageDictionary = {
   'imageDetail.footer.switch': { 'zh-CN': '切换', en: 'Switch' },
   'imageDetail.footer.undo': { 'zh-CN': '撤销', en: 'Undo' },
   'imageDetail.footer.wheelZoom': { 'zh-CN': '滚轮 缩放', en: 'Wheel zoom' },
-  'imageDetail.loadError.title': { 'zh-CN': '图片详情需要刷新', en: 'Image details need a refresh' },
+  'imageDetail.loadError.title': { 'zh-CN': '图片详情加载失败', en: 'Image details failed to load' },
   'imageDetail.loadError.description': {
-    'zh-CN': '页面还在使用旧版本资源，图片详情文件没有加载成功。刷新页面即可恢复。',
-    en: 'This page is still using an older app bundle, and the image details file did not load. Refresh the page to recover.',
+    'zh-CN': '页面资源可能已更新，图片详情文件没有加载成功。为避免中断正在运行的生成任务，应用不会自动刷新；可稍后手动刷新页面恢复。',
+    en: 'The app resources may have changed, and the image details file did not load. To avoid interrupting active generation jobs, the app will not refresh automatically; refresh the page later to recover.',
   },
   'imageDetail.header.imageGroup': { 'zh-CN': '图片组', en: 'Image group' },
   'imageDetail.header.generationTask': { 'zh-CN': '生成任务', en: 'Generation task' },

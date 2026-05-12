@@ -16,13 +16,10 @@ import { useStripDownloadMetadata } from '../hooks/useStripDownloadMetadata'
 import { useI18n } from '../i18n'
 import { buildImageStacks, type ImageStack, type StackSlotItem } from '../lib/stacks'
 import { downloadImagesZip } from '../lib/exportImages'
-import { recoverFromLazyChunkLoadError } from '../lib/lazyChunkRecovery'
 import type { PlaygroundImage, PlaygroundImageMeta } from '../lib/types'
 
 const ImageDetailModal = lazy(() =>
-  import('./image-detail/ImageDetailModal')
-    .then((module) => ({ default: module.ImageDetailModal }))
-    .catch((error: unknown) => recoverFromLazyChunkLoadError(error, 'ImageDetailModal')),
+  import('./image-detail/ImageDetailModal').then((module) => ({ default: module.ImageDetailModal })),
 )
 
 function isEditableKeyboardTarget(target: EventTarget | null): boolean {

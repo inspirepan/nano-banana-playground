@@ -6,10 +6,10 @@ export const settingsMessages: MessageDictionary = {
     'zh-CN': '管理服务连接、通用偏好和本地数据',
     en: 'Manage service connections, general preferences, and local data',
   },
-  'settings.loadError.title': { 'zh-CN': '设置面板需要刷新', en: 'Settings need a refresh' },
+  'settings.loadError.title': { 'zh-CN': '设置面板加载失败', en: 'Settings failed to load' },
   'settings.loadError.description': {
-    'zh-CN': '页面还在使用旧版本资源，设置面板的新版文件没有加载成功。刷新页面即可恢复。',
-    en: 'This page is still using an older app bundle, and the settings panel file did not load. Refresh the page to recover.',
+    'zh-CN': '页面资源可能已更新，设置面板文件没有加载成功。为避免中断正在运行的生成任务，应用不会自动刷新；可稍后手动刷新页面恢复。',
+    en: 'The app resources may have changed, and the settings panel file did not load. To avoid interrupting active generation jobs, the app will not refresh automatically; refresh the page later to recover.',
   },
   'settings.tabs.general': { 'zh-CN': '通用', en: 'General' },
   'settings.tabs.api': { 'zh-CN': '服务', en: 'Connections' },

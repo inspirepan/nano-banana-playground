@@ -12,13 +12,10 @@ import { useThemeAndLanguage } from './App/useThemeAndLanguage'
 import { LazyChunkLoadErrorBoundary } from './components/LazyChunkLoadErrorBoundary'
 import { usePlayground } from './hooks/usePlayground'
 import { createTranslator, I18nProvider } from './i18n'
-import { recoverFromLazyChunkLoadError } from './lib/lazyChunkRecovery'
 import type { PlaygroundImageMeta } from './lib/types'
 
 const SettingsDialog = lazy(() =>
-  import('./components/SettingsDialog')
-    .then((module) => ({ default: module.SettingsDialog }))
-    .catch((error: unknown) => recoverFromLazyChunkLoadError(error, 'SettingsDialog')),
+  import('./components/SettingsDialog').then((module) => ({ default: module.SettingsDialog })),
 )
 
 type SettingsTarget = 'apiKeys' | 'generationConcurrency'

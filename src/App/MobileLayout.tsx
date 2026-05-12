@@ -7,13 +7,10 @@ import { InputPanel } from '../components/InputPanel'
 import { LazyChunkLoadErrorBoundary } from '../components/LazyChunkLoadErrorBoundary'
 import { OutputPanel } from '../components/OutputPanel'
 import { useI18n } from '../i18n'
-import { recoverFromLazyChunkLoadError } from '../lib/lazyChunkRecovery'
 import type { ImageStack } from '../lib/stacks'
 
 const ImageDetailModal = lazy(() =>
-  import('../components/image-detail/ImageDetailModal')
-    .then((module) => ({ default: module.ImageDetailModal }))
-    .catch((error: unknown) => recoverFromLazyChunkLoadError(error, 'ImageDetailModal')),
+  import('../components/image-detail/ImageDetailModal').then((module) => ({ default: module.ImageDetailModal })),
 )
 
 type OutputPanelProps = ComponentProps<typeof OutputPanel>
