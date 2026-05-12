@@ -72,10 +72,10 @@ export function useImageDetailKeyboard({
     }
     if (editing) return
     if (!canNavigate) return
-    if (e.key === 'ArrowLeft') {
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
       e.preventDefault()
       goToPrev()
-    } else if (e.key === 'ArrowRight') {
+    } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
       e.preventDefault()
       goToNext()
     }
