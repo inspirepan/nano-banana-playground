@@ -512,10 +512,7 @@ export function AgentImageTaskCard({
             <span>{taskStatusLabel(status)}</span>
           </>
         ) : (
-          <>
-            <span className="spinner" style={{ width: 9, height: 9 }} />
-            {activeElapsedTime && <span className="tabular-nums text-(--color-text-4)">{activeElapsedTime}</span>}
-          </>
+          activeElapsedTime && <span className="tabular-nums text-(--color-text-4)">{activeElapsedTime}</span>
         )}
       </span>
     ) : null
