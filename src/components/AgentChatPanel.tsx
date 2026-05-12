@@ -112,6 +112,13 @@ function isStickyUserMessage(message: AgentMessage): boolean {
 type MessageRenderItem = Extract<ChatRenderItem, { type: 'message' }>
 type ChatRenderSection = { key: string; stickyUserItem: MessageRenderItem | null; items: ChatRenderItem[] }
 
+const AUTO_FOLLOW_DETACH_DELTA = 2
+const AUTO_FOLLOW_REJOIN_DISTANCE = 16
+
+function getScrollBottomDistance(el: HTMLElement): number {
+  return Math.max(0, el.scrollHeight - el.scrollTop - el.clientHeight)
+}
+
 function buildStickyUserSections(items: ChatRenderItem[]): ChatRenderSection[] {
   const sections: ChatRenderSection[] = []
   let current: ChatRenderSection = { key: 'intro', stickyUserItem: null, items: [] }
@@ -180,8 +187,13 @@ export function AgentChatPanel({
   const controlsRef = useRef<HTMLDivElement>(null)
   const composerRef = useRef<AgentChatComposerHandle>(null)
   const userMessageRefs = useRef(new Map<string, HTMLDivElement>())
+  const nearBottomRef = useRef(true)
+  const lastScrollTopRef = useRef(0)
+  const lastScrollHeightRef = useRef<number | null>(null)
+  const bottomReserveHeightRef = useRef(0)
   const [openMenu, setOpenMenu] = useState<AgentChatMenu>(null)
   const [nearBottom, setNearBottom] = useState(true)
+  const [bottomReserveHeight, setBottomReserveHeightState] = useState(0)
   const [optimisticRunning, setOptimisticRunning] = useState(false)
   const [stuckStickyUserMessageKey, setStuckStickyUserMessageKey] = useState<string | null>(null)
 
@@ -296,6 +308,17 @@ export function AgentChatPanel({
   const drawingSkills = useMemo(() => skills.filter(isDrawingSkill), [skills])
   const isEmpty = renderItems.length === 0 && queuedMessages.length === 0 && !showRunningIndicator
 
+  const setNearBottomValue = useCallback((next: boolean) => {
+    nearBottomRef.current = next
+    setNearBottom((prev) => (prev === next ? prev : next))
+  }, [])
+
+  const setBottomReserveHeight = useCallback((height: number) => {
+    const next = Math.max(0, Math.ceil(height))
+    bottomReserveHeightRef.current = next
+    setBottomReserveHeightState((prev) => (prev === next ? prev : next))
+  }, [])
+
   const handleOpenImageTaskImage = useCallback(
     (toolCallId: string, imageId: string) => {
       const task = imageTaskByToolCallId.get(toolCallId)
@@ -303,6 +326,20 @@ export function AgentChatPanel({
       onFocusImageTask?.(task, { behavior: 'open', itemId: imageId })
     },
     [imageTaskByToolCallId, onFocusImageTask],
+  )
+
+  const reserveThinkingCollapseSpace = useCallback(
+    (height: number): boolean => {
+      const el = scrollRef.current
+      if (!el || !nearBottomRef.current || height <= 0) return false
+      if (getScrollBottomDistance(el) > AUTO_FOLLOW_REJOIN_DISTANCE) return false
+
+      const reserve = Math.min(Math.ceil(height), el.clientHeight)
+      if (reserve <= 0) return false
+      setBottomReserveHeight(bottomReserveHeightRef.current + reserve)
+      return true
+    },
+    [setBottomReserveHeight],
   )
 
   const handleInsertText = useCallback(
