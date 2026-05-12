@@ -111,14 +111,13 @@ export function AgentChatHeader({
               sessions.map((session) => {
                 const active = session.id === currentSessionId
                 const status = sessionStatuses[session.id] ?? null
-                const displayTitle = session.firstUserText.replace(/\s+/g, ' ').trim() || session.title
                 return (
                   <AgentSessionListItem
                     key={session.id}
                     session={session}
                     active={active}
                     status={status}
-                    title={displayTitle}
+                    title={session.title}
                     variant="menu"
                     onSwitchSession={() => {
                       onSwitchSession(session.id)
