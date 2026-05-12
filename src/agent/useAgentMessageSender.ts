@@ -1,4 +1,5 @@
-import { useCallback, type RefObject } from 'react'
+import { useCallback, useRef, type RefObject } from 'react'
+import type { AppMessage as AgentMessage } from '@mariozechner/pi-agent'
 
 import {
   agentMessageRole,
@@ -7,7 +8,7 @@ import {
   stripSystemDirectives,
   type AgentChatAttachment,
 } from './agentChat'
-import { activateAgentResponseMetadata, getAgentError, queueAgentResponseMetadata } from './messageRecovery'
+import { activateAgentResponseMetadata, getAgentError } from './messageRecovery'
 import { buildCurrentDateDirective, buildLanguageDirective } from './runtimeConfig'
 import type {
   AgentPendingQuestion,
@@ -80,6 +81,34 @@ function composerHasContent(draft: string, attachments: AgentChatAttachment[]): 
   return draft.trim() !== '' || attachments.length > 0
 }
 
+function buildQueuedPreviewMessage(
+  draft: string,
+  attachments: AgentChatAttachment[],
+  timestamp = Date.now(),
+): AgentMessage {
+  const promptBody = draft.trim() || translate('agentChat.slash.imageOnlyPrompt')
+  return {
+    role: 'user',
+    content: [
+      { type: 'text', text: promptBody },
+      ...attachments.map((attachment) => ({
+        type: 'image' as const,
+        data: attachment.data,
+        mimeType: attachment.mimeType,
+      })),
+    ],
+    attachments: attachments.map((attachment) => ({
+      id: attachment.id,
+      type: 'image' as const,
+      fileName: attachment.fileName,
+      mimeType: attachment.mimeType,
+      size: attachment.size,
+      content: attachment.data,
+    })),
+    timestamp,
+  }
+}
+
 export function useAgentMessageSender({
   agentCredentialsRef,
   getCurrentRuntime,
@@ -127,6 +156,222 @@ export function useAgentMessageSender({
   patchGenerationJobsForStackTitle: (stackId: string, stackTitle: string) => void
   upsertAgentSessionSummary: (record: AgentSessionRecord) => void
 }) {
+  const drainQueuedMessagesRef = useRef<(runtime: AgentSessionRuntime) => void>(() => {})
+
+  const startAgentTurn = useCallback(
+    (
+      runtime: AgentSessionRuntime,
+      input: {
+        draft: string
+        attachments: AgentChatAttachment[]
+        agentTurnId: string
+        stackId: string
+        stackTitle: string
+        clearComposer: boolean
+        onPromptStarted?: () => void
+      },
+    ): boolean => {
+      const trimmed = input.draft.trim()
+      if (!trimmed && input.attachments.length === 0) return false
+
+      const config = resolveAgentModelConfig(runtime.modelId)
+      const credentials = agentCredentialsRef.current[config.provider]
+      if (!credentials.apiKey) {
+        setRuntimeError(
+          runtime,
+          translate('configLib.agent.modelMissingKey', { model: config.label, provider: config.providerLabel }),
+        )
+        return false
+      }
+      if (!config.supportsImages && input.attachments.length > 0) {
+        setRuntimeError(runtime, translate('configLib.agent.modelImageUnsupported', { model: config.label }))
+        return false
+      }
+
+      applyAgentRuntimeConfig(runtime)
+      const attachmentsToSend = input.attachments.slice()
+      const attachmentNote = buildAttachmentSystemNote(attachmentsToSend)
+      const isFirstUserMessage = runtime.agent.state.messages.length === 0
+      const skillSummaries = getAgentSkillSummaries()
+      const enabledSkillNames = new Set(skillSummaries.filter((skill) => skill.enabled).map((skill) => skill.name))
+      const slashCommands = parseAgentSlashCommands(trimmed, enabledSkillNames, { includeNewCommand: false })
+      let systemPrefix = ''
+      if (isFirstUserMessage) {
+        const activeLanguage = getActiveLanguage()
+        systemPrefix += `${buildLanguageDirective(activeLanguage)}\n\n`
+        const imageIdLanguageInstruction =
+          activeLanguage === 'en'
+            ? 'When calling GenImage, write image_id values in English so they match the user language.'
+            : 'When calling GenImage, write image_id values in 简体中文 so they read naturally to the user.'
+        systemPrefix += `<system>${imageIdLanguageInstruction}</system>\n\n`
+        systemPrefix += `${buildCurrentDateDirective()}\n\n`
+      }
+      if (isFirstUserMessage) {
+        const skillListing = buildAvailableSkillsSystemMessage(skillSummaries)
+        if (skillListing) systemPrefix += `${skillListing}\n\n`
+      }
+      for (const skillName of slashCommands.skillNames) {
+        const skillText = textFromLoadedSkill(skillName)
+        if (skillText) systemPrefix += `${buildInvokedSkillSystemMessage(skillName, skillText)}\n\n`
+      }
+
+      const promptBody = trimmed || translate('agentChat.slash.imageOnlyPrompt')
+      const retryDraft = trimmed
+      const retryAttachments = attachmentsToSend.slice()
+      const promptText = `${systemPrefix}${promptBody}${attachmentNote}`
+      for (const attachment of attachmentsToSend) {
+        if (runtime.imageRegistry.get(attachment.id)?.status === 'ready') continue
+        runtime.imageRegistry.set(attachment.id, {
+          id: attachment.id,
+          image: attachment,
+          source: 'agent_attachment',
+          status: 'ready',
+          createdAt: Date.now(),
+        })
+      }
+
+      const pendingQuestionsToCancel = runtime.pendingQuestions.slice()
+      runtime.currentAgentTurnId = input.agentTurnId
+      runtime.currentAgentTurnStackId = input.stackId
+      runtime.currentAgentTurnStackTitle = input.stackTitle
+      runtime.promptPreparing = true
+      runtime.isStreaming = true
+      activateAgentResponseMetadata(runtime, config.id)
+      if (input.clearComposer) {
+        runtime.draft = ''
+        runtime.attachments = []
+        runtime.attachmentError = null
+      }
+      if (isCurrentRuntime(runtime)) {
+        if (input.clearComposer) {
+          setAgentDraft('')
+          setAgentAttachments([])
+          setAgentAttachmentError(null)
+        }
+        setAgentIsStreaming(true)
+      }
+      syncRuntimeSnapshot(runtime)
+      scheduleRuntimeSidecarPersist(runtime)
+
+      const previousUserMessages = collectPreviousUserMessages(runtime)
+      const previousSessionTitle = runtime.lastSessionTitle ?? undefined
+      void requestSessionTitle({
+        sessionId: runtime.sessionId,
+        currentUserMessage: promptBody,
+        previousUserMessages,
+        previousTitle: previousSessionTitle,
+      }).then((title) => {
+        if (!title) return
+        if (runtime.currentAgentTurnId === input.agentTurnId) runtime.currentAgentTurnStackTitle = title
+        patchGenerationJobsForStackTitle(input.stackId, title)
+        runtime.lastSessionTitle = title
+        scheduleRuntimeSidecarPersist(runtime)
+        void updateAgentSessionTitleOnly(runtime.sessionId, title).then((record) => {
+          if (record) upsertAgentSessionSummary(record)
+        })
+      })
+
+      const restoreComposerForRetry = () => {
+        if (!composerHasContent(retryDraft, retryAttachments)) return
+        if (composerHasContent(runtime.draft, runtime.attachments)) return
+
+        runtime.draft = retryDraft
+        runtime.attachments = retryAttachments
+        runtime.attachmentError = null
+        if (isCurrentRuntime(runtime)) {
+          setAgentDraft(retryDraft)
+          setAgentAttachments(retryAttachments)
+          setAgentAttachmentError(null)
+        }
+        scheduleRuntimeSidecarPersist(runtime)
+      }
+
+      void (async () => {
+        try {
+          const images = await Promise.all(attachmentsToSend.map(compressedAttachmentToAgentAttachment))
+          for (const question of pendingQuestionsToCancel) cancelRuntimeQuestion(runtime, question)
+          const promptPromise = runtime.agent.prompt(promptText, images)
+          input.onPromptStarted?.()
+          runtime.promptPreparing = false
+          promptPromise
+            .then(() => {
+              const errorMessage = getAgentError(runtime.agent)
+              if (!errorMessage) return
+              restoreComposerForRetry()
+              if (isKeyError(errorMessage)) invalidateGenerationKey(config.provider)
+            })
+            .catch((error: unknown) => {
+              restoreComposerForRetry()
+              setRuntimeError(runtime, error instanceof Error ? error.message : String(error))
+            })
+            .finally(() => {
+              syncRuntimeSnapshot(runtime)
+              if (runtime.queuedUserMessages.length > 0) {
+                window.setTimeout(() => drainQueuedMessagesRef.current(runtime), 0)
+              } else {
+                maybeDispatchAgentImageCallbacks(runtime)
+              }
+            })
+        } catch (error) {
+          restoreComposerForRetry()
+          setRuntimeError(runtime, error instanceof Error ? error.message : String(error))
+        } finally {
+          runtime.promptPreparing = false
+          syncRuntimeSnapshot(runtime)
+          if (runtime.queuedUserMessages.length > 0) {
+            window.setTimeout(() => drainQueuedMessagesRef.current(runtime), 0)
+          } else {
+            maybeDispatchAgentImageCallbacks(runtime)
+          }
+        }
+      })()
+      return true
+    },
+    [
+      agentCredentialsRef,
+      applyAgentRuntimeConfig,
+      cancelRuntimeQuestion,
+      invalidateGenerationKey,
+      isCurrentRuntime,
+      maybeDispatchAgentImageCallbacks,
+      patchGenerationJobsForStackTitle,
+      requestSessionTitle,
+      scheduleRuntimeSidecarPersist,
+      setAgentAttachmentError,
+      setAgentAttachments,
+      setAgentDraft,
+      setAgentIsStreaming,
+      setRuntimeError,
+      syncRuntimeSnapshot,
+      upsertAgentSessionSummary,
+    ],
+  )
+
+  const drainQueuedMessages = useCallback(
+    (runtime: AgentSessionRuntime) => {
+      const queued = runtime.queuedUserMessages[0]
+      if (!queued) return
+      if (!runtime.ready || runtime.isCompacting) return
+      if (runtime.promptPreparing) {
+        window.setTimeout(() => drainQueuedMessagesRef.current(runtime), 16)
+        return
+      }
+      if (runtime.agent.state.isStreaming) {
+        void runtime.agent.waitForIdle().then(() => drainQueuedMessagesRef.current(runtime))
+        return
+      }
+      startAgentTurn(runtime, {
+        ...queued,
+        clearComposer: false,
+        onPromptStarted: () => {
+          setRuntimeQueuedUserMessages(runtime, (prev) => prev.filter((item) => item.id !== queued.id))
+        },
+      })
+    },
+    [setRuntimeQueuedUserMessages, startAgentTurn],
+  )
+  drainQueuedMessagesRef.current = drainQueuedMessages
+
   const sendAgentMessage = useCallback(() => {
     const runtime = getCurrentRuntime()
     const trimmed = runtime?.draft.trim() ?? ''
@@ -147,223 +392,81 @@ export function useAgentMessageSender({
       return false
     }
 
-    applyAgentRuntimeConfig(runtime)
-    const attachmentsToSend = runtime.attachments
-    const attachmentNote = buildAttachmentSystemNote(attachmentsToSend)
-    const isFirstUserMessage = runtime.agent.state.messages.length === 0
-    const skillSummaries = getAgentSkillSummaries()
-    const enabledSkillNames = new Set(skillSummaries.filter((skill) => skill.enabled).map((skill) => skill.name))
-    const slashCommands = parseAgentSlashCommands(trimmed, enabledSkillNames, { includeNewCommand: false })
-    let systemPrefix = ''
-    if (isFirstUserMessage) {
-      const activeLanguage = getActiveLanguage()
-      systemPrefix += `${buildLanguageDirective(activeLanguage)}\n\n`
-      const imageIdLanguageInstruction =
-        activeLanguage === 'en'
-          ? 'When calling GenImage, write image_id values in English so they match the user language.'
-          : 'When calling GenImage, write image_id values in 简体中文 so they read naturally to the user.'
-      systemPrefix += `<system>${imageIdLanguageInstruction}</system>\n\n`
-      systemPrefix += `${buildCurrentDateDirective()}\n\n`
-    }
-    if (isFirstUserMessage) {
-      const skillListing = buildAvailableSkillsSystemMessage(skillSummaries)
-      if (skillListing) systemPrefix += `${skillListing}\n\n`
-    }
-    for (const skillName of slashCommands.skillNames) {
-      const skillText = textFromLoadedSkill(skillName)
-      if (skillText) systemPrefix += `${buildInvokedSkillSystemMessage(skillName, skillText)}\n\n`
-    }
-    const promptBody = trimmed || translate('agentChat.slash.imageOnlyPrompt')
-    const retryDraft = trimmed
-    const retryAttachments = attachmentsToSend.slice()
-    const promptText = `${systemPrefix}${promptBody}${attachmentNote}`
-    for (const attachment of attachmentsToSend) {
-      if (runtime.imageRegistry.get(attachment.id)?.status === 'ready') continue
-      runtime.imageRegistry.set(attachment.id, {
-        id: attachment.id,
-        image: attachment,
-        source: 'agent_attachment',
-        status: 'ready',
-        createdAt: Date.now(),
-      })
-    }
-
     const pendingQuestionsToCancel = runtime.pendingQuestions.slice()
     const hasInFlightResolver = pendingQuestionsToCancel.some((question) =>
       runtime.questionResolvers.has(question.toolCallId),
     )
+    const promptBody = trimmed || translate('agentChat.slash.imageOnlyPrompt')
+    const agentTurnId = crypto.randomUUID()
+    const stackId = stackIdForAgentTurn(runtime.sessionId, agentTurnId)
+    const stackTitle = stackTitleForPrompt(promptBody)
+    const draft = runtime.draft
+    const attachments = runtime.attachments.slice()
     const inFlight = runtime.isStreaming || hasInFlightResolver
-    const userTurnId = crypto.randomUUID()
-    const userTurnStackId = stackIdForAgentTurn(runtime.sessionId, userTurnId)
-    const userTurnStackTitle = stackTitleForPrompt(promptBody)
 
-    runtime.draft = ''
-    runtime.attachments = []
-    runtime.attachmentError = null
-    runtime.promptPreparing = true
-    if (!inFlight) {
-      runtime.currentAgentTurnId = userTurnId
-      runtime.currentAgentTurnStackId = userTurnStackId
-      runtime.currentAgentTurnStackTitle = userTurnStackTitle
-      activateAgentResponseMetadata(runtime, config.id)
-      runtime.isStreaming = true
-    }
-    if (isCurrentRuntime(runtime)) {
-      setAgentDraft('')
-      setAgentAttachments([])
-      setAgentAttachmentError(null)
-      setAgentIsStreaming(runtime.isStreaming)
-    }
-    syncRuntimeSnapshot(runtime)
-    scheduleRuntimeSidecarPersist(runtime)
-
-    const previousUserMessages = collectPreviousUserMessages(runtime)
-    const previousSessionTitle = runtime.lastSessionTitle ?? undefined
-
-    // One LLM call covers both the agent turn's stack header and the session
-    // title. They describe the same conversation focus, and a session title
-    // refined with previous messages reads at least as well as a per-turn
-    // stack title cut from the latest prompt alone. Fire-and-forget; on
-    // failure the synchronous truncation that already filled the slots stays.
-    void requestSessionTitle({
-      sessionId: runtime.sessionId,
-      currentUserMessage: promptBody,
-      previousUserMessages,
-      previousTitle: previousSessionTitle,
-    }).then((title) => {
-      if (!title) return
-      if (runtime.currentAgentTurnId === userTurnId) runtime.currentAgentTurnStackTitle = title
-      setRuntimeQueuedUserMessages(runtime, (prev) =>
-        prev.map((queued) => (queued.agentTurnId === userTurnId ? { ...queued, stackTitle: title } : queued)),
-      )
-      patchGenerationJobsForStackTitle(userTurnStackId, title)
-      runtime.lastSessionTitle = title
-      scheduleRuntimeSidecarPersist(runtime)
-      void updateAgentSessionTitleOnly(runtime.sessionId, title).then((record) => {
-        if (record) upsertAgentSessionSummary(record)
-      })
-    })
-
-    const queuedMessageId = inFlight ? crypto.randomUUID() : null
-    const queuedMessage =
-      inFlight && queuedMessageId
-        ? {
-            id: queuedMessageId,
-            agentTurnId: userTurnId,
-            stackId: userTurnStackId,
-            stackTitle: userTurnStackTitle,
-            message: {
-              role: 'user' as const,
-              content: [
-                { type: 'text' as const, text: promptText },
-                ...attachmentsToSend.map((attachment) => ({
-                  type: 'image' as const,
-                  data: attachment.data,
-                  mimeType: attachment.mimeType,
-                })),
-              ],
-              attachments: attachmentsToSend.map((attachment) => ({
-                id: attachment.id,
-                type: 'image' as const,
-                fileName: attachment.fileName,
-                mimeType: attachment.mimeType,
-                size: attachment.size,
-                content: attachment.data,
-              })),
-              timestamp: Date.now(),
-            },
-          }
-        : null
-    if (queuedMessage) setRuntimeQueuedUserMessages(runtime, (prev) => [...prev, queuedMessage])
-
-    const restoreComposerForRetry = () => {
-      if (!composerHasContent(retryDraft, retryAttachments)) return
-      if (composerHasContent(runtime.draft, runtime.attachments)) return
-
-      runtime.draft = retryDraft
-      runtime.attachments = retryAttachments
+    if (inFlight) {
+      const queuedMessage: AgentQueuedUserMessage = {
+        id: crypto.randomUUID(),
+        draft,
+        attachments,
+        agentTurnId,
+        stackId,
+        stackTitle,
+        message: buildQueuedPreviewMessage(draft, attachments),
+      }
+      runtime.draft = ''
+      runtime.attachments = []
       runtime.attachmentError = null
+      setRuntimeQueuedUserMessages(runtime, (prev) => [...prev, queuedMessage])
+      for (const question of pendingQuestionsToCancel) cancelRuntimeQuestion(runtime, question)
       if (isCurrentRuntime(runtime)) {
-        setAgentDraft(retryDraft)
-        setAgentAttachments(retryAttachments)
+        setAgentDraft('')
+        setAgentAttachments([])
         setAgentAttachmentError(null)
       }
       scheduleRuntimeSidecarPersist(runtime)
+      syncRuntimeSnapshot(runtime)
+      window.setTimeout(() => drainQueuedMessagesRef.current(runtime), 0)
+      return true
     }
 
-    void (async () => {
-      try {
-        const images = await Promise.all(attachmentsToSend.map(compressedAttachmentToAgentAttachment))
-        if (inFlight) {
-          const content: Array<{ type: 'text'; text: string } | { type: 'image'; data: string; mimeType: string }> = [
-            { type: 'text', text: promptText },
-          ]
-          for (const image of images) {
-            if (image.type === 'image') content.push({ type: 'image', data: image.content, mimeType: image.mimeType })
-          }
-          queueAgentResponseMetadata(runtime, config.id)
-          await runtime.agent.queueMessage({
-            role: 'user',
-            content,
-            attachments: images.length > 0 ? images : undefined,
-            timestamp: queuedMessage ? queuedMessage.message.timestamp : Date.now(),
-          })
-          for (const question of pendingQuestionsToCancel) cancelRuntimeQuestion(runtime, question)
-          return
-        }
-
-        for (const question of pendingQuestionsToCancel) cancelRuntimeQuestion(runtime, question)
-        activateAgentResponseMetadata(runtime, config.id)
-        const promptPromise = runtime.agent.prompt(promptText, images)
-        runtime.promptPreparing = false
-        promptPromise
-          .then(() => {
-            const errorMessage = getAgentError(runtime.agent)
-            if (!errorMessage) return
-            restoreComposerForRetry()
-            if (isKeyError(errorMessage)) invalidateGenerationKey(config.provider)
-          })
-          .catch((error: unknown) => {
-            restoreComposerForRetry()
-            setRuntimeError(runtime, error instanceof Error ? error.message : String(error))
-          })
-          .finally(() => {
-            syncRuntimeSnapshot(runtime)
-            maybeDispatchAgentImageCallbacks(runtime)
-          })
-      } catch (error) {
-        if (queuedMessageId) {
-          setRuntimeQueuedUserMessages(runtime, (prev) => prev.filter((queued) => queued.id !== queuedMessageId))
-        }
-        restoreComposerForRetry()
-        setRuntimeError(runtime, error instanceof Error ? error.message : String(error))
-      } finally {
-        runtime.promptPreparing = false
-        syncRuntimeSnapshot(runtime)
-        maybeDispatchAgentImageCallbacks(runtime)
-      }
-    })()
-    return true
+    return startAgentTurn(runtime, { draft, attachments, agentTurnId, stackId, stackTitle, clearComposer: true })
   }, [
     agentCredentialsRef,
-    applyAgentRuntimeConfig,
     cancelRuntimeQuestion,
     getCurrentRuntime,
-    invalidateGenerationKey,
     isCurrentRuntime,
-    maybeDispatchAgentImageCallbacks,
-    patchGenerationJobsForStackTitle,
-    requestSessionTitle,
     scheduleRuntimeSidecarPersist,
     setAgentAttachmentError,
     setAgentAttachments,
     setAgentDraft,
-    setAgentIsStreaming,
     setRuntimeQueuedUserMessages,
     setRuntimeError,
+    startAgentTurn,
     syncRuntimeSnapshot,
-    upsertAgentSessionSummary,
   ])
+
+  const updateQueuedUserMessage = useCallback(
+    (id: string, draft: string) => {
+      const runtime = getCurrentRuntime()
+      if (!runtime) return
+      setRuntimeQueuedUserMessages(runtime, (prev) =>
+        prev.map((queued) => {
+          if (queued.id !== id) return queued
+          if (!draft.trim() && queued.attachments.length === 0) return queued
+          const promptBody = draft.trim() || translate('agentChat.slash.imageOnlyPrompt')
+          return {
+            ...queued,
+            draft,
+            stackTitle: stackTitleForPrompt(promptBody),
+            message: buildQueuedPreviewMessage(draft, queued.attachments),
+          }
+        }),
+      )
+      scheduleRuntimeSidecarPersist(runtime)
+    },
+    [getCurrentRuntime, scheduleRuntimeSidecarPersist, setRuntimeQueuedUserMessages],
+  )
 
   const stopAgentMessage = useCallback(() => {
     getCurrentRuntime()?.agent.abort()
@@ -381,5 +484,5 @@ export function useAgentMessageSender({
     [getCurrentRuntime, scheduleRuntimeSidecarPersist, setAgentDraft],
   )
 
-  return { sendAgentMessage, stopAgentMessage, setCurrentAgentDraft }
+  return { sendAgentMessage, stopAgentMessage, setCurrentAgentDraft, updateQueuedUserMessage }
 }

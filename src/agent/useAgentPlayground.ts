@@ -354,7 +354,7 @@ export function useAgentPlayground({
     runWebFetchTool,
   ])
 
-  const { sendAgentMessage, stopAgentMessage, setCurrentAgentDraft } = useAgentMessageSender({
+  const { sendAgentMessage, stopAgentMessage, setCurrentAgentDraft, updateQueuedUserMessage } = useAgentMessageSender({
     agentCredentialsRef,
     getCurrentRuntime,
     isCurrentRuntime,
@@ -433,6 +433,7 @@ export function useAgentPlayground({
     clearAgentAttachmentError,
     sendAgentMessage,
     stopAgentMessage,
+    updateQueuedUserMessage,
     clearAgentChat,
     approveAgentImageTask,
     cancelAgentImageTask,

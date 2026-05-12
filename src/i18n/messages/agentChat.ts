@@ -47,6 +47,10 @@ export const agentChatMessages: MessageDictionary = {
   'agentChat.message.copy': { 'zh-CN': '复制', en: 'Copy' },
   'agentChat.message.copied': { 'zh-CN': '已复制', en: 'Copied' },
   'agentChat.message.queued': { 'zh-CN': '排队中', en: 'Queued' },
+  'agentChat.message.queuedCount': { 'zh-CN': '{count} 条排队中', en: '{count} Queued' },
+  'agentChat.message.edit': { 'zh-CN': '编辑', en: 'Edit' },
+  'agentChat.message.editSave': { 'zh-CN': '保存', en: 'Save' },
+  'agentChat.message.editCancel': { 'zh-CN': '取消', en: 'Cancel' },
   'agentChat.message.scrollToUserMessage': { 'zh-CN': '滚动到这条用户消息', en: 'Scroll to this user message' },
   'agentChat.error.requestAborted': { 'zh-CN': '请求已中断', en: 'Request was aborted' },
   'agentChat.composer.placeholder.questionPending': {

@@ -1,12 +1,23 @@
 import type { AppMessage as AgentMessage } from '@mariozechner/pi-agent'
-import { memo, useCallback, useLayoutEffect, useMemo, useRef, useState, type DragEvent } from 'react'
+import {
+  memo,
+  useCallback,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type DragEvent,
+  type KeyboardEvent,
+} from 'react'
 import { flushSync } from 'react-dom'
 
 import {
   agentMessageError,
+  agentMessageImages,
   agentMessageRole,
   agentMessageText,
   displayNameForLanguage,
+  imageDataUrl,
   stripSystemDirectives,
   type AgentChatAttachment,
   type AgentImageTask,
@@ -83,6 +94,7 @@ type Props = {
   onThinkingLevelChange: (level: AgentThinkingLevel) => void
   onSend: () => boolean
   onStop: () => void
+  onUpdateQueuedMessage: (id: string, draft: string) => void
   wideLayout?: boolean
 }
 
@@ -100,13 +112,122 @@ function AgentRunningIndicator({ label }: { label: string }) {
   )
 }
 
-const QueuedMessageBubble = memo(function QueuedMessageBubble({ queued }: { queued: AgentQueuedUserMessage }) {
-  return <MessageBubble message={queued.message} isStreaming={false} isQueued />
+const QueuedMessagesCard = memo(function QueuedMessagesCard({
+  queuedMessages,
+  onUpdateQueuedMessage,
+}: {
+  queuedMessages: AgentQueuedUserMessage[]
+  onUpdateQueuedMessage: (id: string, draft: string) => void
+}) {
+  const { t } = useI18n()
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editingDraft, setEditingDraft] = useState('')
+  const label =
+    queuedMessages.length === 1
+      ? t('agentChat.message.queued')
+      : t('agentChat.message.queuedCount', { count: queuedMessages.length })
+
+  const startEditing = (queued: AgentQueuedUserMessage) => {
+    setEditingId(queued.id)
+    setEditingDraft(queued.draft)
+  }
+
+  const cancelEditing = () => {
+    setEditingId(null)
+    setEditingDraft('')
+  }
+
+  const saveEditing = () => {
+    if (!editingId) return
+    onUpdateQueuedMessage(editingId, editingDraft)
+    cancelEditing()
+  }
+
+  return (
+    <div className="flex justify-end">
+      <div className="max-h-[min(280px,calc(100svh-220px))] w-full overflow-y-auto rounded-[var(--radius-lg)] bg-(--bubble-user-bg) px-3 py-2.5 text-(--color-text) shadow-[var(--bubble-user-edge)]">
+        <div className="mb-2 flex items-center justify-between gap-3 text-base font-semibold text-(--color-text-2)">
+          <span>{label}</span>
+        </div>
+        <div className="space-y-2">
+          {queuedMessages.map((queued, queuedIndex) => {
+            const editing = editingId === queued.id
+            const visibleText = stripSystemDirectives(agentMessageText(queued.message)).trim()
+            const images = agentMessageImages(queued.message)
+            return (
+              <div
+                key={queued.id}
+                className={queuedIndex === 0 ? '' : 'pt-2 shadow-[inset_0_1px_0_var(--ring-edge-soft)]'}
+              >
+                {images.length > 0 ? (
+                  <div className={`${visibleText ? 'mb-2' : ''} grid max-w-[360px] grid-cols-3 gap-1.5`}>
+                    {images.map((image, imageIndex) => (
+                      <img
+                        key={imageIndex}
+                        src={imageDataUrl(image)}
+                        alt={t('agentChat.imageAlt.message', { index: imageIndex + 1 })}
+                        className="aspect-square rounded-[var(--radius-sm)] object-cover shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]"
+                      />
+                    ))}
+                  </div>
+                ) : null}
+                {editing ? (
+                  <div className="space-y-2">
+                    <textarea
+                      value={editingDraft}
+                      onChange={(event) => setEditingDraft(event.target.value)}
+                      onKeyDown={(event: KeyboardEvent<HTMLTextAreaElement>) => {
+                        if (event.nativeEvent.isComposing) return
+                        if (event.key !== 'Enter' || event.shiftKey || event.metaKey || event.ctrlKey || event.altKey) {
+                          return
+                        }
+                        event.preventDefault()
+                        if (editingDraft.trim() || images.length > 0) saveEditing()
+                      }}
+                      rows={Math.min(6, Math.max(2, editingDraft.split('\n').length))}
+                      className="block max-h-[180px] min-h-[72px] w-full resize-none rounded-[var(--radius-sm)] bg-(--color-surface) px-2.5 py-2 text-base leading-[1.55] text-(--color-text) shadow-[inset_0_0_0_1px_var(--ring-edge)] outline-none transition-shadow focus:shadow-[inset_0_0_0_1px_var(--ring-edge-strong)]"
+                    />
+                    <div className="flex justify-end gap-1.5">
+                      <button type="button" onClick={cancelEditing} className="chip h-[26px] px-2 text-xs">
+                        {t('agentChat.message.editCancel')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={saveEditing}
+                        disabled={!editingDraft.trim() && images.length === 0}
+                        className="chip selected h-[26px] px-2 text-xs disabled:pointer-events-none disabled:opacity-45"
+                      >
+                        {t('agentChat.message.editSave')}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="group/queued-item flex items-start gap-2">
+                    {visibleText ? (
+                      <div className="min-w-0 flex-1 whitespace-pre-wrap text-base leading-[1.58]">{visibleText}</div>
+                    ) : null}
+                    <button
+                      type="button"
+                      onClick={() => startEditing(queued)}
+                      className="mt-0.5 shrink-0 rounded-[var(--radius-sm)] bg-transparent px-1.5 py-0.5 text-xs font-medium text-(--color-text-4) opacity-100 transition-[background-color,color,opacity] duration-150 hover:bg-(--color-surface-2) hover:text-(--color-text-2) md:opacity-0 md:group-hover/queued-item:opacity-100 md:group-focus-within/queued-item:opacity-100"
+                    >
+                      {t('agentChat.message.edit')}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
 })
 
 const AUTO_FOLLOW_DETACH_DISTANCE = 2
 const AUTO_FOLLOW_REJOIN_DISTANCE = 16
 const AUTO_FOLLOW_SCROLL_EPSILON = 0.5
+const QUEUED_MESSAGES_FLOAT_GAP = 8
 
 function getScrollBottomDistance(el: HTMLElement): number {
   return Math.max(0, el.scrollHeight - el.scrollTop - el.clientHeight)
@@ -164,6 +285,7 @@ export function AgentChatPanel({
   onThinkingLevelChange,
   onSend,
   onStop,
+  onUpdateQueuedMessage,
   wideLayout = false,
 }: Props) {
   const { t, language } = useI18n()
@@ -177,9 +299,11 @@ export function AgentChatPanel({
   const runningIndicatorRef = useRef<HTMLDivElement>(null)
   const runningIndicatorHeightRef = useRef(0)
   const showRunningIndicatorRef = useRef(false)
+  const floatingQueuedMessagesRef = useRef<HTMLDivElement>(null)
   const [openMenu, setOpenMenu] = useState<AgentChatMenu>(null)
   const [nearBottom, setNearBottom] = useState(true)
   const [bottomReserveHeight, setBottomReserveHeightState] = useState(0)
+  const [floatingQueuedMessagesHeight, setFloatingQueuedMessagesHeight] = useState(0)
   const [optimisticRunning, setOptimisticRunning] = useState(false)
 
   const currentKeyStatus = keyStatuses[model.provider]
@@ -225,6 +349,10 @@ export function AgentChatPanel({
   const showStop = isAgentActivelyRunning && !hasComposerContent
   const showRunningIndicator = isAgentActivelyRunning && !streamingAssistantHasVisibleText
   const scrollButtonBusy = isAgentActivelyRunning || hasGeneratingImageTask
+  const hasFloatingQueuedMessages = queuedMessages.length > 0
+  const floatingQueuedMessagesReserveHeight = hasFloatingQueuedMessages
+    ? floatingQueuedMessagesHeight + QUEUED_MESSAGES_FLOAT_GAP
+    : 0
   const titledAssistantMessages = useMemo(() => {
     const titled = new WeakSet<AgentMessage>()
     let nextVisibleAssistantStartsTurn = false
@@ -330,6 +458,28 @@ export function AgentChatPanel({
 
   const reserveThinkingCollapseSpace = reserveBottomSpace
 
+  useLayoutEffect(() => {
+    if (!hasFloatingQueuedMessages) {
+      setFloatingQueuedMessagesHeight((height) => (height === 0 ? height : 0))
+      return
+    }
+
+    const node = floatingQueuedMessagesRef.current
+    if (!node) return
+
+    const updateHeight = () => {
+      const next = Math.ceil(node.getBoundingClientRect().height)
+      setFloatingQueuedMessagesHeight((height) => (height === next ? height : next))
+    }
+
+    updateHeight()
+    if (typeof ResizeObserver === 'undefined') return
+
+    const observer = new ResizeObserver(updateHeight)
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [hasFloatingQueuedMessages])
+
   const handleInsertText = useCallback(
     (text: string) => {
       const trimmedAddition = text.trim()
@@ -414,6 +564,7 @@ export function AgentChatPanel({
   }, [
     bottomReserveHeight,
     currentSessionId,
+    floatingQueuedMessagesReserveHeight,
     visibleMessages.length,
     queuedMessages.length,
     streamingMessage,
@@ -516,6 +667,7 @@ export function AgentChatPanel({
   const contentLayoutClass = isEmpty
     ? `flex min-w-0 flex-col my-auto md:my-0 ${contentRightPaddingClass}`
     : `space-y-4 ${contentRightPaddingClass}`
+  const scrollContentBottomPadding = bottomReserveHeight + floatingQueuedMessagesReserveHeight
   const composer = (
     <AgentChatComposer
       ref={composerRef}
@@ -527,6 +679,7 @@ export function AgentChatPanel({
       pendingQuestionCount={pendingQuestions.length}
       renderItemCount={renderItems.length + queuedMessages.length}
       scrollButtonBusy={scrollButtonBusy}
+      scrollButtonBottomOffset={floatingQueuedMessagesReserveHeight}
       nearBottom={nearBottom}
       openMenu={openMenu}
       setOpenMenu={setOpenMenu}
@@ -677,7 +830,9 @@ export function AgentChatPanel({
         >
           <div
             className={contentLayoutClass}
-            style={!isEmpty && bottomReserveHeight > 0 ? { paddingBottom: bottomReserveHeight } : undefined}
+            style={
+              !isEmpty && scrollContentBottomPadding > 0 ? { paddingBottom: scrollContentBottomPadding } : undefined
+            }
           >
             {isEmpty ? (
               <AgentChatEmptyState
@@ -725,9 +880,6 @@ export function AgentChatPanel({
                     />
                   ),
                 )}
-                {queuedMessages.map((queued) => (
-                  <QueuedMessageBubble key={queued.id} queued={queued} />
-                ))}
                 {showRunningIndicator ? (
                   <div ref={runningIndicatorRef}>
                     <AgentRunningIndicator label={t('agentChat.status.running')} />
@@ -745,7 +897,14 @@ export function AgentChatPanel({
               className="pointer-events-none absolute inset-x-0 bottom-full z-0 h-8 bg-[linear-gradient(to_top,color-mix(in_srgb,var(--color-bg)_72%,transparent)_0%,color-mix(in_srgb,var(--color-bg)_42%,transparent)_42%,transparent_100%)]"
             />
           ) : null}
-          <div className={`relative z-10${isEmpty ? ' mx-auto w-full max-w-[980px]' : ''}`}>{composer}</div>
+          <div className={`relative z-10${isEmpty ? ' mx-auto w-full max-w-[980px]' : ''}`}>
+            {hasFloatingQueuedMessages ? (
+              <div ref={floatingQueuedMessagesRef} className="absolute inset-x-0 bottom-[calc(100%+8px)] z-20">
+                <QueuedMessagesCard queuedMessages={queuedMessages} onUpdateQueuedMessage={onUpdateQueuedMessage} />
+              </div>
+            ) : null}
+            {composer}
+          </div>
         </div>
 
         {isEmpty ? (

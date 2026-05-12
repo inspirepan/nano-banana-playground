@@ -295,6 +295,7 @@ export function DesktopLayout({
               onThinkingLevelChange={inputPanelProps.onAgentThinkingLevelChange}
               onSend={inputPanelProps.onSendAgentMessage}
               onStop={inputPanelProps.onStopAgentMessage}
+              onUpdateQueuedMessage={inputPanelProps.onUpdateQueuedAgentMessage}
               wideLayout
             />
           </div>

@@ -5,11 +5,13 @@ export function ComposerScrollButton({
   busy,
   nearBottom,
   renderItemCount,
+  bottomOffset = 0,
   onScrollToBottom,
 }: {
   busy: boolean
   nearBottom: boolean
   renderItemCount: number
+  bottomOffset?: number
   onScrollToBottom: () => void
 }) {
   const { t } = useI18n()
@@ -21,7 +23,8 @@ export function ComposerScrollButton({
       type="button"
       onClick={onScrollToBottom}
       aria-label={t('agentChat.composer.scrollToBottom')}
-      className="absolute bottom-[calc(100%+8px)] left-1/2 z-50 flex h-8 w-8 -translate-x-1/2 items-center justify-center rounded-full bg-(--color-surface) text-(--color-text-2) shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-lift)] transition-all duration-150 hover:bg-(--color-surface-2) hover:text-(--color-text)"
+      className="absolute left-1/2 z-50 flex h-8 w-8 -translate-x-1/2 items-center justify-center rounded-full bg-(--color-surface) text-(--color-text-2) shadow-[0_0_0_1px_var(--ring-edge),var(--shadow-lift)] transition-all duration-150 hover:bg-(--color-surface-2) hover:text-(--color-text)"
+      style={{ bottom: `calc(100% + ${8 + bottomOffset}px)` }}
     >
       {busy ? (
         <span

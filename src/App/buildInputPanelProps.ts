@@ -85,6 +85,7 @@ export function buildSharedInputPanelProps({
     onFocusAgentImageTask,
     onSendAgentMessage: pg.sendAgentMessage,
     onStopAgentMessage: pg.stopAgentMessage,
+    onUpdateQueuedAgentMessage: pg.updateQueuedUserMessage,
     onBatchCountChange: pg.setBatchCount,
     onOptionChange: pg.setOption,
     onAddReferenceImages: pg.addReferenceImages,

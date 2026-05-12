@@ -85,6 +85,7 @@ type Props = {
   onFocusAgentImageTask?: AgentImageTaskFocusHandler
   onSendAgentMessage: () => boolean
   onStopAgentMessage: () => void
+  onUpdateQueuedAgentMessage: (id: string, draft: string) => void
   onBatchCountChange: (v: number) => void
   onOptionChange: (id: string, value: unknown) => void
   onAddReferenceImages: (files: File[]) => void
@@ -152,6 +153,7 @@ export function InputPanel({
   onFocusAgentImageTask,
   onSendAgentMessage,
   onStopAgentMessage,
+  onUpdateQueuedAgentMessage,
   onBatchCountChange,
   onOptionChange,
   onAddReferenceImages,
@@ -260,6 +262,7 @@ export function InputPanel({
           onAgentThinkingLevelChange={onAgentThinkingLevelChange}
           onSendAgentMessage={onSendAgentMessage}
           onStopAgentMessage={onStopAgentMessage}
+          onUpdateQueuedAgentMessage={onUpdateQueuedAgentMessage}
         />
       ) : (
         <GenerateModeView

@@ -35,6 +35,8 @@ export type AgentQuestionResolver = {
 export type AgentQueuedUserMessage = {
   id: string
   message: AgentMessage
+  draft: string
+  attachments: AgentChatAttachment[]
   agentTurnId: string
   stackId: string
   stackTitle: string

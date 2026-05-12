@@ -62,6 +62,7 @@ type Props = {
   onAgentThinkingLevelChange: (level: AgentThinkingLevel) => void
   onSendAgentMessage: () => boolean
   onStopAgentMessage: () => void
+  onUpdateQueuedAgentMessage: (id: string, draft: string) => void
 }
 
 export function AgentModeView({
@@ -107,6 +108,7 @@ export function AgentModeView({
   onAgentThinkingLevelChange,
   onSendAgentMessage,
   onStopAgentMessage,
+  onUpdateQueuedAgentMessage,
 }: Props) {
   return (
     <AgentChatPanel
@@ -152,6 +154,7 @@ export function AgentModeView({
       onThinkingLevelChange={onAgentThinkingLevelChange}
       onSend={onSendAgentMessage}
       onStop={onStopAgentMessage}
+      onUpdateQueuedMessage={onUpdateQueuedAgentMessage}
     />
   )
 }
