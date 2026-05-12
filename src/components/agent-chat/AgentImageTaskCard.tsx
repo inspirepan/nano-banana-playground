@@ -556,6 +556,7 @@ export function AgentImageTaskCard({
         <span>{taskStatusLabel(status)}</span>
       </span>
     ) : null
+  const progressStatusNode = activeStatusNode ?? waitingStatusNode
 
   // Result / skeleton grid for non-completed, active states.
   const renderInProgressGrid = () => {
@@ -766,10 +767,12 @@ export function AgentImageTaskCard({
                 {failedStatusNode}
               </div>
             )}
-            {(activeStatusNode || waitingStatusNode || paramTags) && (
-              <div className="flex min-w-0 items-start justify-between gap-2 md:ml-auto md:shrink-0">
-                <div className="flex min-w-0 items-center">{activeStatusNode ?? waitingStatusNode}</div>
-                <div className="flex flex-wrap items-center justify-end gap-x-2 gap-y-1">{paramTags}</div>
+            {(progressStatusNode || paramTags) && (
+              <div className="flex min-w-0 items-start justify-start gap-2 md:ml-auto md:shrink-0 md:justify-between">
+                {progressStatusNode && <div className="flex min-w-0 items-center">{progressStatusNode}</div>}
+                <div className="flex flex-wrap items-center justify-start gap-x-2 gap-y-1 md:justify-end">
+                  {paramTags}
+                </div>
               </div>
             )}
           </div>
