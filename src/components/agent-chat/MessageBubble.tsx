@@ -43,7 +43,6 @@ export function MessageBubble({
   assistantTitle,
   hideCopyAction = false,
   onOpenImageTaskImage,
-  onThinkingAutoCollapseReserve,
 }: {
   message: AgentMessage
   isStreaming: boolean
@@ -51,7 +50,6 @@ export function MessageBubble({
   assistantTitle?: string
   hideCopyAction?: boolean
   onOpenImageTaskImage?: (toolCallId: string, imageId: string) => void
-  onThinkingAutoCollapseReserve?: (height: number) => boolean
 }) {
   const { t } = useI18n()
   const [copied, setCopied] = useState(false)
@@ -177,7 +175,6 @@ export function MessageBubble({
               isStreaming={isStreaming}
               hasTrailingContent={hasAssistantTrailingContent}
               hasInlineTrailingContent={hasAssistantInlineTrailingContent}
-              onAutoCollapseReserve={onThinkingAutoCollapseReserve}
             />
           ) : null}
           {isUser ? (

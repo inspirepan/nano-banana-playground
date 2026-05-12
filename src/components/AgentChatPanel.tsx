@@ -8,6 +8,7 @@ import {
   useState,
   type DragEvent,
   type KeyboardEvent,
+  type ReactNode,
 } from 'react'
 import { flushSync } from 'react-dom'
 
@@ -228,6 +229,7 @@ const AUTO_FOLLOW_DETACH_DISTANCE = 2
 const AUTO_FOLLOW_REJOIN_DISTANCE = 16
 const AUTO_FOLLOW_SCROLL_EPSILON = 0.5
 const QUEUED_MESSAGES_FLOAT_GAP = 8
+const HEIGHT_CHANGE_EPSILON = 0.5
 
 function getScrollBottomDistance(el: HTMLElement): number {
   return Math.max(0, el.scrollHeight - el.scrollTop - el.clientHeight)
@@ -239,6 +241,52 @@ function getOuterHeight(el: HTMLElement): number {
     el.getBoundingClientRect().height +
     Number.parseFloat(style.marginTop || '0') +
     Number.parseFloat(style.marginBottom || '0')
+  )
+}
+
+type DetachedShrinkRequest = {
+  height: number
+  previousBottom: number
+}
+
+function StableChatItem({
+  children,
+  onShrink,
+}: {
+  children: ReactNode
+  onShrink: (request: DetachedShrinkRequest) => void
+}) {
+  const ref = useRef<HTMLDivElement>(null)
+  const lastRectRef = useRef<{ width: number; height: number; bottom: number } | null>(null)
+
+  useLayoutEffect(() => {
+    const node = ref.current
+    if (!node) return
+
+    const measure = () => {
+      const rect = node.getBoundingClientRect()
+      const previous = lastRectRef.current
+      lastRectRef.current = { width: rect.width, height: rect.height, bottom: rect.bottom }
+      if (!previous) return
+
+      const widthChanged = Math.abs(rect.width - previous.width) > 1
+      const heightDelta = previous.height - rect.height
+      if (widthChanged || heightDelta <= HEIGHT_CHANGE_EPSILON) return
+      onShrink({ height: heightDelta, previousBottom: previous.bottom })
+    }
+
+    measure()
+    if (typeof ResizeObserver === 'undefined') return
+
+    const observer = new ResizeObserver(measure)
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [onShrink])
+
+  return (
+    <div ref={ref} className="[overflow-anchor:none]">
+      {children}
+    </div>
   )
 }
 
@@ -290,11 +338,12 @@ export function AgentChatPanel({
 }: Props) {
   const { t, language } = useI18n()
   const scrollRef = useRef<HTMLDivElement>(null)
+  const transcriptRef = useRef<HTMLDivElement>(null)
   const controlsRef = useRef<HTMLDivElement>(null)
   const composerRef = useRef<AgentChatComposerHandle>(null)
   const nearBottomRef = useRef(true)
   const lastScrollTopRef = useRef(0)
-  const lastScrollHeightRef = useRef<number | null>(null)
+  const lastTranscriptHeightRef = useRef<number | null>(null)
   const bottomReserveHeightRef = useRef(0)
   const runningIndicatorRef = useRef<HTMLDivElement>(null)
   const runningIndicatorHeightRef = useRef(0)
@@ -443,8 +492,8 @@ export function AgentChatPanel({
   const reserveBottomSpace = useCallback(
     (height: number): boolean => {
       const el = scrollRef.current
-      if (!el || !nearBottomRef.current || height <= 0) return false
-      if (getScrollBottomDistance(el) > AUTO_FOLLOW_REJOIN_DISTANCE) return false
+      if (!el || height <= HEIGHT_CHANGE_EPSILON) return false
+      if (!nearBottomRef.current || getScrollBottomDistance(el) > AUTO_FOLLOW_REJOIN_DISTANCE) return false
 
       const reserve = Math.min(Math.ceil(height), el.clientHeight)
       if (reserve <= 0) return false
@@ -456,7 +505,17 @@ export function AgentChatPanel({
     [setBottomReserveHeight],
   )
 
-  const reserveThinkingCollapseSpace = reserveBottomSpace
+  const preserveDetachedItemShrink = useCallback(({ height, previousBottom }: DetachedShrinkRequest) => {
+    const el = scrollRef.current
+    if (!el || height <= HEIGHT_CHANGE_EPSILON) return
+    if (nearBottomRef.current || getScrollBottomDistance(el) <= AUTO_FOLLOW_REJOIN_DISTANCE) return
+
+    const scrollRect = el.getBoundingClientRect()
+    if (previousBottom > scrollRect.top + HEIGHT_CHANGE_EPSILON) return
+
+    el.scrollTop = Math.max(0, el.scrollTop - height)
+    lastScrollTopRef.current = el.scrollTop
+  }, [])
 
   useLayoutEffect(() => {
     if (!hasFloatingQueuedMessages) {
@@ -519,11 +578,44 @@ export function AgentChatPanel({
 
   useLayoutEffect(() => {
     setBottomReserveHeight(0)
-    lastScrollHeightRef.current = null
+    lastTranscriptHeightRef.current = null
     runningIndicatorHeightRef.current = 0
     showRunningIndicatorRef.current = false
     setNearBottomValue(true)
   }, [currentSessionId, setBottomReserveHeight, setNearBottomValue])
+
+  useLayoutEffect(() => {
+    const transcript = transcriptRef.current
+    if (!transcript || isEmpty) {
+      lastTranscriptHeightRef.current = null
+      return
+    }
+
+    const measure = () => {
+      const nextHeight = transcript.getBoundingClientRect().height
+      const previousHeight = lastTranscriptHeightRef.current
+      lastTranscriptHeightRef.current = nextHeight
+      if (previousHeight === null) return
+
+      const heightDelta = nextHeight - previousHeight
+      if (heightDelta < -HEIGHT_CHANGE_EPSILON) {
+        reserveBottomSpace(-heightDelta)
+        return
+      }
+      if (heightDelta <= HEIGHT_CHANGE_EPSILON || bottomReserveHeightRef.current <= 0) return
+
+      const consumed = Math.min(Math.ceil(heightDelta), bottomReserveHeightRef.current)
+      if (consumed <= 0) return
+      flushSync(() => setBottomReserveHeight(bottomReserveHeightRef.current - consumed))
+    }
+
+    measure()
+    if (typeof ResizeObserver === 'undefined') return
+
+    const observer = new ResizeObserver(measure)
+    observer.observe(transcript)
+    return () => observer.disconnect()
+  }, [isEmpty, reserveBottomSpace, setBottomReserveHeight])
 
   useLayoutEffect(() => {
     const el = scrollRef.current
@@ -537,27 +629,11 @@ export function AgentChatPanel({
       const reserved = reserveBottomSpace(runningIndicatorHeightRef.current)
       runningIndicatorHeightRef.current = 0
       showRunningIndicatorRef.current = false
-      if (reserved) {
-        lastScrollHeightRef.current = null
-        return
-      }
+      if (reserved) return
     }
     showRunningIndicatorRef.current = showRunningIndicator
 
     bottomReserveHeightRef.current = bottomReserveHeight
-    const previousScrollHeight = lastScrollHeightRef.current
-    const currentScrollHeight = el.scrollHeight
-    if (previousScrollHeight !== null) {
-      const heightDelta = currentScrollHeight - previousScrollHeight
-      if (heightDelta > 0 && bottomReserveHeight > 0) {
-        const consumed = Math.min(heightDelta, bottomReserveHeight)
-        setBottomReserveHeight(bottomReserveHeight - consumed)
-        lastScrollHeightRef.current = currentScrollHeight - consumed
-        return
-      }
-    }
-
-    lastScrollHeightRef.current = currentScrollHeight
     if (!nearBottomRef.current) return
     el.scrollTop = el.scrollHeight
     lastScrollTopRef.current = el.scrollTop
@@ -571,7 +647,6 @@ export function AgentChatPanel({
     showRunningIndicator,
     renderItems,
     reserveBottomSpace,
-    setBottomReserveHeight,
   ])
 
   const scrollToBottom = useCallback(() => {
@@ -666,8 +741,8 @@ export function AgentChatPanel({
   // by the padding amount even when there is nothing to scroll).
   const contentLayoutClass = isEmpty
     ? `flex min-w-0 flex-col my-auto md:my-0 ${contentRightPaddingClass}`
-    : `space-y-4 ${contentRightPaddingClass}`
-  const scrollContentBottomPadding = bottomReserveHeight + floatingQueuedMessagesReserveHeight
+    : contentRightPaddingClass
+  const scrollContentBottomSpacerHeight = bottomReserveHeight + floatingQueuedMessagesReserveHeight
   const composer = (
     <AgentChatComposer
       ref={composerRef}
@@ -825,15 +900,10 @@ export function AgentChatPanel({
           className={`min-h-0 ${
             isEmpty
               ? 'flex flex-1 flex-col overflow-y-auto pt-5 pb-4 md:mb-20 md:w-full md:self-end md:overflow-visible md:pt-0 md:pb-0 xl:mb-24'
-              : scrollBodyClass
+              : `${scrollBodyClass} [overflow-anchor:none]`
           }`}
         >
-          <div
-            className={contentLayoutClass}
-            style={
-              !isEmpty && scrollContentBottomPadding > 0 ? { paddingBottom: scrollContentBottomPadding } : undefined
-            }
-          >
+          <div className={contentLayoutClass}>
             {isEmpty ? (
               <AgentChatEmptyState
                 drawingSkills={drawingSkills}
@@ -850,40 +920,46 @@ export function AgentChatPanel({
               />
             ) : (
               <>
-                {renderItems.map((item) =>
-                  item.type === 'message' ? (
-                    <MessageBubble
-                      key={item.key}
-                      message={item.message}
-                      isStreaming={item.isStreaming}
-                      assistantTitle={assistantTitleFor(item.message, item.isStreaming)}
-                      onOpenImageTaskImage={handleOpenImageTaskImage}
-                      onThinkingAutoCollapseReserve={reserveThinkingCollapseSpace}
-                    />
-                  ) : (
-                    <ToolActivityCard
-                      key={item.key}
-                      calls={item.calls}
-                      results={item.results}
-                      imageTaskByToolCallId={imageTaskByToolCallId}
-                      stackItemByImageId={stackItemByImageId}
-                      stackItemNumberByImageId={stackItemNumberByImageId}
-                      pendingQuestionByToolCallId={pendingQuestionByToolCallId}
-                      isStreaming={item.isStreaming}
-                      autoApproveImageTasks={autoApproveImageTasks}
-                      onApproveImageTask={onApproveImageTask}
-                      onCancelImageTask={onCancelImageTask}
-                      onToggleAutoApproveImageTasks={onToggleAutoApproveImageTasks}
-                      onSubmitQuestionAnswers={onSubmitQuestionAnswers}
-                      onCancelQuestion={onCancelQuestion}
-                      onFocusImageTask={onFocusImageTask}
-                    />
-                  ),
-                )}
-                {showRunningIndicator ? (
-                  <div ref={runningIndicatorRef}>
-                    <AgentRunningIndicator label={t('agentChat.status.running')} />
-                  </div>
+                <div ref={transcriptRef} className="space-y-4">
+                  {renderItems.map((item) =>
+                    item.type === 'message' ? (
+                      <StableChatItem key={item.key} onShrink={preserveDetachedItemShrink}>
+                        <MessageBubble
+                          message={item.message}
+                          isStreaming={item.isStreaming}
+                          assistantTitle={assistantTitleFor(item.message, item.isStreaming)}
+                          onOpenImageTaskImage={handleOpenImageTaskImage}
+                        />
+                      </StableChatItem>
+                    ) : (
+                      <StableChatItem key={item.key} onShrink={preserveDetachedItemShrink}>
+                        <ToolActivityCard
+                          calls={item.calls}
+                          results={item.results}
+                          imageTaskByToolCallId={imageTaskByToolCallId}
+                          stackItemByImageId={stackItemByImageId}
+                          stackItemNumberByImageId={stackItemNumberByImageId}
+                          pendingQuestionByToolCallId={pendingQuestionByToolCallId}
+                          isStreaming={item.isStreaming}
+                          autoApproveImageTasks={autoApproveImageTasks}
+                          onApproveImageTask={onApproveImageTask}
+                          onCancelImageTask={onCancelImageTask}
+                          onToggleAutoApproveImageTasks={onToggleAutoApproveImageTasks}
+                          onSubmitQuestionAnswers={onSubmitQuestionAnswers}
+                          onCancelQuestion={onCancelQuestion}
+                          onFocusImageTask={onFocusImageTask}
+                        />
+                      </StableChatItem>
+                    ),
+                  )}
+                  {showRunningIndicator ? (
+                    <div ref={runningIndicatorRef}>
+                      <AgentRunningIndicator label={t('agentChat.status.running')} />
+                    </div>
+                  ) : null}
+                </div>
+                {scrollContentBottomSpacerHeight > 0 ? (
+                  <div aria-hidden className="shrink-0" style={{ height: scrollContentBottomSpacerHeight }} />
                 ) : null}
               </>
             )}
