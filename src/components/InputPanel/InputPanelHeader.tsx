@@ -22,7 +22,7 @@ export function InputPanelHeader({
     <div
       role="tablist"
       aria-label={t('input.mode.aria')}
-      className="flex w-[224px] shrink-0 items-center gap-1 rounded-[var(--radius-md)] bg-(--color-surface-3) p-[2px] shadow-[inset_0_0_0_1px_var(--ring-edge)] dark:bg-(--color-surface)"
+      className="flex w-[224px] shrink-0 items-center gap-1 rounded-[var(--radius-md)] bg-(--color-surface-2) p-[2px] shadow-[inset_0_0_0_1px_var(--ring-edge)] dark:bg-(--color-surface)"
     >
       {[
         { mode: 'generate' as InputMode, label: t('input.mode.generate'), icon: 'wand' as const },

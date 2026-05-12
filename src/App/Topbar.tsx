@@ -32,7 +32,7 @@ export function Topbar({
         <div
           role="tablist"
           aria-label={t('app.mobilePanel')}
-          className="ml-3 flex min-w-0 w-[264px] max-w-[calc(100%-46px)] items-center gap-1 rounded-[var(--radius-md)] bg-(--color-surface-3) p-[2px] shadow-[inset_0_0_0_1px_var(--ring-edge)] dark:bg-(--color-surface)"
+          className="ml-3 flex min-w-0 w-[264px] max-w-[calc(100%-46px)] items-center gap-1 rounded-[var(--radius-md)] bg-(--color-surface-2) p-[2px] shadow-[inset_0_0_0_1px_var(--ring-edge)] dark:bg-(--color-surface)"
         >
           {tabs.map((tab) => {
             const active = mobileTab === tab.key
