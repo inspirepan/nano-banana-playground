@@ -17,6 +17,7 @@ import {
 import { useExternalSync, useResizeObserver, useWindowEvent } from '../../hooks/effects'
 import { useI18n } from '../../i18n'
 import { Icon } from '../Icon'
+import { Tooltip } from '../Tooltip'
 
 const PINCH_HANDOFF_THRESHOLD = 1.01
 const PINCH_FULLSCREEN_SCALE = 1.02
@@ -575,41 +576,44 @@ export function ZoomableImageView({
           backdropFilter: 'blur(10px)',
         }}
       >
-        <button
-          className="icon-btn"
-          onClick={zoomOutFromControl}
-          style={{ width: 24, height: 22 }}
-          title={t('imageDetail.zoom.out')}
-          aria-label={t('imageDetail.zoom.out')}
-        >
-          <Icon name="zoom_out_map" size={11} strokeWidth={1.8} />
-        </button>
-        <button
-          onClick={resetView}
-          className="text-sm font-medium"
-          title={t('imageDetail.zoom.resetHint')}
-          aria-label={t('imageDetail.zoom.resetHint')}
-          style={{
-            background: 'none',
-            border: 0,
-            color: 'var(--color-text-2)',
-            minWidth: 48,
-            textAlign: 'center',
-            padding: '0 4px',
-            cursor: 'pointer',
-          }}
-        >
-          {Math.round(scale * 100)}%
-        </button>
-        <button
-          className="icon-btn"
-          onClick={() => zoomAtPoint(scaleRef.current * 1.25, { x: 0, y: 0 })}
-          style={{ width: 24, height: 22 }}
-          title={t('imageDetail.zoom.in')}
-          aria-label={t('imageDetail.zoom.in')}
-        >
-          <Icon name="zoom_in" size={11} strokeWidth={1.8} />
-        </button>
+        <Tooltip text={t('imageDetail.zoom.out')} placement="top" className="inline-flex">
+          <button
+            className="icon-btn"
+            onClick={zoomOutFromControl}
+            style={{ width: 24, height: 22 }}
+            aria-label={t('imageDetail.zoom.out')}
+          >
+            <Icon name="zoom_out_map" size={11} strokeWidth={1.8} />
+          </button>
+        </Tooltip>
+        <Tooltip text={t('imageDetail.zoom.resetHint')} placement="top" className="inline-flex">
+          <button
+            onClick={resetView}
+            className="text-sm font-medium"
+            aria-label={t('imageDetail.zoom.resetHint')}
+            style={{
+              background: 'none',
+              border: 0,
+              color: 'var(--color-text-2)',
+              minWidth: 48,
+              textAlign: 'center',
+              padding: '0 4px',
+              cursor: 'pointer',
+            }}
+          >
+            {Math.round(scale * 100)}%
+          </button>
+        </Tooltip>
+        <Tooltip text={t('imageDetail.zoom.in')} placement="top" className="inline-flex">
+          <button
+            className="icon-btn"
+            onClick={() => zoomAtPoint(scaleRef.current * 1.25, { x: 0, y: 0 })}
+            style={{ width: 24, height: 22 }}
+            aria-label={t('imageDetail.zoom.in')}
+          >
+            <Icon name="zoom_in" size={11} strokeWidth={1.8} />
+          </button>
+        </Tooltip>
       </div>
     </div>
   )

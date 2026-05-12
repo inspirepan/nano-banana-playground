@@ -9,6 +9,7 @@ import type { ImageStack, StackItem, StackImageItem, StackSlotItem } from '../..
 import { Icon } from '../Icon'
 import { GridCell, ImageGrid } from '../ImageGrid'
 import { StackItemThumb } from '../StackItemThumb'
+import { Tooltip } from '../Tooltip'
 
 export type StackRowProps = {
   stack: ImageStack
@@ -46,32 +47,34 @@ type StackThumbActionsProps = {
 const StackThumbActions = memo(function StackThumbActions({ item, stackId, onEditItem, t }: StackThumbActionsProps) {
   return (
     <div className="pointer-events-none hidden items-center gap-1 opacity-[0.001] transition-opacity md:flex md:group-hover:pointer-events-auto md:group-hover:opacity-100 md:group-focus-within:pointer-events-auto md:group-focus-within:opacity-100 @max-[140px]/thumb:justify-end">
-      <button
-        type="button"
-        onClick={(event) => {
-          event.stopPropagation()
-          onEditItem(stackId, item)
-        }}
-        aria-label={t('common.edit')}
-        title={t('common.edit')}
-        className="media-action min-w-0 flex-1 px-2 @max-[140px]/thumb:size-7 @max-[140px]/thumb:flex-none @max-[140px]/thumb:justify-center @max-[140px]/thumb:px-0"
-      >
-        <Icon name="wand" size={11} strokeWidth={1.8} />
-        <span className="@max-[140px]/thumb:hidden">{t('common.edit')}</span>
-      </button>
-      <button
-        type="button"
-        onClick={(event) => {
-          event.stopPropagation()
-          void downloadImagePng(item.image)
-        }}
-        aria-label={t('common.download')}
-        title={t('common.download')}
-        className="media-action min-w-0 flex-1 px-2 @max-[140px]/thumb:size-7 @max-[140px]/thumb:flex-none @max-[140px]/thumb:justify-center @max-[140px]/thumb:px-0"
-      >
-        <Icon name="download" size={11} strokeWidth={1.8} />
-        <span className="@max-[140px]/thumb:hidden">{t('common.download')}</span>
-      </button>
+      <Tooltip text={t('common.edit')} placement="top" className="min-w-0 flex-1 @max-[140px]/thumb:flex-none">
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation()
+            onEditItem(stackId, item)
+          }}
+          aria-label={t('common.edit')}
+          className="media-action w-full min-w-0 px-2 @max-[140px]/thumb:size-7 @max-[140px]/thumb:justify-center @max-[140px]/thumb:px-0"
+        >
+          <Icon name="wand" size={11} strokeWidth={1.8} />
+          <span className="@max-[140px]/thumb:hidden">{t('common.edit')}</span>
+        </button>
+      </Tooltip>
+      <Tooltip text={t('common.download')} placement="top" className="min-w-0 flex-1 @max-[140px]/thumb:flex-none">
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation()
+            void downloadImagePng(item.image)
+          }}
+          aria-label={t('common.download')}
+          className="media-action w-full min-w-0 px-2 @max-[140px]/thumb:size-7 @max-[140px]/thumb:justify-center @max-[140px]/thumb:px-0"
+        >
+          <Icon name="download" size={11} strokeWidth={1.8} />
+          <span className="@max-[140px]/thumb:hidden">{t('common.download')}</span>
+        </button>
+      </Tooltip>
     </div>
   )
 })
@@ -221,23 +224,29 @@ export const StackRow = memo(function StackRow({
     <div className="group/stack w-full max-w-full min-w-0 overflow-hidden">
       <div className="w-full max-w-full min-w-0 px-3 py-2">
         <div className="mb-1 flex w-full min-w-0 flex-col gap-y-1 overflow-hidden">
-          {(stack.title || indexNumber !== undefined) && (
-            <span
-              className="block w-full min-w-0 truncate text-base font-medium leading-tight text-(--color-text-1) tracking-[-0.005em]"
-              title={stack.title}
-            >
-              {indexNumber !== undefined && (
-                <span className="mono mr-2 text-xs font-medium text-(--color-text-4) tabular-nums tracking-normal">
-                  #{String(indexNumber).padStart(2, '0')}
+          {(stack.title || indexNumber !== undefined) &&
+            (stack.title ? (
+              <Tooltip text={stack.title} placement="bottom" maxWidth={360} className="block w-full min-w-0">
+                <span className="block w-full min-w-0 truncate text-base font-medium leading-tight text-(--color-text-1) tracking-[-0.005em]">
+                  {indexNumber !== undefined && (
+                    <span className="mono mr-2 text-xs font-medium text-(--color-text-4) tabular-nums tracking-normal">
+                      #{String(indexNumber).padStart(2, '0')}
+                    </span>
+                  )}
+                  <span key={stack.title} className="title-fade-in">
+                    {stack.title}
+                  </span>
                 </span>
-              )}
-              {stack.title && (
-                <span key={stack.title} className="title-fade-in">
-                  {stack.title}
-                </span>
-              )}
-            </span>
-          )}
+              </Tooltip>
+            ) : (
+              <span className="block w-full min-w-0 truncate text-base font-medium leading-tight text-(--color-text-1) tracking-[-0.005em]">
+                {indexNumber !== undefined && (
+                  <span className="mono mr-2 text-xs font-medium text-(--color-text-4) tabular-nums tracking-normal">
+                    #{String(indexNumber).padStart(2, '0')}
+                  </span>
+                )}
+              </span>
+            ))}
           <div className="flex w-full min-w-0 flex-wrap items-center gap-x-2 gap-y-1 leading-none">
             <div className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-(--color-text-3)">
               <span className="shrink-0 tabular-nums">{formatTime(stack.updatedAt, t)}</span>
@@ -284,34 +293,36 @@ export const StackRow = memo(function StackRow({
                     : 'opacity-100 md:pointer-events-none md:opacity-0 md:group-hover/stack:pointer-events-auto md:group-hover/stack:opacity-100 md:group-focus-within/stack:pointer-events-auto md:group-focus-within/stack:opacity-100'
                 }`}
               >
-                <button
-                  type="button"
-                  onClick={handleDownloadStack}
-                  disabled={exporting}
-                  className={`chip ghost h-7 shrink-0 text-xs text-(--color-text-3) hover:text-(--color-text-1) ${compactHeader ? 'w-7 justify-center px-0' : 'px-2'}`}
-                  aria-label={t('common.download')}
-                  title={t('common.download')}
-                >
-                  <Icon name="download" size={11} strokeWidth={1.8} />
-                  {!compactHeader && (exporting ? t('output.exporting') : t('common.download'))}
-                </button>
-                <button
-                  ref={deleteButtonRef}
-                  type="button"
-                  onClick={handleDeleteStackImages}
-                  className={`chip h-7 shrink-0 text-xs ${
-                    deleteConfirming
-                      ? 'danger px-2'
-                      : `ghost text-(--color-text-3) hover:text-(--color-danger) ${compactHeader ? 'w-7 justify-center px-0' : 'px-2'}`
-                  }`}
-                  aria-label={t('output.deleteStack')}
-                  title={t('output.deleteStack')}
-                >
-                  <Icon name="trash" size={11} strokeWidth={1.8} />
-                  {deleteConfirming
-                    ? t('output.confirmDeleteStack', { count: stack.images.length })
-                    : !compactHeader && t('common.delete')}
-                </button>
+                <Tooltip text={t('common.download')} placement="top" className="shrink-0">
+                  <button
+                    type="button"
+                    onClick={handleDownloadStack}
+                    disabled={exporting}
+                    className={`chip ghost h-7 shrink-0 text-xs text-(--color-text-3) hover:text-(--color-text-1) ${compactHeader ? 'w-7 justify-center px-0' : 'px-2'}`}
+                    aria-label={t('common.download')}
+                  >
+                    <Icon name="download" size={11} strokeWidth={1.8} />
+                    {!compactHeader && (exporting ? t('output.exporting') : t('common.download'))}
+                  </button>
+                </Tooltip>
+                <Tooltip text={t('output.deleteStack')} placement="top" className="shrink-0">
+                  <button
+                    ref={deleteButtonRef}
+                    type="button"
+                    onClick={handleDeleteStackImages}
+                    className={`chip h-7 shrink-0 text-xs ${
+                      deleteConfirming
+                        ? 'danger px-2'
+                        : `ghost text-(--color-text-3) hover:text-(--color-danger) ${compactHeader ? 'w-7 justify-center px-0' : 'px-2'}`
+                    }`}
+                    aria-label={t('output.deleteStack')}
+                  >
+                    <Icon name="trash" size={11} strokeWidth={1.8} />
+                    {deleteConfirming
+                      ? t('output.confirmDeleteStack', { count: stack.images.length })
+                      : !compactHeader && t('common.delete')}
+                  </button>
+                </Tooltip>
               </div>
             )}
           </div>

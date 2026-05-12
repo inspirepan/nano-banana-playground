@@ -2,6 +2,9 @@ import type { GenerationSlot } from '../../hooks/usePlayground'
 import { useI18n } from '../../i18n'
 import type { GeneratedSource, PlaygroundImageMeta } from '../../lib/types'
 import { Icon } from '../Icon'
+import { Tooltip } from '../Tooltip'
+import { RerollSplitButton } from './RerollSplitButton'
+import type { RerollModelOption } from './rerollModelOptions'
 
 type DetailHeaderProps = {
   currentImage: PlaygroundImageMeta | null
@@ -10,11 +13,12 @@ type DetailHeaderProps = {
   modelName: string | null
   pxDim: string
   sidebarCollapsed: boolean
+  rerollModelOptions: RerollModelOption[]
   className?: string
   onClose: () => void
   onAddRef: () => void
   onRegenerate: () => void
-  onReroll: () => void
+  onReroll: (modelId?: string) => void
   onDownload: () => void
   onToggleSidebar: () => void
 }
@@ -26,6 +30,7 @@ export function DetailHeader({
   modelName,
   pxDim,
   sidebarCollapsed,
+  rerollModelOptions,
   className,
   onClose,
   onAddRef,
@@ -46,14 +51,11 @@ export function DetailHeader({
         background: 'color-mix(in srgb, var(--color-surface) 80%, transparent)',
       }}
     >
-      <button
-        className="icon-btn shrink-0"
-        onClick={onClose}
-        title={t('imageDetail.action.closeEsc')}
-        style={{ width: 32, height: 32 }}
-      >
-        <Icon name="close" size={13} strokeWidth={1.8} />
-      </button>
+      <Tooltip text={t('imageDetail.action.closeEsc')} placement="bottom" className="inline-flex shrink-0">
+        <button className="icon-btn" onClick={onClose} style={{ width: 32, height: 32 }}>
+          <Icon name="close" size={13} strokeWidth={1.8} />
+        </button>
+      </Tooltip>
       <div className="h-6 w-px shrink-0 bg-(--ring-edge-soft)" />
 
       {currentMeta ? (
@@ -83,54 +85,56 @@ export function DetailHeader({
 
       {currentImage && (
         <>
-          <button
-            className="chip hidden shrink-0 font-normal md:inline-flex"
-            onClick={onAddRef}
-            title={t('imageDetail.action.addReferenceTitle')}
+          <Tooltip
+            text={t('imageDetail.action.addReferenceTitle')}
+            placement="bottom"
+            className="hidden shrink-0 md:inline-flex"
           >
-            <Icon name="plus" size={12} strokeWidth={1.8} />
-            <span className="hidden md:inline">{t('imageDetail.action.addReference')}</span>
-          </button>
+            <button className="chip font-normal" onClick={onAddRef}>
+              <Icon name="plus" size={12} strokeWidth={1.8} />
+              <span className="hidden md:inline">{t('imageDetail.action.addReference')}</span>
+            </button>
+          </Tooltip>
+          <Tooltip
+            text={t('imageDetail.action.downloadPng')}
+            placement="bottom"
+            className="hidden shrink-0 md:inline-flex"
+          >
+            <button className="chip font-normal" onClick={onDownload}>
+              <Icon name="download" size={12} strokeWidth={1.8} /> <span className="hidden md:inline">PNG</span>
+            </button>
+          </Tooltip>
           {currentMeta?.prompt && (
             <>
-              <button
-                className="chip hidden shrink-0 font-normal md:inline-flex"
-                onClick={onRegenerate}
-                title={t('imageDetail.action.restoreParams')}
+              <Tooltip
+                text={t('imageDetail.action.restoreParams')}
+                placement="bottom"
+                className="hidden shrink-0 md:inline-flex"
               >
-                <Icon name="undo" size={12} strokeWidth={1.8} />
-                <span className="hidden md:inline">{t('imageDetail.action.restoreParams')}</span>
-              </button>
-              <button
-                className="chip hidden shrink-0 font-normal md:inline-flex"
-                onClick={onReroll}
-                title={t('imageDetail.action.regenerateOriginal')}
-              >
-                <Icon name="refresh" size={12} strokeWidth={1.8} />
-                <span className="hidden md:inline">{t('imageDetail.action.redoOriginal')}</span>
-              </button>
+                <button className="chip font-normal" onClick={onRegenerate}>
+                  <Icon name="file_sliders" size={12} strokeWidth={1.8} />
+                  <span className="hidden md:inline">{t('imageDetail.action.applyParams')}</span>
+                </button>
+              </Tooltip>
+              <div className="hidden shrink-0 md:inline-flex">
+                <RerollSplitButton options={rerollModelOptions} menuPlacement="bottom" onReroll={onReroll} />
+              </div>
             </>
           )}
-          <button
-            className="chip hidden shrink-0 font-normal md:inline-flex"
-            onClick={onDownload}
-            title={t('imageDetail.action.downloadPng')}
-          >
-            <Icon name="download" size={12} strokeWidth={1.8} /> <span className="hidden md:inline">PNG</span>
-          </button>
         </>
       )}
-      <button
-        className="chip hidden shrink-0 font-normal md:inline-flex"
-        onClick={onToggleSidebar}
-        title={
+      <Tooltip
+        text={
           sidebarCollapsed ? t('imageDetail.action.expandDetailsPanel') : t('imageDetail.action.collapseDetailsPanel')
         }
-        aria-pressed={!sidebarCollapsed}
+        placement="bottom"
+        className="hidden shrink-0 md:inline-flex"
       >
-        <Icon name={sidebarCollapsed ? 'chevron_left' : 'chevron_right'} size={12} strokeWidth={1.8} />
-        {sidebarCollapsed ? t('imageDetail.action.expandDetails') : t('imageDetail.action.collapseDetails')}
-      </button>
+        <button className="chip font-normal" onClick={onToggleSidebar} aria-pressed={!sidebarCollapsed}>
+          <Icon name={sidebarCollapsed ? 'chevron_left' : 'chevron_right'} size={12} strokeWidth={1.8} />
+          {sidebarCollapsed ? t('imageDetail.action.expandDetails') : t('imageDetail.action.collapseDetails')}
+        </button>
+      </Tooltip>
     </div>
   )
 }

@@ -17,6 +17,7 @@ import { Icon } from '../components/Icon'
 import { InputPanel } from '../components/InputPanel'
 import { InputPanelHeader } from '../components/InputPanel/InputPanelHeader'
 import { OutputPanel } from '../components/OutputPanel'
+import { Tooltip } from '../components/Tooltip'
 import type { InputMode } from '../hooks/usePlayground'
 import type { Translate } from '../i18n'
 
@@ -300,17 +301,22 @@ export function DesktopLayout({
         )}
 
         {inputMode === 'agent' && agentPanelSidebarFits && !showWideAgentStructure && (
-          <button
-            type="button"
-            onClick={handleAgentPanelWideToggle}
-            title={agentPanelWide ? t('app.action.collapseAgentPanel') : t('app.action.expandAgentPanel')}
-            aria-label={agentPanelWide ? t('app.action.collapseAgentPanel') : t('app.action.expandAgentPanel')}
-            aria-pressed={agentPanelWide}
+          <Tooltip
+            text={agentPanelWide ? t('app.action.collapseAgentPanel') : t('app.action.expandAgentPanel')}
+            placement="top"
             className="agent-panel-width-toggle"
             style={{ left: desktopInputPanelWidth }}
           >
-            <Icon name={agentPanelWide ? 'chevron_left' : 'chevron_right'} size={14} strokeWidth={1.8} />
-          </button>
+            <button
+              type="button"
+              onClick={handleAgentPanelWideToggle}
+              aria-label={agentPanelWide ? t('app.action.collapseAgentPanel') : t('app.action.expandAgentPanel')}
+              aria-pressed={agentPanelWide}
+              className="flex h-full w-full cursor-pointer items-center justify-center border-0 bg-transparent p-0 text-inherit"
+            >
+              <Icon name={agentPanelWide ? 'chevron_left' : 'chevron_right'} size={14} strokeWidth={1.8} />
+            </button>
+          </Tooltip>
         )}
 
         {showAgentWideTip && (
@@ -325,32 +331,38 @@ export function DesktopLayout({
               <span className="agent-panel-width-tip__title">{t('app.tip.wideAgentPanel.title')}</span>
               <span className="agent-panel-width-tip__desc">{t('app.tip.wideAgentPanel.description')}</span>
             </div>
-            <button
-              type="button"
-              onClick={dismissAgentWideTip}
-              className="agent-panel-width-tip__close"
-              aria-label={t('common.close')}
-              title={t('common.close')}
-            >
-              <Icon name="close" size={11} strokeWidth={1.8} />
-            </button>
+            <Tooltip text={t('common.close')} placement="top" className="agent-panel-width-tip__close">
+              <button
+                type="button"
+                onClick={dismissAgentWideTip}
+                className="flex h-full w-full cursor-pointer items-center justify-center border-0 bg-transparent p-0 text-inherit"
+                aria-label={t('common.close')}
+              >
+                <Icon name="close" size={11} strokeWidth={1.8} />
+              </button>
+            </Tooltip>
           </div>
         )}
 
         {/* Right output panel */}
         {showWideAgentStructure ? (
           <div className="relative flex min-w-0 flex-[2.4_1_0%] shadow-[inset_1px_0_0_var(--ring-edge-soft)]">
-            <button
-              type="button"
-              onClick={handleAgentPanelWideToggle}
-              title={agentPanelWide ? t('app.action.collapseAgentPanel') : t('app.action.expandAgentPanel')}
-              aria-label={agentPanelWide ? t('app.action.collapseAgentPanel') : t('app.action.expandAgentPanel')}
-              aria-pressed={agentPanelWide}
+            <Tooltip
+              text={agentPanelWide ? t('app.action.collapseAgentPanel') : t('app.action.expandAgentPanel')}
+              placement="top"
               className="agent-panel-width-toggle"
               style={{ left: 0 }}
             >
-              <Icon name={agentPanelWide ? 'chevron_left' : 'chevron_right'} size={14} strokeWidth={1.8} />
-            </button>
+              <button
+                type="button"
+                onClick={handleAgentPanelWideToggle}
+                aria-label={agentPanelWide ? t('app.action.collapseAgentPanel') : t('app.action.expandAgentPanel')}
+                aria-pressed={agentPanelWide}
+                className="flex h-full w-full cursor-pointer items-center justify-center border-0 bg-transparent p-0 text-inherit"
+              >
+                <Icon name={agentPanelWide ? 'chevron_left' : 'chevron_right'} size={14} strokeWidth={1.8} />
+              </button>
+            </Tooltip>
             {outputPanel}
           </div>
         ) : (

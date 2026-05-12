@@ -20,6 +20,7 @@ import { useExternalSync, useResizeObserver } from '../../hooks/effects'
 import { useI18n } from '../../i18n'
 import type { ItemCounts } from '../../lib/editStateCache'
 import { Icon, type IconName } from '../Icon'
+import { Tooltip } from '../Tooltip'
 
 export function MobileDrawFullscreen({
   imageId,
@@ -202,15 +203,11 @@ export function MobileDrawFullscreen({
   return (
     <div className="fixed inset-0 z-[140] flex flex-col bg-(--color-bg)">
       <div className="flex h-12 shrink-0 items-center gap-2 px-3 shadow-[inset_0_-1px_0_var(--ring-edge-soft)]">
-        <button
-          type="button"
-          className="icon-btn"
-          onClick={onClose}
-          title={t('imageDetail.action.done')}
-          aria-label={t('imageDetail.action.done')}
-        >
-          <Icon name="chevron_left" size={15} strokeWidth={1.8} />
-        </button>
+        <Tooltip text={t('imageDetail.action.done')} placement="bottom" className="inline-flex">
+          <button type="button" className="icon-btn" onClick={onClose} aria-label={t('imageDetail.action.done')}>
+            <Icon name="chevron_left" size={15} strokeWidth={1.8} />
+          </button>
+        </Tooltip>
         <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-semibold text-(--color-text)">{t('imageDetail.annotation.label')}</div>
           <div className="text-sm text-(--color-text-3)">
@@ -277,35 +274,38 @@ export function MobileDrawFullscreen({
             backdropFilter: 'blur(10px)',
           }}
         >
-          <button
-            type="button"
-            className="icon-btn pointer-events-auto"
-            onClick={() => zoomCenter(0.8)}
-            title={t('imageDetail.zoom.out')}
-            aria-label={t('imageDetail.zoom.out')}
-            style={{ width: 28, height: 26 }}
-          >
-            <Icon name="zoom_out_map" size={12} strokeWidth={1.8} />
-          </button>
-          <button
-            type="button"
-            className="pointer-events-auto px-2 text-sm font-medium text-(--color-text-2)"
-            onClick={resetView}
-            title={t('imageDetail.zoom.reset')}
-            aria-label={t('imageDetail.zoom.reset')}
-          >
-            {Math.round(scale * 100)}%
-          </button>
-          <button
-            type="button"
-            className="icon-btn pointer-events-auto"
-            onClick={() => zoomCenter(1.25)}
-            title={t('imageDetail.zoom.in')}
-            aria-label={t('imageDetail.zoom.in')}
-            style={{ width: 28, height: 26 }}
-          >
-            <Icon name="zoom_in" size={12} strokeWidth={1.8} />
-          </button>
+          <Tooltip text={t('imageDetail.zoom.out')} placement="top" className="pointer-events-auto inline-flex">
+            <button
+              type="button"
+              className="icon-btn"
+              onClick={() => zoomCenter(0.8)}
+              aria-label={t('imageDetail.zoom.out')}
+              style={{ width: 28, height: 26 }}
+            >
+              <Icon name="zoom_out_map" size={12} strokeWidth={1.8} />
+            </button>
+          </Tooltip>
+          <Tooltip text={t('imageDetail.zoom.reset')} placement="top" className="pointer-events-auto inline-flex">
+            <button
+              type="button"
+              className="px-2 text-sm font-medium text-(--color-text-2)"
+              onClick={resetView}
+              aria-label={t('imageDetail.zoom.reset')}
+            >
+              {Math.round(scale * 100)}%
+            </button>
+          </Tooltip>
+          <Tooltip text={t('imageDetail.zoom.in')} placement="top" className="pointer-events-auto inline-flex">
+            <button
+              type="button"
+              className="icon-btn"
+              onClick={() => zoomCenter(1.25)}
+              aria-label={t('imageDetail.zoom.in')}
+              style={{ width: 28, height: 26 }}
+            >
+              <Icon name="zoom_in" size={12} strokeWidth={1.8} />
+            </button>
+          </Tooltip>
         </div>
       </div>
 
@@ -335,20 +335,23 @@ export function MobileDrawFullscreen({
           <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5">
             {mobileTool !== 'move' &&
               mobileTool !== 'eraser' &&
-              BRUSH_PRESETS.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => onChangeBrushPreset(item.id)}
-                  className="chip shrink-0 text-sm"
-                  data-active={brushPreset === item.id}
-                  title={t(item.labelKey)}
-                  aria-label={t(item.labelKey)}
-                  style={{ height: 36 }}
-                >
-                  <BrushPresetDot preset={item} />
-                </button>
-              ))}
+              BRUSH_PRESETS.map((item) => {
+                const label = t(item.labelKey)
+                return (
+                  <Tooltip key={item.id} text={label} placement="top" className="inline-flex shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => onChangeBrushPreset(item.id)}
+                      className="chip text-sm"
+                      data-active={brushPreset === item.id}
+                      aria-label={label}
+                      style={{ height: 36 }}
+                    >
+                      <BrushPresetDot preset={item} />
+                    </button>
+                  </Tooltip>
+                )
+              })}
             <div className="flex-1" />
             <button
               type="button"

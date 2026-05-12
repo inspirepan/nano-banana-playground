@@ -2,6 +2,7 @@ import { DynamicIcon, iconNames, type IconName as LucideIconName } from 'lucide-
 import { useMemo, useRef, useState } from 'react'
 
 import { Icon } from './Icon'
+import { Tooltip } from './Tooltip'
 import { useExternalSync, useWindowEvent } from '../hooks/effects'
 import { useI18n } from '../i18n'
 
@@ -86,20 +87,20 @@ export function IconPicker({ value, onChange }: Props) {
 
           <div className="mt-2 grid max-h-[260px] grid-cols-8 gap-1 overflow-y-auto pr-1">
             {filtered.map((name) => (
-              <button
-                key={name}
-                type="button"
-                title={name}
-                aria-label={name}
-                onClick={() => {
-                  onChange(name)
-                  setOpen(false)
-                }}
-                data-active={value === name || undefined}
-                className="flex aspect-square items-center justify-center rounded-[var(--radius-xs)] text-(--color-text-2) transition-colors hover:bg-(--color-surface-2) data-[active]:bg-(--color-accent-wash) data-[active]:text-(--color-accent)"
-              >
-                <DynamicIcon name={name} size={14} />
-              </button>
+              <Tooltip key={name} text={name} placement="top" className="aspect-square">
+                <button
+                  type="button"
+                  aria-label={name}
+                  onClick={() => {
+                    onChange(name)
+                    setOpen(false)
+                  }}
+                  data-active={value === name || undefined}
+                  className="flex h-full w-full items-center justify-center rounded-[var(--radius-xs)] text-(--color-text-2) transition-colors hover:bg-(--color-surface-2) data-[active]:bg-(--color-accent-wash) data-[active]:text-(--color-accent)"
+                >
+                  <DynamicIcon name={name} size={14} />
+                </button>
+              </Tooltip>
             ))}
           </div>
 

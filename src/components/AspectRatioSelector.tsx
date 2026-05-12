@@ -1,4 +1,5 @@
 import { useI18n } from '../i18n'
+import { Tooltip } from './Tooltip'
 
 type Props = {
   options: string[]
@@ -83,14 +84,13 @@ export function AspectRatioSelector({
           const pixelText = pixelLabel(option, resolution)
           const isBottomRow = Math.floor(idx / 4) === Math.floor((options.length - 1) / 4)
           return (
-            <div key={option} className="relative group">
+            <Tooltip key={option} text={pixelText} placement={isBottomRow ? 'top' : 'bottom'} className="w-full">
               <button
                 type="button"
                 onClick={() => onChange(option)}
                 className="aspect-tile w-full"
                 data-active={isActive}
                 aria-label={t('input.aspectRatio.optionAria', { ratio: option, pixels: pixelText })}
-                title={pixelText}
               >
                 {/* fixed 14x14 glyph slot — center the rectangle inside */}
                 <span className="inline-flex items-center justify-center shrink-0" style={{ width: 14, height: 14 }}>
@@ -107,18 +107,7 @@ export function AspectRatioSelector({
                   </span>
                 </span>
               </button>
-              {/* Notion-style pixel tooltip */}
-              <div
-                className={`pointer-events-none absolute left-1/2 -translate-x-1/2 z-20 px-2 py-1 rounded-[var(--radius-sm)] text-base whitespace-nowrap tabular-nums opacity-0 translate-y-0.5 transition-[opacity,translate] duration-150 delay-100 group-hover:opacity-100 group-hover:translate-y-0 ${isBottomRow ? 'bottom-full mb-1.5' : 'top-full mt-1.5'}`}
-                style={{
-                  background: 'var(--color-text)',
-                  color: 'var(--color-bg)',
-                  boxShadow: '0 6px 16px -6px rgba(15,17,21,0.24), 0 2px 4px rgba(15,17,21,0.08)',
-                }}
-              >
-                {pixelText}
-              </div>
-            </div>
+            </Tooltip>
           )
         })}
       </div>

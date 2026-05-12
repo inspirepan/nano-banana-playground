@@ -8,38 +8,35 @@ function AgentSessionStatusIcon({ status }: { status: AgentSessionStatus | null 
   const { t } = useI18n()
 
   if (status === 'waiting_for_question') {
+    const label = t('agentChat.status.waitingForQuestion')
     return (
-      <span
-        className="inline-flex h-5 w-4 shrink-0 items-center justify-center text-(--color-accent)"
-        title={t('agentChat.status.waitingForQuestion')}
-        aria-label={t('agentChat.status.waitingForQuestion')}
-      >
-        <Icon name="help_circle" size={12} strokeWidth={2.2} />
-      </span>
+      <Tooltip text={label} placement="bottom" className="inline-flex h-5 w-4 shrink-0 items-center justify-center">
+        <span className="inline-flex h-5 w-4 items-center justify-center text-(--color-accent)" aria-label={label}>
+          <Icon name="help_circle" size={12} strokeWidth={2.2} />
+        </span>
+      </Tooltip>
     )
   }
 
   if (status === 'generating_images') {
+    const label = t('agentChat.status.generatingImages')
     return (
-      <span
-        className="inline-flex h-5 w-4 shrink-0 items-center justify-center"
-        title={t('agentChat.status.generatingImages')}
-        aria-label={t('agentChat.status.generatingImages')}
-      >
-        <span className="agent-session-running-dot" />
-      </span>
+      <Tooltip text={label} placement="bottom" className="inline-flex h-5 w-4 shrink-0 items-center justify-center">
+        <span className="inline-flex h-5 w-4 items-center justify-center" aria-label={label}>
+          <span className="agent-session-running-dot" />
+        </span>
+      </Tooltip>
     )
   }
 
   if (status === 'running') {
+    const label = t('agentChat.status.running')
     return (
-      <span
-        className="inline-flex h-5 w-4 shrink-0 items-center justify-center"
-        title={t('agentChat.status.running')}
-        aria-label={t('agentChat.status.running')}
-      >
-        <span className="agent-session-running-dot" />
-      </span>
+      <Tooltip text={label} placement="bottom" className="inline-flex h-5 w-4 shrink-0 items-center justify-center">
+        <span className="inline-flex h-5 w-4 items-center justify-center" aria-label={label}>
+          <span className="agent-session-running-dot" />
+        </span>
+      </Tooltip>
     )
   }
 
@@ -105,7 +102,6 @@ export function AgentSessionListItem({
             {imageCount > 0 && (
               <span
                 className="inline-flex h-4 shrink-0 items-center gap-0.5 rounded-full bg-(--color-surface-2) px-1 text-[10px] font-medium leading-none tabular-nums text-(--color-text-3)"
-                title={imageCountLabel}
                 aria-label={imageCountLabel}
               >
                 <Icon name="image" size={10} className="opacity-80" />
@@ -129,7 +125,6 @@ export function AgentSessionListItem({
             {imageCount > 0 && (
               <span
                 className="inline-flex h-4 shrink-0 items-center gap-0.5 rounded-full bg-(--color-surface-2) px-1 text-[10px] font-medium leading-none tabular-nums text-(--color-text-3)"
-                title={imageCountLabel}
                 aria-label={imageCountLabel}
               >
                 <Icon name="image" size={10} className="opacity-80" />

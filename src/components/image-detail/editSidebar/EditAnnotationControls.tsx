@@ -1,5 +1,6 @@
 import { useI18n } from '../../../i18n'
 import { Icon } from '../../Icon'
+import { Tooltip } from '../../Tooltip'
 import { BrushPresetDot } from '../annotationControls'
 import { BRUSH_PRESETS, type BrushPresetId } from '../annotationPresets'
 import type { DrawTool } from '../DrawableLayer'
@@ -82,19 +83,22 @@ export function EditAnnotationControls({
           </div>
           {!desktopMoveActive && drawTool !== 'eraser' && (
             <div className="grid grid-cols-3 gap-1.5">
-              {BRUSH_PRESETS.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  className="chip justify-center"
-                  data-active={brushPreset === item.id}
-                  onClick={() => onChangeBrushPreset(item.id)}
-                  title={t(item.labelKey)}
-                  aria-label={t(item.labelKey)}
-                >
-                  <BrushPresetDot preset={item} />
-                </button>
-              ))}
+              {BRUSH_PRESETS.map((item) => {
+                const label = t(item.labelKey)
+                return (
+                  <Tooltip key={item.id} text={label} placement="top" className="min-w-0">
+                    <button
+                      type="button"
+                      className="chip w-full justify-center"
+                      data-active={brushPreset === item.id}
+                      onClick={() => onChangeBrushPreset(item.id)}
+                      aria-label={label}
+                    >
+                      <BrushPresetDot preset={item} />
+                    </button>
+                  </Tooltip>
+                )
+              })}
             </div>
           )}
         </div>

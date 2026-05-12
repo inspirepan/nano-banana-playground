@@ -1,6 +1,7 @@
 import { useI18n } from '../../i18n'
 import type { StackItem } from '../../lib/stacks'
 import { Icon } from '../Icon'
+import { Tooltip } from '../Tooltip'
 
 export function SlotHero({
   item,
@@ -74,15 +75,12 @@ export function SlotHero({
         ))}
       {slot && job && (slot.status === 'failed' || slot.status === 'canceled') && (
         <div className="mt-2 flex items-center gap-2">
-          <button
-            type="button"
-            className="media-action light px-2"
-            onClick={onRetry}
-            title={t('imageDetail.action.retryOriginal')}
-          >
-            <Icon name="refresh" size={11} strokeWidth={1.8} />
-            {t('common.retry')}
-          </button>
+          <Tooltip text={t('imageDetail.action.retryOriginal')} placement="top" className="inline-flex">
+            <button type="button" className="media-action light px-2" onClick={onRetry}>
+              <Icon name="refresh" size={11} strokeWidth={1.8} />
+              {t('common.retry')}
+            </button>
+          </Tooltip>
           <button type="button" className="media-action light px-2" onClick={() => onDismissJob(job.id)}>
             {t('imageDetail.action.closeTask')}
           </button>

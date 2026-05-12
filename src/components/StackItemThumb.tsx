@@ -4,6 +4,7 @@ import { Icon } from './Icon'
 import { getBlobFromCache, useImageSrc } from '../hooks/useImageSrc'
 import { useI18n, type Translate } from '../i18n'
 import type { StackItem } from '../lib/stacks'
+import { Tooltip } from './Tooltip'
 
 type Props = {
   item: StackItem
@@ -103,13 +104,14 @@ export const StackItemThumb = memo(function StackItemThumb({
   const keepPageOpenNote = showKeepPageOpenNote ? t('imageDetail.queue.keepPageOpen') : null
   const compactSlotIndicator = compactSlotStatus && slot && !slotStatusLabel && !keepPageOpenNote
   const showFailedReasonBox = Boolean(slot && slot.status === 'failed' && slotReason)
-  // Compose the root title so narrow thumbs (where the visible meta badge is
-  // hidden via container query) still surface model/resolution via native
-  // browser tooltip on hover.
-  const titleParts: string[] = []
-  if (image?.source.type === 'generated' && image.source.prompt) titleParts.push(image.source.prompt)
-  if (metaBadge) titleParts.push(metaBadge)
-  const title = titleParts.length > 0 ? titleParts.join('\n\n') : (slotStatusLabel ?? keepPageOpenNote ?? undefined)
+  // Compose the root tooltip so narrow thumbs (where the visible meta badge is
+  // hidden via container query) still surface model/resolution on hover.
+  const tooltipParts: string[] = []
+  if (image?.source.type === 'generated' && image.source.prompt) tooltipParts.push(image.source.prompt)
+  if (imageIdLabel) tooltipParts.push(imageIdLabel)
+  if (metaBadge) tooltipParts.push(metaBadgeTitle ?? metaBadge)
+  const tooltipText =
+    tooltipParts.length > 0 ? tooltipParts.join('\n\n') : (slotStatusLabel ?? keepPageOpenNote ?? undefined)
   const ariaLabel = image
     ? t('input.stack.selectImage', { number: itemNumber })
     : t('input.stack.selectSlot', { number: itemNumber })
@@ -165,6 +167,7 @@ export const StackItemThumb = memo(function StackItemThumb({
   // Fade the badge to 0 instead of removing it so selection mode toggles
   // animate cleanly and the DOM stays stable for screen readers.
   const numberBadgeHidden = selectable && selectionIndicatorPosition === 'top-left'
+  const numberBadgeYieldsToQuickSelect = Boolean(onQuickSelect && selectionIndicatorPosition === 'top-left')
   const selectionPositionStyle: CSSProperties =
     selectionIndicatorPosition === 'top-left'
       ? { left: numberBadgeInset, top: numberBadgeInset }
@@ -188,7 +191,7 @@ export const StackItemThumb = memo(function StackItemThumb({
     longPressTimerRef.current = null
   }
 
-  return (
+  const thumb = (
     <div
       role="button"
       data-stack-item-thumb
@@ -231,9 +234,8 @@ export const StackItemThumb = memo(function StackItemThumb({
       }}
       aria-pressed={selectable ? selected : undefined}
       aria-label={ariaLabel}
-      className={`group @container/thumb relative shrink-0 overflow-hidden ${roundedClassName} transition-transform ${hoverLift && !selectable ? 'hover:-translate-y-0.5' : ''} ${className}`}
+      className={`group relative overflow-hidden ${roundedClassName} transition-transform ${hoverLift && !selectable ? 'hover:-translate-y-0.5' : ''} ${tooltipText ? 'h-full w-full' : `@container/thumb shrink-0 ${className}`}`}
       style={{ background, boxShadow }}
-      title={title}
     >
       <div ref={ref} className="absolute inset-0">
         {image ? (
@@ -287,15 +289,15 @@ export const StackItemThumb = memo(function StackItemThumb({
         )}
       </div>
       <span
-        className="font-display pointer-events-none absolute z-10 inline-flex h-[18px] min-w-[24px] items-center justify-center rounded-[var(--radius-xs)] px-1.5 text-base font-normal leading-none transition-opacity duration-150 group-hover:opacity-0 group-focus-within:opacity-0"
+        className={`font-display pointer-events-none absolute z-10 inline-flex h-[18px] min-w-[24px] items-center justify-center rounded-[var(--radius-xs)] px-1.5 text-base font-normal leading-none transition-opacity duration-150 ${numberBadgeYieldsToQuickSelect ? 'group-hover:opacity-0 group-focus-within:opacity-0' : ''}`}
         style={{
           left: numberBadgeInset,
           top: numberBadgeInset,
           ...badgeSurface,
           backdropFilter: 'blur(8px)',
           // Inline `opacity: 0` wins over the hover class, so selectable
-          // mode stays hidden persistently. Leave undefined otherwise so
-          // hover / focus-within transitions drive opacity.
+          // mode stays hidden persistently. Quick-select mode uses hover /
+          // focus-within classes because the control only appears on intent.
           opacity: numberBadgeHidden ? 0 : undefined,
         }}
         aria-hidden={numberBadgeHidden || undefined}
@@ -311,7 +313,6 @@ export const StackItemThumb = memo(function StackItemThumb({
             ...badgeSurface,
             backdropFilter: 'blur(8px)',
           }}
-          title={imageIdLabel}
         >
           {imageIdDisplay}
         </span>
@@ -320,7 +321,6 @@ export const StackItemThumb = memo(function StackItemThumb({
         <span
           className="pointer-events-none absolute z-10 flex flex-col items-start rounded-[var(--radius-xs)] px-1.5 py-1 @max-[140px]/thumb:hidden"
           style={metaBadgeStyle}
-          title={metaBadgeTitle ?? metaBadge}
         >
           {splitMetaBadge ? (
             <>
@@ -393,5 +393,12 @@ export const StackItemThumb = memo(function StackItemThumb({
         </div>
       )}
     </div>
+  )
+
+  if (!tooltipText) return thumb
+  return (
+    <Tooltip text={tooltipText} placement="top" maxWidth={560} className={`@container/thumb shrink-0 ${className}`}>
+      {thumb}
+    </Tooltip>
   )
 })

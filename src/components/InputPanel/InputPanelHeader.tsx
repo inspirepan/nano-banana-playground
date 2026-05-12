@@ -1,6 +1,7 @@
 import type { InputMode } from '../../hooks/usePlayground'
 import { useI18n } from '../../i18n'
 import { Icon } from '../Icon'
+import { Tooltip } from '../Tooltip'
 
 type Props = {
   inputMode: InputMode
@@ -54,15 +55,11 @@ export function InputPanelHeader({
     return (
       <div className="mb-[var(--panel-header-mb)] flex min-h-[30px] items-center gap-2.5 px-[var(--panel-pad-x)]">
         {switcher}
-        <button
-          type="button"
-          onClick={onOpenApiKeys}
-          className="icon-btn shrink-0"
-          title={t('common.settings')}
-          aria-label={t('common.settings')}
-        >
-          <Icon name="settings" size={14} />
-        </button>
+        <Tooltip text={t('common.settings')} placement="bottom" className="inline-flex shrink-0">
+          <button type="button" onClick={onOpenApiKeys} className="icon-btn" aria-label={t('common.settings')}>
+            <Icon name="settings" size={14} />
+          </button>
+        </Tooltip>
       </div>
     )
   }
@@ -71,15 +68,11 @@ export function InputPanelHeader({
     <div className="mb-[var(--panel-header-mb)] flex min-h-[30px] items-center gap-2.5 px-[var(--panel-pad-x)]">
       {switcher}
       <div className="flex-1" />
-      <button
-        type="button"
-        onClick={onOpenApiKeys}
-        className="icon-btn"
-        title={t('common.settings')}
-        aria-label={t('common.settings')}
-      >
-        <Icon name="settings" size={14} />
-      </button>
+      <Tooltip text={t('common.settings')} placement="bottom" className="inline-flex">
+        <button type="button" onClick={onOpenApiKeys} className="icon-btn" aria-label={t('common.settings')}>
+          <Icon name="settings" size={14} />
+        </button>
+      </Tooltip>
     </div>
   )
 }

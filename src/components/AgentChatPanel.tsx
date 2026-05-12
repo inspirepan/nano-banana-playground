@@ -38,6 +38,7 @@ import { ToolActivityCard } from './agent-chat/ToolActivityCard'
 import type { AgentChatMenu, AgentImageTaskFocusHandler } from './agent-chat/types'
 import { buildChatRenderItems, isImageFile, parseDraggedPlaygroundImage } from './agent-chat/utils'
 import { Icon } from './Icon'
+import { Tooltip } from './Tooltip'
 
 type Props = {
   messages: AgentMessage[]
@@ -631,29 +632,30 @@ export function AgentChatPanel({
       >
         {showFloatingTitle ? (
           <div aria-hidden="false" className="pointer-events-none absolute inset-x-0 top-0 z-40">
-            <button
-              type="button"
-              onClick={scrollToTop}
-              title={t('agentChat.header.scrollToTop')}
-              aria-label={t('agentChat.header.scrollToTop')}
-              className={`pointer-events-auto block w-full cursor-pointer text-center transition-colors ${contentRightPaddingClass} group`}
-              style={{
-                backdropFilter: 'saturate(140%) blur(8px)',
-                WebkitBackdropFilter: 'saturate(140%) blur(8px)',
-                background: 'color-mix(in srgb, var(--color-bg) 55%, transparent)',
-                paddingTop: '21px',
-                paddingBottom: '6px',
-              }}
-            >
-              <span className="flex min-h-[30px] items-center justify-center">
-                <span
-                  key={floatingTitleText}
-                  className="title-fade-in inline-block max-w-[min(960px,100%)] min-w-0 truncate font-display text-base font-semibold text-(--color-text) group-hover:text-(--color-text-2)"
-                >
-                  {floatingTitleText}
+            <Tooltip text={t('agentChat.header.scrollToTop')} placement="bottom" className="pointer-events-auto block">
+              <button
+                type="button"
+                onClick={scrollToTop}
+                aria-label={t('agentChat.header.scrollToTop')}
+                className={`block w-full cursor-pointer text-center transition-colors ${contentRightPaddingClass} group`}
+                style={{
+                  backdropFilter: 'saturate(140%) blur(8px)',
+                  WebkitBackdropFilter: 'saturate(140%) blur(8px)',
+                  background: 'color-mix(in srgb, var(--color-bg) 55%, transparent)',
+                  paddingTop: '21px',
+                  paddingBottom: '6px',
+                }}
+              >
+                <span className="flex min-h-[30px] items-center justify-center">
+                  <span
+                    key={floatingTitleText}
+                    className="title-fade-in inline-block max-w-[min(960px,100%)] min-w-0 truncate font-display text-base font-semibold text-(--color-text) group-hover:text-(--color-text-2)"
+                  >
+                    {floatingTitleText}
+                  </span>
                 </span>
-              </span>
-            </button>
+              </button>
+            </Tooltip>
             <div
               aria-hidden
               className="h-6 bg-[linear-gradient(to_bottom,color-mix(in_srgb,var(--color-bg)_55%,transparent)_0%,transparent_100%)]"

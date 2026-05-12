@@ -8,6 +8,7 @@ import { useI18n } from '../../i18n'
 import type { ItemCounts } from '../../lib/editStateCache'
 import type { PlaygroundImageMeta } from '../../lib/types'
 import { Icon } from '../Icon'
+import { Tooltip } from '../Tooltip'
 
 type MobileEditScreenProps = {
   sourceImage: PlaygroundImageMeta
@@ -71,15 +72,16 @@ export function MobileEditScreen({
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-(--color-bg)">
       <div className="flex h-12 shrink-0 items-center gap-2 px-3 shadow-[inset_0_-1px_0_var(--ring-edge-soft)]">
-        <button
-          type="button"
-          className="icon-btn"
-          onClick={onClose}
-          aria-label={t('imageDetail.action.backToDetail')}
-          title={t('imageDetail.action.backToDetail')}
-        >
-          <Icon name="chevron_left" size={15} strokeWidth={1.8} />
-        </button>
+        <Tooltip text={t('imageDetail.action.backToDetail')} placement="bottom" className="inline-flex">
+          <button
+            type="button"
+            className="icon-btn"
+            onClick={onClose}
+            aria-label={t('imageDetail.action.backToDetail')}
+          >
+            <Icon name="chevron_left" size={15} strokeWidth={1.8} />
+          </button>
+        </Tooltip>
         <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-semibold text-(--color-text)">{t('imageDetail.action.editImage')}</div>
           <div className="flex min-w-0 items-center gap-1.5 text-sm text-(--color-text-3)">
@@ -124,16 +126,21 @@ export function MobileEditScreen({
               onItemsChange={onItemsChange}
             />
           )}
-          <button
-            type="button"
-            className="icon-btn absolute right-2 top-2"
-            onClick={onOpenPreview}
-            aria-label={t('imageDetail.action.fullscreenPreview')}
-            title={t('imageDetail.action.fullscreenPreview')}
-            style={{ width: 30, height: 30, background: 'color-mix(in srgb, var(--color-surface) 90%, transparent)' }}
+          <Tooltip
+            text={t('imageDetail.action.fullscreenPreview')}
+            placement="bottom"
+            className="absolute right-2 top-2"
           >
-            <Icon name="maximize" size={13} strokeWidth={1.8} />
-          </button>
+            <button
+              type="button"
+              className="icon-btn"
+              onClick={onOpenPreview}
+              aria-label={t('imageDetail.action.fullscreenPreview')}
+              style={{ width: 30, height: 30, background: 'color-mix(in srgb, var(--color-surface) 90%, transparent)' }}
+            >
+              <Icon name="maximize" size={13} strokeWidth={1.8} />
+            </button>
+          </Tooltip>
         </div>
 
         <div className="pt-4">

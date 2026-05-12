@@ -4,6 +4,7 @@ import { ZoomableImageView, type ZoomableImageViewState } from './ZoomableImageV
 import { useExternalSync } from '../../hooks/effects'
 import { useI18n } from '../../i18n'
 import { Icon } from '../Icon'
+import { Tooltip } from '../Tooltip'
 
 type LayerRect = {
   left: number
@@ -137,41 +138,51 @@ export function MobileUnifiedPreviewLayer({
       </div>
 
       {!fullscreen && (
-        <button
-          type="button"
-          onClick={() => onOpenFullscreen()}
-          title={t('imageDetail.action.fullscreenPreview')}
-          aria-label={t('imageDetail.action.fullscreenPreview')}
-          className="absolute right-3 top-3 z-[2] flex h-8 w-8 items-center justify-center rounded-full transition-colors"
-          style={{
-            background: 'color-mix(in srgb, var(--color-surface) 92%, transparent)',
-            color: 'var(--color-text-2)',
-            backdropFilter: 'blur(10px)',
-            WebkitBackdropFilter: 'blur(10px)',
-            boxShadow: '0 0 0 1px var(--ring-edge), var(--shadow-lift)',
-          }}
+        <Tooltip
+          text={t('imageDetail.action.fullscreenPreview')}
+          placement="bottom"
+          className="absolute right-3 top-3 z-[2]"
         >
-          <Icon name="maximize" size={14} strokeWidth={1.8} />
-        </button>
+          <button
+            type="button"
+            onClick={() => onOpenFullscreen()}
+            aria-label={t('imageDetail.action.fullscreenPreview')}
+            className="flex h-8 w-8 items-center justify-center rounded-full transition-colors"
+            style={{
+              background: 'color-mix(in srgb, var(--color-surface) 92%, transparent)',
+              color: 'var(--color-text-2)',
+              backdropFilter: 'blur(10px)',
+              WebkitBackdropFilter: 'blur(10px)',
+              boxShadow: '0 0 0 1px var(--ring-edge), var(--shadow-lift)',
+            }}
+          >
+            <Icon name="maximize" size={14} strokeWidth={1.8} />
+          </button>
+        </Tooltip>
       )}
 
       {fullscreen && (
-        <button
-          type="button"
-          onClick={closeFullscreen}
-          title={t('imageDetail.action.closeFullscreenPreview')}
-          aria-label={t('imageDetail.action.closeFullscreenPreview')}
-          className="absolute left-3 top-3 z-[2] flex h-9 w-9 items-center justify-center rounded-full transition-colors"
-          style={{
-            background: 'color-mix(in srgb, var(--color-surface) 92%, transparent)',
-            color: 'var(--color-text-2)',
-            backdropFilter: 'blur(10px)',
-            WebkitBackdropFilter: 'blur(10px)',
-            boxShadow: '0 0 0 1px var(--ring-edge), var(--shadow-lift)',
-          }}
+        <Tooltip
+          text={t('imageDetail.action.closeFullscreenPreview')}
+          placement="bottom"
+          className="absolute left-3 top-3 z-[2]"
         >
-          <Icon name="close" size={15} strokeWidth={1.8} />
-        </button>
+          <button
+            type="button"
+            onClick={closeFullscreen}
+            aria-label={t('imageDetail.action.closeFullscreenPreview')}
+            className="flex h-9 w-9 items-center justify-center rounded-full transition-colors"
+            style={{
+              background: 'color-mix(in srgb, var(--color-surface) 92%, transparent)',
+              color: 'var(--color-text-2)',
+              backdropFilter: 'blur(10px)',
+              WebkitBackdropFilter: 'blur(10px)',
+              boxShadow: '0 0 0 1px var(--ring-edge), var(--shadow-lift)',
+            }}
+          >
+            <Icon name="close" size={15} strokeWidth={1.8} />
+          </button>
+        </Tooltip>
       )}
     </div>
   )

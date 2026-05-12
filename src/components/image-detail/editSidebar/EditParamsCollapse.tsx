@@ -5,6 +5,7 @@ import { openAISize } from '../../../lib/openai'
 import { AspectRatioSelector } from '../../AspectRatioSelector'
 import { ChipGroup } from '../../ChipGroup'
 import { BrandIcon, Icon } from '../../Icon'
+import { Tooltip } from '../../Tooltip'
 
 function InlineParamDivider() {
   return <span aria-hidden className="meta-dot text-(--color-text-4)" />
@@ -66,17 +67,17 @@ export function EditParamsCollapse({
             <div className="mb-[14px]">
               <div className="grid grid-cols-2 gap-1.5">
                 {MODEL_CONFIGS.map((model) => (
-                  <button
-                    key={model.id}
-                    type="button"
-                    data-active={sourceModel.id === model.id}
-                    onClick={() => onModelChange(model.id)}
-                    title={model.name}
-                    className="chip min-w-0 justify-center px-2"
-                  >
-                    <BrandIcon name={getProviderConfig(model.provider).brandIcon} size={12} />
-                    <span className="min-w-0 truncate">{model.name}</span>
-                  </button>
+                  <Tooltip key={model.id} text={model.name} placement="top" className="min-w-0">
+                    <button
+                      type="button"
+                      data-active={sourceModel.id === model.id}
+                      onClick={() => onModelChange(model.id)}
+                      className="chip w-full min-w-0 justify-center px-2"
+                    >
+                      <BrandIcon name={getProviderConfig(model.provider).brandIcon} size={12} />
+                      <span className="min-w-0 truncate">{model.name}</span>
+                    </button>
+                  </Tooltip>
                 ))}
               </div>
             </div>

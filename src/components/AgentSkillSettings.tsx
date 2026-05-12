@@ -2,6 +2,7 @@ import { lazy, Suspense, useRef, useState } from 'react'
 
 import { Icon } from './Icon'
 import { SkillIcon } from './SkillIcon'
+import { Tooltip } from './Tooltip'
 import {
   displayDescriptionForLanguage,
   displayNameForLanguage,
@@ -136,28 +137,33 @@ export function AgentSkillSettings({ skills, onEnabledChange, onDelete, onGetPac
                         />
                       </span>
                     </button>
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation()
-                        onDelete(skill.name)
-                        if (inspectedSkill?.name === skill.name) setInspectedSkill(null)
-                      }}
-                      disabled={skill.source !== 'user'}
-                      className="icon-btn"
-                      title={
+                    <Tooltip
+                      text={
                         skill.source === 'user'
                           ? t('settings.agentSkills.delete')
                           : t('settings.agentSkills.deleteUnavailable')
                       }
-                      aria-label={
-                        skill.source === 'user'
-                          ? t('settings.agentSkills.delete')
-                          : t('settings.agentSkills.deleteUnavailable')
-                      }
+                      placement="top"
+                      className="inline-flex"
                     >
-                      {skill.source === 'user' ? <Icon name="trash" size={12} /> : <Icon name="lock" size={12} />}
-                    </button>
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          onDelete(skill.name)
+                          if (inspectedSkill?.name === skill.name) setInspectedSkill(null)
+                        }}
+                        disabled={skill.source !== 'user'}
+                        className="icon-btn"
+                        aria-label={
+                          skill.source === 'user'
+                            ? t('settings.agentSkills.delete')
+                            : t('settings.agentSkills.deleteUnavailable')
+                        }
+                      >
+                        {skill.source === 'user' ? <Icon name="trash" size={12} /> : <Icon name="lock" size={12} />}
+                      </button>
+                    </Tooltip>
                   </div>
                 </div>
               </div>

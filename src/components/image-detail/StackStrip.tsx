@@ -57,6 +57,7 @@ export const StackStrip = memo(function StackStrip({
                   number={itemNumberById.get(item.id)}
                   active={active}
                   outerRing
+                  hoverLift={false}
                   showImageIdLabel={false}
                   compactSlotStatus
                   onSelect={onSelect}

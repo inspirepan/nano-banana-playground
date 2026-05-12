@@ -6,6 +6,7 @@ import { useImageSrc } from '../../hooks/useImageSrc'
 import { useI18n } from '../../i18n'
 import type { PlaygroundImageMeta } from '../../lib/types'
 import { Icon } from '../Icon'
+import { Tooltip } from '../Tooltip'
 
 type Props = {
   open: boolean
@@ -109,54 +110,55 @@ function GalleryPickerItem({
         : image.id
 
   return (
-    <button
-      type="button"
-      onClick={onPick}
-      disabled={attached}
-      data-gallery-picker-item
-      title={title}
-      aria-label={title}
-      className="group relative aspect-square overflow-hidden rounded-[var(--radius-md)] shadow-[inset_0_0_0_1px_var(--ring-edge)] transition-shadow hover:shadow-[inset_0_0_0_1px_var(--ring-edge-strong)] disabled:cursor-not-allowed"
-      style={{ background: 'var(--color-surface-2)' }}
-    >
-      <div ref={ref} className="absolute inset-0">
-        {src ? (
-          <img
-            src={src}
-            alt=""
-            decoding="async"
-            draggable={false}
-            className={`h-full w-full object-cover transition-opacity ${attached ? 'opacity-40' : ''}`}
-          />
-        ) : (
-          <div className="h-full w-full skeleton-animated" />
+    <Tooltip text={title} placement="top" maxWidth={360} className="aspect-square">
+      <button
+        type="button"
+        onClick={onPick}
+        disabled={attached}
+        data-gallery-picker-item
+        aria-label={title}
+        className="group relative h-full w-full overflow-hidden rounded-[var(--radius-md)] shadow-[inset_0_0_0_1px_var(--ring-edge)] transition-shadow hover:shadow-[inset_0_0_0_1px_var(--ring-edge-strong)] disabled:cursor-not-allowed"
+        style={{ background: 'var(--color-surface-2)' }}
+      >
+        <div ref={ref} className="absolute inset-0">
+          {src ? (
+            <img
+              src={src}
+              alt=""
+              decoding="async"
+              draggable={false}
+              className={`h-full w-full object-cover transition-opacity ${attached ? 'opacity-40' : ''}`}
+            />
+          ) : (
+            <div className="h-full w-full skeleton-animated" />
+          )}
+        </div>
+        {idLabel && (
+          <span
+            className="pointer-events-none absolute bottom-1 left-1 mono max-w-[calc(100%-8px)] truncate rounded-[var(--radius-xs)] px-1.5 py-0.5 text-[10px] leading-none"
+            style={{
+              background: 'var(--media-overlay-bg)',
+              color: 'var(--media-overlay-fg)',
+              boxShadow: 'inset 0 0 0 1px color-mix(in srgb, var(--media-overlay-fg) 16%, transparent)',
+              backdropFilter: 'blur(8px)',
+            }}
+          >
+            {Array.from(idLabel).slice(0, 20).join('')}
+          </span>
         )}
-      </div>
-      {idLabel && (
-        <span
-          className="pointer-events-none absolute bottom-1 left-1 mono max-w-[calc(100%-8px)] truncate rounded-[var(--radius-xs)] px-1.5 py-0.5 text-[10px] leading-none"
-          style={{
-            background: 'var(--media-overlay-bg)',
-            color: 'var(--media-overlay-fg)',
-            boxShadow: 'inset 0 0 0 1px color-mix(in srgb, var(--media-overlay-fg) 16%, transparent)',
-            backdropFilter: 'blur(8px)',
-          }}
-        >
-          {Array.from(idLabel).slice(0, 20).join('')}
-        </span>
-      )}
-      {attached && (
-        <span
-          className="pointer-events-none absolute right-1 top-1 inline-flex h-[18px] items-center gap-1 rounded-[var(--radius-xs)] px-1.5 text-[10px] leading-none"
-          style={{
-            background: 'var(--color-accent)',
-            color: 'var(--color-accent-fg)',
-            backdropFilter: 'blur(8px)',
-          }}
-        >
-          <Icon name="check" size={10} strokeWidth={2.4} />
-        </span>
-      )}
-    </button>
+        {attached && (
+          <span
+            className="pointer-events-none absolute right-1 top-1 inline-flex h-[18px] items-center gap-1 rounded-[var(--radius-xs)] px-1.5 text-[10px] leading-none"
+            style={{
+              background: 'var(--color-accent)',
+              color: 'var(--color-accent-fg)',
+              backdropFilter: 'blur(8px)',
+            }}
+          >
+            <Icon name="check" size={10} strokeWidth={2.4} />
+          </span>
+        )}
+      </button>
+    </Tooltip>
   )
 }

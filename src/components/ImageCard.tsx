@@ -2,6 +2,7 @@ import { memo, useState } from 'react'
 import { createPortal } from 'react-dom'
 
 import { Icon } from './Icon'
+import { Tooltip } from './Tooltip'
 import { useWindowEvent } from '../hooks/effects'
 import { ensureBlobLoaded, useImageSrc, getBlobFromCache } from '../hooks/useImageSrc'
 import { useI18n } from '../i18n'
@@ -206,18 +207,19 @@ export const ImageCard = memo(function ImageCard({
       {/* Hover overlay — action row */}
       <div className="overlay">
         <div className="flex gap-1.5 items-center">
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation()
-              void handleDownload()
-            }}
-            className="media-action light"
-            title={t('input.imageCard.downloadPng')}
-            aria-label={t('input.imageCard.downloadPng')}
-          >
-            <Icon name="download" size={12} strokeWidth={1.6} /> PNG
-          </button>
+          <Tooltip text={t('input.imageCard.downloadPng')} placement="top" className="inline-flex">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                void handleDownload()
+              }}
+              className="media-action light"
+              aria-label={t('input.imageCard.downloadPng')}
+            >
+              <Icon name="download" size={12} strokeWidth={1.6} /> PNG
+            </button>
+          </Tooltip>
           {!downloadOnly && (
             <>
               {onEdit && (
@@ -298,16 +300,21 @@ function OverlayButton({
   ariaLabel?: string
 }) {
   const hasText = Boolean(children)
-  return (
+  const button = (
     <button
       type="button"
       onClick={onClick}
       className={`media-action ${hasText ? '' : 'icon-only'} ${danger ? 'danger' : ''}`}
-      title={ariaLabel}
       aria-label={ariaLabel}
     >
       <Icon name={icon} size={12} strokeWidth={1.6} />
       {children}
     </button>
+  )
+  if (!ariaLabel) return button
+  return (
+    <Tooltip text={ariaLabel} placement="top" className="inline-flex">
+      {button}
+    </Tooltip>
   )
 }

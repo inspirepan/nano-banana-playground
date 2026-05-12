@@ -12,6 +12,7 @@ import { AspectRatioSelector } from '../AspectRatioSelector'
 import { ChipGroup } from '../ChipGroup'
 import { BrandIcon, Icon } from '../Icon'
 import { ReferenceImageUpload } from '../ReferenceImageUpload'
+import { Tooltip } from '../Tooltip'
 import { buildOptionBlocks, getOptionSummaryLabels } from './optionBlocks'
 import { INPUT_LABEL_CLASS, OptionSection, Section, ToggleGroupSection } from './sections'
 import { autoResizeTextarea } from './textarea'
@@ -171,17 +172,17 @@ export function GenerateModeView({
       >
         <div className="grid grid-cols-2 gap-1.5">
           {MODEL_CONFIGS.map((m) => (
-            <button
-              key={m.id}
-              type="button"
-              data-active={model.id === m.id}
-              onClick={() => onSwitchModel(m.id)}
-              title={m.name}
-              className="chip min-w-0 justify-center px-2"
-            >
-              <BrandIcon name={getProviderConfig(m.provider).brandIcon} size={12} />
-              <span className="min-w-0 truncate">{m.name}</span>
-            </button>
+            <Tooltip key={m.id} text={m.name} placement="top" className="min-w-0">
+              <button
+                type="button"
+                data-active={model.id === m.id}
+                onClick={() => onSwitchModel(m.id)}
+                className="chip w-full min-w-0 justify-center px-2"
+              >
+                <BrandIcon name={getProviderConfig(m.provider).brandIcon} size={12} />
+                <span className="min-w-0 truncate">{m.name}</span>
+              </button>
+            </Tooltip>
           ))}
         </div>
       </Section>
@@ -191,26 +192,28 @@ export function GenerateModeView({
         label={t('input.prompt.label')}
         right={
           <div className="flex gap-0.5">
-            <button
-              type="button"
-              onClick={handleHistoryUndo}
-              disabled={!canUndo}
-              title={t('input.prompt.undo')}
-              aria-label={t('input.prompt.undo')}
-              className="icon-btn"
-            >
-              <Icon name="undo" size={13} />
-            </button>
-            <button
-              type="button"
-              onClick={handleHistoryRedo}
-              disabled={!canRedo}
-              title={t('input.prompt.redo')}
-              aria-label={t('input.prompt.redo')}
-              className="icon-btn"
-            >
-              <Icon name="redo" size={13} />
-            </button>
+            <Tooltip text={t('input.prompt.undo')} placement="top" className="inline-flex">
+              <button
+                type="button"
+                onClick={handleHistoryUndo}
+                disabled={!canUndo}
+                aria-label={t('input.prompt.undo')}
+                className="icon-btn"
+              >
+                <Icon name="undo" size={13} />
+              </button>
+            </Tooltip>
+            <Tooltip text={t('input.prompt.redo')} placement="top" className="inline-flex">
+              <button
+                type="button"
+                onClick={handleHistoryRedo}
+                disabled={!canRedo}
+                aria-label={t('input.prompt.redo')}
+                className="icon-btn"
+              >
+                <Icon name="redo" size={13} />
+              </button>
+            </Tooltip>
           </div>
         }
       >
@@ -231,16 +234,17 @@ export function GenerateModeView({
             </span>
             <div className="flex-1" />
             {prompt.length > 0 && (
-              <button
-                type="button"
-                onClick={handlePromptClear}
-                title={t('input.prompt.clear')}
-                aria-label={t('input.prompt.clear')}
-                className="inline-flex items-center gap-1 bg-transparent border-0 p-0 text-sm text-(--color-text-4) hover:text-(--color-text-2) transition-colors"
-              >
-                <Icon name="close" size={11} />
-                {t('common.clear')}
-              </button>
+              <Tooltip text={t('input.prompt.clear')} placement="top" className="inline-flex">
+                <button
+                  type="button"
+                  onClick={handlePromptClear}
+                  aria-label={t('input.prompt.clear')}
+                  className="inline-flex items-center gap-1 bg-transparent border-0 p-0 text-sm text-(--color-text-4) hover:text-(--color-text-2) transition-colors"
+                >
+                  <Icon name="close" size={11} />
+                  {t('common.clear')}
+                </button>
+              </Tooltip>
             )}
           </div>
         </div>

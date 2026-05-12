@@ -1,6 +1,7 @@
 import { useCallback, useId, useRef } from 'react'
 
 import { Icon } from './Icon'
+import { Tooltip } from './Tooltip'
 import { useImageSrc } from '../hooks/useImageSrc'
 import { useI18n } from '../i18n'
 import type { PlaygroundImage, PlaygroundImageMeta } from '../lib/types'
@@ -170,15 +171,11 @@ function LockedReferenceThumb({ item }: { item: LockedReferenceImage }) {
           {item.label}
         </span>
       )}
-      <span
-        className="ref-thumb-close"
-        style={{ opacity: 1, cursor: 'default' }}
-        role="img"
-        aria-label={lockedLabel}
-        title={lockedLabel}
-      >
-        <Icon name="lock" size={9} strokeWidth={2.4} />
-      </span>
+      <Tooltip text={lockedLabel} placement="top" className="ref-thumb-close cursor-default opacity-100">
+        <span role="img" aria-label={lockedLabel}>
+          <Icon name="lock" size={9} strokeWidth={2.4} />
+        </span>
+      </Tooltip>
     </div>
   )
 }

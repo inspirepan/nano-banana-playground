@@ -43,7 +43,7 @@ type Props = {
   onRetryFailedGenerationImage: (image: PlaygroundImageMeta) => Promise<RetryActionResult>
   onAddToRef: (image: PlaygroundImageMeta) => void
   onRegenerate: (image: PlaygroundImageMeta) => void
-  onReroll: (image: PlaygroundImageMeta) => Promise<RetryActionResult>
+  onReroll: (image: PlaygroundImageMeta, modelId?: string) => Promise<RetryActionResult>
   onEditImage: (params: {
     sourceImage: PlaygroundImageMeta
     model: ModelConfig

@@ -13,6 +13,7 @@ import type { Provider } from '../../config/models'
 import type { ApiKeyStatus } from '../../hooks/useApiKey'
 import { useI18n } from '../../i18n'
 import { Icon } from '../Icon'
+import { Tooltip } from '../Tooltip'
 
 export function AgentOptionsMenu({
   openMenu,
@@ -162,17 +163,16 @@ function ThinkingSlider({
           ['--seg-index' as string]: activeIndex,
         }}
       >
-        {levels.map((level) => (
-          <button
-            key={level}
-            type="button"
-            onClick={() => onChange(level)}
-            data-active={displayValue === level}
-            title={thinkingLevelLabel(t, model, level)}
-          >
-            <span className="text-xs">{thinkingLevelLabel(t, model, level)}</span>
-          </button>
-        ))}
+        {levels.map((level) => {
+          const label = thinkingLevelLabel(t, model, level)
+          return (
+            <Tooltip key={level} text={label} placement="top" className="flex min-w-0 flex-1">
+              <button type="button" onClick={() => onChange(level)} data-active={displayValue === level}>
+                <span className="text-xs">{label}</span>
+              </button>
+            </Tooltip>
+          )
+        })}
       </div>
     </div>
   )

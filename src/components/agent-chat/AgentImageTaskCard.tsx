@@ -10,6 +10,7 @@ import type { StackItem } from '../../lib/stacks'
 import { compactImageIdLabel } from '../../lib/imageIdLabel'
 import { Icon } from '../Icon'
 import { StackItemThumb } from '../StackItemThumb'
+import { Tooltip } from '../Tooltip'
 import type { AgentImageTaskFocusHandler } from './types'
 
 const PROMPT_BOX_COLLAPSED_LINE_COUNT = 3
@@ -243,14 +244,13 @@ function SkeletonSlot({
 }) {
   const { t } = useI18n()
   const statusLabel = queued ? t('imageDetail.queue.status.queued') : t('imageDetail.queue.status.generating')
-  return (
+  const slot = (
     <div
       className={`relative w-full overflow-hidden shadow-[inset_0_0_0_1px_var(--ring-edge-soft)] ${flush ? 'rounded-none' : 'rounded-[var(--radius-sm)]'}`}
       style={{
         aspectRatio: aspectRatio ?? '1 / 1',
         background: 'repeating-linear-gradient(-45deg, var(--color-surface-2) 0 6px, var(--color-surface-3) 6px 12px)',
       }}
-      title={compact ? `${statusLabel} · ${t('imageDetail.queue.keepPageOpen')}` : undefined}
     >
       <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 px-2 text-(--color-text-3)">
         {queued ? (
@@ -268,6 +268,12 @@ function SkeletonSlot({
         )}
       </div>
     </div>
+  )
+  if (!compact) return slot
+  return (
+    <Tooltip text={`${statusLabel} · ${t('imageDetail.queue.keepPageOpen')}`} placement="top" className="w-full">
+      {slot}
+    </Tooltip>
   )
 }
 
@@ -566,61 +572,60 @@ export function AgentImageTaskCard({
     ) : null
 
   const targetIdNode = targetIdLabel ? (
-    <span
-      className="mono min-w-0 break-all text-sm leading-[1.35] font-medium text-(--color-text)"
-      title={targetIdTitle ?? targetIdLabel}
-    >
-      {targetIdLabel}
-    </span>
+    <Tooltip text={targetIdTitle ?? targetIdLabel} placement="top" maxWidth={360} className="min-w-0">
+      <span className="mono min-w-0 break-all text-sm leading-[1.35] font-medium text-(--color-text)">
+        {targetIdLabel}
+      </span>
+    </Tooltip>
   ) : null
   const approvalStatusNode = isPendingApproval ? (
     <span className="inline-flex items-center rounded-[var(--radius-xs)] bg-[color-mix(in_srgb,var(--color-warning)_12%,transparent)] px-1.5 py-0.5 text-xs leading-none font-semibold text-(--color-warning) shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-warning)_20%,transparent)]">
       <span>{t('agentChat.taskStatus.pendingApproval')}</span>
     </span>
   ) : null
+  const failedStatusTooltip = failedDetailsOpen
+    ? t('agentChat.imageTask.hideFailureDetails')
+    : t('agentChat.imageTask.showFailureDetails')
   const failedStatusNode = isFailed ? (
-    <button
-      type="button"
-      aria-expanded={failedDetailsOpen}
-      onClick={(event) => {
-        event.stopPropagation()
-        setFailedDetailsOpen((prev) => !prev)
-      }}
-      className="inline-flex items-center gap-1.5 rounded-[var(--radius-xs)] bg-[color-mix(in_srgb,var(--color-danger)_10%,transparent)] px-2 py-1 text-xs leading-none font-semibold text-(--color-danger) shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-danger)_18%,transparent)] transition-opacity hover:opacity-80"
-      title={
-        failedDetailsOpen ? t('agentChat.imageTask.hideFailureDetails') : t('agentChat.imageTask.showFailureDetails')
-      }
-    >
-      <Icon name="alert_circle" size={12} />
-      <span>{taskStatusLabel('failed')}</span>
-      <Icon name={failedDetailsOpen ? 'chevron_down' : 'chevron_right'} size={12} />
-    </button>
+    <Tooltip text={failedStatusTooltip} placement="top" className="inline-flex">
+      <button
+        type="button"
+        aria-expanded={failedDetailsOpen}
+        onClick={(event) => {
+          event.stopPropagation()
+          setFailedDetailsOpen((prev) => !prev)
+        }}
+        className="inline-flex items-center gap-1.5 rounded-[var(--radius-xs)] bg-[color-mix(in_srgb,var(--color-danger)_10%,transparent)] px-2 py-1 text-xs leading-none font-semibold text-(--color-danger) shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-danger)_18%,transparent)] transition-opacity hover:opacity-80"
+      >
+        <Icon name="alert_circle" size={12} />
+        <span>{taskStatusLabel('failed')}</span>
+        <Icon name={failedDetailsOpen ? 'chevron_down' : 'chevron_right'} size={12} />
+      </button>
+    </Tooltip>
   ) : null
   const activeStatusNode =
     task && isActiveGenerating ? (
-      <span
-        className="inline-flex items-center gap-1.5 py-0.5 text-sm leading-none font-medium text-(--color-text-3)"
-        title={taskStatusLabel(status)}
-      >
-        {status === 'queued' ? (
-          <>
-            <span className="h-1.5 w-1.5 rounded-full bg-(--color-text-4)" />
-            <span>{taskStatusLabel(status)}</span>
-          </>
-        ) : (
-          activeElapsedTime && <span className="tabular-nums text-(--color-text-4)">{activeElapsedTime}</span>
-        )}
-      </span>
+      <Tooltip text={taskStatusLabel(status)} placement="top" className="inline-flex">
+        <span className="inline-flex items-center gap-1.5 py-0.5 text-sm leading-none font-medium text-(--color-text-3)">
+          {status === 'queued' ? (
+            <>
+              <span className="h-1.5 w-1.5 rounded-full bg-(--color-text-4)" />
+              <span>{taskStatusLabel(status)}</span>
+            </>
+          ) : (
+            activeElapsedTime && <span className="tabular-nums text-(--color-text-4)">{activeElapsedTime}</span>
+          )}
+        </span>
+      </Tooltip>
     ) : null
   const waitingStatusNode =
     task && isWaitingDependencies ? (
-      <span
-        className="inline-flex items-center gap-1.5 py-0.5 text-sm leading-none font-medium text-(--color-text-3)"
-        title={taskStatusLabel(status)}
-      >
-        <span className="h-1.5 w-1.5 rounded-full bg-(--color-text-4)" />
-        <span>{taskStatusLabel(status)}</span>
-      </span>
+      <Tooltip text={taskStatusLabel(status)} placement="top" className="inline-flex">
+        <span className="inline-flex items-center gap-1.5 py-0.5 text-sm leading-none font-medium text-(--color-text-3)">
+          <span className="h-1.5 w-1.5 rounded-full bg-(--color-text-4)" />
+          <span>{taskStatusLabel(status)}</span>
+        </span>
+      </Tooltip>
     ) : null
   const progressStatusNode = activeStatusNode ?? waitingStatusNode
 
@@ -765,18 +770,23 @@ export function AgentImageTaskCard({
       >
         {renderCompletedGrid()}
         {canFocus && (
-          <button
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation()
-              handleLocateClick?.()
-            }}
-            className="media-action absolute bottom-1.5 right-1.5 z-30 min-h-[24px] px-2 opacity-0 transition-opacity duration-150 group-hover:opacity-100 focus:opacity-100"
-            title={t('agentChat.imageTask.locateInGallery')}
-            aria-label={t('agentChat.imageTask.locateInGallery')}
+          <Tooltip
+            text={t('agentChat.imageTask.locateInGallery')}
+            placement="top"
+            className="absolute bottom-1.5 right-1.5 z-30 opacity-0 transition-opacity duration-150 group-hover:opacity-100 focus-within:opacity-100"
           >
-            <Icon name="map_pin" size={12} />
-          </button>
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation()
+                handleLocateClick?.()
+              }}
+              className="media-action min-h-[24px] px-2"
+              aria-label={t('agentChat.imageTask.locateInGallery')}
+            >
+              <Icon name="map_pin" size={12} />
+            </button>
+          </Tooltip>
         )}
       </div>
     )
@@ -851,9 +861,9 @@ export function AgentImageTaskCard({
       {!failedCollapsed && referenceIds.length > 0 && (
         <div className="mt-2 flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 px-2 text-sm text-(--color-text-3)">
           <span className="text-(--color-text-3)">{t('agentChat.imageTask.reference')}</span>
-          <span className="mono truncate text-(--color-text-4)" title={referenceIds.join(', ')}>
-            {referenceIds.join(', ')}
-          </span>
+          <Tooltip text={referenceIds.join(', ')} placement="top" maxWidth={360} className="min-w-0">
+            <span className="mono block truncate text-(--color-text-4)">{referenceIds.join(', ')}</span>
+          </Tooltip>
         </div>
       )}
 
@@ -886,19 +896,20 @@ export function AgentImageTaskCard({
             </button>
           )}
           {showApprove && !autoApproveImageTasks && (
-            <button
-              type="button"
-              onClick={(event) => {
-                event.stopPropagation()
-                onToggleAutoApproveImageTasks(true)
-                onApprove(task.id)
-              }}
-              className="chip flex items-center gap-1.5 text-base"
-              title={t('agentChat.imageTask.alwaysAutoApprove')}
-            >
-              <Icon name="circle_play" size={12} />
-              <span>{t('agentChat.imageTask.alwaysAutoApprove')}</span>
-            </button>
+            <Tooltip text={t('agentChat.imageTask.alwaysAutoApprove')} placement="top" className="inline-flex">
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation()
+                  onToggleAutoApproveImageTasks(true)
+                  onApprove(task.id)
+                }}
+                className="chip flex items-center gap-1.5 text-base"
+              >
+                <Icon name="circle_play" size={12} />
+                <span>{t('agentChat.imageTask.alwaysAutoApprove')}</span>
+              </button>
+            </Tooltip>
           )}
           {showCancel && (
             <button

@@ -10,6 +10,7 @@ import type { Theme } from '../../config/theme'
 import type { WebApiProvider, WebFetchProvider, WebSearchProvider } from '../../config/webProviders'
 import type { StoredUserSkill } from '../../agent/skills/types'
 import { useI18n } from '../../i18n'
+import { Tooltip } from '../Tooltip'
 import {
   buildSettingsImportPlan,
   createDefaultSettingsImportSelection,
@@ -411,19 +412,17 @@ function ImportPlanRow({
         )}
       </div>
       <StatusPill status={item.status} sensitive={item.sensitive} />
-      <span
-        className="mono min-w-0 truncate text-sm text-(--color-text-3)"
-        title={displayValue(item.currentValueLabel, t)}
-      >
-        {displayValue(item.currentValueLabel, t)}
-      </span>
+      <Tooltip text={displayValue(item.currentValueLabel, t)} placement="top" maxWidth={360} className="min-w-0">
+        <span className="mono block truncate text-sm text-(--color-text-3)">
+          {displayValue(item.currentValueLabel, t)}
+        </span>
+      </Tooltip>
       <span className="text-center text-sm text-(--color-text-4)">→</span>
-      <span
-        className="mono min-w-0 truncate text-sm font-medium text-(--color-text)"
-        title={displayValue(item.incomingValueLabel, t)}
-      >
-        {displayValue(item.incomingValueLabel, t)}
-      </span>
+      <Tooltip text={displayValue(item.incomingValueLabel, t)} placement="top" maxWidth={360} className="min-w-0">
+        <span className="mono block truncate text-sm font-medium text-(--color-text)">
+          {displayValue(item.incomingValueLabel, t)}
+        </span>
+      </Tooltip>
     </label>
   )
 }
@@ -433,13 +432,18 @@ function StatusPill({ status, sensitive }: { status: SettingsImportItemStatus; s
   const color =
     status === 'added' ? 'var(--color-success)' : status === 'invalid' ? 'var(--color-danger)' : 'var(--color-warning)'
   return (
-    <span
-      className="w-fit rounded-[var(--radius-xs)] px-1.5 py-0.5 text-xs font-medium"
-      style={{ color, background: `color-mix(in srgb, ${color} 12%, transparent)` }}
-      title={sensitive ? t('settings.backup.sensitive') : undefined}
+    <Tooltip
+      text={sensitive ? t('settings.backup.sensitive') : t(`settings.backup.status.${status}`)}
+      placement="top"
+      className="w-fit"
     >
-      {t(`settings.backup.status.${status}`)}
-    </span>
+      <span
+        className="block rounded-[var(--radius-xs)] px-1.5 py-0.5 text-xs font-medium"
+        style={{ color, background: `color-mix(in srgb, ${color} 12%, transparent)` }}
+      >
+        {t(`settings.backup.status.${status}`)}
+      </span>
+    </Tooltip>
   )
 }
 

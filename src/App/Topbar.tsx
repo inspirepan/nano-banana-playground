@@ -1,4 +1,5 @@
 import { Icon, type IconName } from '../components/Icon'
+import { Tooltip } from '../components/Tooltip'
 import { useI18n } from '../i18n'
 
 export type MobileTab = 'generate' | 'agent' | 'gallery'
@@ -55,15 +56,11 @@ export function Topbar({
             )
           })}
         </div>
-        <button
-          type="button"
-          onClick={onOpenSettings}
-          className="icon-btn ml-auto shrink-0"
-          title={t('common.settings')}
-          aria-label={t('common.settings')}
-        >
-          <Icon name="settings" size={14} />
-        </button>
+        <Tooltip text={t('common.settings')} placement="bottom" className="ml-auto inline-flex shrink-0">
+          <button type="button" onClick={onOpenSettings} className="icon-btn" aria-label={t('common.settings')}>
+            <Icon name="settings" size={14} />
+          </button>
+        </Tooltip>
       </div>
     </div>
   )

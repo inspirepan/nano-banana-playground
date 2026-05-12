@@ -18,6 +18,7 @@ import {
 } from '../../agent'
 import { useI18n } from '../../i18n'
 import { Icon } from '../Icon'
+import { Tooltip } from '../Tooltip'
 
 async function writeClipboardText(text: string): Promise<void> {
   if (navigator.clipboard?.writeText) {
@@ -112,16 +113,16 @@ export function MessageBubble({
               if (canOpen) {
                 const label = t('agentChat.system.openImageTaskImage', { id: part.imageId ?? part.text })
                 return (
-                  <button
-                    key={index}
-                    type="button"
-                    onClick={() => onOpenImageTaskImage?.(part.toolCallId!, part.imageId!)}
-                    title={label}
-                    aria-label={label}
-                    className="mono inline cursor-pointer appearance-none border-0 bg-transparent p-0 text-inherit underline decoration-dotted decoration-(--color-text-4) underline-offset-[3px] transition-colors duration-150 hover:text-(--color-text-2) hover:decoration-(--color-text-3) focus-visible:text-(--color-text-2) focus-visible:decoration-(--color-text-3) focus-visible:outline-none"
-                  >
-                    {part.text}
-                  </button>
+                  <Tooltip key={index} text={label} placement="top" className="inline">
+                    <button
+                      type="button"
+                      onClick={() => onOpenImageTaskImage?.(part.toolCallId!, part.imageId!)}
+                      aria-label={label}
+                      className="mono inline cursor-pointer appearance-none border-0 bg-transparent p-0 text-inherit underline decoration-dotted decoration-(--color-text-4) underline-offset-[3px] transition-colors duration-150 hover:text-(--color-text-2) hover:decoration-(--color-text-3) focus-visible:text-(--color-text-2) focus-visible:decoration-(--color-text-3) focus-visible:outline-none"
+                    >
+                      {part.text}
+                    </button>
+                  </Tooltip>
                 )
               }
               if (part.mono) {
@@ -224,20 +225,21 @@ export function MessageBubble({
         </div>
         {canCopy && (
           <div className="mt-1 flex justify-end pr-1">
-            <button
-              type="button"
-              className={`inline-flex h-[26px] appearance-none items-center justify-center rounded-[var(--radius-sm)] border-0 bg-transparent px-2 text-xs font-medium text-(--color-text-4) opacity-100 transition-[opacity,background-color,color] duration-150 hover:bg-(--color-surface-2) hover:text-(--color-text-3) md:pointer-events-none md:opacity-0 md:group-hover/message:pointer-events-auto md:group-hover/message:opacity-100 md:group-focus-within/message:pointer-events-auto md:group-focus-within/message:opacity-100 ${hideCopyAction ? 'pointer-events-none invisible' : ''}`}
-              onClick={handleCopy}
-              tabIndex={hideCopyAction ? -1 : undefined}
-              aria-hidden={hideCopyAction || undefined}
-              title={copied ? t('agentChat.message.copied') : t('agentChat.message.copy')}
-              aria-label={copied ? t('agentChat.message.copied') : t('agentChat.message.copy')}
-            >
-              <span className="inline-flex items-center gap-1.5">
-                <Icon name={copied ? 'check' : 'copy'} size={12} strokeWidth={copied ? 2.2 : 1.8} />
-                {copied ? t('agentChat.message.copied') : t('agentChat.message.copy')}
-              </span>
-            </button>
+            <Tooltip text={copied ? t('agentChat.message.copied') : t('agentChat.message.copy')} placement="top">
+              <button
+                type="button"
+                className={`inline-flex h-[26px] appearance-none items-center justify-center rounded-[var(--radius-sm)] border-0 bg-transparent px-2 text-xs font-medium text-(--color-text-4) opacity-100 transition-[opacity,background-color,color] duration-150 hover:bg-(--color-surface-2) hover:text-(--color-text-3) md:pointer-events-none md:opacity-0 md:group-hover/message:pointer-events-auto md:group-hover/message:opacity-100 md:group-focus-within/message:pointer-events-auto md:group-focus-within/message:opacity-100 ${hideCopyAction ? 'pointer-events-none invisible' : ''}`}
+                onClick={handleCopy}
+                tabIndex={hideCopyAction ? -1 : undefined}
+                aria-hidden={hideCopyAction || undefined}
+                aria-label={copied ? t('agentChat.message.copied') : t('agentChat.message.copy')}
+              >
+                <span className="inline-flex items-center gap-1.5">
+                  <Icon name={copied ? 'check' : 'copy'} size={12} strokeWidth={copied ? 2.2 : 1.8} />
+                  {copied ? t('agentChat.message.copied') : t('agentChat.message.copy')}
+                </span>
+              </button>
+            </Tooltip>
           </div>
         )}
       </div>

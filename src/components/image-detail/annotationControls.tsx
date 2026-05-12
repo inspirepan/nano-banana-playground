@@ -1,4 +1,5 @@
 import { Icon, type IconName } from '../Icon'
+import { Tooltip } from '../Tooltip'
 import { BRUSH_PRESETS, type BrushPresetId } from './annotationPresets'
 import type { DrawTool } from './DrawableLayer'
 import { useI18n } from '../../i18n'
@@ -66,19 +67,22 @@ export function DesktopAnnotationToolbar({
         <div className="annotation-toolbar-row">
           {!desktopMoveActive && drawTool !== 'eraser' && (
             <>
-              {BRUSH_PRESETS.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  className="annotation-dot-btn shrink-0"
-                  data-active={brushPreset === item.id}
-                  onClick={() => onChangeBrushPreset(item.id)}
-                  title={t(item.labelKey)}
-                  aria-label={t(item.labelKey)}
-                >
-                  <BrushPresetDot preset={item} />
-                </button>
-              ))}
+              {BRUSH_PRESETS.map((item) => {
+                const label = t(item.labelKey)
+                return (
+                  <Tooltip key={item.id} text={label} placement="top" className="inline-flex shrink-0">
+                    <button
+                      type="button"
+                      className="annotation-dot-btn"
+                      data-active={brushPreset === item.id}
+                      onClick={() => onChangeBrushPreset(item.id)}
+                      aria-label={label}
+                    >
+                      <BrushPresetDot preset={item} />
+                    </button>
+                  </Tooltip>
+                )
+              })}
               <div className="annotation-toolbar-divider mx-1 h-4 w-px shrink-0" />
             </>
           )}
