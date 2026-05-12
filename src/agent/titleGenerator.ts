@@ -10,7 +10,7 @@ const TITLE_GENERATION_ATTEMPTS = 2
 function languageInstruction(language: Language): string {
   return language === 'en'
     ? 'Write the title in English.'
-    : 'Write the title in Simplified Chinese (简体中文). Add spaces between Chinese characters and English words or letters.'
+    : 'Write the title in Simplified Chinese (简体中文).'
 }
 
 const STACK_TITLE_SYSTEM_PROMPT_BASE = [
