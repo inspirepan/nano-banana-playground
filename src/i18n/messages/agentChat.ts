@@ -18,6 +18,8 @@ export const agentChatMessages: MessageDictionary = {
   'agentChat.empty.quick.model': { 'zh-CN': '模型', en: 'Model' },
   'agentChat.empty.quick.aspect': { 'zh-CN': '比例', en: 'Aspect' },
   'agentChat.empty.quick.resolution': { 'zh-CN': '分辨率', en: 'Resolution' },
+  'agentChat.empty.quick.count': { 'zh-CN': '张数', en: 'Count' },
+  'agentChat.empty.quick.countValue': { 'zh-CN': '{count} 张', en: '{count} images' },
   'agentChat.empty.skillStarter.prompt': {
     'zh-CN': '使用 {skill} Skill，帮我生成图片：',
     en: 'Use the {skill} skill to help me generate images: ',

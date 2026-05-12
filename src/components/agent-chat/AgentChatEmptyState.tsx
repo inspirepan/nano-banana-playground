@@ -9,6 +9,7 @@ import { DrawingSkillStarters } from './DrawingSkillStarters'
 
 const ASPECT_RATIO_QUICK_PICKS = ['1:1', '16:9', '9:16', '3:4', '4:3', '21:9', '2:3', '3:2'] as const
 const RESOLUTION_QUICK_PICKS = ['1K', '2K', '4K'] as const
+const IMAGE_COUNT_QUICK_PICKS = [2, 3, 4] as const
 
 type Props = {
   drawingSkills: AgentSkillSummary[]
@@ -72,7 +73,7 @@ export function QuickCompletePanel({ onInsertText }: { onInsertText: (text: stri
 
   return (
     <div className="mx-auto w-full max-w-[980px] overflow-hidden rounded-[var(--radius-lg)] bg-(--color-bg) shadow-[inset_0_0_0_1px_var(--ring-edge)]">
-      <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,0.72fr)]">
+      <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)_minmax(0,0.72fr)_minmax(0,0.72fr)]">
         <section className="min-w-0 p-2">
           <div className="mb-1.5 flex items-center gap-1.5 text-sm font-semibold text-(--color-text-2)">
             <Icon name="bot" size={13} className="text-(--color-text-3)" />
@@ -141,6 +142,30 @@ export function QuickCompletePanel({ onInsertText }: { onInsertText: (text: stri
                 <span>{resolution}</span>
               </button>
             ))}
+          </div>
+        </section>
+
+        <section className="min-w-0 p-2 shadow-[inset_0_1px_0_var(--ring-edge-soft)] md:shadow-[inset_1px_0_0_var(--ring-edge-soft)]">
+          <div className="mb-1.5 flex items-center gap-1.5 text-sm font-semibold text-(--color-text-2)">
+            <Icon name="images" size={13} className="text-(--color-text-3)" />
+            <span>{t('agentChat.empty.quick.count')}</span>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {IMAGE_COUNT_QUICK_PICKS.map((count) => {
+              const label = t('agentChat.empty.quick.countValue', { count })
+              return (
+                <button
+                  key={count}
+                  type="button"
+                  onPointerDown={(event) => handlePointerInsert(event, label)}
+                  onClick={() => handleClickInsert(label)}
+                  className="chip gap-1.5 bg-transparent px-2.5 text-sm tabular-nums"
+                  style={{ height: 32 }}
+                >
+                  <span>{label}</span>
+                </button>
+              )
+            })}
           </div>
         </section>
       </div>
