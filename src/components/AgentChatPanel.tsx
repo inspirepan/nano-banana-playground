@@ -230,6 +230,7 @@ const AUTO_FOLLOW_REJOIN_DISTANCE = 16
 const AUTO_FOLLOW_SCROLL_EPSILON = 0.5
 const QUEUED_MESSAGES_FLOAT_GAP = 8
 const HEIGHT_CHANGE_EPSILON = 0.5
+const MAX_BOTTOM_RESERVE_VIEWPORT_RATIO = 0.82
 
 function getScrollBottomDistance(el: HTMLElement): number {
   return Math.max(0, el.scrollHeight - el.scrollTop - el.clientHeight)
@@ -242,6 +243,10 @@ function getOuterHeight(el: HTMLElement): number {
     Number.parseFloat(style.marginTop || '0') +
     Number.parseFloat(style.marginBottom || '0')
   )
+}
+
+function getMaxBottomReserveHeight(el: HTMLElement): number {
+  return Math.max(0, Math.floor(el.clientHeight * MAX_BOTTOM_RESERVE_VIEWPORT_RATIO))
 }
 
 type DetachedShrinkRequest = {
@@ -497,10 +502,11 @@ export function AgentChatPanel({
       if (!el || height <= HEIGHT_CHANGE_EPSILON) return false
       if (!nearBottomRef.current || getScrollBottomDistance(el) > AUTO_FOLLOW_REJOIN_DISTANCE) return false
 
-      const reserve = Math.min(Math.ceil(height), el.clientHeight)
+      const maxReserve = getMaxBottomReserveHeight(el)
+      const reserve = Math.min(Math.ceil(height), maxReserve)
       if (reserve <= 0) return false
-      const currentReserve = Math.min(bottomReserveHeightRef.current, el.clientHeight)
-      const nextReserve = Math.min(currentReserve + reserve, el.clientHeight)
+      const currentReserve = Math.min(bottomReserveHeightRef.current, maxReserve)
+      const nextReserve = Math.min(currentReserve + reserve, maxReserve)
       if (nextReserve !== bottomReserveHeightRef.current) setBottomReserveHeight(nextReserve)
       return true
     },
