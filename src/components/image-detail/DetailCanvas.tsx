@@ -14,6 +14,7 @@ import type { ItemCounts } from '../../lib/editStateCache'
 import type { StackItem } from '../../lib/stacks'
 import type { GeneratedSource, PlaygroundImageMeta } from '../../lib/types'
 import { Icon } from '../Icon'
+import { Tooltip } from '../Tooltip'
 
 type DetailCanvasProps = {
   selectedItem: StackItem | null
@@ -131,17 +132,22 @@ export function DetailCanvas({
               label={t('imageDetail.canvas.generatedImageLabel')}
             />
           </div>
-          <button
-            type="button"
-            onClick={onCloseRefDetail}
-            className="media-action light absolute top-3 right-3 z-30 px-2"
-            title={t('imageDetail.action.exitCompare')}
-            aria-label={t('imageDetail.action.exitCompare')}
+          <Tooltip
+            text={t('imageDetail.action.exitCompare')}
+            placement="bottom"
+            className="absolute top-3 right-3 z-30"
           >
-            <Icon name="close" size={12} />
-            <span className="hidden sm:inline">{t('imageDetail.action.exitCompare')}</span>
-            <span className="sm:hidden">{t('imageDetail.action.exitShort')}</span>
-          </button>
+            <button
+              type="button"
+              onClick={onCloseRefDetail}
+              className="media-action light px-2"
+              aria-label={t('imageDetail.action.exitCompare')}
+            >
+              <Icon name="close" size={12} />
+              <span className="hidden sm:inline">{t('imageDetail.action.exitCompare')}</span>
+              <span className="sm:hidden">{t('imageDetail.action.exitShort')}</span>
+            </button>
+          </Tooltip>
         </div>
       ) : currentImage ? (
         <>

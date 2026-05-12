@@ -54,8 +54,8 @@ export function useRegenerationToast({
   )
 
   const handleReroll = useCallback(
-    async (image: PlaygroundImageMeta): Promise<RegenerationActionResult> => {
-      const result = await rerollGeneratedImage(image).catch(() => ({ status: 'unavailable' as const }))
+    async (image: PlaygroundImageMeta, modelId?: string): Promise<RegenerationActionResult> => {
+      const result = await rerollGeneratedImage(image, modelId).catch(() => ({ status: 'unavailable' as const }))
       const message =
         result.status === 'queued'
           ? t('app.toast.rerollQueued')

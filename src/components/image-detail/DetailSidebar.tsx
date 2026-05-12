@@ -7,6 +7,8 @@ import { useI18n, type Translate } from '../../i18n'
 import type { GeneratedSource, GroundingMetadata, PlaygroundImageMeta } from '../../lib/types'
 import { Icon } from '../Icon'
 import { Tooltip } from '../Tooltip'
+import { RerollSplitButton } from './RerollSplitButton'
+import type { RerollModelOption } from './rerollModelOptions'
 
 const HIGHLIGHT_LABELS = [
   '参考图说明',
@@ -39,12 +41,12 @@ type DetailSidebarProps = {
   canNavigate: boolean
   copiedPrompt: boolean
   refDetailId: string | null
+  rerollModelOptions: RerollModelOption[]
   findRefImage: (id: string) => PlaygroundImageMeta | undefined
   onToggleRefDetail: (id: string) => void
   onStartEdit?: () => void
-  onAddRef: () => void
   onRegenerate: () => void
-  onReroll: () => void
+  onReroll: (modelId?: string) => void
   onDownload: () => void
   onCopyPrompt: () => void
   onRemove: (id: string) => void | Promise<void>
@@ -64,10 +66,10 @@ export function DetailSidebar({
   canNavigate,
   copiedPrompt,
   refDetailId,
+  rerollModelOptions,
   findRefImage,
   onToggleRefDetail,
   onStartEdit,
-  onAddRef,
   onRegenerate,
   onReroll,
   onDownload,
@@ -84,109 +86,77 @@ export function DetailSidebar({
     <>
       {currentImage && (
         <>
-          {/* Desktop: tight icon-only cluster */}
-          <div className="mb-[18px] hidden items-center justify-end gap-1 md:flex">
-            <Tooltip text={t('imageDetail.action.addReference')}>
-              <button
-                type="button"
-                className="icon-btn h-7 w-7"
-                onClick={onAddRef}
-                disabled={!currentImage}
-                aria-label={t('imageDetail.action.addReference')}
-              >
-                <Icon name="plus" size={14} strokeWidth={1.8} />
-              </button>
-            </Tooltip>
+          {/* Desktop: compact action buttons */}
+          <div className="mb-[18px] hidden items-center justify-end gap-1.5 md:flex">
             <Tooltip text={t('common.download')}>
-              <button type="button" className="icon-btn h-7 w-7" onClick={onDownload} aria-label={t('common.download')}>
+              <button type="button" className="chip h-7 px-2.5 text-sm font-normal" onClick={onDownload}>
                 <Icon name="download" size={14} strokeWidth={1.8} />
+                {t('common.download')}
               </button>
             </Tooltip>
             {onStartEdit ? (
               <Tooltip text={t('common.edit')}>
-                <button type="button" className="icon-btn h-7 w-7" onClick={onStartEdit} aria-label={t('common.edit')}>
+                <button type="button" className="chip h-7 px-2.5 text-sm font-normal" onClick={onStartEdit}>
                   <Icon name="wand" size={14} strokeWidth={1.8} />
+                  {t('common.edit')}
                 </button>
               </Tooltip>
             ) : (
               <Tooltip text={t('imageDetail.action.restoreParams')}>
                 <button
                   type="button"
-                  className="icon-btn h-7 w-7"
+                  className="chip h-7 px-2.5 text-sm font-normal"
                   onClick={onRegenerate}
                   disabled={!currentMeta?.prompt}
-                  aria-label={t('imageDetail.action.restoreParams')}
                 >
-                  <Icon name="undo" size={14} strokeWidth={1.8} />
+                  <Icon name="file_sliders" size={14} strokeWidth={1.8} />
+                  {t('imageDetail.action.applyParams')}
                 </button>
               </Tooltip>
             )}
-            <Tooltip text={t('imageDetail.action.redoOriginal')}>
-              <button
-                type="button"
-                className="icon-btn h-7 w-7"
-                onClick={onReroll}
-                disabled={!currentMeta?.prompt}
-                aria-label={t('imageDetail.action.redoOriginal')}
-              >
-                <Icon name="refresh" size={14} strokeWidth={1.8} />
-              </button>
-            </Tooltip>
+            <RerollSplitButton
+              options={rerollModelOptions}
+              disabled={!currentMeta?.prompt}
+              menuPlacement="bottom"
+              onReroll={onReroll}
+            />
           </div>
 
-          {/* Mobile: 4-up card grid (icon + label) */}
+          {/* Mobile: card grid (icon + label) */}
           <div className="detail-mobile-actions mb-[18px] -mx-1 md:hidden">
-            <button
-              type="button"
-              className="action-soft detail-mobile-action"
-              onClick={onAddRef}
-              disabled={!currentImage}
-              title={t('imageDetail.action.addReferenceTitle')}
-            >
-              <Icon name="plus" size={13} strokeWidth={1.8} className="action-soft-icon" />
-              {t('imageDetail.action.addReference')}
-            </button>
-            <button
-              type="button"
-              className="action-soft detail-mobile-action"
-              onClick={onDownload}
-              title={t('imageDetail.action.downloadPng')}
-            >
-              <Icon name="download" size={13} strokeWidth={1.8} className="action-soft-icon" />
-              {t('common.download')}
-            </button>
+            <Tooltip text={t('imageDetail.action.downloadPng')} placement="top">
+              <button type="button" className="action-soft detail-mobile-action w-full" onClick={onDownload}>
+                <Icon name="download" size={13} strokeWidth={1.8} className="action-soft-icon" />
+                {t('common.download')}
+              </button>
+            </Tooltip>
             {onStartEdit ? (
-              <button
-                type="button"
-                className="action-soft detail-mobile-action"
-                onClick={onStartEdit}
-                title={t('imageDetail.action.editImage')}
-              >
-                <Icon name="wand" size={13} strokeWidth={1.8} className="action-soft-icon" />
-                {t('common.edit')}
-              </button>
+              <Tooltip text={t('imageDetail.action.editImage')} placement="top">
+                <button type="button" className="action-soft detail-mobile-action w-full" onClick={onStartEdit}>
+                  <Icon name="wand" size={13} strokeWidth={1.8} className="action-soft-icon" />
+                  {t('common.edit')}
+                </button>
+              </Tooltip>
             ) : (
-              <button
-                type="button"
-                className="action-soft detail-mobile-action"
-                onClick={onRegenerate}
-                disabled={!currentMeta?.prompt}
-                title={t('imageDetail.action.restoreParams')}
-              >
-                <Icon name="undo" size={13} strokeWidth={1.8} className="action-soft-icon" />
-                {t('imageDetail.action.restoreParams')}
-              </button>
+              <Tooltip text={t('imageDetail.action.restoreParams')} placement="top">
+                <button
+                  type="button"
+                  className="action-soft detail-mobile-action w-full"
+                  onClick={onRegenerate}
+                  disabled={!currentMeta?.prompt}
+                >
+                  <Icon name="file_sliders" size={13} strokeWidth={1.8} className="action-soft-icon" />
+                  {t('imageDetail.action.applyParams')}
+                </button>
+              </Tooltip>
             )}
-            <button
-              type="button"
-              className="action-soft detail-mobile-action"
-              onClick={onReroll}
+            <RerollSplitButton
+              options={rerollModelOptions}
               disabled={!currentMeta?.prompt}
-              title={t('imageDetail.action.regenerateOriginal')}
-            >
-              <Icon name="refresh" size={13} strokeWidth={1.8} className="action-soft-icon" />
-              {t('imageDetail.action.redoOriginal')}
-            </button>
+              variant="mobile"
+              menuPlacement="top"
+              onReroll={onReroll}
+            />
           </div>
         </>
       )}
@@ -393,40 +363,47 @@ export function DetailSidebar({
       {currentMeta?.groundingMetadata && <GroundingSection metadata={currentMeta.groundingMetadata} />}
 
       {currentImage && canNavigate && (
-        <button
-          className="inline-flex w-full items-center justify-center gap-1.5 text-sm font-medium transition-colors"
-          style={{
-            height: 30,
-            borderRadius: 'var(--radius-sm)',
-            boxShadow: 'inset 0 0 0 1px var(--ring-edge)',
-            background: 'var(--color-surface)',
-            color: 'var(--color-danger)',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'color-mix(in srgb, var(--color-danger) 8%, var(--color-surface))'
-            e.currentTarget.style.boxShadow = 'inset 0 0 0 1px color-mix(in srgb, var(--color-danger) 30%, transparent)'
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'var(--color-surface)'
-            e.currentTarget.style.boxShadow = 'inset 0 0 0 1px var(--ring-edge)'
-          }}
-          onClick={(e) => {
-            e.currentTarget.blur()
-            void onRemove(currentImage.id)
-          }}
+        <Tooltip
+          text={semanticImageId ?? t('imageDetail.action.deleteFromHistory')}
+          placement="top"
+          maxWidth={360}
+          className="w-full"
         >
-          <Icon name="trash" size={12} strokeWidth={1.8} />
-          <span>{t('imageDetail.action.deleteFromHistory')}</span>
-          {semanticImageIdDisplay && (
-            <span
-              className="mono min-w-0 max-w-[120px] truncate rounded-[var(--radius-xs)] px-1.5 py-0.5 text-[11px] font-normal leading-none"
-              style={{ background: 'color-mix(in srgb, var(--color-danger) 10%, transparent)' }}
-              title={semanticImageId ?? undefined}
-            >
-              {semanticImageIdDisplay}
-            </span>
-          )}
-        </button>
+          <button
+            className="inline-flex w-full items-center justify-center gap-1.5 text-sm font-medium transition-colors"
+            style={{
+              height: 30,
+              borderRadius: 'var(--radius-sm)',
+              boxShadow: 'inset 0 0 0 1px var(--ring-edge)',
+              background: 'var(--color-surface)',
+              color: 'var(--color-danger)',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'color-mix(in srgb, var(--color-danger) 8%, var(--color-surface))'
+              e.currentTarget.style.boxShadow =
+                'inset 0 0 0 1px color-mix(in srgb, var(--color-danger) 30%, transparent)'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'var(--color-surface)'
+              e.currentTarget.style.boxShadow = 'inset 0 0 0 1px var(--ring-edge)'
+            }}
+            onClick={(e) => {
+              e.currentTarget.blur()
+              void onRemove(currentImage.id)
+            }}
+          >
+            <Icon name="trash" size={12} strokeWidth={1.8} />
+            <span>{t('imageDetail.action.deleteFromHistory')}</span>
+            {semanticImageIdDisplay && (
+              <span
+                className="mono min-w-0 max-w-[120px] truncate rounded-[var(--radius-xs)] px-1.5 py-0.5 text-[11px] font-normal leading-none"
+                style={{ background: 'color-mix(in srgb, var(--color-danger) 10%, transparent)' }}
+              >
+                {semanticImageIdDisplay}
+              </span>
+            )}
+          </button>
+        </Tooltip>
       )}
     </>
   )
@@ -564,15 +541,16 @@ function GroundingSection({ metadata }: { metadata: GroundingMetadata }) {
           {sources.map((s, i) => (
             <li key={i} className="flex min-w-0 items-center gap-1.5 text-sm">
               <Icon name={s.isImage ? 'image' : 'search'} size={11} />
-              <a
-                href={s.uri}
-                target="_blank"
-                rel="noreferrer"
-                className="truncate text-(--color-accent) hover:underline"
-                title={s.uri}
-              >
-                {s.title}
-              </a>
+              <Tooltip text={s.uri} placement="top" maxWidth={360} className="min-w-0">
+                <a
+                  href={s.uri}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="block truncate text-(--color-accent) hover:underline"
+                >
+                  {s.title}
+                </a>
+              </Tooltip>
             </li>
           ))}
         </ul>

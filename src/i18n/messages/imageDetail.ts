@@ -3,6 +3,7 @@ import type { MessageDictionary } from '../types'
 export const imageDetailMessages: MessageDictionary = {
   'imageDetail.action.addReference': { 'zh-CN': '参考', en: 'Reference' },
   'imageDetail.action.addReferenceTitle': { 'zh-CN': '加参考到生成区', en: 'Add as reference for generation' },
+  'imageDetail.action.applyParams': { 'zh-CN': '应用', en: 'Apply' },
   'imageDetail.action.backToDetail': { 'zh-CN': '返回详情', en: 'Back to details' },
   'imageDetail.action.backToPreview': { 'zh-CN': '回到预览', en: 'Back to preview' },
   'imageDetail.action.clearAnnotations': { 'zh-CN': '清空标注', en: 'Clear annotations' },
@@ -32,6 +33,9 @@ export const imageDetailMessages: MessageDictionary = {
   'imageDetail.action.selectAll': { 'zh-CN': '全选', en: 'Select all' },
   'imageDetail.action.startAnnotation': { 'zh-CN': '标注', en: 'Annotate' },
   'imageDetail.action.finishAnnotation': { 'zh-CN': '完成标注', en: 'Finish annotation' },
+  'imageDetail.rerollMenu.currentModel': { 'zh-CN': '当前模型', en: 'current model' },
+  'imageDetail.rerollMenu.moreModels': { 'zh-CN': '选择重抽模型', en: 'Choose reroll model' },
+  'imageDetail.rerollMenu.useModel': { 'zh-CN': '使用 {model} 重抽', en: 'Reroll with {model}' },
   'imageDetail.annotation.brushSize.large': { 'zh-CN': '粗', en: 'Large' },
   'imageDetail.annotation.brushSize.medium': { 'zh-CN': '中', en: 'Medium' },
   'imageDetail.annotation.brushSize.small': { 'zh-CN': '细', en: 'Small' },

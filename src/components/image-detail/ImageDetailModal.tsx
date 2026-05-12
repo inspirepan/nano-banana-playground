@@ -7,6 +7,7 @@ import type { EditImageHandler } from './EditSidebar'
 import { MobileDrawFullscreen } from './MobileDrawFullscreen'
 import { MobileEditScreen } from './MobileEditScreen'
 import { MobileUnifiedPreviewLayer } from './MobileUnifiedPreviewLayer'
+import { buildRerollModelOptions } from './rerollModelOptions'
 import { useImageDetailBlobs } from './useImageDetailBlobs'
 import { useImageDetailKeyboard } from './useImageDetailKeyboard'
 import { useImageDetailModalState, type ModalViewMode } from './useImageDetailModalState'
@@ -40,7 +41,7 @@ type Props = {
   onClose: () => void
   onAddToRef: (image: PlaygroundImageMeta) => void
   onRegenerate: (image: PlaygroundImageMeta) => void
-  onReroll: (image: PlaygroundImageMeta) => Promise<RetryActionResult>
+  onReroll: (image: PlaygroundImageMeta, modelId?: string) => Promise<RetryActionResult>
   onEditImage: EditImageHandler
   onCancelGenerationJob: (jobId: string) => void
   onDismissGenerationJob: (jobId: string) => void
@@ -195,9 +196,13 @@ export function ImageDetailModal({
     })
   }, [])
 
-  const modelConfig = currentMeta ? MODEL_CONFIGS.find((m) => m.id === currentMeta.modelId) : null
+  const modelConfig = currentMeta ? (MODEL_CONFIGS.find((m) => m.id === currentMeta.modelId) ?? null) : null
   const modelName = modelConfig?.name ?? currentMeta?.modelId ?? null
   const modelApiId = modelConfig?.apiModel ?? null
+  const rerollModelOptions = useMemo(
+    () => (currentMeta ? buildRerollModelOptions(currentMeta, modelConfig) : []),
+    [currentMeta, modelConfig],
+  )
 
   const actualCost = useMemo(() => {
     if (!currentMeta || !modelConfig) return null
@@ -246,9 +251,9 @@ export function ImageDetailModal({
     onClose()
   }
 
-  const handleRerollAction = () => {
+  const handleRerollAction = (modelId?: string) => {
     if (!currentImage) return
-    void onReroll(currentImage).then((result) => {
+    void onReroll(currentImage, modelId).then((result) => {
       flash(result.ok ? t('imageDetail.toast.rerollQueued') : result.message)
     })
   }
@@ -463,6 +468,7 @@ export function ImageDetailModal({
             actualCost={actualCost}
             pxDim={pxDim}
             stackInfo={stackInfo}
+            rerollModelOptions={rerollModelOptions}
             findRefImage={findRefImage}
             generationJobs={generationJobs}
             onClose={onClose}

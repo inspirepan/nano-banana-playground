@@ -4,6 +4,7 @@ import type { BrushPresetId } from './annotationPresets'
 import { DetailSidebar } from './DetailSidebar'
 import type { DrawableLayerHandle, DrawTool } from './DrawableLayer'
 import { EditSidebar, type EditImageHandler } from './EditSidebar'
+import type { RerollModelOption } from './rerollModelOptions'
 import type { ModelConfig } from '../../config/models'
 import type { GenerationJob, GenerationSlot } from '../../hooks/usePlayground'
 import { useI18n } from '../../i18n'
@@ -27,6 +28,7 @@ type DetailSidePanelProps = {
   canNavigate: boolean
   copiedPrompt: boolean
   refDetailId: string | null
+  rerollModelOptions: RerollModelOption[]
   generationJobs: GenerationJob[]
   activeEditBatchId: string | null
   annotationActive: boolean
@@ -48,9 +50,8 @@ type DetailSidePanelProps = {
   onChangeDesktopMoveActive: (active: boolean) => void
   onChangeBrushPreset: (preset: BrushPresetId) => void
   onToggleRefDetail: (id: string) => void
-  onAddRef: () => void
   onRegenerate: () => void
-  onReroll: () => void
+  onReroll: (modelId?: string) => void
   onDownload: () => void
   onCopyPrompt: () => void
   onRemove: (id: string) => void | Promise<void>
@@ -73,6 +74,7 @@ export function DetailSidePanel({
   canNavigate,
   copiedPrompt,
   refDetailId,
+  rerollModelOptions,
   generationJobs,
   activeEditBatchId,
   annotationActive,
@@ -94,7 +96,6 @@ export function DetailSidePanel({
   onChangeDesktopMoveActive,
   onChangeBrushPreset,
   onToggleRefDetail,
-  onAddRef,
   onRegenerate,
   onReroll,
   onDownload,
@@ -201,9 +202,9 @@ export function DetailSidePanel({
             findRefImage={findRefImage}
             onToggleRefDetail={onToggleRefDetail}
             onStartEdit={isMobileLayout ? onStartEdit : undefined}
-            onAddRef={onAddRef}
             onRegenerate={onRegenerate}
             onReroll={onReroll}
+            rerollModelOptions={rerollModelOptions}
             onDownload={onDownload}
             onCopyPrompt={onCopyPrompt}
             onRemove={onRemove}

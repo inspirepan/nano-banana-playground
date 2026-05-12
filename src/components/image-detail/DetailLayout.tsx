@@ -1,6 +1,7 @@
 import type { Dispatch, RefObject, SetStateAction } from 'react'
 
 import { Icon } from '../Icon'
+import { Tooltip } from '../Tooltip'
 import type { BrushPresetId } from './annotationPresets'
 import { DetailCanvas } from './DetailCanvas'
 import { DetailFooter } from './DetailFooter'
@@ -9,6 +10,7 @@ import { DetailSidePanel } from './DetailSidePanel'
 import type { DrawableLayerHandle, DrawMode, DrawTool } from './DrawableLayer'
 import type { EditImageHandler } from './EditSidebar'
 import { StackStrip } from './StackStrip'
+import type { RerollModelOption } from './rerollModelOptions'
 import type { EditMode, ModalViewMode } from './useImageDetailModalState'
 import type { ZoomableImageViewHandoffReason, ZoomableImageViewState } from './ZoomableImageView'
 import type { ModelConfig } from '../../config/models'
@@ -79,6 +81,7 @@ type DetailLayoutProps = {
   actualCost: number | null
   pxDim: string
   stackInfo: { pos: number; total: number } | null
+  rerollModelOptions: RerollModelOption[]
   // Refs lookup
   findRefImage: (id: string) => PlaygroundImageMeta | undefined
   // Generation jobs
@@ -87,7 +90,7 @@ type DetailLayoutProps = {
   onClose: () => void
   onAddRef: () => void
   onRegenerate: () => void
-  onReroll: () => void
+  onReroll: (modelId?: string) => void
   onDownload: () => void
   onCopyPrompt: () => void
   onRemoveCurrent: (id: string) => void
@@ -157,6 +160,7 @@ export function DetailLayout({
   actualCost,
   pxDim,
   stackInfo,
+  rerollModelOptions,
   findRefImage,
   generationJobs,
   onClose,
@@ -196,6 +200,7 @@ export function DetailLayout({
         onAddRef={onAddRef}
         onRegenerate={onRegenerate}
         onReroll={onReroll}
+        rerollModelOptions={rerollModelOptions}
         onDownload={onDownload}
         onToggleSidebar={toggleSidebar}
       />
@@ -210,32 +215,34 @@ export function DetailLayout({
           selectedId={selectedItem?.id ?? null}
           onSelect={selectStackItem}
           leadingNode={
-            <button
-              type="button"
-              className="icon-btn h-8 w-8"
-              onClick={onClose}
-              title={t('imageDetail.action.closeEsc')}
-            >
-              <Icon name="close" size={14} strokeWidth={1.8} />
-            </button>
+            <Tooltip text={t('imageDetail.action.closeEsc')} placement="bottom" className="inline-flex">
+              <button type="button" className="icon-btn h-8 w-8" onClick={onClose}>
+                <Icon name="close" size={14} strokeWidth={1.8} />
+              </button>
+            </Tooltip>
           }
         />
 
         <div className="flex flex-col md:relative md:flex-1 md:flex-row md:min-h-0">
-          <button
-            type="button"
-            onClick={toggleSidebar}
-            title={
+          <Tooltip
+            text={
               sidebarCollapsed
                 ? t('imageDetail.action.expandDetailsPanel')
                 : t('imageDetail.action.collapseDetailsPanel')
             }
-            aria-pressed={!sidebarCollapsed}
+            placement="top"
             className="sidebar-edge-toggle"
-            data-collapsed={sidebarCollapsed || undefined}
+            style={sidebarCollapsed ? { right: 8 } : undefined}
           >
-            <Icon name={sidebarCollapsed ? 'chevron_left' : 'chevron_right'} size={14} strokeWidth={1.8} />
-          </button>
+            <button
+              type="button"
+              onClick={toggleSidebar}
+              aria-pressed={!sidebarCollapsed}
+              className="flex h-full w-full cursor-pointer items-center justify-center border-0 bg-transparent p-0 text-inherit"
+            >
+              <Icon name={sidebarCollapsed ? 'chevron_left' : 'chevron_right'} size={14} strokeWidth={1.8} />
+            </button>
+          </Tooltip>
           <DetailCanvas
             selectedItem={selectedItem}
             currentImage={currentImage}
@@ -323,9 +330,9 @@ export function DetailLayout({
             onChangeDesktopMoveActive={setDesktopMoveActive}
             onChangeBrushPreset={setBrushPreset}
             onToggleRefDetail={(id) => setRefDetailId((prev) => (prev === id ? null : id))}
-            onAddRef={onAddRef}
             onRegenerate={onRegenerate}
             onReroll={onReroll}
+            rerollModelOptions={rerollModelOptions}
             onDownload={onDownload}
             onCopyPrompt={onCopyPrompt}
             onRemove={onRemoveCurrent}

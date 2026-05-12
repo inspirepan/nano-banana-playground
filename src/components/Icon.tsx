@@ -19,6 +19,7 @@ import Crop from 'lucide-react/dist/esm/icons/crop.mjs'
 import Download from 'lucide-react/dist/esm/icons/download.mjs'
 import Eraser from 'lucide-react/dist/esm/icons/eraser.mjs'
 import FileText from 'lucide-react/dist/esm/icons/file-text.mjs'
+import FileSliders from 'lucide-react/dist/esm/icons/file-sliders.mjs'
 import Globe from 'lucide-react/dist/esm/icons/globe.mjs'
 import GripVertical from 'lucide-react/dist/esm/icons/grip-vertical.mjs'
 import HelpCircle from 'lucide-react/dist/esm/icons/help-circle.mjs'
@@ -34,6 +35,7 @@ import Maximize2 from 'lucide-react/dist/esm/icons/maximize-2.mjs'
 import Monitor from 'lucide-react/dist/esm/icons/monitor.mjs'
 import Moon from 'lucide-react/dist/esm/icons/moon.mjs'
 import MoreHorizontal from 'lucide-react/dist/esm/icons/more-horizontal.mjs'
+import MoreVertical from 'lucide-react/dist/esm/icons/more-vertical.mjs'
 import MousePointer2 from 'lucide-react/dist/esm/icons/mouse-pointer-2.mjs'
 import Palette from 'lucide-react/dist/esm/icons/palette.mjs'
 import Paperclip from 'lucide-react/dist/esm/icons/paperclip.mjs'
@@ -78,6 +80,7 @@ export type IconName =
   | 'drag'
   | 'eraser'
   | 'expand_more'
+  | 'file_sliders'
   | 'file_text'
   | 'globe'
   | 'help_circle'
@@ -92,6 +95,7 @@ export type IconName =
   | 'maximize'
   | 'map_pin'
   | 'more'
+  | 'more_vertical'
   | 'mouse_pointer'
   | 'palette'
   | 'paperclip'
@@ -144,6 +148,7 @@ const ICONS = {
   drag: GripVertical,
   eraser: Eraser,
   expand_more: ChevronDown,
+  file_sliders: FileSliders,
   file_text: FileText,
   globe: Globe,
   help_circle: HelpCircle,
@@ -158,6 +163,7 @@ const ICONS = {
   maximize: Maximize2,
   map_pin: MapPin,
   more: MoreHorizontal,
+  more_vertical: MoreVertical,
   mouse_pointer: MousePointer2,
   palette: Palette,
   paperclip: Paperclip,

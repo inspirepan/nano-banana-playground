@@ -603,10 +603,10 @@ export function usePlayground() {
   )
 
   const rerollGeneratedImage = useCallback(
-    async (image: PlaygroundImageMeta): Promise<RerollGeneratedImageResult> => {
+    async (image: PlaygroundImageMeta, targetModelId?: string): Promise<RerollGeneratedImageResult> => {
       if (image.source.type !== 'generated') return { status: 'unavailable' }
       const source = image.source
-      const targetModel = findModelConfig(source.modelId)
+      const targetModel = findModelConfig(targetModelId ?? source.modelId)
       if (!targetModel) return { status: 'unavailable' }
       if (targetModel.provider === 'openai' && source.parentImageId && source.usesMask !== false) {
         return { status: 'unsupported-mask' }

@@ -82,6 +82,54 @@
     color: var(--color-text);
     box-shadow: inset 0 0 0 1px var(--ring-edge-strong);
   }
+
+  .split-chip {
+    display: inline-flex;
+    overflow: hidden;
+    align-items: stretch;
+    border-radius: var(--radius-sm);
+    background: var(--color-surface);
+    color: var(--color-text-2);
+    box-shadow: inset 0 0 0 1px var(--ring-edge);
+    white-space: nowrap;
+  }
+  .split-chip-main,
+  .split-chip-menu {
+    display: inline-flex;
+    height: 100%;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    transition:
+      background 120ms,
+      color 120ms,
+      transform 140ms var(--ease-out);
+  }
+  .split-chip-main {
+    gap: 6px;
+    padding: 0 10px;
+    box-shadow: inset -1px 0 0 var(--ring-edge-soft);
+  }
+  .split-chip-menu {
+    width: 28px;
+  }
+  .split-chip-main:hover:not(:disabled),
+  .split-chip-menu:hover:not(:disabled) {
+    background: var(--color-surface-2);
+    color: var(--color-text);
+  }
+  .split-chip-main:active:not(:disabled),
+  .split-chip-menu:active:not(:disabled) {
+    transform: scale(0.97);
+  }
+  .split-chip-main:disabled,
+  .split-chip-menu:disabled {
+    color: var(--color-text-4);
+    cursor: not-allowed;
+    transform: none;
+  }
   .chip[data-active='true'] {
     background: var(--color-accent-wash);
     color: var(--color-accent-text);
@@ -333,7 +381,7 @@
      by the JSX `md:hidden` class, not a media query. */
   .detail-mobile-actions {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 8px;
   }
   .detail-mobile-action.action-soft {
@@ -355,6 +403,60 @@
   }
   .detail-mobile-action.action-soft:active:not(:disabled) {
     transform: scale(0.98);
+  }
+  .detail-mobile-action-split {
+    display: flex;
+    min-width: 0;
+    height: 54px;
+    overflow: hidden;
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+    color: var(--color-text-2);
+    box-shadow: inset 0 0 0 1px var(--ring-edge-soft);
+  }
+  .detail-mobile-action-split-main,
+  .detail-mobile-action-split-menu {
+    display: inline-flex;
+    height: 100%;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    transition:
+      background 120ms,
+      color 120ms,
+      transform 160ms var(--ease-out);
+  }
+  .detail-mobile-action-split-main {
+    min-width: 0;
+    flex: 1;
+    flex-direction: column;
+    gap: 5px;
+    padding: 7px 3px 6px;
+    box-shadow: inset -1px 0 0 var(--ring-edge-soft);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .detail-mobile-action-split-menu {
+    width: 28px;
+    flex-shrink: 0;
+  }
+  .detail-mobile-action-split-main:hover:not(:disabled),
+  .detail-mobile-action-split-menu:hover:not(:disabled) {
+    background: var(--color-surface-2);
+    color: var(--color-text);
+  }
+  .detail-mobile-action-split-main:active:not(:disabled),
+  .detail-mobile-action-split-menu:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+  .detail-mobile-action-split-main:disabled,
+  .detail-mobile-action-split-menu:disabled {
+    color: var(--color-text-4);
+    cursor: not-allowed;
+    transform: none;
   }
 
   .icon-btn {
