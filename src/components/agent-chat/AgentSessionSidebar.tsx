@@ -25,7 +25,7 @@ export function AgentSessionSidebar({
   const newSessionShortcut = formatShortcut([getPrimaryModifierKeyLabel(), getShiftKeyLabel(), 'O'])
 
   return (
-    <aside className="flex h-full min-h-0 flex-col bg-(--color-bg) px-[var(--panel-pad-x)] pb-6">
+    <aside className="flex h-full min-h-0 flex-col bg-(--color-bg) pl-[var(--panel-pad-x)] pr-1 pb-6">
       <button
         type="button"
         onClick={onNewSession}

@@ -2,6 +2,7 @@ import { formatSessionTime } from './utils'
 import type { AgentSessionStatus, AgentSessionSummary } from '../../agent'
 import { useI18n } from '../../i18n'
 import { Icon } from '../Icon'
+import { Tooltip } from '../Tooltip'
 
 function AgentSessionStatusIcon({ status }: { status: AgentSessionStatus | null }) {
   const { t } = useI18n()
@@ -69,25 +70,40 @@ export function AgentSessionListItem({
     variant === 'sidebar'
       ? `text-base ${active ? 'font-semibold text-(--color-text)' : 'text-(--color-text-2)'}`
       : `text-sm ${active ? 'font-semibold text-(--color-text)' : 'font-medium text-(--color-text-2)'}`
+  const rowSpacingClass = variant === 'sidebar' ? 'gap-1 px-1.5' : 'gap-1.5 px-2'
+  const sidebarTitlePaddingClass = imageCount > 0 ? 'pr-[4.5rem] group-hover:pr-8' : 'pr-10 group-hover:pr-8'
+  const titleButton = (
+    <button
+      type="button"
+      onClick={() => onSwitchSession(session.id)}
+      className={`min-w-0 bg-transparent text-left ${
+        variant === 'sidebar'
+          ? `flex h-full w-full items-center transition-[padding] ${sidebarTitlePaddingClass}`
+          : 'flex-1'
+      }`}
+      aria-current={active ? 'true' : undefined}
+      title={variant === 'menu' ? title : undefined}
+    >
+      <span className={`block truncate ${titleClass}`}>{title}</span>
+    </button>
+  )
 
   return (
     <div
-      className={`group relative flex h-[32px] items-center gap-1.5 rounded-[var(--radius-md)] px-2 transition-[background-color,box-shadow] ${
+      className={`group relative flex h-[32px] items-center rounded-[var(--radius-md)] transition-[background-color,box-shadow] ${rowSpacingClass} ${
         active
           ? 'bg-(--color-accent-wash) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]'
           : 'hover:bg-(--color-surface-2)'
       }`}
     >
       <AgentSessionStatusIcon status={status} />
-      <button
-        type="button"
-        onClick={() => onSwitchSession(session.id)}
-        className="min-w-0 flex-1 bg-transparent text-left"
-        aria-current={active ? 'true' : undefined}
-        title={title}
-      >
-        <span className={`block truncate ${titleClass}`}>{title}</span>
-      </button>
+      {variant === 'sidebar' ? (
+        <Tooltip text={title} placement="bottom" maxWidth={360} className="flex h-full min-w-0 flex-1 items-center">
+          {titleButton}
+        </Tooltip>
+      ) : (
+        titleButton
+      )}
       {variant === 'menu' ? (
         <>
           <span className="ml-1 flex shrink-0 items-center gap-1 text-sm text-(--color-text-3) transition-opacity">
@@ -114,18 +130,18 @@ export function AgentSessionListItem({
         </>
       ) : (
         <>
-          <span className="ml-1 flex shrink-0 items-center gap-1 text-sm text-(--color-text-3) transition-opacity group-hover:opacity-0">
+          <span className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-0.5 text-xs text-(--color-text-3) transition-opacity group-hover:opacity-0">
             {imageCount > 0 && (
               <span
-                className="inline-flex h-[18px] shrink-0 items-center gap-1 rounded-full bg-(--color-surface-2) px-1.5 text-[11px] font-medium leading-none tabular-nums text-(--color-text-3) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]"
+                className="inline-flex h-4 shrink-0 items-center gap-0.5 rounded-full bg-(--color-surface-2) px-1 text-[10px] font-medium leading-none tabular-nums text-(--color-text-3)"
                 title={imageCountLabel}
                 aria-label={imageCountLabel}
               >
-                <Icon name="image" size={11} className="opacity-80" />
+                <Icon name="image" size={10} className="opacity-80" />
                 <span>{imageCount}</span>
               </span>
             )}
-            <span className="min-w-[2.5rem] text-right tabular-nums">{formatSessionTime(session.updatedAt)}</span>
+            <span className="min-w-8 text-right tabular-nums">{formatSessionTime(session.updatedAt)}</span>
           </span>
           <button
             type="button"
