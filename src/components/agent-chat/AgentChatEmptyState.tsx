@@ -38,7 +38,7 @@ function AspectGlyph({ ratio }: { ratio: string }) {
   return (
     <span className="flex h-[12px] w-[12px] shrink-0 items-center justify-center" aria-hidden>
       <span
-        className="bg-transparent shadow-[inset_0_0_0_1px_var(--color-border-strong)]"
+        className="bg-transparent shadow-[inset_0_0_0_1px_var(--aspect-ratio-glyph)]"
         style={{
           width: gw,
           height: gh,

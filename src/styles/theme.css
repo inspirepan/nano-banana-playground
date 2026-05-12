@@ -63,6 +63,8 @@
   --color-border: #e3e3e3;
   --color-border-strong: #d2d2d2;
 
+  --aspect-ratio-glyph: color-mix(in srgb, var(--color-text-3) 46%, var(--color-border-strong));
+
   --color-text: #0f1115;
   --color-text-2: #343a42;
   --color-text-3: #5f6874;
@@ -159,6 +161,8 @@
 
   --color-border: #30343d;
   --color-border-strong: #464c57;
+
+  --aspect-ratio-glyph: color-mix(in srgb, var(--color-text-3) 72%, var(--color-border-strong));
 
   --color-text: #f1f3f5;
   --color-text-2: #c3c8d0;

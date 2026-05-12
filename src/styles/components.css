@@ -737,12 +737,12 @@
     background: transparent;
     border-radius: 2px;
     flex-shrink: 0;
-    box-shadow: inset 0 0 0 1px var(--color-border-strong);
+    box-shadow: inset 0 0 0 1px var(--aspect-ratio-glyph);
   }
   /* Hairline glyphs (<=2px on the short axis) are effectively a line already;
      fill them so they don't read as an empty slot. */
   .aspect-tile .glyph[data-thin='true'] {
-    background: var(--color-border-strong);
+    background: var(--aspect-ratio-glyph);
   }
   .aspect-tile[data-active='true'] .glyph,
   .aspect-tile[data-active='true'] .glyph[data-thin='true'] {
