@@ -23,7 +23,29 @@ type DoubaoResponse = {
     total_tokens?: number
     generated_images?: number
   }
-  error?: { message?: string; code?: string }
+  error?: { message?: string; code?: string; status?: number }
+}
+
+function compactResponseText(text: string): string {
+  return text.replace(/\s+/g, ' ').trim()
+}
+
+function htmlTitle(text: string): string | undefined {
+  return /<title[^>]*>([^<]+)<\/title>/i.exec(text)?.[1]?.trim()
+}
+
+async function readDoubaoResponse(res: Response): Promise<DoubaoResponse> {
+  const text = await res.text()
+  if (!text.trim()) return {}
+  try {
+    return JSON.parse(text) as DoubaoResponse
+  } catch {
+    const title = htmlTitle(text)
+    const message = title
+      ? `HTTP ${res.status}: ${title}`
+      : compactResponseText(text).slice(0, 300) || `HTTP ${res.status}`
+    return { error: { message, status: res.status } }
+  }
 }
 
 const DOUBAO_TARGET_PIXELS: Record<string, number> = {
@@ -141,7 +163,7 @@ export async function generateImageDoubao(
         continue
       }
 
-      data = (await res.json()) as DoubaoResponse
+      data = await readDoubaoResponse(res)
     } catch (e) {
       const error = normalizeGenerationAbortError(e, generationSignal.signal)
       lastError = error
