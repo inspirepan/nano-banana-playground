@@ -68,15 +68,93 @@ function parseToolCallbacks(text: string): ParsedToolCallback[] {
   return callbacks
 }
 
-function summarizeFailedGenImages(completedCount: number, failedCount: number): string {
-  const parts: string[] = []
-  if (completedCount > 0) parts.push(translate('agentChat.system.imageSucceededPart', { count: completedCount }))
-  if (failedCount > 0) parts.push(translate('agentChat.system.imageFailedPart', { count: failedCount }))
-  return parts.length > 0
-    ? translate('agentChat.system.imageFailedWithParts', {
-        parts: parts.join(translate('agentChat.system.partSeparator')),
+const PARTS_MARKER = 'parts'
+
+function collectSucceededIdParts(callbacks: ParsedToolCallback[]): SystemEventSummaryPart[] {
+  const parts: SystemEventSummaryPart[] = []
+  let first = true
+  for (const callback of callbacks) {
+    for (const id of parseCommaList(callback.fields.image_ids)) {
+      if (!first) parts.push({ text: ', ' })
+      first = false
+      parts.push({ text: id, mono: true, imageId: id, toolCallId: callback.toolCallId || undefined })
+    }
+  }
+  return parts
+}
+
+function collectFailedIdParts(callbacks: ParsedToolCallback[]): SystemEventSummaryPart[] {
+  const parts: SystemEventSummaryPart[] = []
+  let first = true
+  for (const callback of callbacks) {
+    const completed = new Set(parseCommaList(callback.fields.image_ids))
+    for (const id of parseCommaList(callback.fields.reserved_image_ids)) {
+      if (completed.has(id)) continue
+      if (!first) parts.push({ text: ', ' })
+      first = false
+      parts.push({ text: id, mono: true, imageId: id, toolCallId: callback.toolCallId || undefined })
+    }
+  }
+  return parts
+}
+
+// Substitute a single marker in `template` with `parts`, dropping the marker
+// even if `parts` is empty so stray sentinel chars never reach the UI.
+function weaveAtMarker(
+  template: string,
+  marker: string,
+  parts: SystemEventSummaryPart[],
+): SystemEventSummaryPart[] {
+  const idx = template.indexOf(marker)
+  if (idx < 0) return textPart(template)
+  const before = template.slice(0, idx)
+  const after = template.slice(idx + marker.length)
+  return [...(before ? [{ text: before }] : []), ...parts, ...(after ? [{ text: after }] : [])]
+}
+
+function summarizeFailedGenImageParts(
+  genImageCallbacks: ParsedToolCallback[],
+  completedCount: number,
+  failedCount: number,
+): SystemEventSummaryPart[] {
+  const succeededIdParts = collectSucceededIdParts(genImageCallbacks)
+  const failedIdParts = collectFailedIdParts(genImageCallbacks)
+
+  const segments: SystemEventSummaryPart[][] = []
+  if (completedCount > 0) {
+    if (succeededIdParts.length > 0) {
+      const template = translate('agentChat.system.imageSucceededPartWithIds', {
+        count: completedCount,
+        ids: IMAGE_IDS_MARKER,
       })
-    : translate('agentChat.system.imageFailed')
+      segments.push(weaveAtMarker(template, IMAGE_IDS_MARKER, succeededIdParts))
+    } else {
+      segments.push(textPart(translate('agentChat.system.imageSucceededPart', { count: completedCount })))
+    }
+  }
+  if (failedCount > 0) {
+    if (failedIdParts.length > 0) {
+      const template = translate('agentChat.system.imageFailedPartWithIds', {
+        count: failedCount,
+        ids: IMAGE_IDS_MARKER,
+      })
+      segments.push(weaveAtMarker(template, IMAGE_IDS_MARKER, failedIdParts))
+    } else {
+      segments.push(textPart(translate('agentChat.system.imageFailedPart', { count: failedCount })))
+    }
+  }
+
+  if (segments.length === 0) return textPart(translate('agentChat.system.imageFailed'))
+
+  const separator = translate('agentChat.system.partSeparator')
+  const innerParts: SystemEventSummaryPart[] = []
+  segments.forEach((segment, index) => {
+    if (index > 0) innerParts.push({ text: separator })
+    innerParts.push(...segment)
+  })
+
+  const outerTemplate = translate('agentChat.system.imageFailedWithParts', { parts: PARTS_MARKER })
+  return weaveAtMarker(outerTemplate, PARTS_MARKER, innerParts)
 }
 
 export function summarizeSystemEventParts(text: string): SystemEventSummaryPart[] {
@@ -130,7 +208,7 @@ export function summarizeSystemEventParts(text: string): SystemEventSummaryPart[
       ...textPart(label.slice(markerIndex + IMAGE_IDS_MARKER.length)),
     ]
   }
-  if (statuses.includes('failed')) return textPart(summarizeFailedGenImages(completedCount, failedCount))
+  if (statuses.includes('failed')) return summarizeFailedGenImageParts(genImageCallbacks, completedCount, failedCount)
   if (statuses.length > 0 && statuses.every((item) => item === 'rejected'))
     return textPart(translate('agentChat.system.imageRejected'))
   if (statuses.includes('canceled')) {

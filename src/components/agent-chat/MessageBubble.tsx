@@ -95,12 +95,17 @@ export function MessageBubble({
   if (isSystemEvent) {
     const systemVariant = classifySystemEvent(trimmedText)
     const isCompleted = systemVariant === 'completed'
+    const isFailed = systemVariant === 'failed'
+    const systemColorClass = isCompleted
+      ? 'text-(--color-success)'
+      : isFailed
+        ? 'text-(--color-danger)'
+        : 'text-(--color-text-3)'
     return (
       <div className="flex justify-start">
-        <div
-          className={`mr-3 flex max-w-[94%] items-start gap-2 pl-3 ${isCompleted ? 'text-(--color-success)' : 'text-(--color-text-3)'}`}
-        >
+        <div className={`mr-3 flex max-w-[94%] items-start gap-2 pl-3 ${systemColorClass}`}>
           {isCompleted ? <Icon name="check_circle" size={14} className="shrink-0" style={{ marginTop: 3 }} /> : null}
+          {isFailed ? <Icon name="alert_circle" size={14} className="shrink-0" style={{ marginTop: 3 }} /> : null}
           <div className="min-w-0">
             {summarizeSystemEventParts(trimmedText).map((part, index) => {
               const canOpen = Boolean(part.toolCallId && part.imageId && onOpenImageTaskImage)

@@ -247,7 +247,15 @@ export const agentChatMessages: MessageDictionary = {
   'agentChat.system.imageFailedWithParts': { 'zh-CN': '生成任务失败，{parts}', en: 'Image task failed, {parts}' },
   'agentChat.system.partSeparator': { 'zh-CN': '，', en: ', ' },
   'agentChat.system.imageSucceededPart': { 'zh-CN': '成功 {count} 张', en: '{count} succeeded' },
+  'agentChat.system.imageSucceededPartWithIds': {
+    'zh-CN': '成功 {count} 张：{ids}',
+    en: '{count} succeeded: {ids}',
+  },
   'agentChat.system.imageFailedPart': { 'zh-CN': '失败 {count} 张', en: '{count} failed' },
+  'agentChat.system.imageFailedPartWithIds': {
+    'zh-CN': '失败 {count} 张：{ids}',
+    en: '{count} failed: {ids}',
+  },
   'agentChat.system.imageRejected': { 'zh-CN': '生成任务已拒绝', en: 'Image task was rejected' },
   'agentChat.system.imageCanceled': { 'zh-CN': '生成任务已中断', en: 'Image task was interrupted' },
   'agentChat.system.imageCanceledWithCompleted': {
