@@ -179,10 +179,30 @@
     }
   }
 
+  /* Title text fade-in. Use with `key={text}` to remount the element when the
+     title swaps; the new element starts from the @starting-style state
+     (opacity 0 + slight blur) and transitions in. Suited for short async
+     title updates (stack / session title summarized by a small LLM) where a
+     hard text swap would feel jarring. */
+  .title-fade-in {
+    opacity: 1;
+    filter: blur(0);
+    transition:
+      opacity 520ms var(--ease-out),
+      filter 520ms var(--ease-out);
+  }
+  @starting-style {
+    .title-fade-in {
+      opacity: 0;
+      filter: blur(3px);
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .popover-pop,
     .modal-pop,
-    .modal-backdrop-pop {
+    .modal-backdrop-pop,
+    .title-fade-in {
       transition: none;
     }
   }

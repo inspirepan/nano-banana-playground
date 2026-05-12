@@ -81,7 +81,9 @@ export function AgentSessionListItem({
       className={`flex h-full w-full min-w-0 items-center bg-transparent text-left transition-[padding] ${titlePaddingClass}`}
       aria-current={active ? 'true' : undefined}
     >
-      <span className={`block truncate ${titleClass}`}>{title}</span>
+      <span key={title} className={`title-fade-in block truncate ${titleClass}`}>
+        {title}
+      </span>
     </button>
   )
 

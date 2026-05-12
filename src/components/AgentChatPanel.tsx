@@ -646,7 +646,10 @@ export function AgentChatPanel({
               }}
             >
               <span className="flex min-h-[30px] items-center justify-center">
-                <span className="inline-block max-w-[min(960px,100%)] min-w-0 truncate font-display text-base font-semibold text-(--color-text) transition-colors group-hover:text-(--color-text-2)">
+                <span
+                  key={floatingTitleText}
+                  className="title-fade-in inline-block max-w-[min(960px,100%)] min-w-0 truncate font-display text-base font-semibold text-(--color-text) group-hover:text-(--color-text-2)"
+                >
                   {floatingTitleText}
                 </span>
               </span>

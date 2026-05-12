@@ -231,7 +231,11 @@ export const StackRow = memo(function StackRow({
                   #{String(indexNumber).padStart(2, '0')}
                 </span>
               )}
-              {stack.title}
+              {stack.title && (
+                <span key={stack.title} className="title-fade-in">
+                  {stack.title}
+                </span>
+              )}
             </span>
           )}
           <div className="flex w-full min-w-0 flex-wrap items-center gap-x-2 gap-y-1 leading-none">

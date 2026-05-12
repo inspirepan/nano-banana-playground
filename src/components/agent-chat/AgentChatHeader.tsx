@@ -64,7 +64,10 @@ export function AgentChatHeader({
         className={`group flex h-[30px] min-w-0 shrink items-center gap-1.5 rounded-[var(--radius-sm)] bg-(--color-surface) px-2.5 text-left shadow-[inset_0_0_0_1px_var(--ring-edge)] transition-[background-color,box-shadow,color] duration-150 hover:bg-(--color-surface-2) hover:shadow-[inset_0_0_0_1px_var(--ring-edge-strong)] ${showNewSessionButton ? 'max-w-[calc(100%-86px)]' : 'max-w-full'}`}
         title={t('agentChat.header.switchTitle')}
       >
-        <span className="min-w-0 flex-1 truncate text-base font-medium text-(--color-text-2) transition-colors group-hover:text-(--color-text)">
+        <span
+          key={title}
+          className="title-fade-in min-w-0 flex-1 truncate text-base font-medium text-(--color-text-2) group-hover:text-(--color-text)"
+        >
           {title}
         </span>
         <span className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-(--color-text-4) transition-colors group-hover:text-(--color-text-3)">
