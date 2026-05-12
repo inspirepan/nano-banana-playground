@@ -16,7 +16,7 @@ export const MARKDOWN_COMPONENTS = {
   ),
   ul: (props: JSX.IntrinsicElements['ul']) => <ul className="list-disc space-y-1.5 pl-5" {...props} />,
   ol: (props: JSX.IntrinsicElements['ol']) => <ol className="list-decimal space-y-1.5 pl-5" {...props} />,
-  li: (props: JSX.IntrinsicElements['li']) => <li {...props} />,
+  li: (props: JSX.IntrinsicElements['li']) => <li className="[&>ol]:mt-1.5 [&>ul]:mt-1.5" {...props} />,
   blockquote: (props: JSX.IntrinsicElements['blockquote']) => (
     <blockquote
       className="pl-[14px] text-(--color-text-3) italic shadow-[inset_2px_0_0_var(--ring-edge-strong)]"
