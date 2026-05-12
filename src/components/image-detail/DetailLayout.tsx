@@ -210,20 +210,21 @@ export function DetailLayout({
         className="relative flex-1 min-h-0 overflow-y-auto overflow-x-hidden md:flex md:flex-col md:overflow-hidden"
         style={{ WebkitOverflowScrolling: 'touch' }}
       >
-        <StackStrip
-          stack={stack}
-          selectedId={selectedItem?.id ?? null}
-          onSelect={selectStackItem}
-          leadingNode={
-            <Tooltip text={t('imageDetail.action.closeEsc')} placement="bottom" className="inline-flex">
-              <button type="button" className="icon-btn h-8 w-8" onClick={onClose}>
-                <Icon name="close" size={14} strokeWidth={1.8} />
-              </button>
-            </Tooltip>
-          }
-        />
-
         <div className="flex flex-col md:relative md:flex-1 md:flex-row md:min-h-0">
+          <StackStrip
+            stack={stack}
+            selectedId={selectedItem?.id ?? null}
+            onSelect={selectStackItem}
+            isMobileLayout={isMobileLayout}
+            sidebarCollapsed={sidebarCollapsed}
+            leadingNode={
+              <Tooltip text={t('imageDetail.action.closeEsc')} placement="bottom" className="inline-flex">
+                <button type="button" className="icon-btn h-8 w-8" onClick={onClose}>
+                  <Icon name="close" size={14} strokeWidth={1.8} />
+                </button>
+              </Tooltip>
+            }
+          />
           <Tooltip
             text={
               sidebarCollapsed
