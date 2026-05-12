@@ -135,6 +135,7 @@ function toolPreparingLabel(call: AgentMessageToolCall, t: Translate): string {
 }
 
 const MONO_PARAM_MARKER = '\uE000mono\uE000'
+const COMPACT_PARAM_MARKER = '\uE000compact\uE000'
 
 function monoParamLabel(
   t: Translate,
@@ -156,6 +157,28 @@ function monoParamLabel(
   )
 }
 
+function compactParamLabel(
+  t: Translate,
+  key: string,
+  param: string,
+  value: string,
+  params?: Record<string, string>,
+): ReactNode {
+  const label = t(key, { ...params, [param]: COMPACT_PARAM_MARKER })
+  const markerIndex = label.indexOf(COMPACT_PARAM_MARKER)
+  if (markerIndex === -1) return label
+
+  const before = label.slice(0, markerIndex)
+  const after = label.slice(markerIndex + COMPACT_PARAM_MARKER.length)
+  return (
+    <span className="flex min-w-0 max-w-full items-baseline gap-1">
+      {before ? <span className="shrink-0">{before}</span> : null}
+      <span className="min-w-0 truncate text-(--color-text-4)">{value}</span>
+      {after ? <span className="shrink-0">{after}</span> : null}
+    </span>
+  )
+}
+
 function toolRunningLabel(call: AgentMessageToolCall, t: Translate): ReactNode {
   const args = summarizeToolArgs(call)
   if (call.name === 'ReadImage') return monoParamLabel(t, 'agentChat.tool.readImage.running', 'id', args)
@@ -163,7 +186,7 @@ function toolRunningLabel(call: AgentMessageToolCall, t: Translate): ReactNode {
   if (call.name === 'Skill') return t('agentChat.tool.skill.running', { name: args })
   if (call.name === 'ReadSkillFile') return t('agentChat.tool.readSkillFile.running', { path: args })
   if (call.name === 'CreateSkill') return t('agentChat.tool.createSkill.running', { name: args })
-  if (call.name === 'WebFetch') return t('agentChat.tool.webFetch.running', { url: args })
+  if (call.name === 'WebFetch') return compactParamLabel(t, 'agentChat.tool.webFetch.running', 'url', args)
   if (call.name === 'WebSearch') return t('agentChat.tool.webSearch.running', { query: args })
   return `${toolLabel(call.name)}: ${args}`
 }
@@ -186,7 +209,7 @@ function toolDoneLabel(call: AgentMessageToolCall, result: AgentMessageToolResul
   if (call.name === 'Skill') return t('agentChat.tool.skill.done', { name: args })
   if (call.name === 'ReadSkillFile') return t('agentChat.tool.readSkillFile.done', { path: args })
   if (call.name === 'CreateSkill') return t('agentChat.tool.createSkill.done', { name: args })
-  if (call.name === 'WebFetch') return t('agentChat.tool.webFetch.done', { url: args })
+  if (call.name === 'WebFetch') return compactParamLabel(t, 'agentChat.tool.webFetch.done', 'url', args)
   if (call.name === 'WebSearch') return t('agentChat.tool.webSearch.done', { query: args })
   return `${toolLabel(call.name)} ${t('agentChat.tool.result.completed')}`
 }
