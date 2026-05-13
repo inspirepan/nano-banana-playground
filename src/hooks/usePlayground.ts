@@ -29,7 +29,7 @@ import {
   clearDraftRefs,
 } from '../lib/history'
 import { stackIdForGenerationRequest } from '../lib/stackId'
-import { stackTitleForPrompt } from '../lib/stackTitle'
+import { shouldGenerateStackTitle, stackTitleForPrompt } from '../lib/stackTitle'
 import type { GenerationFailureSource, GeneratedSource, PlaygroundImage, PlaygroundImageMeta } from '../lib/types'
 import { AGENT_MODE_SENTINEL, readSimpleUrlParams, updateUrl, type SimpleUrlParams } from '../lib/urlState'
 
@@ -287,6 +287,7 @@ export function usePlayground() {
     (batchId: string, prompt: string) => {
       const trimmed = prompt.trim()
       if (!trimmed) return
+      if (!shouldGenerateStackTitle(trimmed)) return
       void requestStackTitle({ prompt: trimmed, dedupeKey: `stack:${batchId}` }).then((title) => {
         if (title) patchGenerationJobStackTitle(batchId, title)
       })
