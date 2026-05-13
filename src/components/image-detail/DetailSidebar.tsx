@@ -378,6 +378,8 @@ export function DetailSidebar({
             value={
               currentSlot?.status === 'failed'
                 ? t('imageDetail.queue.status.failed')
+                : currentSlot?.status === 'canceled'
+                  ? t('imageDetail.queue.status.canceled')
                 : t('imageDetail.queue.status.waiting')
             }
           />

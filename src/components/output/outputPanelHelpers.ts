@@ -53,8 +53,8 @@ export function hasActiveGenerationSlots(job: GenerationJob): boolean {
   return job.slots.some((slot) => slot.status === 'queued' || slot.status === 'running' || slot.status === 'retrying')
 }
 
-export function canDismissFailedGenerationJob(job: GenerationJob): boolean {
-  return !hasActiveGenerationSlots(job) && job.slots.some((slot) => slot.status === 'failed')
+export function canDismissClearableGenerationJob(job: GenerationJob): boolean {
+  return !hasActiveGenerationSlots(job) && job.slots.some((slot) => slot.status === 'failed' || slot.status === 'canceled')
 }
 
 export function activeStackStatusParts(stack: ImageStack, t: Translate): ActiveStackStatusPart[] {

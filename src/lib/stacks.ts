@@ -37,6 +37,7 @@ export type ImageStack = {
   jobs: GenerationJob[]
   activeSlotCount: number
   failedSlotCount: number
+  clearableSlotCount: number
 }
 
 function applyStackTitle(stack: ImageStack, title: string | undefined): void {
@@ -124,6 +125,7 @@ function ensureStack(map: Map<string, ImageStack>, id: string, timestamp: number
     jobs: [],
     activeSlotCount: 0,
     failedSlotCount: 0,
+    clearableSlotCount: 0,
   }
   map.set(id, stack)
   return stack
@@ -175,6 +177,7 @@ export function buildImageStacks(history: PlaygroundImageMeta[], generationJobs:
     seen.add(image.id)
     if (image.source.type === 'generation-failure') {
       stack.failedSlotCount++
+      stack.clearableSlotCount++
       const failureItem = slotItemForFailureImage(image as PlaygroundImageMeta & { source: GenerationFailureSource })
       stack.jobs.push(failureItem.job)
       stack.items.push(failureItem)
@@ -206,7 +209,12 @@ export function buildImageStacks(history: PlaygroundImageMeta[], generationJobs:
 
     for (const slot of job.slots) {
       if (isActiveSlot(slot)) stack.activeSlotCount++
-      if (slot.status === 'failed') stack.failedSlotCount++
+      if (slot.status === 'failed') {
+        stack.failedSlotCount++
+        stack.clearableSlotCount++
+      } else if (slot.status === 'canceled') {
+        stack.clearableSlotCount++
+      }
 
       if (slot.status === 'succeeded' && slot.image) {
         if (!seen.has(slot.image.id)) {

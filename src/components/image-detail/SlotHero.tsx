@@ -19,26 +19,23 @@ export function SlotHero({
   const { t } = useI18n()
   const slot = item?.type === 'slot' ? item.slot : null
   const job = item?.type === 'slot' ? item.job : null
+  const isActiveSlot = slot && ['queued', 'running', 'retrying'].includes(slot.status)
   const label =
     slot?.status === 'failed'
       ? t('imageDetail.queue.status.failed')
       : slot?.status === 'canceled'
         ? t('imageDetail.queue.status.canceled')
-        : slot?.status === 'retrying'
-          ? t('imageDetail.queue.status.retrying')
-          : slot?.status === 'running'
-            ? t('imageDetail.queue.status.generating')
-            : t('imageDetail.queue.status.queued')
-  const detail = slot?.attemptErrors?.length
-    ? t('imageDetail.queue.latestError', {
-        error: slot.attemptErrors[slot.attemptErrors.length - 1].error || t('common.unknown'),
-      })
+        : t('imageDetail.queue.status.generating')
+  const detail = isActiveSlot
+    ? null
     : slot?.status === 'failed' && slot.error
       ? t('imageDetail.queue.latestError', { error: slot.error })
       : slot?.status === 'failed'
         ? t('imageDetail.queue.latestError', { error: t('common.unknown') })
-        : (slot?.error ?? (slot?.status === 'canceled' ? t('imageDetail.queue.canceledDetail') : null))
-  const showKeepPageOpenNote = slot && ['queued', 'running', 'retrying'].includes(slot.status)
+        : slot?.status === 'canceled'
+          ? t('imageDetail.queue.canceledDetail')
+          : null
+  const showKeepPageOpenNote = isActiveSlot
   const detailColorClass = slot?.status === 'failed' ? 'text-(--color-danger)' : 'text-(--color-text-2)'
   const detailBoxClass =
     slot?.status === 'failed'
@@ -58,7 +55,7 @@ export function SlotHero({
       {detail && <div className={`copy-soft whitespace-pre-wrap ${detailColorClass} ${detailBoxClass}`}>{detail}</div>}
       {slot &&
         job &&
-        (slot.status === 'queued' || slot.status === 'running' || slot.status === 'retrying') &&
+        isActiveSlot &&
         (job.slots.length === 1 ? (
           <button type="button" className="media-action danger mt-2 px-2" onClick={() => onCancelSlot(slot.id)}>
             {t('common.cancel')}

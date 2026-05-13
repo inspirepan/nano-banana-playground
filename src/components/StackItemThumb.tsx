@@ -33,27 +33,20 @@ type Slot = Extract<StackItem, { type: 'slot' }>['slot']
 type StackThumbStyle = CSSProperties & { '--stack-thumb-action-bg'?: string }
 
 function slotReasonText(slot: Slot, t: Translate): string | null {
-  if (slot.status === 'queued') return t('input.stack.status.queued')
+  if (slot.status === 'queued' || slot.status === 'running' || slot.status === 'retrying') {
+    return t('imageDetail.queue.status.generating')
+  }
   if (slot.status === 'canceled') return t('input.stack.status.canceled')
   if (slot.status === 'failed') {
-    if (slot.attemptErrors?.length) {
-      const latest = slot.attemptErrors[slot.attemptErrors.length - 1]
-      return t('imageDetail.queue.latestError', { error: latest.error || t('common.unknown') })
-    }
     return slot.error
       ? t('imageDetail.queue.latestError', { error: slot.error })
       : t('imageDetail.queue.latestError', { error: t('common.unknown') })
   }
-  if (slot.status !== 'retrying') return null
-
-  return slot.error
-    ? t('input.stack.status.retryingWithError', { attempt: slot.attempt, max: slot.maxAttempts, error: slot.error })
-    : t('input.stack.status.retrying', { attempt: slot.attempt, max: slot.maxAttempts })
+  return null
 }
 
 function slotReasonColor(slot: Slot): string {
   if (slot.status === 'failed') return 'var(--color-danger)'
-  if (slot.status === 'retrying') return 'var(--color-accent)'
   return 'var(--color-text-3)'
 }
 

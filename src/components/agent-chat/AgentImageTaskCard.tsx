@@ -3,7 +3,6 @@ import { useLayoutEffect, useRef, useState, type MouseEvent, type PointerEvent, 
 import { summarizeToolResult, taskStatusLabel } from './utils'
 import type { AgentImageTask, AgentMessageToolCall, AgentMessageToolResult } from '../../agent'
 import { MODEL_CONFIGS } from '../../config/models'
-import { useExternalSync } from '../../hooks/effects'
 import { useImageSrc } from '../../hooks/useImageSrc'
 import { useI18n } from '../../i18n'
 import type { StackItem } from '../../lib/stacks'
@@ -54,35 +53,6 @@ function summarizeImageTaskError(text: string): string {
 
   if (clippedSummary.length <= ERROR_SUMMARY_MAX_LENGTH) return clippedSummary
   return `${clippedSummary.slice(0, ERROR_SUMMARY_MAX_LENGTH).trimEnd()}...`
-}
-
-function formatElapsedTime(elapsedMs: number): string {
-  const totalSeconds = Math.max(0, Math.floor(elapsedMs / 1000))
-  const seconds = totalSeconds % 60
-  const totalMinutes = Math.floor(totalSeconds / 60)
-  const minutes = totalMinutes % 60
-  const hours = Math.floor(totalMinutes / 60)
-
-  if (hours > 0) {
-    return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
-  }
-
-  return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
-}
-
-function useElapsedTime(startedAt: number | null, enabled: boolean): string | null {
-  const [now, setNow] = useState(() => Date.now())
-
-  useExternalSync(() => {
-    if (!enabled || startedAt === null) return
-
-    setNow(Date.now())
-    const timer = window.setInterval(() => setNow(Date.now()), 1000)
-    return () => window.clearInterval(timer)
-  }, [enabled, startedAt])
-
-  if (!enabled || startedAt === null) return null
-  return formatElapsedTime(now - startedAt)
 }
 
 function useReadyRevealHeight(isComposingPrompt: boolean, revealDelayMs: number) {
@@ -235,15 +205,13 @@ function SkeletonSlot({
   flush = false,
   aspectRatio,
   compact = false,
-  queued = false,
 }: {
   flush?: boolean
   aspectRatio?: string
   compact?: boolean
-  queued?: boolean
 }) {
   const { t } = useI18n()
-  const statusLabel = queued ? t('imageDetail.queue.status.queued') : t('imageDetail.queue.status.generating')
+  const statusLabel = t('imageDetail.queue.status.generating')
   const slot = (
     <div
       className={`relative w-full overflow-hidden shadow-[inset_0_0_0_1px_var(--ring-edge-soft)] ${flush ? 'rounded-none' : 'rounded-[var(--radius-sm)]'}`}
@@ -253,11 +221,7 @@ function SkeletonSlot({
       }}
     >
       <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 px-2 text-(--color-text-3)">
-        {queued ? (
-          <div className="h-2 w-2 rounded-full" style={{ background: 'var(--color-text-4)' }} />
-        ) : (
-          <span className="spinner" style={{ width: 12, height: 12 }} />
-        )}
+        <span className="spinner" style={{ width: 12, height: 12 }} />
         {!compact && (
           <>
             <span className="text-sm leading-[1.4]">{statusLabel}</span>
@@ -462,7 +426,6 @@ export function AgentImageTaskCard({
   const isActiveGenerating = status === 'approved' || status === 'queued' || status === 'running'
   const isPendingApproval = task?.status === 'pending_approval'
   const failedCollapsed = isFailed && !failedDetailsOpen
-  const activeElapsedTime = useElapsedTime(task?.createdAt ?? null, Boolean(task && isActiveGenerating))
 
   const reservedIds = task?.request.reservedImageIds ?? []
   const requestedFromArgs = typeof call.arguments.image_id === 'string' ? call.arguments.image_id : undefined
@@ -471,13 +434,6 @@ export function AgentImageTaskCard({
   const targetIds = reservedIds.length > 0 ? reservedIds : requestedFromArgs ? [requestedFromArgs] : []
   const targetIdLabel = compactImageIdLabel(targetIds)
   const targetIdTitle = targetIds.length > 1 ? Array.from(new Set(targetIds)).join(', ') : targetIdLabel
-  const targetStackItems = targetIds
-    .map((id) => stackItemByOutputId.get(id))
-    .filter((item): item is StackItem => Boolean(item))
-  const retryingSlot = targetStackItems.find(
-    (item): item is Extract<StackItem, { type: 'slot' }> => item.type === 'slot' && item.slot.status === 'retrying',
-  )?.slot
-
   const promptText = task?.request.prompt ?? promptFromArgs
   const referenceIds = task?.request.referenceImageIds ?? []
   const resultIds = task?.resultImageIds ?? []
@@ -487,17 +443,6 @@ export function AgentImageTaskCard({
     ? (MODEL_CONFIGS.find((item) => item.id === task.request.modelId)?.name ?? task.request.modelId)
     : null
 
-  const retryingStatusText = retryingSlot
-    ? retryingSlot.error
-      ? t('input.stack.status.retryingWithError', {
-          attempt: retryingSlot.attempt,
-          max: retryingSlot.maxAttempts,
-          error: retryingSlot.error,
-        })
-      : t('input.stack.status.retrying', { attempt: retryingSlot.attempt, max: retryingSlot.maxAttempts })
-    : targetStackItems.length === 0 && task?.status === 'running' && task.error
-      ? `${t('imageDetail.queue.status.retrying')} · ${summarizeImageTaskError(task.error)}`
-      : null
   const taskErrorText = isFailed ? task?.error : undefined
   const taskDetail = taskErrorText
     ? undefined
@@ -622,21 +567,10 @@ export function AgentImageTaskCard({
   ) : null
   const activeStatusNode =
     task && isActiveGenerating ? (
-      <Tooltip text={retryingStatusText ?? taskStatusLabel(status)} placement="top" className="inline-flex min-w-0">
+      <Tooltip text={t('imageDetail.queue.status.generating')} placement="top" className="inline-flex min-w-0">
         <span className="inline-flex items-center gap-1.5 py-0.5 text-sm leading-none font-medium text-(--color-text-3)">
-          {status === 'queued' ? (
-            <>
-              <span className="h-1.5 w-1.5 rounded-full bg-(--color-text-4)" />
-              <span>{taskStatusLabel(status)}</span>
-            </>
-          ) : retryingStatusText ? (
-            <>
-              <span className="spinner shrink-0" style={{ width: 10, height: 10 }} />
-              <span className="min-w-0 truncate text-(--color-accent-text)">{retryingStatusText}</span>
-            </>
-          ) : (
-            activeElapsedTime && <span className="tabular-nums text-(--color-text-4)">{activeElapsedTime}</span>
-          )}
+          <span className="spinner shrink-0" style={{ width: 10, height: 10 }} />
+          <span>{t('imageDetail.queue.status.generating')}</span>
         </span>
       </Tooltip>
     ) : null
@@ -691,14 +625,11 @@ export function AgentImageTaskCard({
               key={`skeleton-${index}`}
               aspectRatio={aspectRatioCss}
               compact
-              queued={status === 'queued'}
             />,
           )
         }
       } else if (isActiveGenerating) {
-        items.push(
-          <SkeletonSlot key={`skeleton-${index}`} aspectRatio={aspectRatioCss} compact queued={status === 'queued'} />,
-        )
+        items.push(<SkeletonSlot key={`skeleton-${index}`} aspectRatio={aspectRatioCss} compact />)
       }
     }
     if (items.length === 0) return null

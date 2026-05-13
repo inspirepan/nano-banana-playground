@@ -3,7 +3,7 @@ import { lazy, memo, Suspense, useCallback, useMemo, useState } from 'react'
 import { Icon } from './Icon'
 import { LazyChunkLoadErrorBoundary } from './LazyChunkLoadErrorBoundary'
 import { Tooltip } from './Tooltip'
-import { canDismissFailedGenerationJob, type DetailTarget } from './output/outputPanelHelpers'
+import { canDismissClearableGenerationJob, type DetailTarget } from './output/outputPanelHelpers'
 import { StackRow } from './output/StackRow'
 import { useInfiniteScrollSentinel } from './output/useInfiniteScrollSentinel'
 import { useStackDetailNavigation } from './output/useStackDetailNavigation'
@@ -99,7 +99,7 @@ export const OutputPanel = memo(function OutputPanel({
     for (const stack of stacks) total += stack.images.length
     return total
   }, [stacks])
-  const hasFailedItems = useMemo(() => stacks.some((stack) => stack.failedSlotCount > 0), [stacks])
+  const hasClearableItems = useMemo(() => stacks.some((stack) => stack.clearableSlotCount > 0), [stacks])
   const [batchManageMode, setBatchManageMode] = useState(false)
   const [selectedImageIds, setSelectedImageIds] = useState<Set<string>>(() => new Set())
   const [batchExporting, setBatchExporting] = useState(false)
@@ -134,10 +134,10 @@ export const OutputPanel = memo(function OutputPanel({
     history: exportableHistory,
   })
 
-  const handleDismissStackFailedJobs = useCallback(
+  const handleDismissStackClearableJobs = useCallback(
     (stack: ImageStack) => {
       for (const job of stack.jobs) {
-        if (canDismissFailedGenerationJob(job)) onDismissGenerationJob(job.id)
+        if (canDismissClearableGenerationJob(job)) onDismissGenerationJob(job.id)
       }
       for (const item of stack.items) {
         if (item.type === 'slot' && item.failureImage) void onRemove(item.failureImage.id)
@@ -147,8 +147,8 @@ export const OutputPanel = memo(function OutputPanel({
   )
 
   const handleDismissAllFailedItems = useCallback(() => {
-    for (const stack of stacks) handleDismissStackFailedJobs(stack)
-  }, [handleDismissStackFailedJobs, stacks])
+    for (const stack of stacks) handleDismissStackClearableJobs(stack)
+  }, [handleDismissStackClearableJobs, stacks])
 
   const handleRemoveStackImages = useCallback(
     (stack: ImageStack) => {
@@ -313,7 +313,7 @@ export const OutputPanel = memo(function OutputPanel({
           </div>
         </div>
         <div className="flex-1" />
-        {(exportableHistory.length > 0 || hasFailedItems) && (
+        {(exportableHistory.length > 0 || hasClearableItems) && (
           <div className="flex w-full shrink-0 flex-wrap items-center justify-start gap-1.5 sm:w-auto sm:justify-end">
             {!batchManageMode && (
               <>
@@ -349,7 +349,7 @@ export const OutputPanel = memo(function OutputPanel({
                     </button>
                   </>
                 )}
-                {hasFailedItems && (
+                {hasClearableItems && (
                   <button type="button" onClick={handleDismissAllFailedItems} className="chip danger shrink-0">
                     {t('output.clearFailedItems')}
                   </button>

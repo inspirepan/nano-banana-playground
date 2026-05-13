@@ -104,7 +104,7 @@ const SlotThumbActions = memo(function SlotThumbActions({
     )
   }
 
-  if (item.slot.status !== 'failed') return null
+  if (item.slot.status !== 'failed' && item.slot.status !== 'canceled') return null
   return (
     <div className="pointer-events-auto flex w-full max-w-[18rem] items-center gap-1.5">
       <button
