@@ -107,6 +107,7 @@ export async function generateImageDoubao(
     slotIndex,
     outputImageId,
     outputImageIdSource,
+    agentSessionId,
   } = params
 
   const body: Record<string, unknown> = {
@@ -217,6 +218,7 @@ export async function generateImageDoubao(
         ...(parentImageId ? { parentImageId } : {}),
         ...(slotIndex !== undefined ? { slotIndex } : {}),
         ...(outputImageIdSource ? { imageIdSource: outputImageIdSource } : {}),
+        ...(agentSessionId ? { agentSessionId } : {}),
         tokenUsage,
         options: { ...options },
       },

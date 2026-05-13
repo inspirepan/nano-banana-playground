@@ -40,6 +40,7 @@ export type GeneratedSource = {
   parentImageId?: string
   slotIndex?: number
   imageIdSource?: 'agent'
+  agentSessionId?: string
   tokenUsage?: TokenUsage
   // Provider/model-specific generation options (keyed by option id; values typed
   // by the option descriptor). Introduced after the options-descriptor refactor.

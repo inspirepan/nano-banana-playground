@@ -32,6 +32,7 @@ type Props = {
   onAddToRef: OutputPanelProps['onAddToRef']
   onRegenerate: OutputPanelProps['onRegenerate']
   onReroll: OutputPanelProps['onReroll']
+  onNavigateToAgentSession: OutputPanelProps['onNavigateToAgentSession']
   onEditImage: OutputPanelProps['onEditImage']
   onCancelGenerationJob: OutputPanelProps['onCancelGenerationJob']
   onDismissGenerationJob: OutputPanelProps['onDismissGenerationJob']
@@ -62,6 +63,7 @@ export function MobileLayout({
   onAddToRef,
   onRegenerate,
   onReroll,
+  onNavigateToAgentSession,
   onEditImage,
   onCancelGenerationJob,
   onDismissGenerationJob,
@@ -132,6 +134,7 @@ export function MobileLayout({
               onAddToRef={onAddToRef}
               onRegenerate={onRegenerate}
               onReroll={onReroll}
+              onNavigateToAgentSession={onNavigateToAgentSession}
               onEditImage={onEditImage}
               onRemove={onRemove}
               onLoadMore={onLoadMore}
@@ -164,6 +167,7 @@ export function MobileLayout({
               onAddToRef={onAddToRef}
               onRegenerate={onRegenerate}
               onReroll={onReroll}
+              onNavigateToAgentSession={onNavigateToAgentSession}
               onEditImage={onEditImage}
               onCancelGenerationJob={onCancelGenerationJob}
               onDismissGenerationJob={onDismissGenerationJob}

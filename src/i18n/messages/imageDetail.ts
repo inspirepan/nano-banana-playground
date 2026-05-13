@@ -25,6 +25,11 @@ export const imageDetailMessages: MessageDictionary = {
   'imageDetail.action.exitShort': { 'zh-CN': '退出', en: 'Exit' },
   'imageDetail.action.fullscreenPreview': { 'zh-CN': '全屏预览', en: 'Fullscreen preview' },
   'imageDetail.action.nextImage': { 'zh-CN': '下一张', en: 'Next image' },
+  'imageDetail.action.openAgentSession': { 'zh-CN': '对话', en: 'Chat' },
+  'imageDetail.action.openAgentSessionTitle': {
+    'zh-CN': '回到生成这张图的 Agent 对话',
+    en: 'Open the Agent conversation that generated this image',
+  },
   'imageDetail.action.previousImage': { 'zh-CN': '上一张', en: 'Previous image' },
   'imageDetail.action.redoOriginal': { 'zh-CN': '重抽', en: 'Reroll' },
   'imageDetail.action.regenerateOriginal': { 'zh-CN': '按原参数重新生成', en: 'Regenerate with original settings' },
@@ -100,7 +105,8 @@ export const imageDetailMessages: MessageDictionary = {
   'imageDetail.footer.wheelZoom': { 'zh-CN': '滚轮 缩放', en: 'Wheel zoom' },
   'imageDetail.loadError.title': { 'zh-CN': '图片详情加载失败', en: 'Image details failed to load' },
   'imageDetail.loadError.description': {
-    'zh-CN': '页面资源可能已更新，图片详情文件没有加载成功。为避免中断正在运行的生成任务，应用不会自动刷新；可稍后手动刷新页面恢复。',
+    'zh-CN':
+      '页面资源可能已更新，图片详情文件没有加载成功。为避免中断正在运行的生成任务，应用不会自动刷新；可稍后手动刷新页面恢复。',
     en: 'The app resources may have changed, and the image details file did not load. To avoid interrupting active generation jobs, the app will not refresh automatically; refresh the page later to recover.',
   },
   'imageDetail.header.imageGroup': { 'zh-CN': '图片组', en: 'Image group' },

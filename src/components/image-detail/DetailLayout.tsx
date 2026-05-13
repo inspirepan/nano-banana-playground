@@ -91,6 +91,7 @@ type DetailLayoutProps = {
   onAddRef: () => void
   onRegenerate: () => void
   onReroll: (modelId?: string) => void
+  onNavigateToAgentSession?: (sessionId: string) => boolean | Promise<boolean>
   onDownload: () => void
   onCopyPrompt: () => void
   onRemoveCurrent: (id: string) => void
@@ -167,6 +168,7 @@ export function DetailLayout({
   onAddRef,
   onRegenerate,
   onReroll,
+  onNavigateToAgentSession,
   onDownload,
   onCopyPrompt,
   onRemoveCurrent,
@@ -333,6 +335,7 @@ export function DetailLayout({
             onToggleRefDetail={(id) => setRefDetailId((prev) => (prev === id ? null : id))}
             onRegenerate={onRegenerate}
             onReroll={onReroll}
+            onNavigateToAgentSession={onNavigateToAgentSession}
             rerollModelOptions={rerollModelOptions}
             onDownload={onDownload}
             onCopyPrompt={onCopyPrompt}

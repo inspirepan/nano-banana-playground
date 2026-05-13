@@ -41,6 +41,7 @@ type Props = {
   onAddToRef: (image: PlaygroundImageMeta) => void
   onRegenerate: (image: PlaygroundImageMeta) => void
   onReroll: (image: PlaygroundImageMeta, modelId?: string) => Promise<RetryActionResult>
+  onNavigateToAgentSession?: (sessionId: string) => boolean | Promise<boolean>
   onEditImage: (params: {
     sourceImage: PlaygroundImageMeta
     model: ModelConfig
@@ -77,6 +78,7 @@ export const OutputPanel = memo(function OutputPanel({
   onAddToRef,
   onRegenerate,
   onReroll,
+  onNavigateToAgentSession,
   onEditImage,
   onRemove,
   onLoadMore,
@@ -468,6 +470,7 @@ export const OutputPanel = memo(function OutputPanel({
               onAddToRef={onAddToRef}
               onRegenerate={onRegenerate}
               onReroll={onReroll}
+              onNavigateToAgentSession={onNavigateToAgentSession}
               onEditImage={onEditImage}
               onCancelGenerationJob={onCancelGenerationJob}
               onDismissGenerationJob={onDismissGenerationJob}

@@ -53,6 +53,7 @@ type Props = {
   onAddToRef: OutputPanelProps['onAddToRef']
   onRegenerate: OutputPanelProps['onRegenerate']
   onReroll: OutputPanelProps['onReroll']
+  onNavigateToAgentSession: OutputPanelProps['onNavigateToAgentSession']
   onEditImage: OutputPanelProps['onEditImage']
   onRemove: OutputPanelProps['onRemove']
   onLoadMore: OutputPanelProps['onLoadMore']
@@ -85,6 +86,7 @@ export function DesktopLayout({
   onAddToRef,
   onRegenerate,
   onReroll,
+  onNavigateToAgentSession,
   onEditImage,
   onRemove,
   onLoadMore,
@@ -194,6 +196,7 @@ export function DesktopLayout({
       onAddToRef={onAddToRef}
       onRegenerate={onRegenerate}
       onReroll={onReroll}
+      onNavigateToAgentSession={onNavigateToAgentSession}
       onEditImage={onEditImage}
       onRemove={onRemove}
       onLoadMore={onLoadMore}

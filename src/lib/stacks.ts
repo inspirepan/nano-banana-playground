@@ -91,6 +91,7 @@ function slotItemForFailureImage(image: PlaygroundImageMeta & { source: Generati
       options: source.options ?? {},
       outputImageIds: source.outputImageId ? [source.outputImageId] : undefined,
       outputImageIdSource: source.imageIdSource,
+      agentSessionId: source.agentSessionId,
     },
     slots: [slot],
   }

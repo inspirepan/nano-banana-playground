@@ -47,6 +47,7 @@ type DetailSidebarProps = {
   onStartEdit?: () => void
   onRegenerate: () => void
   onReroll: (modelId?: string) => void
+  onNavigateToAgentSession?: (sessionId: string) => boolean | Promise<boolean>
   onDownload: () => void
   onCopyPrompt: () => void
   onRemove: (id: string) => void | Promise<void>
@@ -72,12 +73,18 @@ export function DetailSidebar({
   onStartEdit,
   onRegenerate,
   onReroll,
+  onNavigateToAgentSession,
   onDownload,
   onCopyPrompt,
   onRemove,
 }: DetailSidebarProps) {
   const { language, t } = useI18n()
   const prompt = currentMeta?.prompt ?? currentJob?.request.prompt ?? null
+  const agentSessionId =
+    currentMeta?.agentSessionId ??
+    (currentImage?.source.type === 'generation-failure' ? currentImage.source.agentSessionId : undefined) ??
+    currentJob?.request.agentSessionId ??
+    null
   const semanticImageId =
     currentImage?.source.type === 'generated' && currentImage.source.imageIdSource === 'agent' ? currentImage.id : null
   const semanticImageIdDisplay = semanticImageId ? Array.from(semanticImageId).slice(0, 20).join('') : null
@@ -88,6 +95,18 @@ export function DetailSidebar({
         <>
           {/* Desktop: compact action buttons */}
           <div className="mb-[18px] hidden items-center justify-end gap-1.5 md:flex">
+            {agentSessionId && onNavigateToAgentSession && (
+              <Tooltip text={t('imageDetail.action.openAgentSessionTitle')}>
+                <button
+                  type="button"
+                  className="chip h-7 px-2.5 text-sm font-normal"
+                  onClick={() => onNavigateToAgentSession(agentSessionId)}
+                >
+                  <Icon name="bot" size={14} strokeWidth={1.8} />
+                  {t('imageDetail.action.openAgentSession')}
+                </button>
+              </Tooltip>
+            )}
             <Tooltip text={t('common.download')}>
               <button type="button" className="chip h-7 px-2.5 text-sm font-normal" onClick={onDownload}>
                 <Icon name="download" size={14} strokeWidth={1.8} />
@@ -123,7 +142,26 @@ export function DetailSidebar({
           </div>
 
           {/* Mobile: card grid (icon + label) */}
-          <div className="detail-mobile-actions mb-[18px] -mx-1 md:hidden">
+          <div
+            className="detail-mobile-actions mb-[18px] -mx-1 md:hidden"
+            style={
+              agentSessionId && onNavigateToAgentSession
+                ? { gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }
+                : undefined
+            }
+          >
+            {agentSessionId && onNavigateToAgentSession && (
+              <Tooltip text={t('imageDetail.action.openAgentSessionTitle')} placement="top">
+                <button
+                  type="button"
+                  className="action-soft detail-mobile-action w-full"
+                  onClick={() => onNavigateToAgentSession(agentSessionId)}
+                >
+                  <Icon name="bot" size={13} strokeWidth={1.8} className="action-soft-icon" />
+                  {t('imageDetail.action.openAgentSession')}
+                </button>
+              </Tooltip>
+            )}
             <Tooltip text={t('imageDetail.action.downloadPng')} placement="top">
               <button type="button" className="action-soft detail-mobile-action w-full" onClick={onDownload}>
                 <Icon name="download" size={13} strokeWidth={1.8} className="action-soft-icon" />

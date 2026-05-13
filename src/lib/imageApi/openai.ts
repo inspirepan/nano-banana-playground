@@ -64,6 +64,7 @@ export async function generateImageOpenAI(
     slotIndex,
     outputImageId,
     outputImageIdSource,
+    agentSessionId,
     mask,
   } = params
 
@@ -183,6 +184,7 @@ export async function generateImageOpenAI(
         ...(parentImageId ? { parentImageId } : {}),
         ...(slotIndex !== undefined ? { slotIndex } : {}),
         ...(outputImageIdSource ? { imageIdSource: outputImageIdSource } : {}),
+        ...(agentSessionId ? { agentSessionId } : {}),
         tokenUsage,
         options: { ...options },
         usesMask: Boolean(mask),

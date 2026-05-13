@@ -335,6 +335,7 @@ export function useAgentImageTools({
           options: taskBeforeEnqueue.request.options,
           outputImageIds: taskBeforeEnqueue.request.reservedImageIds,
           outputImageIdSource: 'agent',
+          agentSessionId: runtime.sessionId,
         },
         taskBeforeEnqueue.request.batchCount,
         stackId,

@@ -42,6 +42,7 @@ type Props = {
   onAddToRef: (image: PlaygroundImageMeta) => void
   onRegenerate: (image: PlaygroundImageMeta) => void
   onReroll: (image: PlaygroundImageMeta, modelId?: string) => Promise<RetryActionResult>
+  onNavigateToAgentSession?: (sessionId: string) => boolean | Promise<boolean>
   onEditImage: EditImageHandler
   onCancelGenerationJob: (jobId: string) => void
   onDismissGenerationJob: (jobId: string) => void
@@ -66,6 +67,7 @@ export function ImageDetailModal({
   onAddToRef,
   onRegenerate,
   onReroll,
+  onNavigateToAgentSession,
   onEditImage,
   onCancelGenerationJob,
   onDismissGenerationJob,
@@ -257,6 +259,16 @@ export function ImageDetailModal({
       flash(result.ok ? t('imageDetail.toast.rerollQueued') : result.message)
     })
   }
+
+  const handleNavigateToAgentSession = useCallback(
+    (sessionId: string) => {
+      return Promise.resolve(onNavigateToAgentSession?.(sessionId) ?? false).then((ok) => {
+        if (ok) onClose()
+        return ok
+      })
+    },
+    [onClose, onNavigateToAgentSession],
+  )
 
   useExternalSync(() => {
     const target = pendingRetrySelectionRef.current
@@ -475,6 +487,7 @@ export function ImageDetailModal({
             onAddRef={handleAddRef}
             onRegenerate={handleRegenerateAction}
             onReroll={handleRerollAction}
+            onNavigateToAgentSession={onNavigateToAgentSession ? handleNavigateToAgentSession : undefined}
             onDownload={handleDownload}
             onCopyPrompt={handleCopyPrompt}
             onRemoveCurrent={handleRemoveCurrentAndRevealImage}

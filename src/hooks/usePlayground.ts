@@ -122,6 +122,7 @@ function generationFailureMetaFromSlot(job: GenerationJob, slot: GenerationJob['
       parentImageId: job.parentImageId,
       slotIndex: slot.index,
       imageIdSource: job.request.outputImageIdSource,
+      agentSessionId: job.request.agentSessionId,
       options: job.request.options,
       usesMask: Boolean(job.request.mask),
       error: slot.error ?? '',
@@ -732,6 +733,7 @@ export function usePlayground() {
         options: optionsForGeneratedSource(targetModel, source),
         outputImageIds,
         outputImageIdSource: source.imageIdSource,
+        agentSessionId: source.agentSessionId,
       }
       const activeJob = findActiveGenerationJob({ request, stackId, parentImageId })
       if (activeJob) {

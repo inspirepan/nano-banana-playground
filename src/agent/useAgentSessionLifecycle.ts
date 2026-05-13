@@ -58,11 +58,11 @@ export function useAgentSessionLifecycle({
 }) {
   const loadAgentSessionIntoRuntime = useCallback(
     (session: Awaited<ReturnType<typeof loadAgentSession>>) => {
-      if (!session) return
+      if (!session) return false
       const existing = agentRuntimesRef.current.get(session.record.id)
       if (existing) {
         projectRuntimeToUi(existing)
-        return
+        return true
       }
       const restoredTasks = restoreAgentImageTasks(session.sidecar.imageTasks)
       const releasedReservedIds = new Set<string>()
@@ -136,6 +136,7 @@ export function useAgentSessionLifecycle({
       runtime.agent.replaceMessages(runtime.messages)
       syncRuntimeSnapshot(runtime)
       projectRuntimeToUi(runtime)
+      return true
     },
     [agentRuntimesRef, createRuntime, projectRuntimeToUi, syncRuntimeSnapshot],
   )
@@ -188,9 +189,9 @@ export function useAgentSessionLifecycle({
   ])
 
   const switchAgentSession = useCallback(
-    (sessionId: string) => {
-      if (sessionId === currentAgentSessionIdRef.current) return
-      void (async () => {
+    async (sessionId: string): Promise<boolean> => {
+      if (sessionId === currentAgentSessionIdRef.current) return true
+      try {
         const previousRuntime = getCurrentRuntime()
         await flushRuntime(previousRuntime)
         if (previousRuntime && !previousRuntime.persisted && previousRuntime.messages.length === 0) {
@@ -200,12 +201,18 @@ export function useAgentSessionLifecycle({
         const runtime = agentRuntimesRef.current.get(sessionId)
         if (runtime) {
           projectRuntimeToUi(runtime)
-          return
+          return true
         }
-        loadAgentSessionIntoRuntime(await loadAgentSession(sessionId))
-      })().catch((error: unknown) => {
+        const loaded = await loadAgentSession(sessionId)
+        if (!loaded) {
+          setAgentError('Agent session no longer exists.')
+          return false
+        }
+        return loadAgentSessionIntoRuntime(loaded)
+      } catch (error: unknown) {
         setAgentError(error instanceof Error ? error.message : String(error))
-      })
+        return false
+      }
     },
     [
       agentRuntimesRef,

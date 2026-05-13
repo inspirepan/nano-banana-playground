@@ -19,6 +19,7 @@ export type GenerateParams = {
   slotIndex?: number
   outputImageId?: string
   outputImageIdSource?: 'agent'
+  agentSessionId?: string
   // OpenAI images.edits mask: alpha=0 marks the region to rewrite. Ignored on
   // non-OpenAI providers (Gemini has no native mask support — callers should
   // bake the mask into the reference image themselves).

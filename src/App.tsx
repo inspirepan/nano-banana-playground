@@ -117,6 +117,17 @@ function App() {
     [pg],
   )
 
+  const navigateToAgentSession = useCallback(
+    async (sessionId: string) => {
+      const switched = await pg.switchAgentSession(sessionId)
+      if (!switched) return false
+      pg.setInputMode('agent')
+      setMobileTab('agent')
+      return true
+    },
+    [pg],
+  )
+
   const handleGenerate = () => {
     pg.generate()
     if (window.innerWidth < 768) {
@@ -151,6 +162,7 @@ function App() {
         onAddToRef={handleAddToRef}
         onRegenerate={handleRegenerate}
         onReroll={handleReroll}
+        onNavigateToAgentSession={navigateToAgentSession}
         onEditImage={pg.editImage}
         onCancelGenerationJob={pg.cancelGenerationJob}
         onDismissGenerationJob={pg.dismissGenerationJob}
@@ -191,6 +203,7 @@ function App() {
         onAddToRef={handleAddToRef}
         onRegenerate={handleRegenerate}
         onReroll={handleReroll}
+        onNavigateToAgentSession={navigateToAgentSession}
         onEditImage={pg.editImage}
         onRemove={pg.removeFromHistory}
         onLoadMore={pg.loadMoreHistory}

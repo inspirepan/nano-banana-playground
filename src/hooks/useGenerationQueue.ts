@@ -53,6 +53,7 @@ export type GenerationJob = {
     options: Record<string, unknown>
     outputImageIds?: string[]
     outputImageIdSource?: 'agent'
+    agentSessionId?: string
     // OpenAI-only: alpha-channel mask sent to images.edits. We keep it off the
     // persisted `referenceImageIds` so history metadata doesn't show it as a
     // user-visible reference, but the blob still lives here for retries.
@@ -215,6 +216,7 @@ function generationRequestKey(request: GenerationJob['request']): string {
       : null,
     outputImageIds: request.outputImageIds ?? null,
     outputImageIdSource: request.outputImageIdSource ?? null,
+    agentSessionId: request.agentSessionId ?? null,
   })
 }
 
@@ -327,6 +329,7 @@ export function useGenerationQueue({
               slotIndex: slot.index,
               outputImageId: slot.outputImageId,
               outputImageIdSource: job.request.outputImageIdSource,
+              agentSessionId: job.request.agentSessionId,
             },
             controller.signal,
             {

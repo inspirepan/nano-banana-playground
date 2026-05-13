@@ -70,6 +70,7 @@ export async function generateImageGoogle(
     slotIndex,
     outputImageId,
     outputImageIdSource,
+    agentSessionId,
     options,
   } = params
 
@@ -258,6 +259,7 @@ export async function generateImageGoogle(
         ...(parentImageId ? { parentImageId } : {}),
         ...(slotIndex !== undefined ? { slotIndex } : {}),
         ...(outputImageIdSource ? { imageIdSource: outputImageIdSource } : {}),
+        ...(agentSessionId ? { agentSessionId } : {}),
         tokenUsage,
         options: { ...options },
         ...(groundingMetadata ? { groundingMetadata } : {}),

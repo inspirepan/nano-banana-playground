@@ -52,6 +52,7 @@ type DetailSidePanelProps = {
   onToggleRefDetail: (id: string) => void
   onRegenerate: () => void
   onReroll: (modelId?: string) => void
+  onNavigateToAgentSession?: (sessionId: string) => boolean | Promise<boolean>
   onDownload: () => void
   onCopyPrompt: () => void
   onRemove: (id: string) => void | Promise<void>
@@ -98,6 +99,7 @@ export function DetailSidePanel({
   onToggleRefDetail,
   onRegenerate,
   onReroll,
+  onNavigateToAgentSession,
   onDownload,
   onCopyPrompt,
   onRemove,
@@ -204,6 +206,7 @@ export function DetailSidePanel({
             onStartEdit={isMobileLayout ? onStartEdit : undefined}
             onRegenerate={onRegenerate}
             onReroll={onReroll}
+            onNavigateToAgentSession={onNavigateToAgentSession}
             rerollModelOptions={rerollModelOptions}
             onDownload={onDownload}
             onCopyPrompt={onCopyPrompt}
