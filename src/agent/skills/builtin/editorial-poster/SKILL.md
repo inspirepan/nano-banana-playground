@@ -274,7 +274,7 @@ Halftone dot patterns inside color fills, varying density to imply form. Slight 
   "model": "gpt-image-2",
   "resolution": "2K",
   "ratio": "2.35:1",
-  "n": 1,
+  "sample_count": 1,
   "reference_image_ids": []
 }
 ```

@@ -160,7 +160,7 @@ function hasCompleteGenImageArguments(call: AgentMessageToolCall): boolean {
     args.resolution.trim() !== '' &&
     typeof args.ratio === 'string' &&
     args.ratio.trim() !== '' &&
-    typeof args.n === 'number'
+    (typeof args.sample_count === 'number' || typeof args.n === 'number')
   )
 }
 
@@ -429,7 +429,12 @@ export function AgentImageTaskCard({
 
   const reservedIds = task?.request.reservedImageIds ?? []
   const requestedFromArgs = typeof call.arguments.image_id === 'string' ? call.arguments.image_id : undefined
-  const requestedCountFromArgs = typeof call.arguments.n === 'number' ? call.arguments.n : 1
+  const requestedCountFromArgs =
+    typeof call.arguments.sample_count === 'number'
+      ? call.arguments.sample_count
+      : typeof call.arguments.n === 'number'
+        ? call.arguments.n
+        : 1
   const promptFromArgs = typeof call.arguments.prompt === 'string' ? call.arguments.prompt : ''
   const targetIds = reservedIds.length > 0 ? reservedIds : requestedFromArgs ? [requestedFromArgs] : []
   const targetIdLabel = compactImageIdLabel(targetIds)
@@ -620,13 +625,7 @@ export function AgentImageTaskCard({
         } else if (id) {
           items.push(<GenImageResultThumb key={id} id={id} />)
         } else if (isActiveGenerating) {
-          items.push(
-            <SkeletonSlot
-              key={`skeleton-${index}`}
-              aspectRatio={aspectRatioCss}
-              compact
-            />,
-          )
+          items.push(<SkeletonSlot key={`skeleton-${index}`} aspectRatio={aspectRatioCss} compact />)
         }
       } else if (isActiveGenerating) {
         items.push(<SkeletonSlot key={`skeleton-${index}`} aspectRatio={aspectRatioCss} compact />)

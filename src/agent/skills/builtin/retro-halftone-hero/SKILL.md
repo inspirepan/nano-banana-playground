@@ -139,7 +139,7 @@ Negative: no cheap filter look, no overprocessed HDR, no fog overload, no heavy 
   "model": "nano-banana-pro",
   "resolution": "2K",
   "ratio": "16:9",
-  "n": 1,
+  "sample_count": 1,
   "reference_image_ids": []
 }
 ```
@@ -173,7 +173,7 @@ Constraints:
   "model": "nano-banana-pro",
   "resolution": "4K",
   "ratio": "16:9",
-  "n": 1,
+  "sample_count": 1,
   "reference_image_ids": ["{{base_or_user_image_id}}"]
 }
 ```

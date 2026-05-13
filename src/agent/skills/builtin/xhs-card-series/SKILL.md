@@ -323,7 +323,7 @@ GenImage({
   model: 'gpt-image-2',
   resolution: '2K',
   ratio: '3:4',
-  n: 1,
+  sample_count: 1,
   reference_image_ids: [],
 })
 // 等待 task 终结事件，拿到真实 image id，例如 "xhs-cover"
@@ -335,7 +335,7 @@ GenImage({
   model: 'gpt-image-2',
   resolution: '2K',
   ratio: '3:4',
-  n: 1,
+  sample_count: 1,
   reference_image_ids: ['[第一张的真实 image_id]'], // 例：["xhs-cover"]
 })
 // 后续 #03..#NN 同理，reference_image_ids 都用第 1 张的真实 id
@@ -343,7 +343,7 @@ GenImage({
 
 ## GenImage 单张完整调用示例
 
-中文标题多 → 优先 `gpt-image-2`（文字渲染最好）。卡通画面 / 多 emoji / 主体造型 → 可换 `nano-banana-pro`。系列里每张都是独立一次 `GenImage` 调用，**不要把 `n` 设成 4 想一次出 4 张系列**——那是同一 prompt 的 4 个变体，不是连贯的封面 + 内容 + 结尾。
+中文标题多 → 优先 `gpt-image-2`（文字渲染最好）。卡通画面 / 多 emoji / 主体造型 → 可换 `nano-banana-pro`。系列里每张都是独立一次 `GenImage` 调用，**不要把 `sample_count` 设成 4 想一次出 4 张系列**——那是同一 prompt 的 4 个变体，不是连贯的封面 + 内容 + 结尾。
 
 ```json
 {
@@ -352,12 +352,12 @@ GenImage({
   "model": "gpt-image-2",
   "resolution": "2K",
   "ratio": "3:4",
-  "n": 1,
+  "sample_count": 1,
   "reference_image_ids": []
 }
 ```
 
-默认参数：`model: gpt-image-2`（中文标题多）或 `nano-banana-pro`（更柔和的卡通），`resolution: 2K`，`ratio: 3:4`，`n: 1`。
+默认参数：`model: gpt-image-2`（中文标题多）或 `nano-banana-pro`（更柔和的卡通），`resolution: 2K`，`ratio: 3:4`，`sample_count: 1`。
 
 水印（仅当用户在 AskUserQuestion 里勾了"加水印"）：在 prompt 末尾追加：
 
@@ -372,7 +372,7 @@ Include a subtle watermark "{user_handle_text}" at bottom-right, ~3% canvas heig
 - 全部用 `neon` 调色板还选 `minimal` 风格 → 视觉冲突，劝用户换回 macaron / warm。
 - 中文标题被模型渲染成英文或乱码 → 在 prompt 里把中文用引号原样写出，并 **negative: no English text replacing Chinese**；优先用 `gpt-image-2`。
 - 中文标点被换成英文 `,` `.` → 在 prompt 中明确"keep original Chinese punctuation （、，。！？""''）"。
-- 一次 `GenImage` 调用 `n: 4` 想出整个系列 → 4 张是同一 prompt 的 variant，互相不连贯，**必须**每张分别调用并复用 anchor。
+- 一次 `GenImage` 调用 `sample_count: 4` 想出整个系列 → 4 张是同一 prompt 的 variant，互相不连贯，**必须**每张分别调用并复用 anchor。
 - 第 2..N 张并发调起 → 此时第 1 张还没落盘，没法做 anchor，结果系列依然漂移。
 - `reference_image_ids` 里塞文件路径 / URL / base64 → 必须是 registry 已有的语义 image id（附件 / 历史 / 上一张刚生成）。
 - 把 hex 色号或 palette 名直接渲染到画面 → 在 negative 中明确 "do not render hex codes or palette names as visible text"。

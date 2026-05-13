@@ -484,7 +484,7 @@ export function useAgentImageTools({
           `Unknown GenImage model: ${args.model}. Available models: ${MODEL_CONFIGS.map((item) => item.id).join(', ')}`,
         )
       }
-      const requestedCount = Number.isFinite(args.n) ? Math.floor(args.n) : 1
+      const requestedCount = Number.isFinite(args.sample_count) ? Math.floor(args.sample_count) : 1
       const batchCount = Math.min(Math.max(1, requestedCount), modelConfig.maxBatchCount)
       const resolution = normalizeResolution(modelConfig, args.resolution)
       const aspect = normalizeAspectRatio(modelConfig, args.ratio)

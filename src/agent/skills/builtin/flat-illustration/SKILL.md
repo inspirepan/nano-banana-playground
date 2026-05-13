@@ -58,7 +58,7 @@ A layered 2.5D flat design illustration of a [subject], presented in a [front-fa
 {
   "prompt": "A layered 2.5D flat design illustration of a [subject], presented in a [front-facing / side-facing / three-quarter], minimalistic style. Set against a plain [background color], the artwork uses a soft palette of [color1], [color2], and [optional accent color]. Build the subject from overlapping rounded geometric shapes with visible depth: separated parts, contact shadows, simple cel-shaded planes, and subtle edge highlights. The light source comes from slightly above and to the right, creating brighter upper-right edges and muted lower-left shadow shapes. Clean balanced spacing, simple geometric charm, no text, no logo, no watermark.",
   "ratio": "3:2",
-  "n": 1
+  "sample_count": 1
 }
 ```
 

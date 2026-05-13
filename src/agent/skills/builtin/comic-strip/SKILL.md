@@ -274,7 +274,7 @@ Constraints: stylized comic, no photorealism.
   "model": "nano-banana-pro",
   "resolution": "2K",
   "ratio": "1:1",
-  "n": 1,
+  "sample_count": 1,
   "reference_image_ids": []
 }
 ```
@@ -290,7 +290,7 @@ Constraints: stylized comic, no photorealism.
   "model": "gpt-image-2",
   "resolution": "2K",
   "ratio": "1:1",
-  "n": 1,
+  "sample_count": 1,
   "reference_image_ids": ["panel_1"]
 }
 ```
@@ -301,7 +301,7 @@ Constraints: stylized comic, no photorealism.
 
 - **不要让模型出 photorealistic / 3D 渲染**。漫画就是漫画,写明 stylized comic / no photorealism。
 - **不要在 multi-image 模式下不传 anchor**——必丢角色一致性,等于白做。
-- **不要把 N 格压成 `n: N` 一次出 N 张**。`GenImage` 的 `n` 是同一 prompt 的并行候选,不会给你连贯系列;multi-image 必须分 N 次调用,按 anchor chain 顺序。
+- **不要把 N 格压成 `sample_count: N` 一次出 N 张**。`GenImage` 的 `sample_count` 是同一 prompt 的并行候选,不会给你连贯系列;multi-image 必须分 N 次调用,按 anchor chain 顺序。
 - **不要让 `panel_2`/`panel_3` 互相做 anchor**。永远以 `panel_1` 作为锚点,链式漂移会把角色越画越偏。
 - **不要让对白超出气泡 / 跨页 / 字号过小**。一格 ≤ 12 汉字,超长拆气泡或拆格。
 - **不要把"风格名 / 漫画类型 / 色号"作为画面文字渲染**。这是引导词,不是要画上去的内容。

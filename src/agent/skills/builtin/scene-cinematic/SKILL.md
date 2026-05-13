@@ -184,7 +184,7 @@ cinematic 的关键不是细节多，而是层级分明。
 - model: `nano-banana-pro`（**首选**，大图 / 摄影感 / 大气透视效果最好）
 - resolution: `2K`（用户明确要 4K 才升）
 - ratio: 跟用户选，默认 `2.35:1`
-- n: `1`（本 skill 是单张 skill）
+- sample_count: `1`（本 skill 是单张 skill）
 - reference_image_ids: 通常空
 
 完整示例：
@@ -196,7 +196,7 @@ cinematic 的关键不是细节多，而是层级分明。
   "model": "nano-banana-pro",
   "resolution": "2K",
   "ratio": "2.35:1",
-  "n": 1,
+  "sample_count": 1,
   "reference_image_ids": []
 }
 ```

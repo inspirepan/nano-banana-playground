@@ -138,7 +138,12 @@ export function summarizeToolArgs(call: AgentMessageToolCall): string {
   if (call.name === 'GenImage') {
     const imageId =
       typeof call.arguments.image_id === 'string' ? call.arguments.image_id : translate('agentChat.tool.args.unnamed')
-    const count = typeof call.arguments.n === 'number' ? call.arguments.n : 1
+    const count =
+      typeof call.arguments.sample_count === 'number'
+        ? call.arguments.sample_count
+        : typeof call.arguments.n === 'number'
+          ? call.arguments.n
+          : 1
     return translate('agentChat.tool.args.imageCount', { id: imageId, count })
   }
   if (call.name === 'ReadImage') {

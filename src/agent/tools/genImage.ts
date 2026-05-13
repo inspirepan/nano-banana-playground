@@ -11,7 +11,7 @@ export type GenImageToolArgs = {
   model: string
   resolution: string
   ratio: string
-  n: number
+  sample_count: number
   reference_image_ids: string[]
 }
 
@@ -29,7 +29,12 @@ export function prepareGenImageArgs(args: unknown): GenImageToolArgs {
     model: typeof record.model === 'string' ? record.model : '',
     resolution: typeof record.resolution === 'string' ? record.resolution : '',
     ratio: typeof record.ratio === 'string' ? record.ratio : '',
-    n: typeof record.n === 'number' ? record.n : Number(record.n ?? 1),
+    sample_count:
+      typeof record.sample_count === 'number'
+        ? record.sample_count
+        : typeof record.n === 'number'
+          ? record.n
+          : Number(record.sample_count ?? record.n ?? 1),
     reference_image_ids: toStringArray(record.reference_image_ids),
   }
 }
@@ -38,7 +43,7 @@ function buildModelList(imageModels: ModelConfig[]): string {
   return imageModels
     .map(
       (model) =>
-        `${model.id} (${model.name}; resolutions: ${model.resolutions.join('/')}; ratios: ${model.aspectRatios.join('/')}; max n: ${model.maxBatchCount})`,
+        `${model.id} (${model.name}; resolutions: ${model.resolutions.join('/')}; ratios: ${model.aspectRatios.join('/')}; max sample_count: ${model.maxBatchCount})`,
     )
     .join('; ')
 }
@@ -64,8 +69,9 @@ export function createGenImageTool({
       model: Type.String({ description: 'Image model ID from the playground model list.' }),
       resolution: Type.String({ description: 'Target resolution supported by the model.' }),
       ratio: Type.String({ description: 'Target aspect ratio.' }),
-      n: Type.Number({
-        description: 'Sample count for variants from one unchanged prompt; do not use for different photos.',
+      sample_count: Type.Number({
+        description:
+          'How many times to run this exact same prompt to draw independent samples. Each unit is one full image generation API call. Use 1 for normal cases. Only set greater than 1 when you want multiple variants of the same prompt sampled in parallel. NEVER use this to request different photos, different styles, different scenes, or a collage / grid — those require separate GenImage calls, one per distinct intent.',
       }),
       reference_image_ids: Type.Array(Type.String(), {
         description: 'IDs of uploaded, reference, history, or generated images to use as references.',

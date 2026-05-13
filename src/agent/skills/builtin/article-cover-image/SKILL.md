@@ -330,7 +330,7 @@ How this overlays the dimensions:
   "model": "nano-banana-pro",
   "resolution": "2K",
   "ratio": "16:9",
-  "n": 1,
+  "sample_count": 1,
   "reference_image_ids": []
 }
 ```
@@ -380,7 +380,7 @@ CRITICAL: The cover must visually reference the provided images.
 - "颜色再温暖一点 / 再克制一点" → 维度不变，把 palette 或 mood 改一档（mono → warm，bold → balanced），prompt 重拼。
 - "标题太小 / 加副标题" → 切换 text 等级（title-only → title-subtitle / text-rich），并明确 font 偏好。
 - "中文标题字怪" → 切到 `gpt-image-2`，model 改一行即可。
-- "出一组多版本对比" → `n: 3~4`，其他保持；提交一次 `GenImage` 即可，UI 卡片会一起审批。
+- "出一组多版本对比"（用户明确想要同一个想法的几个不同候选）→ `sample_count: 3~4`，其他保持，提交一次 `GenImage` 即可。注意：如果用户其实是想要不同标题 / 不同构图 / 不同风格的封面，仍然要拆成多次 `GenImage`，每次一个独立 prompt。
 - "想用之前那张做风格参考" → 让用户确认那张图的语义 id，加进 `reference_image_ids`，并补上 §8 的 "MUST INCORPORATE" 段。
 
 调整都走"重新组 prompt → 再 `GenImage`"，不要在工具调用前再做一次确认问卷，UI 审批卡片就是确认入口。

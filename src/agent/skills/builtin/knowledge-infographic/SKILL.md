@@ -278,7 +278,7 @@ Hard rules:
   "model": "gpt-image-2",
   "resolution": "2K",
   "ratio": "1:1",
-  "n": 1,
+  "sample_count": 1,
   "reference_image_ids": []
 }
 ```
@@ -288,7 +288,7 @@ Hard rules:
 - `model`：默认 `gpt-image-2`，备选 `nano-banana-pro`（更艺术化）；不要用 `nano-banana-2`（文字稳定性较差）。
 - `resolution`：固定 `2K`。
 - `ratio`：跟用户选，默认 `1:1`；不在 `1:1` / `16:9` / `9:16` / `4:3` / `3:4` / `2.35:1` 列表里的不要传。
-- `n`：固定 1。
+- `sample_count`：固定 1。
 - `reference_image_ids`：通常为空数组；只有用户明确要求"按这张参考图的版式"才填。
 
 ## 常见反例

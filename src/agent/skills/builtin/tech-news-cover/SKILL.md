@@ -180,7 +180,7 @@ Fill the full 16:9 frame with [bg hex] plus industry-appropriate motifs layered 
   "model": "gpt-image-2",
   "resolution": "2K",
   "ratio": "16:9",
-  "n": 1,
+  "sample_count": 1,
   "reference_image_ids": []
 }
 ```

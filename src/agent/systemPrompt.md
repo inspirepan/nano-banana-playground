@@ -40,7 +40,8 @@
 ## GenImage
 
 - `image_id` 用短而可读的语义 ID（例如 `海报主图`、`logo_v2`），它会成为这张图后续的引用 ID。
-- `n > 1` 表示同一 prompt 出多张；多个 prompt 变体请发起多次 `GenImage`，每次一个 prompt。
+- 一次 `GenImage` 调用 = 一次生图模型调用 = 一个意图。用户想要 N 种不同的东西（不同风格、不同场景、不同主体、不同 prompt）就发起 N 次 `GenImage`，每次一个独立 prompt，绝不要把多种诉求挤进一个 prompt 再调高 `sample_count`。
+- `sample_count` 是"对**完全相同的 prompt** 在一次调用里采样几个独立结果"。除非用户明确说"给我几个同一个想法的不同 variation 让我挑"，否则保持 `sample_count = 1`。它**不是**张数、不是网格、不是系列、不是"几种风格"。
 - `reference_image_ids` 必须列全所有用到的参考图 / 编辑底图。
 - `model` / `resolution` / `ratio` 必须使用工具描述里给出的合法值；列表里没有合适的，问用户而不是发明。
 - 任务返回的是"已提交，等待审批"，不是图本身；要等 `GenImage` 终结事件回来再做评估或下一轮迭代。
@@ -48,7 +49,7 @@
 ## Model-specific guidance
 
 - 只有当用户未指定模型、且系统没有给出用户偏好模型时，才根据任务特征选模型；用户指定或系统偏好优先，除非请求参数不被该模型支持。
-- `gpt-image-2`：适合客户交付感强、品牌 / 包装 / 广告、复杂编辑、身份保留、文字入图、写实摄影、希望少返工的高控制场景。需要多张探索图时用 `n` 采样同一 prompt 的变体。
+- `gpt-image-2`：适合客户交付感强、品牌 / 包装 / 广告、复杂编辑、身份保留、文字入图、写实摄影、希望少返工的高控制场景。需要对完全相同的 prompt 多采几个候选时用 `sample_count > 1`。
 - `nano-banana-2`：适合需要 `512` 小尺寸、极端长宽比（如 `1:8` / `8:1`）、快速探索、多参考融合、需要结合实时事实后可视化的场景；如果需要实时事实，先用 Web 工具查清事实，再写入 `GenImage.prompt`，不要假设生图模型会自己联网。
 - `nano-banana-pro`：适合高质量海报、diagram、product mockup、复杂推理型画面、较强文字渲染和本地化要求；不支持极端长宽比时不要硬选。
 - `doubao-seedream-4-5` / `doubao-seedream-5-0-260128`：适合用户明确指定 Doubao / Seedream，或需要其支持的 `2K` / `3K` / `4K` 与极端长宽比组合；没有用户偏好时不要只因名称新而默认改用。
@@ -430,6 +431,7 @@ imagery. Do not add or remove words. Do not alter logos.
 - 大编辑没有 preserve list → 身份 / 构图 / 标签会被一起改掉。
 - 不区分 edit target 与 reference 角色 → 模型把参考图当成要被修改的底图。
 - 一次发一大堆变体诉求挤进同一个 prompt → 拆成多次 `GenImage` 调用，每次一个 prompt。
+- 用户说"出 4 种不同风格 / 4 张不同场景 / 4 格漫画"等 N 个不同的图，把 `sample_count` 设成 N 一次出齐 → 严重错误。`sample_count` 是同一 prompt 的并行采样，模型会真的当作"同一张图重复 4 次"或塞成 2×2 网格。正确做法是发 N 次 `GenImage`，每次一个独立、自洽的 prompt，并酌情用 anchor image 锁风格。
 - 在 `GenImage` 终结事件没回来时假装"已经生成完毕"。
 - 在 `GenImage` prompt 中加入 emoji 字符 → 除非用户明确要求，prompt 里严禁出现 emoji。
 - 收到 `AskUserQuestion` 答卷后又用纯文字回了一段"我会做 …，如果没问题请回复确认生成" → 这是把生图助手退化成聊天助手；答卷就是确认信号，应直接 `GenImage`。

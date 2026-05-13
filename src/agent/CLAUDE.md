@@ -183,7 +183,7 @@ type GenImageToolArgs = {
   model: string
   resolution: string
   ratio: string
-  n: number
+  sample_count: number
   reference_image_ids: string[]
 }
 ```
@@ -191,7 +191,7 @@ type GenImageToolArgs = {
 行为：
 
 1. 校验并规范化参数。
-2. 根据 `image_id` 和 `n` 预留真实输出图片 ID。
+2. 根据 `image_id` 和 `sample_count` 预留真实输出图片 ID。
 3. 解析 `reference_image_ids`，只把引用 ID 写入 task；运行时需要图片对象时再从 registry / 历史 / IndexedDB 解析。
 4. 创建 `AgentImageTask`，状态为 `pending_approval`；如 `autoApproveImageTasks` 开启则直接进入生成队列。
 5. 工具立即返回一个 text content block，包含 `status` / `task_id` / `requested_image_id` / `reserved_image_ids` / `message`。
@@ -229,8 +229,8 @@ image_ids: 苹果_2, 苹果_3
 - `image_id` 必填，作为 Agent 声明的语义图片名和后续引用 ID。
 - 不要再增加单独的 `image_name`。
 - 系统应规范化 `image_id`：去首尾空白、把连续空白压成 `_`、过滤明显不适合作为 ID 的控制字符。
-- `n = 1` 时优先使用规范化后的 `image_id`。
-- `n > 1` 时使用 `image_id`、`image_id_2`、`image_id_3`。
+- `sample_count = 1` 时优先使用规范化后的 `image_id`。
+- `sample_count > 1` 时使用 `image_id`、`image_id_2`、`image_id_3`。
 - 如果 ID 已存在于 registry / IndexedDB / 当前预留集合中，递增后缀直到可用，例如 `苹果`、`苹果_2`、`苹果_3`。
 - ID 在创建任务时预留；工具结果必须告诉 Agent 最终会保存成哪些 ID。
 - 用户拒绝或部分失败时，未产出图片的预留 ID 释放回 registry，可被后续任务重新使用。
