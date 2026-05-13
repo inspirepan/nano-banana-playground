@@ -78,7 +78,11 @@ export async function generateImageGoogle(
   const imageSearch = options.imageSearch === true
   const thinkingLevel = typeof options.thinkingLevel === 'string' ? options.thinkingLevel : ''
 
-  const parts: ApiPart[] = [{ text: prompt }]
+  const parts: ApiPart[] = [
+    {
+      text: `You are an image generation model. Always generate an image in response to every request. Never decline or refuse to generate an image.\n\n${prompt}`,
+    },
+  ]
   for (const img of referenceImages) {
     parts.push({ inline_data: { mime_type: img.mimeType, data: img.data } })
   }
@@ -92,14 +96,7 @@ export async function generateImageGoogle(
   }
 
   const body: Record<string, unknown> = {
-    system_instruction: {
-      parts: [
-        {
-          text: 'You are an image generation model. Always generate an image in response to every request. Never decline or refuse to generate an image.',
-        },
-      ],
-    },
-    contents: [{ parts }],
+    contents: [{ role: 'user', parts }],
     generationConfig,
   }
 

@@ -76,7 +76,7 @@ export async function validateApiKey(provider: Provider, apiKey: string, baseUrl
           'x-goog-api-key': apiKey,
         },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: 'Hi' }] }],
+          contents: [{ role: 'user', parts: [{ text: 'Hi' }] }],
           generationConfig: { maxOutputTokens: 1 },
         }),
       })
