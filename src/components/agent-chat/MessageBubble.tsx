@@ -144,7 +144,7 @@ export function MessageBubble({
         <div
           className={
             isUser
-              ? `rounded-[12px] px-3 py-2.5 text-(--color-text) ${
+              ? `rounded-[var(--radius-lg)] px-3 py-2.5 text-(--color-text) ${
                   isQueued
                     ? 'bg-(--color-surface-2) shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]'
                     : 'bg-(--bubble-user-bg) shadow-[var(--bubble-user-edge)]'

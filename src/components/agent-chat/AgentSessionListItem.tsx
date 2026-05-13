@@ -67,7 +67,7 @@ export function AgentSessionListItem({
     variant === 'sidebar'
       ? `text-base ${active ? 'font-semibold text-(--color-text)' : 'text-(--color-text-2)'}`
       : `text-sm ${active ? 'font-semibold text-(--color-text)' : 'font-medium text-(--color-text-2)'}`
-  const rowSpacingClass = variant === 'sidebar' ? 'gap-1 px-1.5' : 'gap-1 px-1.5'
+  const rowSpacingClass = variant === 'sidebar' ? 'gap-1.5 px-2.5' : 'gap-1 px-1.5'
   const sidebarTitlePaddingClass = imageCount > 0 ? 'pr-[4.5rem] group-hover:pr-8' : 'pr-10 group-hover:pr-8'
   const menuTitlePaddingClass = imageCount > 0 ? 'pr-[6.25rem] group-hover:pr-8' : 'pr-16 group-hover:pr-8'
   const titlePaddingClass = variant === 'sidebar' ? sidebarTitlePaddingClass : menuTitlePaddingClass

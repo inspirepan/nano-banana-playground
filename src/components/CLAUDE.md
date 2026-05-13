@@ -8,7 +8,7 @@
 
 ## 色彩系统
 
-默认基础盘是 Linear / Notion 风格的克制中性灰（浅色轻微偏暖，暗色近黑并保留清晰 surface 阶梯）。强调色使用低饱和 burnt oxide 的 OKLCH 色相，只服务主操作、选中态、链接和明确焦点指示，不做装饰性铺色；表单输入聚焦只用中性 ring，不用 accent 边框或光晕；hover / wash / ring 只调整明度和透明度。优先复用 `--color-bg`、`--color-surface*`、`--color-border*`、`--color-text*`、`--color-accent*`，不要到处写裸十六进制。
+默认基础盘是 Linear / Notion 风格的克制中性灰（浅色轻微偏冷，暗色近黑并保留清晰 surface 阶梯）。强调色使用低饱和 cobalt 的 OKLCH 色相，只服务主操作、选中态、链接和明确焦点指示，不做装饰性铺色；表单输入聚焦只用中性 ring，不用 accent 边框或光晕；hover / wash / ring 只调整明度和透明度。优先复用 `--color-bg`、`--color-surface*`、`--color-border*`、`--color-text*`、`--color-accent*`，不要到处写裸十六进制。
 
 ## 排版
 
@@ -33,15 +33,15 @@
 
 ## 圆角 token（强约束）
 
-`index.css` 定义了 `--radius-xs(4) / sm(6) / md(8) / lg(10)` 四档，**所有 `rounded-[...]` 必须引用 token**，不写裸 px：
+`index.css` 定义了 `--radius-xs(2) / sm(4) / md(6) / lg(8)` 四档，**所有 `rounded-[...]` 必须引用 token**，不写裸 px：
 
 - ✅ `rounded-[var(--radius-md)]` / ❌ `rounded-[8px]` / ❌ 任何偏离 token 的字面值。
-- **同心圆角**：外层 radius - padding = 内层 radius。常见组合：外层 `lg(10)` / 内层 `sm(6)` / badge `xs(4)`。
-- **已知例外**（改前先确认）：`MessageBubble.tsx` 用户气泡 + `AgentChatComposer.tsx` 输入区用 `rounded-[12px]`，是聊天序列精调过的视觉例外；`AskUserQuestionCards.tsx` 内部 14×14 多选指示器保留 `rounded-[3px]`。这两个数值不是 token 缺漏，新增组件不要把它当作"第五档"复用。
+- **同心圆角**：外层 radius - padding = 内层 radius。常见组合：外层 `lg(8)` / 内层 `sm(4)` / badge `xs(2)`。
+- **已知例外**（改前先确认）：`AskUserQuestionCards.tsx` 内部 14×14 多选指示器保留 `rounded-[3px]`。这个数值不是 token 缺漏，新增组件不要把它当作"第五档"复用。
 
 ## 其他规范
 
-- **按钮形态**：主 CTA 维持 `36px` 高度和 pill 形态；普通 chip / segmented / icon button 维持紧凑工具型尺寸。
+- **按钮形态**：主 CTA 维持 `36px` 高度和 `--radius-md` 小圆角矩形；普通 chip / segmented / icon button 维持紧凑工具型尺寸。
 - **容器层级**：大多数控件保持 flat surface；只有图库图片、弹窗、toast、上下文菜单才使用轻量阴影。
 - **布局取舍**：工具型 SPA，不套用 hero、testimonial、canvas grid、大面积居中空态等 landing page 技巧。
 - **滚动条**：沿用 `src/index.css` 里的近乎不可见 Linear 风格滚动条。`[scrollbar-gutter:stable]` 只在右侧保留 gutter，会造成左右视觉不对称（macOS「始终显示滚动条」/ Windows 可见）。规则：① 容器有水平对称要求时改用 `[scrollbar-gutter:stable_both-edges]`；② 内容为 `h-full` 实际不会溢出时直接去掉，不需要 stable gutter。

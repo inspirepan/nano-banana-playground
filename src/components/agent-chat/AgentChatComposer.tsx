@@ -524,10 +524,7 @@ export const AgentChatComposer = forwardRef<AgentChatComposerHandle, AgentChatCo
           bottomOffset={scrollButtonBottomOffset}
           onScrollToBottom={scrollToBottom}
         />
-        <div
-          ref={composerRef}
-          className="prompt-wrap relative rounded-[12px] bg-(--color-surface) shadow-[inset_0_0_0_1px_var(--ring-edge)] focus-within:shadow-[inset_0_0_0_1px_var(--ring-edge-strong)]"
-        >
+        <div ref={composerRef} className="prompt-wrap relative">
           <AgentOptionsMenu
             openMenu={openMenu}
             setOpenMenu={setOpenMenu}

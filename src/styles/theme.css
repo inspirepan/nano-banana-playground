@@ -51,42 +51,42 @@
   --text-xl: 1rem; /* 16px */
   --text-xl--line-height: 1.35;
 
-  /* Neutral product surface: white canvas with pale gray contained surfaces. */
-  --color-bg: #ffffff;
-  --color-bg-sunken: #f6f6f6;
+  /* Light theme: graphite paper with restrained cobalt accents. */
+  --color-bg: #f5f7fb;
+  --color-bg-sunken: #edf0f6;
 
-  --color-surface: #fafafa;
-  --color-surface-2: #f5f5f5;
-  --color-surface-3: #eeeeee;
+  --color-surface: #fbfcff;
+  --color-surface-2: #f0f3f9;
+  --color-surface-3: #e4e9f2;
   --agent-image-task-empty-bg: color-mix(in srgb, var(--color-surface-2) 72%, var(--color-surface));
 
-  --color-border: #e3e3e3;
-  --color-border-strong: #d2d2d2;
+  --color-border: #d9dfeb;
+  --color-border-strong: #c1cad8;
 
   --aspect-ratio-glyph: color-mix(in srgb, var(--color-text-3) 46%, var(--color-border-strong));
 
-  --color-text: #0f1115;
-  --color-text-2: #343a42;
-  --color-text-3: #5f6874;
-  --color-text-4: #7f8996;
+  --color-text: #11151c;
+  --color-text-2: #303846;
+  --color-text-3: #5f6b7d;
+  --color-text-4: #828da0;
 
-  /* Accent: restrained deep blue, tuned for a precise tool surface. */
-  --color-accent: oklch(0.42 0.115 258);
-  --color-accent-hover: oklch(0.36 0.125 258);
-  --color-accent-fg: oklch(0.985 0.004 260);
+  /* Accent: restrained cobalt, tuned for a precise tool surface. */
+  --color-accent: oklch(0.52 0.16 258);
+  --color-accent-hover: oklch(0.45 0.17 258);
+  --color-accent-fg: oklch(0.98 0.006 260);
   /* Foreground for accent-as-text on translucent wash backgrounds (active
      chips, aspect tiles, .tag.accent, .annotation-finish-btn). Light mode
-     uses a deeper blue value because the filled accent is tuned for controls.
-     Dark mode lifts toward a brighter blue so the same pattern still clears
+     uses a deeper tone because the filled accent is tuned for controls.
+     Dark mode lifts the same hue so the pattern still clears
      WCAG AA on the dim mid-tone wash. */
-  --color-accent-text: oklch(0.36 0.125 258);
+  --color-accent-text: oklch(0.4 0.14 258);
 
-  --color-accent-soft: oklch(0.93 0.025 258);
+  --color-accent-soft: oklch(0.92 0.035 258);
   --color-accent-wash: color-mix(in oklch, var(--color-accent) 10%, transparent);
   --color-accent-wash-2: color-mix(in oklch, var(--color-accent) 17%, transparent);
 
-  --color-accent-ring: color-mix(in srgb, var(--color-accent) 14%, transparent);
-  --color-accent-ring-hover: color-mix(in srgb, var(--color-accent) 20%, transparent);
+  --color-accent-ring: color-mix(in srgb, var(--color-accent) 24%, transparent);
+  --color-accent-ring-hover: color-mix(in srgb, var(--color-accent) 34%, transparent);
 
   --color-warning: #9b5a13;
   --color-danger: #bf3d3d;
@@ -96,14 +96,14 @@
   --color-success: #287f4f;
 
   /* Edge rings */
-  --ring-edge: rgba(32, 35, 40, 0.078);
-  --ring-edge-elevated: rgba(32, 35, 40, 0.1);
-  --ring-edge-strong: rgba(32, 35, 40, 0.14);
-  --ring-edge-soft: rgba(32, 35, 40, 0.048);
+  --ring-edge: rgba(27, 38, 56, 0.094);
+  --ring-edge-elevated: rgba(27, 38, 56, 0.118);
+  --ring-edge-strong: rgba(27, 38, 56, 0.17);
+  --ring-edge-soft: rgba(27, 38, 56, 0.058);
 
-  --shadow-lift: 0 12px 28px -20px rgba(32, 35, 40, 0.2), 0 1px 2px rgba(32, 35, 40, 0.045);
+  --shadow-lift: 0 10px 22px -18px rgba(27, 38, 56, 0.24), 0 1px 2px rgba(27, 38, 56, 0.05);
 
-  --shadow-float: 0 18px 40px -26px rgba(32, 35, 40, 0.24), 0 2px 8px rgba(32, 35, 40, 0.06);
+  --shadow-float: 0 16px 34px -24px rgba(27, 38, 56, 0.28), 0 2px 7px rgba(27, 38, 56, 0.07);
 
   --media-overlay-bg: color-mix(in srgb, #171a1f 58%, transparent);
   --media-overlay-bg-hover: color-mix(in srgb, #171a1f 74%, transparent);
@@ -113,12 +113,12 @@
   --media-overlay-light-bg-hover: color-mix(in srgb, var(--color-surface) 96%, transparent);
   --media-overlay-light-fg: var(--color-text);
   --media-overlay-light-edge: var(--ring-edge);
-  --media-selection-ring: oklch(0.5 0.17 258);
+  --media-selection-ring: var(--color-accent);
   --media-selection-ring-shadow:
     0 0 0 1px color-mix(in srgb, var(--color-surface) 92%, transparent), 0 0 0 3px var(--media-selection-ring),
     0 0 0 4px color-mix(in srgb, var(--media-selection-ring) 16%, transparent);
   --modal-backdrop-bg: color-mix(in srgb, var(--color-bg-sunken) 38%, transparent);
-  --switch-thumb-bg: #ffffff;
+  --switch-thumb-bg: #fbfcff;
 
   /* Easing curves — built-in CSS easings are too weak. These give animations
      the punch that makes them feel intentional. Use --ease-out for any
@@ -131,12 +131,12 @@
   /* Chat user bubble */
   --bubble-user-bg: color-mix(in srgb, var(--color-accent-soft) 54%, var(--color-surface));
   --bubble-user-edge:
-    inset 0 0 0 1px var(--color-accent-ring), 0 1px 0 var(--color-accent-ring), 0 2px 4px -2px rgba(32, 35, 40, 0.08);
+    inset 0 0 0 1px var(--color-accent-ring), 0 1px 0 var(--color-accent-ring), 0 2px 4px -2px rgba(27, 38, 56, 0.09);
 
-  --radius-xs: 4px;
-  --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 10px;
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
 
   /* Panel layout tokens — set on the layout root (MobileLayout / DesktopLayout)
      for each of the six panel layouts (mobile generate / agent / gallery,
@@ -151,35 +151,30 @@
 
 /* Dark theme — neutral near-black tool surface with clearer Raycast-style elevation steps. */
 .dark {
-  --color-bg: #0d0e10;
-  --color-bg-sunken: #08090b;
+  --color-bg: #0c0e13;
+  --color-bg-sunken: #080a0f;
 
-  --color-surface: #17191d;
-  --color-surface-2: #1e2127;
-  --color-surface-3: #282c34;
+  --color-surface: #161a22;
+  --color-surface-2: #1e2430;
+  --color-surface-3: #29303d;
   --agent-image-task-empty-bg: color-mix(in srgb, var(--color-surface-2) 70%, var(--color-surface));
 
-  --color-border: #30343d;
-  --color-border-strong: #464c57;
+  --color-border: #303846;
+  --color-border-strong: #465060;
 
   --aspect-ratio-glyph: color-mix(in srgb, var(--color-text-3) 72%, var(--color-border-strong));
 
-  --color-text: #f1f3f5;
-  --color-text-2: #c3c8d0;
-  --color-text-3: #9097a3;
-  --color-text-4: #666d78;
+  --color-text: #f1f4f8;
+  --color-text-2: #c4cad4;
+  --color-text-3: #9099a8;
+  --color-text-4: #687382;
 
-  /* Accent (dark): fluorescent lime (#D1FE17). Because the base sits at
-     L≈0.94, standard "lift toward white on hover" (blue pattern) collapses;
-     use a small L drop for hover, and flip --color-accent-fg to a near-black
-     so text on filled CTAs stays legible (white on lime ≈ 1.3:1, fails AA). */
-  --color-accent: oklch(0.945 0.231 122);
-  --color-accent-hover: oklch(0.89 0.23 122);
-  --color-accent-fg: oklch(0.18 0.03 122);
-  /* Text-only accent on dark wash: slightly toned down from the pure lime so
-     long runs of text don't vibrate. Still clears AA on wash-over-bg. */
-  --color-accent-text: oklch(0.9 0.2 122);
-  --color-accent-soft: oklch(0.27 0.07 122);
+  /* Accent (dark): same palette hue, lifted for visibility on a near-black tool surface. */
+  --color-accent: oklch(0.72 0.15 258);
+  --color-accent-hover: oklch(0.66 0.16 258);
+  --color-accent-fg: oklch(0.16 0.025 258);
+  --color-accent-text: oklch(0.78 0.13 258);
+  --color-accent-soft: oklch(0.28 0.075 258);
   --color-accent-wash: color-mix(in oklch, var(--color-accent) 18%, transparent);
   --color-accent-wash-2: color-mix(in oklch, var(--color-accent) 28%, transparent);
   --color-accent-ring: color-mix(in srgb, var(--color-accent) 24%, transparent);
@@ -217,17 +212,11 @@
   --modal-backdrop-bg: color-mix(in srgb, #08090b 72%, transparent);
   --switch-thumb-bg: #f1f3f5;
   /* Chat user bubble — dark mode uses surface-3 straight as the bubble base.
-     An accent tint mix (even 10-12%) is a trap when accent is yellow-green
-     (lime) sitting on a cool neutral: sRGB mixing lands in the olive / mud
-     middle band and the bubble reads as dirty. Keep the fill a clean cool
-     neutral and let `--bubble-user-edge` (accent ring + top white highlight)
-     carry the "this is the user" signal instead. */
+     Persistent large containers get noisy when tinted with the active palette;
+     keep the fill neutral and reserve accent for CTAs, focus, and selection. */
   --bubble-user-bg: var(--color-surface-3);
-  /* Chat user bubble edge — dark mode: neutral ring on the outer 1px (accent
-     ring here reads as a neon outline with the lime accent, especially on a
-     persistent large container like the user bubble), white highlight on the
-     next 1px inside for the crisp double-line top edge. Accent identity is
-     reserved for CTAs / focus rings / selection state, not ambient chrome. */
+  /* Chat user bubble edge — neutral ring on the outer 1px, white highlight on
+     the next 1px inside for the crisp double-line top edge. */
   --bubble-user-edge: inset 0 2px 0 -1px rgba(255, 255, 255, 0.16), inset 0 0 0 1px var(--ring-edge);
 
   color-scheme: dark;

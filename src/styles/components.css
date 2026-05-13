@@ -646,7 +646,7 @@
   .cta {
     height: 36px;
     padding: 0 16px;
-    border-radius: 999px;
+    border-radius: var(--radius-md);
     background: var(--color-accent);
     color: var(--color-accent-fg);
     border: 0;
