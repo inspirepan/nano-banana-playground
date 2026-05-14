@@ -213,7 +213,7 @@ export function DetailCanvas({
         />
       )}
 
-      {!refDetailId && hasPrev && (
+      {!isMobileLayout && !refDetailId && hasPrev && (
         <button
           onClick={onGoPrev}
           aria-label={t('imageDetail.action.previousImage')}
@@ -228,7 +228,7 @@ export function DetailCanvas({
           <Icon name="chevron_left" size={14} strokeWidth={1.8} />
         </button>
       )}
-      {!refDetailId && hasNext && (
+      {!isMobileLayout && !refDetailId && hasNext && (
         <button
           onClick={onGoNext}
           aria-label={t('imageDetail.action.nextImage')}
