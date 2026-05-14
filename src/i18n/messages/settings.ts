@@ -8,7 +8,8 @@ export const settingsMessages: MessageDictionary = {
   },
   'settings.loadError.title': { 'zh-CN': '设置面板加载失败', en: 'Settings failed to load' },
   'settings.loadError.description': {
-    'zh-CN': '页面资源可能已更新，设置面板文件没有加载成功。为避免中断正在运行的生成任务，应用不会自动刷新；可稍后手动刷新页面恢复。',
+    'zh-CN':
+      '页面资源可能已更新，设置面板文件没有加载成功。为避免中断正在运行的生成任务，应用不会自动刷新；可稍后手动刷新页面恢复。',
     en: 'The app resources may have changed, and the settings panel file did not load. To avoid interrupting active generation jobs, the app will not refresh automatically; refresh the page later to recover.',
   },
   'settings.tabs.general': { 'zh-CN': '通用', en: 'General' },
@@ -91,6 +92,7 @@ export const settingsMessages: MessageDictionary = {
   'settings.backup.item.preferredAgentModel': { 'zh-CN': '首选 Agent 模型', en: 'Preferred Agent model' },
   'settings.backup.item.preferredAgentThinkingLevel': { 'zh-CN': 'Agent thinking level', en: 'Agent thinking level' },
   'settings.backup.item.composerSubmitMode': { 'zh-CN': '对话提交方式', en: 'Chat submit shortcut' },
+  'settings.backup.item.showAgentUsageStats': { 'zh-CN': '显示 Agent 用量统计', en: 'Show agent usage stats' },
   'settings.backup.item.stripDownloadMetadata': { 'zh-CN': '下载时去除元数据', en: 'Strip download metadata' },
   'settings.backup.item.providerBaseUrl': { 'zh-CN': '{provider} Base URL', en: '{provider} Base URL' },
   'settings.backup.item.providerUseProxy': { 'zh-CN': '{provider} 代理', en: '{provider} proxy' },
@@ -267,6 +269,14 @@ export const settingsMessages: MessageDictionary = {
   'settings.composerSubmitMode.enter.description': {
     'zh-CN': 'Shift+Enter 换行',
     en: 'Shift+Enter inserts a newline',
+  },
+  'settings.agentUsageStats.label': {
+    'zh-CN': '显示 Agent Token 与上下文用量',
+    en: 'Show agent token and context usage',
+  },
+  'settings.agentUsageStats.hint': {
+    'zh-CN': '开启后，在每轮用户任务的最后一条助手消息下方展示输入、缓存、输出、上下文和费用统计。',
+    en: 'When enabled, show input, cache, output, context, and cost stats below the final assistant message of each user task.',
   },
   'settings.download.title': { 'zh-CN': '下载', en: 'Download' },
   'settings.download.description': {

@@ -6,6 +6,7 @@ export {
   agentMessageThinking,
   agentMessageToolCalls,
   agentMessageToolResult,
+  agentMessageUsage,
   attachmentToAgentAttachment,
   imageDataUrl,
   isLlmAgentMessage,

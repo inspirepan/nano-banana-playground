@@ -20,6 +20,114 @@ import { useI18n } from '../../i18n'
 import { Icon } from '../Icon'
 import { Tooltip } from '../Tooltip'
 
+export type AgentTaskUsageStats = {
+  input: number
+  cacheRead: number
+  cacheWrite: number
+  output: number
+  thinking: number
+  contextTokens: number
+  contextWindow: number
+  cost: number
+  costInput: number
+  costCacheRead: number
+  costCacheWrite: number
+  costOutput: number
+}
+
+function formatTokenCount(count: number): string {
+  if (!Number.isFinite(count) || count <= 0) return '0'
+  if (count < 1000) return Math.round(count).toString()
+  if (count < 10000) return `${(count / 1000).toFixed(1)}k`
+  if (count < 1000000) return `${Math.round(count / 1000)}k`
+  if (count < 10000000) return `${(count / 1000000).toFixed(1)}M`
+  return `${Math.round(count / 1000000)}M`
+}
+
+function formatUsd(cost: number): string {
+  if (!Number.isFinite(cost) || cost <= 0) return '$0'
+  if (cost < 0.001) return '<$0.001'
+  if (cost < 0.01) return `$${cost.toFixed(4)}`
+  if (cost < 1) return `$${cost.toFixed(3)}`
+  return `$${cost.toFixed(2)}`
+}
+
+function formatContextValue(tokens: number, contextWindow: number): string {
+  if (!Number.isFinite(contextWindow) || contextWindow <= 0) return formatTokenCount(tokens)
+  return `${formatTokenCount(tokens)}/${formatTokenCount(contextWindow)}`
+}
+
+function formatContextPercent(tokens: number, contextWindow: number): string | null {
+  if (!Number.isFinite(contextWindow) || contextWindow <= 0) return null
+  const percent = Math.min(999, (tokens / contextWindow) * 100)
+  return `${percent < 10 ? percent.toFixed(1) : Math.round(percent).toString()}%`
+}
+
+function UsageDetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="grid grid-cols-[minmax(3.5rem,max-content)_max-content] items-baseline gap-2 text-xs leading-5">
+      <span className="text-right text-(--color-text-4)">{label}</span>
+      <span className="text-left tabular-nums text-(--color-text-2)">{value}</span>
+    </div>
+  )
+}
+
+function MessageTaskUsageStats({ stats }: { stats: AgentTaskUsageStats }) {
+  const { t } = useI18n()
+  const [detailsOpen, setDetailsOpen] = useState(false)
+  const contextPercent = formatContextPercent(stats.contextTokens, stats.contextWindow)
+  const contextValue = [formatContextValue(stats.contextTokens, stats.contextWindow), contextPercent]
+    .filter(Boolean)
+    .join(' ')
+  const outputValue =
+    stats.thinking > 0
+      ? t('agentChat.usage.outputWithThinking', {
+          output: formatTokenCount(stats.output),
+          thinking: formatTokenCount(stats.thinking),
+        })
+      : formatTokenCount(stats.output)
+  const detailRows = [
+    { label: t('agentChat.usage.input'), value: formatTokenCount(stats.input) },
+    { label: t('agentChat.usage.cacheRead'), value: formatTokenCount(stats.cacheRead) },
+    { label: t('agentChat.usage.cacheWrite'), value: formatTokenCount(stats.cacheWrite) },
+    { label: t('agentChat.usage.output'), value: outputValue },
+    { label: t('agentChat.usage.context'), value: contextValue },
+    { label: t('agentChat.usage.cost'), value: formatUsd(stats.cost) },
+  ]
+
+  return (
+    <div
+      className="relative inline-flex min-w-0"
+      onBlur={(event) => {
+        const nextFocus = event.relatedTarget
+        if (nextFocus instanceof Node && event.currentTarget.contains(nextFocus)) return
+        setDetailsOpen(false)
+      }}
+    >
+      <button
+        type="button"
+        aria-expanded={detailsOpen}
+        aria-label={t('agentChat.usage.details')}
+        onClick={() => setDetailsOpen((open) => !open)}
+        className="inline-flex h-[26px] min-w-0 items-center rounded-[var(--radius-sm)] bg-transparent px-1.5 text-xs font-medium tabular-nums text-(--color-text-4) transition-[background-color,color,transform] duration-150 ease-[var(--ease-out)] hover:bg-(--color-surface-2) hover:text-(--color-text-3) active:scale-[0.98]"
+      >
+        <span className="truncate">
+          {contextValue} · {formatUsd(stats.cost)}
+        </span>
+      </button>
+      {detailsOpen ? (
+        <div className="popover-pop absolute right-0 bottom-[calc(100%+6px)] z-50 w-max max-w-[calc(100vw-2rem)] origin-bottom-right rounded-[var(--radius-md)] bg-(--color-surface) px-2.5 py-2 shadow-[0_0_0_1px_var(--ring-edge-elevated),var(--shadow-float)]">
+          <div className="space-y-1">
+            {detailRows.map((row) => (
+              <UsageDetailRow key={row.label} label={row.label} value={row.value} />
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
 async function writeClipboardText(text: string): Promise<void> {
   if (navigator.clipboard?.writeText) {
     await navigator.clipboard.writeText(text)
@@ -41,6 +149,7 @@ export function MessageBubble({
   isStreaming,
   isQueued = false,
   assistantTitle,
+  taskUsageStats,
   hideCopyAction = false,
   onOpenImageTaskImage,
 }: {
@@ -48,6 +157,7 @@ export function MessageBubble({
   isStreaming: boolean
   isQueued?: boolean
   assistantTitle?: string
+  taskUsageStats?: AgentTaskUsageStats
   hideCopyAction?: boolean
   onOpenImageTaskImage?: (toolCallId: string, imageId: string) => void
 }) {
@@ -73,12 +183,15 @@ export function MessageBubble({
     ? copyText.length > 0
     : isAssistant && !hasToolCalls && !isStreaming && copyText.trim().length > 0
   const showAssistantMarkdown = visibleText.trim() !== ''
-  const hasAssistantNonErrorContent =
-    thinking.trim() !== '' || images.length > 0 || showAssistantMarkdown || hasToolCalls
   const hasAssistantInlineTrailingContent = showAssistantMarkdown || Boolean(displayError)
   const hasAssistantTrailingContent = hasAssistantInlineTrailingContent || hasToolCalls
-  const showAssistantTitle = isAssistant && Boolean(assistantTitle) && hasAssistantNonErrorContent
+  const hasAssistantVisibleContent =
+    thinking.trim() !== '' || images.length > 0 || showAssistantMarkdown || Boolean(displayError)
+  const showUsageStats = canCopy && Boolean(taskUsageStats)
+  const showAssistantTitle = isAssistant && Boolean(assistantTitle) && hasAssistantVisibleContent
   const hasAssistantBody = thinking.trim() !== '' || images.length > 0 || hasAssistantTrailingContent
+  const showCopyAction = canCopy && !hideCopyAction
+  const showActionRow = showCopyAction || showUsageStats
 
   const handleCopy = () => {
     if (!canCopy || hideCopyAction) return
@@ -220,23 +333,24 @@ export function MessageBubble({
             </>
           )}
         </div>
-        {canCopy && (
-          <div className="mt-1 flex justify-end pr-1">
-            <Tooltip text={copied ? t('agentChat.message.copied') : t('agentChat.message.copy')} placement="top">
-              <button
-                type="button"
-                className={`inline-flex h-[26px] appearance-none items-center justify-center rounded-[var(--radius-sm)] border-0 bg-transparent px-2 text-xs font-medium text-(--color-text-4) opacity-100 transition-[opacity,background-color,color] duration-150 hover:bg-(--color-surface-2) hover:text-(--color-text-3) md:pointer-events-none md:opacity-0 md:group-hover/message:pointer-events-auto md:group-hover/message:opacity-100 md:group-focus-within/message:pointer-events-auto md:group-focus-within/message:opacity-100 ${hideCopyAction ? 'pointer-events-none invisible' : ''}`}
-                onClick={handleCopy}
-                tabIndex={hideCopyAction ? -1 : undefined}
-                aria-hidden={hideCopyAction || undefined}
-                aria-label={copied ? t('agentChat.message.copied') : t('agentChat.message.copy')}
-              >
-                <span className="inline-flex items-center gap-1.5">
-                  <Icon name={copied ? 'check' : 'copy'} size={12} strokeWidth={copied ? 2.2 : 1.8} />
-                  {copied ? t('agentChat.message.copied') : t('agentChat.message.copy')}
-                </span>
-              </button>
-            </Tooltip>
+        {showActionRow && (
+          <div className="mt-1 flex min-h-[26px] items-center justify-end gap-1.5 pr-1 opacity-100 transition-opacity duration-150 ease-[var(--ease-out)] md:pointer-events-none md:opacity-0 md:group-hover/message:pointer-events-auto md:group-hover/message:opacity-100 md:group-focus-within/message:pointer-events-auto md:group-focus-within/message:opacity-100">
+            {showUsageStats && taskUsageStats ? <MessageTaskUsageStats stats={taskUsageStats} /> : null}
+            {showCopyAction ? (
+              <Tooltip text={copied ? t('agentChat.message.copied') : t('agentChat.message.copy')} placement="top">
+                <button
+                  type="button"
+                  className="inline-flex h-[26px] shrink-0 appearance-none items-center justify-center rounded-[var(--radius-sm)] border-0 bg-transparent px-2 text-xs font-medium text-(--color-text-4) transition-[background-color,color,transform] duration-150 ease-[var(--ease-out)] hover:bg-(--color-surface-2) hover:text-(--color-text-3) active:scale-[0.98]"
+                  onClick={handleCopy}
+                  aria-label={copied ? t('agentChat.message.copied') : t('agentChat.message.copy')}
+                >
+                  <span className="inline-flex items-center gap-1.5">
+                    <Icon name={copied ? 'check' : 'copy'} size={12} strokeWidth={copied ? 2.2 : 1.8} />
+                    {copied ? t('agentChat.message.copied') : t('agentChat.message.copy')}
+                  </span>
+                </button>
+              </Tooltip>
+            ) : null}
           </div>
         )}
       </div>

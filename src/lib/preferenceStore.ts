@@ -13,6 +13,7 @@ const PREFERRED_AGENT_MODEL_KEY = 'nano-banana-agent-model'
 const PREFERRED_AGENT_THINKING_LEVEL_KEY = 'nano-banana-agent-thinking-level'
 const COMPOSER_SUBMIT_MODE_KEY = 'nano-banana-composer-submit-mode'
 const STRIP_DOWNLOAD_METADATA_KEY = 'nano-banana-strip-download-metadata'
+const SHOW_AGENT_USAGE_STATS_KEY = 'nano-banana-show-agent-usage-stats'
 const TITLE_MODEL_KEY = 'nano-banana-title-model'
 
 // Sentinel string for the "title generation disabled" preference. Distinct
@@ -107,6 +108,14 @@ export function readStripDownloadMetadataPreference(): boolean {
 
 export function writeStripDownloadMetadataPreference(strip: boolean): boolean {
   return write(STRIP_DOWNLOAD_METADATA_KEY, strip ? '1' : '0')
+}
+
+export function readShowAgentUsageStatsPreference(): boolean {
+  return read(SHOW_AGENT_USAGE_STATS_KEY) === '1'
+}
+
+export function writeShowAgentUsageStatsPreference(show: boolean): boolean {
+  return write(SHOW_AGENT_USAGE_STATS_KEY, show ? '1' : '0')
 }
 
 export function readTitleModelPreference(): string | null {

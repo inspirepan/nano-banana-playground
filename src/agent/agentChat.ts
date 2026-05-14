@@ -1,4 +1,5 @@
 import type { AppMessage as AgentMessage, Attachment } from '@mariozechner/pi-agent'
+import type { Usage } from '@mariozechner/pi-ai'
 
 import { compressImageForAgentInput } from './imageCompression'
 
@@ -37,6 +38,7 @@ type LlmLikeAgentMessage = AgentMessage & {
   role: 'user' | 'assistant' | 'toolResult'
   content?: unknown
   errorMessage?: unknown
+  usage?: unknown
   toolCallId?: unknown
   toolName?: unknown
   isError?: unknown
@@ -121,6 +123,11 @@ export function agentMessageToolResult(message: AgentMessage): AgentMessageToolR
 export function agentMessageError(message: AgentMessage): string | null {
   if (!isLlmAgentMessage(message) || message.role !== 'assistant') return null
   return typeof message.errorMessage === 'string' ? message.errorMessage : null
+}
+
+export function agentMessageUsage(message: AgentMessage): Usage | null {
+  if (!isLlmAgentMessage(message) || message.role !== 'assistant') return null
+  return isRecord(message.usage) ? (message.usage as unknown as Usage) : null
 }
 
 export function attachmentToAgentAttachment(attachment: AgentChatAttachment): Attachment {

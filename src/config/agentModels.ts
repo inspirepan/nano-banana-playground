@@ -1,5 +1,11 @@
 import type { ThinkingLevel as AgentCoreThinkingLevel } from '@mariozechner/pi-agent'
-import { getModel, type Api, type Model, type ThinkingLevel as ProviderThinkingLevel } from '@mariozechner/pi-ai'
+import {
+  getModel,
+  type Api,
+  type Model,
+  type ThinkingLevel as ProviderThinkingLevel,
+  type Usage,
+} from '@mariozechner/pi-ai'
 
 import { getProviderConfig, type Provider } from './providers'
 import { resolveBaseUrl } from '../lib/validateKey'
@@ -87,12 +93,12 @@ const GPT_5_5_MODEL: Model<Api> = {
   reasoning: true,
   input: ['text', 'image'],
   cost: {
-    input: 1.25,
-    output: 10,
-    cacheRead: 0.125,
+    input: 5,
+    output: 30,
+    cacheRead: 0.5,
     cacheWrite: 0,
   },
-  contextWindow: 400000,
+  contextWindow: 272000,
   maxTokens: 128000,
 }
 
@@ -105,9 +111,9 @@ const GPT_5_4_MINI_MODEL: Model<Api> = {
   reasoning: true,
   input: ['text', 'image'],
   cost: {
-    input: 0.25,
-    output: 2,
-    cacheRead: 0.025,
+    input: 0.75,
+    output: 4.5,
+    cacheRead: 0.075,
     cacheWrite: 0,
   },
   contextWindow: 400000,
@@ -123,9 +129,9 @@ const GPT_5_4_NANO_MODEL: Model<Api> = {
   reasoning: false,
   input: ['text'],
   cost: {
-    input: 0.05,
-    output: 0.4,
-    cacheRead: 0.005,
+    input: 0.2,
+    output: 1.25,
+    cacheRead: 0.02,
     cacheWrite: 0,
   },
   contextWindow: 400000,
@@ -141,13 +147,13 @@ const GEMINI_3_1_FLASH_LITE_MODEL: Model<Api> = {
   reasoning: false,
   input: ['text'],
   cost: {
-    input: 0.05,
-    output: 0.4,
-    cacheRead: 0.0125,
-    cacheWrite: 0,
+    input: 0.25,
+    output: 1.5,
+    cacheRead: 0.025,
+    cacheWrite: 1,
   },
-  contextWindow: 1000000,
-  maxTokens: 32000,
+  contextWindow: 1048576,
+  maxTokens: 65536,
 }
 
 function kimiK26Model(provider: Extract<Provider, 'moonshot-cn' | 'moonshot-ai'>): Model<Api> {
@@ -348,4 +354,33 @@ export function agentModelWithBaseUrl(config: AgentModelConfig, baseUrl: string)
   if (trimmed.endsWith('#')) return { ...config.model, baseUrl: trimmed.slice(0, -1).replace(/\/+$/, '') }
   const normalized = resolveBaseUrl(config.provider, trimmed)
   return { ...config.model, baseUrl: config.provider === 'google' ? `${normalized}/v1beta` : normalized }
+}
+
+function numberOrZero(value: unknown): number {
+  return typeof value === 'number' && Number.isFinite(value) ? value : 0
+}
+
+export function getAgentUsageCost(config: Pick<AgentModelConfig, 'model'>, usage: Usage): Usage['cost'] {
+  const input = numberOrZero(usage.input)
+  const output = numberOrZero(usage.output)
+  const cacheRead = numberOrZero(usage.cacheRead)
+  const cacheWrite = numberOrZero(usage.cacheWrite)
+  const calculated = {
+    input: (config.model.cost.input * input) / 1_000_000,
+    output: (config.model.cost.output * output) / 1_000_000,
+    cacheRead: (config.model.cost.cacheRead * cacheRead) / 1_000_000,
+    cacheWrite: (config.model.cost.cacheWrite * cacheWrite) / 1_000_000,
+    total: 0,
+  }
+  calculated.total = calculated.input + calculated.output + calculated.cacheRead + calculated.cacheWrite
+  const rawCost = (usage as unknown as { cost?: Partial<Usage['cost']> }).cost
+  const upstream = {
+    input: numberOrZero(rawCost?.input),
+    output: numberOrZero(rawCost?.output),
+    cacheRead: numberOrZero(rawCost?.cacheRead),
+    cacheWrite: numberOrZero(rawCost?.cacheWrite),
+    total: numberOrZero(rawCost?.total),
+  }
+
+  return upstream.total > 0 || calculated.total === 0 ? upstream : calculated
 }

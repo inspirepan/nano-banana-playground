@@ -2,6 +2,7 @@ import type { ComposerSubmitMode } from '../../config/composerSubmitMode'
 import { LANGUAGE_PREFERENCES, type LanguagePreference } from '../../config/languages'
 import type { Theme } from '../../config/theme'
 import { useComposerSubmitMode } from '../../hooks/useComposerSubmitMode'
+import { useShowAgentUsageStats } from '../../hooks/useShowAgentUsageStats'
 import { useStripDownloadMetadata } from '../../hooks/useStripDownloadMetadata'
 import { useI18n } from '../../i18n'
 import { isApplePlatform } from '../../lib/keyboard'
@@ -57,6 +58,7 @@ export function GeneralSettingsTab({
 }: GeneralSettingsTabProps) {
   const { t, language: resolvedLanguage } = useI18n()
   const { composerSubmitMode, setComposerSubmitMode } = useComposerSubmitMode()
+  const { showAgentUsageStats, setShowAgentUsageStats } = useShowAgentUsageStats()
   const { stripDownloadMetadata, setStripDownloadMetadata } = useStripDownloadMetadata()
   const submitShortcut = `${isApplePlatform() ? 'Command' : 'Ctrl'}+Enter`
 
@@ -90,6 +92,10 @@ export function GeneralSettingsTab({
     setStripDownloadMetadata(!stripDownloadMetadata)
   }
 
+  const handleShowAgentUsageStatsChange = () => {
+    setShowAgentUsageStats(!showAgentUsageStats)
+  }
+
   return (
     <div className="space-y-5 px-5 py-4">
       <SettingsSection label={t('settings.appearance.title')} hint={t('settings.appearance.description')}>
@@ -111,6 +117,33 @@ export function GeneralSettingsTab({
               ariaLabel={t('settings.theme.label')}
             />
           </SettingsField>
+
+          <div className="flex items-start justify-between gap-3 rounded-[var(--radius-md)] bg-(--color-surface-2) p-3 shadow-[inset_0_0_0_1px_var(--ring-edge-soft)]">
+            <div className="min-w-0">
+              <div className="text-sm font-medium text-(--color-text)">{t('settings.agentUsageStats.label')}</div>
+              <div className="mt-1 max-w-[60ch] text-sm leading-relaxed text-(--color-text-3)">
+                {t('settings.agentUsageStats.hint')}
+              </div>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={showAgentUsageStats}
+              aria-label={t('settings.agentUsageStats.label')}
+              onClick={handleShowAgentUsageStatsChange}
+              className={`relative mt-0.5 inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full transition-colors duration-150 ${
+                showAgentUsageStats
+                  ? 'bg-(--color-accent) shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-accent)_55%,var(--color-bg-sunken)_10%)]'
+                  : 'bg-(--color-surface-2) shadow-[inset_0_0_0_1px_var(--ring-edge)]'
+              }`}
+            >
+              <span
+                className={`pointer-events-none my-0.5 size-4 rounded-full bg-(--switch-thumb-bg) shadow-sm transition-transform duration-150 ${
+                  showAgentUsageStats ? 'translate-x-[18px]' : 'translate-x-0.5'
+                }`}
+              />
+            </button>
+          </div>
         </div>
       </SettingsSection>
 

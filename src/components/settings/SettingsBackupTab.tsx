@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState, type ChangeEvent } from 'react'
 
 import type { AgentSkillCreateInput } from '../../agent'
+import { setShowAgentUsageStats } from '../../config/agentUsageStats'
 import { setComposerSubmitMode, type ComposerSubmitMode } from '../../config/composerSubmitMode'
 import { setStripDownloadMetadata } from '../../config/downloadMetadata'
 import type { AgentThinkingLevel } from '../../config/agentModels'
@@ -568,6 +569,9 @@ function applyPreference(
       return
     case 'composerSubmitMode':
       setComposerSubmitMode(payload.value as ComposerSubmitMode)
+      return
+    case 'showAgentUsageStats':
+      setShowAgentUsageStats(Boolean(payload.value))
       return
     case 'stripDownloadMetadata':
       setStripDownloadMetadata(Boolean(payload.value))

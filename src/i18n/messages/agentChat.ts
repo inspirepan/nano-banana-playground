@@ -54,6 +54,17 @@ export const agentChatMessages: MessageDictionary = {
   'agentChat.message.editSave': { 'zh-CN': '保存', en: 'Save' },
   'agentChat.message.editCancel': { 'zh-CN': '取消', en: 'Cancel' },
   'agentChat.message.scrollToUserMessage': { 'zh-CN': '滚动到这条用户消息', en: 'Scroll to this user message' },
+  'agentChat.usage.input': { 'zh-CN': '输入', en: 'Input' },
+  'agentChat.usage.cacheRead': { 'zh-CN': '缓存读', en: 'Cache read' },
+  'agentChat.usage.cacheWrite': { 'zh-CN': '缓存写', en: 'Cache write' },
+  'agentChat.usage.output': { 'zh-CN': '输出', en: 'Output' },
+  'agentChat.usage.outputWithThinking': {
+    'zh-CN': '{output}（其中思考 {thinking}）',
+    en: '{output} (thinking {thinking})',
+  },
+  'agentChat.usage.context': { 'zh-CN': '上下文', en: 'Context' },
+  'agentChat.usage.cost': { 'zh-CN': '费用', en: 'Cost' },
+  'agentChat.usage.details': { 'zh-CN': '用量详情', en: 'Usage details' },
   'agentChat.error.requestAborted': { 'zh-CN': '请求已中断', en: 'Request was aborted' },
   'agentChat.composer.placeholder.questionPending': {
     'zh-CN': '跳过问卷并发送…',

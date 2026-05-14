@@ -1,4 +1,5 @@
 import { AGENT_MODEL_CONFIGS, AGENT_THINKING_OPTIONS, type AgentThinkingLevel } from '../config/agentModels'
+import { getShowAgentUsageStats } from '../config/agentUsageStats'
 import { getComposerSubmitMode, type ComposerSubmitMode } from '../config/composerSubmitMode'
 import { isLanguagePreference, type LanguagePreference } from '../config/languages'
 import type { Provider } from '../config/models'
@@ -78,6 +79,7 @@ export type PreferenceImportKey =
   | 'preferredAgentModel'
   | 'preferredAgentThinkingLevel'
   | 'composerSubmitMode'
+  | 'showAgentUsageStats'
   | 'stripDownloadMetadata'
 
 export type SettingsImportGroup =
@@ -234,6 +236,13 @@ const PREFERENCE_DESCRIPTORS: PreferenceDescriptor[] = [
     labelKey: 'settings.backup.item.composerSubmitMode',
     read: getComposerSubmitMode,
     normalize: (value) => (value === 'cmdEnter' || value === 'enter' ? (value as ComposerSubmitMode) : null),
+  },
+  {
+    key: 'showAgentUsageStats',
+    group: 'agent',
+    labelKey: 'settings.backup.item.showAgentUsageStats',
+    read: getShowAgentUsageStats,
+    normalize: normalizeBoolean,
   },
   {
     key: 'stripDownloadMetadata',

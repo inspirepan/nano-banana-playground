@@ -16,6 +16,8 @@ import {
   agentMessageImages,
   agentMessageRole,
   agentMessageText,
+  agentMessageThinking,
+  agentMessageUsage,
   displayNameForLanguage,
   imageDataUrl,
   stripSystemDirectives,
@@ -31,9 +33,15 @@ import {
 } from '../agent'
 import type { AgentSessionMessageMetadata } from '../agent/sessionTypes'
 import { isNewConversationCommand } from '../agent/slashCommands'
-import { resolveAgentModelConfig, type AgentModelConfig, type AgentThinkingLevel } from '../config/agentModels'
+import {
+  getAgentUsageCost,
+  resolveAgentModelConfig,
+  type AgentModelConfig,
+  type AgentThinkingLevel,
+} from '../config/agentModels'
 import type { Provider } from '../config/models'
 import { useExternalSync, useWindowEvent } from '../hooks/effects'
+import { useShowAgentUsageStats } from '../hooks/useShowAgentUsageStats'
 import type { ApiKeyStatus } from '../hooks/useApiKey'
 import type { GenerationJob } from '../hooks/usePlayground'
 import { useI18n } from '../i18n'
@@ -44,7 +52,7 @@ import { AgentChatComposer, type AgentChatComposerHandle } from './agent-chat/Ag
 import { AgentChatEmptyState, QuickCompletePanel } from './agent-chat/AgentChatEmptyState'
 import { AgentChatHeader } from './agent-chat/AgentChatHeader'
 import { isDrawingSkill } from './agent-chat/drawingSkills'
-import { MessageBubble } from './agent-chat/MessageBubble'
+import { MessageBubble, type AgentTaskUsageStats } from './agent-chat/MessageBubble'
 import { ToolActivityCard } from './agent-chat/ToolActivityCard'
 import type { AgentChatMenu, AgentImageTaskFocusHandler } from './agent-chat/types'
 import { buildChatRenderItems, isImageFile, parseDraggedPlaygroundImage } from './agent-chat/utils'
@@ -110,6 +118,61 @@ function AgentRunningIndicator({ label }: { label: string }) {
       </div>
     </div>
   )
+}
+
+type MutableAgentTaskUsageStats = AgentTaskUsageStats & { hasUsage: boolean }
+
+function numberOrZero(value: unknown): number {
+  return typeof value === 'number' && Number.isFinite(value) ? value : 0
+}
+
+function emptyAgentTaskUsageStats(): MutableAgentTaskUsageStats {
+  return {
+    input: 0,
+    cacheRead: 0,
+    cacheWrite: 0,
+    output: 0,
+    thinking: 0,
+    contextTokens: 0,
+    contextWindow: 0,
+    cost: 0,
+    costInput: 0,
+    costCacheRead: 0,
+    costCacheWrite: 0,
+    costOutput: 0,
+    hasUsage: false,
+  }
+}
+
+function contextTokensForUsage(usage: NonNullable<ReturnType<typeof agentMessageUsage>>): number {
+  return (
+    numberOrZero(usage.totalTokens) ||
+    numberOrZero(usage.input) +
+      numberOrZero(usage.output) +
+      numberOrZero(usage.cacheRead) +
+      numberOrZero(usage.cacheWrite)
+  )
+}
+
+function thinkingTokensForMessage(
+  message: AgentMessage,
+  usage: NonNullable<ReturnType<typeof agentMessageUsage>>,
+): number {
+  const raw = usage as unknown as Record<string, unknown>
+  const candidates = [raw.thinking, raw.thinkingTokens, raw.reasoningTokens, raw.reasoning_tokens]
+  for (const candidate of candidates) {
+    const value = numberOrZero(candidate)
+    if (value > 0) return value
+  }
+
+  const thinking = agentMessageThinking(message).trim()
+  return thinking ? Math.ceil(thinking.length / 4) : 0
+}
+
+function isTaskBoundaryUserMessage(message: AgentMessage): boolean {
+  if (agentMessageRole(message) !== 'user') return false
+  const text = agentMessageText(message)
+  return !(stripSystemDirectives(text).trim() === '' && text.trim().startsWith('<system>'))
 }
 
 const QueuedMessagesCard = memo(function QueuedMessagesCard({
@@ -286,6 +349,7 @@ export function AgentChatPanel({
   wideLayout = false,
 }: Props) {
   const { t, language } = useI18n()
+  const { showAgentUsageStats } = useShowAgentUsageStats()
   const scrollRef = useRef<HTMLDivElement>(null)
   const transcriptRef = useRef<HTMLDivElement>(null)
   const controlsRef = useRef<HTMLDivElement>(null)
@@ -359,8 +423,13 @@ export function AgentChatPanel({
         continue
       }
       if (role !== 'assistant') continue
-      if (nextVisibleAssistantStartsTurn) titled.add(item.message)
-      nextVisibleAssistantStartsTurn = false
+      const hasVisibleContent =
+        stripSystemDirectives(agentMessageText(item.message)).trim() !== '' ||
+        agentMessageThinking(item.message).trim() !== '' ||
+        agentMessageImages(item.message).length > 0 ||
+        Boolean(agentMessageError(item.message))
+      if (nextVisibleAssistantStartsTurn && hasVisibleContent) titled.add(item.message)
+      if (hasVisibleContent) nextVisibleAssistantStartsTurn = false
     }
     return titled
   }, [renderItems])
@@ -373,6 +442,101 @@ export function AgentChatPanel({
     },
     [messageMetadata, model.label, titledAssistantMessages],
   )
+  const assistantModelFor = useCallback(
+    (message: AgentMessage, itemIsStreaming: boolean): AgentModelConfig | undefined => {
+      const metadata = messageMetadata.get(message)
+      if (metadata?.modelId) return resolveAgentModelConfig(metadata.modelId)
+
+      const raw = message as unknown as { model?: unknown; provider?: unknown }
+      if (typeof raw.model === 'string') {
+        const provider = typeof raw.provider === 'string' ? raw.provider : undefined
+        const fromMessage =
+          models.find((item) => item.model.id === raw.model && (!provider || item.provider === provider)) ??
+          models.find((item) => item.id === raw.model || item.model.id === raw.model)
+        if (fromMessage) return fromMessage
+      }
+
+      return itemIsStreaming ? model : undefined
+    },
+    [messageMetadata, model, models],
+  )
+  const taskUsageStatsByMessage = useMemo(() => {
+    const map = new WeakMap<AgentMessage, AgentTaskUsageStats>()
+    if (!showAgentUsageStats) return map
+
+    let stats = emptyAgentTaskUsageStats()
+    let lastAssistantMessage: AgentMessage | null = null
+
+    const flush = () => {
+      if (!lastAssistantMessage || !stats.hasUsage) return
+      map.set(lastAssistantMessage, {
+        input: stats.input,
+        cacheRead: stats.cacheRead,
+        cacheWrite: stats.cacheWrite,
+        output: stats.output,
+        thinking: stats.thinking,
+        contextTokens: stats.contextTokens,
+        contextWindow: stats.contextWindow,
+        cost: stats.cost,
+        costInput: stats.costInput,
+        costCacheRead: stats.costCacheRead,
+        costCacheWrite: stats.costCacheWrite,
+        costOutput: stats.costOutput,
+      })
+    }
+
+    for (const item of renderItems) {
+      if (item.type !== 'message') continue
+      const role = agentMessageRole(item.message)
+      if (isTaskBoundaryUserMessage(item.message)) {
+        flush()
+        stats = emptyAgentTaskUsageStats()
+        lastAssistantMessage = null
+        continue
+      }
+      if (role !== 'assistant' || item.isStreaming) continue
+
+      const usage = agentMessageUsage(item.message)
+      if (!usage) continue
+
+      const usageModel = assistantModelFor(item.message, item.isStreaming)
+      const contextTokens = contextTokensForUsage(usage)
+      const rawCost = (
+        usage as unknown as {
+          cost?: { input?: unknown; output?: unknown; cacheRead?: unknown; cacheWrite?: unknown; total?: unknown }
+        }
+      ).cost
+      const costParts = usageModel
+        ? getAgentUsageCost(usageModel, usage)
+        : {
+            input: numberOrZero(rawCost?.input),
+            output: numberOrZero(rawCost?.output),
+            cacheRead: numberOrZero(rawCost?.cacheRead),
+            cacheWrite: numberOrZero(rawCost?.cacheWrite),
+            total: numberOrZero(rawCost?.total),
+          }
+      const cost = numberOrZero(costParts.total)
+      if (contextTokens + cost <= 0) continue
+
+      stats.input += numberOrZero(usage.input)
+      stats.cacheRead += numberOrZero(usage.cacheRead)
+      stats.cacheWrite += numberOrZero(usage.cacheWrite)
+      stats.output += numberOrZero(usage.output)
+      stats.thinking += thinkingTokensForMessage(item.message, usage)
+      stats.contextTokens = contextTokens
+      stats.contextWindow = usageModel?.model.contextWindow ?? stats.contextWindow
+      stats.cost += cost
+      stats.costInput += numberOrZero(costParts?.input)
+      stats.costCacheRead += numberOrZero(costParts?.cacheRead)
+      stats.costCacheWrite += numberOrZero(costParts?.cacheWrite)
+      stats.costOutput += numberOrZero(costParts?.output)
+      stats.hasUsage = true
+      lastAssistantMessage = item.message
+    }
+
+    flush()
+    return map
+  }, [assistantModelFor, renderItems, showAgentUsageStats])
   const latestMessageError = useMemo(() => {
     for (let index = visibleMessages.length - 1; index >= 0; index--) {
       const messageError = agentMessageError(visibleMessages[index])
@@ -839,6 +1003,7 @@ export function AgentChatPanel({
                         message={item.message}
                         isStreaming={item.isStreaming}
                         assistantTitle={assistantTitleFor(item.message, item.isStreaming)}
+                        taskUsageStats={taskUsageStatsByMessage.get(item.message)}
                         onOpenImageTaskImage={handleOpenImageTaskImage}
                       />
                     </div>
