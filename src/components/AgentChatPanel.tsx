@@ -801,9 +801,8 @@ export function AgentChatPanel({
     ? t('agentChat.header.loadingSessions')
     : (currentSessionForTitle?.title ?? t('agentChat.header.newConversation'))
   const showFloatingTitle = wideLayout && !isEmpty && !sessionsLoading && Boolean(currentSessionForTitle)
-  // Wide layout has a floating frosted title overlay (~21+30+6 frosted +
-  // 24 gradient = ~81px); reserve enough top padding so the first message
-  // clears it when the scroll container is at its top.
+  // Wide layout has a floating title overlay (~21+30+6px) plus a 24px cover;
+  // reserve enough top padding so the first message clears it at the scroll top.
   const scrollBodyClass = wideLayout
     ? 'flex-1 overflow-y-auto overscroll-y-none pt-[88px] pb-8 md:[scrollbar-gutter:stable_both-edges]'
     : 'flex-1 overflow-y-auto overscroll-y-none pt-14 pb-8 md:[scrollbar-gutter:stable_both-edges]'
@@ -943,9 +942,7 @@ export function AgentChatPanel({
                 aria-label={t('agentChat.header.scrollToTop')}
                 className={`block w-full cursor-pointer text-center transition-colors ${contentRightPaddingClass} group`}
                 style={{
-                  backdropFilter: 'saturate(140%) blur(8px)',
-                  WebkitBackdropFilter: 'saturate(140%) blur(8px)',
-                  background: 'color-mix(in srgb, var(--color-bg) 55%, transparent)',
+                  background: 'var(--color-bg)',
                   paddingTop: '21px',
                   paddingBottom: '6px',
                 }}
@@ -962,7 +959,7 @@ export function AgentChatPanel({
             </Tooltip>
             <div
               aria-hidden
-              className="h-6 bg-[linear-gradient(to_bottom,color-mix(in_srgb,var(--color-bg)_55%,transparent)_0%,transparent_100%)]"
+              className="h-6 bg-[linear-gradient(to_bottom,var(--color-bg)_0%,transparent_100%)]"
             />
           </div>
         ) : !isEmpty ? (
