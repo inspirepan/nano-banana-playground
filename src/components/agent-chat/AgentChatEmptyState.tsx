@@ -72,9 +72,9 @@ export function QuickCompletePanel({ onInsertText }: { onInsertText: (text: stri
   }
 
   return (
-    <div className="mx-auto w-full max-w-[980px] overflow-hidden rounded-[var(--radius-lg)] bg-(--color-bg) shadow-[inset_0_0_0_1px_var(--ring-edge)]">
-      <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)_minmax(0,0.72fr)_minmax(0,0.72fr)]">
-        <section className="min-w-0 p-2">
+    <div className="@container/quick mx-auto w-full max-w-[980px] overflow-hidden rounded-[var(--radius-lg)] bg-(--color-bg) shadow-[inset_0_0_0_1px_var(--ring-edge)]">
+      <div className="grid grid-cols-2 @[960px]/quick:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)_minmax(0,0.72fr)_minmax(0,0.72fr)]">
+        <section className="col-span-2 min-w-0 p-2 @[960px]/quick:col-span-1">
           <div className="mb-1.5 flex items-center gap-1.5 text-sm font-semibold text-(--color-text-2)">
             <Icon name="bot" size={13} className="text-(--color-text-3)" />
             <span>{t('agentChat.empty.quick.model')}</span>
@@ -100,9 +100,8 @@ export function QuickCompletePanel({ onInsertText }: { onInsertText: (text: stri
           </div>
         </section>
 
-        {/* Dividers collapse to the top edge on mobile (stacked) and the left
-           edge on md+ (side-by-side) so adjacent sections always sit flush. */}
-        <section className="min-w-0 p-2 shadow-[inset_0_1px_0_var(--ring-edge-soft)] md:shadow-[inset_1px_0_0_var(--ring-edge-soft)]">
+        {/* Narrow panels use three rows; wide panels collapse back into columns. */}
+        <section className="col-span-2 min-w-0 p-2 shadow-[inset_0_1px_0_var(--ring-edge-soft)] @[960px]/quick:col-span-1 @[960px]/quick:shadow-[inset_1px_0_0_var(--ring-edge-soft)]">
           <div className="mb-1.5 flex items-center gap-1.5 text-sm font-semibold text-(--color-text-2)">
             <Icon name="crop" size={13} className="text-(--color-text-3)" />
             <span>{t('agentChat.empty.quick.aspect')}</span>
@@ -124,7 +123,7 @@ export function QuickCompletePanel({ onInsertText }: { onInsertText: (text: stri
           </div>
         </section>
 
-        <section className="min-w-0 p-2 shadow-[inset_0_1px_0_var(--ring-edge-soft)] md:shadow-[inset_1px_0_0_var(--ring-edge-soft)]">
+        <section className="min-w-0 p-2 shadow-[inset_0_1px_0_var(--ring-edge-soft)] @[960px]/quick:shadow-[inset_1px_0_0_var(--ring-edge-soft)]">
           <div className="mb-1.5 flex items-center gap-1.5 text-sm font-semibold text-(--color-text-2)">
             <Icon name="maximize" size={13} className="text-(--color-text-3)" />
             <span>{t('agentChat.empty.quick.resolution')}</span>
@@ -145,7 +144,7 @@ export function QuickCompletePanel({ onInsertText }: { onInsertText: (text: stri
           </div>
         </section>
 
-        <section className="min-w-0 p-2 shadow-[inset_0_1px_0_var(--ring-edge-soft)] md:shadow-[inset_1px_0_0_var(--ring-edge-soft)]">
+        <section className="min-w-0 p-2 shadow-[inset_1px_0_0_var(--ring-edge-soft),inset_0_1px_0_var(--ring-edge-soft)] @[960px]/quick:shadow-[inset_1px_0_0_var(--ring-edge-soft)]">
           <div className="mb-1.5 flex items-center gap-1.5 text-sm font-semibold text-(--color-text-2)">
             <Icon name="images" size={13} className="text-(--color-text-3)" />
             <span>{t('agentChat.empty.quick.count')}</span>
