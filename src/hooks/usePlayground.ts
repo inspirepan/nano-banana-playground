@@ -180,6 +180,7 @@ export function usePlayground() {
   const [referenceImageError, setReferenceImageError] = useState<string | null>(null)
   const [history, setHistoryRaw] = useState<PlaygroundImageMeta[]>([])
   const [historyHasMore, setHistoryHasMore] = useState(true)
+  const [historyLoaded, setHistoryLoaded] = useState(false)
   const historyLoadingRef = useRef(false)
   const historyLengthRef = useRef(0)
 
@@ -419,6 +420,9 @@ export function usePlayground() {
       .catch(() => {
         setHistory([])
         setHistoryHasMore(false)
+      })
+      .finally(() => {
+        setHistoryLoaded(true)
       })
   })
 
@@ -930,6 +934,7 @@ export function usePlayground() {
     referenceImageError,
     history,
     historyHasMore,
+    historyLoaded,
     generationJobs,
     generationQueueSummary,
     generationConcurrency,

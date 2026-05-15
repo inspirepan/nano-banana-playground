@@ -23,6 +23,7 @@ type Props = {
   inputPanelProps: SharedInputPanelProps
   history: OutputPanelProps['history']
   historyHasMore: OutputPanelProps['historyHasMore']
+  historyLoaded: OutputPanelProps['historyLoaded']
   generationJobs: OutputPanelProps['generationJobs']
   highlightStackId: OutputPanelProps['highlightStackId']
   mobileDetailStack: ImageStack | null
@@ -54,6 +55,7 @@ export function MobileLayout({
   inputPanelProps,
   history,
   historyHasMore,
+  historyLoaded,
   generationJobs,
   highlightStackId,
   mobileDetailStack,
@@ -124,6 +126,7 @@ export function MobileLayout({
             <OutputPanel
               history={history}
               historyHasMore={historyHasMore}
+              historyLoaded={historyLoaded}
               generationJobs={generationJobs}
               onCancelGenerationJob={onCancelGenerationJob}
               onDismissGenerationJob={onDismissGenerationJob}

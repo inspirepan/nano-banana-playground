@@ -31,6 +31,7 @@ function isEditableKeyboardTarget(target: EventTarget | null): boolean {
 type Props = {
   history: PlaygroundImageMeta[]
   historyHasMore: boolean
+  historyLoaded: boolean
   generationJobs: GenerationJob[]
   onCancelGenerationJob: (jobId: string) => void
   onDismissGenerationJob: (jobId: string) => void
@@ -68,6 +69,7 @@ type RetryActionResult = { ok: boolean; message: string; batchId?: string; slotI
 export const OutputPanel = memo(function OutputPanel({
   history,
   historyHasMore,
+  historyLoaded,
   generationJobs,
   onCancelGenerationJob,
   onDismissGenerationJob,
@@ -422,6 +424,8 @@ export const OutputPanel = memo(function OutputPanel({
             </div>
           )}
         </div>
+      ) : !historyLoaded ? (
+        <div className="min-h-[180px]" />
       ) : (
         <div className="gallery-empty px-5 py-6 text-(--color-text-3)">
           <div className="relative flex max-w-[58ch] items-start gap-3">

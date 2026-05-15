@@ -43,6 +43,7 @@ type Props = {
   onExternalDetailTargetConsumed: OutputPanelProps['onExternalDetailTargetConsumed']
   history: OutputPanelProps['history']
   historyHasMore: OutputPanelProps['historyHasMore']
+  historyLoaded: OutputPanelProps['historyLoaded']
   generationJobs: OutputPanelProps['generationJobs']
   onCancelGenerationJob: OutputPanelProps['onCancelGenerationJob']
   onDismissGenerationJob: OutputPanelProps['onDismissGenerationJob']
@@ -76,6 +77,7 @@ export function DesktopLayout({
   onExternalDetailTargetConsumed,
   history,
   historyHasMore,
+  historyLoaded,
   generationJobs,
   onCancelGenerationJob,
   onDismissGenerationJob,
@@ -186,6 +188,7 @@ export function DesktopLayout({
     <OutputPanel
       history={history}
       historyHasMore={historyHasMore}
+      historyLoaded={historyLoaded}
       generationJobs={generationJobs}
       onCancelGenerationJob={onCancelGenerationJob}
       onDismissGenerationJob={onDismissGenerationJob}

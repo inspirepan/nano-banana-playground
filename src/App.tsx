@@ -153,6 +153,7 @@ function App() {
         inputPanelProps={sharedInputPanelProps}
         history={pg.history}
         historyHasMore={pg.historyHasMore}
+        historyLoaded={pg.historyLoaded}
         generationJobs={pg.generationJobs}
         highlightStackId={highlightStackId}
         mobileDetailStack={mobileDetailState ? mobileDetailStack : null}
@@ -193,6 +194,7 @@ function App() {
         onExternalDetailTargetConsumed={handleDesktopDetailTargetConsumed}
         history={pg.history}
         historyHasMore={pg.historyHasMore}
+        historyLoaded={pg.historyLoaded}
         generationJobs={pg.generationJobs}
         onCancelGenerationJob={pg.cancelGenerationJob}
         onDismissGenerationJob={pg.dismissGenerationJob}
