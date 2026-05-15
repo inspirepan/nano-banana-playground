@@ -1,6 +1,4 @@
 import {
-  lazy,
-  Suspense,
   useCallback,
   useLayoutEffect,
   useMemo,
@@ -22,11 +20,6 @@ import type { InputMode } from '../hooks/usePlayground'
 import type { Translate } from '../i18n'
 
 type OutputPanelProps = ComponentProps<typeof OutputPanel>
-
-// Dev-only inspector — kept out of production import graph via dynamic import.
-const Agentation = import.meta.env.DEV
-  ? lazy(() => import('agentation').then((module) => ({ default: module.Agentation })))
-  : null
 
 type Props = {
   inputMode: InputMode
@@ -374,11 +367,6 @@ export function DesktopLayout({
           </div>
         ) : (
           outputPanel
-        )}
-        {Agentation && (
-          <Suspense fallback={null}>
-            <Agentation />
-          </Suspense>
         )}
       </div>
     </div>

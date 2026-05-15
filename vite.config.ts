@@ -357,7 +357,6 @@ export default defineConfig({
             return 'vendor-lucide'
           }
           if (id.includes('/react/') || id.includes('/react-dom/')) return 'vendor-react'
-          if (id.includes('/agentation/')) return 'vendor-agentation'
           if (id.includes('/@mariozechner+pi-agent') || id.includes('/@mariozechner/pi-agent/')) {
             return 'vendor-pi-agent'
           }
