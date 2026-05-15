@@ -428,11 +428,8 @@ export const OutputPanel = memo(function OutputPanel({
         <div className="min-h-[180px]" />
       ) : (
         <div className="gallery-empty px-5 py-6 text-(--color-text-3)">
-          <div className="relative flex max-w-[58ch] items-start gap-3">
-            <span className="gallery-empty__icon" aria-hidden="true">
-              <Icon name="image" size={16} strokeWidth={1.7} />
-            </span>
-            <div className="min-w-0 pt-0.5">
+          <div className="max-w-[58ch]">
+            <div className="min-w-0">
               <div className="label mb-2">{t('output.emptyHistory')}</div>
               <div className="text-base font-medium text-(--color-text-2)">{t('output.emptyTitle')}</div>
               <div className="mt-1 text-pretty text-sm leading-[1.7] text-(--color-text-3)">
