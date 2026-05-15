@@ -1,6 +1,7 @@
 import { translate } from '../i18n'
+import { base64ToBlob } from './blobUtils'
 
-type ImageDataResult = { base64: string; mimeType: string; fileName: string }
+export type ImageDataResult = { base64: string; mimeType: string; fileName: string }
 
 const HEIF_MIME_TYPES = new Set([
   'image/heic',
@@ -13,6 +14,8 @@ const HEIF_MIME_TYPES = new Set([
 
 const HEIF_EXT_RE = /\.(heic|heif|heics|heifs)$/i
 
+const HEIF_BRANDS = new Set(['heic', 'heix', 'hevc', 'hevx', 'heim', 'heis', 'hevm', 'hevs', 'mif1', 'msf1'])
+
 const MIME_BY_EXT: Record<string, string> = {
   avif: 'image/avif',
   gif: 'image/gif',
@@ -22,13 +25,52 @@ const MIME_BY_EXT: Record<string, string> = {
   webp: 'image/webp',
 }
 
+export function normalizeImageMimeType(mimeType: string): string {
+  const normalized = mimeType.trim().toLowerCase()
+  return normalized === 'image/jpg' ? 'image/jpeg' : normalized
+}
+
+export function isHeifImageSource(mimeType: string, fileName?: string): boolean {
+  return HEIF_MIME_TYPES.has(normalizeImageMimeType(mimeType)) || (fileName ? HEIF_EXT_RE.test(fileName) : false)
+}
+
 export function isHeifFile(file: File): boolean {
-  const mimeType = file.type.toLowerCase()
-  return HEIF_MIME_TYPES.has(mimeType) || HEIF_EXT_RE.test(file.name)
+  return isHeifImageSource(file.type, file.name)
+}
+
+function ascii(bytes: Uint8Array, start: number, end: number): string {
+  return String.fromCharCode(...bytes.slice(start, end))
+}
+
+function bytesLookLikeHeif(bytes: Uint8Array): boolean {
+  if (bytes.length < 12 || ascii(bytes, 4, 8) !== 'ftyp') return false
+  if (HEIF_BRANDS.has(ascii(bytes, 8, 12))) return true
+  for (let offset = 16; offset + 4 <= bytes.length; offset += 4) {
+    if (HEIF_BRANDS.has(ascii(bytes, offset, offset + 4))) return true
+  }
+  return false
+}
+
+function base64LooksLikeHeif(data: string): boolean {
+  try {
+    const binary = globalThis.atob(data.replace(/\s+/g, '').slice(0, 96))
+    const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0))
+    return bytesLookLikeHeif(bytes)
+  } catch {
+    return false
+  }
+}
+
+async function blobLooksLikeHeif(blob: Blob): Promise<boolean> {
+  try {
+    return bytesLookLikeHeif(new Uint8Array(await blob.slice(0, 64).arrayBuffer()))
+  } catch {
+    return false
+  }
 }
 
 function inferMimeType(file: File): string {
-  if (file.type) return file.type
+  if (file.type) return normalizeImageMimeType(file.type)
   const ext = file.name.split('.').pop()?.toLowerCase()
   return ext ? (MIME_BY_EXT[ext] ?? '') : ''
 }
@@ -55,8 +97,8 @@ function canvasToPngBlob(canvas: HTMLCanvasElement, fileName: string): Promise<B
   })
 }
 
-async function convertWithCanvas(file: File): Promise<Blob> {
-  const bitmap = await createImageBitmap(file)
+async function convertWithCanvas(blob: Blob, fileName: string): Promise<Blob> {
+  const bitmap = await createImageBitmap(blob)
   try {
     const canvas = document.createElement('canvas')
     canvas.width = bitmap.width
@@ -64,28 +106,50 @@ async function convertWithCanvas(file: File): Promise<Blob> {
     const ctx = canvas.getContext('2d')
     if (!ctx) throw new Error(translate('configLib.fileToImage.canvasContextFailed'))
     ctx.drawImage(bitmap, 0, 0)
-    return await canvasToPngBlob(canvas, file.name)
+    return await canvasToPngBlob(canvas, fileName)
   } finally {
     bitmap.close()
   }
 }
 
-async function convertHeifToPng(file: File): Promise<Blob> {
+async function convertHeifToPng(blob: Blob, fileName: string): Promise<Blob> {
   try {
-    return await convertWithCanvas(file)
+    return await convertWithCanvas(blob, fileName)
   } catch {
     const { default: heic2any } = await import('heic2any')
-    const converted = await heic2any({ blob: file, toType: 'image/png' })
-    const blob = Array.isArray(converted) ? converted[0] : converted
-    if (!blob) throw new Error(translate('configLib.fileToImage.convertFailed', { fileName: file.name }))
-    return blob
+    const converted = await heic2any({ blob, toType: 'image/png' })
+    const output = Array.isArray(converted) ? converted[0] : converted
+    if (!output) throw new Error(translate('configLib.fileToImage.convertFailed', { fileName }))
+    return output
+  }
+}
+
+export async function convertImageDataToPng({
+  base64,
+  mimeType,
+  fileName = 'image',
+}: ImageDataResult): Promise<ImageDataResult> {
+  const normalizedMimeType = normalizeImageMimeType(mimeType) || 'application/octet-stream'
+  const sourceIsHeif = isHeifImageSource(normalizedMimeType, fileName) || base64LooksLikeHeif(base64)
+  const blob = base64ToBlob(base64, normalizedMimeType)
+  try {
+    const png = sourceIsHeif ? await convertHeifToPng(blob, fileName) : await convertWithCanvas(blob, fileName)
+    return {
+      base64: await readBlobAsBase64(png),
+      mimeType: 'image/png',
+      fileName: pngFileName(fileName),
+    }
+  } catch {
+    const key = sourceIsHeif ? 'configLib.fileToImage.heifConvertFailed' : 'configLib.fileToImage.convertFailed'
+    throw new Error(translate(key, { fileName }))
   }
 }
 
 // Convert a File to base64 + normalized mime. HEIC/HEIF is transcoded to PNG
 // because image generation APIs do not consistently accept it.
 export async function readFileAsImageData(file: File): Promise<ImageDataResult | null> {
-  if (!isHeifFile(file)) {
+  const sourceIsHeif = isHeifFile(file) || (await blobLooksLikeHeif(file))
+  if (!sourceIsHeif) {
     return {
       base64: await readBlobAsBase64(file),
       mimeType: inferMimeType(file),
@@ -94,7 +158,7 @@ export async function readFileAsImageData(file: File): Promise<ImageDataResult |
   }
 
   try {
-    const png = await convertHeifToPng(file)
+    const png = await convertHeifToPng(file, file.name)
     return {
       base64: await readBlobAsBase64(png),
       mimeType: 'image/png',

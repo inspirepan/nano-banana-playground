@@ -9,6 +9,7 @@ import {
 } from './retry'
 import type { GenerateCallbacks, GenerateParams } from './types'
 import { base64ToBlob } from '../blobUtils'
+import { convertImageDataToPng, normalizeImageMimeType } from '../fileToImage'
 import { openAISize } from '../openai'
 import type { PlaygroundImage, TokenUsage } from '../types'
 import { resolveBaseUrl } from '../validateKey'
@@ -24,6 +25,34 @@ type OpenAIImageResponse = {
   }
   error?: string | { message?: string; code?: string; status?: number }
   message?: string
+}
+
+const OPENAI_REFERENCE_MIME_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp'])
+
+function openAIReferenceFileName(image: PlaygroundImage, mimeType: string): string {
+  const extension = mimeType === 'image/jpeg' ? 'jpg' : (mimeType.split('/')[1] ?? 'png')
+  const baseName = image.source.type === 'upload' ? image.source.fileName.replace(/\.[^.]+$/, '') : image.id
+  return `${baseName}.${extension}`
+}
+
+async function openAIReferenceBlob(image: PlaygroundImage): Promise<{ blob: Blob; fileName: string }> {
+  const sourceMimeType = normalizeImageMimeType(image.mimeType || 'image/png') || 'image/png'
+  if (OPENAI_REFERENCE_MIME_TYPES.has(sourceMimeType)) {
+    return {
+      blob: base64ToBlob(image.data, sourceMimeType),
+      fileName: openAIReferenceFileName(image, sourceMimeType),
+    }
+  }
+
+  const converted = await convertImageDataToPng({
+    base64: image.data,
+    mimeType: sourceMimeType,
+    fileName: image.source.type === 'upload' ? image.source.fileName : image.id,
+  })
+  return {
+    blob: base64ToBlob(converted.base64, converted.mimeType),
+    fileName: openAIReferenceFileName(image, converted.mimeType),
+  }
 }
 
 async function readOpenAIImageResponse(res: Response): Promise<OpenAIImageResponse> {
@@ -85,9 +114,8 @@ export async function generateImageOpenAI(
     form.append('quality', quality)
     form.append('n', '1')
     for (const img of referenceImages) {
-      const blob = base64ToBlob(img.data, img.mimeType || 'image/png')
-      const ext = (img.mimeType || 'image/png').split('/')[1] || 'png'
-      form.append('image[]', blob, `ref.${ext}`)
+      const { blob, fileName } = await openAIReferenceBlob(img)
+      form.append('image[]', blob, fileName)
     }
     if (mask) {
       // images.edits requires the mask to match the reference image dimensions.
