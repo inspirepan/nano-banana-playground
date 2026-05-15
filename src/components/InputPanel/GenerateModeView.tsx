@@ -250,6 +250,21 @@ export function GenerateModeView({
         </div>
       </Section>
 
+      {/* Reference images */}
+      <div className="mb-[18px]">
+        <ReferenceImageUpload
+          images={referenceImages}
+          maxTotal={maxRef}
+          dragOver={dragOver}
+          error={referenceImageError}
+          labelClassName={INPUT_LABEL_CLASS}
+          onAdd={onAddReferenceImages}
+          onRemove={onRemoveReferenceImage}
+          onClearAll={onClearAllReferences}
+          onClearError={onClearReferenceImageError}
+        />
+      </div>
+
       {/* CTA */}
       <div className="mb-[22px]">
         <div className="mb-5 pt-3">
@@ -357,21 +372,6 @@ export function GenerateModeView({
             />
           )
         })}
-
-        {/* Reference images */}
-        <div className="mb-[18px]">
-          <ReferenceImageUpload
-            images={referenceImages}
-            maxTotal={maxRef}
-            dragOver={dragOver}
-            error={referenceImageError}
-            labelClassName={INPUT_LABEL_CLASS}
-            onAdd={onAddReferenceImages}
-            onRemove={onRemoveReferenceImage}
-            onClearAll={onClearAllReferences}
-            onClearError={onClearReferenceImageError}
-          />
-        </div>
 
         {/* Batch count */}
         <Section label={t('input.count.label')}>
