@@ -13,6 +13,7 @@ import { LazyChunkLoadErrorBoundary } from './components/LazyChunkLoadErrorBound
 import { usePlayground } from './hooks/usePlayground'
 import { createTranslator, I18nProvider } from './i18n'
 import type { PlaygroundImageMeta } from './lib/types'
+import { readSimpleUrlParams, updateUrl } from './lib/urlState'
 
 const SettingsDialog = lazy(() =>
   import('./components/SettingsDialog').then((module) => ({ default: module.SettingsDialog })),
@@ -32,7 +33,10 @@ function App() {
 
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [settingsTarget, setSettingsTarget] = useState<SettingsTarget | null>(null)
-  const [mobileTab, setMobileTab] = useState<MobileTab>(() => (pg.inputMode === 'agent' ? 'agent' : 'generate'))
+  const [mobileTab, setMobileTab] = useState<MobileTab>(() => {
+    if (readSimpleUrlParams().galleryOpen) return 'gallery'
+    return pg.inputMode === 'agent' ? 'agent' : 'generate'
+  })
 
   const { theme, setTheme, languagePreference, setLanguagePreference, language, browserLanguages } =
     useThemeAndLanguage()
@@ -105,6 +109,7 @@ function App() {
     (mode: 'generate' | 'agent') => {
       pg.setInputMode(mode)
       setMobileTab(mode)
+      updateUrl({ gallery: null })
     },
     [pg],
   )
@@ -112,6 +117,7 @@ function App() {
   const switchMobileTab = useCallback(
     (tab: MobileTab) => {
       setMobileTab(tab)
+      updateUrl({ gallery: tab === 'gallery' ? '1' : null })
       if (tab === 'generate' || tab === 'agent') pg.setInputMode(tab)
     },
     [pg],
@@ -123,6 +129,7 @@ function App() {
       if (!switched) return false
       pg.setInputMode('agent')
       setMobileTab('agent')
+      updateUrl({ gallery: null })
       return true
     },
     [pg],
@@ -132,6 +139,7 @@ function App() {
     pg.generate()
     if (window.innerWidth < 768) {
       setMobileTab('gallery')
+      updateUrl({ gallery: '1' })
     }
   }
 

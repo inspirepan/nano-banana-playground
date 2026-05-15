@@ -23,6 +23,7 @@ describe('readSimpleUrlParams', () => {
       aspectRatio: '16:9',
       batchCount: 3,
       prompt: 'hello',
+      galleryOpen: false,
       agentMode: false,
       agentSessionId: null,
       rawParams: {
@@ -46,6 +47,7 @@ describe('readSimpleUrlParams', () => {
       aspectRatio: null,
       batchCount: null,
       prompt: null,
+      galleryOpen: false,
       agentMode: false,
       agentSessionId: null,
       rawParams: {},
@@ -64,6 +66,11 @@ describe('readSimpleUrlParams', () => {
     const params = readSimpleUrlParams()
     expect(params.agentMode).toBe(true)
     expect(params.agentSessionId).toBe(AGENT_MODE_SENTINEL)
+  })
+
+  it('parses the mobile gallery open flag', () => {
+    mockWindow('?gallery=1')
+    expect(readSimpleUrlParams().galleryOpen).toBe(true)
   })
 
   it('returns null batchCount for non-numeric n', () => {
